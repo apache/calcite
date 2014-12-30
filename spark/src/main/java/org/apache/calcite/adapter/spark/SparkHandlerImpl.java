@@ -22,8 +22,7 @@ import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.runtime.Bindable;
-import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.util.javac.JaninoCompiler;
 
 import org.apache.spark.api.java.JavaSparkContext;
@@ -102,14 +101,13 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return true;
   }
 
-  public Bindable compile(ClassDeclaration expr, String s) {
+  public ArrayBindable compile(ClassDeclaration expr, String s) {
     try {
       String className = "CalciteProgram" + classId.getAndIncrement();
       File file = new File(SRC_DIR, className + ".java");
       FileWriter fileWriter = new FileWriter(file, false);
       String source = "public class " + className + "\n"
-          + "    implements " + Bindable.class.getName()
-          + ", " + Typed.class.getName()
+          + "    implements " + ArrayBindable.class.getName()
           + ", " + Serializable.class.getName()
           + " {\n"
           + s + "\n"
@@ -128,7 +126,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
       compiler.compile();
       Class<?> clazz = Class.forName(className);
       Object o = clazz.newInstance();
-      return (Bindable) o;
+      return (ArrayBindable) o;
     } catch (IOException e) {
       throw new RuntimeException(e);
     } catch (ClassNotFoundException e) {

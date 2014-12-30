@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 
 /**
@@ -46,24 +48,32 @@ public abstract class ConverterRule extends RelOptRule {
    * @param out         Trait which is converted to
    * @param description Description of rule
    */
-  public ConverterRule(
-      Class<? extends RelNode> clazz,
-      RelTrait in,
-      RelTrait out,
+  public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
+      RelTrait out, String description) {
+    this(clazz, Predicates.<RelNode>alwaysTrue(), in, out, description);
+  }
+
+  /**
+   * Creates a <code>ConverterRule</code> with a predicate.
+   *
+   * @param clazz       Type of relational expression to consider converting
+   * @param predicate   Predicate on the relational expression
+   * @param in          Trait of relational expression to consider converting
+   * @param out         Trait which is converted to
+   * @param description Description of rule
+   */
+  public <R extends RelNode> ConverterRule(Class<R> clazz,
+      Predicate<? super R> predicate, RelTrait in, RelTrait out,
       String description) {
-    super(
-        new ConverterRelOptRuleOperand(clazz, in),
+    super(new ConverterRelOptRuleOperand(clazz, in, predicate),
         description == null
             ? "ConverterRule<in=" + in + ",out=" + out + ">"
             : description);
-    assert in != null;
-    assert out != null;
+    this.inTrait = Preconditions.checkNotNull(in);
+    this.outTrait = Preconditions.checkNotNull(out);
 
     // Source and target traits must have same type
     assert in.getTraitDef() == out.getTraitDef();
-
-    this.inTrait = in;
-    this.outTrait = out;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -116,9 +126,9 @@ public abstract class ConverterRule extends RelOptRule {
    * Operand to an instance of the converter rule.
    */
   private static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
-    public ConverterRelOptRuleOperand(
-        Class<? extends RelNode> clazz, RelTrait in) {
-      super(clazz, in, Predicates.<RelNode>alwaysTrue(), any());
+    public <R extends RelNode> ConverterRelOptRuleOperand(Class<R> clazz,
+        RelTrait in, Predicate<? super R> predicate) {
+      super(clazz, in, predicate, any());
     }
 
     public boolean matches(RelNode rel) {

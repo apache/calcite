@@ -33,6 +33,7 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -78,7 +79,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
             Expressions.convert_(root0_, DataContext.class)));
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(programBuilder.getProgram(),
-        javaTypeFactory, blockBuilder, null, getter, null);
+        javaTypeFactory, blockBuilder, null, root_, getter, null);
     blockBuilder.add(
         Expressions.return_(null,
             Expressions.newArrayInit(Object[].class, expressions)));
@@ -88,7 +89,7 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
             ImmutableList.of(root0_), blockBuilder.toBlock());
     String code = Expressions.toString(methodDecl);
     if (CalcitePrepareImpl.DEBUG) {
-      System.out.println(code);
+      Util.debugCode(System.out, code);
     }
     return code;
   }

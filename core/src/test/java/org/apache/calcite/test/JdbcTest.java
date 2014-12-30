@@ -2129,6 +2129,7 @@ public class JdbcTest {
 
   /** Tests that a relatively complex query on the foodmart schema creates
    * an in-memory aggregate table and then uses it. */
+  @Ignore // DO NOT CHECK IN
   @Test public void testFoodmartLattice() throws IOException {
     // 8: select ... from customer, sales, time ... group by ...
     final FoodmartTest.FoodmartQuery query =

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
 
@@ -30,12 +31,15 @@ import com.google.common.collect.ImmutableMap;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Array;
@@ -1913,8 +1917,9 @@ public class Util {
    * Returns the ordinal of the first element in the list which is equal to a
    * previous element in the list.
    *
-   * <p>For example, <code>firstDuplicate(Arrays.asList("a", "b", "c", "b",
-   * "a"))</code> returns 3, the ordinal of the 2nd "b".
+   * <p>For example,
+   * <code>firstDuplicate(Arrays.asList("a", "b", "c", "b", "a"))</code>
+   * returns 3, the ordinal of the 2nd "b".
    *
    * @param list List
    * @return Ordinal of first duplicate, or -1 if not found
@@ -2063,6 +2068,30 @@ public class Util {
         return entrySet;
       }
     };
+  }
+
+  /**
+   * Prints the given code with line numbering.
+   */
+  public static void debugCode(PrintStream out, String code) {
+    out.println();
+    StringReader sr = new StringReader(code);
+    BufferedReader br = new BufferedReader(sr);
+    try {
+      String line;
+      for (int i = 1; (line = br.readLine()) != null; i++) {
+        out.print("/*");
+        String number = Integer.toString(i);
+        if (number.length() < 4) {
+          Spaces.append(out, 4 - number.length());
+        }
+        out.print(number);
+        out.print(" */ ");
+        out.println(line);
+      }
+    } catch (IOException e) {
+      // not possible
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

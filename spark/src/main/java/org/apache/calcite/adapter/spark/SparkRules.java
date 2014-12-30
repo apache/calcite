@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -343,7 +344,8 @@ public abstract class SparkRules {
                 builder2,
                 new RexToLixTranslator.InputGetterImpl(
                     Collections.singletonList(
-                        Pair.of((Expression) e_, result.physType))), null);
+                        Pair.of((Expression) e_, result.physType))),
+                null);
         builder2.add(
             Expressions.ifThen(
                 Expressions.not(condition),
@@ -358,9 +360,11 @@ public abstract class SparkRules {
               typeFactory,
               builder2,
               null,
+              DataContext.ROOT,
               new RexToLixTranslator.InputGetterImpl(
                   Collections.singletonList(
-                      Pair.of((Expression) e_, result.physType))), null);
+                      Pair.of((Expression) e_, result.physType))),
+              null);
       builder2.add(
           Expressions.return_(null,
               Expressions.convert_(

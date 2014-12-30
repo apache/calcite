@@ -17,6 +17,7 @@
 package org.apache.calcite.tools;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.interpreter.NoneToBindableConverterRule;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -76,6 +77,7 @@ public class Programs {
 
   public static final ImmutableList<RelOptRule> CALC_RULES =
       ImmutableList.of(
+          NoneToBindableConverterRule.INSTANCE,
           EnumerableRules.ENUMERABLE_CALC_RULE,
           EnumerableRules.ENUMERABLE_FILTER_TO_CALC_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE,

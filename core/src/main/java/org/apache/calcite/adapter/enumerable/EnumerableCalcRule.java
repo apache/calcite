@@ -17,11 +17,10 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rex.RexMultisetUtil;
-import org.apache.calcite.rex.RexProgram;
 
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalCalc} to an
@@ -29,22 +28,14 @@ import org.apache.calcite.rex.RexProgram;
  */
 class EnumerableCalcRule extends ConverterRule {
   EnumerableCalcRule() {
-    super(LogicalCalc.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableCalcRule");
+    // The predicate ensures that if there's a multiset, FarragoMultisetSplitter
+    // will work on it first.
+    super(LogicalCalc.class, RelOptUtil.CALC_PREDICATE, Convention.NONE,
+        EnumerableConvention.INSTANCE, "EnumerableCalcRule");
   }
 
   public RelNode convert(RelNode rel) {
     final LogicalCalc calc = (LogicalCalc) rel;
-
-    // If there's a multiset, let FarragoMultisetSplitter work on it
-    // first.
-    final RexProgram program = calc.getProgram();
-    if (EnumUtils.B
-        && RexMultisetUtil.containsMultiset(program)
-        || program.containsAggs()) {
-      return null;
-    }
-
     return new EnumerableCalc(
         rel.getCluster(),
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
@@ -52,7 +43,7 @@ class EnumerableCalcRule extends ConverterRule {
             calc.getInput(),
             calc.getInput().getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),
-        program,
+        calc.getProgram(),
         calc.getCollationList());
   }
 }

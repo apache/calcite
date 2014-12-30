@@ -381,6 +381,18 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return plusAll(additionalTraits.traits);
   }
 
+  /** Returns a list of traits that are in {@code traitSet} but not in this
+   * RelTraitSet. */
+  public ImmutableList<RelTrait> difference(RelTraitSet traitSet) {
+    final ImmutableList.Builder<RelTrait> builder = ImmutableList.builder();
+    for (Pair<RelTrait, RelTrait> pair : Pair.zip(traits, traitSet.traits)) {
+      if (pair.left != pair.right) {
+        builder.add(pair.right);
+      }
+    }
+    return builder.build();
+  }
+
   /** Cache of trait sets. */
   private static class Cache {
     final Map<List<RelTrait>, RelTraitSet> map =

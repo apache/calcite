@@ -18,6 +18,8 @@ package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
@@ -25,6 +27,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexChecker;
@@ -165,6 +168,21 @@ public abstract class Window extends SingleRel {
    */
   public List<RexLiteral> getConstants() {
     return constants;
+  }
+
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    // Cost is proportional to the number of rows and the number of
+    // components (groups and aggregate functions). There is
+    // no I/O cost.
+    //
+    // TODO #1. Add memory cost.
+    // TODO #2. MIN and MAX have higher CPU cost than SUM and COUNT.
+    final double rowsIn = RelMetadataQuery.getRowCount(getInput());
+    int count = groups.size();
+    for (Group group : groups) {
+      count += group.aggCalls.size();
+    }
+    return planner.getCostFactory().makeCost(rowsIn, rowsIn * count, 0);
   }
 
   /**

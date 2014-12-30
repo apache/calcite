@@ -33,6 +33,7 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -104,7 +105,7 @@ public interface CalcitePrepare {
 
     boolean enabled();
 
-    Bindable compile(ClassDeclaration expr, String s);
+    ArrayBindable compile(ClassDeclaration expr, String s);
 
     Object sparkContext();
 
@@ -177,7 +178,7 @@ public interface CalcitePrepare {
         return false;
       }
 
-      public Bindable compile(ClassDeclaration expr, String s) {
+      public ArrayBindable compile(ClassDeclaration expr, String s) {
         throw new UnsupportedOperationException();
       }
 

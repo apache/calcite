@@ -51,6 +51,8 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -86,6 +88,7 @@ public class RexToLixTranslator {
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;
   private final RexProgram program;
+  private final Expression root;
   private final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
   private final Map<? extends RexNode, Boolean> exprNullableMap;
@@ -101,13 +104,9 @@ public class RexToLixTranslator {
     }
   }
 
-  private RexToLixTranslator(
-      RexProgram program,
-      JavaTypeFactory typeFactory,
-      InputGetter inputGetter,
-      BlockBuilder list) {
-    this(
-        program, typeFactory, inputGetter, list,
+  private RexToLixTranslator(RexProgram program, JavaTypeFactory typeFactory,
+      Expression root, InputGetter inputGetter, BlockBuilder list) {
+    this(program, typeFactory, root, inputGetter, list,
         Collections.<RexNode, Boolean>emptyMap(),
         new RexBuilder(typeFactory));
   }
@@ -115,29 +114,32 @@ public class RexToLixTranslator {
   private RexToLixTranslator(
       RexProgram program,
       JavaTypeFactory typeFactory,
+      Expression root,
       InputGetter inputGetter,
       BlockBuilder list,
       Map<RexNode, Boolean> exprNullableMap,
       RexBuilder builder) {
-    this(program, typeFactory, inputGetter, list, exprNullableMap, builder,
-        null);
+    this(program, typeFactory, root, inputGetter, list, exprNullableMap,
+        builder, null);
   }
 
   private RexToLixTranslator(
       RexProgram program,
       JavaTypeFactory typeFactory,
+      Expression root,
       InputGetter inputGetter,
       BlockBuilder list,
       Map<? extends RexNode, Boolean> exprNullableMap,
       RexBuilder builder,
       RexToLixTranslator parent) {
-    this(program, typeFactory, inputGetter, list, exprNullableMap, builder,
-        parent, null);
+    this(program, typeFactory, root, inputGetter, list, exprNullableMap,
+        builder, parent, null);
   }
 
   private RexToLixTranslator(
       RexProgram program,
       JavaTypeFactory typeFactory,
+      Expression root,
       InputGetter inputGetter,
       BlockBuilder list,
       Map<? extends RexNode, Boolean> exprNullableMap,
@@ -146,6 +148,7 @@ public class RexToLixTranslator {
       Function1<String, InputGetter> correlates) {
     this.program = program;
     this.typeFactory = typeFactory;
+    this.root = root;
     this.inputGetter = inputGetter;
     this.list = list;
     this.exprNullableMap = exprNullableMap;
@@ -162,16 +165,17 @@ public class RexToLixTranslator {
    * @param typeFactory Type factory
    * @param list List of statements, populated with declarations
    * @param outputPhysType Output type, or null
+   * @param root Root expression
    * @param inputGetter Generates expressions for inputs
    * @param correlates Provider of references to the values of correlated
    *                   variables
    * @return Sequence of expressions, optional condition
    */
-  public static List<Expression> translateProjects(
-      RexProgram program,
+  public static List<Expression> translateProjects(RexProgram program,
       JavaTypeFactory typeFactory,
       BlockBuilder list,
       PhysType outputPhysType,
+      Expression root,
       InputGetter inputGetter,
       Function1<String, InputGetter> correlates) {
     List<Type> storageTypes = null;
@@ -182,7 +186,7 @@ public class RexToLixTranslator {
         storageTypes.add(outputPhysType.getJavaFieldType(i));
       }
     }
-    return new RexToLixTranslator(program, typeFactory, inputGetter, list)
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
   }
@@ -190,7 +194,8 @@ public class RexToLixTranslator {
   /** Creates a translator for translating aggregate functions. */
   public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
       BlockBuilder list, InputGetter inputGetter) {
-    return new RexToLixTranslator(null, typeFactory, inputGetter, list);
+    final ParameterExpression root = DataContext.ROOT;
+    return new RexToLixTranslator(null, typeFactory, root, inputGetter, list);
   }
 
   Expression translate(RexNode expr) {
@@ -509,9 +514,7 @@ public class RexToLixTranslator {
     }
     return nullAs.handle(
         convert(
-            Expressions.call(
-                DataContext.ROOT,
-                BuiltInMethod.DATA_CONTEXT_GET.method,
+            Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + expr.getIndex())),
             storageType));
   }
@@ -677,8 +680,9 @@ public class RexToLixTranslator {
     if (program.getCondition() == null) {
       return RexImpTable.TRUE_EXPR;
     }
+    final ParameterExpression root = DataContext.ROOT;
     RexToLixTranslator translator =
-        new RexToLixTranslator(program, typeFactory, inputGetter, list);
+        new RexToLixTranslator(program, typeFactory, root, inputGetter, list);
     translator = translator.setCorrelates(correlates);
     return translator.translate(
         program.getCondition(),
@@ -844,14 +848,6 @@ public class RexToLixTranslator {
     return Expressions.convert_(operand, toType);
   }
 
-  private static <T> T elvis(T t0, T t1) {
-    return t0 != null ? t0 : t1;
-  }
-
-  private static <T> T elvis(T t0, T t1, T t2) {
-    return t0 != null ? t0 : t1 != null ? t1 : t2;
-  }
-
   public Expression translateConstructor(
       List<RexNode> operandList, SqlKind kind) {
     switch (kind) {
@@ -936,23 +932,21 @@ public class RexToLixTranslator {
 
   /** Creates a read-only copy of this translator that records that a given
    * expression is nullable. */
-  public RexToLixTranslator setNullable(Map<? extends RexNode,
-                                        Boolean> nullable) {
+  public RexToLixTranslator setNullable(
+      Map<? extends RexNode, Boolean> nullable) {
     if (nullable == null || nullable.isEmpty()) {
       return this;
     }
-    return new RexToLixTranslator(
-        program, typeFactory, inputGetter, list, nullable, builder, this,
-        correlates);
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
+        nullable, builder, this, correlates);
   }
 
   public RexToLixTranslator setBlock(BlockBuilder block) {
     if (block == list) {
       return this;
     }
-    return new RexToLixTranslator(
-        program, typeFactory, inputGetter, block,
-        Collections.<RexNode, Boolean>emptyMap(), builder, this, correlates);
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter,
+        block, ImmutableMap.<RexNode, Boolean>of(), builder, this, correlates);
   }
 
   public RexToLixTranslator setCorrelates(
@@ -960,8 +954,7 @@ public class RexToLixTranslator {
     if (this.correlates == correlates) {
       return this;
     }
-    return new RexToLixTranslator(
-        program, typeFactory, inputGetter, list,
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
         Collections.<RexNode, Boolean>emptyMap(), builder, this, correlates);
   }
 
@@ -981,6 +974,10 @@ public class RexToLixTranslator {
           ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass());
     }
     return null;
+  }
+
+  public Expression getRoot() {
+    return root;
   }
 
   /** Translates a field of an input to an expression. */

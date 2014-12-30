@@ -21,7 +21,9 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.interpreter.Context;
 import org.apache.calcite.interpreter.Row;
+import org.apache.calcite.interpreter.Scalar;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
@@ -43,6 +45,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Enumerables;
@@ -50,7 +53,6 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.QueryableTable;
@@ -63,6 +65,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.Time;
@@ -174,7 +177,7 @@ public enum BuiltInMethod {
   ENUMERATOR_RESET(Enumerator.class, "reset"),
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
-  TYPED_GET_ELEMENT_TYPE(Typed.class, "getElementType"),
+  TYPED_GET_ELEMENT_TYPE(ArrayBindable.class, "getElementType"),
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),
   RESULT_SET_GET_TIME2(ResultSet.class, "getTime", int.class, Calendar.class),
@@ -295,12 +298,17 @@ public enum BuiltInMethod {
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
   EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
+  SCALAR_EXECUTE1(Scalar.class, "execute", Context.class),
+  SCALAR_EXECUTE2(Scalar.class, "execute", Context.class, Object[].class),
+  CONTEXT_VALUES(Context.class, "values", true),
+  CONTEXT_ROOT(Context.class, "root", true),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
   PREDICATES(Predicates.class, "getPredicates"),
   METADATA_REL(Metadata.class, "rel");
 
   public final Method method;
   public final Constructor constructor;
+  public final Field field;
 
   public static final ImmutableMap<Method, BuiltInMethod> MAP;
 
@@ -318,11 +326,19 @@ public enum BuiltInMethod {
   BuiltInMethod(Class clazz, String methodName, Class... argumentTypes) {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
     this.constructor = null;
+    this.field = null;
   }
 
   BuiltInMethod(Class clazz, Class... argumentTypes) {
     this.method = null;
     this.constructor = Types.lookupConstructor(clazz, argumentTypes);
+    this.field = null;
+  }
+
+  BuiltInMethod(Class clazz, String fieldName, boolean dummy) {
+    this.method = null;
+    this.constructor = null;
+    this.field = Types.lookupField(clazz, fieldName);
   }
 }
 

@@ -17,12 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rex.RexMultisetUtil;
-import org.apache.calcite.rex.RexOver;
 
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject} to an
@@ -30,24 +29,15 @@ import org.apache.calcite.rex.RexOver;
  */
 class EnumerableProjectRule extends ConverterRule {
   EnumerableProjectRule() {
-    super(LogicalProject.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableProjectRule");
+    super(LogicalProject.class, RelOptUtil.PROJECT_PREDICATE, Convention.NONE,
+        EnumerableConvention.INSTANCE, "EnumerableProjectRule");
   }
 
   public RelNode convert(RelNode rel) {
     final LogicalProject project = (LogicalProject) rel;
-
-    if (EnumUtils.B
-        && RexMultisetUtil.containsMultiset(project.getProjects(), true)
-        || RexOver.containsOver(project.getProjects(), null)) {
-      return null;
-    }
-
-    return new EnumerableProject(
-        rel.getCluster(),
+    return new EnumerableProject(rel.getCluster(),
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
-        convert(
-            project.getInput(),
+        convert(project.getInput(),
             project.getInput().getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),
         project.getProjects(),

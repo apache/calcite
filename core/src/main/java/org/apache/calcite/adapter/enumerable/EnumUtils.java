@@ -56,8 +56,6 @@ public class EnumUtils {
 
   public static final String[] LEFT_RIGHT = {"left", "right"};
 
-  static final boolean B = false;
-
   /** Declares a method that overrides another method. */
   public static MethodDeclaration overridingMethodDecl(Method method,
       Iterable<ParameterExpression> parameters,

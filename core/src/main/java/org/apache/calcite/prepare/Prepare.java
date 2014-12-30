@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -32,7 +31,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
@@ -53,6 +51,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
@@ -328,14 +327,6 @@ public abstract class Prepare {
       SqlValidator validator,
       CatalogReader catalogReader);
 
-  /**
-   * Protected method to allow subclasses to override construction of
-   * RelImplementor.
-   */
-  protected abstract RelImplementor getRelImplementor(RexBuilder rexBuilder);
-
-  protected abstract boolean shouldAlwaysWriteJavaFile();
-
   public abstract RelNode flattenTypes(
       RelNode rootRel,
       boolean restructure);
@@ -521,14 +512,10 @@ public abstract class Prepare {
         RelNode rootRel,
         LogicalTableModify.Operation tableModOp,
         boolean isDml) {
-      assert rowType != null;
-      assert parameterRowType != null;
-      assert fieldOrigins != null;
-      assert rootRel != null;
-      this.rowType = rowType;
-      this.parameterRowType = parameterRowType;
-      this.fieldOrigins = fieldOrigins;
-      this.rootRel = rootRel;
+      this.rowType = Preconditions.checkNotNull(rowType);
+      this.parameterRowType = Preconditions.checkNotNull(parameterRowType);
+      this.fieldOrigins = Preconditions.checkNotNull(fieldOrigins);
+      this.rootRel = Preconditions.checkNotNull(rootRel);
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }

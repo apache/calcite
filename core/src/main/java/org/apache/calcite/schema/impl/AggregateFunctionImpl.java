@@ -80,7 +80,7 @@ public class AggregateFunctionImpl implements AggregateFunction,
   }
 
   /** Creates an aggregate function, or returns null. */
-  public static AggregateFunction create(Class<?> clazz) {
+  public static AggregateFunctionImpl create(Class<?> clazz) {
     final Method initMethod = ReflectiveFunctionBase.findMethod(clazz, "init");
     final Method addMethod = ReflectiveFunctionBase.findMethod(clazz, "add");
     final Method mergeMethod = null; // TODO:

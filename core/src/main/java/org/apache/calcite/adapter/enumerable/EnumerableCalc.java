@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
@@ -144,6 +145,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             typeFactory,
             builder3,
             physType,
+            DataContext.ROOT,
             new RexToLixTranslator.InputGetterImpl(
                 Collections.singletonList(
                     Pair.of(input, result.physType))),

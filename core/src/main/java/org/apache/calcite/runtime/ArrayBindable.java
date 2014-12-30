@@ -14,14 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.interpreter;
+package org.apache.calcite.runtime;
 
 /**
- * Compiled scalar expression.
+ * Extension to {@link Bindable} that returns rows that are arrays of objects.
+ *
+ * <p>It also implements {@link Typed}; the {@link #getElementType()} method
+ * must return {@code Object[].class}.
  */
-public interface Scalar {
-  Object execute(Context context);
-  void execute(Context context, Object[] results);
+public interface ArrayBindable extends Bindable<Object[]>, Typed {
+  // override
+  Class<Object[]> getElementType();
 }
 
-// End Scalar.java
+// End ArrayBindable.java

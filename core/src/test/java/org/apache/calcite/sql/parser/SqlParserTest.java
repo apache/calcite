@@ -2433,40 +2433,46 @@ public class SqlParserTest {
     // CURRENT_TIME - returns time w/ timezone
     checkExp("CURRENT_TIME(3)", "CURRENT_TIME(3)");
 
-    // checkFails("SELECT CURRENT_TIME() FROM foo", "SELECT CURRENT_TIME()
-    // FROM `FOO`");
+    // checkFails("SELECT CURRENT_TIME() FROM foo",
+    //     "SELECT CURRENT_TIME() FROM `FOO`");
+
     checkExp("CURRENT_TIME", "`CURRENT_TIME`");
     checkExp("CURRENT_TIME(x+y)", "CURRENT_TIME((`X` + `Y`))");
 
     // LOCALTIME returns time w/o TZ
     checkExp("LOCALTIME(3)", "LOCALTIME(3)");
 
-    // checkFails("SELECT LOCALTIME() FROM foo", "SELECT LOCALTIME() FROM
-    // `FOO`");
+    // checkFails("SELECT LOCALTIME() FROM foo",
+    //     "SELECT LOCALTIME() FROM `FOO`");
+
     checkExp("LOCALTIME", "`LOCALTIME`");
     checkExp("LOCALTIME(x+y)", "LOCALTIME((`X` + `Y`))");
 
     // LOCALTIMESTAMP - returns timestamp w/o TZ
     checkExp("LOCALTIMESTAMP(3)", "LOCALTIMESTAMP(3)");
 
-    // checkFails("SELECT LOCALTIMESTAMP() FROM foo", "SELECT
-    // LOCALTIMESTAMP() FROM `FOO`");
+    // checkFails("SELECT LOCALTIMESTAMP() FROM foo",
+    //     "SELECT LOCALTIMESTAMP() FROM `FOO`");
+
     checkExp("LOCALTIMESTAMP", "`LOCALTIMESTAMP`");
     checkExp("LOCALTIMESTAMP(x+y)", "LOCALTIMESTAMP((`X` + `Y`))");
 
     // CURRENT_DATE - returns DATE
     checkExp("CURRENT_DATE(3)", "CURRENT_DATE(3)");
 
-    // checkFails("SELECT CURRENT_DATE() FROM foo", "SELECT CURRENT_DATE()
-    // FROM `FOO`");
+    // checkFails("SELECT CURRENT_DATE() FROM foo",
+    //     "SELECT CURRENT_DATE() FROM `FOO`");
     checkExp("CURRENT_DATE", "`CURRENT_DATE`");
 
-    // checkFails("SELECT CURRENT_DATE(x+y) FROM foo", "CURRENT_DATE((`X` +
-    // `Y`))"); CURRENT_TIMESTAMP - returns timestamp w/ TZ
+    // checkFails("SELECT CURRENT_DATE(x+y) FROM foo",
+    //     "CURRENT_DATE((`X` + `Y`))");
+
+    // CURRENT_TIMESTAMP - returns timestamp w/ TZ
     checkExp("CURRENT_TIMESTAMP(3)", "CURRENT_TIMESTAMP(3)");
 
-    // checkFails("SELECT CURRENT_TIMESTAMP() FROM foo", "SELECT
-    // CURRENT_TIMESTAMP() FROM `FOO`");
+    // checkFails("SELECT CURRENT_TIMESTAMP() FROM foo",
+    //     "SELECT CURRENT_TIMESTAMP() FROM `FOO`");
+
     checkExp("CURRENT_TIMESTAMP", "`CURRENT_TIMESTAMP`");
     checkExp("CURRENT_TIMESTAMP(x+y)", "CURRENT_TIMESTAMP((`X` + `Y`))");
 

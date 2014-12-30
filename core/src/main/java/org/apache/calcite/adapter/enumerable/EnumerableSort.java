@@ -71,8 +71,8 @@ public class EnumerableSort extends Sort implements EnumerableRel {
                 BuiltInMethod.ORDER_BY.method,
                 Expressions.list(
                     builder.append("keySelector", pair.left))
-                    .appendIfNotNull(builder.appendIfNotNull("comparator",
-                        pair.right)))));
+                    .appendIfNotNull(
+                        builder.appendIfNotNull("comparator", pair.right)))));
     return implementor.result(physType, builder.toBlock());
   }
 }

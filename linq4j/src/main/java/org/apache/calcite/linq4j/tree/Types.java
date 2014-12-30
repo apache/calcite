@@ -380,6 +380,15 @@ public abstract class Types {
             .toString(argumentTypes));
   }
 
+  public static Field lookupField(Type type, String name) {
+    final Class clazz = toClass(type);
+    try {
+      return clazz.getField(name);
+    } catch (NoSuchFieldException e) {
+      throw new RuntimeException("while resolving field in class " + type);
+    }
+  }
+
   public static void discard(Object o) {
     if (false) {
       discard(o);

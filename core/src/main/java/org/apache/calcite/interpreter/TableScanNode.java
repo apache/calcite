@@ -47,14 +47,14 @@ import java.util.List;
  * Interpreter node that implements a
  * {@link org.apache.calcite.rel.core.TableScan}.
  */
-public class ScanNode implements Node {
+public class TableScanNode implements Node {
   private final Sink sink;
   private final TableScan rel;
   private final ImmutableList<RexNode> filters;
   private final DataContext root;
   private final int[] projects;
 
-  public ScanNode(Interpreter interpreter, TableScan rel,
+  TableScanNode(Interpreter interpreter, TableScan rel,
       ImmutableList<RexNode> filters, ImmutableIntList projects) {
     this.rel = rel;
     this.filters = Preconditions.checkNotNull(filters);
@@ -80,7 +80,8 @@ public class ScanNode implements Node {
     if (pfTable != null) {
       final List<RexNode> filters1 = Lists.newArrayList(filters);
       final int[] projects1 =
-          isIdentity(projects, rel.getRowType().getFieldCount())
+          projects == null
+              || isIdentity(projects, rel.getRowType().getFieldCount())
               ? null : projects;
       final Enumerable<Object[]> enumerator =
           pfTable.scan(root, filters1, projects1);
@@ -103,6 +104,11 @@ public class ScanNode implements Node {
     }
     if (!filters.isEmpty()) {
       throw new AssertionError("have filters, but table cannot handle them");
+    }
+    final ScannableTable scannableTable =
+        table.unwrap(ScannableTable.class);
+    if (scannableTable != null) {
+      return Enumerables.toRow(scannableTable.scan(root));
     }
     //noinspection unchecked
     Enumerable<Row> iterable = table.unwrap(Enumerable.class);
@@ -149,11 +155,6 @@ public class ScanNode implements Node {
             table.getQualifiedName());
       }
     }
-    final ScannableTable scannableTable =
-        table.unwrap(ScannableTable.class);
-    if (scannableTable != null) {
-      return Enumerables.toRow(scannableTable.scan(root));
-    }
     throw new AssertionError("cannot convert table " + table + " to iterable");
   }
 
@@ -170,4 +171,4 @@ public class ScanNode implements Node {
   }
 }
 
-// End ScanNode.java
+// End TableScanNode.java

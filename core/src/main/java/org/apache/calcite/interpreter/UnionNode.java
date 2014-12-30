@@ -16,33 +16,43 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Union;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+
+import java.util.Set;
 
 /**
  * Interpreter node that implements a
- * {@link org.apache.calcite.rel.logical.LogicalFilter}.
+ * {@link org.apache.calcite.rel.core.Union}.
  */
-public class ProjectNode extends AbstractSingleNode<Project> {
-  private final Scalar scalar;
-  private final Context context;
-  private final int projectCount;
+public class UnionNode implements Node {
+  private final ImmutableList<Source> sources;
+  private final Sink sink;
+  private final Union rel;
 
-  public ProjectNode(Interpreter interpreter, Project rel) {
-    super(interpreter, rel);
-    this.projectCount = rel.getProjects().size();
-    this.scalar = interpreter.compile(rel.getProjects(), rel.getInputs());
-    this.context = interpreter.createContext();
+  public UnionNode(Interpreter interpreter, Union rel) {
+    ImmutableList.Builder<Source> builder = ImmutableList.builder();
+    for (int i = 0; i < rel.getInputs().size(); i++) {
+      builder.add(interpreter.source(rel, i));
+    }
+    this.sources = builder.build();
+    this.sink = interpreter.sink(rel);
+    this.rel = rel;
   }
 
   public void run() throws InterruptedException {
-    Row row;
-    while ((row = source.receive()) != null) {
-      context.values = row.getValues();
-      Object[] values = new Object[projectCount];
-      scalar.execute(context, values);
-      sink.send(new Row(values));
+    final Set<Row> rows = rel.all ? null : Sets.<Row>newHashSet();
+    for (Source source : sources) {
+      Row row;
+      while ((row = source.receive()) != null) {
+        if (rows == null || rows.add(row)) {
+          sink.send(row);
+        }
+      }
     }
   }
 }
 
-// End ProjectNode.java
+// End UnionNode.java

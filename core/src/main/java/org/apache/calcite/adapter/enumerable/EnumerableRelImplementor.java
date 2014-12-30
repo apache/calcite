@@ -142,7 +142,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Expressions.list(root0_),
             block));
     memberDeclarations.add(
-        Expressions.methodDecl(Modifier.PUBLIC, Type.class,
+        Expressions.methodDecl(Modifier.PUBLIC, Class.class,
             BuiltInMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
             Collections.<ParameterExpression>emptyList(),
             Blocks.toFunctionBlock(

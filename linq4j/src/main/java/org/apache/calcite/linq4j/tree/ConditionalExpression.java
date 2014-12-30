@@ -48,8 +48,9 @@ public class ConditionalExpression extends AbstractNode {
           .append(Blocks.toBlock(expressionList.get(i + 1)));
     }
     if (expressionList.size() % 2 == 1) {
-      writer.append(" else ").append(Blocks.toBlock(expressionList.get(
-          expressionList.size() - 1)));
+      writer.append(" else ")
+          .append(
+              Blocks.toBlock(expressionList.get(expressionList.size() - 1)));
     }
   }
 

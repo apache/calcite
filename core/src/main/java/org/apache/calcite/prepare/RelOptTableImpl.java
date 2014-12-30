@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ExtensibleTable;
@@ -196,16 +197,22 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     if (table instanceof TranslatableTable) {
       return ((TranslatableTable) table).toRel(context, this);
     }
-    RelOptCluster cluster = context.getCluster();
-    Class elementType = deduceElementType();
-    final RelNode scan = new EnumerableTableScan(cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE), this, elementType);
-    if (table instanceof FilterableTable
-        || table instanceof ProjectableFilterableTable) {
-      return new EnumerableInterpreter(cluster, scan.getTraitSet(),
-          scan, 1d);
+    if (CalcitePrepareImpl.ENABLE_BINDABLE) {
+      return new LogicalTableScan(context.getCluster(), this);
     }
-    return scan;
+    if (CalcitePrepareImpl.ENABLE_ENUMERABLE) {
+      RelOptCluster cluster = context.getCluster();
+      Class elementType = deduceElementType();
+      final RelNode scan = new EnumerableTableScan(cluster,
+          cluster.traitSetOf(EnumerableConvention.INSTANCE), this, elementType);
+      if (table instanceof FilterableTable
+          || table instanceof ProjectableFilterableTable) {
+        return new EnumerableInterpreter(cluster, scan.getTraitSet(),
+            scan, 1d);
+      }
+      return scan;
+    }
+    throw new AssertionError();
   }
 
   private Class deduceElementType() {

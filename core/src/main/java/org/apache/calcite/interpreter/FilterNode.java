@@ -18,20 +18,21 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.rel.core.Filter;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Interpreter node that implements a
  * {@link org.apache.calcite.rel.core.Filter}.
  */
-public class FilterNode implements Node {
+public class FilterNode extends AbstractSingleNode<Filter> {
   private final Scalar condition;
-  private final Source source;
-  private final Sink sink;
   private final Context context;
 
   public FilterNode(Interpreter interpreter, Filter rel) {
-    this.condition = interpreter.compile(rel.getCondition());
-    this.source = interpreter.source(rel, 0);
-    this.sink = interpreter.sink(rel);
+    super(interpreter, rel);
+    this.condition =
+        interpreter.compile(ImmutableList.of(rel.getCondition()),
+            rel.getInputs());
     this.context = interpreter.createContext();
   }
 

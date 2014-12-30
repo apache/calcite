@@ -14,33 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.enumerable;
+package org.apache.calcite.interpreter;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.logical.LogicalFilter;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to an
- * {@link EnumerableFilter}.
+ * Rule to convert a relational expression from
+ * {@link org.apache.calcite.plan.Convention#NONE}
+ * to {@link org.apache.calcite.interpreter.BindableConvention}.
  */
-class EnumerableFilterRule extends ConverterRule {
-  EnumerableFilterRule() {
-    super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableFilterRule");
+public class NoneToBindableConverterRule extends ConverterRule {
+  public static final ConverterRule INSTANCE =
+      new NoneToBindableConverterRule();
+
+  private NoneToBindableConverterRule() {
+    super(RelNode.class, Convention.NONE, BindableConvention.INSTANCE,
+        "NoneToBindableConverterRule");
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalFilter filter = (LogicalFilter) rel;
-    return new EnumerableFilter(rel.getCluster(),
-        rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
-        convert(filter.getInput(),
-            filter.getInput().getTraitSet()
-                .replace(EnumerableConvention.INSTANCE)),
-        filter.getCondition());
+  @Override public RelNode convert(RelNode rel) {
+    RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutConvention());
+    return new InterpretableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
 
-// End EnumerableFilterRule.java
+// End NoneToBindableConverterRule.java

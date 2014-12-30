@@ -199,7 +199,6 @@ public enum JavaRowFormat {
     Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
-      assert type.getFieldCount() > 1;
       return Object[].class;
     }
 

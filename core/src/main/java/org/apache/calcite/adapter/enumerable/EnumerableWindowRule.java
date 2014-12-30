@@ -23,8 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalWindow;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalAggregate} to
- * an {@link org.apache.calcite.adapter.enumerable.EnumerableAggregate}.
+ * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalWindow} to
+ * an {@link org.apache.calcite.adapter.enumerable.EnumerableWindow}.
  */
 class EnumerableWindowRule extends ConverterRule {
   EnumerableWindowRule() {

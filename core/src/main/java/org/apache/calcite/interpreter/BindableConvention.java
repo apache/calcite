@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.enumerable;
+package org.apache.calcite.interpreter;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -23,26 +23,31 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 
 /**
- * Family of calling conventions that return results as an
- * {@link org.apache.calcite.linq4j.Enumerable}.
+ * Calling convention that returns results as an
+ * {@link org.apache.calcite.linq4j.Enumerable} of object arrays.
+ *
+ * <p>The relational expression needs to implement
+ * {@link org.apache.calcite.runtime.ArrayBindable}.
+ * Unlike {@link org.apache.calcite.adapter.enumerable.EnumerableConvention},
+ * no code generation is required.
  */
-public enum EnumerableConvention implements Convention {
+public enum BindableConvention implements Convention {
   INSTANCE;
 
-  /** Cost of an enumerable node versus implementing an equivalent node in a
+  /** Cost of a bindable node versus implementing an equivalent node in a
    * "typical" calling convention. */
-  public static final double COST_MULTIPLIER = 1.0d;
+  public static final double COST_MULTIPLIER = 2.0d;
 
   @Override public String toString() {
     return getName();
   }
 
   public Class getInterface() {
-    return EnumerableRel.class;
+    return BindableRel.class;
   }
 
   public String getName() {
-    return "ENUMERABLE";
+    return "BINDABLE";
   }
 
   public RelTraitDef getTraitDef() {
@@ -56,4 +61,4 @@ public enum EnumerableConvention implements Convention {
   public void register(RelOptPlanner planner) {}
 }
 
-// End EnumerableConvention.java
+// End BindableConvention.java

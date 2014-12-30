@@ -333,6 +333,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Making a node the root changes its importance.
     this.ruleQueue.recompute(this.root);
+    ensureRootConverters();
   }
 
   public RelNode getRoot() {
@@ -728,6 +729,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   public RelNode findBestExp() {
+    ensureRootConverters();
     useApplicableMaterializations();
     int cumulativeTicks = 0;
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
@@ -816,6 +818,33 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           + provenance(cheapest));
     }
     return cheapest;
+  }
+
+  /** Ensures that the subset that is the root relational expression contains
+   * converters to all other subsets in its equivalence set.
+   *
+   * <p>Thus the planner tries to find cheap implementations of those other
+   * subsets, which can then be converted to the root. This is the only place
+   * in the plan where explicit converters are required; elsewhere, a consumer
+   * will be asking for the result in a particular convention, but the root has
+   * no consumers. */
+  void ensureRootConverters() {
+    final Set<RelSubset> subsets = Sets.newHashSet();
+    for (RelNode rel : root.getRels()) {
+      if (rel instanceof AbstractConverter) {
+        subsets.add((RelSubset) ((AbstractConverter) rel).getInput());
+      }
+    }
+    for (RelSubset subset : root.set.subsets) {
+      final ImmutableList<RelTrait> difference =
+          root.getTraitSet().difference(subset.getTraitSet());
+      if (difference.size() == 1 && subsets.add(subset)) {
+        register(
+            new AbstractConverter(subset.getCluster(), subset,
+                difference.get(0).getTraitDef(), root.getTraitSet()),
+            root);
+      }
+    }
   }
 
   /**
@@ -1545,6 +1574,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           set.getOrCreateSubset(
               root.getCluster(),
               root.getTraitSet());
+      ensureRootConverters();
     }
 
     return set;

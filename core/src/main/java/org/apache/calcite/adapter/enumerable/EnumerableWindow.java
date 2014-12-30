@@ -38,7 +38,6 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexInputRef;
@@ -46,6 +45,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.runtime.SortedMultiMap;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -75,18 +75,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    // Cost is proportional to the number of rows and the number of
-    // components (groups and aggregate functions). There is
-    // no I/O cost.
-    //
-    // TODO #1. Add memory cost.
-    // TODO #2. MIN and MAX have higher CPU cost than SUM and COUNT.
-    final double rowsIn = RelMetadataQuery.getRowCount(getInput());
-    int count = groups.size();
-    for (Group group : groups) {
-      count += group.aggCalls.size();
-    }
-    return planner.getCostFactory().makeCost(rowsIn, rowsIn * count, 0);
+    return super.computeSelfCost(planner)
+        .multiplyBy(EnumerableConvention.COST_MULTIPLIER);
   }
 
   /** Implementation of {@link RexToLixTranslator.InputGetter}
@@ -373,8 +363,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             builder4.append("totalRows", rowCountWhenNonEmpty);
       } else {
         frameRowCount =
-            builder4.append("totalRows", Expressions.condition(hasRows,
-                rowCountWhenNonEmpty, Expressions.constant(0)));
+            builder4.append("totalRows",
+                Expressions.condition(hasRows, rowCountWhenNonEmpty,
+                    Expressions.constant(0)));
       }
 
       ParameterExpression actualStart = Expressions.parameter(
@@ -585,10 +576,11 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             }
 
             //noinspection UnnecessaryLocalVariable
-            Expression res = block.append("rowInFrame", Expressions.foldAnd(
-                ImmutableList.of(hasRows,
-                    Expressions.greaterThanOrEqual(rowIndex, minIndex),
-                    Expressions.lessThanOrEqual(rowIndex, maxIndex))));
+            Expression res = block.append("rowInFrame",
+                Expressions.foldAnd(
+                    ImmutableList.of(hasRows,
+                        Expressions.greaterThanOrEqual(rowIndex, minIndex),
+                        Expressions.lessThanOrEqual(rowIndex, maxIndex))));
 
             return res;
           }
@@ -757,7 +749,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     for (final AggImpState agg: aggs) {
       agg.context =
           new WinAggContext() {
-            public org.apache.calcite.sql.SqlAggFunction aggregation() {
+            public SqlAggFunction aggregation() {
               return agg.call.getAggregation();
             }
 

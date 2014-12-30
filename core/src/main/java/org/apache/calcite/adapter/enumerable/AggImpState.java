@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Represents internal state when implementing aggregate functions.
  */
-class AggImpState {
+public class AggImpState {
   public final int aggIdx;
   public final AggregateCall call;
   public final AggImplementor implementor;

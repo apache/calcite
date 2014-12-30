@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.ArrayBindable;
+
 /**
- * Compiled scalar expression.
+ * Relational expression that can implement itself in Bindable
+ * convention.
+ *
+ * @see org.apache.calcite.interpreter.BindableConvention
  */
-public interface Scalar {
-  Object execute(Context context);
-  void execute(Context context, Object[] results);
+public interface BindableRel extends RelNode, ArrayBindable, InterpretableRel {
 }
 
-// End Scalar.java
+// End BindableRel.java

@@ -16,15 +16,40 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.AggAddContext;
+import org.apache.calcite.adapter.enumerable.AggImpState;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.impl.AggAddContextImpl;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Row.RowBuilder;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,9 +61,12 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   private final List<Grouping> groups = Lists.newArrayList();
   private final ImmutableBitSet unionGroups;
   private final int outputRowLength;
+  private final ImmutableList<AccumulatorFactory> accumulatorFactories;
+  private final DataContext dataContext;
 
   public AggregateNode(Interpreter interpreter, Aggregate rel) {
     super(interpreter, rel);
+    this.dataContext = interpreter.getDataContext();
 
     ImmutableBitSet union = ImmutableBitSet.of();
 
@@ -53,10 +81,15 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     this.outputRowLength = unionGroups.cardinality()
         + (rel.indicator ? unionGroups.cardinality() : 0)
         + rel.getAggCallList().size();
+
+    ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
+    for (AggregateCall aggregateCall : rel.getAggCallList()) {
+      builder.add(getAccumulator(aggregateCall));
+    }
+    accumulatorFactories = builder.build();
   }
 
   public void run() throws InterruptedException {
-
     Row r;
     while ((r = source.receive()) != null) {
       for (Grouping group : groups) {
@@ -69,53 +102,173 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  private AccumulatorList getNewAccumList() {
-    AccumulatorList list = new AccumulatorList();
-    for (AggregateCall call : rel.getAggCallList()) {
-      list.add(getAccumulator(call));
+  private AccumulatorFactory getAccumulator(final AggregateCall call) {
+    if (call.getAggregation() == SqlStdOperatorTable.COUNT) {
+      return new AccumulatorFactory() {
+        public Accumulator get() {
+          return new CountAccumulator(call);
+        }
+      };
+    } else if (call.getAggregation() == SqlStdOperatorTable.SUM) {
+      return new UdaAccumulatorFactory(
+          AggregateFunctionImpl.create(IntSum.class), call);
+    } else {
+      final JavaTypeFactory typeFactory =
+          (JavaTypeFactory) rel.getCluster().getTypeFactory();
+      int stateOffset = 0;
+      final AggImpState agg = new AggImpState(0, call, false);
+      int stateSize = agg.state.size();
+
+      final BlockBuilder builder2 = new BlockBuilder();
+      final PhysType inputPhysType =
+          PhysTypeImpl.of(typeFactory, rel.getInput().getRowType(),
+              JavaRowFormat.ARRAY);
+      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      for (Expression expression : agg.state) {
+        builder.add("a",
+            typeFactory.createJavaType((Class) expression.getType()));
+      }
+      final PhysType accPhysType =
+          PhysTypeImpl.of(typeFactory, builder.build(), JavaRowFormat.ARRAY);
+      final ParameterExpression inParameter =
+          Expressions.parameter(inputPhysType.getJavaRowType(), "in");
+      final ParameterExpression acc_ =
+          Expressions.parameter(accPhysType.getJavaRowType(), "acc");
+
+      List<Expression> accumulator =
+          new ArrayList<Expression>(stateSize);
+      for (int j = 0; j < stateSize; j++) {
+        accumulator.add(accPhysType.fieldReference(acc_, j + stateOffset));
+      }
+      agg.state = accumulator;
+
+      AggAddContext addContext =
+          new AggAddContextImpl(builder2, accumulator) {
+            public List<RexNode> rexArguments() {
+              List<RelDataTypeField> inputTypes =
+                  inputPhysType.getRowType().getFieldList();
+              List<RexNode> args = new ArrayList<RexNode>();
+              for (Integer index : agg.call.getArgList()) {
+                args.add(
+                    new RexInputRef(index, inputTypes.get(index).getType()));
+              }
+              return args;
+            }
+
+            public RexToLixTranslator rowTranslator() {
+              return RexToLixTranslator.forAggregation(typeFactory,
+                  currentBlock(),
+                  new RexToLixTranslator.InputGetterImpl(
+                      Collections.singletonList(
+                          Pair.of((Expression) inParameter, inputPhysType))))
+                  .setNullable(currentNullables());
+            }
+          };
+
+      agg.implementor.implementAdd(agg.context, addContext);
+
+      final ParameterExpression context_ =
+          Expressions.parameter(Context.class, "context");
+      final ParameterExpression outputValues_ =
+          Expressions.parameter(Object[].class, "outputValues");
+      Scalar addScalar =
+          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock());
+      return new ScalarAccumulatorDef(null, addScalar, null,
+          rel.getInput().getRowType().getFieldCount(), stateSize, dataContext);
     }
-    return list;
   }
 
-  private static Accumulator getAccumulator(final AggregateCall call) {
-    String agg = call.getAggregation().getName();
+  /** Accumulator for calls to the COUNT function. */
+  private static class CountAccumulator implements Accumulator {
+    private final AggregateCall call;
+    long cnt;
 
-    if (agg.equals("COUNT")) {
-      return new Accumulator() {
-        long cnt = 0;
-
-        public void send(Row row) {
-          boolean notNull = true;
-          for (Integer i : call.getArgList()) {
-            if (row.getObject(i) == null) {
-              notNull = false;
-              break;
-            }
-          }
-          if (notNull) {
-            cnt++;
-          }
-        }
-
-        public Object end() {
-          return cnt;
-        }
-
-      };
-    } else {
-      throw new UnsupportedOperationException(
-          String.format("Aggregate doesn't currently support "
-              + "the %s aggregate function.", agg));
+    public CountAccumulator(AggregateCall call) {
+      this.call = call;
+      cnt = 0;
     }
 
+    public void send(Row row) {
+      boolean notNull = true;
+      for (Integer i : call.getArgList()) {
+        if (row.getObject(i) == null) {
+          notNull = false;
+          break;
+        }
+      }
+      if (notNull) {
+        cnt++;
+      }
+    }
+
+    public Object end() {
+      return cnt;
+    }
+  }
+
+  /** Creates an {@link Accumulator}. */
+  private interface AccumulatorFactory extends Supplier<Accumulator> {
+  }
+
+  /** Accumulator powered by {@link Scalar} code fragments. */
+  private static class ScalarAccumulatorDef implements AccumulatorFactory {
+    final Scalar initScalar;
+    final Scalar addScalar;
+    final Scalar endScalar;
+    final Context sendContext;
+    final Context endContext;
+    final int rowLength;
+    final int accumulatorLength;
+
+    private ScalarAccumulatorDef(Scalar initScalar, Scalar addScalar,
+        Scalar endScalar, int rowLength, int accumulatorLength,
+        DataContext root) {
+      this.initScalar = initScalar;
+      this.addScalar = addScalar;
+      this.endScalar = endScalar;
+      this.accumulatorLength = accumulatorLength;
+      this.rowLength = rowLength;
+      this.sendContext = new Context(root);
+      this.sendContext.values = new Object[rowLength + accumulatorLength];
+      this.endContext = new Context(root);
+      this.endContext.values = new Object[accumulatorLength];
+    }
+
+    public Accumulator get() {
+      return new ScalarAccumulator(this, new Object[accumulatorLength]);
+    }
+  }
+
+  /** Accumulator powered by {@link Scalar} code fragments. */
+  private static class ScalarAccumulator implements Accumulator {
+    final ScalarAccumulatorDef def;
+    final Object[] values;
+
+    private ScalarAccumulator(ScalarAccumulatorDef def, Object[] values) {
+      this.def = def;
+      this.values = values;
+    }
+
+    public void send(Row row) {
+      System.arraycopy(row.getValues(), 0, def.sendContext.values, 0,
+          def.rowLength);
+      System.arraycopy(values, 0, def.sendContext.values, def.rowLength,
+          values.length);
+      def.addScalar.execute(def.sendContext, values);
+    }
+
+    public Object end() {
+      System.arraycopy(values, 0, def.endContext.values, 0, values.length);
+      return def.endScalar.execute(def.endContext);
+    }
   }
 
   /**
-   * Internal class to track groupings
+   * Internal class to track groupings.
    */
   private class Grouping {
-    private ImmutableBitSet grouping;
-    private Map<Row, AccumulatorList> accum = Maps.newHashMap();
+    private final ImmutableBitSet grouping;
+    private final Map<Row, AccumulatorList> accumulators = Maps.newHashMap();
 
     private Grouping(ImmutableBitSet grouping) {
       this.grouping = grouping;
@@ -129,15 +282,19 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       Row key = builder.build();
 
-      if (!accum.containsKey(key)) {
-        accum.put(key, getNewAccumList());
+      if (!accumulators.containsKey(key)) {
+        AccumulatorList list = new AccumulatorList();
+        for (AccumulatorFactory factory : accumulatorFactories) {
+          list.add(factory.get());
+        }
+        accumulators.put(key, list);
       }
 
-      accum.get(key).send(row);
+      accumulators.get(key).send(row);
     }
 
     public void end(Sink sink) throws InterruptedException {
-      for (Map.Entry<Row, AccumulatorList> e : accum.entrySet()) {
+      for (Map.Entry<Row, AccumulatorList> e : accumulators.entrySet()) {
         final Row key = e.getKey();
         final AccumulatorList list = e.getValue();
 
@@ -187,6 +344,120 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   private interface Accumulator {
     void send(Row row);
     Object end();
+  }
+
+  /** Implementation of {@code SUM} over INTEGER values as a user-defined
+   * aggregate. */
+  public static class IntSum {
+    public IntSum() {
+    }
+    public int init() {
+      return 0;
+    }
+    public int add(int accumulator, int v) {
+      return accumulator + v;
+    }
+    public int merge(int accumulator0, int accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public int result(int accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Implementation of {@code SUM} over BIGINT values as a user-defined
+   * aggregate. */
+  public static class LongSum {
+    public LongSum() {
+    }
+    public long init() {
+      return 0L;
+    }
+    public long add(long accumulator, int v) {
+      return accumulator + v;
+    }
+    public long merge(long accumulator0, long accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Accumulator factory based on a user-defined aggregate function. */
+  private static class UdaAccumulatorFactory implements AccumulatorFactory {
+    public final AggregateFunctionImpl aggFunction;
+    public final int argOrdinal;
+    public final Object instance;
+
+    public UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
+        AggregateCall call) {
+      this.aggFunction = aggFunction;
+      if (call.getArgList().size() != 1) {
+        throw new UnsupportedOperationException("in current implementation, "
+            + "aggregate must have precisely one argument");
+      }
+      argOrdinal = call.getArgList().get(0);
+      if (aggFunction.isStatic) {
+        instance = null;
+      } else {
+        try {
+          instance = aggFunction.declaringClass.newInstance();
+        } catch (InstantiationException e) {
+          throw Throwables.propagate(e);
+        } catch (IllegalAccessException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+    }
+
+    public Accumulator get() {
+      return new UdaAccumulator(this);
+    }
+  }
+
+  /** Accumulator based upon a user-defined aggregate. */
+  private static class UdaAccumulator implements Accumulator {
+    private final UdaAccumulatorFactory factory;
+    private Object value;
+
+    public UdaAccumulator(UdaAccumulatorFactory factory) {
+      this.factory = factory;
+      try {
+        this.value = factory.aggFunction.initMethod.invoke(factory.instance);
+      } catch (IllegalAccessException e) {
+        throw Throwables.propagate(e);
+      } catch (InvocationTargetException e) {
+        throw Throwables.propagate(e);
+      }
+    }
+
+    public void send(Row row) {
+      final Object[] args = {value, row.getValues()[factory.argOrdinal]};
+      for (int i = 1; i < args.length; i++) {
+        if (args[i] == null) {
+          return; // one of the arguments is null; don't add to the total
+        }
+      }
+      try {
+        value = factory.aggFunction.addMethod.invoke(factory.instance, args);
+      } catch (IllegalAccessException e) {
+        throw Throwables.propagate(e);
+      } catch (InvocationTargetException e) {
+        throw Throwables.propagate(e);
+      }
+    }
+
+    public Object end() {
+      final Object[] args = {value};
+      try {
+        return factory.aggFunction.resultMethod.invoke(factory.instance, args);
+      } catch (IllegalAccessException e) {
+        throw Throwables.propagate(e);
+      } catch (InvocationTargetException e) {
+        throw Throwables.propagate(e);
+      }
+    }
   }
 }
 

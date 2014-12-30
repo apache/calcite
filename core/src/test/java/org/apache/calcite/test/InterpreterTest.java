@@ -100,9 +100,7 @@ public class InterpreterTest {
     RelNode convert = planner.convert(validate);
 
     final Interpreter interpreter = new Interpreter(null, convert);
-    assertRows(interpreter,
-        "[_ISO-8859-1'b', 2]",
-        "[_ISO-8859-1'c', 3]");
+    assertRows(interpreter, "[b, 2]", "[c, 3]");
   }
 
   private static void assertRows(Interpreter interpreter, String... rows) {
@@ -208,6 +206,39 @@ public class InterpreterTest {
     final Interpreter interpreter =
         new Interpreter(new MyDataContext(planner), convert);
     assertRows(interpreter, "[0]", "[10]");
+  }
+
+  /** Tests executing a UNION ALL query using an interpreter. */
+  @Test public void testInterpretUnionAll() throws Exception {
+    rootSchema.add("simple", new ScannableTableTest.SimpleTable());
+    SqlNode parse =
+        planner.parse("select * from \"simple\"\n"
+            + "union all\n"
+            + "select * from \"simple\"\n");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRows(interpreter,
+        "[0]", "[10]", "[20]", "[30]", "[0]", "[10]", "[20]", "[30]");
+  }
+
+  /** Tests executing a UNION query using an interpreter. */
+  @Test public void testInterpretUnion() throws Exception {
+    rootSchema.add("simple", new ScannableTableTest.SimpleTable());
+    SqlNode parse =
+        planner.parse("select * from \"simple\"\n"
+            + "union\n"
+            + "select * from \"simple\"\n");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRows(interpreter, "[0]", "[10]", "[20]", "[30]");
   }
 }
 

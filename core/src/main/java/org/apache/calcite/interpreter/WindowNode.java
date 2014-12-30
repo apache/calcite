@@ -16,33 +16,24 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Window;
 
 /**
  * Interpreter node that implements a
- * {@link org.apache.calcite.rel.logical.LogicalFilter}.
+ * {@link org.apache.calcite.rel.core.Window}.
  */
-public class ProjectNode extends AbstractSingleNode<Project> {
-  private final Scalar scalar;
-  private final Context context;
-  private final int projectCount;
-
-  public ProjectNode(Interpreter interpreter, Project rel) {
+public class WindowNode extends AbstractSingleNode<Window> {
+  WindowNode(Interpreter interpreter, Window rel) {
     super(interpreter, rel);
-    this.projectCount = rel.getProjects().size();
-    this.scalar = interpreter.compile(rel.getProjects(), rel.getInputs());
-    this.context = interpreter.createContext();
   }
 
   public void run() throws InterruptedException {
     Row row;
     while ((row = source.receive()) != null) {
-      context.values = row.getValues();
-      Object[] values = new Object[projectCount];
-      scalar.execute(context, values);
-      sink.send(new Row(values));
+      sink.send(row);
     }
+    sink.end();
   }
 }
 
-// End ProjectNode.java
+// End WindowNode.java

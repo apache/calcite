@@ -26,16 +26,15 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
 import org.apache.calcite.util.ReflectiveVisitor;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
-import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +52,12 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   private final DataContext dataContext;
   private final RelNode rootRel;
   private final Map<RelNode, List<RelNode>> relInputs = Maps.newHashMap();
+  protected final ScalarCompiler scalarCompiler;
 
   public Interpreter(DataContext dataContext, RelNode rootRel) {
     this.dataContext = dataContext;
+    this.scalarCompiler =
+        new JaninoRexCompiler(rootRel.getCluster().getRexBuilder());
     Compiler compiler = new Nodes.CoreCompiler(this);
     this.rootRel = compiler.visitRoot(rootRel);
   }
@@ -106,96 +108,116 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   }
 
   /** Compiles an expression to an executable form. */
-  public Scalar compile(final RexNode node) {
-    if (node instanceof RexCall) {
-      final RexCall call = (RexCall) node;
-      final ImmutableList.Builder<Scalar> list = ImmutableList.builder();
-      for (RexNode operand : call.getOperands()) {
-        list.add(compile(operand));
-      }
-      final ImmutableList<Scalar> scalars = list.build();
-      return new Scalar() {
-        public Object execute(final Context context) {
-          final List<Object> args;
-          Comparable o0;
-          Comparable o1;
-          switch (call.getKind()) {
-          case LESS_THAN:
-          case LESS_THAN_OR_EQUAL:
-          case GREATER_THAN:
-          case GREATER_THAN_OR_EQUAL:
-          case EQUALS:
-          case NOT_EQUALS:
-            args = lazyArgs(context);
-            o0 = (Comparable) args.get(0);
-            if (o0 == null) {
-              return null;
-            }
-            o1 = (Comparable) args.get(1);
-            if (o1 == null) {
-              return null;
-            }
-            if (o0 instanceof BigDecimal) {
-              if (o1 instanceof Double || o1 instanceof Float) {
-                o1 = new BigDecimal(((Number) o1).doubleValue());
-              } else {
-                o1 = new BigDecimal(((Number) o1).longValue());
-              }
-            }
-            if (o1 instanceof BigDecimal) {
-              if (o0 instanceof Double || o0 instanceof Float) {
-                o0 = new BigDecimal(((Number) o0).doubleValue());
-              } else {
-                o0 = new BigDecimal(((Number) o0).longValue());
-              }
-            }
-            final int c = o0.compareTo(o1);
+  public Scalar compile(List<RexNode> nodes, List<RelNode> inputs) {
+    return scalarCompiler.compile(inputs, nodes);
+  }
+
+  /** Not used. */
+  private class FooCompiler implements ScalarCompiler {
+    public Scalar compile(List<RelNode> inputs, List<RexNode> nodes) {
+      final RexNode node = nodes.get(0);
+      if (node instanceof RexCall) {
+        final RexCall call = (RexCall) node;
+        final Scalar argScalar = compile(inputs, call.getOperands());
+        return new Scalar() {
+          final Object[] args = new Object[call.getOperands().size()];
+
+          public void execute(final Context context, Object[] results) {
+            results[0] = execute(context);
+          }
+
+          public Object execute(Context context) {
+            Comparable o0;
+            Comparable o1;
             switch (call.getKind()) {
             case LESS_THAN:
-              return c < 0;
             case LESS_THAN_OR_EQUAL:
-              return c <= 0;
             case GREATER_THAN:
-              return c > 0;
             case GREATER_THAN_OR_EQUAL:
-              return c >= 0;
             case EQUALS:
-              return c == 0;
             case NOT_EQUALS:
-              return c != 0;
+              argScalar.execute(context, args);
+              o0 = (Comparable) args[0];
+              if (o0 == null) {
+                return null;
+              }
+              o1 = (Comparable) args[1];
+              if (o1 == null) {
+                return null;
+              }
+              if (o0 instanceof BigDecimal) {
+                if (o1 instanceof Double || o1 instanceof Float) {
+                  o1 = new BigDecimal(((Number) o1).doubleValue());
+                } else {
+                  o1 = new BigDecimal(((Number) o1).longValue());
+                }
+              }
+              if (o1 instanceof BigDecimal) {
+                if (o0 instanceof Double || o0 instanceof Float) {
+                  o0 = new BigDecimal(((Number) o0).doubleValue());
+                } else {
+                  o0 = new BigDecimal(((Number) o0).longValue());
+                }
+              }
+              final int c = o0.compareTo(o1);
+              switch (call.getKind()) {
+              case LESS_THAN:
+                return c < 0;
+              case LESS_THAN_OR_EQUAL:
+                return c <= 0;
+              case GREATER_THAN:
+                return c > 0;
+              case GREATER_THAN_OR_EQUAL:
+                return c >= 0;
+              case EQUALS:
+                return c == 0;
+              case NOT_EQUALS:
+                return c != 0;
+              default:
+                throw new AssertionError("unknown expression " + call);
+              }
             default:
+              if (call.getOperator() == SqlStdOperatorTable.UPPER) {
+                argScalar.execute(context, args);
+                String s0 = (String) args[0];
+                if (s0 == null) {
+                  return null;
+                }
+                return s0.toUpperCase();
+              }
+              if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
+                argScalar.execute(context, args);
+                String s0 = (String) args[0];
+                Number i1 = (Number) args[1];
+                Number i2 = (Number) args[2];
+                if (s0 == null || i1 == null || i2 == null) {
+                  return null;
+                }
+                return s0.substring(i1.intValue() - 1,
+                    i1.intValue() - 1 + i2.intValue());
+              }
               throw new AssertionError("unknown expression " + call);
             }
-          default:
-            throw new AssertionError("unknown expression " + call);
           }
+        };
+      }
+      return new Scalar() {
+        public void execute(Context context, Object[] results) {
+          results[0] = execute(context);
         }
 
-        private List<Object> lazyArgs(final Context context) {
-          return new AbstractList<Object>() {
-            @Override public Object get(int index) {
-              return scalars.get(index).execute(context);
-            }
-
-            @Override public int size() {
-              return scalars.size();
-            }
-          };
+        public Object execute(Context context) {
+          switch (node.getKind()) {
+          case LITERAL:
+            return ((RexLiteral) node).getValue();
+          case INPUT_REF:
+            return context.values[((RexInputRef) node).getIndex()];
+          default:
+            throw new RuntimeException("unknown expression type " + node);
+          }
         }
       };
     }
-    return new Scalar() {
-      public Object execute(Context context) {
-        switch (node.getKind()) {
-        case LITERAL:
-          return ((RexLiteral) node).getValue();
-        case INPUT_REF:
-          return context.values[((RexInputRef) node).getIndex()];
-        default:
-          throw new RuntimeException("unknown expression type " + node);
-        }
-      }
-    };
   }
 
   public Source source(RelNode rel, int ordinal) {
@@ -224,7 +246,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   }
 
   public Context createContext() {
-    return new Context();
+    return new Context(dataContext);
   }
 
   public DataContext getDataContext() {
@@ -367,6 +389,12 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
      * rewrite. */
     public void rewrite(RelNode r) {
     }
+  }
+
+  /** Converts a list of expressions to a scalar that can compute their
+   * values. */
+  interface ScalarCompiler {
+    Scalar compile(List<RelNode> inputs, List<RexNode> nodes);
   }
 }
 

@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.prepare;
 
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptMaterialization;
@@ -59,7 +59,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
       CatalogReader catalogReader, CalciteSchema schema,
       RelOptPlanner planner) {
     super(context, catalogReader, catalogReader.getTypeFactory(), schema,
-        EnumerableRel.Prefer.ANY, planner, EnumerableConvention.INSTANCE);
+        EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE);
   }
 
   /** Populates a materialization record, converting a table path

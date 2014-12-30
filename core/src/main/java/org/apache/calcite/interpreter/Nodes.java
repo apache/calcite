@@ -24,10 +24,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.rules.FilterTableRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FilterableTable;
@@ -149,15 +152,28 @@ public class Nodes {
     }
 
     public void visit(TableScan scan) {
-      node = new ScanNode(interpreter, scan, ImmutableList.<RexNode>of(), null);
+      node = new TableScanNode(interpreter, scan, ImmutableList.<RexNode>of(),
+          null);
     }
 
     public void visit(FilterScan scan) {
-      node = new ScanNode(interpreter, scan, scan.filters, scan.projects);
+      node = new TableScanNode(interpreter, scan, scan.filters, scan.projects);
     }
 
     public void visit(Sort sort) {
       node = new SortNode(interpreter, sort);
+    }
+
+    public void visit(Union union) {
+      node = new UnionNode(interpreter, union);
+    }
+
+    public void visit(Join join) {
+      node = new JoinNode(interpreter, join);
+    }
+
+    public void visit(Window window) {
+      node = new WindowNode(interpreter, window);
     }
   }
 

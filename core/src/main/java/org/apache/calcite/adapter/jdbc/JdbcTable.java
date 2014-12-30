@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -33,6 +34,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.ResultSetEnumerable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
@@ -61,7 +63,8 @@ import java.util.List;
  * The resulting queryable can then be converted to a SQL query, which can be
  * executed efficiently on the JDBC server.</p>
  */
-class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
+class JdbcTable extends AbstractQueryableTable
+    implements TranslatableTable, ScannableTable {
   private RelProtoDataType protoRowType;
   private final JdbcSchema jdbcSchema;
   private final String jdbcCatalogName;
@@ -154,6 +157,13 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new JdbcTableQueryable<T>(queryProvider, schema, tableName);
+  }
+
+  public Enumerable<Object[]> scan(DataContext root) {
+    final JavaTypeFactory typeFactory = root.getTypeFactory();
+    final SqlString sql = generateSql();
+    return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
+        JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
   }
 
   /** Enumerable that returns the contents of a {@link JdbcTable} by connecting

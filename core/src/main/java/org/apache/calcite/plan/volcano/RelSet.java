@@ -159,6 +159,11 @@ class RelSet {
 
       subsets.add(subset);
 
+      if (planner.root != null
+          && planner.root.set == this) {
+        planner.ensureRootConverters();
+      }
+
       if (planner.listener != null) {
         postEquivalenceEvent(planner, subset);
       }

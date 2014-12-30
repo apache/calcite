@@ -70,7 +70,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.calcite.DataContext.ROOT;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
 import static org.apache.calcite.linq4j.tree.ExpressionType.AndAlso;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Divide;
@@ -1695,6 +1694,7 @@ public class RexImpTable {
         return Expressions.constant(true);
       }
       final SqlOperator op = call.getOperator();
+      final Expression root = translator.getRoot();
       if (op == CURRENT_USER
           || op == SESSION_USER
           || op == USER) {
@@ -1707,15 +1707,15 @@ public class RexImpTable {
         // the empty string because a role has to be set explicitly.
         return Expressions.constant("");
       } else if (op == CURRENT_TIMESTAMP) {
-        return Expressions.call(BuiltInMethod.CURRENT_TIMESTAMP.method, ROOT);
+        return Expressions.call(BuiltInMethod.CURRENT_TIMESTAMP.method, root);
       } else if (op == CURRENT_TIME) {
-        return Expressions.call(BuiltInMethod.CURRENT_TIME.method, ROOT);
+        return Expressions.call(BuiltInMethod.CURRENT_TIME.method, root);
       } else if (op == CURRENT_DATE) {
-        return Expressions.call(BuiltInMethod.CURRENT_DATE.method, ROOT);
+        return Expressions.call(BuiltInMethod.CURRENT_DATE.method, root);
       } else if (op == LOCALTIMESTAMP) {
-        return Expressions.call(BuiltInMethod.LOCAL_TIMESTAMP.method, ROOT);
+        return Expressions.call(BuiltInMethod.LOCAL_TIMESTAMP.method, root);
       } else if (op == LOCALTIME) {
-        return Expressions.call(BuiltInMethod.LOCAL_TIME.method, ROOT);
+        return Expressions.call(BuiltInMethod.LOCAL_TIME.method, root);
       } else {
         throw new AssertionError("unknown function " + op);
       }

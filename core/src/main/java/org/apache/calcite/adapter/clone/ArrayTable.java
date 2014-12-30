@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.adapter.clone;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -25,6 +28,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
@@ -49,7 +53,7 @@ import java.util.List;
  * values in the column; see {@link Representation} and
  * {@link RepresentationType}.
  */
-class ArrayTable extends AbstractQueryableTable {
+class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   private final RelProtoDataType protoRowType;
   private final Supplier<Content> supplier;
 
@@ -74,6 +78,15 @@ class ArrayTable extends AbstractQueryableTable {
       }
     }
     return Statistics.of(content.size, keys);
+  }
+
+  public Enumerable<Object[]> scan(DataContext root) {
+    return new AbstractEnumerable<Object[]>() {
+      public Enumerator<Object[]> enumerator() {
+        final Content content = supplier.get();
+        return content.arrayEnumerator();
+      }
+    };
   }
 
   public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
@@ -802,6 +815,10 @@ class ArrayTable extends AbstractQueryableTable {
       }
     }
 
+    public Enumerator<Object[]> arrayEnumerator() {
+      return new ArrayEnumerator(size, columns);
+    }
+
     /** Enumerator over a table with a single column; each element
      * returned is an object. */
     private static class ObjectEnumerator implements Enumerator<Object> {
@@ -834,7 +851,7 @@ class ArrayTable extends AbstractQueryableTable {
 
     /** Enumerator over a table with more than one column; each element
      * returned is an array. */
-    private static class ArrayEnumerator implements Enumerator {
+    private static class ArrayEnumerator implements Enumerator<Object[]> {
       final int rowCount;
       final List<Column> columns;
       int i = -1;
