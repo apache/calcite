@@ -1455,7 +1455,8 @@ public class JdbcTest {
 
   /** Tests 3-way AND.
    *
-   * <p>With <a href="https://issues.apache.org/jira/browse/CALCITE-127">CALCITE-127,
+   * <p>With
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-127">[CALCITE-127],
    * "EnumerableCalcRel can't support 3+ AND conditions"</a>, the last condition
    * is ignored and rows with deptno=10 are wrongly returned.</p>
    */
@@ -5739,6 +5740,31 @@ public class JdbcTest {
         CalciteAssert.that().with(ImmutableMap.of("lex", "JAVA"));
     with2.query("select COUNT(*) as c from `metaData`.`tAbles`")
         .throws_("Table 'metaData.tAbles' not found");
+  }
+
+  /** Tests case-insensitive resolution of sub-query columns.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-555">[CALCITE-555],
+   * "Case-insensitive matching of sub-query columns fails"</a>. */
+  @Test public void testLexCaseInsensitiveSubQueryField() {
+    CalciteAssert.that()
+        .with(ImmutableMap.of("lex", "MYSQL"))
+        .query("select DID \n"
+            + "from (select deptid as did \n"
+            + "         FROM\n"
+            + "            ( values (1), (2) ) as T1(deptid) \n"
+            + "         ) ")
+        .returnsUnordered("DID=1", "DID=2");
+  }
+
+  @Test public void testLexCaseInsensitiveTableAlias() {
+    CalciteAssert.that()
+        .with(ImmutableMap.of("lex", "MYSQL"))
+        .query("select e.empno\n"
+            + "from (values (1, 2)) as E (empno, deptno),\n"
+            + "  (values (3, 4)) as d (deptno, name)")
+        .returnsUnordered("empno=1");
   }
 
   /** Tests that {@link Hook#PARSE_TREE} works. */

@@ -176,6 +176,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final RelDataTypeField field =
           validator.catalogReader.field(fromRowType, columnName);
       if (field != null) {
+        identifier.setName(1, field.getName()); // normalize case to match defn
         return identifier; // it was fine already
       } else {
         throw validator.newValidationError(identifier.getComponent(1),

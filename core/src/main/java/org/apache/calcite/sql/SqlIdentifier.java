@@ -128,6 +128,15 @@ public class SqlIdentifier extends SqlNode {
         : ImmutableList.copyOf(poses);
   }
 
+  /** Modifies one name component of this identifier. */
+  public void setName(int i, String name) {
+    if (!names.get(i).equals(name)) {
+      String[] nameArray = names.toArray(new String[names.size()]);
+      nameArray[i] = name;
+      names = ImmutableList.copyOf(nameArray);
+    }
+  }
+
   /**
    * Returns the position of the <code>i</code>th component of a compound
    * identifier, or the position of the whole identifier if that information
