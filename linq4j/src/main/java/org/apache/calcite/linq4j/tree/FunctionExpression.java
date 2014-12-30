@@ -172,10 +172,14 @@ public final class FunctionExpression<F extends Function<?>>
 
     // Generate an intermediate bridge method if at least one parameter is
     // primitive.
+    final String bridgeResultTypeName =
+        isAbstractMethodPrimitive()
+            ? Types.className(bridgeResultType)
+            : Types.boxClassName(bridgeResultType);
     if (!boxBridgeParams.equals(params)) {
       writer
           .append("public ")
-          .append(Types.boxClassName(bridgeResultType))
+          .append(bridgeResultTypeName)
           .list(" " + methodName + "(", ", ", ") ", boxBridgeParams)
           .begin("{\n")
           .list("return " + methodName + "(\n", ",\n", ");\n", boxBridgeArgs)
@@ -190,7 +194,7 @@ public final class FunctionExpression<F extends Function<?>>
     if (!bridgeParams.equals(params)) {
       writer
         .append("public ")
-        .append(Types.boxClassName(bridgeResultType))
+        .append(bridgeResultTypeName)
         .list(" " + methodName + "(", ", ", ") ", bridgeParams)
         .begin("{\n")
         .list("return " + methodName + "(\n", ",\n", ");\n", bridgeArgs)
@@ -200,11 +204,24 @@ public final class FunctionExpression<F extends Function<?>>
     writer.end("}\n");
   }
 
+  private boolean isAbstractMethodPrimitive() {
+    Method method = getAbstractMethod();
+    return method != null && Primitive.is(method.getReturnType());
+  }
+
   private String getAbstractMethodName() {
-    if (type.toString().contains("CalciteFlatMapFunction")) {
-      return "call"; // FIXME
+    final Method abstractMethod = getAbstractMethod();
+    assert abstractMethod != null;
+    return abstractMethod.getName();
+  }
+
+  private Method getAbstractMethod() {
+    if (type instanceof Class
+      && ((Class) type).isInterface()
+      && ((Class) type).getDeclaredMethods().length == 1) {
+      return ((Class) type).getDeclaredMethods()[0];
     }
-    return "apply";
+    return null;
   }
 
   @Override public boolean equals(Object o) {

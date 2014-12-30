@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.Lists;
 
@@ -36,19 +37,39 @@ import static org.junit.Assert.assertThat;
  * Unit tests for {@link org.apache.calcite.runtime.Enumerables}.
  */
 public class EnumerablesTest {
+  private static final Enumerable<Emp> EMPS = Linq4j.asEnumerable(
+      Arrays.asList(
+          new Emp(10, "Fred"),
+          new Emp(20, "Theodore"),
+          new Emp(20, "Sebastian"),
+          new Emp(30, "Joe")));
+
+  private static final Enumerable<Dept> DEPTS = Linq4j.asEnumerable(
+      Arrays.asList(
+          new Dept(20, "Sales"),
+          new Dept(15, "Marketing")));
+
+  private static final Function2<Emp, Dept, String> EMP_DEPT_TO_STRING =
+      new Function2<Emp, Dept, String>() {
+        public String apply(Emp v0, Dept v1) {
+          return "{" + (v0 == null ? null : v0.name)
+              + ", " + (v0 == null ? null : v0.deptno)
+              + ", " + (v1 == null ? null : v1.deptno)
+              + ", " + (v1 == null ? null : v1.name)
+              + "}";
+        }
+      };
+
+  private static final Predicate2<Emp, Dept> EQUAL_DEPTNO =
+      new Predicate2<Emp, Dept>() {
+        public boolean apply(Emp v0, Dept v1) {
+          return v0.deptno == v1.deptno;
+        }
+      };
+
   @Test public void testSemiJoin() {
     assertThat(
-        Enumerables.semiJoin(
-            Linq4j.asEnumerable(
-                Arrays.asList(
-                    new Emp(10, "Fred"),
-                    new Emp(20, "Theodore"),
-                    new Emp(20, "Sebastian"),
-                    new Emp(30, "Joe"))),
-            Linq4j.asEnumerable(
-                Arrays.asList(
-                    new Dept(20, "Sales"),
-                    new Dept(15, "Marketing"))),
+        Enumerables.semiJoin(EMPS, DEPTS,
             new Function1<Emp, Integer>() {
               public Integer apply(Emp a0) {
                 return a0.deptno;
@@ -160,6 +181,60 @@ public class EnumerablesTest {
             return v0;
           }
         }, false, false);
+  }
+
+  @Test public void testThetaJoin() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
+            false, false).toList().toString(),
+        equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}]"));
+  }
+
+  @Test public void testThetaLeftJoin() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
+            false, true).toList().toString(),
+        equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
+            + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}]"));
+  }
+
+  @Test public void testThetaRightJoin() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
+            true, false).toList().toString(),
+        equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}, "
+            + "{null, null, 15, Marketing}]"));
+  }
+
+  @Test public void testThetaFullJoin() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
+            true, true).toList().toString(),
+        equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
+            + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}, "
+            + "{null, null, 15, Marketing}]"));
+  }
+
+  @Test public void testThetaFullJoinLeftEmpty() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+        equalTo("[{null, null, 20, Sales}, {null, null, 15, Marketing}]"));
+  }
+
+  @Test public void testThetaFullJoinRightEmpty() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+        equalTo("[{Fred, 10, null, null}, {Theodore, 20, null, null}, "
+            + "{Sebastian, 20, null, null}, {Joe, 30, null, null}]"));
+  }
+
+  @Test public void testThetaFullJoinBothEmpty() {
+    assertThat(
+        Enumerables.thetaJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+        equalTo("[]"));
   }
 
   /** Employee record. */

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -53,15 +54,24 @@ class EnumerableJoinRule extends ConverterRule {
       }
       newInputs.add(input);
     }
+    final RelOptCluster cluster = join.getCluster();
+    final RelTraitSet traitSet =
+        join.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
     final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
     if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
       // EnumerableJoinRel only supports equi-join. We can put a filter on top
       // if it is an inner join.
-      return null;
+      try {
+        return new EnumerableThetaJoin(cluster, traitSet, left, right,
+            join.getCondition(), join.getJoinType(),
+            join.getVariablesStopped());
+      } catch (InvalidRelException e) {
+        EnumerableRules.LOGGER.fine(e.toString());
+        return null;
+      }
     }
-    final RelOptCluster cluster = join.getCluster();
     RelNode newRel;
     try {
       newRel = new EnumerableJoin(

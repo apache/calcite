@@ -124,6 +124,8 @@ public enum BuiltInMethod {
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(Enumerables.class, "semiJoin", Enumerable.class, Enumerable.class,
       Function1.class, Function1.class),
+  THETA_JOIN(Enumerables.class, "thetaJoin", Enumerable.class, Enumerable.class,
+      Predicate2.class, Function2.class, boolean.class, boolean.class),
   CORRELATE_JOIN(ExtendedEnumerable.class, "correlateJoin",
       CorrelateJoinType.class, Function1.class, Function2.class),
   SELECT(ExtendedEnumerable.class, "select", Function1.class),

@@ -1587,6 +1587,27 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-451">[CALCITE-451]
+   * Implement theta join, inner and outer, in enumerable convention</a>. */
+  @Test public void testThetaJoin() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(
+            "select e.\"empid\", d.\"name\", e.\"name\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "left join \"hr\".\"depts\" as d\n"
+            + "on e.\"deptno\" < d.\"deptno\"\n")
+        .returnsUnordered("empid=100; name=Marketing; name=Bill",
+            "empid=100; name=HR; name=Bill",
+            "empid=200; name=Marketing; name=Eric",
+            "empid=200; name=HR; name=Eric",
+            "empid=150; name=Marketing; name=Sebastian",
+            "empid=150; name=HR; name=Sebastian",
+            "empid=110; name=Marketing; name=Theodore",
+            "empid=110; name=HR; name=Theodore");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-35">CALCITE-35</a>,
    * "Support parenthesized sub-clause in JOIN". */
   @Ignore
