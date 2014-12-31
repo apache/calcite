@@ -83,6 +83,13 @@ public abstract class Functions {
         }
       };
 
+  private static final Function1 TO_STRING_FUNCTION1 =
+      new Function1<Object, String>() {
+        public String apply(Object a0) {
+          return a0.toString();
+        }
+      };
+
   @SuppressWarnings("unchecked")
   private static <K, V> Map<K, V> map(K k, V v, Object... rest) {
     final Map<K, V> map = new HashMap<K, V>();
@@ -169,6 +176,13 @@ public abstract class Functions {
   public static <TSource> Function1<TSource, TSource> identitySelector() {
     //noinspection unchecked
     return (Function1) Function1.IDENTITY;
+  }
+
+  /** Returns a selector that calls the {@link Object#toString()} method on
+   * each element. */
+  public static <TSource> Function1<TSource, String> toStringSelector() {
+    //noinspection unchecked
+    return TO_STRING_FUNCTION1;
   }
 
   /**

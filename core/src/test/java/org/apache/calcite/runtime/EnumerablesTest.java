@@ -218,8 +218,9 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinLeftEmpty() {
     assertThat(
         Enumerables.thetaJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
-        equalTo("[{null, null, 20, Sales}, {null, null, 15, Marketing}]"));
+            EMP_DEPT_TO_STRING, true, true)
+            .orderBy(Functions.<String>identitySelector()).toList().toString(),
+        equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
   }
 
   @Test public void testThetaFullJoinRightEmpty() {
