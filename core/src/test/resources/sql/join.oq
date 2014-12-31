@@ -1,0 +1,115 @@
+# join.oq - Join query tests
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use post
+!set outputformat mysql
+
+# OR is a theta join
+select *
+from emp
+join dept
+on emp.deptno = dept.deptno or emp.ename = dept.dname;
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Alice |     30 | F      |      30 | Engineering |
+| Bob   |     10 | M      |      10 | Sales       |
+| Eric  |     20 | M      |      20 | Marketing   |
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
++-------+--------+--------+---------+-------------+
+(5 rows)
+
+!ok
+
+# As an INNER join, it can be executed as an equi-join followed by a filter
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[=($t3, $t0)], expr#7=[=($t5, $t1)], expr#8=[OR($t6, $t7)], ENAME=[$t2], DEPTNO=[$t3], GENDER=[$t4], DEPTNO0=[$t0], DNAME=[$t1], $condition=[$t8])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):CHAR(11) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], proj#0..3=[{exprs}])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Now the same, but LEFT join
+select *
+from emp
+left join dept
+on emp.deptno = dept.deptno or emp.ename = dept.dname;
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Adam  |     50 | M      |         |             |
+| Alice |     30 | F      |      30 | Engineering |
+| Bob   |     10 | M      |      10 | Sales       |
+| Eric  |     20 | M      |      20 | Marketing   |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Wilma |        | F      |         |             |
++-------+--------+--------+---------+-------------+
+(9 rows)
+
+!ok
+
+# Cannot be decomposed into an equi-join; plan uses EnumerableThetaJoin
+EnumerableCalc(expr#0..5=[{inputs}], proj#0..2=[{exprs}], DEPTNO0=[$t4], DNAME=[$t5])
+  EnumerableThetaJoin(condition=[OR(=($1, $4), =($3, $5))], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):CHAR(11) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], proj#0..3=[{exprs}])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+          EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
+!plan
+
+# End join.oq

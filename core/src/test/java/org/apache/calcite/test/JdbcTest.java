@@ -4354,6 +4354,10 @@ public class JdbcTest {
     checkRun("sql/agg.oq");
   }
 
+  @Test public void testRunJoin() throws Exception {
+    checkRun("sql/join.oq");
+  }
+
   @Test public void testRunOuter() throws Exception {
     checkRun("sql/outer.oq");
   }
