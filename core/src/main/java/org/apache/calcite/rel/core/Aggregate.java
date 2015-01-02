@@ -45,6 +45,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.math.IntMath;
 
 import java.util.List;
 
@@ -384,6 +385,26 @@ public abstract class Aggregate extends SingleRel {
         List<ImmutableBitSet> groupSets) {
       if (groupSets.size() == 1 && groupSets.get(0).equals(groupSet)) {
         return SIMPLE;
+      }
+      if (groupSets.size() == IntMath.pow(2, groupSet.cardinality())) {
+        return CUBE;
+      }
+      if (groupSets.size() == groupSet.cardinality() + 1) {
+        for (int i = groupSet.cardinality(); i >= 0; i--) {
+          ImmutableBitSet groupingSet =
+                  groupSets.get(groupSet.cardinality() - i);
+          if (groupingSet.cardinality() != i) {
+            return OTHER;
+          }
+          for (int j = 0, pos = 0; j < i; j++) {
+            int nextPos = groupSet.nextSetBit(pos);
+            if (nextPos != groupingSet.nextSetBit(pos)) {
+              return OTHER;
+            }
+            pos = nextPos + 1;
+          }
+        }
+        return ROLLUP;
       }
       return OTHER;
     }
