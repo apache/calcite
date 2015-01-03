@@ -194,7 +194,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               RESOURCE.columnNotFoundInTable(columnName,
                   identifier.getComponent(0, j).toString()));
         }
-        identifier.setName(j, field.getName()); // normalize case to match defn
+        // normalize case to match definition, in a copy of the identifier
+        identifier = identifier.setName(j, field.getName());
         fromRowType = field.getType();
       }
       return SqlQualified.create(this, i, fromNs, identifier);

@@ -127,12 +127,16 @@ public class SqlIdentifier extends SqlNode {
         : ImmutableList.copyOf(poses);
   }
 
-  /** Modifies one name component of this identifier. */
-  public void setName(int i, String name) {
+  /** Returns an identifier that is the same as this except one modified name.
+   * Does not modify this identifier. */
+  public SqlIdentifier setName(int i, String name) {
     if (!names.get(i).equals(name)) {
       String[] nameArray = names.toArray(new String[names.size()]);
       nameArray[i] = name;
-      names = ImmutableList.copyOf(nameArray);
+      return new SqlIdentifier(ImmutableList.copyOf(nameArray), collation, pos,
+          componentPositions);
+    } else {
+      return this;
     }
   }
 
