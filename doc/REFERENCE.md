@@ -3,6 +3,48 @@
 ## SQL constructs
 
 ```SQL
+statement:
+      setStatement
+  |   explain
+  |   insert
+  |   update
+  |   merge
+  |   delete
+  |   query
+
+setStatement:
+      ALTER ( SYSTEM | SESSION ) SET identifier = expression
+
+explain:
+      EXPLAIN PLAN
+      [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
+      [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
+      FOR ( insert | update | merge | delete | query )
+
+insert:
+      ( INSERT | UPSERT ) INTO tablePrimary
+      [ '(' column [, column ]* ')' ]
+      query
+
+update:
+      UPDATE tablePrimary
+      SET assign [, assign ]*
+      [ WHERE booleanExpression ]
+
+assign:
+      identifier '=' expression
+
+merge:
+      MERGE INTO tablePrimary [ [ AS ] alias ]
+      USING tablePrimary
+      ON booleanExpression
+      [ WHEN MATCHED THEN UPDATE SET assign [, assign ]* ]
+      [ WHEN NOT MATCHED THEN INSERT VALUES '(' value [ , value ]* ')' ]
+
+delete:
+      DELETE FROM tablePrimary [ [ AS ] alias ]
+      [ WHERE booleanExpression ]
+
 query:
       [ WITH withItem [ , withItem ]* query ]
   |   {
@@ -53,9 +95,12 @@ tableReference:
 tablePrimary:
       [ TABLE ] [ [ catalogName . ] schemaName . ] tableName
   |   '(' query ')'
-  |   VALUES expression [, expression ]*
+  |   values
   |   UNNEST '(' expression ')'
   |   '(' TABLE expression ')'
+
+values:
+      VALUES expression [, expression ]*
 
 groupItem:
       expression
@@ -80,6 +125,9 @@ windowSpec:
       ]
       ')'
 ```
+
+In *merge*, at least one of the WHEN MATCHED and WHEN NOT MATCHED clauses must
+be present.
 
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.

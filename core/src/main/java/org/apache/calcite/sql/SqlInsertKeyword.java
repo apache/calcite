@@ -16,12 +16,23 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 /**
- * Defines the keywords which can occur immediately after the "INSERT" keyword.
- * Standard SQL has no such keywords. This enumeration exists only to allow
- * extension projects to define them.
+ * Defines the keywords that can occur immediately after the "INSERT" keyword.
+ *
+ * <p>Standard SQL has no such keywords, but extension projects may define them.
  */
 public enum SqlInsertKeyword implements SqlLiteral.SqlSymbol {
+  UPSERT;
+
+  /**
+   * Creates a parse-tree node representing an occurrence of this keyword
+   * at a particular position in the parsed text.
+   */
+  public SqlLiteral symbol(SqlParserPos pos) {
+    return SqlLiteral.createSymbol(this, pos);
+  }
 }
 
 // End SqlInsertKeyword.java

@@ -54,6 +54,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlInsertKeyword;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
@@ -274,7 +275,7 @@ SqlNode TableOverOpt() :
 /*
  * Parses dialect-specific keywords immediately following the SELECT keyword.
  */
-void SqlSelectKeywords(List<SqlNode> keywords) :
+void SqlSelectKeywords(List<SqlLiteral> keywords) :
 {}
 {
     E()
@@ -283,7 +284,7 @@ void SqlSelectKeywords(List<SqlNode> keywords) :
 /*
  * Parses dialect-specific keywords immediately following the INSERT keyword.
  */
-void SqlInsertKeywords(List keywords) :
+void SqlInsertKeywords(List<SqlLiteral> keywords) :
 {}
 {
     E()
@@ -923,7 +924,7 @@ SqlNode SqlStmtEof() :
  */
 SqlSelect SqlSelect() :
 {
-    List<SqlNode> keywords = new ArrayList<SqlNode>();
+    final List<SqlLiteral> keywords = Lists.newArrayList();
     List<SqlNode> selectList;
     SqlNode fromClause;
     SqlNode where;
@@ -1127,14 +1128,18 @@ SqlNode NamedRoutineCall(
  */
 SqlNode SqlInsert() :
 {
-    List keywords = new ArrayList();
+    final List<SqlLiteral> keywords = Lists.newArrayList();
     SqlIdentifier table;
     SqlNode source;
     SqlNodeList columnList = null;
     SqlParserPos pos;
 }
 {
-    <INSERT>
+    (
+        <INSERT>
+    |
+        <UPSERT> { keywords.add(SqlInsertKeyword.UPSERT.symbol(getPos())); }
+    )
     SqlInsertKeywords(keywords)
     <INTO> table = CompoundIdentifier()
     {
@@ -1333,7 +1338,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
 SqlInsert WhenNotMatchedClause(SqlNode table) :
 {
     SqlParserPos pos, insertPos;
-    List keywords = new ArrayList();
+    List<SqlLiteral> keywords = Lists.newArrayList();
     SqlNodeList insertColumnList = null;
     SqlNode rowConstructor;
     SqlNode insertValues;
@@ -5007,6 +5012,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < UNNEST: "UNNEST" >
     | < UPDATE: "UPDATE" >
     | < UPPER: "UPPER" >
+    | < UPSERT: "UPSERT" >
     | < USAGE: "USAGE" >
     | < USER: "USER" >
     | < USER_DEFINED_TYPE_CATALOG: "USER_DEFINED_TYPE_CATALOG" >

@@ -65,6 +65,15 @@ public class SqlInsert extends SqlCall {
     return ImmutableNullableList.of(keywords, targetTable, source, columnList);
   }
 
+  /** Returns whether this is an UPSERT statement.
+   *
+   * <p>In SQL, this is represented using the {@code UPSERT} keyword rather than
+   * {@code INSERT}; in the abstract syntax tree, an UPSERT is indicated by the
+   * presence of a {@link SqlInsertKeyword#UPSERT} keyword. */
+  public final boolean isUpsert() {
+    return getModifierNode(SqlInsertKeyword.UPSERT) != null;
+  }
+
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -122,7 +131,7 @@ public class SqlInsert extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.startList(SqlWriter.FrameTypeEnum.SELECT);
-    writer.sep("INSERT INTO");
+    writer.sep(isUpsert() ? "UPSERT INTO" : "INSERT INTO");
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);

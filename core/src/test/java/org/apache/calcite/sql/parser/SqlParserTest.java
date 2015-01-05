@@ -2111,6 +2111,26 @@ public class SqlParserTest {
             + "FROM `EMPS2`)");
   }
 
+  @Test public void testUpsertValues() {
+    sql("upsert into emps values (1,'Fredkin')")
+        .ok("UPSERT INTO `EMPS`\n"
+                + "(VALUES (ROW(1, 'Fredkin')))");
+  }
+
+  @Test public void testUpsertSelect() {
+    sql("upsert into emps select * from emp as e")
+        .ok("UPSERT INTO `EMPS`\n"
+                + "(SELECT *\n"
+                + "FROM `EMP` AS `E`)");
+  }
+
+  @Test public void testExplainUpsert() {
+    sql("explain plan for upsert into emps1 values (1, 2)")
+        .ok("EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+            + "UPSERT INTO `EMPS1`\n"
+            + "(VALUES (ROW(1, 2)))");
+  }
+
   @Test public void testDelete() {
     check("delete from emps", "DELETE FROM `EMPS`");
   }
@@ -2120,6 +2140,13 @@ public class SqlParserTest {
         "delete from emps where empno=12",
         "DELETE FROM `EMPS`\n"
             + "WHERE (`EMPNO` = 12)");
+  }
+
+  @Test public void testUpdate() {
+    sql("update emps set empno = empno + 1, sal = sal - 1 where empno=12")
+        .ok("UPDATE `EMPS` (`EMPNO`, `SAL`) SET `EMPNO` = (`EMPNO` + 1)\n"
+                + ", `SAL` = (`SAL` - 1)\n"
+                + "WHERE (`EMPNO` = 12)");
   }
 
   @Test public void testMergeSelectSource() {
