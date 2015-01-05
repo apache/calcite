@@ -76,6 +76,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   protected final RelDataTypeFactory typeFactory;
   private final boolean caseSensitive;
+  private final boolean elideRecord = true;
   private final Map<List<String>, MockTable> tables;
   protected final Map<String, MockSchema> schemas;
   private RelDataType addressType;
@@ -328,7 +329,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   }
 
   public RelDataTypeField field(RelDataType rowType, String alias) {
-    return SqlValidatorUtil.lookupField(caseSensitive, rowType, alias);
+    return SqlValidatorUtil.lookupField(caseSensitive, elideRecord, rowType,
+        alias);
   }
 
   public int fieldOrdinal(RelDataType rowType, String alias) {
@@ -347,7 +349,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   public RelDataType createTypeFromProjection(final RelDataType type,
       final List<String> columnNameList) {
     return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
-        typeFactory, caseSensitive);
+        typeFactory, caseSensitive, elideRecord);
   }
 
   private static List<RelCollation> deduceMonotonicity(

@@ -104,7 +104,7 @@ public class SplunkTableScan
         getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
       // REVIEW: is case-sensitive match what we want here?
-      builder.add(table.getRowType().getField(field, true));
+      builder.add(table.getRowType().getField(field, true, false));
     }
     return builder.build();
   }

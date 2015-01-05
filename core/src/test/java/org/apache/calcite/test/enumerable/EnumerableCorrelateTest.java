@@ -41,7 +41,7 @@ public class EnumerableCorrelateTest {
             "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
             + "  EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner])\n"
             + "    EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], $f01=[$t0], $f0=[$t4])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f01=[$t0], $f0=[$t5])\n"
             + "      EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
             + "        EnumerableAggregate(group=[{0}])\n"
             + "          EnumerableCalc(expr#0..4=[{inputs}], $f0=[$t1])\n"
@@ -63,7 +63,7 @@ public class EnumerableCorrelateTest {
             + "  EnumerableCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{1}])\n"
             + "    EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableAggregate(group=[{}], agg#0=[MIN($0)])\n"
-            + "      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[$cor0], expr#5=[$t4.deptno], expr#6=[=($t0, $t5)], $f0=[$t3], $condition=[$t6])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t0, $t6)], $f0=[$t4], $condition=[$t7])\n"
             + "        EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",

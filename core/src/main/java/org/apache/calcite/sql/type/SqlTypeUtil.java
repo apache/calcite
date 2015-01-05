@@ -1151,6 +1151,19 @@ public abstract class SqlTypeUtil {
         ImmutableList.<String>of());
   }
 
+  /** Returns whether a type is flat. It is not flat if it is a record type that
+   * has one or more fields that are themselves record types. */
+  public static boolean isFlat(RelDataType type) {
+    if (type.isStruct()) {
+      for (RelDataTypeField field : type.getFieldList()) {
+        if (field.getType().isStruct()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /**
    * Returns whether two types are comparable. They need to be scalar types of
    * the same family, or struct types whose fields are pairwise comparable.

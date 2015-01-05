@@ -88,11 +88,13 @@ public interface RelDataType /*extends Type*/ {
    * <li>Hard-coding {@code false} is almost certainly wrong.</li>
    * </ul>
    *
-   * @param fieldName name of field to find
-   * @param caseSensitive Whether case-sensitive
+   * @param fieldName Name of field to find
+   * @param caseSensitive Whether match is case-sensitive
+   * @param elideRecord Whether to find fields nested within records
    * @return named field, or null if not found
    */
-  RelDataTypeField getField(String fieldName, boolean caseSensitive);
+  RelDataTypeField getField(String fieldName, boolean caseSensitive,
+      boolean elideRecord);
 
   /**
    * Queries whether this type allows null values.

@@ -44,7 +44,9 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -67,6 +69,12 @@ public class RexBuilder {
    */
   public static final SqlSpecialOperator GET_OPERATOR =
       new SqlSpecialOperator("_get", SqlKind.OTHER_FUNCTION);
+  public static final Function<RelDataTypeField, RexInputRef> TO_INPUT_REF =
+      new Function<RelDataTypeField, RexInputRef>() {
+        public RexInputRef apply(RelDataTypeField input) {
+          return new RexInputRef(input.getIndex(), input.getType());
+        }
+      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -108,6 +116,12 @@ public class RexBuilder {
             SqlTypeName.NULL);
   }
 
+  /** Creates a list of {@link org.apache.calcite.rex.RexInputRef} expressions,
+   * projecting the fields of a given record type. */
+  public List<RexInputRef> identityProjects(final RelDataType rowType) {
+    return Lists.transform(rowType.getFieldList(), TO_INPUT_REF);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -146,7 +160,8 @@ public class RexBuilder {
   public RexNode makeFieldAccess(RexNode expr, String fieldName,
       boolean caseSensitive) {
     final RelDataType type = expr.getType();
-    final RelDataTypeField field = type.getField(fieldName, caseSensitive);
+    final RelDataTypeField field =
+        type.getField(fieldName, caseSensitive, false);
     if (field == null) {
       throw Util.newInternal(
           "Type '" + type + "' has no field '"

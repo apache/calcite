@@ -62,6 +62,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
 import org.apache.calcite.util.ReflectiveVisitor;
@@ -69,11 +70,11 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SortedSetMultimap;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -195,7 +196,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   private List<RexNode> restructureFields(RelDataType structuredType) {
-    List<RexNode> structuringExps = new ArrayList<RexNode>();
+    final List<RexNode> structuringExps = Lists.newArrayList();
     for (RelDataTypeField field : structuredType.getFieldList()) {
       // TODO:  row
       if (field.getType().getSqlTypeName() == SqlTypeName.STRUCTURED) {
@@ -339,11 +340,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     return offset;
   }
 
-  protected RexNode flattenFieldAccesses(RexNode exp) {
-    RewriteRexShuttle shuttle = new RewriteRexShuttle();
-    return exp.accept(shuttle);
-  }
-
   public void rewriteRel(LogicalTableModify rel) {
     LogicalTableModify newRel =
         new LogicalTableModify(
@@ -402,7 +398,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newRel =
         RelOptUtil.createFilter(
             getNewForOldRel(rel.getInput()),
-            flattenFieldAccesses(rel.getCondition()));
+            rel.getCondition().accept(new RewriteRexShuttle()));
     setNewForOldRel(rel, newRel);
   }
 
@@ -412,7 +408,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             rel.getCluster(),
             getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
-            flattenFieldAccesses(rel.getCondition()),
+            rel.getCondition().accept(new RewriteRexShuttle()),
             rel.getJoinType(),
             rel.getVariablesStopped());
     setNewForOldRel(rel, newRel);
@@ -477,20 +473,17 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(LogicalProject rel) {
-    final List<RexNode> flattenedExpList = new ArrayList<RexNode>();
-    final List<String> flattenedFieldNameList = new ArrayList<String>();
-    List<String> fieldNames = rel.getRowType().getFieldNames();
-    flattenProjections(
+    final List<Pair<RexNode, String>> flattenedExpList = Lists.newArrayList();
+    flattenProjections(new RewriteRexShuttle(),
         rel.getProjects(),
-        fieldNames,
+        rel.getRowType().getFieldNames(),
         "",
-        flattenedExpList,
-        flattenedFieldNameList);
+        flattenedExpList);
     RelNode newRel =
         RelOptUtil.createProject(
             getNewForOldRel(rel.getInput()),
             flattenedExpList,
-            flattenedFieldNameList);
+            false);
     setNewForOldRel(rel, newRel);
   }
 
@@ -506,29 +499,23 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
     // Convert the common expressions.
     final RexProgram program = rel.getProgram();
+    final RewriteRexShuttle shuttle = new RewriteRexShuttle();
     for (RexNode expr : program.getExprList()) {
-      programBuilder.registerInput(
-          flattenFieldAccesses(expr));
+      programBuilder.registerInput(expr.accept(shuttle));
     }
 
     // Convert the projections.
-    final List<RexNode> flattenedExpList = new ArrayList<RexNode>();
-    final List<String> flattenedFieldNameList = new ArrayList<String>();
+    final List<Pair<RexNode, String>> flattenedExpList = Lists.newArrayList();
     List<String> fieldNames = rel.getRowType().getFieldNames();
-    flattenProjections(
+    flattenProjections(new RewriteRexShuttle(),
         program.getProjectList(),
         fieldNames,
         "",
-        flattenedExpList,
-        flattenedFieldNameList);
+        flattenedExpList);
 
     // Register each of the new projections.
-    int i = -1;
-    for (RexNode flattenedExp : flattenedExpList) {
-      ++i;
-      programBuilder.addProject(
-          flattenedExp,
-          flattenedFieldNameList.get(i));
+    for (Pair<RexNode, String> flattenedExp : flattenedExpList) {
+      programBuilder.addProject(flattenedExp.left, flattenedExp.right);
     }
 
     // Translate the condition.
@@ -549,7 +536,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             rel.getTraitSet(),
             newChild,
             newProgram,
-            Collections.<RelCollation>emptyList());
+            ImmutableList.<RelCollation>of());
     setNewForOldRel(rel, newRel);
   }
 
@@ -568,12 +555,11 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     setNewForOldRel(rel, newRel);
   }
 
-  private void flattenProjections(
+  private void flattenProjections(RewriteRexShuttle shuttle,
       List<? extends RexNode> exps,
       List<String> fieldNames,
       String prefix,
-      List<RexNode> flattenedExps,
-      List<String> flattenedFieldNames) {
+      List<Pair<RexNode, String>> flattenedExps) {
     for (int i = 0; i < exps.size(); ++i) {
       RexNode exp = exps.get(i);
       String fieldName =
@@ -583,19 +569,14 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       if (!prefix.equals("")) {
         fieldName = prefix + "$" + fieldName;
       }
-      flattenProjection(
-          exp,
-          fieldName,
-          flattenedExps,
-          flattenedFieldNames);
+      flattenProjection(shuttle, exp, fieldName, flattenedExps);
     }
   }
 
-  private void flattenProjection(
+  private void flattenProjection(RewriteRexShuttle shuttle,
       RexNode exp,
       String fieldName,
-      List<RexNode> flattenedExps,
-      List<String> flattenedFieldNames) {
+      List<Pair<RexNode, String>> flattenedExps) {
     if (exp.getType().isStruct()) {
       if (exp instanceof RexInputRef) {
         RexInputRef inputRef = (RexInputRef) exp;
@@ -612,10 +593,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         for (int j = 0; j < n; ++j) {
           RelDataTypeField field = fieldList.get(j);
           flattenedExps.add(
-              new RexInputRef(
-                  newOffset + j,
-                  field.getType()));
-          flattenedFieldNames.add(fieldName);
+              Pair.<RexNode, String>of(
+                  new RexInputRef(newOffset + j, field.getType()),
+                  fieldName));
         }
       } else if (isConstructor(exp) || exp.isA(SqlKind.CAST)) {
         // REVIEW jvs 27-Feb-2005:  for cast, see corresponding note
@@ -625,8 +605,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           // For object constructors, prepend a FALSE null
           // indicator.
           flattenedExps.add(
-              rexBuilder.makeLiteral(false));
-          flattenedFieldNames.add(fieldName);
+              Pair.<RexNode, String>of(rexBuilder.makeLiteral(false),
+                  fieldName));
         } else if (exp.isA(SqlKind.CAST)) {
           if (RexLiteral.isNullLiteral(
               ((RexCall) exp).operands.get(0))) {
@@ -634,41 +614,37 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             // the correct number of null fields.
             flattenNullLiteral(
                 exp.getType(),
-                flattenedExps,
-                flattenedFieldNames);
+                flattenedExps);
             return;
           }
         }
-        flattenProjections(
+        flattenProjections(new RewriteRexShuttle(),
             call.getOperands(),
-            Collections.<String>nCopies(
-                call.getOperands().size(), null),
+            Collections.<String>nCopies(call.getOperands().size(), null),
             fieldName,
-            flattenedExps,
-            flattenedFieldNames);
+            flattenedExps);
       } else if (exp instanceof RexCall) {
         // NOTE jvs 10-Feb-2005:  This is a lame hack to keep special
         // functions which return row types working.
 
         int j = 0;
         for (RelDataTypeField field : exp.getType().getFieldList()) {
-          flattenedExps.add(rexBuilder.makeFieldAccess(exp, field.getIndex()));
-          flattenedFieldNames.add(fieldName + "$" + (j++));
+          flattenedExps.add(
+              Pair.of(rexBuilder.makeFieldAccess(exp, field.getIndex()),
+                  fieldName + "$" + (j++)));
         }
       } else {
         throw Util.needToImplement(exp);
       }
     } else {
-      exp = flattenFieldAccesses(exp);
-      flattenedExps.add(exp);
-      flattenedFieldNames.add(fieldName);
+      flattenedExps.add(
+          Pair.of(exp.accept(shuttle), fieldName));
     }
   }
 
   private void flattenNullLiteral(
       RelDataType type,
-      List<RexNode> flattenedExps,
-      List<String> flattenedFieldNames) {
+      List<Pair<RexNode, String>> flattenedExps) {
     RelDataType flattenedType =
         SqlTypeUtil.flattenRecordType(
             rexBuilder.getTypeFactory(),
@@ -676,10 +652,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             null);
     for (RelDataTypeField field : flattenedType.getFieldList()) {
       flattenedExps.add(
-          rexBuilder.makeCast(
-              field.getType(),
-              rexBuilder.constantNull()));
-      flattenedFieldNames.add(field.getName());
+          Pair.of(rexBuilder.makeCast(field.getType(),
+                  rexBuilder.constantNull()), field.getName()));
     }
   }
 
@@ -694,9 +668,31 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(LogicalTableScan rel) {
-    RelNode newRel =
-        rel.getTable().toRel(toRelContext);
+    RelNode newRel = rel.getTable().toRel(toRelContext);
+    if (!SqlTypeUtil.isFlat(rel.getRowType())) {
+      final List<Pair<RexNode, String>> flattenedExpList = Lists.newArrayList();
+      flattenInputs(rel.getRowType().getFieldList(),
+          rexBuilder.makeRangeReference(newRel),
+          flattenedExpList);
+      newRel =
+          RelOptUtil.createProject(newRel, flattenedExpList, false);
+    }
     setNewForOldRel(rel, newRel);
+  }
+
+  /** Generates expressions that reference the flattened input fields from
+   * a given row type. */
+  private void flattenInputs(List<RelDataTypeField> fieldList, RexNode prefix,
+      List<Pair<RexNode, String>> flattenedExpList) {
+    for (RelDataTypeField field : fieldList) {
+      final RexNode ref =
+          rexBuilder.makeFieldAccess(prefix, field.getIndex());
+      if (field.getType().isStruct()) {
+        flattenInputs(field.getType().getFieldList(), ref, flattenedExpList);
+      } else {
+        flattenedExpList.add(Pair.of(ref, field.getName()));
+      }
+    }
   }
 
   //~ Inner Interfaces -------------------------------------------------------
@@ -747,8 +743,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   /** Shuttle that rewrites scalar expressions. */
   private class RewriteRexShuttle extends RexShuttle {
-    // override RexShuttle
-    public RexNode visitInputRef(RexInputRef input) {
+    @Override public RexNode visitInputRef(RexInputRef input) {
       final int oldIndex = input.getIndex();
       final int newIndex = getNewForOldInput(oldIndex);
 
@@ -768,8 +763,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       return type.getFieldList().get(0).getType();
     }
 
-    // override RexShuttle
-    public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       // walk down the field access path expression, calculating
       // the desired input number
       int iInput = 0;
@@ -805,8 +799,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       }
     }
 
-    // override RexShuttle
-    public RexNode visitCall(RexCall rexCall) {
+    @Override public RexNode visitCall(RexCall rexCall) {
       if (rexCall.isA(SqlKind.CAST)) {
         RexNode input = rexCall.getOperands().get(0).accept(this);
         RelDataType targetType = removeDistinct(rexCall.getType());
@@ -837,13 +830,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         RexBuilder rexBuilder,
         SqlOperator op,
         List<RexNode> exprs) {
-      List<RexNode> flattenedExps = new ArrayList<RexNode>();
-      flattenProjections(
-          exprs,
-          null,
-          "",
-          flattenedExps,
-          new ArrayList<String>());
+      final List<Pair<RexNode, String>> flattenedExps = Lists.newArrayList();
+      flattenProjections(this, exprs, null, "", flattenedExps);
       int n = flattenedExps.size() / 2;
       boolean negate = false;
       if (op.getKind() == SqlKind.NOT_EQUALS) {
@@ -859,8 +847,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         RexNode comparison =
             rexBuilder.makeCall(
                 op,
-                flattenedExps.get(i),
-                flattenedExps.get(i + n));
+                flattenedExps.get(i).left,
+                flattenedExps.get(i + n).left);
         if (conjunction == null) {
           conjunction = comparison;
         } else {

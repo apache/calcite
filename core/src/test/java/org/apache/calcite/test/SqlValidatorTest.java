@@ -6488,6 +6488,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL X, VARCHAR(20) NOT NULL EMAIL, INTEGER NOT NULL Y) NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-xxx">CALCITE-xxx,
+   * "Unexpected upper-casing of keywords when using java lexer"</a>. */
+  @Test public void testRecordTypeElided() {
+    checkResultType(
+        "SELECT contact.x, contact.coord.y FROM customer.contact",
+        "RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
+
+    // Qualifying with schema is OK.
+    checkResultType(
+        "SELECT customer.contact.x, customer.contact.email, contact.coord.y FROM customer.contact",
+        "RecordType(INTEGER NOT NULL X, VARCHAR(20) NOT NULL EMAIL, INTEGER NOT NULL Y) NOT NULL");
+  }
+
   @Test public void testSample() {
     // applied to table
     check("SELECT * FROM emp TABLESAMPLE SUBSTITUTE('foo')");

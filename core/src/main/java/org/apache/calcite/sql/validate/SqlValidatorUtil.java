@@ -104,15 +104,15 @@ public class SqlValidatorUtil {
   /**
    * Looks up a field with a given name, returning null if not found.
    *
+   * @param caseSensitive Whether match is case-sensitive
+   * @param elideRecord Whether to find fields nested within records
    * @param rowType    Row type
    * @param columnName Field name
    * @return Field, or null if not found
    */
-  public static RelDataTypeField lookupField(
-      boolean caseSensitive,
-      final RelDataType rowType,
-      String columnName) {
-    return rowType.getField(columnName, caseSensitive);
+  public static RelDataTypeField lookupField(boolean caseSensitive,
+      boolean elideRecord, final RelDataType rowType, String columnName) {
+    return rowType.getField(columnName, caseSensitive, elideRecord);
   }
 
   public static void checkCharsetAndCollateConsistentIfCharType(
@@ -343,14 +343,14 @@ public class SqlValidatorUtil {
 
   public static RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList, RelDataTypeFactory typeFactory,
-      boolean caseSensitive) {
+      boolean caseSensitive, boolean elideRecord) {
     // If the names in columnNameList and type have case-sensitive differences,
     // the resulting type will use those from type. These are presumably more
     // canonical.
     final List<RelDataTypeField> fields =
         new ArrayList<RelDataTypeField>(columnNameList.size());
     for (String name : columnNameList) {
-      RelDataTypeField field = type.getField(name, caseSensitive);
+      RelDataTypeField field = type.getField(name, caseSensitive, elideRecord);
       fields.add(type.getFieldList().get(field.getIndex()));
     }
     return typeFactory.createStructType(fields);

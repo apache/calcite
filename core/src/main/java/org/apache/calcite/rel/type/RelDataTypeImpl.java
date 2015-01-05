@@ -27,6 +27,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
@@ -76,11 +77,26 @@ public abstract class RelDataTypeImpl
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelDataType
-  public RelDataTypeField getField(String fieldName, boolean caseSensitive) {
+  public RelDataTypeField getField(String fieldName, boolean caseSensitive,
+      boolean elideRecord) {
     for (RelDataTypeField field : fieldList) {
       if (Util.matches(caseSensitive, field.getName(), fieldName)) {
         return field;
+      }
+    }
+    if (elideRecord) {
+      final List<Slot> slots = Lists.newArrayList();
+      getFieldRecurse(slots, this, 0, fieldName, caseSensitive);
+    loop:
+      for (Slot slot : slots) {
+        switch (slot.count) {
+        case 0:
+          break; // no match at this depth; try deeper
+        case 1:
+          return slot.field;
+        default:
+          break loop; // duplicate fields at this depth; abandon search
+        }
       }
     }
     // Extra field
@@ -92,6 +108,29 @@ public abstract class RelDataTypeImpl
       }
     }
     return null;
+  }
+
+  private static void getFieldRecurse(List<Slot> slots, RelDataTypeImpl type,
+      int depth, String fieldName, boolean caseSensitive) {
+    while (slots.size() <= depth) {
+      slots.add(new Slot());
+    }
+    final Slot slot = slots.get(depth);
+    for (RelDataTypeField field : type.fieldList) {
+      if (Util.matches(caseSensitive, field.getName(), fieldName)) {
+        slot.count++;
+        slot.field = field;
+      }
+    }
+    // No point looking to depth + 1 if there is a hit at depth.
+    if (slot.count == 0) {
+      for (RelDataTypeField field : type.fieldList) {
+        if (field.getType().isStruct()) {
+          getFieldRecurse(slots, (RelDataTypeImpl) field.getType(), depth + 1,
+              fieldName, caseSensitive);
+        }
+      }
+    }
   }
 
   // implement RelDataType
@@ -348,7 +387,13 @@ public abstract class RelDataTypeImpl
   public static RelDataTypeField extra(RelDataType rowType) {
     // Even in a case-insensitive connection, the name must be precisely
     // "_extra".
-    return rowType.getField("_extra", true);
+    return rowType.getField("_extra", true, false);
+  }
+
+  /** Work space for {@link RelDataTypeImpl#getFieldRecurse}. */
+  private static class Slot {
+    int count;
+    RelDataTypeField field;
   }
 }
 

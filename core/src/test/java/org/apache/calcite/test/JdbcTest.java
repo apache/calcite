@@ -2008,9 +2008,9 @@ public class JdbcTest {
         .query("select * from \"hr\".\"emps\",\n"
             + " LATERAL (select * from \"hr\".\"depts\" where \"emps\".\"deptno\" = \"depts\".\"deptno\")")
         .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]",
-            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]");
   }
 
   /** Per SQL std, UNNEST is implicitly LATERAL. */
@@ -2503,10 +2503,10 @@ public class JdbcTest {
         .query(
             "select * from \"hr\".\"emps\", \"hr\".\"depts\" where \"emps\".\"empid\" < 140 and \"depts\".\"deptno\" > 20")
         .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=30; name0=Marketing; employees=[]",
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=30; name0=Marketing; employees=[]",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=30; name0=Marketing; employees=[]; location=Location [x: 0, y: 52]",
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]; location=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=30; name0=Marketing; employees=[]; location=Location [x: 0, y: 52]",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]; location=null");
   }
 
   @Test public void testDistinctCountSimple() {
@@ -2592,9 +2592,9 @@ public class JdbcTest {
             + "  select \"deptno\" from \"hr\".\"emps\"\n"
             + "  where \"empid\" < 150)")
         .convertContains(""
-            + "LogicalProject(deptno=[$0], name=[$1], employees=[$2])\n"
-            + "  LogicalJoin(condition=[=($3, $4)], joinType=[inner])\n"
-            + "    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$0])\n"
+            + "LogicalProject(deptno=[$0], name=[$1], employees=[$2], location=[$3])\n"
+            + "  LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$0])\n"
             + "      EnumerableTableScan(table=[[hr, depts]])\n"
             + "    LogicalAggregate(group=[{0}])\n"
             + "      LogicalProject(deptno=[$1])\n"
@@ -2602,14 +2602,14 @@ public class JdbcTest {
             + "          LogicalProject(empid=[$0], deptno=[$1])\n"
             + "            EnumerableTableScan(table=[[hr, emps]])")
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])\n"
-            + "  EnumerableSemiJoin(condition=[=($3, $4)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..2=[{inputs}], proj#0..2=[{exprs}], $f3=[$t0])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], proj#0..3=[{exprs}])\n"
+            + "  EnumerableSemiJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..3=[{exprs}], $f4=[$t0])\n"
             + "      EnumerableTableScan(table=[[hr, depts]])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], deptno=[$t1], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])")
         .returnsUnordered(
-            "deptno=10; name=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]");
+            "deptno=10; name=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]");
   }
 
   /** A difficult query: an IN list so large that the planner promotes it
@@ -6054,9 +6054,11 @@ public class JdbcTest {
       new Employee(110, 10, "Theodore", 11500, 250),
     };
     public final Department[] depts = {
-      new Department(10, "Sales", Arrays.asList(emps[0], emps[2])),
-      new Department(30, "Marketing", Collections.<Employee>emptyList()),
-      new Department(40, "HR", Collections.singletonList(emps[1])),
+      new Department(10, "Sales", Arrays.asList(emps[0], emps[2]),
+          new Location(-122, 38)),
+      new Department(30, "Marketing", Collections.<Employee>emptyList(),
+          new Location(0, 52)),
+      new Department(40, "HR", Collections.singletonList(emps[1]), null),
     };
     public final Dependent[] dependents = {
       new Dependent(10, "Michael"),
@@ -6112,32 +6114,34 @@ public class JdbcTest {
     public final int deptno;
     public final String name;
     public final List<Employee> employees;
+    public final Location location;
 
-    public Department(
-        int deptno, String name, List<Employee> employees) {
+    public Department(int deptno, String name, List<Employee> employees,
+        Location location) {
       this.deptno = deptno;
       this.name = name;
       this.employees = employees;
+      this.location = location;
     }
 
 
     public String toString() {
       return "Department [deptno: " + deptno + ", name: " + name
-          + ", employees: " + employees + "]";
+          + ", employees: " + employees + ", location: " + location + "]";
     }
   }
 
   public static class Location {
-    public final int locid;
-    public final String name;
+    public final int x;
+    public final int y;
 
-    public Location(int locid, String name) {
-      this.locid = locid;
-      this.name = name;
+    public Location(int x, int y) {
+      this.x = x;
+      this.y = y;
     }
 
     @Override public String toString() {
-      return "Location [locid: " + locid + ", name: " + name + "]";
+      return "Location [x: " + x + ", y: " + y + "]";
     }
   }
 
