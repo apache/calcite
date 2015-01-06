@@ -1063,6 +1063,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test group-by CASE expression involving an IN subquery
+   */
+  @Test public void testGroupByCaseSubquery() {
+    check(
+      "SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END FROM emp GROUP BY (CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END)",
+           "${plan}");
+  }
+
+  /**
+   * Test aggregation function on a CASE expression involving an IN subquery
+   */
+  @Test public void testAggCaseSubquery() {
+    check("SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp", "${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)

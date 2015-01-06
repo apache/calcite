@@ -2304,4 +2304,28 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], X=[$2])
 ]]>
         </Resource>
     </TestCase>
+        <TestCase name="testGroupByCaseSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END FROM emp GROUP BY (CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[CASE(=($0, 3), 0, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+        <TestCase name="testAggCaseSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END) FROM emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f0=[CASE(=($0, 3), 0, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>    
 </Root>
