@@ -583,7 +583,7 @@ public class RexUtil {
    * underlying datatype.
    */
   public static boolean containIdentity(
-      List<RexNode> exprs,
+      List<? extends RexNode> exprs,
       RelDataType rowType,
       boolean fail) {
     final List<RelDataTypeField> fields = rowType.getFieldList();

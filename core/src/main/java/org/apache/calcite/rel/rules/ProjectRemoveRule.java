@@ -21,9 +21,8 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.base.Predicate;
 
@@ -66,6 +65,13 @@ public class ProjectRemoveRule extends RelOptRule {
     Project project = call.rel(0);
     assert isTrivial(project);
     RelNode stripped = project.getInput();
+    if (stripped instanceof Project) {
+      // Rename columns of child projection if desired field names are given.
+      Project childProject = (Project) stripped;
+      stripped = childProject.copy(childProject.getTraitSet(),
+          childProject.getInput(), childProject.getProjects(),
+          project.getRowType());
+    }
     RelNode child = call.getPlanner().register(stripped, project);
     call.transformTo(child);
   }
@@ -81,41 +87,13 @@ public class ProjectRemoveRule extends RelOptRule {
   public static boolean isTrivial(Project project) {
     RelNode child = project.getInput();
     final RelDataType childRowType = child.getRowType();
-    if (!childRowType.isStruct()) {
-      return false;
-    }
-    if (!project.isBoxed()) {
-      return false;
-    }
-    if (!isIdentity(project.getProjects(), project.getRowType(),
-        childRowType)) {
-      return false;
-    }
-    return true;
+    return isIdentity(project.getProjects(), childRowType);
   }
 
   public static boolean isIdentity(List<? extends RexNode> exps,
-      RelDataType rowType, RelDataType childRowType) {
-    List<RelDataTypeField> fields = rowType.getFieldList();
-    List<RelDataTypeField> childFields = childRowType.getFieldList();
-    int fieldCount = childFields.size();
-    if (exps.size() != fieldCount) {
-      return false;
-    }
-    for (int i = 0; i < exps.size(); i++) {
-      RexNode exp = exps.get(i);
-      if (!(exp instanceof RexInputRef)) {
-        return false;
-      }
-      RexInputRef var = (RexInputRef) exp;
-      if (var.getIndex() != i) {
-        return false;
-      }
-      if (!fields.get(i).getName().equals(childFields.get(i).getName())) {
-        return false;
-      }
-    }
-    return true;
+      RelDataType childRowType) {
+    return childRowType.getFieldCount() == exps.size()
+        && RexUtil.containIdentity(exps, childRowType, false);
   }
 }
 
