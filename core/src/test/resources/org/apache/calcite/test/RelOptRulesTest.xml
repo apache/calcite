@@ -296,8 +296,7 @@ LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
   LogicalProject(DDEPTNO=[CASE($2, null, $0)], DNAME=[CASE($3, null, $1)], C=[$4])
     LogicalFilter(condition=[=(CASE($3, null, $1), 'Charlie')])
       LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], C=[COUNT()])
-        LogicalProject(DDEPTNO=[$0], DNAME=[$1])
-          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="planAfter">
@@ -306,8 +305,7 @@ LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
   LogicalProject(DDEPTNO=[CASE($2, null, $0)], DNAME=[CASE($3, null, $1)], C=[$4])
     LogicalFilter(condition=[=(CASE($3, null, $1), 'Charlie')])
       LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], indicator=[true], C=[COUNT()])
-        LogicalProject(DDEPTNO=[$0], DNAME=[$1])
-          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -2764,9 +2762,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
                 LogicalProject(SAL=[$5], DEPTNO=[$7])
                   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
                 LogicalAggregate(group=[{0}])
-                  LogicalProject($f0=[$0])
-                    LogicalProject(DEPTNO=[$0])
-                      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                  LogicalProject(DEPTNO=[$0])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="planAfter">
@@ -2783,9 +2780,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
                 LogicalProject(SAL=[$5], DEPTNO=[$7])
                   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
               LogicalAggregate(group=[{0}])
-                LogicalProject($f0=[$0])
-                  LogicalProject(DEPTNO=[$0])
-                    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                LogicalProject(DEPTNO=[$0])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -2808,9 +2804,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
             LogicalProject(SAL=[$5], DEPTNO=[$7])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
           LogicalAggregate(group=[{0}])
-            LogicalProject($f0=[$0])
-              LogicalProject(DEPTNO=[$0])
-                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="planAfter">
@@ -2823,9 +2818,8 @@ SemiJoin(condition=[=($0, $2)], joinType=[inner])
         LogicalProject(SAL=[$5], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{0}])
-        LogicalProject($f0=[$0])
-          LogicalProject(DEPTNO=[$0])
-            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -2865,9 +2859,8 @@ LogicalProject(DEPTNO=[$0])
             LogicalProject(SAL=[$5], DEPTNO=[$7])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
           LogicalAggregate(group=[{0}])
-            LogicalProject($f0=[$0])
-              LogicalProject(DEPTNO=[$0])
-                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(ACCTNO=[$0])
       LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>

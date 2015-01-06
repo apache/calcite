@@ -2486,6 +2486,58 @@ public class JdbcTest {
             + "EXPR$0=2; EXPR$1=abc\n");
   }
 
+  /**
+   * Tests that even though trivial "rename columns" projection is removed,
+   * the query still returns proper column names.
+   */
+  @Test public void testValuesCompositeRenamed() {
+    CalciteAssert.that()
+        .query("select EXPR$0 q, EXPR$1 w from (values (1, 'a'), (2, 'abc'))")
+        .explainContains(
+            "PLAN=EnumerableValues(tuples=[[{ 1, 'a  ' }, { 2, 'abc' }]])\n")
+        .returns("Q=1; W=a  \n"
+            + "Q=2; W=abc\n");
+  }
+
+  /**
+   * Tests that even though trivial "rename columns" projection is removed,
+   * the query still returns proper column names.
+   */
+  @Test public void testValuesCompositeRenamedSameNames() {
+    CalciteAssert.that()
+        .query("select EXPR$0 q, EXPR$1 q from (values (1, 'a'), (2, 'abc'))")
+        .explainContains(
+            "PLAN=EnumerableValues(tuples=[[{ 1, 'a  ' }, { 2, 'abc' }]])\n")
+        .returnsUnordered(
+            "Q=1; Q=a  ",
+            "Q=2; Q=abc");
+  }
+
+  /**
+   * Tests that even though trivial "rename columns" projection is removed,
+   * the query still returns proper column names.
+   */
+  @Test public void testUnionWithSameColumnNames() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\", \"deptno\" from \"hr\".\"depts\" union select \"deptno\", \"empid\" from \"hr\".\"emps\"")
+        .explainContains(""
+            + "PLAN=EnumerableUnion(all=[false])\n"
+            + "  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0], deptno0=[$t0])\n"
+            + "    EnumerableTableScan(table=[[hr, depts]])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], empid=[$t0])\n"
+            + "    EnumerableTableScan(table=[[hr, emps]])\n")
+        .returnsUnordered(
+            "deptno=10; deptno=110",
+            "deptno=10; deptno=10",
+            "deptno=20; deptno=200",
+            "deptno=10; deptno=100",
+            "deptno=10; deptno=150",
+            "deptno=30; deptno=30",
+            "deptno=40; deptno=40");
+  }
+
   /** Tests inner join to an inline table ({@code VALUES} clause). */
   @Test public void testInnerJoinValues() {
     CalciteAssert.that()
@@ -2493,6 +2545,11 @@ public class JdbcTest {
         .query("select empno, desc from sales.emps,\n"
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
+        .explainContains("EnumerableAggregate(group=[{0, 1}])\n"
+            + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], EMPNO=[$t2], DESC=[$t1], $condition=[$t8])\n"
+            + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
+            + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
+            + "      EnumerableTableScan(table=[[SALES, EMPS]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
 

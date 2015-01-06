@@ -2709,7 +2709,14 @@ public abstract class RelOptUtil {
                 : SqlValidatorUtil.uniquify(
                     fieldNames, SqlValidatorUtil.F_SUGGESTER));
     if (optimize
-        && ProjectRemoveRule.isIdentity(exprs, rowType, child.getRowType())) {
+        && ProjectRemoveRule.isIdentity(exprs, child.getRowType())) {
+      if (child instanceof Project && fieldNames != null) {
+        // Rename columns of child projection if desired field names are given.
+        Project childProject = (Project) child;
+        child = childProject.copy(childProject.getTraitSet(),
+            childProject.getInput(), childProject.getProjects(),
+            rowType);
+      }
       return child;
     }
     return new LogicalProject(cluster,
