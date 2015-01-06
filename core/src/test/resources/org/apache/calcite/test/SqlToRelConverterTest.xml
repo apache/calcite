@@ -1693,7 +1693,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             <![CDATA[select * from (select 2+deptno d2, 3+deptno d3 from emp) e
  where exists (select 1 from (select deptno+1 d1 from dept) d
  where d1=e.d2 and exists (select 2 from (select deptno+4 d4, deptno+5 d5, deptno+6 d6 from dept)
- where d4=d.d1 and d5=d.d1 and d6=e.d3)))]]>
+ where d4=d.d1 and d5=d.d1 and d6=e.d3))]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1723,7 +1723,7 @@ LogicalProject(D2=[$0], D3=[$1])
             <![CDATA[select * from (select 2+deptno d2, 3+deptno d3 from emp) e
  where exists (select 1 from (select deptno+1 d1 from dept) d
  where d1=e.d2 and exists (select 2 from (select deptno+4 d4, deptno+5 d5, deptno+6 d6 from dept)
- where d4=d.d1 and d5=d.d1 and d6=e.d3)))]]>
+ where d4=d.d1 and d5=d.d1 and d6=e.d3))]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2301,6 +2301,60 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[CASE($3, 1, 0)], EXPR$2=[$4], EXPR$3=[CASE($
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], X=[$2])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupByCaseSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END
+FROM emp
+GROUP BY (CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[CASE(=($0, 3), 0, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggCaseSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f0=[CASE(=($0, 3), 0, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggCaseInSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(
+  CASE WHEN deptno IN (SELECT deptno FROM dept) THEN 1 ELSE 0 END)
+FROM emp]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggScalarSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(SELECT min(deptno) FROM dept) FROM emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$0])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+      LogicalProject(EXPR$0=[$9])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

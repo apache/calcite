@@ -24,6 +24,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.PrintWriter;
@@ -1060,6 +1061,39 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     tester.assertConvertsTo(
         "select ename from (select * from emp order by sal) a", "${plan}",
         true);
+  }
+
+  /**
+   * Test group-by CASE expression involving a non-query IN
+   */
+  @Test public void testGroupByCaseSubquery() {
+    sql("SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END\n"
+        + "FROM emp\n"
+        + "GROUP BY (CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test aggregate function on a CASE expression involving a non-query IN
+   */
+  @Test public void testAggCaseSubquery() {
+    sql("SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testAggScalarSubquery() {
+    sql("SELECT SUM(SELECT min(deptno) FROM dept) FROM emp")
+        .convertsTo("${plan}");
+  }
+
+  /** Test aggregate function on a CASE expression involving IN with a
+   * sub-query */
+  @Ignore("[CALCITE-551] Sub-query inside aggregate function")
+  @Test public void testAggCaseInSubquery() {
+    sql("SELECT SUM(\n"
+        + "  CASE WHEN deptno IN (SELECT deptno FROM dept) THEN 1 ELSE 0 END)\n"
+        + "FROM emp")
+        .convertsTo("${plan}");
   }
 
   /**

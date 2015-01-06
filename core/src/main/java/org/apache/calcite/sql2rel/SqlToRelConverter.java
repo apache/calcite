@@ -2555,6 +2555,8 @@ public class SqlToRelConverter {
       groupList = SqlNodeList.EMPTY;
     }
 
+    replaceSubqueries(bb, groupList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+
     // register the group exprs
 
     // build a map to remember the projections from the top scope to the
@@ -3296,11 +3298,6 @@ public class SqlToRelConverter {
     final SqlCall call = SqlUtil.makeCall(opTab, identifier);
     if (call != null) {
       return bb.convertExpression(call);
-    }
-
-    if (bb.agg != null) {
-      throw Util.newInternal("Identifier '" + identifier
-          + "' is not a group expr");
     }
 
     final SqlQualified qualified;
