@@ -103,6 +103,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_ROLE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIME;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DATETIME_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DENSE_RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -140,6 +141,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
@@ -280,6 +282,14 @@ public class RexImpTable {
     map.put(MAP_VALUE_CONSTRUCTOR, value);
     map.put(ARRAY_VALUE_CONSTRUCTOR, value);
     map.put(ITEM, new ItemImplementor());
+
+    // Sequences
+    defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
+        new MethodImplementor(BuiltInMethod.SEQUENCE_CURRENT_VALUE.method),
+        false);
+    defineImplementor(NEXT_VALUE, NullPolicy.STRICT,
+        new MethodImplementor(BuiltInMethod.SEQUENCE_NEXT_VALUE.method),
+        false);
 
     // System functions
     final SystemFunctionImplementor systemFunctionImplementor =

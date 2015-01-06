@@ -4321,6 +4321,7 @@ public class JdbcTest {
 
   /** Runs the dummy script, which is checked in empty but which you may
    * use as scratch space during development. */
+  // Do not add '@Ignore'; just remember not to commit changes to dummy.oq
   @Test public void testRunDummy() throws Exception {
     checkRun("sql/dummy.oq");
   }
@@ -4337,17 +4338,16 @@ public class JdbcTest {
     checkRun("sql/outer.oq");
   }
 
-  @Ignore
-  @Test public void testRunFoo() throws Exception {
-    checkRun("/tmp/foo.oq");
-  }
-
   @Test public void testRunWinAgg() throws Exception {
     checkRun("sql/winagg.oq");
   }
 
   @Test public void testRunMisc() throws Exception {
     checkRun("sql/misc.oq");
+  }
+
+  @Test public void testRunSequence() throws Exception {
+    checkRun("sql/sequence.oq");
   }
 
   @Test public void testRunSubquery() throws Exception {
@@ -4403,6 +4403,26 @@ public class JdbcTest {
                       new ReflectiveSchema(
                           new ReflectiveSchemaTest.CatchallSchema()))
                   .connect();
+            }
+            if (name.equals("seq")) {
+              final Connection connection = CalciteAssert.that()
+                  .withSchema("s", new AbstractSchema())
+                  .connect();
+              connection.unwrap(CalciteConnection.class).getRootSchema()
+                  .getSubSchema("s")
+                  .add("my_seq",
+                      new AbstractTable() {
+                        public RelDataType getRowType(
+                            RelDataTypeFactory typeFactory) {
+                          return typeFactory.builder()
+                              .add("$seq", SqlTypeName.BIGINT).build();
+                        }
+
+                        @Override public Schema.TableType getJdbcTableType() {
+                          return Schema.TableType.SEQUENCE;
+                        }
+                      });
+              return connection;
             }
             throw new RuntimeException("unknown connection '" + name + "'");
           }

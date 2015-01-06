@@ -33,9 +33,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 /**
@@ -62,6 +64,19 @@ public class SqlFunctions {
       new Function1<List<Object>, Enumerable<Object>>() {
         public Enumerable<Object> apply(List<Object> list) {
           return Linq4j.asEnumerable(list);
+        }
+      };
+
+  /** Holds, for each thread, a map from sequence name to sequence current
+   * value.
+   *
+   * <p>This is a straw man of an implementation whose main goal is to prove
+   * that sequences can be parsed, validated and planned. A real application
+   * will want persistent values for sequences, shared among threads. */
+  private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
+      new ThreadLocal<Map<String, AtomicLong>>() {
+        @Override protected Map<String, AtomicLong> initialValue() {
+          return new HashMap<String, AtomicLong>();
         }
       };
 
@@ -1188,6 +1203,28 @@ public class SqlFunctions {
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** Support the {@code CURRENT VALUE OF sequence} operator. */
+  @NonDeterministic
+  public static long sequenceCurrentValue(String key) {
+    return getAtomicLong(key).get();
+  }
+
+  /** Support the {@code NEXT VALUE OF sequence} operator. */
+  @NonDeterministic
+  public static long sequenceNextValue(String key) {
+    return getAtomicLong(key).incrementAndGet();
+  }
+
+  private static AtomicLong getAtomicLong(String key) {
+    final Map<String, AtomicLong> map = THREAD_SEQUENCES.get();
+    AtomicLong atomic = map.get(key);
+    if (atomic == null) {
+      atomic = new AtomicLong();
+      map.put(key, atomic);
+    }
+    return atomic;
   }
 
   /** Support the SLICE function. */

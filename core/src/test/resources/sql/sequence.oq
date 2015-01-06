@@ -1,0 +1,56 @@
+# sequence.oq - Sequences
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+!use seq
+!set outputformat mysql
+
+select next value for my_seq as c from (values 1, 2);
++---+
+| C |
++---+
+| 1 |
+| 2 |
++---+
+(2 rows)
+
+!ok
+select current value for my_seq as c from (values 1, 2);
++---+
+| C |
++---+
+| 2 |
+| 2 |
++---+
+(2 rows)
+
+!ok
+
+# Sequences appear in the catalog as tables of type 'SEQUENCE'
+select * from "metadata".tables;
++----------+------------+-----------+--------------+---------+---------+-----------+----------+------------------------+---------------+
+| tableCat | tableSchem | tableName | tableType    | remarks | typeCat | typeSchem | typeName | selfReferencingColName | refGeneration |
++----------+------------+-----------+--------------+---------+---------+-----------+----------+------------------------+---------------+
+|          | metadata   | COLUMNS   | SYSTEM_TABLE |         |         |           |          |                        |               |
+|          | metadata   | TABLES    | SYSTEM_TABLE |         |         |           |          |                        |               |
+|          | s          | my_seq    | SEQUENCE     |         |         |           |          |                        |               |
++----------+------------+-----------+--------------+---------+---------+-----------+----------+------------------------+---------------+
+(3 rows)
+
+!ok
+
+# End sequence.oq

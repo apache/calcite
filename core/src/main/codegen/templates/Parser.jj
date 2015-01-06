@@ -51,6 +51,7 @@ import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
@@ -2767,6 +2768,8 @@ SqlNode AtomicRowExpression() :
     e = NewSpecification() { return e; }
     |
     e = CaseExpression() { return e; }
+    |
+    e = SequenceExpression() { return e; }
 }
 
 SqlNode CaseExpression() :
@@ -2811,6 +2814,23 @@ SqlNode CaseExpression() :
             new SqlNodeList(whenList, whenPos),
             new SqlNodeList(thenList, thenPos),
             elseClause);
+    }
+}
+
+SqlCall SequenceExpression() :
+{
+    final SqlParserPos pos;
+    final SqlOperator f;
+    final SqlNode sequenceRef;
+}
+{
+    (
+        <NEXT> { f = SqlStdOperatorTable.NEXT_VALUE; pos = getPos(); }
+    |
+        <CURRENT> { f = SqlStdOperatorTable.CURRENT_VALUE; pos = getPos(); }
+    )
+    <VALUE> <FOR> sequenceRef = CompoundIdentifier() {
+        return f.createCall(pos, sequenceRef);
     }
 }
 
@@ -5191,7 +5211,6 @@ String CommonNonReservedKeyWord() :
         | <NAME>
         | <NAMES>
         | <NESTING>
-        | <NEXT>
         | <NORMALIZED>
         | <NULLABLE>
         | <NULLS>

@@ -1530,18 +1530,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The sequence next value function: <code>NEXT VALUE FOR sequence</code>
    */
-  public static final SqlFunction NEXT_VALUE =
-      new SqlFunction(
-          "NEXT_VALUE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BIGINT,
-          null,
-          OperandTypes.CHARACTER,
-          SqlFunctionCategory.SYSTEM) {
-        public boolean isDeterministic() {
-          return false;
-        }
-      };
+  public static final SqlOperator NEXT_VALUE =
+      new SqlSequenceValueOperator(SqlKind.NEXT_VALUE);
+
+  /**
+   * The sequence current value function: <code>CURRENT VALUE FOR
+   * sequence</code>
+   */
+  public static final SqlOperator CURRENT_VALUE =
+      new SqlSequenceValueOperator(SqlKind.CURRENT_VALUE);
 
   /**
    * The <code>TABLESAMPLE</code> operator.
@@ -1597,7 +1594,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
     return instance;
   }
-
 }
 
 // End SqlStdOperatorTable.java

@@ -166,11 +166,21 @@ public interface Schema {
      * structure during query planning. */
     STAR,
 
-    /** Index table. (Used by Apache Phoenix.) */
+    /** Index table.
+     *
+     * <p>Used by Apache Phoenix. */
     INDEX,
 
-    /** Join table. (Used by Apache Phoenix.) */
+    /** Join table.
+     *
+     * <p>Used by Apache Phoenix. */
     JOIN,
+
+    /** Sequence table.
+     *
+     * <p>Used by Apache Phoenix, and others. Must have a single BIGINT column
+     * called "$seq". */
+    SEQUENCE,
   }
 }
 

@@ -5717,6 +5717,37 @@ public class SqlParserTest {
         "(?s)Encountered \",\" at line 1, column 23\\..*");
   }
 
+  @Test public void testSequence() {
+    sql("select next value for my_schema.my_seq from t")
+        .ok("SELECT (NEXT VALUE FOR `MY_SCHEMA`.`MY_SEQ`)\n"
+                + "FROM `T`");
+    sql("select next value for my_schema.my_seq as s from t")
+        .ok("SELECT (NEXT VALUE FOR `MY_SCHEMA`.`MY_SEQ`) AS `S`\n"
+                + "FROM `T`");
+    sql("select next value for my_seq as s from t")
+        .ok("SELECT (NEXT VALUE FOR `MY_SEQ`) AS `S`\n"
+                + "FROM `T`");
+    sql("select 1 + next value for s + current value for s from t")
+        .ok("SELECT ((1 + (NEXT VALUE FOR `S`)) + (CURRENT VALUE FOR `S`))\n"
+                + "FROM `T`");
+    sql("select 1 from t where next value for my_seq < 10")
+        .ok("SELECT 1\n"
+                + "FROM `T`\n"
+                + "WHERE ((NEXT VALUE FOR `MY_SEQ`) < 10)");
+    sql("select 1 from t\n"
+        + "where next value for my_seq < 10 fetch next 3 rows only")
+        .ok("SELECT 1\n"
+                + "FROM `T`\n"
+                + "WHERE ((NEXT VALUE FOR `MY_SEQ`) < 10)\n"
+                + "FETCH NEXT 3 ROWS ONLY");
+    sql("insert into t values next value for my_seq, current value for my_seq")
+        .ok("INSERT INTO `T`\n"
+                + "(VALUES (ROW((NEXT VALUE FOR `MY_SEQ`))), (ROW((CURRENT VALUE FOR `MY_SEQ`))))");
+    sql("insert into t values (1, current value for my_seq)")
+        .ok("INSERT INTO `T`\n"
+                + "(VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`))))");
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

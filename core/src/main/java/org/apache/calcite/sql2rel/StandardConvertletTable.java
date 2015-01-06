@@ -59,6 +59,7 @@ import org.apache.calcite.sql.fun.SqlMultisetValueConstructor;
 import org.apache.calcite.sql.fun.SqlOverlapsOperator;
 import org.apache.calcite.sql.fun.SqlQuarterFunction;
 import org.apache.calcite.sql.fun.SqlRowOperator;
+import org.apache.calcite.sql.fun.SqlSequenceValueOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -677,6 +678,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
     }
     return cx.getRexBuilder().makeCall(returnType, fun, exprs);
+  }
+
+  public RexNode convertSequenceValue(
+      SqlRexContext cx,
+      SqlSequenceValueOperator fun,
+      SqlCall call) {
+    final List<SqlNode> operands = call.getOperandList();
+    assert operands.size() == 1;
+    assert operands.get(0) instanceof SqlIdentifier;
+    String key = ((SqlIdentifier) operands.get(0)).names.toString();
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeType(call);
+    return cx.getRexBuilder().makeCall(returnType, fun,
+        ImmutableList.<RexNode>of(cx.getRexBuilder().makeLiteral(key)));
   }
 
   public RexNode convertAggregateFunction(

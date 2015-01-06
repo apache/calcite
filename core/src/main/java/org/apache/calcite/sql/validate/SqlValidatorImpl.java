@@ -4133,7 +4133,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       this.validator = validator;
     }
 
-    public SqlNode visit(SqlIdentifier id) {
+    @Override public SqlNode visit(SqlIdentifier id) {
       // First check for builtin functions which don't have
       // parentheses, like "LOCALTIME".
       SqlCall call =
@@ -4148,10 +4148,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return fqId;
     }
 
-    // implement SqlScopedShuttle
-    protected SqlNode visitScoped(SqlCall call) {
+    @Override protected SqlNode visitScoped(SqlCall call) {
       switch (call.getKind()) {
       case SCALAR_QUERY:
+      case CURRENT_VALUE:
+      case NEXT_VALUE:
         return call;
       }
       // Only visits arguments which are expressions. We don't want to

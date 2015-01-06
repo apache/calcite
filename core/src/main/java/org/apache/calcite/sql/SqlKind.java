@@ -483,6 +483,16 @@ public enum SqlKind {
   CAST,
 
   /**
+   * The "NEXT VALUE OF sequence" operator.
+   */
+  NEXT_VALUE,
+
+  /**
+   * The "CURRENT VALUE OF sequence" operator.
+   */
+  CURRENT_VALUE,
+
+  /**
    * The "TRIM" function.
    */
   TRIM,
