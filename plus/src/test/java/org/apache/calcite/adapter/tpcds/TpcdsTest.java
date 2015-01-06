@@ -166,7 +166,7 @@ public class TpcdsTest {
 
   private CalciteAssert.AssertQuery checkQuery(int i) {
     final Query query = Query.of(i);
-    String sql = query.sql(-1, new Random(0));
+    String sql = query.sql(new Random(0));
     switch (i) {
     case 58:
       if (Bug.upgrade("new TPC-DS generator")) {

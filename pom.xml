@@ -203,7 +203,7 @@ limitations under the License.
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>tpcds</artifactId>
-        <version>0.1</version>
+        <version>0.2</version>
         <type>jar</type>
       </dependency>
       <dependency>
