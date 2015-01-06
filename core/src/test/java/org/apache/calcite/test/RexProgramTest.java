@@ -436,15 +436,18 @@ public class RexProgramTest {
     checkCnf(and(aRef, or(bRef, and(cRef, dRef))),
         "AND(?0.a, OR(?0.b, ?0.c), OR(?0.b, ?0.d))");
 
-    checkCnf(and(aRef, or(bRef,
-            and(cRef, or(dRef,
-                and(eRef, or(fRef, gRef)))))),
+    checkCnf(
+        and(aRef, or(bRef, and(cRef, or(dRef, and(eRef, or(fRef, gRef)))))),
         "AND(?0.a, OR(?0.b, ?0.c), OR(?0.b, ?0.d, ?0.e), OR(?0.b, ?0.d, ?0.f, ?0.g))");
 
-    checkCnf(and(aRef, or(bRef,
-            and(cRef, or(dRef,
-                and(eRef, or(fRef,
-                    and(gRef, or(trueLiteral, falseLiteral)))))))),
+    checkCnf(
+        and(aRef,
+            or(bRef,
+                and(cRef,
+                    or(dRef,
+                        and(eRef,
+                            or(fRef,
+                                and(gRef, or(trueLiteral, falseLiteral)))))))),
         "AND(?0.a, OR(?0.b, ?0.c), OR(?0.b, ?0.d, ?0.e), OR(?0.b, ?0.d, ?0.f, ?0.g))");
   }
 
