@@ -483,21 +483,20 @@ public class JdbcTest {
   }
 
   private CalciteAssert.AssertThat assertWithMacro(Class clazz) {
-    return CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'View',\n"
-            + "           className: '" + clazz.getName() + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}");
+    return CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'View',\n"
+        + "           className: '" + clazz.getName() + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}");
   }
 
   private void checkTableMacroInModel(Class clazz) {
@@ -1465,8 +1464,7 @@ public class JdbcTest {
    * is ignored and rows with deptno=10 are wrongly returned.</p>
    */
   @Test public void testAnd3() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\" from \"hr\".\"emps\"\n"
             + "where \"emps\".\"empid\" < 240\n"
             + "and \"salary\" > 7500.0"
@@ -1578,8 +1576,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-371">CALCITE-371</a>,
    * "Cannot implement JOIN whose ON clause contains mixed equi and theta". */
   @Test public void testEquiThetaJoin() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select e.\"empid\", d.\"name\", e.\"name\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "join \"hr\".\"depts\" as d\n"
@@ -1594,8 +1591,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-451">[CALCITE-451]
    * Implement theta join, inner and outer, in enumerable convention</a>. */
   @Test public void testThetaJoin() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(
             "select e.\"empid\", d.\"name\", e.\"name\"\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -1736,8 +1732,7 @@ public class JdbcTest {
           .append(i).append(".\"deptno\" = d")
           .append(i - 1).append(".\"deptno\"");
     }
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(buf.toString())
         .returns("EXPR$0=3\n");
   }
@@ -1867,8 +1862,7 @@ public class JdbcTest {
 
   /** Tests the {@code CARDINALITY} function applied to an array column. */
   @Test public void testArray2() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\", cardinality(\"employees\") as c\n"
             + "from \"hr\".\"depts\"")
         .returnsUnordered("deptno=10; C=2",
@@ -1878,8 +1872,7 @@ public class JdbcTest {
 
   /** Tests JDBC support for nested arrays. */
   @Test public void testNestedArray() throws Exception {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .doWithConnection(
             new Function<CalciteConnection, Object>() {
               public Object apply(CalciteConnection a0) {
@@ -1936,21 +1929,18 @@ public class JdbcTest {
 
   @Test public void testArrayConstructor() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select array[1,2] as a from (values (1))")
         .returnsUnordered("A=[1, 2]");
   }
 
   @Test public void testMultisetConstructor() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select multiset[1,2] as a from (values (1))")
         .returnsUnordered("A=[1, 2]");
   }
 
   @Test public void testMultisetQuery() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\", \"empid\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
@@ -1958,8 +1948,7 @@ public class JdbcTest {
   }
 
   @Test public void testMultisetQueryWithSingleColumn() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
@@ -1969,7 +1958,6 @@ public class JdbcTest {
   @Ignore("unnest does not apply to array. should it?")
   @Test public void testUnnestArray() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select*from unnest(array[1,2])")
         .returnsUnordered("xx");
   }
@@ -2003,8 +1991,7 @@ public class JdbcTest {
   }
 
   @Test public void testLateral() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\",\n"
             + " LATERAL (select * from \"hr\".\"depts\" where \"emps\".\"deptno\" = \"depts\".\"deptno\")")
         .returnsUnordered(
@@ -2016,8 +2003,7 @@ public class JdbcTest {
   /** Per SQL std, UNNEST is implicitly LATERAL. */
   @Ignore
   @Test public void testUnnestArrayColumn() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select d.\"name\", e.*\n"
             + "from \"hr\".\"depts\" as d,\n"
             + " UNNEST(d.\"employees\") as e")
@@ -2214,8 +2200,7 @@ public class JdbcTest {
   }
 
   @Test public void testReuseExpressionWhenNullChecking() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then 'y' else null end)) T from \"hr\".\"emps\"")
         .planContains("static final String "
@@ -2231,8 +2216,7 @@ public class JdbcTest {
   }
 
   @Test public void testReuseExpressionWhenNullChecking2() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then \"name\" end)) T from \"hr\".\"emps\"")
         .planContains(
@@ -2248,8 +2232,7 @@ public class JdbcTest {
   }
 
   @Test public void testReuseExpressionWhenNullChecking3() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(
             "select substring(\"name\", \"deptno\"+case when user <> 'sa' then 1 end) from \"hr\".\"emps\"")
         .planContains(
@@ -2267,8 +2250,7 @@ public class JdbcTest {
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
             + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
@@ -2303,8 +2285,7 @@ public class JdbcTest {
   }
 
   @Test public void testReuseExpressionWhenNullChecking5() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
             + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
@@ -2518,8 +2499,7 @@ public class JdbcTest {
    * the query still returns proper column names.
    */
   @Test public void testUnionWithSameColumnNames() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(
             "select \"deptno\", \"deptno\" from \"hr\".\"depts\" union select \"deptno\", \"empid\" from \"hr\".\"emps\"")
         .explainContains(""
@@ -2555,8 +2535,7 @@ public class JdbcTest {
 
   /** Tests a cartesian product aka cross join. */
   @Test public void testCartesianJoin() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query(
             "select * from \"hr\".\"emps\", \"hr\".\"depts\" where \"emps\".\"empid\" < 140 and \"depts\".\"deptno\" > 20")
         .returnsUnordered(
@@ -2643,8 +2622,7 @@ public class JdbcTest {
 
   /** Tests a simple IN query implemented as a semi-join. */
   @Test public void testSimpleIn() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"depts\" where \"deptno\" in (\n"
             + "  select \"deptno\" from \"hr\".\"emps\"\n"
             + "  where \"empid\" < 150)")
@@ -2778,7 +2756,7 @@ public class JdbcTest {
 
   /** Tests sorting by an expression not in the select clause. */
   @Test public void testOrderByExpr() {
-    CalciteAssert.that().with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
             + "order by - \"empid\"")
         .returns("name=Eric; empid=200\n"
@@ -2790,7 +2768,7 @@ public class JdbcTest {
   /** Tests sorting by an expression not in the '*' select clause. Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-176">CALCITE-176</a>. */
   @Test public void testOrderStarByExpr() {
-    CalciteAssert.that().with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "order by - \"empid\"")
         .explainContains(""
@@ -2806,7 +2784,7 @@ public class JdbcTest {
   }
 
   @Test public void testOrderUnionStarByExpr() {
-    CalciteAssert.that().with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\" where \"empid\" < 150\n"
             + "union all\n"
             + "select * from \"hr\".\"emps\" where \"empid\" > 150\n"
@@ -2909,8 +2887,7 @@ public class JdbcTest {
 
   /** Tests FETCH with no ORDER BY. */
   @Test public void testFetch() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"empid\" from \"hr\".\"emps\"\n"
             + "fetch first 2 rows only")
         .returns("empid=100\n"
@@ -2918,8 +2895,7 @@ public class JdbcTest {
   }
 
   @Test public void testFetchStar() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "fetch first 2 rows only")
         .returns(""
@@ -2930,8 +2906,7 @@ public class JdbcTest {
   /** "SELECT ... LIMIT 0" is executed differently. A planner rule converts the
    * whole query to an empty rel. */
   @Test public void testLimitZero() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "limit 0")
         .returns("")
@@ -2941,8 +2916,7 @@ public class JdbcTest {
 
   /** Alternative formulation for {@link #testFetchStar()}. */
   @Test public void testLimitStar() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "limit 2")
         .returns(""
@@ -2985,8 +2959,7 @@ public class JdbcTest {
 
   /** Tests composite GROUP BY where one of the columns has NULL values. */
   @Test public void testGroupByNull() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\", \"commission\", sum(\"salary\") s\n"
             + "from \"hr\".\"emps\"\n"
             + "group by \"deptno\", \"commission\"")
@@ -2998,8 +2971,7 @@ public class JdbcTest {
   }
 
   @Test public void testGroupingSets() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"hr\".\"emps\"\n"
             + "group by grouping sets((\"deptno\"), ())")
@@ -3010,8 +2982,7 @@ public class JdbcTest {
   }
 
   @Test public void testRollup() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\", count(*) as c, sum(\"salary\") as s\n"
             + "from \"hr\".\"emps\"\n"
             + "group by rollup(\"deptno\")")
@@ -3022,8 +2993,7 @@ public class JdbcTest {
   }
 
   @Test public void testSelectDistinct() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select distinct \"deptno\"\n"
             + "from \"hr\".\"emps\"\n")
         .returnsUnordered(
@@ -3036,8 +3006,7 @@ public class JdbcTest {
    * "SELECT DISTINCT *" on reflective schema gives ClassCastException at
    * runtime</a>. */
   @Test public void testSelectDistinctStar() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select distinct *\n"
             + "from \"hr\".\"emps\"\n")
         .returnsCount(4)
@@ -3047,8 +3016,7 @@ public class JdbcTest {
   /** Select distinct on composite key, one column of which is boolean to
    * boot. */
   @Test public void testSelectDistinctComposite() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select distinct \"empid\" > 140 as c, \"deptno\"\n"
             + "from \"hr\".\"emps\"\n")
         .returnsUnordered(
@@ -3060,8 +3028,7 @@ public class JdbcTest {
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testGroupByNoAggregates() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\"\n"
             + "from \"hr\".\"emps\"\n"
             + "group by \"deptno\"")
@@ -3072,8 +3039,7 @@ public class JdbcTest {
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testGroupByNoAggregatesAllColumns() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\"\n"
             + "from \"hr\".\"emps\"\n"
             + "group by \"deptno\", \"empid\", \"name\", \"salary\", \"commission\"")
@@ -3083,8 +3049,7 @@ public class JdbcTest {
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testGroupByMax1IsNull() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from (\n"
             + "select max(1) max_id\n"
             + "from \"hr\".\"emps\" where 1=2\n"
@@ -3095,8 +3060,7 @@ public class JdbcTest {
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testGroupBy1Max1() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from (\n"
             + "select max(u) max_id\n"
             + "from (select \"empid\"+\"deptno\" u, 1 cnst\n"
@@ -3137,8 +3101,7 @@ public class JdbcTest {
 
   /** Query that reads no columns from either underlying table. */
   @Test public void testCountStar() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select count(*) c from \"hr\".\"emps\", \"hr\".\"depts\"")
         .convertContains("LogicalAggregate(group=[{}], C=[COUNT()])\n"
             + "  LogicalProject(DUMMY=[0])\n"
@@ -3151,8 +3114,7 @@ public class JdbcTest {
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testCountUnionAll() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select count(*) c from (\n"
             + "select * from \"hr\".\"emps\" where 1=2\n"
             + "union all\n"
@@ -3164,8 +3126,7 @@ public class JdbcTest {
 
   /** Tests that SUM and AVG over empty set return null. COUNT returns 0. */
   @Test public void testAggregateEmpty() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select\n"
             + " count(*) as cs,\n"
             + " count(\"deptno\") as c,\n"
@@ -3183,8 +3144,7 @@ public class JdbcTest {
 
   /** Tests that count(deptno) is reduced to count(). */
   @Test public void testReduceCountNotNullable() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select\n"
             + " count(\"deptno\") as cs,\n"
             + " count(*) as cs2\n"
@@ -3201,8 +3161,7 @@ public class JdbcTest {
   /** Tests that {@code count(deptno, commission, commission + 1)} is reduced to
    * {@code count(commission, commission + 1)}, because deptno is NOT NULL. */
   @Test public void testReduceCompositeCountNotNullable() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select\n"
             + " count(\"deptno\", \"commission\", \"commission\" + 1) as cs\n"
             + "from \"hr\".\"emps\"")
@@ -3241,8 +3200,7 @@ public class JdbcTest {
   }
 
   @Test public void testWithInsideWhereExists() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\" from \"hr\".\"emps\"\n"
             + "where exists (\n"
             + "  with dept2 as (select * from \"hr\".\"depts\" where \"depts\".\"deptno\" >= \"emps\".\"deptno\")\n"
@@ -3253,8 +3211,7 @@ public class JdbcTest {
   }
 
   @Test public void testWithOrderBy() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("with emp2 as (select * from \"hr\".\"emps\")\n"
             + "select * from emp2\n"
             + "order by \"deptno\" desc, \"empid\" desc")
@@ -3267,8 +3224,7 @@ public class JdbcTest {
 
   /** Tests windowed aggregation. */
   @Test public void testWinAgg() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select"
             + " \"deptno\",\n"
             + " \"empid\",\n"
@@ -3323,8 +3279,7 @@ public class JdbcTest {
    * One window straddles the current row.
    * Some windows have no PARTITION BY clause. */
   @Test public void testWinAgg2() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select"
             + " \"deptno\",\n"
             + " \"empid\",\n"
@@ -3363,8 +3318,7 @@ public class JdbcTest {
     if (CalcitePrepareImpl.DEBUG) {
       planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
     }
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select min(\"salary\"+1) over w as m\n"
             + "from \"hr\".\"emps\"\n"
             + "window w as (order by \"salary\"+1 rows 1 preceding)\n")
@@ -3389,8 +3343,7 @@ public class JdbcTest {
     if (CalcitePrepareImpl.DEBUG) {
       planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
     }
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select 1+min(\"salary\"+1) over w as m\n"
             + "from \"hr\".\"emps\"\n"
             + "window w as (order by \"salary\"+1 rows 1 preceding)\n")
@@ -3406,8 +3359,7 @@ public class JdbcTest {
 
   /** Tests for RANK and ORDER BY ... DESCENDING, NULLS FIRST, NULLS LAST. */
   @Test public void testWinAggRank() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
@@ -3427,8 +3379,7 @@ public class JdbcTest {
 
   /** Tests for RANK with same values */
   @Test public void testWinAggRankValues() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " rank() over (order by \"deptno\") as r\n"
             + "from \"hr\".\"emps\"")
@@ -3443,8 +3394,7 @@ public class JdbcTest {
 
   /** Tests for RANK with same values */
   @Test public void testWinAggRankValuesDesc() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " rank() over (order by \"deptno\" desc) as r\n"
             + "from \"hr\".\"emps\"")
@@ -3459,8 +3409,7 @@ public class JdbcTest {
 
   /** Tests for DENSE_RANK with same values */
   @Test public void testWinAggDenseRankValues() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " dense_rank() over (order by \"deptno\") as r\n"
             + "from \"hr\".\"emps\"")
@@ -3475,8 +3424,7 @@ public class JdbcTest {
 
   /** Tests for DENSE_RANK with same values */
   @Test public void testWinAggDenseRankValuesDesc() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " dense_rank() over (order by \"deptno\" desc) as r\n"
             + "from \"hr\".\"emps\"")
@@ -3493,8 +3441,7 @@ public class JdbcTest {
   @Ignore("DATE/TIMESTAMP/INTERVAL support is broken:"
       + "1 year is converted to 12 months instead of milliseconds")
   @Test public void testWinIntervalFrame() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " \"empid\",\n"
             + " \"hire_date\",\n"
@@ -3514,7 +3461,6 @@ public class JdbcTest {
 
   private void startOfGroupStep1(String startOfGroup) {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select t.*\n"
             + "  from (\n"
             + "       select  t.*,\n"
@@ -3538,7 +3484,6 @@ public class JdbcTest {
 
   private void startOfGroupStep2(String startOfGroup) {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select t.*\n"
             // current row is assumed, group_id should be NOT NULL
             + "       ,sum(start_of_group) over (order by rn rows unbounded preceding) group_id\n"
@@ -3564,7 +3509,6 @@ public class JdbcTest {
 
   private void startOfGroupStep3(String startOfGroup) {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select group_id, min(rn) min_rn, max(rn) max_rn,\n"
             + "  count(rn) cnt_rn, avg(val) avg_val"
             + " from (\n"
@@ -3677,7 +3621,6 @@ public class JdbcTest {
    */
   @Test public void testLagDefaultValue() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select t.*, lag(rn+expected,1,42) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .typeIs(
@@ -3698,7 +3641,6 @@ public class JdbcTest {
    */
   @Test public void testLeadDefaultValue() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select t.*, lead(rn+expected,1,42) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .typeIs(
@@ -3719,7 +3661,6 @@ public class JdbcTest {
    */
   @Test public void testLagExpressionOffset() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select t.*, lag(rn, expected, 42) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .typeIs(
@@ -3740,7 +3681,6 @@ public class JdbcTest {
    */
   @Test public void testLagInvalidOffsetArgument() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select t.*,\n"
             + "  lag(rn, DATE '2014-06-20', 42) over (order by rn) l\n"
             + "from " + START_OF_GROUP_DATA)
@@ -3753,7 +3693,6 @@ public class JdbcTest {
    */
   @Test public void testNtile1() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select rn, ntile(1) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .typeIs(
@@ -3774,7 +3713,6 @@ public class JdbcTest {
    */
   @Test public void testNtile2() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select rn, ntile(2) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .typeIs(
@@ -3796,7 +3734,6 @@ public class JdbcTest {
   @Ignore("Have no idea how to validate that expression is constant")
   @Test public void testNtileConstantArgs() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select rn, ntile(1+1) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .typeIs(
@@ -3817,7 +3754,6 @@ public class JdbcTest {
    */
   @Test public void testNtileNegativeArg() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select rn, ntile(-1) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .throws_(
@@ -3829,7 +3765,6 @@ public class JdbcTest {
    */
   @Test public void testNtileDecimalArg() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("select rn, ntile(3.141592653) over (order by rn) l\n"
             + " from " + START_OF_GROUP_DATA)
         .throws_(
@@ -3838,8 +3773,7 @@ public class JdbcTest {
 
   /** Tests for FIRST_VALUE */
   @Test public void testWinAggFirstValue() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
@@ -3856,8 +3790,7 @@ public class JdbcTest {
 
   /** Tests for FIRST_VALUE desc */
   @Test public void testWinAggFirstValueDesc() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select  \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
@@ -3874,8 +3807,7 @@ public class JdbcTest {
 
   /** Tests for FIRST_VALUE empty window */
   @Test public void testWinAggFirstValueEmptyWindow() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
@@ -3892,8 +3824,7 @@ public class JdbcTest {
 
   /** Tests for ROW_NUMBER */
   @Test public void testWinRowNumber() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
@@ -3913,8 +3844,7 @@ public class JdbcTest {
 
   /** Tests UNBOUNDED PRECEDING clause. */
   @Test public void testOverUnboundedPreceding() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"empid\",\n"
             + "  \"commission\",\n"
             + "  count(\"empid\") over (partition by 42\n"
@@ -4012,8 +3942,7 @@ public class JdbcTest {
   @Test public void testTrimFields() throws Exception {
     try {
       Prepare.THREAD_TRIM.set(true);
-      CalciteAssert.that()
-          .with(CalciteAssert.Config.REGULAR)
+      CalciteAssert.hr()
           .query("select \"name\", count(\"commission\") + 1\n"
             + "from \"hr\".\"emps\"\n"
             + "group by \"deptno\", \"name\"")
@@ -4031,8 +3960,7 @@ public class JdbcTest {
   @Test public void testTrimFieldsOver() throws Exception {
     try {
       Prepare.THREAD_TRIM.set(true);
-      CalciteAssert.that()
-          .with(CalciteAssert.Config.REGULAR)
+      CalciteAssert.hr()
           .query("select \"name\",\n"
               + "  count(\"commission\") over (partition by \"deptno\") + 1\n"
               + "from \"hr\".\"emps\"\n"
@@ -4049,8 +3977,7 @@ public class JdbcTest {
 
   /** Tests window aggregate whose argument is a constant. */
   @Test public void testWinAggConstant() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select max(1) over (partition by \"deptno\"\n"
             + "  order by \"empid\") as m\n"
             + "from \"hr\".\"emps\"")
@@ -4150,8 +4077,7 @@ public class JdbcTest {
   }
 
   @Test public void testVarcharEquals() {
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .query("select \"lname\" from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=Nowmer\n");
 
@@ -4160,14 +4086,12 @@ public class JdbcTest {
     // type, thus lname would be cast to a varchar(40) in this case.
     // These sorts of casts are removed though when constructing the jdbc
     // sql, since e.g. HSQLDB does not support them.
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where \"lname\" = 'this string is longer than 30 characters'")
         .returns("C=0\n");
 
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where cast(\"customer_id\" as char(20)) = 'this string is longer than 30 characters'")
         .returns("C=0\n");
@@ -4225,14 +4149,12 @@ public class JdbcTest {
   }
 
   @Test public void testTrim() {
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .query("select trim(\"lname\") as \"lname\" "
             + "from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=Nowmer\n");
 
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .query("select trim(leading 'N' from \"lname\") as \"lname\" "
             + "from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=owmer\n");
@@ -4247,8 +4169,7 @@ public class JdbcTest {
   }
 
   @Test public void testExistsCorrelated() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select*from \"hr\".\"emps\" where exists (\n"
             + " select 1 from \"hr\".\"depts\"\n"
             + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")")
@@ -4259,8 +4180,7 @@ public class JdbcTest {
   }
 
   @Test public void testNotExistsCorrelated() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\" where not exists (\n"
             + " select 1 from \"hr\".\"depts\"\n"
             + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")")
@@ -4272,8 +4192,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-313">CALCITE-313</a>,
    * "Query decorrelation fails". */
   @Test public void testJoinInCorrelatedSubquery() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select *\n"
             + "from \"hr\".\"depts\" as d\n"
             + "where \"deptno\" in (\n"
@@ -4296,8 +4215,7 @@ public class JdbcTest {
    * <p>Note that there should be an extra row "empid=200; deptno=20;
    * DNAME=null" but left join doesn't work.</p> */
   @Test public void testScalarSubQuery() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"empid\", \"deptno\",\n"
             + " (select \"name\" from \"hr\".\"depts\"\n"
             + "  where \"deptno\" = e.\"deptno\") as dname\n"
@@ -4309,8 +4227,7 @@ public class JdbcTest {
   }
 
   @Test public void testLeftJoin() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select e.\"deptno\", d.\"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "  left join \"hr\".\"depts\" as d using (\"deptno\")")
@@ -4322,8 +4239,7 @@ public class JdbcTest {
   }
 
   @Test public void testFullJoin() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select e.\"deptno\", d.\"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "  full join \"hr\".\"depts\" as d using (\"deptno\")")
@@ -4337,8 +4253,7 @@ public class JdbcTest {
   }
 
   @Test public void testRightJoin() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select e.\"deptno\", d.\"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "  right join \"hr\".\"depts\" as d using (\"deptno\")")
@@ -4384,7 +4299,6 @@ public class JdbcTest {
     // insert into dept values (30, 'Engineering');
     // insert into dept values (40, 'Empty');
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .query("with\n"
             + "  emp(ename, deptno, gender) as (values\n"
             + "    ('Jane', 10, 'F'),\n"
@@ -4469,8 +4383,7 @@ public class JdbcTest {
         new Quidem.ConnectionFactory() {
           public Connection connect(String name) throws Exception {
             if (name.equals("hr")) {
-              return CalciteAssert.that()
-                  .with(CalciteAssert.Config.REGULAR)
+              return CalciteAssert.hr()
                   .connect();
             }
             if (name.equals("foodmart")) {
@@ -4486,7 +4399,9 @@ public class JdbcTest {
             }
             if (name.equals("catchall")) {
               return CalciteAssert.that()
-                  .with("s", new ReflectiveSchemaTest.CatchallSchema())
+                  .withSchema("s",
+                      new ReflectiveSchema(
+                          new ReflectiveSchemaTest.CatchallSchema()))
                   .connect();
             }
             throw new RuntimeException("unknown connection '" + name + "'");
@@ -4499,8 +4414,7 @@ public class JdbcTest {
   }
 
   @Test public void testScalarSubQueryUncorrelated() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select \"empid\", \"deptno\",\n"
             + " (select \"name\" from \"hr\".\"depts\"\n"
             + "  where \"deptno\" = 30) as dname\n"
@@ -4512,8 +4426,7 @@ public class JdbcTest {
   }
 
   @Test public void testScalarSubQueryInCase() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select e.\"name\",\n"
             + " (CASE e.\"deptno\"\n"
             + "  WHEN (Select \"deptno\" from \"hr\".\"depts\" d\n"
@@ -4529,8 +4442,7 @@ public class JdbcTest {
   }
 
   @Test public void testScalarSubQueryInCase2() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .query("select e.\"name\",\n"
             + " (CASE WHEN e.\"deptno\" = (\n"
             + "    Select \"deptno\" from \"hr\".\"depts\" d\n"
@@ -4562,8 +4474,7 @@ public class JdbcTest {
 
   /** Tests that {@link java.sql.Statement#setMaxRows(int)} is honored. */
   @Test public void testSetMaxRows() throws Exception {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .doWithConnection(
             new Function<CalciteConnection, Object>() {
               public Object apply(CalciteConnection a0) {
@@ -4594,8 +4505,7 @@ public class JdbcTest {
 
   /** Tests a {@link PreparedStatement} with parameters. */
   @Test public void testPreparedStatement() throws Exception {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
+    CalciteAssert.hr()
         .doWithConnection(
             new Function<CalciteConnection, Object>() {
               public Object apply(CalciteConnection connection) {
@@ -4638,8 +4548,7 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model (a single schema based on
    * a JDBC database). */
   @Test public void testModel() {
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
         .returns("C=730\n");
   }
@@ -4654,8 +4563,7 @@ public class JdbcTest {
     final String model =
         FOODMART_MODEL.replace("schemas:", "/* comment */ schemas:");
     assertThat(model, not(equalTo(FOODMART_MODEL)));
-    CalciteAssert.that()
-        .withModel(model)
+    CalciteAssert.model(model)
         .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
         .returns("C=730\n");
   }
@@ -4665,8 +4573,7 @@ public class JdbcTest {
    * are more comprehensive tests in {@link MaterializationTest}. */
   @Ignore("until JdbcSchema can define materialized views")
   @Test public void testModelWithMaterializedView() {
-    CalciteAssert.that()
-        .withModel(FOODMART_MODEL)
+    CalciteAssert.model(FOODMART_MODEL)
         .enable(false)
         .query(
             "select count(*) as c from \"foodmart\".\"sales_fact_1997\" join \"foodmart\".\"time_by_day\" using (\"time_id\")")
@@ -4687,24 +4594,23 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains custom
    * tables. */
   @Test public void testModelCustomTable() {
-    CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'EMPLOYEES',\n"
-            + "           type: 'custom',\n"
-            + "           factory: '"
-            + EmpDeptTableFactory.class.getName() + "',\n"
-            + "           operand: {'foo': 1, 'bar': [345, 357] }\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}")
+    CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '"
+        + EmpDeptTableFactory.class.getName() + "',\n"
+        + "           operand: {'foo': 1, 'bar': [345, 357] }\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
         .query("select * from \"adhoc\".EMPLOYEES where \"deptno\" = 10")
         .returns(""
             + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
@@ -4715,24 +4621,23 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains custom
    * tables. */
   @Test public void testModelCustomTable2() {
-    CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'MATH',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'INTEGERS',\n"
-            + "           type: 'custom',\n"
-            + "           factory: '"
-            + RangeTable.Factory.class.getName() + "',\n"
-            + "           operand: {'column': 'N', 'start': 3, 'end': 7 }\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}")
+    CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'MATH',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'INTEGERS',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '"
+        + RangeTable.Factory.class.getName() + "',\n"
+        + "           operand: {'column': 'N', 'start': 3, 'end': 7 }\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
         .query("select * from math.integers")
         .returns("N=3\n"
             + "N=4\n"
@@ -4744,7 +4649,7 @@ public class JdbcTest {
    * schema. */
   @Test public void testModelCustomSchema() throws Exception {
     final CalciteAssert.AssertThat that =
-        CalciteAssert.that().withModel("{\n"
+        CalciteAssert.model("{\n"
             + "  version: '1.0',\n"
             + "  defaultSchema: 'adhoc',\n"
             + "  schemas: [\n"
@@ -4785,41 +4690,40 @@ public class JdbcTest {
   /** Tests that an immutable schema in a model cannot contain a view. */
   @Test public void testModelImmutableSchemaCannotContainView()
       throws Exception {
-    final CalciteAssert.AssertThat that =
-        CalciteAssert.that().withModel("{\n"
-            + "  version: '1.0',\n"
-            + "  defaultSchema: 'adhoc',\n"
-            + "  schemas: [\n"
-            + "    {\n"
-            + "      name: 'empty'\n"
-            + "    },\n"
-            + "    {\n"
-            + "      name: 'adhoc',\n"
-            + "      type: 'custom',\n"
-            + "      tables: [\n"
-            + "        {\n"
-            + "          name: 'v',\n"
-            + "          type: 'view',\n"
-            + "          sql: 'values (1)'\n"
-            + "        }\n"
-            + "      ],\n"
-            + "      factory: '"
-            + MySchemaFactory.class.getName()
-            + "',\n"
-            + "      operand: {\n"
-            + "           'tableName': 'ELVIS',\n"
-            + "           'mutable': false\n"
-            + "      }\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}");
-    that.connectThrows(
-        "Cannot define view; parent schema 'adhoc' is not mutable");
+    CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [\n"
+        + "    {\n"
+        + "      name: 'empty'\n"
+        + "    },\n"
+        + "    {\n"
+        + "      name: 'adhoc',\n"
+        + "      type: 'custom',\n"
+        + "      tables: [\n"
+        + "        {\n"
+        + "          name: 'v',\n"
+        + "          type: 'view',\n"
+        + "          sql: 'values (1)'\n"
+        + "        }\n"
+        + "      ],\n"
+        + "      factory: '"
+        + MySchemaFactory.class.getName()
+        + "',\n"
+        + "      operand: {\n"
+        + "           'tableName': 'ELVIS',\n"
+        + "           'mutable': false\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}")
+        .connectThrows(
+            "Cannot define view; parent schema 'adhoc' is not mutable");
   }
 
   private CalciteAssert.AssertThat modelWithView(String view) {
     final Class<EmpDeptTableFactory> clazz = EmpDeptTableFactory.class;
-    return CalciteAssert.that().withModel("{\n"
+    return CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
         + "     {\n"
@@ -4949,7 +4853,7 @@ public class JdbcTest {
     final List<Object> objects = new ArrayList<Object>();
     CalciteAssert.that()
         .with(
-            new CalciteAssert.ConnectionFactory() {
+            new CalciteAssert.AbstractConnectionFactory() {
               public CalciteConnection createConnection() throws Exception {
                 CalciteConnection connection = (CalciteConnection)
                     new AutoTempDriver(objects)
@@ -4978,76 +4882,75 @@ public class JdbcTest {
   }
 
   private CalciteAssert.AssertThat withUdf() {
-    return CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'EMPLOYEES',\n"
-            + "           type: 'custom',\n"
-            + "           factory: '"
-            + EmpDeptTableFactory.class.getName()
-            + "',\n"
-            + "           operand: {'foo': true, 'bar': 345}\n"
-            + "         }\n"
-            + "       ],\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'MY_PLUS',\n"
-            + "           className: '"
-            + MyPlusFunction.class.getName()
-            + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'MY_STR',\n"
-            + "           className: '"
-            + MyToStringFunction.class.getName()
-            + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'MY_DOUBLE',\n"
-            + "           className: '"
-            + MyDoubleFunction.class.getName()
-            + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'COUNT_ARGS',\n"
-            + "           className: '"
-            + CountArgs0Function.class.getName()
-            + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'COUNT_ARGS',\n"
-            + "           className: '"
-            + CountArgs1Function.class.getName()
-            + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'COUNT_ARGS',\n"
-            + "           className: '"
-            + CountArgs2Function.class.getName()
-            + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'MY_ABS',\n"
-            + "           className: '"
-            + java.lang.Math.class.getName()
-            + "',\n"
-            + "           methodName: 'abs'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           className: '"
-            + MultipleFunction.class.getName()
-            + "',\n"
-            + "           methodName: '*'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}");
+    return CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '"
+        + EmpDeptTableFactory.class.getName()
+        + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_PLUS',\n"
+        + "           className: '"
+        + MyPlusFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_STR',\n"
+        + "           className: '"
+        + MyToStringFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_DOUBLE',\n"
+        + "           className: '"
+        + MyDoubleFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'COUNT_ARGS',\n"
+        + "           className: '"
+        + CountArgs0Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'COUNT_ARGS',\n"
+        + "           className: '"
+        + CountArgs1Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'COUNT_ARGS',\n"
+        + "           className: '"
+        + CountArgs2Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_ABS',\n"
+        + "           className: '"
+        + java.lang.Math.class.getName()
+        + "',\n"
+        + "           methodName: 'abs'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           className: '"
+        + MultipleFunction.class.getName()
+        + "',\n"
+        + "           methodName: '*'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}");
   }
 
   /** Tests user-defined function. */
@@ -5162,33 +5065,32 @@ public class JdbcTest {
     final String empDept = EmpDeptTableFactory.class.getName();
     final String sum = MyStaticSumFunction.class.getName();
     final String sum2 = MySumFunction.class.getName();
-    final CalciteAssert.AssertThat with = CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'EMPLOYEES',\n"
-            + "           type: 'custom',\n"
-            + "           factory: '" + empDept + "',\n"
-            + "           operand: {'foo': true, 'bar': 345}\n"
-            + "         }\n"
-            + "       ],\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'MY_SUM',\n"
-            + "           className: '" + sum + "'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'MY_SUM2',\n"
-            + "           className: '" + sum2 + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}")
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM',\n"
+        + "           className: '" + sum + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum2 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
         .withSchema("adhoc");
     with.withSchema(null)
         .query(
@@ -5228,69 +5130,67 @@ public class JdbcTest {
   private static CalciteAssert.AssertThat withBadUdf(Class clazz) {
     final String empDept = EmpDeptTableFactory.class.getName();
     final String className = clazz.getName();
-    return CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'EMPLOYEES',\n"
-            + "           type: 'custom',\n"
-            + "           factory: '" + empDept + "',\n"
-            + "           operand: {'foo': true, 'bar': 345}\n"
-            + "         }\n"
-            + "       ],\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'AWKWARD',\n"
-            + "           className: '" + className + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}")
+    return CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'AWKWARD',\n"
+        + "           className: '" + className + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
         .withSchema("adhoc");
   }
 
   /** Tests resolution of functions using schema paths. */
   @Test public void testPath() throws Exception {
     final String name = MyPlusFunction.class.getName();
-    final CalciteAssert.AssertThat with = CalciteAssert.that()
-        .withModel("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'adhoc',\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'MY_PLUS',\n"
-            + "           className: '" + name + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     },\n"
-            + "     {\n"
-            + "       name: 'adhoc2',\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'MY_PLUS2',\n"
-            + "           className: '" + name + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     },\n"
-            + "     {\n"
-            + "       name: 'adhoc3',\n"
-            + "       path: ['adhoc2','adhoc3'],\n"
-            + "       functions: [\n"
-            + "         {\n"
-            + "           name: 'MY_PLUS3',\n"
-            + "           className: '" + name + "'\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}");
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_PLUS',\n"
+        + "           className: '" + name + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     },\n"
+        + "     {\n"
+        + "       name: 'adhoc2',\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_PLUS2',\n"
+        + "           className: '" + name + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     },\n"
+        + "     {\n"
+        + "       name: 'adhoc3',\n"
+        + "       path: ['adhoc2','adhoc3'],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_PLUS3',\n"
+        + "           className: '" + name + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}");
 
     final String err = "No match found for function signature";
     final String res = "EXPR$0=2\n";
@@ -5354,7 +5254,7 @@ public class JdbcTest {
    * is executed. */
   @Test public void testCurrentTimestamp() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.of("timezone", "GMT+1:00"))
+        .with("timezone", "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5394,7 +5294,7 @@ public class JdbcTest {
   /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
   @Test public void testGetTimestamp() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.of("timezone", "GMT+1:00"))
+        .with("timezone", "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5633,7 +5533,7 @@ public class JdbcTest {
   /** Tests metadata for the MySQL lexical scheme. */
   @Test public void testLexMySQL() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.of("lex", "MYSQL"))
+        .with("lex", "MYSQL")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5667,7 +5567,7 @@ public class JdbcTest {
   /** Tests metadata for different the "SQL_SERVER" lexical scheme. */
   @Test public void testLexSqlServer() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.of("lex", "SQL_SERVER"))
+        .with("lex", "SQL_SERVER")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5701,7 +5601,7 @@ public class JdbcTest {
   /** Tests metadata for the ORACLE (and default) lexical scheme. */
   @Test public void testLexOracle() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.of("lex", "ORACLE"))
+        .with("lex", "ORACLE")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5739,7 +5639,7 @@ public class JdbcTest {
   /** Tests metadata for the JAVA lexical scheme. */
   @Test public void testLexJava() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.of("lex", "JAVA"))
+        .with("lex", "JAVA")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5774,13 +5674,11 @@ public class JdbcTest {
   /** Tests metadata for the ORACLE lexical scheme overridden like JAVA. */
   @Test public void testLexOracleAsJava() throws Exception {
     CalciteAssert.that()
-        .with(ImmutableMap.<String, String>builder()
-            .put("lex", "ORACLE")
-            .put("quoting", "BACK_TICK")
-            .put("unquotedCasing", "UNCHANGED")
-            .put("quotedCasing", "UNCHANGED")
-            .put("caseSensitive", "TRUE")
-            .build())
+        .with("lex", "ORACLE")
+        .with("quoting", "BACK_TICK")
+        .with("unquotedCasing", "UNCHANGED")
+        .with("quotedCasing", "UNCHANGED")
+        .with("caseSensitive", "TRUE")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5815,7 +5713,7 @@ public class JdbcTest {
   /** Tests case-insensitive resolution of schema and table names. */
   @Test public void testLexCaseInsensitive() {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with(ImmutableMap.of("lex", "MYSQL"));
+        CalciteAssert.that().with("lex", "MYSQL");
     with.query("select COUNT(*) as c from metaData.tAbles")
         .returns("c=2\n");
     with.query("select COUNT(*) as c from `metaData`.`tAbles`")
@@ -5823,7 +5721,7 @@ public class JdbcTest {
 
     // case-sensitive gives error
     final CalciteAssert.AssertThat with2 =
-        CalciteAssert.that().with(ImmutableMap.of("lex", "JAVA"));
+        CalciteAssert.that().with("lex", "JAVA");
     with2.query("select COUNT(*) as c from `metaData`.`tAbles`")
         .throws_("Table 'metaData.tAbles' not found");
   }
@@ -5835,7 +5733,7 @@ public class JdbcTest {
    * "Case-insensitive matching of sub-query columns fails"</a>. */
   @Test public void testLexCaseInsensitiveSubQueryField() {
     CalciteAssert.that()
-        .with(ImmutableMap.of("lex", "MYSQL"))
+        .with("lex", "MYSQL")
         .query("select DID \n"
             + "from (select deptid as did \n"
             + "         FROM\n"
@@ -5846,7 +5744,7 @@ public class JdbcTest {
 
   @Test public void testLexCaseInsensitiveTableAlias() {
     CalciteAssert.that()
-        .with(ImmutableMap.of("lex", "MYSQL"))
+        .with("lex", "MYSQL")
         .query("select e.empno\n"
             + "from (values (1, 2)) as E (empno, deptno),\n"
             + "  (values (3, 4)) as d (deptno, name)")
@@ -6012,8 +5910,7 @@ public class JdbcTest {
   @Test public void testCaseSensitiveSubQueryOracle() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with(CalciteAssert.Config.REGULAR)
-            .with(ImmutableMap.of("lex", "ORACLE"));
+            .with("lex", "ORACLE");
 
     with.query("select DID from (select DEPTID as did FROM \n "
         + "     ( values (1), (2) ) as T1(deptid) ) ")
@@ -6027,8 +5924,7 @@ public class JdbcTest {
   @Test public void testUnquotedCaseSensitiveSubQueryMySql() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with(CalciteAssert.Config.REGULAR)
-            .with(ImmutableMap.of("lex", "MYSQL"));
+            .with("lex", "MYSQL");
 
     with.query("select DID from (select deptid as did FROM \n "
         + "     ( values (1), (2) ) as T1(deptid) ) ")
@@ -6054,8 +5950,7 @@ public class JdbcTest {
   @Test public void testQuotedCaseSensitiveSubQueryMySql() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with(CalciteAssert.Config.REGULAR)
-            .with(ImmutableMap.of("lex", "MYSQL"));
+            .with("lex", "MYSQL");
 
     with.query("select `DID` from (select deptid as did FROM \n "
         + "     ( values (1), (2) ) as T1(deptid) ) ")
@@ -6080,8 +5975,7 @@ public class JdbcTest {
 
   @Test public void testUnquotedCaseSensitiveSubQuerySqlServer() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .with(ImmutableMap.of("lex", "SQL_SERVER"))
+        .with("lex", "SQL_SERVER")
         .query("select DID from (select deptid as did FROM \n "
             + "     ( values (1), (2) ) as T1(deptid) ) ")
         .returnsUnordered("DID=1", "DID=2");
@@ -6089,8 +5983,7 @@ public class JdbcTest {
 
   @Test public void testQuotedCaseSensitiveSubQuerySqlServer() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .with(ImmutableMap.of("lex", "SQL_SERVER"))
+        .with("lex", "SQL_SERVER")
         .query("select [DID] from (select deptid as did FROM \n "
             + "     ( values (1), (2) ) as T1([deptid]) ) ")
         .returnsUnordered("DID=1", "DID=2");

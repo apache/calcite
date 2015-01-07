@@ -58,7 +58,6 @@ public class MaterializationTest {
 
   @Test public void testFilter() {
     CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
         .withMaterializations(
             JdbcTest.HR_MODEL,
             "m0",
@@ -75,7 +74,6 @@ public class MaterializationTest {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
-          .with(CalciteAssert.Config.REGULAR)
           .withMaterializations(
               JdbcTest.HR_MODEL,
               "m0",
@@ -104,7 +102,6 @@ public class MaterializationTest {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
-          .with(CalciteAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
@@ -123,7 +120,6 @@ public class MaterializationTest {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
-          .with(CalciteAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)

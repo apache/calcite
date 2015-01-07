@@ -81,8 +81,7 @@ public class TpcdsTest {
       + "}";
 
   private CalciteAssert.AssertThat with() {
-    return CalciteAssert.that()
-        .withModel(TPCDS_MODEL)
+    return CalciteAssert.model(TPCDS_MODEL)
         .enable(CalciteAssert.ENABLE_SLOW);
   }
 

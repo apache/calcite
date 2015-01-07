@@ -786,8 +786,7 @@ public class TpchTest {
   }
 
   private CalciteAssert.AssertThat with(boolean enable) {
-    return CalciteAssert.that()
-        .withModel(TPCH_MODEL)
+    return CalciteAssert.model(TPCH_MODEL)
         .enable(enable);
   }
 

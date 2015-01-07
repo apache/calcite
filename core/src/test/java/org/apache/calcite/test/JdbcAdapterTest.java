@@ -23,8 +23,7 @@ import org.junit.Test;
  */
 public class JdbcAdapterTest {
   @Test public void testUnionPlan() {
-    CalciteAssert.that()
-        .withModel(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
             + "union all\n"
             + "select * from \"sales_fact_1998\"")
@@ -42,8 +41,7 @@ public class JdbcAdapterTest {
   }
 
   @Test public void testFilterUnionPlan() {
-    CalciteAssert.that()
-        .withModel(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from (\n"
             + "  select * from \"sales_fact_1997\"\n"
             + "  union all\n"
@@ -61,8 +59,7 @@ public class JdbcAdapterTest {
   }
 
   @Test public void testInPlan() {
-    CalciteAssert.that()
-        .withModel(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
         .runs()

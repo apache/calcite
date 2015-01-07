@@ -17,20 +17,14 @@
 package org.apache.calcite.test.enumerable;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
-import org.apache.calcite.util.Bug;
 
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.Properties;
-
 /**
- * Tests {@link org.apache.calcite.adapter.enumerable.EnumerableCorrelate}
+ * Unit test for
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableCorrelate}.
  */
 public class EnumerableCorrelateTest {
   @Test public void simpleCorrelateDecorrelated() {
@@ -72,27 +66,12 @@ public class EnumerableCorrelateTest {
 
   }
 
-  private CalciteAssert.AssertThat tester(final boolean forceDecorrelate,
-      final Object schema) {
-    Bug.remark(
-        "CALCITE-489 - Teach CalciteAssert to respect multiple settings");
-    final Properties p = new Properties();
-    p.setProperty("lex", "JAVA");
-    p.setProperty("forceDecorrelate", Boolean.toString(forceDecorrelate));
+  private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
+      Object schema) {
     return CalciteAssert.that()
-        .with(new CalciteAssert.ConnectionFactory() {
-          public CalciteConnection createConnection() throws Exception {
-            Connection connection =
-                DriverManager.getConnection("jdbc:calcite:", p);
-            CalciteConnection calciteConnection =
-                connection.unwrap(CalciteConnection.class);
-            SchemaPlus rootSchema =
-                calciteConnection.getRootSchema();
-            rootSchema.add("s", new ReflectiveSchema(schema));
-            calciteConnection.setSchema("s");
-            return calciteConnection;
-          }
-        });
+        .with("lex", "JAVA")
+        .with("forceDecorrelate", Boolean.toString(forceDecorrelate))
+        .withSchema("s", new ReflectiveSchema(schema));
   }
 }
 

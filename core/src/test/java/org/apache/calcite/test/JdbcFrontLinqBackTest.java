@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static org.apache.calcite.test.CalciteAssert.hr;
 import static org.apache.calcite.test.CalciteAssert.that;
 
 /**
@@ -50,7 +51,7 @@ public class JdbcFrontLinqBackTest {
    * Runs a simple query that reads from a table in an in-memory schema.
    */
   @Test public void testSelect() {
-    that()
+    hr()
         .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "where s.\"cust_id\" = 100")
@@ -61,7 +62,7 @@ public class JdbcFrontLinqBackTest {
    * Runs a simple query that joins between two in-memory schemas.
    */
   @Test public void testJoin() {
-    that()
+    hr()
         .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"hr\".\"emps\" as e\n"
@@ -75,7 +76,7 @@ public class JdbcFrontLinqBackTest {
    * Simple GROUP BY.
    */
   @Test public void testGroupBy() {
-    that()
+    hr()
         .query("select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"hr\".\"emps\" as e\n"
             + "group by \"deptno\"")
@@ -87,7 +88,7 @@ public class JdbcFrontLinqBackTest {
    * Simple ORDER BY.
    */
   @Test public void testOrderBy() {
-    that()
+    hr()
         .query("select upper(\"name\") as un, \"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "order by \"deptno\", \"name\" desc")
@@ -104,7 +105,7 @@ public class JdbcFrontLinqBackTest {
    * internally, using non-array representations for rows.</p>
    */
   @Test public void testUnionAllOrderBy() {
-    that()
+    hr()
         .query("select \"name\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "union all\n"
@@ -124,7 +125,7 @@ public class JdbcFrontLinqBackTest {
    * Tests UNION.
    */
   @Test public void testUnion() {
-    that()
+    hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "union\n"
@@ -144,7 +145,7 @@ public class JdbcFrontLinqBackTest {
    */
   @Ignore
   @Test public void testIntersect() {
-    that()
+    hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "intersect\n"
@@ -158,7 +159,7 @@ public class JdbcFrontLinqBackTest {
    */
   @Ignore
   @Test public void testExcept() {
-    that()
+    hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "except\n"
@@ -171,7 +172,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testWhereBad() {
-    that()
+    hr()
         .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "where empid > 120")
@@ -182,7 +183,7 @@ public class JdbcFrontLinqBackTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-9">CALCITE-9</a>,
    * "RexToLixTranslator not incrementing local variable name counter". */
   @Test public void testWhereOr() {
-    that()
+    hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "where (\"empid\" = 100 or \"empid\" = 200)\n"
             + "and \"deptno\" = 10")
@@ -191,7 +192,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testWhereLike() {
-    that()
+    hr()
         .query("select *\n"
             + "from \"hr\".\"emps\" as e\n"
             + "where e.\"empid\" < 120 or e.\"name\" like 'S%'")
@@ -230,7 +231,7 @@ public class JdbcFrontLinqBackTest {
     employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
     return that()
         .with(
-            new CalciteAssert.ConnectionFactory() {
+            new CalciteAssert.AbstractConnectionFactory() {
               public CalciteConnection createConnection() throws Exception {
                 final Connection connection =
                     CalciteAssert.getConnection("hr", "foodmart");

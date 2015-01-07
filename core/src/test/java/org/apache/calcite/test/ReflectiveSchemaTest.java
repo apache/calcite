@@ -71,6 +71,9 @@ public class ReflectiveSchemaTest {
       Types.lookupMethod(
           Linq4j.class, "asEnumerable", Object[].class);
 
+  private static final ReflectiveSchema CATCHALL =
+      new ReflectiveSchema(new CatchallSchema());
+
   /**
    * Test that uses a JDBC connection as a linq4j
    * {@link org.apache.calcite.linq4j.QueryProvider}.
@@ -253,7 +256,7 @@ public class ReflectiveSchemaTest {
   /** Tests column based on java.sql.Date field. */
   @Test public void testDateColumn() throws Exception {
     CalciteAssert.that()
-        .with("s", new DateColumnSchema())
+        .withSchema("s", new ReflectiveSchema(new DateColumnSchema()))
         .query("select * from \"s\".\"emps\"")
         .returns(""
             + "hireDate=1970-01-01; empid=10; deptno=20; name=fred; salary=0.0; commission=null\n"
@@ -263,7 +266,7 @@ public class ReflectiveSchemaTest {
   /** Tests querying an object that has no public fields. */
   @Test public void testNoPublicFields() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select 1 from \"s\".\"allPrivates\"")
         .returns("EXPR$0=1\n");
     with.query("select \"x\" from \"s\".\"allPrivates\"")
@@ -275,7 +278,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#everyTypes */
   @Test public void testColumnTypes() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"primitiveBoolean\" from \"s\".\"everyTypes\"")
         .returns("primitiveBoolean=false\n"
             + "primitiveBoolean=true\n");
@@ -290,7 +293,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#everyTypes */
   @Test public void testWhereNOT() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
         "select \"wrapperByte\" from \"s\".\"everyTypes\" where NOT (\"wrapperByte\" is null)")
         .returnsUnordered("wrapperByte=0");
@@ -301,7 +304,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#everyTypes */
   @Test public void testSelectNOT() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
         "select NOT \"wrapperBoolean\" \"value\" from \"s\".\"everyTypes\"")
         .returnsUnordered(
@@ -314,8 +317,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#everyTypes */
   @Test public void testAggregateFunctions() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that()
-            .with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     checkAgg(with, "min");
     checkAgg(with, "max");
     checkAgg(with, "avg");
@@ -333,7 +335,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testClassNames() throws Exception {
     CalciteAssert.that()
-        .with("s", new CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"everyTypes\"")
         .returns(
             new Function<ResultSet, Void>() {
@@ -383,7 +385,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testJavaBoolean() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"primitiveBoolean\"")
         .returns("C=1\n");
@@ -403,7 +405,7 @@ public class ReflectiveSchemaTest {
    * "Comparing a Java type long with a SQL type INTEGER gives wrong answer". */
   @Test public void testCompareJavaAndSqlTypes() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     // With CALCITE-119, returned 0 rows. The problem was that when comparing
     // a Java type (long) and a SQL type (INTEGER), the SQL type was deemed
     // "less restrictive". So, the long value got truncated to an int value.
@@ -426,7 +428,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testDivideWraperPrimitive() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"primitiveLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
@@ -438,7 +440,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testDivideWraperWrapper() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
@@ -450,7 +452,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testDivideWraperWrapperMultipleTimes() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"wrapperLong\"\n"
         + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
@@ -464,7 +466,7 @@ public class ReflectiveSchemaTest {
   @Test public void testOp() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with("s", new CatchallSchema());
+            .withSchema("s", CATCHALL);
     checkOp(with, "+");
     checkOp(with, "-");
     checkOp(with, "*");
@@ -487,7 +489,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testCastFromString() {
     CalciteAssert.that()
-        .with("s", new CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")
         .returns("C=1\n"
             + "C=null\n");
@@ -510,7 +512,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#badTypes */
   @Test public void testTableFieldHasBadType() throws Exception {
     CalciteAssert.that()
-        .with("s", new CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"badTypes\"")
         .returns("integer=0; bitSet={}\n");
   }
@@ -522,8 +524,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#list */
   @Test public void testSchemaFieldHasBadType() throws Exception {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that()
-            .with("s", new CatchallSchema());
+        CalciteAssert.that().withSchema("s", CATCHALL);
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
     with.query("select * from \"s\".\"bitSet\"")
@@ -546,7 +547,7 @@ public class ReflectiveSchemaTest {
    * would be truncated to the char precision and falsely match. */
   @Test public void testPrefix() throws Exception {
     CalciteAssert.that()
-        .with("s", new CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query(
             "select * from \"s\".\"prefixEmps\" where \"name\" in ('Ab', 'Abd')")
         .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
@@ -559,7 +560,7 @@ public class ReflectiveSchemaTest {
   @Ignore
   @Test public void testTableMacroIsView() throws Exception {
     CalciteAssert.that()
-        .with("s", new JdbcTest.HrSchema())
+        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("select * from table(\"s\".\"view\"('abc'))")
         .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
@@ -569,7 +570,7 @@ public class ReflectiveSchemaTest {
   @Ignore
   @Test public void testTableMacro() throws Exception {
     CalciteAssert.that()
-        .with("s", new JdbcTest.HrSchema())
+        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("select * from table(\"s\".\"foo\"(3))")
         .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
@@ -580,7 +581,7 @@ public class ReflectiveSchemaTest {
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test public void testArrayOfBoxedPrimitives() {
     CalciteAssert.that()
-        .with("s", new CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"primesBoxed\"")
         .returnsUnordered("value=1", "value=3", "value=7");
   }
@@ -590,21 +591,21 @@ public class ReflectiveSchemaTest {
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test public void testArrayOfPrimitives() {
     CalciteAssert.that()
-        .with("s", new CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"primes\"")
         .returnsUnordered("value=1", "value=3", "value=7");
   }
 
   @Test public void testCustomBoxedScalar() {
     CalciteAssert.that()
-        .with("s", new ReflectiveSchemaTest.CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select \"value\" from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("value=1", "value=3", "value=5");
   }
 
   @Test public void testCustomBoxedSalarCalc() {
     CalciteAssert.that()
-        .with("s", new ReflectiveSchemaTest.CatchallSchema())
+        .withSchema("s", CATCHALL)
         .query("select \"value\"*2 \"value\" from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("value=2", "value=6", "value=10");
   }

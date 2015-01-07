@@ -64,7 +64,7 @@ public class LatticeTest {
   private CalciteAssert.AssertThat modelWithLattices(String... lattices) {
     final Class<JdbcTest.EmpDeptTableFactory> clazz =
         JdbcTest.EmpDeptTableFactory.class;
-    return CalciteAssert.that().withModel(""
+    return CalciteAssert.model(""
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"

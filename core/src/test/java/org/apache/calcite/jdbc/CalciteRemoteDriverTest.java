@@ -55,7 +55,7 @@ public class CalciteRemoteDriverTest {
 
   private static final CalciteAssert.ConnectionFactory
   REMOTE_CONNECTION_FACTORY =
-      new CalciteAssert.ConnectionFactory() {
+      new CalciteAssert.AbstractConnectionFactory() {
         public Connection createConnection() throws Exception {
           return remoteConnection;
         }
@@ -87,7 +87,7 @@ public class CalciteRemoteDriverTest {
   private static HttpServer start;
 
   @BeforeClass public static void beforeClass() throws Exception {
-    localConnection = CalciteAssert.that().connect();
+    localConnection = CalciteAssert.hr().connect();
 
     start = Main.start(new String[]{Factory.class.getName()});
     final int port = start.getPort();
@@ -145,13 +145,13 @@ public class CalciteRemoteDriverTest {
   }
 
   @Test public void testRemoteCatalogs() throws Exception {
-    CalciteAssert.that().with(REMOTE_CONNECTION_FACTORY)
+    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_CATALOGS)
         .returns("TABLE_CATALOG=null\n");
   }
 
   @Test public void testRemoteSchemas() throws Exception {
-    CalciteAssert.that().with(REMOTE_CONNECTION_FACTORY)
+    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_SCHEMAS)
         .returns("TABLE_SCHEM=POST; TABLE_CATALOG=null\n"
             + "TABLE_SCHEM=foodmart; TABLE_CATALOG=null\n"
@@ -160,7 +160,7 @@ public class CalciteRemoteDriverTest {
   }
 
   @Test public void testRemoteExecuteQuery() throws Exception {
-    CalciteAssert.that().with(REMOTE_CONNECTION_FACTORY)
+    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .query("values (1, 'a'), (cast(null as integer), 'b')")
         .returnsUnordered("EXPR$0=1; EXPR$1=a", "EXPR$0=null; EXPR$1=b");
   }
@@ -182,7 +182,7 @@ public class CalciteRemoteDriverTest {
   public static class Factory implements Meta.Factory {
     public Meta create(List<String> args) {
       try {
-        final Connection connection = CalciteAssert.that().connect();
+        final Connection connection = CalciteAssert.hr().connect();
         return new CalciteMetaImpl((CalciteConnectionImpl) connection);
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -194,7 +194,7 @@ public class CalciteRemoteDriverTest {
   public static class Factory2 implements Service.Factory {
     public Service create(AvaticaConnection connection) {
       try {
-        Connection localConnection = CalciteAssert.that().connect();
+        Connection localConnection = CalciteAssert.hr().connect();
         final Meta meta = CalciteConnectionImpl.TROJAN
             .getMeta((CalciteConnectionImpl) localConnection);
         return new LocalJsonService(new LocalService(meta));

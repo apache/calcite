@@ -28,6 +28,7 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
@@ -38,12 +39,16 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -118,9 +123,12 @@ public class CalciteAssert {
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
+  private static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
+      new MapConnectionFactory(ImmutableMap.<String, String>of(), null);
+
   /** Implementation of {@link AssertThat} that does nothing. */
   private static final AssertThat DISABLED =
-      new AssertThat((Config) null) {
+      new AssertThat(EMPTY_CONNECTION_FACTORY) {
         @Override public AssertThat with(Config config) {
           return this;
         }
@@ -129,15 +137,11 @@ public class CalciteAssert {
           return this;
         }
 
-        @Override public AssertThat with(Map<String, String> map) {
+        @Override public AssertThat with(String property, String value) {
           return this;
         }
 
-        @Override public AssertThat with(String name, Object schema) {
-          return this;
-        }
-
-        @Override public AssertThat withModel(String model) {
+        @Override public AssertThat withSchema(String name, Schema schema) {
           return this;
         }
 
@@ -169,10 +173,27 @@ public class CalciteAssert {
         }
       };
 
-  /** Creates an instance of {@code CalciteAssert} with the regular
+  /** Creates an instance of {@code CalciteAssert} with the empty
    * configuration. */
   public static AssertThat that() {
-    return new AssertThat(Config.REGULAR);
+    return that(Config.EMPTY);
+  }
+
+  /** Creates an instance of {@code CalciteAssert} with a given
+   * configuration. */
+  public static AssertThat that(Config config) {
+    return AssertThat.EMPTY.with(config);
+  }
+
+  /** Short-hand for
+   *  {@code CalciteAssert.that().with(Config.EMPTY).withModel(model)}. */
+  public static AssertThat model(String model) {
+    return that().with(Config.EMPTY).withModel(model);
+  }
+
+  /** Short-hand for {@code CalciteAssert.that().with(Config.REGULAR)}. */
+  public static AssertThat hr() {
+    return that().with(Config.REGULAR);
   }
 
   static Function<RelNode, Void> checkRel(final String expected,
@@ -745,68 +766,51 @@ public class CalciteAssert {
   public static class AssertThat {
     private final ConnectionFactory connectionFactory;
 
-    private AssertThat(Config config) {
-      this(new ConfigConnectionFactory(config));
-    }
+    private static final AssertThat EMPTY =
+        new AssertThat(EMPTY_CONNECTION_FACTORY);
 
     private AssertThat(ConnectionFactory connectionFactory) {
-      this.connectionFactory = connectionFactory;
+      this.connectionFactory = Preconditions.checkNotNull(connectionFactory);
     }
 
     public AssertThat with(Config config) {
-      return new AssertThat(config);
+      switch (config) {
+      case EMPTY:
+        return EMPTY;
+      default:
+        return new AssertThat(new ConfigConnectionFactory(config));
+      }
     }
 
+    /** Creates a copy of this AssertThat, overriding the connection factory. */
     public AssertThat with(ConnectionFactory connectionFactory) {
       return new AssertThat(connectionFactory);
     }
 
-    public AssertThat with(final Map<String, String> map) {
-      return new AssertThat(
-          new ConnectionFactory() {
-            public Connection createConnection() throws Exception {
-              final Properties info = new Properties();
-              for (Map.Entry<String, String> entry : map.entrySet()) {
-                info.setProperty(entry.getKey(), entry.getValue());
-              }
-              return DriverManager.getConnection("jdbc:calcite:", info);
-            }
-          });
+    public final AssertThat with(final Map<String, String> map) {
+      AssertThat x = this;
+      for (Map.Entry<String, String> entry : map.entrySet()) {
+        x = with(entry.getKey(), entry.getValue());
+      }
+      return x;
     }
 
-    /** Sets the default schema to a reflective schema based on a given
-     * object. */
-    public AssertThat with(final String name, final Object schema) {
-      return with(
-          new CalciteAssert.ConnectionFactory() {
-            public CalciteConnection createConnection() throws Exception {
-              Connection connection =
-                  DriverManager.getConnection("jdbc:calcite:");
-              CalciteConnection calciteConnection =
-                  connection.unwrap(CalciteConnection.class);
-              SchemaPlus rootSchema =
-                  calciteConnection.getRootSchema();
-              rootSchema.add(name, new ReflectiveSchema(schema));
-              calciteConnection.setSchema(name);
-              return calciteConnection;
-            }
-          });
+    public AssertThat with(String property, String value) {
+      return new AssertThat(connectionFactory.with(property, value));
     }
 
-    public AssertThat withModel(final String model) {
-      return new AssertThat(
-          new CalciteAssert.ConnectionFactory() {
-            public Connection createConnection() throws Exception {
-              final Properties info = new Properties();
-              info.setProperty("model", "inline:" + model);
-              return DriverManager.getConnection("jdbc:calcite:", info);
-            }
-          });
+    /** Sets the default schema to a given schema. */
+    public AssertThat withSchema(String name, Schema schema) {
+      return new AssertThat(connectionFactory.with(name, schema));
+    }
+
+    public final AssertThat withModel(String model) {
+      return with("model", "inline:" + model);
     }
 
     /** Adds materializations to the schema. */
-    public AssertThat withMaterializations(
-        String model, String... materializations) {
+    public final AssertThat withMaterializations(String model,
+        String... materializations) {
       assert materializations.length % 2 == 0;
       final JsonBuilder builder = new JsonBuilder();
       final List<Object> list = builder.list();
@@ -932,6 +936,22 @@ public class CalciteAssert {
   /** Connection factory. */
   public interface ConnectionFactory {
     Connection createConnection() throws Exception;
+    ConnectionFactory with(String property, String value);
+    ConnectionFactory with(String schemaName, Schema schema);
+  }
+
+  /** Abstract implementation of
+   * {@link org.apache.calcite.test.CalciteAssert.ConnectionFactory}
+   * whose {@code with} methods throw. */
+  public abstract static class AbstractConnectionFactory
+      implements ConnectionFactory {
+    public ConnectionFactory with(String property, String value) {
+      throw new UnsupportedOperationException();
+    }
+
+    public ConnectionFactory with(String schemaName, Schema schema) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   /** Connection factory that uses the same instance of connections. */
@@ -944,6 +964,14 @@ public class CalciteAssert {
 
     public Connection createConnection() throws Exception {
       return Pool.INSTANCE.cache.get(factory);
+    }
+
+    public ConnectionFactory with(String property, String value) {
+      throw new UnsupportedOperationException();
+    }
+
+    public ConnectionFactory with(String schemaName, Schema schema) {
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -962,7 +990,8 @@ public class CalciteAssert {
 
   /** Connection factory that creates connections based on a given
    * {@link Config}. */
-  private static class ConfigConnectionFactory implements ConnectionFactory {
+  private static class ConfigConnectionFactory
+      extends AbstractConnectionFactory {
     private final Config config;
 
     public ConfigConnectionFactory(Config config) {
@@ -1001,9 +1030,62 @@ public class CalciteAssert {
     }
   }
 
+  /** Connection factory that uses a given map of (name, value) pairs and
+   * optionally an initial schema. */
+  private static class MapConnectionFactory implements ConnectionFactory {
+    private final ImmutableMap<String, String> map;
+    private final Pair<String, Schema> initialSchema;
+
+    private MapConnectionFactory(ImmutableMap<String, String> map,
+        Pair<String, Schema> initialSchema) {
+      this.map = Preconditions.checkNotNull(map);
+      this.initialSchema = initialSchema;
+    }
+
+    @Override public boolean equals(Object obj) {
+      return this == obj
+          || obj.getClass() == MapConnectionFactory.class
+          && ((MapConnectionFactory) obj).map.equals(map)
+          && Objects.equal(((MapConnectionFactory) obj).initialSchema,
+              initialSchema);
+    }
+
+    @Override public int hashCode() {
+      return Arrays.asList(map, initialSchema).hashCode();
+    }
+
+    public CalciteConnection createConnection() throws Exception {
+      final Properties info = new Properties();
+      for (Map.Entry<String, String> entry : map.entrySet()) {
+        info.setProperty(entry.getKey(), entry.getValue());
+      }
+      final Connection connection =
+          DriverManager.getConnection("jdbc:calcite:", info);
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      if (initialSchema != null) {
+        calciteConnection.getRootSchema()
+            .add(initialSchema.left, initialSchema.right);
+        calciteConnection.setSchema(initialSchema.left);
+      }
+      return calciteConnection;
+    }
+
+    public ConnectionFactory with(String property, String value) {
+      Map<String, String> map2 = Maps.newLinkedHashMap(this.map);
+      map2.put(property, value);
+      return new MapConnectionFactory(ImmutableMap.copyOf(map2),
+          initialSchema);
+    }
+
+    public ConnectionFactory with(String schemaName, Schema schema) {
+      return new MapConnectionFactory(map, Pair.of(schemaName, schema));
+    }
+  }
+
   /** Connection factory that delegates to an underlying factory. */
   private static class DelegatingConnectionFactory
-      implements ConnectionFactory {
+      extends AbstractConnectionFactory {
     private final ConnectionFactory factory;
 
     public DelegatingConnectionFactory(ConnectionFactory factory) {
@@ -1293,6 +1375,9 @@ public class CalciteAssert {
   /** Connection configuration. Basically, a set of schemas that should be
    * instantiated in the connection. */
   public enum Config {
+    /** Configuration that creates an empty connection. */
+    EMPTY,
+
     /**
      * Configuration that creates a connection with two in-memory data sets:
      * {@link org.apache.calcite.test.JdbcTest.HrSchema} and

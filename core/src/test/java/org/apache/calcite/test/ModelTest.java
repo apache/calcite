@@ -154,35 +154,34 @@ public class ModelTest {
    * materialization. */
   @Test public void testModelImmutableSchemaCannotContainMaterialization()
       throws Exception {
-    final CalciteAssert.AssertThat that =
-        CalciteAssert.that().withModel("{\n"
-            + "  version: '1.0',\n"
-            + "  defaultSchema: 'adhoc',\n"
-            + "  schemas: [\n"
-            + "    {\n"
-            + "      name: 'empty'\n"
-            + "    },\n"
-            + "    {\n"
-            + "      name: 'adhoc',\n"
-            + "      type: 'custom',\n"
-            + "      factory: '"
-            + JdbcTest.MySchemaFactory.class.getName()
-            + "',\n"
-            + "      operand: {\n"
-            + "           'tableName': 'ELVIS',\n"
-            + "           'mutable': false\n"
-            + "      },\n"
-            + "      materializations: [\n"
-            + "        {\n"
-            + "          table: 'v',\n"
-            + "          sql: 'values (1)'\n"
-            + "        }\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}");
-    that.connectThrows("Cannot define materialization; parent schema 'adhoc' "
-        + "is not a SemiMutableSchema");
+    CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [\n"
+        + "    {\n"
+        + "      name: 'empty'\n"
+        + "    },\n"
+        + "    {\n"
+        + "      name: 'adhoc',\n"
+        + "      type: 'custom',\n"
+        + "      factory: '"
+        + JdbcTest.MySchemaFactory.class.getName()
+        + "',\n"
+        + "      operand: {\n"
+        + "           'tableName': 'ELVIS',\n"
+        + "           'mutable': false\n"
+        + "      },\n"
+        + "      materializations: [\n"
+        + "        {\n"
+        + "          table: 'v',\n"
+        + "          sql: 'values (1)'\n"
+        + "        }\n"
+        + "      ]\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}")
+        .connectThrows("Cannot define materialization; parent schema 'adhoc' "
+            + "is not a SemiMutableSchema");
   }
 
   /** Tests a model containing a lattice and some views. */
