@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 import java.io.Serializable;
 import java.nio.LongBuffer;
@@ -57,6 +58,9 @@ public class ImmutableBitSet
           return o1.compareTo(o2);
         }
       };
+
+  public static final Ordering<ImmutableBitSet> ORDERING =
+      Ordering.from(COMPARATOR);
 
   // BitSets are packed into arrays of "words."  Currently a word is
   // a long, which consists of 64 bits, requiring 6 address bits.

@@ -45,7 +45,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
@@ -59,6 +58,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import java.math.BigInteger;
@@ -829,8 +829,8 @@ public class Lattice {
         ImmutableList<Column> dimensions) {
       this.measures = measures;
       this.dimensions = dimensions;
-      assert Util.isStrictlySorted(dimensions);
-      assert Util.isStrictlySorted(measures);
+      assert Ordering.natural().isStrictlyOrdered(dimensions);
+      assert Ordering.natural().isStrictlyOrdered(measures);
       final ImmutableBitSet.Builder bitSetBuilder = ImmutableBitSet.builder();
       for (Column dimension : dimensions) {
         bitSetBuilder.set(dimension.ordinal);
@@ -849,15 +849,13 @@ public class Lattice {
 
   /** Tile builder. */
   public static class TileBuilder {
-    private final ImmutableList.Builder<Measure> measureBuilder =
-        ImmutableList.builder();
-    private final ImmutableList.Builder<Column> dimensionListBuilder =
-        ImmutableList.builder();
+    private final List<Measure> measureBuilder = Lists.newArrayList();
+    private final List<Column> dimensionListBuilder = Lists.newArrayList();
 
     public Tile build() {
       return new Tile(
-          ImmutableList.copyOf(Util.sort(measureBuilder.build())),
-          ImmutableList.copyOf(Util.sort(dimensionListBuilder.build())));
+          Ordering.natural().immutableSortedCopy(measureBuilder),
+          Ordering.natural().immutableSortedCopy(dimensionListBuilder));
     }
 
     public void addMeasure(Measure measure) {

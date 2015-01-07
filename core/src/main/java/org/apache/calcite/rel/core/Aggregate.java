@@ -129,8 +129,7 @@ public abstract class Aggregate extends SingleRel {
       this.groupSets = ImmutableList.of(groupSet);
     } else {
       this.groupSets = ImmutableList.copyOf(groupSets);
-      assert Util.isStrictlySorted(groupSets, ImmutableBitSet.COMPARATOR)
-          : groupSets;
+      assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
       for (ImmutableBitSet set : groupSets) {
         assert groupSet.contains(set);
       }
@@ -383,27 +382,25 @@ public abstract class Aggregate extends SingleRel {
 
     public static Group induce(ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets) {
+      if (!ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets)) {
+        throw new IllegalArgumentException("must be sorted: " + groupSets);
+      }
       if (groupSets.size() == 1 && groupSets.get(0).equals(groupSet)) {
         return SIMPLE;
       }
       if (groupSets.size() == IntMath.pow(2, groupSet.cardinality())) {
         return CUBE;
       }
+    checkRollup:
       if (groupSets.size() == groupSet.cardinality() + 1) {
-        for (int i = groupSet.cardinality(); i >= 0; i--) {
-          ImmutableBitSet groupingSet =
-                  groupSets.get(groupSet.cardinality() - i);
-          if (groupingSet.cardinality() != i) {
-            return OTHER;
+        ImmutableBitSet g = groupSet;
+        for (ImmutableBitSet bitSet : groupSets) {
+          if (!bitSet.equals(g)) {
+            break checkRollup;
           }
-          for (int j = 0, pos = 0; j < i; j++) {
-            int nextPos = groupSet.nextSetBit(pos);
-            if (nextPos != groupingSet.nextSetBit(pos)) {
-              return OTHER;
-            }
-            pos = nextPos + 1;
-          }
+          g = g.clear(g.length() - 1);
         }
+        assert g.isEmpty();
         return ROLLUP;
       }
       return OTHER;
