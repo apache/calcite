@@ -973,7 +973,8 @@ public class Linq4jTest {
             + "Eric works in Sales, "
             + "Fred works in Sales, "
             + "Janet works in Sales, "
-            + "null works in HR]",
+            + "null works in HR, "
+            + "null works in null]",
         s);
   }
 

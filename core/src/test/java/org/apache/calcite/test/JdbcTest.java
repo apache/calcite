@@ -4248,6 +4248,7 @@ public class JdbcTest {
             "deptno=10; deptno=10",
             "deptno=10; deptno=10",
             "deptno=20; deptno=null",
+            "deptno=null; deptno=null",
             "deptno=null; deptno=30",
             "deptno=null; deptno=40");
   }

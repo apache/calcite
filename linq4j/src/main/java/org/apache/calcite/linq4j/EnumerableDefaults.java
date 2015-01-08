@@ -998,15 +998,16 @@ public abstract class EnumerableDefaults {
                 return false;
               }
               final TSource outer = outers.current();
+              final Enumerable<TInner> innerEnumerable;
               if (outer == null) {
-                continue;
+                innerEnumerable = null;
+              } else {
+                final TKey outerKey = outerKeySelector.apply(outer);
+                if (unmatchedKeys != null) {
+                  unmatchedKeys.remove(outerKey);
+                }
+                innerEnumerable = innerLookup.get(outerKey);
               }
-              final TKey outerKey = outerKeySelector.apply(outer);
-              if (unmatchedKeys != null) {
-                unmatchedKeys.remove(outerKey);
-              }
-              final Enumerable<TInner> innerEnumerable =
-                  innerLookup.get(outerKey);
               if (innerEnumerable == null
                   || !innerEnumerable.any()) {
                 if (generateNullsOnRight) {
@@ -1526,15 +1527,16 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source) {
     final List<TSource> list = toList(source);
     final int n = list.size();
-    return Linq4j.asEnumerable(new AbstractList<TSource>() {
-      public TSource get(int index) {
-        return list.get(n - 1 - index);
-      }
+    return Linq4j.asEnumerable(
+        new AbstractList<TSource>() {
+          public TSource get(int index) {
+            return list.get(n - 1 - index);
+          }
 
-      public int size() {
-        return n;
-      }
-    });
+          public int size() {
+            return n;
+          }
+        });
   }
 
   /**
@@ -1903,12 +1905,13 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> take(Enumerable<TSource> source,
       final int count) {
-    return takeWhile(source, new Predicate2<TSource, Integer>() {
-      public boolean apply(TSource v1, Integer v2) {
-        // Count is 1-based
-        return v2 < count;
-      }
-    });
+    return takeWhile(
+        source, new Predicate2<TSource, Integer>() {
+          public boolean apply(TSource v1, Integer v2) {
+            // Count is 1-based
+            return v2 < count;
+          }
+        });
   }
 
   /**
@@ -2080,8 +2083,8 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey> Lookup<TKey, TSource> toLookup(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       EqualityComparer<TKey> comparer) {
-    return toLookup(source, keySelector, Functions.<TSource>identitySelector(),
-        comparer);
+    return toLookup(
+        source, keySelector, Functions.<TSource>identitySelector(), comparer);
   }
 
   /**
@@ -2135,8 +2138,11 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
-    return toLookup_(new WrapMap<TKey, List<TElement>>(comparer), source,
-        keySelector, elementSelector);
+    return toLookup_(
+        new WrapMap<TKey, List<TElement>>(comparer),
+        source,
+        keySelector,
+        elementSelector);
   }
 
   /**

@@ -223,8 +223,9 @@ select * from (select * from emp where gender ='F') as emp full join dept on emp
 | Wilma |        | F      |         |             |
 |       |        |        |      20 | Marketing   |
 |       |        |        |      40 | Empty       |
+|       |        |        |         |             |
 +-------+--------+--------+---------+-------------+
-(8 rows)
+(9 rows)
 
 !ok
 
@@ -269,5 +270,80 @@ EnumerableThetaJoin(condition=[=(-($1, $3), 0)], joinType=[full])
   EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 
+# [CALCITE-554] Outer join over NULL keys generates wrong result
+with t1(x) as (select * from  (values (1),(2), (case when 1 = 1 then null else 3 end)) as t(x)),
+  t2(x) as (select * from  (values (1),(case when 1 = 1 then null else 3 end)) as t(x))
+select t1.x from t1 left join t2 on t1.x = t2.x;
++---+
+| X |
++---+
+| 1 |
+| 2 |
+|   |
++---+
+(3 rows)
+
+!ok
+
+# Equivalent query, using CAST, and skipping unnecessary aliases
+with t1(x) as (select * from (values 1, 2, cast(null as integer))),
+  t2(x) as (select * from (values 1, cast(null as integer)))
+select t1.x from t1 left join t2 on t1.x = t2.x;
++---+
+| X |
++---+
+| 1 |
+| 2 |
+|   |
++---+
+(3 rows)
+
+!ok
+
+# Similar query, projecting both columns
+with t1(x) as (select * from (values 1, 2, cast(null as integer))),
+  t2(x) as (select * from (values 1, cast(null as integer)))
+select t1.x, t2.x from t1 left join t2 on t1.x = t2.x;
++---+---+
+| X | X |
++---+---+
+| 1 | 1 |
+| 2 |   |
+|   |   |
++---+---+
+(3 rows)
+
+!ok
+
+# Similar, with 2 columns on each side projecting both columns
+with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30))),
+  t2(x, y) as (select * from (values (1, 100), (cast(null as integer), 200)))
+select * from t1 left join t2 on t1.x = t2.x;
++---+----+----+-----+
+| X | Y  | X0 | Y0  |
++---+----+----+-----+
+| 1 | 10 |  1 | 100 |
+| 2 | 20 |    |     |
+|   | 30 |    | 200 |
++---+----+----+-----+
+(3 rows)
+
+!ok
+
+# Similar, full join
+with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30))),
+  t2(x, y) as (select * from (values (1,100), (cast(null as integer), 200)))
+select * from t1 full join t2 on t1.x = t2.x;
++---+----+----+-----+
+| X | Y  | X0 | Y0  |
++---+----+----+-----+
+| 1 | 10 |  1 | 100 |
+| 2 | 20 |    |     |
+|   | 30 |    | 200 |
+|   |    |    |     |
++---+----+----+-----+
+(4 rows)
+
+!ok
 
 # End outer.oq
