@@ -984,14 +984,9 @@ public abstract class EnumerableDefaults {
                       list.add(tInner);
                     }
                   }
-                  list = new ArrayList<TInner>();
-                  for (TKey key : unmatchedKeys) {
-                    for (TInner inner : innerLookup.get(key)) {
-                      list.add(inner);
-                    }
-                  }
                   inners = Linq4j.enumerator(list);
                   outers = Linq4j.singletonNullEnumerator();
+                  outers.moveNext();
                   unmatchedKeys = null; // don't do the 'leftovers' again
                   continue;
                 }
@@ -1003,10 +998,14 @@ public abstract class EnumerableDefaults {
                 innerEnumerable = null;
               } else {
                 final TKey outerKey = outerKeySelector.apply(outer);
-                if (unmatchedKeys != null) {
-                  unmatchedKeys.remove(outerKey);
+                if (outerKey == null) {
+                  innerEnumerable = null;
+                } else {
+                  if (unmatchedKeys != null) {
+                    unmatchedKeys.remove(outerKey);
+                  }
+                  innerEnumerable = innerLookup.get(outerKey);
                 }
-                innerEnumerable = innerLookup.get(outerKey);
               }
               if (innerEnumerable == null
                   || !innerEnumerable.any()) {

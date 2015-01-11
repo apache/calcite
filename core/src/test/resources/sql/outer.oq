@@ -223,9 +223,8 @@ select * from (select * from emp where gender ='F') as emp full join dept on emp
 | Wilma |        | F      |         |             |
 |       |        |        |      20 | Marketing   |
 |       |        |        |      40 | Empty       |
-|       |        |        |         |             |
 +-------+--------+--------+---------+-------------+
-(9 rows)
+(8 rows)
 
 !ok
 
@@ -286,6 +285,7 @@ select t1.x from t1 left join t2 on t1.x = t2.x;
 !ok
 
 # Equivalent query, using CAST, and skipping unnecessary aliases
+# (Postgres doesn't like the missing alias, or the missing parentheses.)
 with t1(x) as (select * from (values 1, 2, cast(null as integer))),
   t2(x) as (select * from (values 1, cast(null as integer)))
 select t1.x from t1 left join t2 on t1.x = t2.x;
@@ -300,9 +300,9 @@ select t1.x from t1 left join t2 on t1.x = t2.x;
 
 !ok
 
-# Similar query, projecting both columns
-with t1(x) as (select * from (values 1, 2, cast(null as integer))),
-  t2(x) as (select * from (values 1, cast(null as integer)))
+# Similar query, projecting left and right key columns
+with t1(x) as (select * from (values (1), (2), (cast(null as integer))) as t),
+  t2(x) as (select * from (values (1), (cast(null as integer))) as t)
 select t1.x, t2.x from t1 left join t2 on t1.x = t2.x;
 +---+---+
 | X | X |
@@ -316,31 +316,31 @@ select t1.x, t2.x from t1 left join t2 on t1.x = t2.x;
 !ok
 
 # Similar, with 2 columns on each side projecting both columns
-with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30))),
-  t2(x, y) as (select * from (values (1, 100), (cast(null as integer), 200)))
+with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30)) as t),
+  t2(x, y) as (select * from (values (1, 100), (cast(null as integer), 200)) as t)
 select * from t1 left join t2 on t1.x = t2.x;
 +---+----+----+-----+
 | X | Y  | X0 | Y0  |
 +---+----+----+-----+
 | 1 | 10 |  1 | 100 |
 | 2 | 20 |    |     |
-|   | 30 |    | 200 |
+|   | 30 |    |     |
 +---+----+----+-----+
 (3 rows)
 
 !ok
 
 # Similar, full join
-with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30))),
-  t2(x, y) as (select * from (values (1,100), (cast(null as integer), 200)))
+with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30)) as t),
+  t2(x, y) as (select * from (values (1,100), (cast(null as integer), 200)) as t)
 select * from t1 full join t2 on t1.x = t2.x;
 +---+----+----+-----+
 | X | Y  | X0 | Y0  |
 +---+----+----+-----+
 | 1 | 10 |  1 | 100 |
 | 2 | 20 |    |     |
-|   | 30 |    | 200 |
-|   |    |    |     |
+|   | 30 |    |     |
+|   |    |    | 200 |
 +---+----+----+-----+
 (4 rows)
 
