@@ -191,11 +191,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             oldAggRel.getRowType().getFieldNames());
 
     ruleCall.transformTo(projectRel);
-    // If we old AggRel(SUM(0)) transforms to new AggRel($SUM0($0)) both will
-    // have the same cost, but we prefer new. Before we set the importance of
-    // old to 0, we were getting different results between JDK 1.7 and 1.8
-    // because of some arbitrary orderings of rels within an equivalence set.
-    ruleCall.getPlanner().setImportance(oldAggRel, 0d);
   }
 
   private RexNode reduceAgg(

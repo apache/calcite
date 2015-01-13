@@ -51,6 +51,10 @@ public class TileKey {
         && dimensions.equals(((TileKey) obj).dimensions)
         && measures.equals(((TileKey) obj).measures);
   }
+
+  @Override public String toString() {
+    return "dimensions: " + dimensions + ", measures: " + measures;
+  }
 }
 
 // End TileKey.java

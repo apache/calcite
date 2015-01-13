@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.collect.Iterables;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -156,7 +158,10 @@ public class RelSubset extends AbstractRelNode {
     String s = getDescription();
     pw.item("subset", s);
     final AbstractRelNode input =
-        (AbstractRelNode) getRels().iterator().next();
+        (AbstractRelNode) Iterables.getFirst(getRels(), null);
+    if (input == null) {
+      return;
+    }
     input.explainTerms(pw);
     pw.done(input);
   }

@@ -43,6 +43,10 @@ import org.apache.calcite.sql.SqlDialect;
  * instantiated, at the start of planning, for each JDBC database in play.</p>
  */
 public class JdbcConvention extends Convention.Impl {
+  /** Cost of a JDBC node versus implementing an equivalent node in a "typical"
+   * calling convention. */
+  public static final double COST_MULTIPLIER = 0.8d;
+
   public final SqlDialect dialect;
   public final Expression expression;
 

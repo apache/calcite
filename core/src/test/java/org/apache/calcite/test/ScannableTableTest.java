@@ -161,7 +161,7 @@ public class ScannableTableTest {
     resultSet.close();
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), equalTo("returnCount=2, projects=[0, 1, 2]"));
+    assertThat(buf.toString(), equalTo("returnCount=2"));
     buf.setLength(0);
 
     // Now with an "uncooperative" filterable table that refuses to accept

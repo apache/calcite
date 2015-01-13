@@ -79,8 +79,11 @@ public class ScanNode implements Node {
         table.unwrap(ProjectableFilterableTable.class);
     if (pfTable != null) {
       final List<RexNode> filters1 = Lists.newArrayList(filters);
+      final int[] projects1 =
+          isIdentity(projects, rel.getRowType().getFieldCount())
+              ? null : projects;
       final Enumerable<Object[]> enumerator =
-          pfTable.scan(root, filters1, projects);
+          pfTable.scan(root, filters1, projects1);
       assert filters1.isEmpty()
           : "table could not handle a filter it earlier said it could";
       return Enumerables.toRow(enumerator);
@@ -152,6 +155,18 @@ public class ScanNode implements Node {
       return Enumerables.toRow(scannableTable.scan(root));
     }
     throw new AssertionError("cannot convert table " + table + " to iterable");
+  }
+
+  private static boolean isIdentity(int[] is, int count) {
+    if (is.length != count) {
+      return false;
+    }
+    for (int i = 0; i < is.length; i++) {
+      if (is[i] != i) {
+        return false;
+      }
+    }
+    return true;
   }
 }
 

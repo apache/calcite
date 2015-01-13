@@ -19,6 +19,7 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.util.ChunkList;
 import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
@@ -91,7 +92,7 @@ class RuleQueue {
   /**
    * Sorts rule-matches into decreasing order of importance.
    */
-  private final Comparator<VolcanoRuleMatch> ruleMatchImportanceComparator =
+  private static final Comparator<VolcanoRuleMatch> MATCH_COMPARATOR =
       new RuleMatchImportanceComparator();
 
   private final VolcanoPlanner planner;
@@ -460,7 +461,7 @@ class RuleQueue {
         return null;
       }
       if (LOGGER.isLoggable(Level.FINEST)) {
-        Collections.sort(matchList, ruleMatchImportanceComparator);
+        Collections.sort(matchList, MATCH_COMPARATOR);
         match = matchList.remove(0);
 
         StringBuilder b = new StringBuilder();
@@ -483,7 +484,7 @@ class RuleQueue {
         for (VolcanoRuleMatch match2 : matchList) {
           ++i;
           if (match == null
-              || ruleMatchImportanceComparator.compare(match2, match) < 0) {
+              || MATCH_COMPARATOR.compare(match2, match) < 0) {
             bestPos = i;
             match = match2;
           }
@@ -613,20 +614,6 @@ class RuleQueue {
     }
   }
 
-  static int compareRels(RelNode[] rels0, RelNode[] rels1) {
-    int c = rels0.length - rels1.length;
-    if (c != 0) {
-      return c;
-    }
-    for (int i = 0; i < rels0.length; i++) {
-      c = rels0[i].getId() - rels1[i].getId();
-      if (c != 0) {
-        return c;
-      }
-    }
-    return 0;
-  }
-
   private static double computeOneMinusEpsilon() {
     for (double d = 0d;;) {
       double d0 = d;
@@ -662,20 +649,22 @@ class RuleQueue {
    * comparing the {@link RelNode#getId id}s of the relational expressions
    * matched.
    */
-  private class RuleMatchImportanceComparator
+  private static class RuleMatchImportanceComparator
       implements Comparator<VolcanoRuleMatch> {
-    public int compare(
-        VolcanoRuleMatch match1,
+    public int compare(VolcanoRuleMatch match1,
         VolcanoRuleMatch match2) {
+      int c = match1.rule.getClass().getName()
+          .compareTo(match2.rule.getClass().getName());
+      if (c != 0) {
+        return -c;
+      }
       double imp1 = match1.getImportance();
       double imp2 = match2.getImportance();
-      int c = Double.compare(imp1, imp2);
-      if (c == 0) {
-        c = compareRels(
-            match1.rels,
-            match2.rels);
+      c = Double.compare(imp1, imp2);
+      if (c != 0) {
+        return -c;
       }
-      return -c;
+      return -RelNodes.compareRels(match1.rels, match2.rels);
     }
   }
 

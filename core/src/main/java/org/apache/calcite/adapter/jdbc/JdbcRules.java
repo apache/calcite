@@ -471,6 +471,11 @@ public class JdbcRules {
           flags);
     }
 
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return super.computeSelfCost(planner)
+          .multiplyBy(JdbcConvention.COST_MULTIPLIER);
+    }
+
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       JdbcImplementor.Result x = implementor.visitChild(0, getInput());
       if (isStar(exps, getInput().getRowType())) {

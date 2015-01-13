@@ -583,6 +583,10 @@ public class Lattice {
           && this.ordinal == ((Column) obj).ordinal;
     }
 
+    @Override public String toString() {
+      return identifiers().toString();
+    }
+
     public List<String> identifiers() {
       return ImmutableList.of(table, column);
     }

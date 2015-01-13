@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -91,7 +92,7 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
       rowCount = addEpsilon(rowCount);
       break;
     default:
-      if (left.getId() > right.getId()) {
+      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
         rowCount = addEpsilon(rowCount);
       }
     }

@@ -75,7 +75,6 @@ public class TileSuggester {
     final Result result = algorithm.run(schema, map.build(), progress);
     final ImmutableList.Builder<Lattice.Tile> tiles = ImmutableList.builder();
     for (Aggregate aggregate : result.getAggregates()) {
-      System.out.println(aggregate);
       tiles.add(toTile(aggregate));
     }
     return tiles.build();

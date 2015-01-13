@@ -262,12 +262,7 @@ public class MaterializationService {
         }
       }
       if (!queue.isEmpty()) {
-        final Pair<CalciteSchema.TableEntry, TileKey> best = queue.peek();
-        for (Pair<CalciteSchema.TableEntry, TileKey> pair : queue) {
-          System.out.println("table=" + pair.left.path() + " "
-              + pair.left.getTable().getStatistic().getRowCount());
-        }
-        return best;
+        return queue.peek();
       }
     }
 
