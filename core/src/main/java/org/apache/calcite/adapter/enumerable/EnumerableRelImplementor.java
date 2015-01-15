@@ -116,9 +116,11 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             new Function<ParameterExpression, Statement>() {
               public Statement apply(ParameterExpression input) {
                 return Expressions.declare(Modifier.FINAL, input,
-                    Expressions.convert_(Expressions.call(DataContext.ROOT,
-                        BuiltInMethod.DATA_CONTEXT_GET.method,
-                        Expressions.constant(input.name)), input.type));
+                    Expressions.convert_(
+                        Expressions.call(DataContext.ROOT,
+                            BuiltInMethod.DATA_CONTEXT_GET.method,
+                            Expressions.constant(input.name)),
+                        input.type));
               }
             });
 
@@ -139,12 +141,13 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             BuiltInMethod.BINDABLE_BIND.method.getName(),
             Expressions.list(root0_),
             block));
-    memberDeclarations.add(Expressions.methodDecl(Modifier.PUBLIC,
-        Type.class,
-        BuiltInMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
-        Collections.<ParameterExpression>emptyList(),
-        Blocks.toFunctionBlock(Expressions.return_(null,
-            Expressions.constant(result.physType.getJavaRowType())))));
+    memberDeclarations.add(
+        Expressions.methodDecl(Modifier.PUBLIC, Type.class,
+            BuiltInMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
+            Collections.<ParameterExpression>emptyList(),
+            Blocks.toFunctionBlock(
+                Expressions.return_(null,
+                    Expressions.constant(result.physType.getJavaRowType())))));
     return Expressions.classDecl(Modifier.PUBLIC,
         "Baz",
         null,

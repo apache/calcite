@@ -1357,8 +1357,8 @@ public class RexUtil {
         for (RexNode operand : operands) {
           list.add(removeFactor(factors, operand));
         }
-        return and(Iterables.concat(factors.values(),
-            ImmutableList.of(or(list))));
+        return and(
+            Iterables.concat(factors.values(), ImmutableList.of(or(list))));
       default:
         return rex;
       }

@@ -650,14 +650,11 @@ public class RelMdUtil {
     }
 
     if (useMaxNdv) {
-      distRowCount = Math.max(RelMetadataQuery.getDistinctRowCount(
-                left,
-                leftMask.build(),
-                leftPred),
-            RelMetadataQuery.getDistinctRowCount(
-                right,
-                rightMask.build(),
-                rightPred));
+      distRowCount = Math.max(
+          RelMetadataQuery.getDistinctRowCount(left, leftMask.build(),
+              leftPred),
+          RelMetadataQuery.getDistinctRowCount(right, rightMask.build(),
+              rightPred));
     } else {
       distRowCount =
         NumberUtil.multiply(

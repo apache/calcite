@@ -250,8 +250,9 @@ public class PlannerTest {
       RelNode rel = planner.convert(parse);
       fail("expected error, got " + rel);
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString(
-          "cannot move from STATE_3_PARSED to STATE_4_VALIDATED"));
+      assertThat(e.getMessage(),
+          containsString(
+              "cannot move from STATE_3_PARSED to STATE_4_VALIDATED"));
     }
   }
 
@@ -321,9 +322,10 @@ public class PlannerTest {
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform), equalTo(
-        "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-            + "  EnumerableTableScan(table=[[hr, emps]])\n"));
+    assertThat(toString(transform),
+        equalTo(
+            "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+                + "  EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
   /** Unit test that parses, validates, converts and
@@ -343,8 +345,8 @@ public class PlannerTest {
     RelTraitSet traitSet = convert.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform), equalTo(
-        "EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+    assertThat(toString(transform),
+        equalTo("EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "  EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n"));
   }
@@ -370,8 +372,8 @@ public class PlannerTest {
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform), equalTo(
-        "EnumerableProject(empid=[$0])\n"
+    assertThat(toString(transform),
+        equalTo("EnumerableProject(empid=[$0])\n"
             + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
             + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "      EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
@@ -397,8 +399,8 @@ public class PlannerTest {
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform), equalTo(
-        "EnumerableProject(empid=[$0])\n"
+    assertThat(toString(transform),
+        equalTo("EnumerableProject(empid=[$0])\n"
             + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "    EnumerableProject(empid=[$0], deptno=[$1])\n"
             + "      EnumerableSort(sort0=[$1], dir0=[ASC])\n"
@@ -426,8 +428,9 @@ public class PlannerTest {
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform), equalTo(
-        "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+    assertThat(toString(transform),
+        equalTo(
+            "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "  EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
@@ -446,8 +449,9 @@ public class PlannerTest {
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
     RelNode transform2 = planner.transform(0, traitSet, transform);
-    assertThat(toString(transform2), equalTo(
-        "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+    assertThat(toString(transform2),
+        equalTo(
+            "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "  EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
@@ -499,8 +503,8 @@ public class PlannerTest {
 
     RelNode transform = planner.transform(0, traitSet0, convert);
     RelNode transform2 = planner.transform(1, traitSet1, transform);
-    assertThat(toString(transform2), equalTo(
-        "JdbcProject(name=[$2])\n"
+    assertThat(toString(transform2),
+        equalTo("JdbcProject(name=[$2])\n"
             + "  MockJdbcTableScan(table=[[hr, emps]])\n"));
   }
 
@@ -554,8 +558,9 @@ public class PlannerTest {
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform), containsString(
-        "EnumerableJoin(condition=[=($0, $5)], joinType=[inner])"));
+    assertThat(toString(transform),
+        containsString(
+            "EnumerableJoin(condition=[=($0, $5)], joinType=[inner])"));
   }
 
   /** Test case for

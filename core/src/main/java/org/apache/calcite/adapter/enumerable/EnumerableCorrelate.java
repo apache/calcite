@@ -104,12 +104,11 @@ public class EnumerableCorrelate extends Correlate
                 : JoinRelType.INNER, physType,
             ImmutableList.of(leftResult.physType, rightResult.physType));
 
-    builder.append(Expressions.call(leftExpression,
-        BuiltInMethod.CORRELATE_JOIN.method,
-        Expressions.constant(joinType.toLinq4j()),
+    builder.append(
+        Expressions.call(leftExpression, BuiltInMethod.CORRELATE_JOIN.method,
+            Expressions.constant(joinType.toLinq4j()),
         Expressions.lambda(corrBlock.toBlock(), corrArg),
-        selector
-    ));
+        selector));
 
     return implementor.result(physType, builder.toBlock());
   }

@@ -295,8 +295,7 @@ public class EnumerableAggregate extends Aggregate
       List<Expression> accumulator =
           new ArrayList<Expression>(stateSize);
       for (int j = 0; j < stateSize; j++) {
-        accumulator.add(accPhysType.fieldReference(
-            acc_, j + stateOffset));
+        accumulator.add(accPhysType.fieldReference(acc_, j + stateOffset));
       }
       agg.state = accumulator;
 
@@ -309,17 +308,18 @@ public class EnumerableAggregate extends Aggregate
                   inputPhysType.getRowType().getFieldList();
               List<RexNode> args = new ArrayList<RexNode>();
               for (Integer index : agg.call.getArgList()) {
-                args.add(new RexInputRef(index,
-                    inputTypes.get(index).getType()));
+                args.add(
+                    new RexInputRef(index, inputTypes.get(index).getType()));
               }
               return args;
             }
 
             public RexToLixTranslator rowTranslator() {
               return RexToLixTranslator.forAggregation(typeFactory,
-                  currentBlock(), new RexToLixTranslator.InputGetterImpl(
-                      Collections.singletonList(Pair.of(
-                          (Expression) inParameter, inputPhysType))))
+                  currentBlock(),
+                  new RexToLixTranslator.InputGetterImpl(
+                      Collections.singletonList(
+                          Pair.of((Expression) inParameter, inputPhysType))))
                   .setNullable(currentNullables());
             }
           };

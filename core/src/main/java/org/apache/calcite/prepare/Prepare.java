@@ -450,8 +450,8 @@ public abstract class Prepare {
     }
 
     public List<List<String>> getFieldOrigins() {
-      return Collections.singletonList(Collections.<String>nCopies(
-          4, null));
+      return Collections.singletonList(
+          Collections.<String>nCopies(4, null));
     }
 
     public RelNode getRel() {

@@ -381,15 +381,16 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
 
   public <TKey extends Comparable> OrderedQueryable<T> orderBy(
       FunctionExpression<Function1<T, TKey>> keySelector) {
-    return EnumerableDefaults.asOrderedQueryable(EnumerableDefaults.orderBy(
-        getThis(), keySelector.getFunction()));
+    return EnumerableDefaults.asOrderedQueryable(
+        EnumerableDefaults.orderBy(getThis(), keySelector.getFunction()));
   }
 
   public <TKey> OrderedQueryable<T> orderBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       Comparator<TKey> comparator) {
-    return EnumerableDefaults.asOrderedQueryable(EnumerableDefaults.orderBy(
-        getThis(), keySelector.getFunction(), comparator));
+    return EnumerableDefaults.asOrderedQueryable(
+        EnumerableDefaults.orderBy(getThis(), keySelector.getFunction(),
+            comparator));
   }
 
   public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(

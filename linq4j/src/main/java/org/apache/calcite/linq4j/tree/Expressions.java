@@ -682,8 +682,8 @@ public abstract class Expressions {
    */
   public static BinaryExpression divide(Expression left, Expression right,
       Method method) {
-    return makeBinary(ExpressionType.Divide, left, right, shouldLift(left,
-        right, method), method);
+    return makeBinary(ExpressionType.Divide, left, right,
+        shouldLift(left, right, method), method);
   }
 
   /**
@@ -1688,8 +1688,8 @@ public abstract class Expressions {
   public static ConstructorDeclaration constructorDecl(int modifier,
       Type declaredAgainst, Iterable<? extends ParameterExpression> parameters,
       BlockStatement body) {
-    return new ConstructorDeclaration(modifier, declaredAgainst, toList(
-        parameters), body);
+    return new ConstructorDeclaration(modifier, declaredAgainst,
+        toList(parameters), body);
   }
 
   /**
@@ -1732,8 +1732,8 @@ public abstract class Expressions {
    */
   public static BinaryExpression modulo(Expression left, Expression right,
       Method method) {
-    return makeBinary(ExpressionType.Modulo, left, right, shouldLift(left,
-        right, method), method);
+    return makeBinary(ExpressionType.Modulo, left, right,
+        shouldLift(left, right, method), method);
   }
 
   /**
@@ -1780,8 +1780,8 @@ public abstract class Expressions {
    */
   public static BinaryExpression multiply(Expression left, Expression right,
       Method method) {
-    return makeBinary(ExpressionType.Multiply, left, right, shouldLift(left,
-        right, method), method);
+    return makeBinary(ExpressionType.Multiply, left, right,
+        shouldLift(left, right, method), method);
   }
 
   /**
@@ -1862,8 +1862,8 @@ public abstract class Expressions {
    */
   public static BinaryExpression multiplyChecked(Expression left,
       Expression right, Method method) {
-    return makeBinary(ExpressionType.MultiplyChecked, left, right, shouldLift(
-        left, right, method), method);
+    return makeBinary(ExpressionType.MultiplyChecked, left, right,
+        shouldLift(left, right, method), method);
   }
 
   /**
@@ -2594,8 +2594,8 @@ public abstract class Expressions {
    */
   public static BinaryExpression subtract(Expression left, Expression right,
       Method method) {
-    return makeBinary(ExpressionType.Subtract, left, right, shouldLift(left,
-        right, method), method);
+    return makeBinary(ExpressionType.Subtract, left, right,
+        shouldLift(left, right, method), method);
   }
 
   /**
@@ -2671,8 +2671,8 @@ public abstract class Expressions {
    */
   public static BinaryExpression subtractChecked(Expression left,
       Expression right, Method method) {
-    return makeBinary(ExpressionType.SubtractChecked, left, right, shouldLift(
-        left, right, method), method);
+    return makeBinary(ExpressionType.SubtractChecked, left, right,
+        shouldLift(left, right, method), method);
   }
 
   /**

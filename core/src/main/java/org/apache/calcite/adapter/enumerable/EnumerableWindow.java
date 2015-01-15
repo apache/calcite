@@ -175,10 +175,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     final List<Expression> translatedConstants =
         new ArrayList<Expression>(constants.size());
     for (RexLiteral constant : constants) {
-      translatedConstants.add(RexToLixTranslator.translateLiteral(
-          constant, constant.getType(),
-          typeFactory,
-          RexImpTable.NullAs.NULL));
+      translatedConstants.add(
+          RexToLixTranslator.translateLiteral(constant, constant.getType(),
+              typeFactory, RexImpTable.NullAs.NULL));
     }
 
     PhysType inputPhysType = result.physType;
@@ -255,11 +254,13 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                   Object[].class),
               false);
 
-      builder3.add(Expressions.statement(
-          Expressions.assign(prevStart, Expressions.constant(-1))));
-      builder3.add(Expressions.statement(
-          Expressions.assign(prevEnd,
-              Expressions.constant(Integer.MAX_VALUE))));
+      builder3.add(
+          Expressions.statement(
+              Expressions.assign(prevStart, Expressions.constant(-1))));
+      builder3.add(
+          Expressions.statement(
+              Expressions.assign(prevEnd,
+                  Expressions.constant(Integer.MAX_VALUE))));
 
       final BlockBuilder builder4 = new BlockBuilder();
 
@@ -343,14 +344,13 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
         hasRows = builder4.append("hasRows",
             Expressions.lessThanOrEqual(startTmp, endTmp));
-        builder4.add(Expressions.ifThenElse(
-            hasRows,
-            Expressions.block(
-                Expressions.statement(
-                    Expressions.assign(startPe, startTmp)),
-                Expressions.statement(
-                  Expressions.assign(endPe, endTmp))
-          ),
+        builder4.add(
+            Expressions.ifThenElse(hasRows,
+                Expressions.block(
+                    Expressions.statement(
+                        Expressions.assign(startPe, startTmp)),
+                    Expressions.statement(
+                      Expressions.assign(endPe, endTmp))),
             Expressions.block(
                 Expressions.statement(
                     Expressions.assign(startPe, Expressions.constant(-1))),
@@ -381,8 +381,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
           0, int.class, builder5.newName("actualStart"));
 
       final BlockBuilder builder6 = new BlockBuilder(true, builder5);
-      builder6.add(Expressions.statement(
-          Expressions.assign(actualStart, startX)));
+      builder6.add(
+          Expressions.statement(Expressions.assign(actualStart, startX)));
 
       for (final AggImpState agg : aggs) {
         agg.implementor.implementReset(agg.context,
@@ -400,24 +400,27 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       BlockStatement resetWindowState = builder6.toBlock();
       if (resetWindowState.statements.size() == 1) {
-        builder5.add(Expressions.declare(0, actualStart,
-            Expressions.condition(needRecomputeWindow,
-                startX, Expressions.add(prevEnd, Expressions.constant(1)))));
+        builder5.add(
+            Expressions.declare(0, actualStart,
+                Expressions.condition(needRecomputeWindow, startX,
+                    Expressions.add(prevEnd, Expressions.constant(1)))));
       } else {
-        builder5.add(Expressions.declare(0, actualStart,
-            null));
-        builder5.add(Expressions.ifThenElse(needRecomputeWindow,
-            resetWindowState,
-            Expressions.statement(Expressions.assign(actualStart,
-                Expressions.add(prevEnd, Expressions.constant(1))))));
+        builder5.add(
+            Expressions.declare(0, actualStart, null));
+        builder5.add(
+            Expressions.ifThenElse(needRecomputeWindow,
+                resetWindowState,
+                Expressions.statement(
+                    Expressions.assign(actualStart,
+                    Expressions.add(prevEnd, Expressions.constant(1))))));
       }
 
       if (lowerBoundCanChange instanceof BinaryExpression) {
-        builder5.add(Expressions.statement(
-            Expressions.assign(prevStart, startX)));
+        builder5.add(
+            Expressions.statement(Expressions.assign(prevStart, startX)));
       }
-      builder5.add(Expressions.statement(
-          Expressions.assign(prevEnd, endX)));
+      builder5.add(
+          Expressions.statement(Expressions.assign(prevEnd, endX)));
 
       final BlockBuilder builder7 = new BlockBuilder(true, builder5);
       final DeclarationStatement jDecl =
@@ -469,9 +472,11 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       if (implementResult(aggs, builder5, resultContextBuilder, rexArguments,
               true)) {
-        builder4.add(Expressions.ifThen(Expressions.orElse(
-            lowerBoundCanChange,
-            Expressions.notEqual(endX, prevEnd)), builder5.toBlock()));
+        builder4.add(
+            Expressions.ifThen(
+                Expressions.orElse(lowerBoundCanChange,
+                    Expressions.notEqual(endX, prevEnd)),
+                builder5.toBlock()));
       }
 
       implementResult(aggs, builder4, resultContextBuilder, rexArguments,
@@ -802,11 +807,12 @@ public class EnumerableWindow extends Window implements EnumerableRel {
           aggHolderType,
           builder.newName(aggName + "w" + windowIdx));
 
-      builder.add(Expressions.declare(0, aggRes,
-          Expressions.constant(
-              Primitive.is(aggRes.getType())
+      builder.add(
+          Expressions.declare(0, aggRes,
+              Expressions.constant(Primitive.is(aggRes.getType())
                   ? Primitive.of(aggRes.getType()).defaultValue
-                  : null, aggRes.getType())));
+                  : null,
+                  aggRes.getType())));
       agg.result = aggRes;
       outputRow.add(aggRes);
       agg.implementor.implementReset(agg.context,
@@ -862,8 +868,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       // Several count(a) and count(b) might share the result
       Expression aggRes = builder.append("a" + agg.aggIdx + "res",
           RexToLixTranslator.convert(res, agg.result.getType()));
-      builder.add(Expressions.statement(
-          Expressions.assign(agg.result, aggRes)));
+      builder.add(
+          Expressions.statement(Expressions.assign(agg.result, aggRes)));
     }
     return nonEmpty;
   }
@@ -928,8 +934,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     if (bound.getOffset() == null) {
       desiredKeyType = Primitive.box(desiredKeyType);
     }
-    Expression val = translator.translate(new RexInputRef(orderKey,
-            keyType), desiredKeyType);
+    Expression val = translator.translate(
+        new RexInputRef(orderKey, keyType), desiredKeyType);
     if (!bound.isCurrentRow()) {
       RexNode node = bound.getOffset();
       Expression offs = translator.translate(node);

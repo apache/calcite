@@ -105,8 +105,8 @@ public class BlockBuilder {
       Statement lastStatement = statements.get(statements.size() - 1);
       if (lastStatement instanceof GotoStatement) {
         // convert "return expr;" into "expr;"
-        statements.set(statements.size() - 1, Expressions.statement(
-            ((GotoStatement) lastStatement).expression));
+        statements.set(statements.size() - 1,
+            Expressions.statement(((GotoStatement) lastStatement).expression));
       }
     }
     Expression result = null;
@@ -191,8 +191,8 @@ public class BlockBuilder {
       Statement lastStatement = statements.get(statements.size() - 1);
       if (lastStatement instanceof GotoStatement) {
         // convert "return expr;" into "expr;"
-        statements.set(statements.size() - 1, Expressions.statement(
-            ((GotoStatement) lastStatement).expression));
+        statements.set(statements.size() - 1,
+            Expressions.statement(((GotoStatement) lastStatement).expression));
       }
     }
     return append_(name, expression, optimize);
@@ -211,8 +211,8 @@ public class BlockBuilder {
         return decl.parameter;
       }
     }
-    DeclarationStatement declare = Expressions.declare(Modifier.FINAL, newName(
-        name, optimize), expression);
+    DeclarationStatement declare = Expressions.declare(Modifier.FINAL,
+        newName(name, optimize), expression);
     add(declare);
     return declare.parameter;
   }

@@ -112,8 +112,8 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   private static CallImplementor createImplementor(final Method method) {
-    return RexImpTable.createImplementor(new ReflectiveCallNotNullImplementor(
-        method), NullPolicy.ANY, false);
+    return RexImpTable.createImplementor(
+        new ReflectiveCallNotNullImplementor(method), NullPolicy.ANY, false);
   }
 }
 

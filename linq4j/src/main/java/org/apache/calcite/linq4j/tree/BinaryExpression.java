@@ -71,8 +71,8 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case Equal:
-      return expression0.evaluate(evaluator).equals(expression1.evaluate(
-          evaluator));
+      return expression0.evaluate(evaluator)
+          .equals(expression1.evaluate(evaluator));
     case GreaterThan:
       switch (primitive) {
       case INT:
@@ -129,8 +129,8 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case NotEqual:
-      return !expression0.evaluate(evaluator).equals(expression1.evaluate(
-          evaluator));
+      return !expression0.evaluate(evaluator)
+          .equals(expression1.evaluate(evaluator));
     case OrElse:
       return (Boolean) expression0.evaluate(evaluator)
              || (Boolean) expression1.evaluate(evaluator);

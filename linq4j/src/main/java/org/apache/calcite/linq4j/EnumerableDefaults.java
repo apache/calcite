@@ -330,8 +330,8 @@ public abstract class EnumerableDefaults {
   public static <TSource> Enumerable<TSource> concat(
       Enumerable<TSource> enumerable0, Enumerable<TSource> enumerable1) {
     //noinspection unchecked
-    return Linq4j.concat(Arrays.<Enumerable<TSource>>asList(enumerable0,
-        enumerable1));
+    return Linq4j.concat(
+        Arrays.<Enumerable<TSource>>asList(enumerable0, enumerable1));
   }
 
   /**
@@ -1776,8 +1776,8 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> skipWhile(
       Enumerable<TSource> source, Predicate1<TSource> predicate) {
-    return skipWhile(source, Functions.<TSource, Integer>toPredicate2(
-        predicate));
+    return skipWhile(source,
+        Functions.<TSource, Integer>toPredicate2(predicate));
   }
 
   /**
@@ -1919,8 +1919,8 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> takeWhile(
       Enumerable<TSource> source, final Predicate1<TSource> predicate) {
-    return takeWhile(source, Functions.<TSource, Integer>toPredicate2(
-        predicate));
+    return takeWhile(source,
+        Functions.<TSource, Integer>toPredicate2(predicate));
   }
 
   /**

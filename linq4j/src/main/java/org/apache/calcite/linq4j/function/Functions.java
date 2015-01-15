@@ -38,20 +38,20 @@ public abstract class Functions {
 
   public static final Map<Class<? extends Function>, Class>
   FUNCTION_RESULT_TYPES =
-      Collections.<Class<? extends Function>, Class>unmodifiableMap(map(
-          Function0.class, Object.class,
-          Function1.class, Object.class,
-          Function2.class, Object.class,
-          BigDecimalFunction1.class, BigDecimal.class,
-          DoubleFunction1.class, Double.TYPE,
-          FloatFunction1.class, Float.TYPE,
-          IntegerFunction1.class, Integer.TYPE,
-          LongFunction1.class, Long.TYPE,
-          NullableBigDecimalFunction1.class, BigDecimal.class,
-          NullableDoubleFunction1.class, Double.class,
-          NullableFloatFunction1.class, Float.class,
-          NullableIntegerFunction1.class, Integer.class,
-          NullableLongFunction1.class, Long.class));
+      Collections.<Class<? extends Function>, Class>unmodifiableMap(
+          map(Function0.class, Object.class,
+              Function1.class, Object.class,
+              Function2.class, Object.class,
+              BigDecimalFunction1.class, BigDecimal.class,
+              DoubleFunction1.class, Double.TYPE,
+              FloatFunction1.class, Float.TYPE,
+              IntegerFunction1.class, Integer.TYPE,
+              LongFunction1.class, Long.TYPE,
+              NullableBigDecimalFunction1.class, BigDecimal.class,
+              NullableDoubleFunction1.class, Double.class,
+              NullableFloatFunction1.class, Float.class,
+              NullableIntegerFunction1.class, Integer.class,
+              NullableLongFunction1.class, Long.class));
 
   private static final Map<Class, Class<? extends Function>> FUNCTION1_CLASSES =
       Collections.unmodifiableMap(

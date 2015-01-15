@@ -107,8 +107,8 @@ public class EnumerableTableModify extends TableModify
       final int fieldCount =
           childPhysType.getRowType().getFieldCount();
       for (int i = 0; i < fieldCount; i++) {
-        expressionList.add(childPhysType.fieldReference(o_, i,
-            physType.getJavaFieldType(i)));
+        expressionList.add(
+            childPhysType.fieldReference(o_, i, physType.getJavaFieldType(i)));
       }
       convertedChildExp =
           builder.append(

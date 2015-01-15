@@ -40,8 +40,9 @@ public abstract class WinAggAddContextImpl extends WinAggResultContextImpl
   }
 
   public final RexToLixTranslator rowTranslator() {
-    return rowTranslator(computeIndex(Expressions.constant(0),
-        WinAggImplementor.SeekType.AGG_INDEX));
+    return rowTranslator(
+        computeIndex(Expressions.constant(0),
+            WinAggImplementor.SeekType.AGG_INDEX));
   }
 
   public final List<Expression> arguments() {

@@ -45,9 +45,10 @@ public class SemiJoinRule extends RelOptRule {
   private SemiJoinRule() {
     super(
         operand(Project.class,
-            some(operand(Join.class,
-                some(operand(RelNode.class, any()),
-                    operand(Aggregate.class, any()))))));
+            some(
+                operand(Join.class,
+                    some(operand(RelNode.class, any()),
+                        operand(Aggregate.class, any()))))));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

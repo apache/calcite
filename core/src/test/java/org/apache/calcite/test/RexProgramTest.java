@@ -621,15 +621,17 @@ public class RexProgramTest {
     checkPullFactorsUnchanged(
         and(aRef,
             or(bRef,
-                and(cRef, or(dRef,
-                    and(eRef, or(fRef, gRef)))))));
+                and(cRef,
+                    or(dRef, and(eRef, or(fRef, gRef)))))));
 
     checkPullFactorsUnchanged(
         and(aRef,
             or(bRef,
-                and(cRef, or(dRef,
-                    and(eRef, or(fRef,
-                        and(gRef, or(trueLiteral, falseLiteral)))))))));
+                and(cRef,
+                    or(dRef,
+                        and(eRef,
+                            or(fRef,
+                               and(gRef, or(trueLiteral, falseLiteral)))))))));
   }
 }
 

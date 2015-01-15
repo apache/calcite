@@ -154,16 +154,15 @@ public class DeterministicTest {
 
   @Test public void testFactorOutBinaryAddSurvivesMultipleOptimizations() {
     assertThat(
-        optimize(optimizeExpression(
-            Expressions.new_(
-                Runnable.class,
-                Collections.<Expression>emptyList(),
-                Expressions.methodDecl(
-                    0,
-                    int.class,
-                    "test",
-                    Collections.<ParameterExpression>emptyList(),
-                    Blocks.toFunctionBlock(Expressions.add(ONE, TWO)))))),
+        optimize(
+            optimizeExpression(
+                Expressions.new_(Runnable.class,
+                    Collections.<Expression>emptyList(),
+                    Expressions.methodDecl(0,
+                        int.class,
+                        "test",
+                        Collections.<ParameterExpression>emptyList(),
+                        Blocks.toFunctionBlock(Expressions.add(ONE, TWO)))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
@@ -186,9 +185,9 @@ public class DeterministicTest {
                     int.class,
                     "test",
                     Collections.<ParameterExpression>emptyList(),
-                    Blocks.toFunctionBlock(Expressions.multiply(
-                        Expressions.add(ONE, TWO),
-                        Expressions.subtract(ONE, TWO)))))),
+                    Blocks.toFunctionBlock(
+                        Expressions.multiply(Expressions.add(ONE, TWO),
+                            Expressions.subtract(ONE, TWO)))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
@@ -449,9 +448,11 @@ public class DeterministicTest {
                     int.class,
                     "test",
                     Collections.<ParameterExpression>emptyList(),
-                    Blocks.toFunctionBlock(Expressions.call(null,
-                        Types.lookupMethod(TestClass.class,
-                            "deterministic", int.class), ONE))))),
+                    Blocks.toFunctionBlock(
+                        Expressions.call(null,
+                            Types.lookupMethod(TestClass.class,
+                                "deterministic", int.class),
+                            ONE))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
@@ -474,9 +475,11 @@ public class DeterministicTest {
                     int.class,
                     "test",
                     Collections.<ParameterExpression>emptyList(),
-                    Blocks.toFunctionBlock(Expressions.call(null,
-                        Types.lookupMethod(TestClass.class,
-                            "nonDeterministic", int.class), ONE))))),
+                    Blocks.toFunctionBlock(
+                        Expressions.call(null,
+                            Types.lookupMethod(TestClass.class,
+                                "nonDeterministic", int.class),
+                            ONE))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
@@ -498,9 +501,11 @@ public class DeterministicTest {
                     int.class,
                     "test",
                     Collections.<ParameterExpression>emptyList(),
-                    Blocks.toFunctionBlock(Expressions.call(null,
-                        Types.lookupMethod(TestDeterministicClass.class,
-                            "deterministic", int.class), ONE))))),
+                    Blocks.toFunctionBlock(
+                        Expressions.call(null,
+                            Types.lookupMethod(TestDeterministicClass.class,
+                                "deterministic", int.class),
+                            ONE))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
@@ -523,9 +528,11 @@ public class DeterministicTest {
                     int.class,
                     "test",
                     Collections.<ParameterExpression>emptyList(),
-                    Blocks.toFunctionBlock(Expressions.call(null,
-                        Types.lookupMethod(TestDeterministicClass.class,
-                            "nonDeterministic", int.class), ONE))))),
+                    Blocks.toFunctionBlock(
+                        Expressions.call(null,
+                            Types.lookupMethod(TestDeterministicClass.class,
+                                "nonDeterministic", int.class),
+                            ONE))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"

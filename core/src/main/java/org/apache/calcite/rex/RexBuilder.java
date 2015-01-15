@@ -244,8 +244,8 @@ public class RexBuilder {
   /**
    * Creates a call with a list of arguments.
    *
-   * <p>Equivalent to <code>makeCall(op, exprList.toArray(new
-   * RexNode[exprList.size()]))</code>.
+   * <p>Equivalent to
+   * <code>makeCall(op, exprList.toArray(new RexNode[exprList.size()]))</code>.
    */
   public final RexNode makeCall(
       SqlOperator op,

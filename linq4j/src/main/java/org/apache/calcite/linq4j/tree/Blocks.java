@@ -59,8 +59,8 @@ public final class Blocks {
    */
   public static BlockStatement create(Statement statement,
       BlockStatement block) {
-    return Expressions.block(Expressions.list(statement).appendAll(
-        block.statements));
+    return Expressions.block(
+        Expressions.list(statement).appendAll(block.statements));
   }
 
   /**

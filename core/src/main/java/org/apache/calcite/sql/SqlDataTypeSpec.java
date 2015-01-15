@@ -46,8 +46,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <p>In its full glory, we will have to support complex type expressions
  * like:</p>
  *
- * <blockquote><code>ROW( NUMBER(5,2) NOT NULL AS foo, ROW( BOOLEAN AS b, MyUDT
- * NOT NULL AS i ) AS rec )</code></blockquote>
+ * <blockquote><code>ROW(<br>
+ *   NUMBER(5, 2) NOT NULL AS foo,<br>
+ *   ROW(BOOLEAN AS b, MyUDT NOT NULL AS i) AS rec)</code></blockquote>
  *
  * <p>Currently it only supports simple datatypes like CHAR, VARCHAR and DOUBLE,
  * with optional precision and scale.</p>

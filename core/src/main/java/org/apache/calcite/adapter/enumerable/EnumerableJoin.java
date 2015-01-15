@@ -170,10 +170,11 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
                     .append(
                         Util.first(keyPhysType.comparer(),
                             Expressions.constant(null)))
-                    .append(Expressions.constant(
-                        joinType.generatesNullsOnLeft()))
-                    .append(Expressions.constant(
-                        joinType.generatesNullsOnRight())))).toBlock());
+                    .append(
+                        Expressions.constant(joinType.generatesNullsOnLeft()))
+                    .append(
+                        Expressions.constant(
+                            joinType.generatesNullsOnRight())))).toBlock());
   }
 
 }

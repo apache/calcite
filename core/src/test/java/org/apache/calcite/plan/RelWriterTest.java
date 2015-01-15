@@ -179,8 +179,9 @@ public class RelWriterTest {
               }
             });
 
-    assertThat(Util.toLinux(s), is(
-        "LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
+    assertThat(Util.toLinux(s),
+        is(
+            "LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, 10)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }

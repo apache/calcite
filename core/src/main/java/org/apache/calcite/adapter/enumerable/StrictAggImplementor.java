@@ -53,9 +53,9 @@ public abstract class StrictAggImplementor implements AggImplementor {
 
   protected final void accAdvance(AggAddContext add, Expression acc,
       Expression next) {
-    add.currentBlock().add(Expressions.statement(Expressions.assign(
-        acc,
-        Types.castIfNecessary(acc.type, next))));
+    add.currentBlock().add(
+        Expressions.statement(
+            Expressions.assign(acc, Types.castIfNecessary(acc.type, next))));
   }
 
   public final List<Type> getStateType(AggContext info) {
@@ -89,9 +89,10 @@ public abstract class StrictAggImplementor implements AggImplementor {
       List<Expression> acc = reset.accumulator();
       Expression flag = acc.get(acc.size() - 1);
       BlockBuilder block = reset.currentBlock();
-      block.add(Expressions.statement(
-          Expressions.assign(flag,
-              RexImpTable.getDefaultValue(flag.getType()))));
+      block.add(
+          Expressions.statement(
+              Expressions.assign(flag,
+                  RexImpTable.getDefaultValue(flag.getType()))));
     }
     implementNotNullReset(info, reset);
   }
@@ -102,9 +103,10 @@ public abstract class StrictAggImplementor implements AggImplementor {
     List<Expression> accumulator = reset.accumulator();
     for (int i = 0; i < getStateSize(); i++) {
       Expression exp = accumulator.get(i);
-      block.add(Expressions.statement(
-          Expressions.assign(exp,
-              RexImpTable.getDefaultValue(exp.getType()))));
+      block.add(
+          Expressions.statement(
+              Expressions.assign(exp,
+                  RexImpTable.getDefaultValue(exp.getType()))));
     }
   }
 
@@ -125,8 +127,10 @@ public abstract class StrictAggImplementor implements AggImplementor {
         : new BlockBuilder(true, add.currentBlock());
     if (trackNullsPerRow) {
       List<Expression> acc = add.accumulator();
-      thenBlock.add(Expressions.statement(Expressions.assign(
-          acc.get(acc.size() - 1), Expressions.constant(true))));
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(acc.get(acc.size() - 1),
+                  Expressions.constant(true))));
     }
     if (argsNotNull) {
       implementNotNullAdd(info, add);
@@ -177,11 +181,12 @@ public abstract class StrictAggImplementor implements AggImplementor {
           nonNull, RexImpTable.getDefaultValue(res.getType()));
     }
     result.currentBlock().add(Expressions.declare(0, res, null));
-    result.currentBlock().add(Expressions.ifThenElse(seenNotNullRows,
-        thenBranch,
-        Expressions.statement(
-            Expressions.assign(res,
-                RexImpTable.getDefaultValue(res.getType())))));
+    result.currentBlock().add(
+        Expressions.ifThenElse(seenNotNullRows,
+            thenBranch,
+            Expressions.statement(
+                Expressions.assign(res,
+                    RexImpTable.getDefaultValue(res.getType())))));
     return res;
   }
 

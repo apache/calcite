@@ -49,9 +49,12 @@ public interface AggImplementor {
    * Implements reset of the intermediate variables to the initial state.
    * {@link AggResetContext#accumulator()} should be used to reference
    * the state variables.
-   * For instance, to zero the count use the following code:
-   * {@code reset.currentBlock().add(Expressions.statement(
-   * Expressions.assign(reset.accumulator().get(0), Expressions.constant(0)));}
+   * For instance, to zero the count, use the following code:
+   *
+   * <blockquote><code>reset.currentBlock().add(<br>
+   *   Expressions.statement(<br>
+   *     Expressions.assign(reset.accumulator().get(0),<br>
+   *       Expressions.constant(0)));</code></blockquote>
    *
    * @param info Aggregate context
    * @param reset Reset context
