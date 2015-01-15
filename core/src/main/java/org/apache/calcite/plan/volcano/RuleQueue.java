@@ -653,14 +653,14 @@ class RuleQueue {
       implements Comparator<VolcanoRuleMatch> {
     public int compare(VolcanoRuleMatch match1,
         VolcanoRuleMatch match2) {
-      int c = match1.rule.getClass().getName()
-          .compareTo(match2.rule.getClass().getName());
+      double imp1 = match1.getImportance();
+      double imp2 = match2.getImportance();
+      int c = Double.compare(imp1, imp2);
       if (c != 0) {
         return -c;
       }
-      double imp1 = match1.getImportance();
-      double imp2 = match2.getImportance();
-      c = Double.compare(imp1, imp2);
+      c = match1.rule.getClass().getName()
+          .compareTo(match2.rule.getClass().getName());
       if (c != 0) {
         return -c;
       }
