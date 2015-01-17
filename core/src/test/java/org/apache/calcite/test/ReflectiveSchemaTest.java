@@ -81,7 +81,8 @@ public class ReflectiveSchemaTest {
    * @throws Exception on error
    */
   @Test public void testQueryProvider() throws Exception {
-    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert
+        .that(CalciteAssert.Config.REGULAR).connect();
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
     ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
@@ -130,7 +131,8 @@ public class ReflectiveSchemaTest {
   }
 
   @Test public void testQueryProviderSingleColumn() throws Exception {
-    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert
+        .that(CalciteAssert.Config.REGULAR).connect();
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
     ParameterExpression e = Expressions.parameter(Employee.class, "e");
 

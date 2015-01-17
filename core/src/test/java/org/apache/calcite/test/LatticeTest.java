@@ -86,7 +86,7 @@ public class LatticeTest {
         + Arrays.toString(lattices)
         + "     }\n"
         + "   ]\n"
-        + "}").withSchema("adhoc");
+        + "}").withDefaultSchema("adhoc");
   }
 
   /** Tests that it's OK for a lattice to have the same name as a table in the
@@ -472,7 +472,7 @@ public class LatticeTest {
       return;
     }
     foodmartModelWithOneTile()
-        .withSchema("foodmart")
+        .withDefaultSchema("foodmart")
         .query(query.sql)
       .sameResultWithMaterializationsDisabled();
   }
