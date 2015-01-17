@@ -26,6 +26,7 @@ import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
@@ -34,10 +35,12 @@ import java.sql.SQLException;
 public class LinqFrontJdbcBackTest {
   @Test public void testTableWhere() throws SQLException,
       ClassNotFoundException {
-    final CalciteConnection connection =
-        CalciteAssert.getConnection(CalciteAssert.SchemaSpec.JDBC_FOODMART);
+    final Connection connection =
+        CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
     final SchemaPlus schema =
-        connection.getRootSchema().getSubSchema("foodmart");
+        calciteConnection.getRootSchema().getSubSchema("foodmart");
     ParameterExpression c =
         Expressions.parameter(JdbcTest.Customer.class, "c");
     String s =
