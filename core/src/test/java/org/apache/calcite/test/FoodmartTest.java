@@ -177,7 +177,7 @@ public class FoodmartTest {
       CalciteAssert.that()
           .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
           .pooled()
-          .withSchema("foodmart")
+          .withDefaultSchema("foodmart")
           .query(query.sql)
           .enableMaterializations(true)
           .runs();

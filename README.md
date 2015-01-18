@@ -38,18 +38,20 @@ public static class HrSchema {
 }
 
 Class.forName("net.hydromatic.optiq.jdbc.Driver");
-Connection connection = DriverManager.getConnection("jdbc:calcite:");
+Properties info = new Properties();
+info.setProperty("lex", "JAVA");
+Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
 OptiqConnection optiqConnection =
     connection.unwrap(OptiqConnection.class);
 ReflectiveSchema.create(optiqConnection,
     optiqConnection.getRootSchema(), "hr", new HrSchema());
 Statement statement = optiqConnection.createStatement();
 ResultSet resultSet = statement.executeQuery(
-    "select d.\"deptno\", min(e.\"empid\")\n"
-    + "from \"hr\".\"emps\" as e\n"
-    + "join \"hr\".\"depts\" as d\n"
-    + "  on e.\"deptno\" = d.\"deptno\"\n"
-    + "group by d.\"deptno\"\n"
+    "select d.deptno, min(e.empid)\n"
+    + "from hr.emps as e\n"
+    + "join hr.depts as d\n"
+    + "  on e.deptno = d.deptno\n"
+    + "group by d.deptno\n"
     + "having count(*) > 1");
 print(resultSet);
 resultSet.close();

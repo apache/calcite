@@ -229,7 +229,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   @Test public void testPlan2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .withSchema("foodmart")
+        .withDefaultSchema("foodmart")
         .query("select \"customer\".\"state_province\" as \"c0\",\n"
             + " \"customer\".\"country\" as \"c1\"\n"
             + "from \"customer\" as \"customer\"\n"

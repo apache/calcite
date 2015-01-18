@@ -55,8 +55,8 @@ public class CalciteRemoteDriverTest {
 
   private static final CalciteAssert.ConnectionFactory
   REMOTE_CONNECTION_FACTORY =
-      new CalciteAssert.AbstractConnectionFactory() {
-        public Connection createConnection() throws Exception {
+      new CalciteAssert.ConnectionFactory() {
+        public Connection createConnection() throws SQLException {
           return remoteConnection;
         }
       };

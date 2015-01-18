@@ -28,6 +28,7 @@ import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -781,18 +782,20 @@ public class JdbcTest {
    * The example in the README.
    */
   @Test public void testReadme() throws ClassNotFoundException, SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    Properties info = new Properties();
+    info.setProperty("lex", "JAVA");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
     final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
-        statement.executeQuery("select d.\"deptno\", min(e.\"empid\")\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "join \"hr\".\"depts\" as d\n"
-            + "  on e.\"deptno\" = d.\"deptno\"\n"
-            + "group by d.\"deptno\"\n"
+        statement.executeQuery("select d.deptno, min(e.empid)\n"
+            + "from hr.emps as e\n"
+            + "join hr.depts as d\n"
+            + "  on e.deptno = d.deptno\n"
+            + "group by d.deptno\n"
             + "having count(*) > 1");
     final String s = CalciteAssert.toString(resultSet);
     assertThat(s, notNullValue());
@@ -866,7 +869,8 @@ public class JdbcTest {
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
   @Test public void testMetaDataColumns()
       throws ClassNotFoundException, SQLException {
-    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert
+        .that(CalciteAssert.Config.REGULAR).connect();
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getColumns(null, null, null, null);
     assertTrue(resultSet.next()); // there's something
@@ -886,7 +890,8 @@ public class JdbcTest {
    * It is empty but it should still have column definitions. */
   @Test public void testMetaDataPrimaryKeys()
       throws ClassNotFoundException, SQLException {
-    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert
+        .that(CalciteAssert.Config.REGULAR).connect();
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getPrimaryKeys(null, null, null);
     assertFalse(resultSet.next()); // catalog never contains primary keys
@@ -932,7 +937,8 @@ public class JdbcTest {
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
   @Test public void testResultSetMetaData()
       throws ClassNotFoundException, SQLException {
-    Connection connection = CalciteAssert.getConnection("hr", "foodmart");
+    Connection connection = CalciteAssert
+        .that(CalciteAssert.Config.REGULAR).connect();
     Statement statement = connection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("select \"empid\", \"deptno\" as x, 1 as y\n"
@@ -1026,9 +1032,11 @@ public class JdbcTest {
 
   @Test public void testCloneSchema()
       throws ClassNotFoundException, SQLException {
-    final CalciteConnection connection =
-        CalciteAssert.getConnection(CalciteAssert.SchemaSpec.JDBC_FOODMART);
-    final SchemaPlus rootSchema = connection.getRootSchema();
+    final Connection connection =
+        CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
     rootSchema.add("foodmart2", new CloneSchema(foodmart));
     Statement statement = connection.createStatement();
@@ -2127,8 +2135,8 @@ public class JdbcTest {
         FoodmartTest.FoodMartQuerySet.instance().queries.get(8);
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+        .withDefaultSchema("foodmart")
         .pooled()
-        .withSchema("foodmart")
         .query(query.sql)
         .enableMaterializations(true)
         .explainContains(""
@@ -4226,6 +4234,21 @@ public class JdbcTest {
             "empid=200; deptno=20; DNAME=null");
   }
 
+  @Ignore("CALCITE-559 Correlated subquery will hit exception in Calcite")
+  @Test public void testJoinCorreScalarSubQ()
+      throws ClassNotFoundException, SQLException {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .with(Lex.JAVA)
+        .query("select e.employee_id, d.department_id "
+                + " from employee e, department d "
+                + " where e.department_id = d.department_id and "
+                + "       e.salary > (select avg(e2.salary) "
+                + "                       from employee e2 "
+                + " where e2.store_id = e.store_id)")
+        .returnsCount(0);
+  }
+
   @Test public void testLeftJoin() {
     CalciteAssert.hr()
         .query("select e.\"deptno\", d.\"deptno\"\n"
@@ -4394,7 +4417,8 @@ public class JdbcTest {
             if (name.equals("post")) {
               return CalciteAssert.that()
                   .with(CalciteAssert.Config.REGULAR)
-                  .withSchema("POST")
+                  .with(CalciteAssert.SchemaSpec.POST)
+                  .withDefaultSchema("POST")
                   .connect();
             }
             if (name.equals("catchall")) {
@@ -4873,8 +4897,8 @@ public class JdbcTest {
     final List<Object> objects = new ArrayList<Object>();
     CalciteAssert.that()
         .with(
-            new CalciteAssert.AbstractConnectionFactory() {
-              public CalciteConnection createConnection() throws Exception {
+            new CalciteAssert.ConnectionFactory() {
+              public CalciteConnection createConnection() throws SQLException {
                 CalciteConnection connection = (CalciteConnection)
                     new AutoTempDriver(objects)
                         .connect("jdbc:calcite:", new Properties());
@@ -5111,8 +5135,8 @@ public class JdbcTest {
         + "     }\n"
         + "   ]\n"
         + "}")
-        .withSchema("adhoc");
-    with.withSchema(null)
+        .withDefaultSchema("adhoc");
+    with.withDefaultSchema(null)
         .query(
             "select \"adhoc\".my_sum(\"deptno\") as p from \"adhoc\".EMPLOYEES\n")
         .returns("P=50\n");
@@ -5172,7 +5196,7 @@ public class JdbcTest {
         + "     }\n"
         + "   ]\n"
         + "}")
-        .withSchema("adhoc");
+        .withDefaultSchema("adhoc");
   }
 
   /** Tests resolution of functions using schema paths. */
@@ -5217,7 +5241,7 @@ public class JdbcTest {
 
     // adhoc can see own function MY_PLUS but not adhoc2.MY_PLUS2 unless
     // qualified
-    final CalciteAssert.AssertThat adhoc = with.withSchema("adhoc");
+    final CalciteAssert.AssertThat adhoc = with.withDefaultSchema("adhoc");
     adhoc.query("values MY_PLUS(1, 1)").returns(res);
     adhoc.query("values MY_PLUS2(1, 1)").throws_(err);
     adhoc.query("values \"adhoc2\".MY_PLUS(1, 1)").throws_(err);
@@ -5225,14 +5249,14 @@ public class JdbcTest {
 
     // adhoc2 can see own function MY_PLUS2 but not adhoc2.MY_PLUS unless
     // qualified
-    final CalciteAssert.AssertThat adhoc2 = with.withSchema("adhoc2");
+    final CalciteAssert.AssertThat adhoc2 = with.withDefaultSchema("adhoc2");
     adhoc2.query("values MY_PLUS2(1, 1)").returns(res);
     adhoc2.query("values MY_PLUS(1, 1)").throws_(err);
     adhoc2.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
 
     // adhoc3 can see own adhoc2.MY_PLUS2 because in path, with or without
     // qualification, but can only see adhoc.MY_PLUS with qualification
-    final CalciteAssert.AssertThat adhoc3 = with.withSchema("adhoc3");
+    final CalciteAssert.AssertThat adhoc3 = with.withDefaultSchema("adhoc3");
     adhoc3.query("values MY_PLUS2(1, 1)").returns(res);
     adhoc3.query("values MY_PLUS(1, 1)").throws_(err);
     adhoc3.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
@@ -5553,7 +5577,7 @@ public class JdbcTest {
   /** Tests metadata for the MySQL lexical scheme. */
   @Test public void testLexMySQL() throws Exception {
     CalciteAssert.that()
-        .with("lex", "MYSQL")
+        .with(Lex.MYSQL)
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5587,7 +5611,7 @@ public class JdbcTest {
   /** Tests metadata for different the "SQL_SERVER" lexical scheme. */
   @Test public void testLexSqlServer() throws Exception {
     CalciteAssert.that()
-        .with("lex", "SQL_SERVER")
+        .with(Lex.SQL_SERVER)
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5621,7 +5645,7 @@ public class JdbcTest {
   /** Tests metadata for the ORACLE (and default) lexical scheme. */
   @Test public void testLexOracle() throws Exception {
     CalciteAssert.that()
-        .with("lex", "ORACLE")
+        .with(Lex.ORACLE)
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5659,7 +5683,7 @@ public class JdbcTest {
   /** Tests metadata for the JAVA lexical scheme. */
   @Test public void testLexJava() throws Exception {
     CalciteAssert.that()
-        .with("lex", "JAVA")
+        .with(Lex.JAVA)
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5694,7 +5718,7 @@ public class JdbcTest {
   /** Tests metadata for the ORACLE lexical scheme overridden like JAVA. */
   @Test public void testLexOracleAsJava() throws Exception {
     CalciteAssert.that()
-        .with("lex", "ORACLE")
+        .with(Lex.ORACLE)
         .with("quoting", "BACK_TICK")
         .with("unquotedCasing", "UNCHANGED")
         .with("quotedCasing", "UNCHANGED")
@@ -5733,7 +5757,7 @@ public class JdbcTest {
   /** Tests case-insensitive resolution of schema and table names. */
   @Test public void testLexCaseInsensitive() {
     final CalciteAssert.AssertThat with =
-        CalciteAssert.that().with("lex", "MYSQL");
+        CalciteAssert.that().with(Lex.MYSQL);
     with.query("select COUNT(*) as c from metaData.tAbles")
         .returns("c=2\n");
     with.query("select COUNT(*) as c from `metaData`.`tAbles`")
@@ -5741,7 +5765,7 @@ public class JdbcTest {
 
     // case-sensitive gives error
     final CalciteAssert.AssertThat with2 =
-        CalciteAssert.that().with("lex", "JAVA");
+        CalciteAssert.that().with(Lex.JAVA);
     with2.query("select COUNT(*) as c from `metaData`.`tAbles`")
         .throws_("Table 'metaData.tAbles' not found");
   }
@@ -5753,7 +5777,7 @@ public class JdbcTest {
    * "Case-insensitive matching of sub-query columns fails"</a>. */
   @Test public void testLexCaseInsensitiveSubQueryField() {
     CalciteAssert.that()
-        .with("lex", "MYSQL")
+        .with(Lex.MYSQL)
         .query("select DID \n"
             + "from (select deptid as did \n"
             + "         FROM\n"
@@ -5764,7 +5788,7 @@ public class JdbcTest {
 
   @Test public void testLexCaseInsensitiveTableAlias() {
     CalciteAssert.that()
-        .with("lex", "MYSQL")
+        .with(Lex.MYSQL)
         .query("select e.empno\n"
             + "from (values (1, 2)) as E (empno, deptno),\n"
             + "  (values (3, 4)) as d (deptno, name)")
@@ -5829,9 +5853,11 @@ public class JdbcTest {
   }
 
   @Test public void testSchemaCaching() throws Exception {
-    final CalciteConnection connection =
-        CalciteAssert.getConnection(CalciteAssert.SchemaSpec.JDBC_FOODMART);
-    final SchemaPlus rootSchema = connection.getRootSchema();
+    final Connection connection =
+        CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
     // create schema "/a"
     final Map<String, Schema> aSubSchemaMap = new HashMap<String, Schema>();
@@ -5930,7 +5956,7 @@ public class JdbcTest {
   @Test public void testCaseSensitiveSubQueryOracle() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with("lex", "ORACLE");
+            .with(Lex.ORACLE);
 
     with.query("select DID from (select DEPTID as did FROM \n "
         + "     ( values (1), (2) ) as T1(deptid) ) ")
@@ -5944,7 +5970,7 @@ public class JdbcTest {
   @Test public void testUnquotedCaseSensitiveSubQueryMySql() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with("lex", "MYSQL");
+            .with(Lex.MYSQL);
 
     with.query("select DID from (select deptid as did FROM \n "
         + "     ( values (1), (2) ) as T1(deptid) ) ")
@@ -5970,7 +5996,7 @@ public class JdbcTest {
   @Test public void testQuotedCaseSensitiveSubQueryMySql() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
-            .with("lex", "MYSQL");
+            .with(Lex.MYSQL);
 
     with.query("select `DID` from (select deptid as did FROM \n "
         + "     ( values (1), (2) ) as T1(deptid) ) ")
@@ -5995,7 +6021,7 @@ public class JdbcTest {
 
   @Test public void testUnquotedCaseSensitiveSubQuerySqlServer() {
     CalciteAssert.that()
-        .with("lex", "SQL_SERVER")
+        .with(Lex.SQL_SERVER)
         .query("select DID from (select deptid as did FROM \n "
             + "     ( values (1), (2) ) as T1(deptid) ) ")
         .returnsUnordered("DID=1", "DID=2");
@@ -6003,7 +6029,7 @@ public class JdbcTest {
 
   @Test public void testQuotedCaseSensitiveSubQuerySqlServer() {
     CalciteAssert.that()
-        .with("lex", "SQL_SERVER")
+        .with(Lex.SQL_SERVER)
         .query("select [DID] from (select deptid as did FROM \n "
             + "     ( values (1), (2) ) as T1([deptid]) ) ")
         .returnsUnordered("DID=1", "DID=2");

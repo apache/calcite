@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -230,56 +231,55 @@ public class JdbcFrontLinqBackTest {
       final List<JdbcTest.Employee> employees) {
     employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
     return that()
-        .with(
-            new CalciteAssert.AbstractConnectionFactory() {
-              public CalciteConnection createConnection() throws Exception {
-                final Connection connection =
-                    CalciteAssert.getConnection("hr", "foodmart");
-                CalciteConnection calciteConnection = connection.unwrap(
-                    CalciteConnection.class);
-                SchemaPlus rootSchema =
-                    calciteConnection.getRootSchema();
-                SchemaPlus mapSchema =
-                    rootSchema.add("foo", new AbstractSchema());
-                final String tableName = "bar";
-                final JdbcTest.AbstractModifiableTable table =
-                    new JdbcTest.AbstractModifiableTable(tableName) {
-                      public RelDataType getRowType(
-                          RelDataTypeFactory typeFactory) {
-                        return ((JavaTypeFactory) typeFactory)
-                            .createType(JdbcTest.Employee.class);
-                      }
+        .with(CalciteAssert.Config.REGULAR)
+        .with(new CalciteAssert.ConnectionPostProcessor() {
+          public Connection apply(final Connection connection)
+              throws SQLException {
+            CalciteConnection calciteConnection =
+                connection.unwrap(CalciteConnection.class);
+            SchemaPlus rootSchema =
+                calciteConnection.getRootSchema();
+            SchemaPlus mapSchema =
+                rootSchema.add("foo", new AbstractSchema());
+            final String tableName = "bar";
+            final JdbcTest.AbstractModifiableTable table =
+                new JdbcTest.AbstractModifiableTable(tableName) {
+                  public RelDataType getRowType(
+                      RelDataTypeFactory typeFactory) {
+                    return ((JavaTypeFactory) typeFactory)
+                        .createType(JdbcTest.Employee.class);
+                  }
 
-                      public <T> Queryable<T> asQueryable(
-                          QueryProvider queryProvider, SchemaPlus schema,
-                          String tableName) {
-                        return new AbstractTableQueryable<T>(queryProvider,
-                            schema, this, tableName) {
-                          public Enumerator<T> enumerator() {
-                            //noinspection unchecked
-                            return (Enumerator<T>) Linq4j.enumerator(employees);
-                          }
-                        };
-                      }
-
-                      public Type getElementType() {
-                        return JdbcTest.Employee.class;
-                      }
-
-                      public Expression getExpression(SchemaPlus schema,
-                          String tableName, Class clazz) {
-                        return Schemas.tableExpression(schema, getElementType(),
-                            tableName, clazz);
-                      }
-
-                      public Collection getModifiableCollection() {
-                        return employees;
+                  public <T> Queryable<T> asQueryable(
+                      QueryProvider queryProvider, SchemaPlus schema,
+                      String tableName) {
+                    return new AbstractTableQueryable<T>(queryProvider,
+                        schema, this, tableName) {
+                      public Enumerator<T> enumerator() {
+                        //noinspection unchecked
+                        return (Enumerator<T>) Linq4j.enumerator(employees);
                       }
                     };
-                mapSchema.add(tableName, table);
-                return calciteConnection;
-              }
-            });
+                  }
+
+                  public Type getElementType() {
+                    return JdbcTest.Employee.class;
+                  }
+
+                  public Expression getExpression(SchemaPlus schema,
+                      String tableName, Class clazz) {
+                    return Schemas.tableExpression(schema, getElementType(),
+                        tableName, clazz);
+                  }
+
+                  public Collection getModifiableCollection() {
+                    return employees;
+                  }
+                };
+            mapSchema.add(tableName, table);
+            return calciteConnection;
+          }
+        });
   }
 
   @Test public void testInsert2() {

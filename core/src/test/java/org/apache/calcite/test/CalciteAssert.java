@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -48,7 +49,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -65,7 +65,6 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +72,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
@@ -124,7 +124,8 @@ public class CalciteAssert {
   }
 
   private static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
-      new MapConnectionFactory(ImmutableMap.<String, String>of(), null);
+      new MapConnectionFactory(ImmutableMap.<String, String>of(),
+          ImmutableList.<ConnectionPostProcessor>of());
 
   /** Implementation of {@link AssertThat} that does nothing. */
   private static final AssertThat DISABLED =
@@ -160,7 +161,20 @@ public class CalciteAssert {
           return this;
         }
 
-        @Override public AssertThat withSchema(String schema) {
+        @Override public AssertThat withDefaultSchema(String schema) {
+          return this;
+        }
+
+        @Override public AssertThat with(SchemaSpec... specs) {
+          return this;
+        }
+
+        @Override public AssertThat with(Lex lex) {
+          return this;
+        }
+
+        @Override public AssertThat with(
+            ConnectionPostProcessor postProcessor) {
           return this;
         }
 
@@ -176,24 +190,24 @@ public class CalciteAssert {
   /** Creates an instance of {@code CalciteAssert} with the empty
    * configuration. */
   public static AssertThat that() {
-    return that(Config.EMPTY);
+    return AssertThat.EMPTY;
   }
 
   /** Creates an instance of {@code CalciteAssert} with a given
    * configuration. */
   public static AssertThat that(Config config) {
-    return AssertThat.EMPTY.with(config);
+    return that().with(config);
   }
 
   /** Short-hand for
    *  {@code CalciteAssert.that().with(Config.EMPTY).withModel(model)}. */
   public static AssertThat model(String model) {
-    return that().with(Config.EMPTY).withModel(model);
+    return that().withModel(model);
   }
 
   /** Short-hand for {@code CalciteAssert.that().with(Config.REGULAR)}. */
   public static AssertThat hr() {
-    return that().with(Config.REGULAR);
+    return that(Config.REGULAR);
   }
 
   static Function<RelNode, Void> checkRel(final String expected,
@@ -694,67 +708,6 @@ public class CalciteAssert {
     }
   }
 
-  static CalciteConnection getConnection(String... schema)
-      throws ClassNotFoundException, SQLException {
-    final List<String> schemaList = Arrays.asList(schema);
-    String suffix = schemaList.contains("spark") ? "spark=true" : "";
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:" + suffix);
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    if (schemaList.contains("hr")) {
-      addSchema(rootSchema, SchemaSpec.HR);
-    }
-    if (schemaList.contains("foodmart")) {
-      addSchema(rootSchema, SchemaSpec.REFLECTIVE_FOODMART);
-    }
-    if (schemaList.contains("lingual")) {
-      addSchema(rootSchema, SchemaSpec.LINGUAL);
-    }
-    if (schemaList.contains("post")) {
-      addSchema(rootSchema, SchemaSpec.POST);
-    }
-    if (schemaList.contains("metadata")) {
-      // always present
-      Util.discard(0);
-    }
-    return calciteConnection;
-  }
-
-  /**
-   * Creates a connection with a given query provider. If provider is null,
-   * uses the connection as its own provider. The connection contains a
-   * schema called "foodmart" backed by a JDBC connection to MySQL.
-   *
-   * @param schemaSpec Schema specification; whether to create a "foodmart2"
-   *     schema as in-memory clone
-   * @return Connection
-   * @throws ClassNotFoundException
-   * @throws java.sql.SQLException
-   */
-  static CalciteConnection getConnection(SchemaSpec schemaSpec)
-      throws ClassNotFoundException, SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    switch (schemaSpec) {
-    case JDBC_FOODMART:
-      addSchema(rootSchema, schemaSpec);
-      break;
-    case CLONE_FOODMART:
-    case JDBC_FOODMART_WITH_LATTICE:
-      addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
-      addSchema(rootSchema, schemaSpec);
-      break;
-    default:
-      throw new AssertionError("unknown schema " + schemaSpec);
-    }
-    calciteConnection.setSchema("foodmart2");
-    return calciteConnection;
-  }
-
   static <F, T> Function<F, T> constantNull() {
     //noinspection unchecked
     return (Function<F, T>) (Function) Functions.<T>constant(null);
@@ -774,12 +727,38 @@ public class CalciteAssert {
     }
 
     public AssertThat with(Config config) {
+      if (config == Config.SPARK) {
+        return with("spark", "true");
+      }
+
       switch (config) {
       case EMPTY:
         return EMPTY;
+      case REGULAR:
+        return with(SchemaSpec.HR, SchemaSpec.REFLECTIVE_FOODMART,
+            SchemaSpec.POST);
+      case REGULAR_PLUS_METADATA:
+        return with(SchemaSpec.HR, SchemaSpec.REFLECTIVE_FOODMART);
+      case LINGUAL:
+        return with(SchemaSpec.LINGUAL);
+      case JDBC_FOODMART:
+        return with(CalciteAssert.SchemaSpec.JDBC_FOODMART);
+      case FOODMART_CLONE:
+        return with(SchemaSpec.CLONE_FOODMART);
+      case JDBC_FOODMART_WITH_LATTICE:
+        return with(SchemaSpec.JDBC_FOODMART_WITH_LATTICE);
       default:
-        return new AssertThat(new ConfigConnectionFactory(config));
+        throw Util.unexpected(config);
       }
+    }
+
+    /** Creates a copy of this AssertThat, adding more schemas */
+    public AssertThat with(SchemaSpec... specs) {
+      AssertThat next = this;
+      for (SchemaSpec spec : specs) {
+        next = next.with(new AddSchemaSpecPostProcessor(spec));
+      }
+      return next;
     }
 
     /** Creates a copy of this AssertThat, overriding the connection factory. */
@@ -799,9 +778,19 @@ public class CalciteAssert {
       return new AssertThat(connectionFactory.with(property, value));
     }
 
+    /** Sets Lex property **/
+    public AssertThat with(Lex lex) {
+      return with(CalciteConnectionProperty.LEX.name(), lex.toString());
+    }
+
     /** Sets the default schema to a given schema. */
     public AssertThat withSchema(String name, Schema schema) {
-      return new AssertThat(connectionFactory.with(name, schema));
+      return new AssertThat(
+          connectionFactory.with(new AddSchemaPostProcessor(name, schema)));
+    }
+
+    public AssertThat with(ConnectionPostProcessor postProcessor) {
+      return new AssertThat(connectionFactory.with(postProcessor));
     }
 
     public final AssertThat withModel(String model) {
@@ -904,13 +893,14 @@ public class CalciteAssert {
       }
     }
 
-    public AssertThat withSchema(String schema) {
+    public AssertThat withDefaultSchema(String schema) {
       return new AssertThat(
-          new SchemaConnectionFactory(connectionFactory, schema));
+          connectionFactory.with(
+              new AddSchemaPostProcessor(schema, null)));
     }
 
     /** Use sparingly. Does not close the connection. */
-    public Connection connect() throws Exception {
+    public Connection connect() throws SQLException {
       return connectionFactory.createConnection();
     }
 
@@ -933,185 +923,162 @@ public class CalciteAssert {
     }
   }
 
-  /** Connection factory. */
-  public interface ConnectionFactory {
-    Connection createConnection() throws Exception;
-    ConnectionFactory with(String property, String value);
-    ConnectionFactory with(String schemaName, Schema schema);
-  }
+  /**
+   * Abstract implementation of connection factory whose {@code with}
+   * methods throw.
+   *
+   * <p>Avoid creating new sub-classes otherwise it would be hard to support
+   * {@code .with(property, value).with(...)} kind of chains.
+   *
+   * <p>If you want augment the connection, use {@link ConnectionPostProcessor}.
+   **/
+  public abstract static class ConnectionFactory {
+    public abstract Connection createConnection() throws SQLException;
 
-  /** Abstract implementation of
-   * {@link org.apache.calcite.test.CalciteAssert.ConnectionFactory}
-   * whose {@code with} methods throw. */
-  public abstract static class AbstractConnectionFactory
-      implements ConnectionFactory {
     public ConnectionFactory with(String property, String value) {
       throw new UnsupportedOperationException();
     }
 
-    public ConnectionFactory with(String schemaName, Schema schema) {
+    public ConnectionFactory with(ConnectionPostProcessor postProcessor) {
       throw new UnsupportedOperationException();
     }
   }
 
+  /** Connection post processor */
+  public interface ConnectionPostProcessor {
+    Connection apply(Connection connection) throws SQLException;
+  }
+
+  /** Adds {@link Schema} and sets it as default. */
+  public static class AddSchemaPostProcessor
+      implements ConnectionPostProcessor {
+    private final String name;
+    private final Schema schema;
+
+    public AddSchemaPostProcessor(String name, Schema schema) {
+      this.name = name;
+      this.schema = schema;
+    }
+
+    public Connection apply(Connection connection) throws SQLException {
+      if (schema != null) {
+        CalciteConnection con = connection.unwrap(CalciteConnection.class);
+        SchemaPlus rootSchema = con.getRootSchema();
+        rootSchema.add(name, schema);
+      }
+      Compatible.INSTANCE.setSchema(connection, name);
+      return connection;
+    }
+  }
+
+  /** Adds {@link SchemaSpec} (set of schemes) to a connection. */
+  public static class AddSchemaSpecPostProcessor
+      implements ConnectionPostProcessor {
+    private final SchemaSpec schemaSpec;
+
+    public AddSchemaSpecPostProcessor(SchemaSpec schemaSpec) {
+      this.schemaSpec = schemaSpec;
+    }
+
+    public Connection apply(Connection connection) throws SQLException {
+      CalciteConnection con = connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = con.getRootSchema();
+      switch (schemaSpec) {
+      case CLONE_FOODMART:
+      case JDBC_FOODMART_WITH_LATTICE:
+        addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
+        /* fall through */
+      default:
+        addSchema(rootSchema, schemaSpec);
+      }
+      if (schemaSpec == SchemaSpec.CLONE_FOODMART) {
+        con.setSchema("foodmart2");
+      }
+      return connection;
+    }
+  }
+
   /** Connection factory that uses the same instance of connections. */
-  private static class PoolingConnectionFactory implements ConnectionFactory {
+  private static class PoolingConnectionFactory
+      extends ConnectionFactory {
+
+    /** Connection pool. */
+    private static class Pool {
+      private static final LoadingCache<ConnectionFactory, Connection> POOL =
+          CacheBuilder.newBuilder().build(
+              new CacheLoader<ConnectionFactory, Connection>() {
+                public Connection load(ConnectionFactory key) throws Exception {
+                  return key.createConnection();
+                }
+              });
+    }
+
     private final ConnectionFactory factory;
 
     public PoolingConnectionFactory(final ConnectionFactory factory) {
       this.factory = factory;
     }
 
-    public Connection createConnection() throws Exception {
-      return Pool.INSTANCE.cache.get(factory);
-    }
-
-    public ConnectionFactory with(String property, String value) {
-      throw new UnsupportedOperationException();
-    }
-
-    public ConnectionFactory with(String schemaName, Schema schema) {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  /** Connection pool. */
-  private static class Pool {
-    private static final Pool INSTANCE = new Pool();
-
-    private final LoadingCache<ConnectionFactory, Connection> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<ConnectionFactory, Connection>() {
-              public Connection load(ConnectionFactory key) throws Exception {
-                return key.createConnection();
-              }
-            });
-  }
-
-  /** Connection factory that creates connections based on a given
-   * {@link Config}. */
-  private static class ConfigConnectionFactory
-      extends AbstractConnectionFactory {
-    private final Config config;
-
-    public ConfigConnectionFactory(Config config) {
-      this.config = config;
-    }
-
-    @Override public int hashCode() {
-      return config.hashCode();
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof ConfigConnectionFactory
-          && config == ((ConfigConnectionFactory) obj).config;
-    }
-
-    public Connection createConnection() throws Exception {
-      switch (config) {
-      case REGULAR:
-        return getConnection("hr", "foodmart", "post");
-      case REGULAR_PLUS_METADATA:
-        return getConnection("hr", "foodmart", "metadata");
-      case LINGUAL:
-        return getConnection("lingual");
-      case JDBC_FOODMART:
-        return getConnection(CalciteAssert.SchemaSpec.JDBC_FOODMART);
-      case FOODMART_CLONE:
-        return getConnection(SchemaSpec.CLONE_FOODMART);
-      case JDBC_FOODMART_WITH_LATTICE:
-        return getConnection(SchemaSpec.JDBC_FOODMART_WITH_LATTICE);
-      case SPARK:
-        return getConnection("spark");
-      default:
-        throw Util.unexpected(config);
+    public Connection createConnection() throws SQLException {
+      try {
+        return Pool.POOL.get(factory);
+      } catch (ExecutionException e) {
+        throw new SQLException(
+            "Unable to get pooled connection for " + factory, e);
       }
     }
   }
 
   /** Connection factory that uses a given map of (name, value) pairs and
    * optionally an initial schema. */
-  private static class MapConnectionFactory implements ConnectionFactory {
+  private static class MapConnectionFactory extends ConnectionFactory {
     private final ImmutableMap<String, String> map;
-    private final Pair<String, Schema> initialSchema;
+    private final ImmutableList<ConnectionPostProcessor> postProcessors;
 
     private MapConnectionFactory(ImmutableMap<String, String> map,
-        Pair<String, Schema> initialSchema) {
+        ImmutableList<ConnectionPostProcessor> postProcessors) {
       this.map = Preconditions.checkNotNull(map);
-      this.initialSchema = initialSchema;
+      this.postProcessors = Preconditions.checkNotNull(postProcessors);
     }
 
     @Override public boolean equals(Object obj) {
       return this == obj
           || obj.getClass() == MapConnectionFactory.class
           && ((MapConnectionFactory) obj).map.equals(map)
-          && Objects.equal(((MapConnectionFactory) obj).initialSchema,
-              initialSchema);
+          && ((MapConnectionFactory) obj).postProcessors.equals(postProcessors);
     }
 
     @Override public int hashCode() {
-      return Arrays.asList(map, initialSchema).hashCode();
+      return Objects.hashCode(map, postProcessors);
     }
 
-    public CalciteConnection createConnection() throws Exception {
+    public Connection createConnection() throws SQLException {
       final Properties info = new Properties();
       for (Map.Entry<String, String> entry : map.entrySet()) {
         info.setProperty(entry.getKey(), entry.getValue());
       }
-      final Connection connection =
+      Connection connection =
           DriverManager.getConnection("jdbc:calcite:", info);
-      final CalciteConnection calciteConnection =
-          connection.unwrap(CalciteConnection.class);
-      if (initialSchema != null) {
-        calciteConnection.getRootSchema()
-            .add(initialSchema.left, initialSchema.right);
-        calciteConnection.setSchema(initialSchema.left);
+      for (ConnectionPostProcessor postProcessor : postProcessors) {
+        connection = postProcessor.apply(connection);
       }
-      return calciteConnection;
+      return connection;
     }
 
     public ConnectionFactory with(String property, String value) {
-      Map<String, String> map2 = Maps.newLinkedHashMap(this.map);
-      map2.put(property, value);
-      return new MapConnectionFactory(ImmutableMap.copyOf(map2),
-          initialSchema);
+      ImmutableMap.Builder<String, String> b = ImmutableMap.builder();
+      b.putAll(this.map);
+      b.put(property, value);
+      return new MapConnectionFactory(b.build(), postProcessors);
     }
 
-    public ConnectionFactory with(String schemaName, Schema schema) {
-      return new MapConnectionFactory(map, Pair.of(schemaName, schema));
-    }
-  }
-
-  /** Connection factory that delegates to an underlying factory. */
-  private static class DelegatingConnectionFactory
-      extends AbstractConnectionFactory {
-    private final ConnectionFactory factory;
-
-    public DelegatingConnectionFactory(ConnectionFactory factory) {
-      this.factory = factory;
-    }
-
-    public Connection createConnection() throws Exception {
-      return factory.createConnection();
-    }
-  }
-
-  /** Connection factory that gets a connection from an underlying factory, then
-   * sets its schema. */
-  private static class SchemaConnectionFactory
-      extends DelegatingConnectionFactory {
-    private final String schema;
-
-    public SchemaConnectionFactory(ConnectionFactory factory, String schema) {
-      super(factory);
-      this.schema = schema;
-    }
-
-    @Override public Connection createConnection() throws Exception {
-      Connection connection = super.createConnection();
-      Compatible.INSTANCE.setSchema(connection, schema);
-      return connection;
+    public ConnectionFactory with(
+        ConnectionPostProcessor postProcessor) {
+      ImmutableList.Builder<ConnectionPostProcessor> builder =
+          ImmutableList.builder();
+      builder.addAll(postProcessors);
+      builder.add(postProcessor);
+      return new MapConnectionFactory(map, builder.build());
     }
   }
 
