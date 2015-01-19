@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -105,11 +106,26 @@ public class InterpreterTest {
   }
 
   private static void assertRows(Interpreter interpreter, String... rows) {
+    assertRows(interpreter, false, rows);
+  }
+
+  private static void assertRowsUnordered(Interpreter interpreter,
+      String... rows) {
+    assertRows(interpreter, true, rows);
+  }
+
+  private static void assertRows(Interpreter interpreter,
+      boolean unordered, String... rows) {
     final List<String> list = Lists.newArrayList();
     for (Object[] row : interpreter) {
       list.add(Arrays.toString(row));
     }
-    assertThat(list, equalTo(Arrays.asList(rows)));
+    final List<String> expected = Arrays.asList(rows);
+    if (unordered) {
+      Collections.sort(list);
+      Collections.sort(expected);
+    }
+    assertThat(list, equalTo(expected));
   }
 
   /** Tests executing a simple plan using an interpreter. */
@@ -146,6 +162,37 @@ public class InterpreterTest {
         "[4, Paul]",
         "[5, Ringo]",
         "[6, George]");
+  }
+
+  @Test public void testAggregate() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select  count(*) from \"beatles\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRows(interpreter,
+        "[4]");
+  }
+
+  @Test public void testAggregateGroup() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select \"j\", count(*) from \"beatles\" group by \"j\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRowsUnordered(interpreter,
+        "[George, 1]",
+        "[Paul, 1]",
+        "[John, 1]",
+        "[Ringo, 1]");
   }
 
   /** Tests executing a plan on a single-column
