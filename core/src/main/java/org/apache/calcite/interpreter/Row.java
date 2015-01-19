@@ -55,6 +55,11 @@ public class Row {
     return new Row(new Object[] {value0, value1, value2});
   }
 
+  /** Creates a Row with variable number of values. */
+  public static Row of(Object...values) {
+    return new Row(values);
+  }
+
   @Override public int hashCode() {
     return Arrays.hashCode(values);
   }
@@ -77,6 +82,51 @@ public class Row {
   Object[] getValues() {
     return values;
   }
+
+  public int size() {
+    return values.length;
+  }
+
+  /**
+   * Create a RowBuilder object that eases creation of a new row.
+   *
+   * @param size Number of columns in output data.
+   * @return New RowBuilder object.
+   */
+  public static RowBuilder newBuilder(int size) {
+    return new RowBuilder(size);
+  }
+
+  /**
+   * Utility class to build row objects.
+   */
+  public static class RowBuilder {
+    Object[] values;
+
+    private RowBuilder(int size) {
+      values = new Object[size];
+    }
+
+    /**
+     * Set the value of a particular column.
+     * @param index Zero-indexed position of value.
+     * @param value Desired column value.
+     */
+    public void set(int index, Object value) {
+      values[index] = value;
+    }
+
+    /** Return a Row object **/
+    public Row build() {
+      return new Row(values);
+    }
+
+    public int size() {
+      return values.length;
+    }
+  }
+
+
 }
 
 // End Row.java
