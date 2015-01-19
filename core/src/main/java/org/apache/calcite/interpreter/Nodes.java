@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -114,6 +115,10 @@ public class Nodes {
           }
         }
       }
+    }
+
+    public void visit(Aggregate agg) {
+      node = new AggregateNode(interpreter, agg);
     }
 
     public void visit(Filter filter) {

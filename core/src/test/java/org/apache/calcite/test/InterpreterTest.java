@@ -148,6 +148,24 @@ public class InterpreterTest {
         "[6, George]");
   }
 
+  @Test public void testAggregate() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select  count(*) from \"beatles\"");
+//    planner.parse("select \"j\", \count(*) from \"beatles\" group by \"j\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+
+    final Interpreter interpreter =
+        new Interpreter(new MyDataContext(planner), convert);
+    assertRows(interpreter,
+        "[4, John]",
+        "[4, Paul]",
+        "[5, Ringo]",
+        "[6, George]");
+  }
+
   /** Tests executing a plan on a single-column
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test public void testInterpretSimpleScannableTable() throws Exception {
