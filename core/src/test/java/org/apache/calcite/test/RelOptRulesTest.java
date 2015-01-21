@@ -37,6 +37,7 @@ import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
+import org.apache.calcite.rel.rules.AggregateUnionAggregateRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
@@ -1201,6 +1202,21 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
             + "  from emp)\n"
             + "group by rollup(x, y)");
+  }
+
+  @Test public void testPullAggregateThroughUnion() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select deptno, job from"
+            + " (select deptno, job from emp as e1"
+            + " group by deptno,job"
+            + "  union all"
+            + " select deptno, job from emp as e2"
+            + " group by deptno,job)"
+            + " group by deptno,job");
   }
 
   public void transitiveInference(RelOptRule... extraRules) throws Exception {
