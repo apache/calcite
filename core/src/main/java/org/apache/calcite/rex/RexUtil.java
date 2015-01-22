@@ -835,6 +835,20 @@ public class RexUtil {
   }
 
   /**
+   * Applies a mapping to an iterable over expressions.
+   */
+  public static Iterable<RexNode> apply(Mappings.TargetMapping mapping,
+      Iterable<? extends RexNode> nodes) {
+    final RexPermuteInputsShuttle shuttle = RexPermuteInputsShuttle.of(mapping);
+    return Iterables.transform(nodes,
+        new Function<RexNode, RexNode>() {
+          public RexNode apply(RexNode input) {
+            return input.accept(shuttle);
+          }
+        });
+  }
+
+  /**
    * Applies a shuttle to an array of expressions. Creates a copy first.
    *
    * @param shuttle Shuttle

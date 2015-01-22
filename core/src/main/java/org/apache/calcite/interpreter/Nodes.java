@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.rules.FilterTableRule;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.util.ImmutableIntList;
@@ -78,10 +79,16 @@ public class Nodes {
           final FilterTableRule.FilterSplit filterSplit =
               FilterTableRule.FilterSplit.of(projectableFilterableTable,
                   condition, interpreter.getDataContext());
-          rel = new FilterScan(project.getCluster(), project.getTraitSet(),
-              table, filterSplit.acceptedFilters,
-              ImmutableIntList.copyOf(Mappings.asList(mapping.inverse())));
-          rel = RelOptUtil.createFilter(rel, filterSplit.rejectedFilters);
+          if (filterSplit.rejectedFilters.isEmpty()) {
+            // Only push down projects & filters if there are no rejected
+            // filters. The rejected filter might need columns that are not
+            // projected. See CALCITE-445.
+            rel = new FilterScan(project.getCluster(), project.getTraitSet(),
+                table, filterSplit.acceptedFilters,
+                ImmutableIntList.copyOf(Mappings.asList(mapping.inverse())));
+            rel = RelOptUtil.createFilter(rel,
+                RexUtil.apply(mapping, filterSplit.rejectedFilters));
+          }
         }
       }
     }

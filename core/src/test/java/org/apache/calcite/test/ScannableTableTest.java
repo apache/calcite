@@ -218,13 +218,12 @@ public class ScannableTableTest {
     final Statement statement = connection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select \"k\" from \"s\".\"beatles2\" where \"i\" = 4");
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo(Bug.CALCITE_445_FIXED ? "k=1940\nk=1942\n" : ""));
+    assertThat(CalciteAssert.toString(resultSet), equalTo("k=1940\nk=1942\n"));
     resultSet.close();
     assertThat(buf.toString(),
         equalTo(Bug.CALCITE_445_FIXED
                 ? "returnCount=4, projects=[0, 2]"
-                : "returnCount=4, projects=[2]"));
+                : "returnCount=4"));
     buf.setLength(0);
   }
 
@@ -245,6 +244,32 @@ public class ScannableTableTest {
       }
     }
     return null;
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-458">[CALCITE-458]
+   * ArrayIndexOutOfBoundsException when using just a single column in
+   * interpreter</a>. */
+  @Test public void testPFTableRefusesFilterSingleColumn() throws Exception {
+    Connection connection =
+        DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final StringBuilder buf = new StringBuilder();
+    schema.add("beatles2", new BeatlesProjectableFilterableTable(buf, false));
+
+    // Now with an "uncooperative" filterable table that refuses to accept
+    // filters.
+    final Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(
+        "select \"k\" from \"s\".\"beatles2\" where \"k\" > 1941");
+    assertThat(buf.toString(),
+        equalTo(Bug.CALCITE_445_FIXED
+                ? "returnCount=4, projects=[2]"
+                : "returnCount=4"));
+    assertThat(CalciteAssert.toString(resultSet), equalTo("k=1942\nk=1943\n"));
   }
 
   /** Table that returns one column via the {@link ScannableTable} interface. */
