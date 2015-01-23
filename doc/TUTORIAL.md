@@ -150,7 +150,7 @@ format. Here is the model:
     {
       name: 'SALES',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+      factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
       operand: {
         directory: 'target/test-classes/sales'
       }
@@ -161,9 +161,11 @@ format. Here is the model:
 
 The model defines a single schema called 'SALES'. The schema is
 powered by a plugin class,
-<a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvSchemaFactory.java">net.hydromatic.optiq.impl.csv.CsvSchemaFactory</a>, which is part of the
+<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchemaFactory.java">org.apache.calcite.adapter.csv.CsvSchemaFactory</a>,
+which is part of the
 calcite-example-csv project and implements the Calcite interface
-<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/SchemaFactory.html">SchemaFactory</a>. Its <code>create</code> method instantiates a
+<a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/SchemaFactory.html">SchemaFactory</a>.
+Its <code>create</code> method instantiates a
 schema, passing in the <code>directory</code> argument from the model file:
 
 ```java
@@ -185,20 +187,20 @@ public Schema create(SchemaPlus parentSchema, String name,
 
 Driven by the model, the schema factory instantiates a single schema
 called 'SALES'.  The schema is an instance of
-<a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvSchema.java">net.hydromatic.optiq.impl.csv.CsvSchema</a>
+<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchema.java">org.apache.calcite.adapter.csv.CsvSchema</a>
 and implements the Calcite interface <a
-href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/Schema.html">Schema</a>.
+href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/Schema.html">Schema</a>.
 
 A schema's job is to produce a list of tables. (It can also list sub-schemas and
 table-functions, but these are advanced features and calcite-example-csv does
 not support them.) The tables implement Calcite's
-<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/Table.html">Table</a>
+<a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/Table.html">Table</a>
 interface. <code>CsvSchema</code> produces tables that are instances of
-<a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvTable.java">CsvTable</a>
+<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTable.java">CsvTable</a>
 and its sub-classes.
 
 Here is the relevant code from <code>CsvSchema</code>, overriding the
-<code><a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
+<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
 method in the <code>AbstractSchema</code> base class.
 
 ```java
@@ -228,25 +230,24 @@ protected Map<String, Table> getTableMap() {
       continue;
     }
     tableName = trim(tableName, ".csv");
-
-    // Create different sub-types of table based on the "flavor" attribute.
-    final Table table;
-    switch (flavor) {
-    case SCANNABLE:
-      table = new CsvScannableTable(file, null);
-      break;
-    case FILTERABLE:
-      table = new CsvFilterableTable(file, null);
-      break;
-    case TRANSLATABLE:
-      table = new CsvTranslatableTable(file, null);
-      break;
-    default:
-      throw new AssertionError("Unknown flavor " + flavor);
-    }
+    final Table table = createTable(file);
     builder.put(tableName, table);
   }
   return builder.build();
+}
+
+/** Creates different sub-type of table based on the "flavor" attribute. */
+private Table createTable(File file) {
+  switch (flavor) {
+  case TRANSLATABLE:
+    return new CsvTranslatableTable(file, null);
+  case SCANNABLE:
+    return new CsvScannableTable(file, null);
+  case FILTERABLE:
+    return new CsvFilterableTable(file, null);
+  default:
+    throw new AssertionError("Unknown flavor " + flavor);
+  }
 }
 ```
 
@@ -284,7 +285,7 @@ Here is a schema that defines a view:
     {
       name: 'SALES',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+      factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
       operand: {
         directory: 'target/test-classes/sales'
       },
@@ -349,7 +350,7 @@ There is an example in <code>model-with-custom-table.json</code>:
         {
           name: 'EMPS',
           type: 'custom',
-          factory: 'net.hydromatic.optiq.impl.csv.CsvTableFactory',
+          factory: 'org.apache.calcite.adapter.csv.CsvTableFactory',
           operand: {
             file: 'target/test-classes/sales/EMPS.csv.gz',
             flavor: "scannable"
@@ -378,9 +379,9 @@ sqlline> SELECT empno, name FROM custom_table.emps;
 ```
 
 The schema is a regular one, and contains a custom table powered by
-<a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvTableFactory.java">net.hydromatic.optiq.impl.csv.CsvTableFactory</a>,
+<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableFactory.java">org.apache.calcite.adapter.csv.CsvTableFactory</a>,
 which implements the Calcite interface
-<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/TableFactory.html">TableFactory</a>.
+<a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/TableFactory.html">TableFactory</a>.
 Its <code>create</code> method instantiates a <code>CsvScannableTable</code>,
 passing in the <code>file</code> argument from the model file:
 
@@ -475,35 +476,35 @@ flavor: "translatable"
 This causes a <code>CsvSchema</code> to be created with
 <code>flavor = TRANSLATABLE</code>,
 and its <code>createTable</code> method creates instances of
-<a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvSmartTable.java">CsvSmartTable</a>
+<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTranslatableTable.java">CsvTranslatableTable</a>
 rather than a <code>CsvScannableTable</code>.
 
-<code>CsvSmartTable</code> overrides the
-<code><a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/TranslatableTable#toRel()">TranslatableTable.toRel()</a></code>
+<code>CsvTranslatableTable</code> implements the
+<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/TranslatableTable.html#toRel()">TranslatableTable.toRel()</a></code>
 method to create
-<a href="src/main/java/net/hydromatic/optiq/impl/csv/CsvTableScan.java">CsvTableScan</a>.
+<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java">CsvTableScan</a>.
 Table scans are the leaves of a query operator tree.
 The usual implementation is
-<code><a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/java/JavaRules.EnumerableTableAccessRel.html">EnumerableTableAccessRel</a></code>,
+<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/adapter/enumerable/EnumerableTableScan.html">EnumerableTableScan</a></code>,
 but we have created a distinctive sub-type that will cause rules to fire.
 
 Here is the rule in its entirety:
 
 ```java
-public class CsvPushProjectOntoTableRule extends RelOptRule {
-  public static final CsvPushProjectOntoTableRule INSTANCE =
-      new CsvPushProjectOntoTableRule();
+public class CsvProjectTableScanRule extends RelOptRule {
+  public static final CsvProjectTableScanRule INSTANCE =
+      new CsvProjectTableScanRule();
 
-  private CsvPushProjectOntoTableRule() {
+  private CsvProjectTableScanRule() {
     super(
-        operand(ProjectRel.class,
+        operand(Project.class,
             operand(CsvTableScan.class, none())),
-        "CsvPushProjectOntoTableRule");
+        "CsvProjectTableScanRule");
   }
 
   @Override
   public void onMatch(RelOptRuleCall call) {
-    final ProjectRel project = call.rel(0);
+    final Project project = call.rel(0);
     final CsvTableScan scan = call.rel(1);
     int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {
@@ -537,7 +538,7 @@ The constructor declares the pattern of relational expressions that will cause
 the rule to fire.
 
 The <code>onMatch</code> method generates a new relational expression and calls
-<code><a href="http://www.hydromatic.net/calcite/apidocs/org/eigenbase/relopt/RelOptRuleCall.html#transformTo(org.eigenbase.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
+<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/plan/RelOptRuleCall.html#transformTo(org.apache.calcite.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
 to indicate that the rule has fired successfully.
 
 ## The query optimization process
@@ -589,7 +590,7 @@ For example, this schema reads from a MySQL "foodmart" database:
     {
       name: 'FOODMART',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.jdbc.JdbcSchema$Factory',
+      factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
       operand: {
         jdbcDriver: 'com.mysql.jdbc.Driver',
         jdbcUrl: 'jdbc:mysql://localhost/foodmart',
@@ -635,7 +636,7 @@ For example, the following model reads tables from a MySQL
     {
       name: 'FOODMART_CLONE',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.clone.CloneSchema$Factory',
+      factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',
       operand: {
         jdbcDriver: 'com.mysql.jdbc.Driver',
         jdbcUrl: 'jdbc:mysql://localhost/foodmart',
@@ -659,7 +660,7 @@ defined earlier in the model, like this:
     {
       name: 'FOODMART',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.jdbc.JdbcSchema$Factory',
+      factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
       operand: {
         jdbcDriver: 'com.mysql.jdbc.Driver',
         jdbcUrl: 'jdbc:mysql://localhost/foodmart',
@@ -670,7 +671,7 @@ defined earlier in the model, like this:
     {
       name: 'FOODMART_CLONE',
       type: 'custom',
-      factory: 'net.hydromatic.optiq.impl.clone.CloneSchema$Factory',
+      factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',
       operand: {
         source: 'FOODMART'
       }

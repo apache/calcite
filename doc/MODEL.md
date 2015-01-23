@@ -108,7 +108,7 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 {
   name: 'mongo',
   type: 'custom',
-  factory: 'net.hydromatic.optiq.impl.mongodb.MongoSchemaFactory',
+  factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',
   operand: {
     host: 'localhost',
     database: 'test'
@@ -120,7 +120,7 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 <a href="#schema">Schema</a>.
 
 `factory` (required string) is the name of the factory class for this
-schema. Must implement interface `net.hydromatic.optiq.SchemaFactory`
+schema. Must implement interface `org.apache.calcite.schema.SchemaFactory`
 and have a public default constructor.
 
 `operand` (optional map) contains attributes to be passed to the
@@ -238,7 +238,7 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
 
 `factory` (required string) is the name of the factory class for this
-table. Must implement interface `net.hydromatic.optiq.TableFactory`
+table. Must implement interface `org.apache.calcite.schema.TableFactory`
 and have a public default constructor.
 
 `operand` (optional map) contains attributes to be passed to the

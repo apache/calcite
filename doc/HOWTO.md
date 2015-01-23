@@ -13,8 +13,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 ```bash
-$ tar xvfz calcite-0.9.2-incubating-source.tar.gz
-$ cd calcite-0.9.2-incubating
+$ tar xvfz calcite-1.0.0-incubating-source.tar.gz
+$ cd calcite-1.0.0-incubating
 $ mvn install
 ```
 
@@ -45,7 +45,8 @@ The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
 ```bash
-$ mvn -DskipTests clean install
+$ mvn clean
+$ mvn -DskipTests install
 ```
 
 There are other options that control which tests are run, and in what
@@ -123,19 +124,18 @@ framework. Put the following into core/src/test/resources/logging.properties:
 ```properties
 handlers= java.util.logging.ConsoleHandler
 .level= INFO
-org.eigenbase.relopt.RelOptPlanner.level=FINER
+org.apache.calcite.plan.RelOptPlanner.level=FINER
 java.util.logging.ConsoleHandler.level=ALL
 ```
 
-The line org.eigenbase.relopt.RelOptPlanner.level=FINER tells the planner to produce
-fairly verbose outout. You can modify the file to enable other loggers, or to change levels.
-For instance, if you change FINER to FINEST the planner will give you an account of the
+The line `org.apache.calcite.plan.RelOptPlanner.level=FINER` tells the planner to produce
+fairly verbose output. You can modify the file to enable other loggers, or to change levels.
+For instance, if you change `FINER` to `FINEST` the planner will give you an account of the
 planning process so detailed that it might fill up your hard drive.
 
 ## CSV adapter
 
-See <a href="https://github.com/julianhyde/optiq-csv/blob/master/TUTORIAL.md">optiq-csv
-tutorial</a>.
+See the <a href="TUTORIAL.md">tutorial</a>.
 
 ## MongoDB adapter
 
@@ -172,8 +172,8 @@ Calcite model:
 $ ./sqlline
 sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
 Connecting to jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json
-Connected to: Calcite (version 0.9.x)
-Driver: Calcite JDBC Driver (version 0.9.x)
+Connected to: Calcite (version 1.x.x)
+Driver: Calcite JDBC Driver (version 1.x.x)
 Autocommit status: true
 Transaction isolation: TRANSACTION_REPEATABLE_READ
 sqlline> !tables
@@ -210,68 +210,65 @@ queries. It is also necessary if you intend to run the test suite, using
 
 ## Implementing an adapter
 
-New adapters can be created by implementing `OptiqPrepare.Context`:
+New adapters can be created by implementing `CalcitePrepare.Context`:
 
 ```java
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-public class AdapterContext implements OptiqPrepare.Context {
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteRootSchema;
 
-    @Override
-    public JavaTypeFactory getTypeFactory() {
-        // adapter implementation
-        return typeFactory;
-    }
+public class AdapterContext implements CalcitePrepare.Context {
+  @Override
+  public JavaTypeFactory getTypeFactory() {
+    // adapter implementation
+    return typeFactory;
+  }
 
-    @Override
-    public Schema getRootSchema() {
-        // adapter implementation
-        return rootSchema;
-    }
-
+  @Override
+  public CalciteRootSchema getRootSchema() {
+    // adapter implementation
+    return rootSchema;
+  }
 }
 ```
 
 ### Testing adapter in Java
 
 The example below shows how SQL query can be submitted to
-`OptiqPrepare` with a custom context (`AdapterContext` in this
+`CalcitePrepare` with a custom context (`AdapterContext` in this
 case). Calcite prepares and implements the query execution, using the
-resources provided by the `Context`. `OptiqPrepare.PrepareResult`
+resources provided by the `Context`. `CalcitePrepare.PrepareResult`
 provides access to the underlying enumerable and methods for
 enumeration. The enumerable itself can naturally be some adapter
 specific implementation.
 
 ```java
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.junit.Test;
 
 public class AdapterContextTest {
-
-    @Test
-    public void testSelectAllFromTable() {
-        AdapterContext ctx = new AdapterContext();
-        String sql = "SELECT * FROM TABLENAME";
-        Type elementType = Object[].class;
-        OptiqPrepare.PrepareResult<Object> prepared = new OptiqPrepareImpl()
-                .prepareSql(ctx, sql, null, elementType, -1);
-        Object enumerable = prepared.getExecutable();
-        // etc.
-    }
-
+  @Test
+  public void testSelectAllFromTable() {
+    AdapterContext ctx = new AdapterContext();
+    String sql = "SELECT * FROM TABLENAME";
+    Class elementType = Object[].class;
+    CalcitePrepare.PrepareResult<Object> prepared =
+        new CalcitePrepareImpl().prepareSql(ctx, sql, null, elementType, -1);
+    Object enumerable = prepared.getExecutable();
+    // etc.
+  }
 }
 ```
 
-## JavaTypeFactory
+### JavaTypeFactory
 
-When Calcite compares `Type` instances, it requires them to be the same
-object. If there are two distinct `Type` instances that refer to the
+When Calcite compares types (instances of `RelDataType`), it requires them to be the same
+object. If there are two distinct type instances that refer to the
 same Java type, Calcite may fail to recognize that they match.  It is
 recommended to:
--   Use a single instance of `JavaTypeFactory` within the calcite context
--   Store the `Type` instances so that the same object is always returned for the same `Type`.
+* Use a single instance of `JavaTypeFactory` within the calcite context;
+* Store the types so that the same object is always returned for the same type.
 
 ## Set up PGP signing keys (for Calcite committers)
 
@@ -291,12 +288,13 @@ Before you start:
 
 ```bash
 # set passphrase variable without putting it into shell history
-read GPG_PASSPHRASE
+read -s GPG_PASSPHRASE
 
 # make sure that there are no junk files in the sandbox
-git clean -x
+git clean -xn
+mvn clean
 
-mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} clean install
+mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} install
 ```
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -306,7 +304,7 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.6 or 1.8).
-* Check that README and README.md have the correct version number.
+* Check that README, README.md and HOWTO.md have the correct version number.
 * Make sure build and tests succeed, including with
   -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow=true,
   -Dcalcite.test.mongodb=true, -Dcalcite.test.splunk=true.
@@ -329,10 +327,11 @@ start again from the top.
 
 ```bash
 # Set passphrase variable without putting it into shell history
-read GPG_PASSPHRASE
+read -s GPG_PASSPHRASE
 
 # Make sure that there are no junk files in the sandbox
 git clean -xn
+mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers.
 mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare-dry.log
@@ -362,7 +361,7 @@ Check the artifacts:
   `mongodb/target/calcite-mongodb-X.Y.Z-incubating-sources.jar`), check
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
-* In each .jar, check that `net-hydromatic-optiq-jdbc.properties` is
+* In each .jar, check that `org-apache-calcite-jdbc.properties` is
   present and does not contain un-substituted `${...}` variables
 * Check PGP, per https://httpd.apache.org/dev/verification.html
 

@@ -90,24 +90,24 @@ public class CsvSchema extends AbstractSchema {
       }
       tableName = trim(tableName, ".csv");
 
-      // Create different sub-types of table based on the "flavor" attribute.
-      final Table table;
-      switch (flavor) {
-      case TRANSLATABLE:
-        table = new CsvTranslatableTable(file, null);
-        break;
-      case SCANNABLE:
-        table = new CsvScannableTable(file, null);
-        break;
-      case FILTERABLE:
-        table = new CsvFilterableTable(file, null);
-        break;
-      default:
-        throw new AssertionError("Unknown flavor " + flavor);
-      }
+      final Table table = createTable(file);
       builder.put(tableName, table);
     }
     return builder.build();
+  }
+
+  /** Creates different sub-type of table based on the "flavor" attribute. */
+  private Table createTable(File file) {
+    switch (flavor) {
+    case TRANSLATABLE:
+      return new CsvTranslatableTable(file, null);
+    case SCANNABLE:
+      return new CsvScannableTable(file, null);
+    case FILTERABLE:
+      return new CsvFilterableTable(file, null);
+    default:
+      throw new AssertionError("Unknown flavor " + flavor);
+    }
   }
 }
 
