@@ -833,7 +833,7 @@ public class JdbcTest {
     final int driverMajorVersion = metaData.getDriverMajorVersion();
     final int driverMinorVersion = metaData.getDriverMinorVersion();
     assertEquals(1, driverMajorVersion);
-    assertTrue(driverMinorVersion == 0); // will work for the next few releases
+    assertTrue(driverMinorVersion >= 0 && driverMinorVersion < 10);
 
     assertEquals("Calcite", metaData.getDatabaseProductName());
     final String databaseProductVersion =
@@ -847,7 +847,7 @@ public class JdbcTest {
     // version is stored in pom.xml; major and minor version are
     // stored in org-apache-calcite-jdbc.properties, but derived from
     // version.major and version.minor in pom.xml.
-    assertTrue(driverVersion.startsWith("1."));
+    assertTrue(driverVersion.startsWith(driverMajorVersion + "."));
     String[] split = driverVersion.split("\\.");
     assertTrue(split.length >= 2);
     String majorMinor = driverMajorVersion + "." + driverMinorVersion;
