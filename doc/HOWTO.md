@@ -81,7 +81,7 @@ proposed feature or start a discussion on the dev list.
 
 Fork the github repository, and create a branch for your feature.
 
-Develop your feature and test cases, and make sure that `mvn clean
+Develop your feature and test cases, and make sure that `mvn
 install` succeeds. (Run extra tests if your change warrants it.)
 
 Commit your change to your branch, and use a comment that starts with
@@ -334,7 +334,8 @@ git clean -xn
 mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers.
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare-dry.log
+mvn clean
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 ```
 
 Check the artifacts:
@@ -352,9 +353,9 @@ Check the artifacts:
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
   `apache-calcite-X.Y.Z-incubating-src`.
-* That directory must contain files `NOTICE`, `LICENSE`, `README`,
-  `README.md`, `git.properties`
-  * Check that  the version in `README` is correct
+* That directory must contain files `DISCLAIMER, `NOTICE`, `LICENSE`,
+  `README`, `README.md`, `git.properties`
+  * Check that the version in `README` is correct
   * Check that `git.properties` is current
 * In each .jar (for example
   `core/target/calcite-core-X.Y.Z-incubating.jar` and
@@ -369,10 +370,10 @@ Now, remove the `-DdryRun` flag and run the release for real.
 
 ```bash
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:prepare 2>&1 | tee /tmp/prepare.log
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
-mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" clean release:perform 2>&1 | tee /tmp/perform.log
+mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
 ```
 
 Verify the staged artifacts in the Nexus repository:

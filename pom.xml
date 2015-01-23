@@ -48,6 +48,8 @@ limitations under the License.
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
+    <version.major>1</version.major>
+    <version.minor>0</version.minor>
   </properties>
 
   <issueManagement>

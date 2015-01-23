@@ -3,47 +3,220 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
-## Work in progress for 1.0.0-incubating
+## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-22
 
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-474">CALCITE-474</a>]
-  Clean up rule naming in order to support enabling/disabling rules
-* Document `WITH`, `LATERAL`, `GROUPING SETS`, `CUBE`, `ROLLUP`;
-  add descriptions for all built-in functions and operators.
+Calcite's first major release.
+
+Since the previous release we have re-organized the into the `org.apache.calcite`
+namespace. To make migration of your code easier, we have described the
+<a href="https://issues.apache.org/jira/secure/attachment/12681620/mapping.txt">mapping from old to new class names</a>
+as an attachment to
+[<a href="https://issues.apache.org/jira/browse/CALCITE-296">CALCITE-296</a>].
+
+The release adds SQL support for `GROUPING SETS`, `EXTEND`, `UPSERT` and sequences;
+a remote JDBC driver;
+improvements to the planner engine and built-in planner rules;
+improvements to the algorithms that implement the relational algebra,
+including an interpreter that can evaluate queries without compilation;
+and fixes about 30 bugs.
+
+New features
+* SQL
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-494">CALCITE-494</a>]
+    Support `NEXT`/`CURRENT VALUE FOR` syntax for using sequences
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-492">CALCITE-492</a>]
+    Support `UPSERT` statement in parser
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-493">CALCITE-493</a>]
+    Add `EXTEND` clause, for defining columns and their types at query/DML time
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-497">CALCITE-497</a>]
+    Support optional qualifier for column name references
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-356">CALCITE-356</a>]
+    Allow column references of the form `schema.table.column`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-462">CALCITE-462</a>]
+    Allow table functions in `LATERAL` expression
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-282">CALCITE-282</a>]
+    Add `{fn QUARTER(date)}` function (Benoy Antony)
+  * Grouping sets
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-370">CALCITE-370</a>]
+      Support `GROUPING SETS`, `CUBE`, `ROLLUP` in SQL and algebra
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-512">CALCITE-512</a>]
+      Add `GROUP_ID`,`GROUPING_ID`, `GROUPING` functions
+* Planner rule improvements
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-92">CALCITE-92</a>]
+    Optimize away `Project` that merely renames fields
+  * Detect and merge duplicate predicates `AND(x, y, x)` to `AND(x, y)` in more
+    circumstances
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-557">CALCITE-557</a>]
+    Speed up planning by never creating `AbstractConverter`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-545">CALCITE-545</a>]
+    When a projected expression can only have one value, replace with that
+    constant
+  * Grouping sets
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-542">CALCITE-542</a>]
+      Support for `Aggregate` with grouping sets in `RelMdColumnOrigins` (Jesus
+      Camacho Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-533">CALCITE-533</a>]
+      Support for grouping sets in `FilterAggregateTransposeRule` (Jesus Camacho
+      Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-532">CALCITE-532</a>]
+      Support for grouping sets in `AggregateFilterTransposeRule` (Jesus Camacho
+      Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-513">CALCITE-513</a>]
+      Support for grouping sets in `AggregateProjectMergeRule` (Jesus Camacho
+      Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-510">CALCITE-510</a>]
+      Support for grouping sets in `AggregateExpandDistinctAggregatesRule` (Jesus
+      Camacho Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-502">CALCITE-502</a>]
+      Support for grouping sets in `AggregateUnionTransposeRule` (Jesus Camacho
+      Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-503">CALCITE-503</a>]
+      Tests to check rules on `Aggregate` operator without grouping sets (Jesus
+      Camacho Rodriguez)
+* Algorithms
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-451">CALCITE-451</a>]
+    Implement theta join, inner and outer, in enumerable convention
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-489">CALCITE-489</a>]
+    Update `Correlate` mechanics and implement `EnumerableCorrelate` (aka nested
+    loops join)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-544">CALCITE-544</a>]
+    Implement `Union` in interpreter
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-562">CALCITE-562</a>]
+    Implement inner `Join` in interpreter and improve handling of scalar expressions
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-543">CALCITE-543</a>]
+    Implement `Aggregate` (including `GROUPING SETS`) in interpreter (Jacques
+    Nadeau)
+  * In progress towards
+    [<a href="https://issues.apache.org/jira/browse/CALCITE-558">CALCITE-558</a>]
+    add `BINDABLE` convention (but `ENUMERABLE` is still the default), and add
+    `ArrayBindable` and `Scalar` interfaces
+* Remote driver
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-93">CALCITE-93</a>]
+    Calcite RPC server
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-94">CALCITE-94</a>]
+    Remote JDBC driver
+  * Make `JsonHandler` and `JsonService` thread-safe
+
+API changes
+* The great code re-org
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-296">CALCITE-296</a>]
+    Re-organize package structure
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-419">CALCITE-419</a>]
+    Naming convention for planner rules
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-306">CALCITE-306</a>]
+    Standardize code style for "import package.*;"
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-474">CALCITE-474</a>]
+    Clean up rule naming in order to support enabling/disabling rules
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-460">CALCITE-460</a>]
+    Add `ImmutableBitSet` and replace uses of `BitSet`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-479">CALCITE-479</a>]
+    Migrate `RelNode.getChildExps` to `RelNode.accept(RexShuttle)`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-527">CALCITE-527</a>]
+    Drop `rowType` field and constructor/copy argument of `Calc`
+* Add linq4j and example-csv modules
+  * Remove unused packages in linq4j, and fix checkstyle issues in linq4j and csv
+  * Add calcite-linq4j and calcite-example-csv as POM sub-modules
+  * Import 'optiq-csv' project as 'example/csv/', and add Apache headers
+  * Import 'linq4j' project, and add Apache headers
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-478">CALCITE-478</a>]
+    Move CSV tutorial (Siva Narayanan)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-464">CALCITE-464</a>]
   Make parser accept configurable max length for SQL identifier
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-465">CALCITE-465</a>]
+  Remove `OneRow` and `Empty` relational expressions; `Values` will suffice
+
+Bug-fixes and internal changes
+* Build improvements
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-541">CALCITE-541</a>]
+    Update maven-source-plugin to 2.4 to get speedup in jdk 1.8
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-537">CALCITE-537</a>]
+    Skip overwrite of `NOTICE`, `DEPENDENCIES`, and `LICENSE` files
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-538">CALCITE-538</a>]
+    Generate `Parser.jj` only at first build
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-539">CALCITE-539</a>]
+    Avoid rewrite of `org-apache-calcite-jdbc.properties`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-540">CALCITE-540</a>]
+    Create git.properties file only at first build. This saves time in
+    development at a cost of stale `git.properties`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-536">CALCITE-536</a>]
+    Add `@PackageMarker` to `package-info.java` so maven-compiler skips
+    compilation when the sources are unchanged
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-535">CALCITE-535</a>]
+    Support skip overwrite in hydromatic-resource
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-561">CALCITE-561</a>]
+  Upgrade parent POM
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-458">CALCITE-458</a>]
+  ArrayIndexOutOfBoundsException when using just a single column in interpreter
+* Fix spurious extra row from `FULL JOIN`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-554">CALCITE-554</a>]
+  Outer join over NULL keys generates wrong result
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-489">CALCITE-489</a>]
+  Teach `CalciteAssert` to respect multiple settings
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-516">CALCITE-516</a>]
+  `GROUP BY` on a `CASE` expression containing `IN` predicate fails (Aman Sinha)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-552">CALCITE-552</a>]
+  Upgrade tpcds (which depends on an old version of guava)
+* Copy identifier when fully-qualifying, so column aliases have the right case
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-548">CALCITE-548</a>]
+  Extend `induce` method to return `CUBE` and `ROLLUP` (Jesus Camacho Rodriguez)
+  * Simplify `Group.induce` by assuming that group sets are sorted
+* Test case for
+  [<a  href="https://issues.apache.org/jira/browse/CALCITE-212">CALCITE-212</a>]
+  Join condition with `OR`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-550">CALCITE-550</a>]
+  Case-insensitive matching of sub-query columns fails
+  * Add more unit tests (Jinfeng Ni)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-448">CALCITE-448</a>]
+  `FilterIntoJoinRule` creates filters containing invalid `RexInputRef`
+* When registering a `RelNode`, be tolerant if it is equivalent to a `RelNode`
+  with different traits
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-547">CALCITE-547</a>]
+  Set nullability while inferring return type of `item(any,...)` operator
+* In Travis CI, enable containers, and cache `.m2` directory
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-534">CALCITE-534</a>]
+  Missing implementation of `ResultSetMetaData.getColumnClassName` (Knut
+  Forkalsrud)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-506">CALCITE-506</a>]
+  Update `EnumerableRelImplementor.stash` so it is suitable for all kinds of
+  classes
+* Merge join algorithm for `Enumerable`s
+* Efficient `Enumerable` over random-access list
+* Add a test that calls all functions with arguments of all types that they
+  claim to accept
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-511">CALCITE-511</a>]
+  `copy` method in `LogicalAggregate` not copying the indicator value properly
+* Add a model that has lattices and works against HSQLDB
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-509">CALCITE-509</a>]
+  `RelMdColumnUniqueness` uses `ImmutableBitSet.Builder` twice, gets
+  `NullPointerException`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-488">CALCITE-488</a>]
+  `Enumerable<Holder>` does not work if where `Holder` is a custom class
+  with a single field; Calcite tries to treat it as `SCALAR` due to premature
+  `JavaRowFormat.optimize`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-352">CALCITE-352</a>]
+  Throw exception if `ResultSet.next()` is called after `close()`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-403">CALCITE-403</a>]
+  `Enumerable` gives `NullPointerException` with `NOT` on nullable expression
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-469">CALCITE-469</a>]
+  Update example/csv README.md instructions
+* Document `WITH`, `LATERAL`, `GROUPING SETS`, `CUBE`, `ROLLUP`;
+  add descriptions for all built-in functions and operators
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-470">CALCITE-470</a>]
   Print warning when column type hint is not understood;
-  Update EMPS.deptno column Integer &rarr; int
-* Add `GROUPING` function
-* Better handling of null values due to `GROUPING SETS`
-* Fix `Linq4j.product`; the cartesian product of 0 attributes is one row of 0 attributes.
+  Update `EMPS.deptno` column Integer &rarr; int
+* Fix `Linq4j.product`; the cartesian product of 0 attributes is one row of 0
+  attributes
 * Update link optiq-mat-plugin &rarr; mat-calcite-plugin
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-467">CALCITE-467</a>]
   Incorrect namespace in `package-info.java`
-* Add headers, to appease the RAT.
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-465">CALCITE-465</a>]
-  Remove `OneRow` and `Empty` relational expressions; `Values` will suffice
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-370">CALCITE-370</a>]
-  Support `GROUPING SETS`, `CUBE`, `ROLLUP` in SQL and algebra
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-460">CALCITE-460</a>]
-  Add `ImmutableBitSet` and replace uses of `BitSet`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-306">CALCITE-306</a>]
-  Standardize code style for "import package.*;"
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-296">CALCITE-296</a>]
-  Re-organize package structure
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-419">CALCITE-419</a>]
-  Naming convention for planner rules
+* Add headers, to appease the RAT
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-446">CALCITE-446</a>]
   CSV adapter should read from directory relative to the model file
 * Add examples of scannable and filterable tables, matching
   [<a href="https://issues.apache.org/jira/browse/CALCITE-436">CALCITE-436</a>]
-  Simpler SPI to query Table.
-* Remove unused packages in linq4j, and fix checkstyle issues in linq4j and csv.
-* Add calcite-linq4j and calcite-example-csv as POM sub-modules.
-* Import 'optiq-csv' project as 'example/csv/', and add Apache headers
-* Import 'linq4j' project, and add Apache headers
-* Fix `JdbcTest.testVersion` now that version is 1.0.
-* Update release HOWTO.
+  Simpler SPI to query Table
+* Fix `JdbcTest.testVersion` now that version is 1.0
+* Update release HOWTO
 
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-0.9.2-incubating">0.9.2-incubating</a> / 2014-11-05
 
