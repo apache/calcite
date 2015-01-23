@@ -21,7 +21,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -59,34 +58,6 @@ public class RelOptRuleOperand {
   public final RelOptRuleOperandChildPolicy childPolicy;
 
   //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates an operand.
-   *
-   * <p>The {@code childOperands} argument is often populated by calling one
-   * of the following methods:
-   * {@link RelOptRule#some},
-   * {@link RelOptRule#none()},
-   * {@link RelOptRule#any},
-   * {@link RelOptRule#unordered},
-   * See {@link org.apache.calcite.plan.RelOptRuleOperandChildren} for more
-   * details.</p>
-   *
-   * @param clazz    Class of relational expression to match (must not be null)
-   * @param trait    Trait to match, or null to match any trait
-   * @param children Child operands
-   *
-   * @deprecated Use
-   * {@link #RelOptRuleOperand(Class, RelTrait, com.google.common.base.Predicate, RelOptRuleOperandChildren)};
-   * will be removed after
-   * {@link org.apache.calcite.util.Bug#upgrade(String) 0.9.2}
-   */
-  protected <R extends RelNode> RelOptRuleOperand(
-      Class<? extends R> clazz,
-      RelTrait trait,
-      RelOptRuleOperandChildren children) {
-    this(clazz, trait, Predicates.<R>alwaysTrue(), children);
-  }
 
   /**
    * Creates an operand.

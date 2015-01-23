@@ -22,7 +22,6 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -101,15 +100,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   protected final RelDataTypeSystem typeSystem;
 
   //~ Constructors -----------------------------------------------------------
-
-  /** Creates a type factory with default type system.
-   *
-   * @deprecated Will be removed after calcite-0.9.1.
-   */
-  protected RelDataTypeFactoryImpl() {
-    this(RelDataTypeSystem.DEFAULT);
-    Bug.upgrade("calcite-0.9.1");
-  }
 
   /** Creates a type factory. */
   protected RelDataTypeFactoryImpl(RelDataTypeSystem typeSystem) {

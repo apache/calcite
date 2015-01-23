@@ -73,7 +73,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -2279,62 +2278,6 @@ public abstract class RelOptUtil {
         notPushable.add(filter);
       }
     }
-  }
-
-  /**
-   * Splits a join condition.
-   *
-   * @param left      Left input to the join
-   * @param right     Right input to the join
-   * @param condition Join condition
-   * @return Array holding the output; neither element is null. Element 0 is
-   * the equi-join condition (or TRUE if empty); Element 1 is rest of the
-   * condition (or TRUE if empty).
-   *
-   * @deprecated Will be removed after 0.9.1
-   */
-  public static RexNode[] splitJoinCondition(
-      RelNode left,
-      RelNode right,
-      RexNode condition) {
-    Bug.upgrade("remove after 0.9.1");
-    final RexBuilder rexBuilder = left.getCluster().getRexBuilder();
-    final List<Integer> leftKeys = new ArrayList<Integer>();
-    final List<Integer> rightKeys = new ArrayList<Integer>();
-    final RexNode nonEquiCondition =
-        splitJoinCondition(
-            left,
-            right,
-            condition,
-            leftKeys,
-            rightKeys);
-    assert nonEquiCondition != null;
-    RexNode equiCondition = rexBuilder.makeLiteral(true);
-    assert leftKeys.size() == rightKeys.size();
-    final int keyCount = leftKeys.size();
-    int offset = left.getRowType().getFieldCount();
-    for (int i = 0; i < keyCount; i++) {
-      int leftKey = leftKeys.get(i);
-      int rightKey = rightKeys.get(i);
-      RexNode equi =
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.EQUALS,
-              rexBuilder.makeInputRef(left, leftKey),
-              rexBuilder.makeInputRef(
-                  right.getRowType().getFieldList().get(rightKey)
-                      .getType(),
-                  rightKey + offset));
-      if (i == 0) {
-        equiCondition = equi;
-      } else {
-        equiCondition =
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.AND,
-                equiCondition,
-                equi);
-      }
-    }
-    return new RexNode[]{equiCondition, nonEquiCondition};
   }
 
   /**
