@@ -197,6 +197,17 @@ public class ScannableTableTest {
     resultSet.close();
     assertThat(buf.toString(), equalTo("returnCount=2, projects=[2, 1]"));
     buf.setLength(0);
+
+    // Filter on one of the projected columns.
+    resultSet = statement.executeQuery(
+        "select \"i\",\"k\" from\n"
+            + "\"s\".\"beatles\" where \"k\" > 1941");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("i=4; k=1942\n"
+            + "i=6; k=1943\n"));
+    assertThat(buf.toString(),
+        equalTo("returnCount=4"));
+    buf.setLength(0);
   }
 
   /** A filter and project on a
