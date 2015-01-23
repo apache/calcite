@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.0.0-incubating-SNAPSHOT</version>
+    <version>1.0.0-incubating</version>
   </parent>
 
   <artifactId>calcite-avatica-server</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.0-incubating-SNAPSHOT</version>
+  <version>1.0.0-incubating</version>
   <name>Calcite Avatica Server</name>
   <description>JDBC server.</description>
 
@@ -53,7 +53,7 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <excludes/>
+          <excludes />
         </configuration>
       </plugin>
 
