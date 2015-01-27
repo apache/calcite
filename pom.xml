@@ -118,6 +118,7 @@ limitations under the License.
       <groupId>net.hydromatic</groupId>
       <artifactId>quidem</artifactId>
       <version>0.2</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.codehaus.janino</groupId>
