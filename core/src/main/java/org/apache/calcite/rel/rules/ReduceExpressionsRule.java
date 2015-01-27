@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -221,19 +222,29 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               RelMetadataQuery.getPulledUpPredicates(join.getRight());
           final RelOptPredicateList predicates =
               leftPredicates.union(rightPredicates.shift(fieldCount));
-          if (reduceExpressions(join, expList, predicates)) {
-            call.transformTo(
-                join.copy(
-                    join.getTraitSet(),
-                    expList.get(0),
-                    join.getLeft(),
-                    join.getRight(),
-                    join.getJoinType(),
-                    join.isSemiJoinDone()));
-
-            // New plan is absolutely better than old plan.
-            call.getPlanner().setImportance(join, 0.0);
+          if (!reduceExpressions(join, expList, predicates)) {
+            return;
           }
+          if (join instanceof EquiJoin) {
+            final JoinInfo joinInfo =
+                JoinInfo.of(join.getLeft(), join.getRight(), expList.get(0));
+            if (!joinInfo.isEqui()) {
+              // This kind of join must be an equi-join, and the condition is
+              // no longer an equi-join. SemiJoin is an example of this.
+              return;
+            }
+          }
+          call.transformTo(
+              join.copy(
+                  join.getTraitSet(),
+                  expList.get(0),
+                  join.getLeft(),
+                  join.getRight(),
+                  join.getJoinType(),
+                  join.isSemiJoinDone()));
+
+          // New plan is absolutely better than old plan.
+          call.getPlanner().setImportance(join, 0.0);
         }
       };
 

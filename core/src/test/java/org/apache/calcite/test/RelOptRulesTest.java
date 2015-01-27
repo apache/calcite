@@ -327,6 +327,25 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  ))R where R.deptno <=10 ");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-571">[CALCITE-571],
+   * ReduceExpressionsRule tries to reduce SemiJoin condition to non-equi
+   * condition</a>. */
+  @Test public void testSemiJoinReduceConstants() {
+    final HepProgram preProgram = HepProgram.builder().addRuleInstance(
+        SemiJoinRule.INSTANCE)
+            .build();
+
+    final HepProgram program = HepProgram.builder().addRuleInstance(
+        ReduceExpressionsRule.JOIN_INSTANCE)
+            .build();
+    checkPlanning(tester.withDecorrelation(false).withTrim(true), preProgram,
+        new HepPlanner(program),
+        "select e1.sal from (select * from emp where deptno = 200) as e1\n"
+            + "where e1.deptno in (\n"
+            + "  select e2.deptno from emp e2 where e2.sal = 100)");
+  }
+
   protected void semiJoinTrim() {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");

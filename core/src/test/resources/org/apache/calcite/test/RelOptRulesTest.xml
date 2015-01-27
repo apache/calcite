@@ -108,6 +108,39 @@ ProjectRel(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSemiJoinReduceConstants">
+        <Resource name="sql">
+            <![CDATA[select e1.sal from (select * from emp where deptno = 200) as e1
+where e1.deptno in (
+  select e2.deptno from emp e2 where e2.sal = 100)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  SemiJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalFilter(condition=[=($1, 200)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$1])
+      LogicalFilter(condition=[=($0, 100)])
+        LogicalProject(SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  SemiJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalFilter(condition=[=($1, 200)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$1])
+      LogicalFilter(condition=[=($0, 100)])
+        LogicalProject(SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testFullOuterJoinSimplificationToLeftOuter">
         <Resource name="sql">
             <![CDATA[select 1 from sales.dept d full outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie']]>
