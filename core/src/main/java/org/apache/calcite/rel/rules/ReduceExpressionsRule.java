@@ -56,6 +56,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.Collections;
 import java.util.List;
@@ -437,8 +438,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   private static ImmutableMap<RexNode, RexLiteral> predicateConstants(
       RelOptPredicateList predicates) {
-    final ImmutableMap.Builder<RexNode, RexLiteral> builder =
-        ImmutableMap.builder();
+    // We cannot use an ImmutableMap.Builder here. If there are multiple entries
+    // with the same key (e.g. "WHERE deptno = 1 AND deptno = 2"), it doesn't
+    // matter which we take, so the latter will replace the former.
+    final Map<RexNode, RexLiteral> builder = Maps.newHashMap();
     for (RexNode predicate : predicates.pulledUpPredicates) {
       switch (predicate.getKind()) {
       case EQUALS:
@@ -448,7 +451,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         }
       }
     }
-    return builder.build();
+    return ImmutableMap.copyOf(builder);
   }
 
   //~ Inner Classes ----------------------------------------------------------

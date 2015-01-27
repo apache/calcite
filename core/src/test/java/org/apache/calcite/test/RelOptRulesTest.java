@@ -603,7 +603,23 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " coalesce(2,null), row(7+8)"
             + " from dept d inner join emp e"
             + " on d.deptno = e.deptno + (5-5)"
-            + " where d.deptno=(7+8) and d.deptno=coalesce(2,null)");
+            + " where d.deptno=(7+8) and d.deptno=(8+7) and d.deptno=coalesce(2,null)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-570">[CALCITE-570],
+   * ReduceExpressionsRule throws "duplicate key" exception</a>. */
+  @Test public void testReduceConstantsDup() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select d.deptno"
+            + " from dept d"
+            + " where d.deptno=7 and d.deptno=8");
   }
 
   @Test public void testReduceConstants2() throws Exception {

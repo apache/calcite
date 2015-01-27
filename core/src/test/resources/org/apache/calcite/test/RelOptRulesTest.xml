@@ -491,12 +491,12 @@ LogicalProject(SAL=[$5])
     </TestCase>
     <TestCase name="testReduceConstants">
         <Resource name="sql">
-            <![CDATA[select 1+2, d.deptno+(3+4), (5+6)+d.deptno, cast(null as integer), coalesce(2,null), row(7+8) from dept d inner join emp e on d.deptno = e.deptno + (5-5) where d.deptno=(7+8) and d.deptno=coalesce(2,null)]]>
+            <![CDATA[select 1+2, d.deptno+(3+4), (5+6)+d.deptno, cast(null as integer), coalesce(2,null), row(7+8) from dept d inner join emp e on d.deptno = e.deptno + (5-5) where d.deptno=(7+8) and d.deptno=(8+7) and d.deptno=coalesce(2,null)]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)], EXPR$3=[null], EXPR$4=[CASE(IS NOT NULL(2), 2, null)], EXPR$5=[ROW(+(7, 8))])
-  LogicalFilter(condition=[AND(=($0, +(7, 8)), =($0, CASE(IS NOT NULL(2), 2, null)))])
+  LogicalFilter(condition=[AND(=($0, +(7, 8)), =($0, +(8, 7)), =($0, CASE(IS NOT NULL(2), 2, null)))])
     LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
       LogicalJoin(condition=[=($0, $11)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -507,12 +507,31 @@ LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[3], EXPR$1=[+($0, 7)], EXPR$2=[+(11, $0)], EXPR$3=[null], EXPR$4=[CAST(2):INTEGER], EXPR$5=[ROW(15)])
-  LogicalFilter(condition=[AND(=($0, 15), =($0, CAST(2):INTEGER))])
+  LogicalFilter(condition=[AND(=($0, 15), =($0, 15), =($0, CAST(2):INTEGER))])
     LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
       LogicalJoin(condition=[=($0, $11)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 0)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsDup">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from dept d where d.deptno=7 and d.deptno=8]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($0, 7), =($0, 8))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[8])
+  LogicalFilter(condition=[AND(=($0, 7), =($0, 8))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
