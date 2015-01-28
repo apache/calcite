@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -109,7 +108,7 @@ public class TableInRootSchemaTest {
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       int columnCount = columnNames.length;
       final List<Pair<String, RelDataType>> columnDesc =
-          new ArrayList<Pair<String, RelDataType>>(columnCount);
+          new ArrayList<>(columnCount);
       for (int i = 0; i < columnCount; i++) {
         final RelDataType colType = typeFactory
             .createJavaType(columnTypes[i]);
@@ -176,12 +175,9 @@ public class TableInRootSchemaTest {
       };
     }
 
-    // keep
     public RelNode toRel(RelOptTable.ToRelContext context,
         RelOptTable relOptTable) {
-      return new EnumerableTableScan(context.getCluster(),
-          context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
-          relOptTable, (Class) getElementType());
+      return EnumerableTableScan.create(context.getCluster(), relOptTable);
     }
   }
 }

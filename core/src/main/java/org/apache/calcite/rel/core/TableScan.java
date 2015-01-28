@@ -32,6 +32,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,11 +51,9 @@ public abstract class TableScan extends AbstractRelNode {
 
   //~ Constructors -----------------------------------------------------------
 
-  protected TableScan(
-      RelOptCluster cluster,
-      RelTraitSet traits,
+  protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table) {
-    super(cluster, traits);
+    super(cluster, traitSet);
     this.table = table;
     if (table.getRelOptSchema() != null) {
       cluster.getPlanner().registerSchema(table.getRelOptSchema());
@@ -95,6 +94,16 @@ public abstract class TableScan extends AbstractRelNode {
 
   @Override public RelDataType deriveRowType() {
     return table.getRowType();
+  }
+
+  /** Returns an identity projection for the given table. */
+  public static ImmutableIntList identity(RelOptTable table) {
+    return ImmutableIntList.identity(table.getRowType().getFieldCount());
+  }
+
+  /** Returns an identity projection. */
+  public ImmutableIntList identity() {
+    return identity(table);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

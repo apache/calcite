@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.model.JsonColumn;
 import org.apache.calcite.model.JsonCustomSchema;
+import org.apache.calcite.model.JsonCustomTable;
 import org.apache.calcite.model.JsonJdbcSchema;
 import org.apache.calcite.model.JsonLattice;
 import org.apache.calcite.model.JsonMapSchema;
@@ -131,13 +132,22 @@ public class ModelTest {
             + "       type: 'custom',\n"
             + "       name: 'My Custom Schema',\n"
             + "       factory: 'com.acme.MySchemaFactory',\n"
-            + "       operand: {a: 'foo', b: [1, 3.5] }\n"
+            + "       operand: {a: 'foo', b: [1, 3.5] },\n"
+            + "       tables: [\n"
+            + "         { type: 'custom', name: 'T1' },\n"
+            + "         { type: 'custom', name: 'T2', operand: {} },\n"
+            + "         { type: 'custom', name: 'T3', operand: {a: 'foo'} }\n"
+            + "       ]\n"
+            + "     },\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'has-no-operand'\n"
             + "     }\n"
             + "   ]\n"
             + "}",
         JsonRoot.class);
     assertEquals("1.0", root.version);
-    assertEquals(1, root.schemas.size());
+    assertEquals(2, root.schemas.size());
     final JsonCustomSchema schema = (JsonCustomSchema) root.schemas.get(0);
     assertEquals("My Custom Schema", schema.name);
     assertEquals("com.acme.MySchemaFactory", schema.factory);
@@ -148,6 +158,10 @@ public class ModelTest {
     assertEquals(2, list.size());
     assertEquals(1, list.get(0));
     assertEquals(3.5, list.get(1));
+
+    assertEquals(3, schema.tables.size());
+    assertNull(((JsonCustomTable) schema.tables.get(0)).operand);
+    assertTrue(((JsonCustomTable) schema.tables.get(1)).operand.isEmpty());
   }
 
   /** Tests that an immutable schema in a model cannot contain a

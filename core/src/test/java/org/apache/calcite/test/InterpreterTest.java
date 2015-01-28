@@ -47,6 +47,7 @@ import static org.junit.Assert.assertThat;
 public class InterpreterTest {
   private SchemaPlus rootSchema;
   private Planner planner;
+  private MyDataContext dataContext;
 
   /** Implementation of {@link DataContext} for executing queries without a
    * connection. */
@@ -82,11 +83,13 @@ public class InterpreterTest {
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
         .build();
     planner = Frameworks.getPlanner(config);
+    dataContext = new MyDataContext(planner);
   }
 
   @After public void tearDown() {
     rootSchema = null;
     planner = null;
+    dataContext = null;
   }
 
   /** Tests executing a simple plan using an interpreter. */
@@ -99,7 +102,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter = new Interpreter(null, convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter, "[b, 2]", "[c, 3]");
   }
 
@@ -134,8 +137,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
         "[100, 10, Bill, 10000.0, 1000]",
         "[110, 10, Theodore, 11500.0, 250]",
@@ -153,8 +155,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
         "[4, John]",
         "[4, Paul]",
@@ -170,8 +171,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
         "[4]");
   }
@@ -184,8 +184,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRowsUnordered(interpreter,
         "[George, 1]",
         "[Paul, 1]",
@@ -203,8 +202,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter, "[0]", "[10]");
   }
 
@@ -219,8 +217,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
         "[0]", "[10]", "[20]", "[30]", "[0]", "[10]", "[20]", "[30]");
   }
@@ -236,8 +233,7 @@ public class InterpreterTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
 
-    final Interpreter interpreter =
-        new Interpreter(new MyDataContext(planner), convert);
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter, "[0]", "[10]", "[20]", "[30]");
   }
 }

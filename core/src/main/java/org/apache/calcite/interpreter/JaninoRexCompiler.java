@@ -30,9 +30,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -67,13 +65,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     this.rexBuilder = rexBuilder;
   }
 
-  public Scalar compile(List<RelNode> inputs, List<RexNode> nodes) {
-    final RelDataTypeFactory.FieldInfoBuilder fieldBuilder =
-        rexBuilder.getTypeFactory().builder();
-    for (RelNode input : inputs) {
-      fieldBuilder.addAll(input.getRowType().getFieldList());
-    }
-    final RelDataType inputRowType = fieldBuilder.build();
+  public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
     final RexProgramBuilder programBuilder =
         new RexProgramBuilder(inputRowType, rexBuilder);
     for (RexNode node : nodes) {

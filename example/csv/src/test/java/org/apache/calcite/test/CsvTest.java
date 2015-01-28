@@ -133,7 +133,8 @@ public class CsvTest {
   @Test public void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
     checkSql("model", "explain plan for select * from EMPS",
-        "PLAN=EnumerableTableScan(table=[[SALES, EMPS]])\n");
+        "PLAN=EnumerableInterpreter\n"
+            + "  BindableTableScan(table=[[SALES, EMPS]])\n");
   }
 
   @Test public void testPushDownProject() throws SQLException {

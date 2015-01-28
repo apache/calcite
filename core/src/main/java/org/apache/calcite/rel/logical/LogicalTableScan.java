@@ -20,9 +20,15 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.schema.Table;
+
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -83,11 +89,25 @@ public final class LogicalTableScan extends TableScan {
     return this;
   }
 
-  /** Creates a LogicalTableScan. */
+  /** Creates a LogicalTableScan.
+   *  @param cluster Cluster
+   * @param relOptTable Table
+   */
   public static LogicalTableScan create(RelOptCluster cluster,
-      RelOptTable table) {
-    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalTableScan(cluster, traitSet, table);
+      final RelOptTable relOptTable) {
+    final Table table = relOptTable.unwrap(Table.class);
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(Convention.NONE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    if (table != null) {
+                      return table.getStatistic().getCollations();
+                    }
+                    return ImmutableList.of();
+                  }
+                });
+    return new LogicalTableScan(cluster, traitSet, relOptTable);
   }
 }
 

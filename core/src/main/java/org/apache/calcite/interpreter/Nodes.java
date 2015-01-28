@@ -16,13 +16,7 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -31,14 +25,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.rules.FilterTableRule;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.schema.FilterableTable;
-import org.apache.calcite.schema.ProjectableFilterableTable;
-import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -56,77 +43,6 @@ public class Nodes {
       super(interpreter);
     }
 
-    public void rewrite(Project project) {
-      RelNode input = project.getInput();
-      final Mappings.TargetMapping mapping = project.getMapping();
-      if (mapping == null) {
-        return;
-      }
-      RexNode condition;
-      if (input instanceof Filter) {
-        final Filter filter = (Filter) input;
-        condition = filter.getCondition();
-        input = filter.getInput();
-      } else {
-        condition = project.getCluster().getRexBuilder().makeLiteral(true);
-      }
-      if (input instanceof TableScan) {
-        final TableScan scan = (TableScan) input;
-        final RelOptTable table = scan.getTable();
-        final ProjectableFilterableTable projectableFilterableTable =
-            table.unwrap(ProjectableFilterableTable.class);
-        if (projectableFilterableTable != null) {
-          final FilterTableRule.FilterSplit filterSplit =
-              FilterTableRule.FilterSplit.of(projectableFilterableTable,
-                  condition, interpreter.getDataContext());
-          if (filterSplit.rejectedFilters.isEmpty()) {
-            // Only push down projects & filters if there are no rejected
-            // filters. The rejected filter might need columns that are not
-            // projected. See CALCITE-445.
-            rel = new FilterScan(project.getCluster(), project.getTraitSet(),
-                table, filterSplit.acceptedFilters,
-                ImmutableIntList.copyOf(Mappings.asList(mapping.inverse())));
-            rel = RelOptUtil.createFilter(rel,
-                RexUtil.apply(mapping, filterSplit.rejectedFilters));
-          }
-        }
-      }
-    }
-
-    public void rewrite(Filter filter) {
-      if (filter.getInput() instanceof TableScan) {
-        final TableScan scan = (TableScan) filter.getInput();
-        final RelOptTable table = scan.getTable();
-        final ProjectableFilterableTable projectableFilterableTable =
-            table.unwrap(ProjectableFilterableTable.class);
-        if (projectableFilterableTable != null) {
-          final FilterTableRule.FilterSplit filterSplit =
-              FilterTableRule.FilterSplit.of(projectableFilterableTable,
-                  filter.getCondition(),
-                  interpreter.getDataContext());
-          if (!filterSplit.acceptedFilters.isEmpty()) {
-            rel = new FilterScan(scan.getCluster(), scan.getTraitSet(),
-                table, filterSplit.acceptedFilters, null);
-            rel = RelOptUtil.createFilter(rel, filterSplit.rejectedFilters);
-            return;
-          }
-        }
-        final FilterableTable filterableTable =
-            table.unwrap(FilterableTable.class);
-        if (filterableTable != null) {
-          final FilterTableRule.FilterSplit filterSplit =
-              FilterTableRule.FilterSplit.of(filterableTable,
-                  filter.getCondition(),
-                  interpreter.getDataContext());
-          if (!filterSplit.acceptedFilters.isEmpty()) {
-            rel = new FilterScan(scan.getCluster(), scan.getTraitSet(),
-                table, filterSplit.acceptedFilters, null);
-            rel = RelOptUtil.createFilter(rel, filterSplit.rejectedFilters);
-          }
-        }
-      }
-    }
-
     public void visit(Aggregate agg) {
       node = new AggregateNode(interpreter, agg);
     }
@@ -139,32 +55,18 @@ public class Nodes {
       node = new ProjectNode(interpreter, project);
     }
 
-    /** Per {@link #rewrite(RelNode)}, writes to {@link #rel}.
-     *
-     * <p>We don't handle {@link org.apache.calcite.rel.core.Calc} directly.
-     * Expand to a {@link org.apache.calcite.rel.core.Project}
-     * on {@link org.apache.calcite.rel.core.Filter} (or just a
-     * {@link org.apache.calcite.rel.core.Project}). */
-    public void rewrite(Calc calc) {
-      final Pair<ImmutableList<RexNode>, ImmutableList<RexNode>> projectFilter =
-          calc.getProgram().split();
-      rel = calc.getInput();
-      rel = RelOptUtil.createFilter(rel, projectFilter.right);
-      rel = RelOptUtil.createProject(rel, projectFilter.left,
-          calc.getRowType().getFieldNames());
-    }
-
     public void visit(Values value) {
       node = new ValuesNode(interpreter, value);
     }
 
     public void visit(TableScan scan) {
-      node = new TableScanNode(interpreter, scan, ImmutableList.<RexNode>of(),
-          null);
+      node = TableScanNode.create(interpreter, scan,
+          ImmutableList.<RexNode>of(), null);
     }
 
-    public void visit(FilterScan scan) {
-      node = new TableScanNode(interpreter, scan, scan.filters, scan.projects);
+    public void visit(Bindables.BindableTableScan scan) {
+      node = TableScanNode.create(interpreter, scan, scan.filters,
+          scan.projects);
     }
 
     public void visit(Sort sort) {
@@ -181,21 +83,6 @@ public class Nodes {
 
     public void visit(Window window) {
       node = new WindowNode(interpreter, window);
-    }
-  }
-
-  /** Table scan that applies filters and optionally projects. Only used in an
-   * interpreter. */
-  public static class FilterScan extends TableScan {
-    private final ImmutableList<RexNode> filters;
-    private final ImmutableIntList projects;
-
-    protected FilterScan(RelOptCluster cluster, RelTraitSet traits,
-        RelOptTable table, ImmutableList<RexNode> filters,
-        ImmutableIntList projects) {
-      super(cluster, traits, table);
-      this.filters = filters;
-      this.projects = projects;
     }
   }
 }

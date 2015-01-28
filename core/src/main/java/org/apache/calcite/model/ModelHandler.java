@@ -220,6 +220,9 @@ public class ModelHandler {
 
   /** Adds extra entries to an operand to a custom schema. */
   protected Map<String, Object> operandMap(Map<String, Object> operand) {
+    if (operand == null) {
+      return ImmutableMap.of();
+    }
     final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     builder.putAll(operand);
     for (ExtraOperand extraOperand : ExtraOperand.values()) {

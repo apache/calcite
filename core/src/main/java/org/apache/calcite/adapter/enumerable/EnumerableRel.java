@@ -37,23 +37,21 @@ public interface EnumerableRel
   RelFactories.FilterFactory FILTER_FACTORY =
       new RelFactories.FilterFactory() {
         public RelNode createFilter(RelNode child, RexNode condition) {
-          return new EnumerableFilter(child.getCluster(),
-              child.getTraitSet(), child, condition);
+          return EnumerableFilter.create(child, condition);
         }
       };
 
   RelFactories.ProjectFactory PROJECT_FACTORY =
       new RelFactories.ProjectFactory() {
         public RelNode createProject(RelNode child,
-            List<? extends RexNode> exprs, List<String> fieldNames) {
+            List<? extends RexNode> projects, List<String> fieldNames) {
           final RelOptCluster cluster = child.getCluster();
           final RelDataType rowType =
-              RexUtil.createStructType(cluster.getTypeFactory(), exprs,
+              RexUtil.createStructType(cluster.getTypeFactory(), projects,
                   fieldNames == null ? null
                       : SqlValidatorUtil.uniquify(fieldNames,
                           SqlValidatorUtil.F_SUGGESTER));
-          return new EnumerableProject(cluster,
-              child.getTraitSet(), child, exprs, rowType);
+          return EnumerableProject.create(child, projects, rowType);
         }
       };
 

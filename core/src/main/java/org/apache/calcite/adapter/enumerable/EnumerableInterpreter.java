@@ -45,15 +45,31 @@ public class EnumerableInterpreter extends SingleRel
   /**
    * Creates an EnumerableInterpreter.
    *
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
    * @param cluster Cluster
    * @param traitSet Traits
    * @param input Input relation
    * @param factor Cost multiply factor
    */
-  public EnumerableInterpreter(RelOptCluster cluster,
-      RelTraitSet traitSet, RelNode input, double factor) {
+  public EnumerableInterpreter(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, double factor) {
     super(cluster, traitSet, input);
+    assert getConvention() instanceof EnumerableConvention;
     this.factor = factor;
+  }
+
+  /**
+   * Creates an EnumerableInterpreter.
+   *
+   * @param input Input relation
+   * @param factor Cost multiply factor
+   */
+  public static EnumerableInterpreter create(RelNode input, double factor) {
+    final RelTraitSet traitSet = input.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    return new EnumerableInterpreter(input.getCluster(), traitSet, input,
+        factor);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {

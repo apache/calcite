@@ -84,9 +84,7 @@ public class FrameworksTest {
                 table.getRowType(typeFactory)) {
             };
             final EnumerableTableScan tableRel =
-                new EnumerableTableScan(
-                    cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
-                    relOptTable, Object[].class);
+                EnumerableTableScan.create(cluster, relOptTable);
 
             // "WHERE i > 1"
             final RexBuilder rexBuilder = cluster.getRexBuilder();

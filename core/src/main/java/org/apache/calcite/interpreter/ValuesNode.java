@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -47,8 +46,7 @@ public class ValuesNode implements Node {
     for (ImmutableList<RexLiteral> tuple : tuples) {
       nodes.addAll(tuple);
     }
-    final Scalar scalar =
-        interpreter.compile(nodes, ImmutableList.<RelNode>of());
+    final Scalar scalar = interpreter.compile(nodes, null);
     final Object[] values = new Object[nodes.size()];
     final Context context = interpreter.createContext();
     scalar.execute(context, values);

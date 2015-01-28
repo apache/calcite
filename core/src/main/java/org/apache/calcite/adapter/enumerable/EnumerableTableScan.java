@@ -29,12 +29,19 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.BuiltInMethod;
+
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -47,6 +54,9 @@ public class EnumerableTableScan
     implements EnumerableRel {
   private final Class elementType;
 
+  /** Creates an EnumerableTableScan.
+   *
+   * <p>Use {@link #create} unless you know what you are doing. */
   public EnumerableTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, Class elementType) {
     super(cluster, traitSet, table);
@@ -54,12 +64,58 @@ public class EnumerableTableScan
     this.elementType = elementType;
   }
 
+  /** Creates an EnumerableTableScan. */
+  public static EnumerableTableScan create(RelOptCluster cluster,
+      RelOptTable relOptTable) {
+    final Table table = relOptTable.unwrap(Table.class);
+    Class elementType = EnumerableTableScan.deduceElementType(table);
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    if (table != null) {
+                      return table.getStatistic().getCollations();
+                    }
+                    return ImmutableList.of();
+                  }
+                });
+    return new EnumerableTableScan(cluster, traitSet, relOptTable, elementType);
+  }
+
+  /** Returns whether EnumerableTableScan can generate code to handle a
+   * particular variant of the Table SPI. */
+  public static boolean canHandle(Table table) {
+    // FilterableTable and ProjectableFilterableTable cannot be handled in
+    // enumerable convention because they might reject filters and those filters
+    // would need to be handled dynamically.
+    return table instanceof QueryableTable
+        || table instanceof ScannableTable;
+  }
+
+  public static Class deduceElementType(Table table) {
+    if (table instanceof QueryableTable) {
+      final QueryableTable queryableTable = (QueryableTable) table;
+      final Type type = queryableTable.getElementType();
+      if (type instanceof Class) {
+        return (Class) type;
+      } else {
+        return Object[].class;
+      }
+    } else if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      return Object[].class;
+    } else {
+      return Object.class;
+    }
+  }
+
   private Expression getExpression(PhysType physType) {
     final Expression expression = table.getExpression(Queryable.class);
     final Expression expression2 = toEnumerable(expression);
     assert Types.isAssignableFrom(Enumerable.class, expression2.getType());
-    Expression expression3 = toRows(physType, expression2);
-    return expression3;
+    return toRows(physType, expression2);
   }
 
   private Expression toEnumerable(Expression expression) {
@@ -100,7 +156,7 @@ public class EnumerableTableScan
     final ParameterExpression row_ =
         Expressions.parameter(elementType, "row");
     final int fieldCount = table.getRowType().getFieldCount();
-    List<Expression> expressionList = new ArrayList<Expression>(fieldCount);
+    List<Expression> expressionList = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
       expressionList.add(
           oldFormat.field(row_, i, physType.getJavaFieldType(i)));
@@ -131,8 +187,7 @@ public class EnumerableTableScan
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new EnumerableTableScan(getCluster(), traitSet, table,
-        elementType);
+    return new EnumerableTableScan(getCluster(), traitSet, table, elementType);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

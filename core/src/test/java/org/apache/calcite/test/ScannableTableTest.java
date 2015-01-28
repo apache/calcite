@@ -39,7 +39,6 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Bug;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -207,7 +206,7 @@ public class ScannableTableTest {
         equalTo("i=4; k=1942\n"
             + "i=6; k=1943\n"));
     assertThat(buf.toString(),
-        equalTo("returnCount=4"));
+        equalTo("returnCount=4, projects=[0, 2]"));
     buf.setLength(0);
   }
 
@@ -233,9 +232,7 @@ public class ScannableTableTest {
     assertThat(CalciteAssert.toString(resultSet), equalTo("k=1940\nk=1942\n"));
     resultSet.close();
     assertThat(buf.toString(),
-        equalTo(Bug.CALCITE_445_FIXED
-                ? "returnCount=4, projects=[0, 2]"
-                : "returnCount=4"));
+        equalTo("returnCount=4, projects=[2, 0]"));
     buf.setLength(0);
   }
 
@@ -278,9 +275,7 @@ public class ScannableTableTest {
     ResultSet resultSet = statement.executeQuery(
         "select \"k\" from \"s\".\"beatles2\" where \"k\" > 1941");
     assertThat(buf.toString(),
-        equalTo(Bug.CALCITE_445_FIXED
-                ? "returnCount=4, projects=[2]"
-                : "returnCount=4"));
+        equalTo("returnCount=4, projects=[2]"));
     assertThat(CalciteAssert.toString(resultSet), equalTo("k=1942\nk=1943\n"));
   }
 

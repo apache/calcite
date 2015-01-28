@@ -40,7 +40,7 @@ public class JoinNode implements Node {
     this.rightSource = interpreter.source(rel, 1);
     this.sink = interpreter.sink(rel);
     this.condition = interpreter.compile(ImmutableList.of(rel.getCondition()),
-        rel.getInputs());
+        interpreter.combinedRowType(rel.getInputs()));
     this.rel = rel;
     this.context = interpreter.createContext();
 

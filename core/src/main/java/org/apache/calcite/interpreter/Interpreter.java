@@ -19,9 +19,17 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.rules.CalcSplitRule;
+import org.apache.calcite.rel.rules.FilterTableScanRule;
+import org.apache.calcite.rel.rules.ProjectTableScanRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -31,6 +39,7 @@ import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
 import org.apache.calcite.util.ReflectiveVisitor;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -55,11 +64,25 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   protected final ScalarCompiler scalarCompiler;
 
   public Interpreter(DataContext dataContext, RelNode rootRel) {
-    this.dataContext = dataContext;
+    this.dataContext = Preconditions.checkNotNull(dataContext);
     this.scalarCompiler =
         new JaninoRexCompiler(rootRel.getCluster().getRexBuilder());
-    Compiler compiler = new Nodes.CoreCompiler(this);
-    this.rootRel = compiler.visitRoot(rootRel);
+    final RelNode rel = optimize(rootRel);
+    final Compiler compiler = new Nodes.CoreCompiler(this);
+    this.rootRel = compiler.visitRoot(rel);
+  }
+
+  private RelNode optimize(RelNode rootRel) {
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(CalcSplitRule.INSTANCE)
+        .addRuleInstance(FilterTableScanRule.INSTANCE)
+        .addRuleInstance(FilterTableScanRule.INTERPRETER)
+        .addRuleInstance(ProjectTableScanRule.INSTANCE)
+        .addRuleInstance(ProjectTableScanRule.INTERPRETER).build();
+    final HepPlanner planner = new HepPlanner(hepProgram);
+    planner.setRoot(rootRel);
+    rootRel = planner.findBestExp();
+    return rootRel;
   }
 
   public Enumerator<Object[]> enumerator() {
@@ -108,17 +131,29 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   }
 
   /** Compiles an expression to an executable form. */
-  public Scalar compile(List<RexNode> nodes, List<RelNode> inputs) {
-    return scalarCompiler.compile(inputs, nodes);
+  public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+    if (inputRowType == null) {
+      inputRowType = dataContext.getTypeFactory().builder().build();
+    }
+    return scalarCompiler.compile(nodes, inputRowType);
+  }
+
+  RelDataType combinedRowType(List<RelNode> inputs) {
+    final RelDataTypeFactory.FieldInfoBuilder builder =
+        dataContext.getTypeFactory().builder();
+    for (RelNode input : inputs) {
+      builder.addAll(input.getRowType().getFieldList());
+    }
+    return builder.build();
   }
 
   /** Not used. */
   private class FooCompiler implements ScalarCompiler {
-    public Scalar compile(List<RelNode> inputs, List<RexNode> nodes) {
+    public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
       final RexNode node = nodes.get(0);
       if (node instanceof RexCall) {
         final RexCall call = (RexCall) node;
-        final Scalar argScalar = compile(inputs, call.getOperands());
+        final Scalar argScalar = compile(call.getOperands(), inputRowType);
         return new Scalar() {
           final Object[] args = new Object[call.getOperands().size()];
 
@@ -394,7 +429,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   /** Converts a list of expressions to a scalar that can compute their
    * values. */
   interface ScalarCompiler {
-    Scalar compile(List<RelNode> inputs, List<RexNode> nodes);
+    Scalar compile(List<RexNode> nodes, RelDataType inputRowType);
   }
 }
 

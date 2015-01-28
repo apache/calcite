@@ -112,9 +112,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
   @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof ImmutableIntList
-        && Arrays.equals(ints, ((ImmutableIntList) obj).ints)
-        || obj instanceof List
-        && obj.equals(this);
+        ? Arrays.equals(ints, ((ImmutableIntList) obj).ints)
+        : obj instanceof List
+            && obj.equals(this);
   }
 
   @Override public String toString() {
@@ -234,6 +234,15 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
         return upper - lower;
       }
     };
+  }
+
+  /** Returns the identity list [0, ..., count - 1]. */
+  public static ImmutableIntList identity(int count) {
+    final int[] integers = new int[count];
+    for (int i = 0; i < integers.length; i++) {
+      integers[i] = i;
+    }
+    return new ImmutableIntList(integers);
   }
 
   /** Special sub-class of {@link ImmutableIntList} that is always

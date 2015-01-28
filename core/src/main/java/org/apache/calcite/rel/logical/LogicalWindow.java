@@ -52,6 +52,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Sub-class of {@link org.apache.calcite.rel.core.Window}
+ * not targeted at any particular engine or calling convention.
  */
 public final class LogicalWindow extends Window {
   /**

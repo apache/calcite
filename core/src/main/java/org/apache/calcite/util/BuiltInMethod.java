@@ -55,6 +55,7 @@ import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
@@ -110,10 +111,12 @@ public enum BuiltInMethod {
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
   SCHEMA_GET_TABLE(Schema.class, "getTable", String.class),
   SCHEMA_PLUS_UNWRAP(SchemaPlus.class, "unwrap", Class.class),
-  SCHEMAS_ENUMERABLE(Schemas.class, "enumerable", ScannableTable.class,
-      DataContext.class),
-  SCHEMAS_ENUMERABLE2(Schemas.class, "enumerable", FilterableTable.class,
-      DataContext.class),
+  SCHEMAS_ENUMERABLE_SCANNABLE(Schemas.class, "enumerable",
+      ScannableTable.class, DataContext.class),
+  SCHEMAS_ENUMERABLE_FILTERABLE(Schemas.class, "enumerable",
+      FilterableTable.class, DataContext.class),
+  SCHEMAS_ENUMERABLE_PROJECTABLE_FILTERABLE(Schemas.class, "enumerable",
+      ProjectableFilterableTable.class, DataContext.class),
   SCHEMAS_QUERYABLE(Schemas.class, "queryable", DataContext.class,
       SchemaPlus.class, Class.class, String.class),
   REFLECTIVE_SCHEMA_GET_TARGET(ReflectiveSchema.class, "getTarget"),

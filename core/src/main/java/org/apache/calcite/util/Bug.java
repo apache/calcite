@@ -157,11 +157,6 @@ public abstract class Bug {
   public static final boolean CALCITE_319_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-445">[CALCITE-445]
-   * Pull up filters rejected by a ProjectableFilterableTable</a> is fixed. */
-  public static final boolean CALCITE_445_FIXED = false;
-
-  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-461">[CALCITE-461]
    * Convert more planner rules to handle grouping sets</a> is fixed. */
   public static final boolean CALCITE_461_FIXED = false;
@@ -173,10 +168,21 @@ public abstract class Bug {
 
   /**
    * Use this method to flag temporary code.
+   *
+   * <p>Example #1:
+   * <blockquote><pre>
+   * if (Bug.remark("baz fixed") == null) {
+   *   baz();
+   * }</pre></blockquote>
+   *
+   * <p>Example #2:
+   * <blockquote><pre>
+   * /&#42;&#42; &#64;see Bug#remark Remove before checking in &#42;/
+   * void uselessMethod() {}
+   * </pre></blockquote>
    */
-  public static boolean remark(String remark) {
-    Util.discard(remark);
-    return false;
+  public static <T> T remark(T remark) {
+    return remark;
   }
 
   /**

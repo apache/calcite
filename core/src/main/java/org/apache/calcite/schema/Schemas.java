@@ -173,14 +173,20 @@ public final class Schemas {
           Expressions.constant(tableName));
       if (ScannableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
-            BuiltInMethod.SCHEMAS_ENUMERABLE.method,
+            BuiltInMethod.SCHEMAS_ENUMERABLE_SCANNABLE.method,
             Expressions.convert_(expression, ScannableTable.class),
             DataContext.ROOT);
       }
       if (FilterableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
-            BuiltInMethod.SCHEMAS_ENUMERABLE2.method,
+            BuiltInMethod.SCHEMAS_ENUMERABLE_FILTERABLE.method,
             Expressions.convert_(expression, FilterableTable.class),
+            DataContext.ROOT);
+      }
+      if (ProjectableFilterableTable.class.isAssignableFrom(clazz)) {
+        return Expressions.call(
+            BuiltInMethod.SCHEMAS_ENUMERABLE_PROJECTABLE_FILTERABLE.method,
+            Expressions.convert_(expression, ProjectableFilterableTable.class),
             DataContext.ROOT);
       }
     } else {
@@ -239,6 +245,23 @@ public final class Schemas {
   public static Enumerable<Object[]> enumerable(final FilterableTable table,
       final DataContext root) {
     return table.scan(root, ImmutableList.<RexNode>of());
+  }
+
+  /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
+   * a given table, not applying any filters and projecting all columns,
+   * representing each row as an object array. */
+  public static Enumerable<Object[]> enumerable(
+      final ProjectableFilterableTable table, final DataContext root) {
+    return table.scan(root, ImmutableList.<RexNode>of(),
+        identity(table.getRowType(root.getTypeFactory()).getFieldCount()));
+  }
+
+  private static int[] identity(int count) {
+    final int[] integers = new int[count];
+    for (int i = 0; i < integers.length; i++) {
+      integers[i] = i;
+    }
+    return integers;
   }
 
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over object

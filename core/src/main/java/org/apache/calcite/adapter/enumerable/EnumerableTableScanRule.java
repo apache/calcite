@@ -16,30 +16,37 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.schema.Table;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}
  * relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
-public class EnumerableTableFunctionScanRule extends ConverterRule {
-  public EnumerableTableFunctionScanRule() {
-    super(LogicalTableFunctionScan.class, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableTableFunctionScanRule");
+ * {@link EnumerableConvention enumerable calling convention}. */
+public class EnumerableTableScanRule extends ConverterRule {
+  public EnumerableTableScanRule() {
+    super(LogicalTableScan.class, Convention.NONE,
+        EnumerableConvention.INSTANCE, "EnumerableTableScanRule");
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final RelTraitSet traitSet =
-        rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
-    LogicalTableFunctionScan tbl = (LogicalTableFunctionScan) rel;
-    return new EnumerableTableFunctionScan(rel.getCluster(), traitSet,
-        tbl.getInputs(), tbl.getElementType(), tbl.getRowType(),
-        tbl.getCall(), tbl.getColumnMappings());
+    LogicalTableScan scan = (LogicalTableScan) rel;
+    final RelOptTable relOptTable = scan.getTable();
+    final Table table = relOptTable.unwrap(Table.class);
+    if (!EnumerableTableScan.canHandle(table)) {
+      return null;
+    }
+    final Expression expression = relOptTable.getExpression(Object.class);
+    if (expression == null) {
+      return null;
+    }
+    return EnumerableTableScan.create(scan.getCluster(), relOptTable);
   }
 }
 
-// End EnumerableTableFunctionScanRule.java
+// End EnumerableTableScanRule.java

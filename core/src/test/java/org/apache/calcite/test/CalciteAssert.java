@@ -535,21 +535,27 @@ public class CalciteAssert {
     final StringBuilder buf = new StringBuilder();
     final ResultSetMetaData metaData = resultSet.getMetaData();
     while (resultSet.next()) {
-      int n = metaData.getColumnCount();
-      if (n > 0) {
-        for (int i = 1;; i++) {
-          buf.append(metaData.getColumnLabel(i))
-              .append("=")
-              .append(resultSet.getString(i));
-          if (i == n) {
-            break;
-          }
-          buf.append("; ");
-        }
-      }
-      buf.append("\n");
+      rowToString(resultSet, buf, metaData).append("\n");
     }
     return buf.toString();
+  }
+
+  /** Converts one row to a string. */
+  static StringBuilder rowToString(ResultSet resultSet, StringBuilder buf,
+      ResultSetMetaData metaData) throws SQLException {
+    int n = metaData.getColumnCount();
+    if (n > 0) {
+      for (int i = 1;; i++) {
+        buf.append(metaData.getColumnLabel(i))
+            .append("=")
+            .append(resultSet.getString(i));
+        if (i == n) {
+          break;
+        }
+        buf.append("; ");
+      }
+    }
+    return buf;
   }
 
   static int countRows(ResultSet resultSet) throws SQLException {
@@ -564,18 +570,7 @@ public class CalciteAssert {
       Collection<String> list) throws SQLException {
     final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
-      int n = resultSet.getMetaData().getColumnCount();
-      if (n > 0) {
-        for (int i = 1;; i++) {
-          buf.append(resultSet.getMetaData().getColumnLabel(i))
-              .append("=")
-              .append(resultSet.getString(i));
-          if (i == n) {
-            break;
-          }
-          buf.append("; ");
-        }
-      }
+      rowToString(resultSet, buf, resultSet.getMetaData());
       list.add(buf.toString());
       buf.setLength(0);
     }

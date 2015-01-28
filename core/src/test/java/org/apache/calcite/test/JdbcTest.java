@@ -253,8 +253,8 @@ public class JdbcTest {
   @Test public void testTableFunctionDynamicStructure()
       throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
-    final PreparedStatement ps = connection.prepareStatement(
-        "select *\n" + "from table(\"s\".\"multiplication\"(4, 3, ?))\n");
+    final PreparedStatement ps = connection.prepareStatement("select *\n"
+        + "from table(\"s\".\"multiplication\"(4, 3, ?))\n");
     ps.setInt(1, 100);
     ResultSet resultSet = ps.executeQuery();
     assertThat(CalciteAssert.toString(resultSet),
