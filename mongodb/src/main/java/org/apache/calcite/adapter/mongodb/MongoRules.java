@@ -261,7 +261,7 @@ public class MongoRules {
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new MongoProject(project.getCluster(), traitSet,
           convert(project.getInput(), traitSet), project.getProjects(),
-          project.getRowType(), LogicalProject.Flags.BOXED);
+          project.getRowType());
     }
   }
 

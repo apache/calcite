@@ -593,7 +593,7 @@ public class SubstitutionVisitor {
       return new LogicalProject(node.cluster,
           node.cluster.traitSetOf(RelCollationImpl.EMPTY),
           fromMutable(project.input),
-          project.projects, project.rowType, Project.Flags.BOXED);
+          project.projects, project.rowType);
     case FILTER:
       final MutableFilter filter = (MutableFilter) node;
       return new LogicalFilter(node.cluster, fromMutable(filter.input),

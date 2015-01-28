@@ -285,7 +285,7 @@ public class SplunkPushDownRule
             proj.getCollationList().isEmpty()
                 ? RelCollationImpl.EMPTY
                 : proj.getCollationList().get(0)),
-        rel, proj.getProjects(), proj.getRowType(), proj.getFlags());
+        rel, proj.getProjects(), proj.getRowType());
   }
 
   // TODO: use StringBuilder instead of String

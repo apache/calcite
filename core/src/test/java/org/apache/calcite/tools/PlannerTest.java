@@ -38,7 +38,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -790,8 +789,7 @@ public class PlannerTest {
           convert(project.getInput(),
               project.getInput().getTraitSet().replace(getOutConvention())),
           project.getProjects(),
-          project.getRowType(),
-          Project.Flags.BOXED);
+          project.getRowType());
     }
   }
 

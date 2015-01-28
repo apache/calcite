@@ -2295,10 +2295,6 @@ public abstract class RelOptUtil {
   public static boolean checkProjAndChildInputs(
       Project project,
       boolean checkNames) {
-    if (!project.isBoxed()) {
-      return false;
-    }
-
     int n = project.getProjects().size();
     RelDataType inputType = project.getInput().getRowType();
     if (inputType.getFieldList().size() != n) {
@@ -2501,7 +2497,7 @@ public abstract class RelOptUtil {
       names.add(field.getName());
     }
     return new LogicalProject(
-        child.getCluster(), child, nodes, names, LogicalProject.Flags.BOXED);
+        child.getCluster(), child, nodes, names);
   }
 
   /** Returns whether relational expression {@code target} occurs within a
@@ -2708,8 +2704,7 @@ public abstract class RelOptUtil {
             : collationList.get(0)),
         child,
         exprs,
-        rowType,
-        Project.Flags.BOXED);
+        rowType);
   }
 
   /**
