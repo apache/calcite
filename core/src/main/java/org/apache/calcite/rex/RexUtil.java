@@ -614,6 +614,37 @@ public class RexUtil {
   }
 
   /**
+   * Returns whether the leading edge of a given array of expressions is
+   * wholly {@link RexInputRef} objects with types and names corresponding
+   * to the underlying row type.
+   *
+   * @deprecated Remove before
+   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+  public static boolean containIdentity(List<? extends RexNode> exps,
+      RelDataType rowType, RelDataType childRowType) {
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    List<RelDataTypeField> childFields = childRowType.getFieldList();
+    int fieldCount = childFields.size();
+    if (exps.size() != fieldCount) {
+      return false;
+    }
+    for (int i = 0; i < exps.size(); i++) {
+      RexNode exp = exps.get(i);
+      if (!(exp instanceof RexInputRef)) {
+        return false;
+      }
+      RexInputRef var = (RexInputRef) exp;
+      if (var.getIndex() != i) {
+        return false;
+      }
+      if (!fields.get(i).getName().equals(childFields.get(i).getName())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Converts a collection of expressions into an AND.
    * If there are zero expressions, returns TRUE.
    * If there is one expression, returns just that expression.

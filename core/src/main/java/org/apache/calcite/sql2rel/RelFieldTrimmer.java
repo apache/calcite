@@ -106,6 +106,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   private final RelFactories.SortFactory sortFactory;
   private final RelFactories.AggregateFactory aggregateFactory;
   private final RelFactories.SetOpFactory setOpFactory;
+  private final boolean useNamesInIdentityProjCalc;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -138,6 +139,36 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       RelFactories.SortFactory sortFactory,
       RelFactories.AggregateFactory aggregateFactory,
       RelFactories.SetOpFactory setOpFactory) {
+    this(validator, projectFactory, filterFactory, joinFactory,
+         semiJoinFactory, sortFactory, aggregateFactory, setOpFactory,
+         false);
+  }
+
+  /**
+   * Creates a RelFieldTrimmer.
+   *
+   * @param validator Validator
+   * @param projectFactory Project factory
+   * @param filterFactory Filter factory
+   * @param joinFactory Join factory
+   * @param semiJoinFactory SemiJoin factory
+   * @param sortFactory Sort factory
+   * @param aggregateFactory Aggregate factory
+   * @param setOpFactory SetOp factory
+   * @param useNamesInIdentityProjCalc
+   *            Include field names in identity project determination
+   *
+   * @deprecated Remove before
+   * {@link org.apache.calcite.util.Bug#upgrade Calcite-1.1}. */
+  public RelFieldTrimmer(SqlValidator validator,
+      RelFactories.ProjectFactory projectFactory,
+      RelFactories.FilterFactory filterFactory,
+      RelFactories.JoinFactory joinFactory,
+      RelFactories.SemiJoinFactory semiJoinFactory,
+      RelFactories.SortFactory sortFactory,
+      RelFactories.AggregateFactory aggregateFactory,
+      RelFactories.SetOpFactory setOpFactory,
+      boolean useNamesInIdentityProjCalc) {
     Util.discard(validator); // may be useful one day
     this.trimFieldsDispatcher =
         ReflectUtil.createMethodDispatcher(
@@ -154,6 +185,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     this.sortFactory = Preconditions.checkNotNull(sortFactory);
     this.aggregateFactory = Preconditions.checkNotNull(aggregateFactory);
     this.setOpFactory = Preconditions.checkNotNull(setOpFactory);
+    this.useNamesInIdentityProjCalc = useNamesInIdentityProjCalc;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -378,9 +410,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             mapping);
 
     final RelNode newProject;
-    if (ProjectRemoveRule.isIdentity(
-        newProjectExprList,
-        newInput.getRowType())) {
+    if (isIdentityProject(newProjectExprList, newRowType,
+                                   newInput.getRowType())) {
       // The new project would be the identity. It is equivalent to return
       // its child.
       newProject = newInput;
@@ -390,6 +421,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       assert newProject.getClass() == project.getClass();
     }
     return new TrimResult(newProject, mapping);
+  }
+
+  private boolean isIdentityProject(List<? extends RexNode> exps,
+    RelDataType rowType, RelDataType childRowType) {
+    if (this.useNamesInIdentityProjCalc) {
+      return ProjectRemoveRule.isIdentity(exps, rowType, childRowType);
+    } else {
+      return ProjectRemoveRule.isIdentity(exps, childRowType);
+    }
   }
 
   /** Creates a project with a dummy column, to protect the parts of the system
