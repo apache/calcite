@@ -3,7 +3,7 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-22
+## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-31
 
 Calcite's first major release.
 
@@ -143,6 +143,21 @@ Bug-fixes and internal changes
     compilation when the sources are unchanged
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-535">CALCITE-535</a>]
     Support skip overwrite in hydromatic-resource
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-582">CALCITE-582</a>]
+  `EnumerableTableScan` broken when table has single column
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-575">CALCITE-575</a>]
+  Variant of `ProjectRemoveRule` that considers a project trivial only if its
+  field names are identical (John Pullokkaran)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-571">CALCITE-571</a>]
+  `ReduceExpressionsRule` tries to reduce `SemiJoin` condition to non-equi
+  condition
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-568">CALCITE-568</a>]
+  Upgrade to a version of `pentaho-aggdesigner` that does not pull in
+  `servlet-api`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-567">CALCITE-567</a>]
+  Make `quidem` dependency have scope "test"
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-570">CALCITE-570</a>]
+  `ReduceExpressionsRule` throws "duplicate key" exception
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-561">CALCITE-561</a>]
   Upgrade parent POM
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-458">CALCITE-458</a>]

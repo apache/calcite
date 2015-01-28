@@ -304,7 +304,7 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.6 or 1.8).
-* Check that README, README.md and HOWTO.md have the correct version number.
+* Check that `README`, `README.md` and `HOWTO.md` have the correct version number.
 * Make sure build and tests succeed, including with
   -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow=true,
   -Dcalcite.test.mongodb=true, -Dcalcite.test.splunk=true.
@@ -353,7 +353,7 @@ Check the artifacts:
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
   `apache-calcite-X.Y.Z-incubating-src`.
-* That directory must contain files `DISCLAIMER, `NOTICE`, `LICENSE`,
+* That directory must contain files `DISCLAIMER`, `NOTICE`, `LICENSE`,
   `README`, `README.md`, `git.properties`
   * Check that the version in `README` is correct
   * Check that `git.properties` is current
