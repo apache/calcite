@@ -156,7 +156,7 @@ public class AggregateStarTableRule extends RelOptRule {
           + aggregateRelOptTable.getQualifiedName()
           + ", right granularity, but different measures "
           + aggregate.getAggCallList());
-      rel = RelOptUtil.project(rel,
+      rel = RelOptUtil.createProject(rel,
           new AbstractSourceMapping(
               tileKey.dimensions.cardinality() + tileKey.measures.size(),
               aggregate.getRowType().getFieldCount()) {

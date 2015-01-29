@@ -35,10 +35,10 @@ public class EnumerableCorrelateTest {
             "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
             + "  EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner])\n"
             + "    EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f01=[$t0], $f0=[$t5])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], deptno0=[$t0], $f0=[$t5])\n"
             + "      EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
             + "        EnumerableAggregate(group=[{0}])\n"
-            + "          EnumerableCalc(expr#0..4=[{inputs}], $f0=[$t1])\n"
+            + "          EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])\n"
             + "            EnumerableTableScan(table=[[s, emps]])\n"
             + "        EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
