@@ -2433,19 +2433,10 @@ public abstract class RelOptUtil {
    * Creates a {@link org.apache.calcite.rel.logical.LogicalProject} that
    * projects particular fields of its input, according to a mapping.
    */
-  public static LogicalProject project(
+  public static RelNode createProject(
       RelNode child,
       Mappings.TargetMapping mapping) {
-    List<RexNode> nodes = new ArrayList<RexNode>();
-    List<String> names = new ArrayList<String>();
-    final List<RelDataTypeField> fields = child.getRowType().getFieldList();
-    for (int i = 0; i < mapping.getTargetCount(); i++) {
-      int source = mapping.getSourceOpt(i);
-      RelDataTypeField field = fields.get(source);
-      nodes.add(new RexInputRef(source, field.getType()));
-      names.add(field.getName());
-    }
-    return LogicalProject.create(child, nodes, names);
+    return createProject(child, Mappings.asList(mapping.inverse()));
   }
 
   /** Returns whether relational expression {@code target} occurs within a
@@ -2657,17 +2648,17 @@ public abstract class RelOptUtil {
       List<String> fieldNames) {
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     assert fieldNames.size() == fields.size();
-    final List<Pair<RexNode, String>> refs =
-        new AbstractList<Pair<RexNode, String>>() {
+    final List<RexNode> refs =
+        new AbstractList<RexNode>() {
           public int size() {
             return fields.size();
           }
 
-          public Pair<RexNode, String> get(int index) {
-            return RexInputRef.of2(index, fields);
+          public RexNode get(int index) {
+            return RexInputRef.of(index, fields);
           }
         };
-    return createProject(rel, refs, true);
+    return createProject(rel, refs, fieldNames, true);
   }
 
   /**
@@ -2769,9 +2760,11 @@ public abstract class RelOptUtil {
    */
   public static RelNode createProject(final RelFactories.ProjectFactory factory,
       final RelNode child, final List<Integer> posList) {
-    if (Mappings.isIdentity(posList, child.getRowType().getFieldCount())) {
+    RelDataType rowType = child.getRowType();
+    if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
       return child;
     }
+    final List<String> fieldNames = rowType.getFieldNames();
     final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
     return factory.createProject(child,
         new AbstractList<RexNode>() {
@@ -2784,7 +2777,16 @@ public abstract class RelOptUtil {
             return rexBuilder.makeInputRef(child, pos);
           }
         },
-        null);
+        new AbstractList<String>() {
+          public int size() {
+            return posList.size();
+          }
+
+          public String get(int index) {
+            final int pos = posList.get(index);
+            return fieldNames.get(pos);
+          }
+        });
   }
 
   /**

@@ -41,6 +41,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -69,6 +70,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -105,8 +107,8 @@ public class PlannerTest {
             + "WHERE `name` LIKE '%e%'",
 
         "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-            + "  LogicalFilter(condition=[LIKE($2, '%e%')])\n"
-            + "    EnumerableTableScan(table=[[hr, emps]])\n");
+        + "  LogicalFilter(condition=[LIKE($2, '%e%')])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   @Test(expected = SqlParseException.class)
@@ -139,8 +141,8 @@ public class PlannerTest {
             + "OFFSET 10 ROWS",
 
         "LogicalSort(sort0=[$1], dir0=[ASC], offset=[10])\n"
-            + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-            + "    EnumerableTableScan(table=[[hr, emps]])\n");
+        + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   private String toString(RelNode rel) {
@@ -324,7 +326,7 @@ public class PlannerTest {
     assertThat(toString(transform),
         equalTo(
             "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-                + "  EnumerableTableScan(table=[[hr, emps]])\n"));
+            + "  EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
   /** Unit test that parses, validates, converts and
@@ -354,18 +356,75 @@ public class PlannerTest {
    * plans for query using two duplicate order by.
    * The duplicate order by should be removed by SortRemoveRule. */
   @Test public void testDuplicateSortPlan() throws Exception {
+    runDuplicateSortCheck(
+        "select empid from ( "
+        + "select * "
+        + "from emps "
+        + "order by emps.deptno) "
+        + "order by deptno",
+        "EnumerableProject(empid=[$0])\n"
+        + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "      EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "        EnumerableTableScan(table=[[hr, emps]])\n");
+  }
+
+  /** Unit test that parses, validates, converts and
+   * plans for query using two duplicate order by.
+   * The duplicate order by should be removed by SortRemoveRule*/
+  @Test public void testDuplicateSortPlanWithExpr() throws Exception {
+    runDuplicateSortCheck("select empid+deptno from ( "
+        + "select empid, deptno "
+        + "from emps "
+        + "order by emps.deptno) "
+        + "order by deptno",
+        "EnumerableProject(EXPR$0=[$0])\n"
+        + "  EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
+        + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "      EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "        EnumerableTableScan(table=[[hr, emps]])\n");
+  }
+
+  /** Tests that outer order by is not removed since window function
+   * might reorder the rows in-between */
+  @Ignore("RelOptPlanner$CannotPlanException: Node [rel#27:Subset#6"
+      + ".ENUMERABLE.[]] could not be implemented; planner state:\n"
+      + "\n"
+      + "Root: rel#27:Subset#6.ENUMERABLE.[]")
+  @Test public void testDuplicateSortPlanWithOver() throws Exception {
+    runDuplicateSortCheck("select empid+deptno from ( "
+        + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
+        + "  select empid, deptno "
+        + "    from emps "
+        + "   order by emps.deptno) "
+        + ")"
+        + "order by deptno",
+        "EnumerableProject(EXPR$0=[$0])\n"
+        + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "    EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
+        + "      EnumerableProject(empid=[$0], deptno=[$1], $2=[$2])\n"
+        + "        EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
+        + "          EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "            EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "              EnumerableTableScan(table=[[hr, emps]])\n");
+  }
+
+  // If proper "SqlParseException, ValidationException, RelConversionException"
+  // is used, then checkstyle fails with
+  // "Redundant throws: 'ValidationException' listed more then one time"
+  // "Redundant throws: 'RelConversionException' listed more then one time"
+  private void runDuplicateSortCheck(String sql, String plan) throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
             SortRemoveRule.INSTANCE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
-            EnumerableRules.ENUMERABLE_SORT_RULE);
-    Planner planner = getPlanner(null, Programs.of(ruleSet));
-    SqlNode parse = planner.parse(
-        "select \"empid\" from ( "
-            + "select * "
-            + "from \"emps\" "
-            + "order by \"emps\".\"deptno\") "
-            + "order by \"deptno\"");
+            EnumerableRules.ENUMERABLE_WINDOW_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            ProjectToWindowRule.PROJECT);
+    Planner planner = getPlanner(null,
+        SqlParser.configBuilder().setLex(Lex.JAVA).build(),
+        Programs.of(ruleSet));
+    SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.convert(validate);
     RelTraitSet traitSet = planner.getEmptyTraitSet()
@@ -375,12 +434,7 @@ public class PlannerTest {
       return;
     }
     RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(toString(transform),
-        equalTo("EnumerableProject(empid=[$0])\n"
-            + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "      EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-            + "        EnumerableTableScan(table=[[hr, emps]])\n"));
+    assertThat(toString(transform), equalTo(plan));
   }
 
   /** Unit test that parses, validates, converts and
@@ -655,7 +709,7 @@ public class PlannerTest {
             + "where c.\"city\" = 'San Francisco'\n"
             + "and p.\"brand_name\" = 'Washington'",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51])\n"
-            + "  EnumerableProject($f0=[$44], $f1=[$45], $f2=[$46], $f3=[$47], $f4=[$48], $f5=[$49], $f6=[$50], $f7=[$51], $f8=[$15], $f9=[$16], $f10=[$17], $f11=[$18], $f12=[$19], $f13=[$20], $f14=[$21], $f15=[$22], $f16=[$23], $f17=[$24], $f18=[$25], $f19=[$26], $f20=[$27], $f21=[$28], $f22=[$29], $f23=[$30], $f24=[$31], $f25=[$32], $f26=[$33], $f27=[$34], $f28=[$35], $f29=[$36], $f30=[$37], $f31=[$38], $f32=[$39], $f33=[$40], $f34=[$41], $f35=[$42], $f36=[$43], $f37=[$0], $f38=[$1], $f39=[$2], $f40=[$3], $f41=[$4], $f42=[$5], $f43=[$6], $f44=[$7], $f45=[$8], $f46=[$9], $f47=[$10], $f48=[$11], $f49=[$12], $f50=[$13], $f51=[$14])\n"
+            + "  EnumerableProject(product_id0=[$44], time_id=[$45], customer_id0=[$46], promotion_id=[$47], store_id=[$48], store_sales=[$49], store_cost=[$50], unit_sales=[$51], customer_id=[$15], account_num=[$16], lname=[$17], fname=[$18], mi=[$19], address1=[$20], address2=[$21], address3=[$22], address4=[$23], city=[$24], state_province=[$25], postal_code=[$26], country=[$27], customer_region_id=[$28], phone1=[$29], phone2=[$30], birthdate=[$31], marital_status=[$32], yearly_income=[$33], gender=[$34], total_children=[$35], num_children_at_home=[$36], education=[$37], date_accnt_opened=[$38], member_card=[$39], occupation=[$40], houseowner=[$41], num_cars_owned=[$42], fullname=[$43], product_class_id=[$0], product_id=[$1], brand_name=[$2], product_name=[$3], SKU=[$4], SRP=[$5], gross_weight=[$6], net_weight=[$7], recyclable_package=[$8], low_fat=[$9], units_per_case=[$10], cases_per_pallet=[$11], shelf_width=[$12], shelf_height=[$13], shelf_depth=[$14])\n"
             + "    EnumerableJoin(condition=[=($1, $44)], joinType=[inner])\n"
             + "      EnumerableFilter(condition=[=($2, 'Washington')])\n"
             + "        EnumerableTableScan(table=[[foodmart2, product]])\n"
@@ -681,7 +735,7 @@ public class PlannerTest {
             + "where c.\"city\" = 'San Francisco'\n"
             + "and p.\"brand_name\" = 'Washington'",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51], product_class_id0=[$52], product_subcategory=[$53], product_category=[$54], product_department=[$55], product_family=[$56])\n"
-            + "  EnumerableProject($f0=[$49], $f1=[$50], $f2=[$51], $f3=[$52], $f4=[$53], $f5=[$54], $f6=[$55], $f7=[$56], $f8=[$0], $f9=[$1], $f10=[$2], $f11=[$3], $f12=[$4], $f13=[$5], $f14=[$6], $f15=[$7], $f16=[$8], $f17=[$9], $f18=[$10], $f19=[$11], $f20=[$12], $f21=[$13], $f22=[$14], $f23=[$15], $f24=[$16], $f25=[$17], $f26=[$18], $f27=[$19], $f28=[$20], $f29=[$21], $f30=[$22], $f31=[$23], $f32=[$24], $f33=[$25], $f34=[$26], $f35=[$27], $f36=[$28], $f37=[$34], $f38=[$35], $f39=[$36], $f40=[$37], $f41=[$38], $f42=[$39], $f43=[$40], $f44=[$41], $f45=[$42], $f46=[$43], $f47=[$44], $f48=[$45], $f49=[$46], $f50=[$47], $f51=[$48], $f52=[$29], $f53=[$30], $f54=[$31], $f55=[$32], $f56=[$33])\n"
+            + "  EnumerableProject(product_id0=[$49], time_id=[$50], customer_id0=[$51], promotion_id=[$52], store_id=[$53], store_sales=[$54], store_cost=[$55], unit_sales=[$56], customer_id=[$0], account_num=[$1], lname=[$2], fname=[$3], mi=[$4], address1=[$5], address2=[$6], address3=[$7], address4=[$8], city=[$9], state_province=[$10], postal_code=[$11], country=[$12], customer_region_id=[$13], phone1=[$14], phone2=[$15], birthdate=[$16], marital_status=[$17], yearly_income=[$18], gender=[$19], total_children=[$20], num_children_at_home=[$21], education=[$22], date_accnt_opened=[$23], member_card=[$24], occupation=[$25], houseowner=[$26], num_cars_owned=[$27], fullname=[$28], product_class_id0=[$34], product_id=[$35], brand_name=[$36], product_name=[$37], SKU=[$38], SRP=[$39], gross_weight=[$40], net_weight=[$41], recyclable_package=[$42], low_fat=[$43], units_per_case=[$44], cases_per_pallet=[$45], shelf_width=[$46], shelf_height=[$47], shelf_depth=[$48], product_class_id=[$29], product_subcategory=[$30], product_category=[$31], product_department=[$32], product_family=[$33])\n"
             + "    EnumerableJoin(condition=[=($0, $51)], joinType=[inner])\n"
             + "      EnumerableFilter(condition=[=($9, 'San Francisco')])\n"
             + "        EnumerableTableScan(table=[[foodmart2, customer]])\n"
@@ -704,7 +758,7 @@ public class PlannerTest {
             + "  join \"store\" as st using (\"store_id\")\n"
             + "where c.\"city\" = 'San Francisco'\n",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51], product_class_id0=[$52], product_subcategory=[$53], product_category=[$54], product_department=[$55], product_family=[$56], store_id0=[$57], store_type=[$58], region_id=[$59], store_name=[$60], store_number=[$61], store_street_address=[$62], store_city=[$63], store_state=[$64], store_postal_code=[$65], store_country=[$66], store_manager=[$67], store_phone=[$68], store_fax=[$69], first_opened_date=[$70], last_remodel_date=[$71], store_sqft=[$72], grocery_sqft=[$73], frozen_sqft=[$74], meat_sqft=[$75], coffee_bar=[$76], video_store=[$77], salad_bar=[$78], prepared_food=[$79], florist=[$80])\n"
-            + "  EnumerableProject($f0=[$73], $f1=[$74], $f2=[$75], $f3=[$76], $f4=[$77], $f5=[$78], $f6=[$79], $f7=[$80], $f8=[$24], $f9=[$25], $f10=[$26], $f11=[$27], $f12=[$28], $f13=[$29], $f14=[$30], $f15=[$31], $f16=[$32], $f17=[$33], $f18=[$34], $f19=[$35], $f20=[$36], $f21=[$37], $f22=[$38], $f23=[$39], $f24=[$40], $f25=[$41], $f26=[$42], $f27=[$43], $f28=[$44], $f29=[$45], $f30=[$46], $f31=[$47], $f32=[$48], $f33=[$49], $f34=[$50], $f35=[$51], $f36=[$52], $f37=[$58], $f38=[$59], $f39=[$60], $f40=[$61], $f41=[$62], $f42=[$63], $f43=[$64], $f44=[$65], $f45=[$66], $f46=[$67], $f47=[$68], $f48=[$69], $f49=[$70], $f50=[$71], $f51=[$72], $f52=[$53], $f53=[$54], $f54=[$55], $f55=[$56], $f56=[$57], $f57=[$0], $f58=[$1], $f59=[$2], $f60=[$3], $f61=[$4], $f62=[$5], $f63=[$6], $f64=[$7], $f65=[$8], $f66=[$9], $f67=[$10], $f68=[$11], $f69=[$12], $f70=[$13], $f71=[$14], $f72=[$15], $f73=[$16], $f74=[$17], $f75=[$18], $f76=[$19], $f77=[$20], $f78=[$21], $f79=[$22], $f80=[$23])\n"
+            + "  EnumerableProject(product_id0=[$73], time_id=[$74], customer_id0=[$75], promotion_id=[$76], store_id0=[$77], store_sales=[$78], store_cost=[$79], unit_sales=[$80], customer_id=[$24], account_num=[$25], lname=[$26], fname=[$27], mi=[$28], address1=[$29], address2=[$30], address3=[$31], address4=[$32], city=[$33], state_province=[$34], postal_code=[$35], country=[$36], customer_region_id=[$37], phone1=[$38], phone2=[$39], birthdate=[$40], marital_status=[$41], yearly_income=[$42], gender=[$43], total_children=[$44], num_children_at_home=[$45], education=[$46], date_accnt_opened=[$47], member_card=[$48], occupation=[$49], houseowner=[$50], num_cars_owned=[$51], fullname=[$52], product_class_id0=[$58], product_id=[$59], brand_name=[$60], product_name=[$61], SKU=[$62], SRP=[$63], gross_weight=[$64], net_weight=[$65], recyclable_package=[$66], low_fat=[$67], units_per_case=[$68], cases_per_pallet=[$69], shelf_width=[$70], shelf_height=[$71], shelf_depth=[$72], product_class_id=[$53], product_subcategory=[$54], product_category=[$55], product_department=[$56], product_family=[$57], store_id=[$0], store_type=[$1], region_id=[$2], store_name=[$3], store_number=[$4], store_street_address=[$5], store_city=[$6], store_state=[$7], store_postal_code=[$8], store_country=[$9], store_manager=[$10], store_phone=[$11], store_fax=[$12], first_opened_date=[$13], last_remodel_date=[$14], store_sqft=[$15], grocery_sqft=[$16], frozen_sqft=[$17], meat_sqft=[$18], coffee_bar=[$19], video_store=[$20], salad_bar=[$21], prepared_food=[$22], florist=[$23])\n"
             + "    EnumerableJoin(condition=[=($0, $77)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[foodmart2, store]])\n"
             + "      EnumerableJoin(condition=[=($0, $51)], joinType=[inner])\n"
@@ -724,8 +778,7 @@ public class PlannerTest {
             + "join \"customer\" using (\"customer_id\")\n"
             + "cross join \"department\"",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38])\n"
-            + "  EnumerableProject($f0=[$31], $f1=[$32], $f2=[$33], $f3=[$34], $f4=[$35], $f5=[$36], $f6=[$37], $f7=[$38], $f8=[$2], $f9=[$3], $f10=[$4], $f11=[$5], $f12=[$6], $f13=[$7], $f14=[$8], $f15=[$9], $f16=[$10], $f17=[$11], $f18=[$12], $f19=[$13], $f20=[$14], $f21=[$15], $f22=[$16], $f23=[$17], $f24=[$18], $f25=[$19], $f26=[$20], $f27=[$21], $f28=[$22], $f29=[$23], $f30=[$24], $f31=[$25], $f32=[$26], $f33=[$27], $f34=[$28], $f35=[$29], $f36=[$30], $f37=[$0], $f38=[$1])\n"
-            //+ "    EnumerableMergeJoin(condition=[true], joinType=[inner])\n"
+            + "  EnumerableProject(product_id=[$31], time_id=[$32], customer_id0=[$33], promotion_id=[$34], store_id=[$35], store_sales=[$36], store_cost=[$37], unit_sales=[$38], customer_id=[$2], account_num=[$3], lname=[$4], fname=[$5], mi=[$6], address1=[$7], address2=[$8], address3=[$9], address4=[$10], city=[$11], state_province=[$12], postal_code=[$13], country=[$14], customer_region_id=[$15], phone1=[$16], phone2=[$17], birthdate=[$18], marital_status=[$19], yearly_income=[$20], gender=[$21], total_children=[$22], num_children_at_home=[$23], education=[$24], date_accnt_opened=[$25], member_card=[$26], occupation=[$27], houseowner=[$28], num_cars_owned=[$29], fullname=[$30], department_id=[$0], department_description=[$1])\n"
             + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[foodmart2, department]])\n"
             + "      EnumerableJoin(condition=[=($0, $31)], joinType=[inner])\n"
@@ -741,8 +794,7 @@ public class PlannerTest {
             + "cross join \"department\"\n"
             + "join \"employee\" using (\"department_id\")",
         "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38], employee_id=[$39], full_name=[$40], first_name=[$41], last_name=[$42], position_id=[$43], position_title=[$44], store_id0=[$45], department_id0=[$46], birth_date=[$47], hire_date=[$48], end_date=[$49], salary=[$50], supervisor_id=[$51], education_level=[$52], marital_status0=[$53], gender0=[$54], management_role=[$55])\n"
-            + "  EnumerableProject($f0=[$48], $f1=[$49], $f2=[$50], $f3=[$51], $f4=[$52], $f5=[$53], $f6=[$54], $f7=[$55], $f8=[$19], $f9=[$20], $f10=[$21], $f11=[$22], $f12=[$23], $f13=[$24], $f14=[$25], $f15=[$26], $f16=[$27], $f17=[$28], $f18=[$29], $f19=[$30], $f20=[$31], $f21=[$32], $f22=[$33], $f23=[$34], $f24=[$35], $f25=[$36], $f26=[$37], $f27=[$38], $f28=[$39], $f29=[$40], $f30=[$41], $f31=[$42], $f32=[$43], $f33=[$44], $f34=[$45], $f35=[$46], $f36=[$47], $f37=[$0], $f38=[$1], $f39=[$2], $f40=[$3], $f41=[$4], $f42=[$5], $f43=[$6], $f44=[$7], $f45=[$8], $f46=[$9], $f47=[$10], $f48=[$11], $f49=[$12], $f50=[$13], $f51=[$14], $f52=[$15], $f53=[$16], $f54=[$17], $f55=[$18])\n"
-            // + "    EnumerableMergeJoin(condition=[true], joinType=[inner])\n"
+            + "  EnumerableProject(product_id=[$48], time_id=[$49], customer_id0=[$50], promotion_id=[$51], store_id0=[$52], store_sales=[$53], store_cost=[$54], unit_sales=[$55], customer_id=[$19], account_num=[$20], lname=[$21], fname=[$22], mi=[$23], address1=[$24], address2=[$25], address3=[$26], address4=[$27], city=[$28], state_province=[$29], postal_code=[$30], country=[$31], customer_region_id=[$32], phone1=[$33], phone2=[$34], birthdate=[$35], marital_status0=[$36], yearly_income=[$37], gender0=[$38], total_children=[$39], num_children_at_home=[$40], education=[$41], date_accnt_opened=[$42], member_card=[$43], occupation=[$44], houseowner=[$45], num_cars_owned=[$46], fullname=[$47], department_id=[$0], department_description=[$1], employee_id=[$2], full_name=[$3], first_name=[$4], last_name=[$5], position_id=[$6], position_title=[$7], store_id=[$8], department_id0=[$9], birth_date=[$10], hire_date=[$11], end_date=[$12], salary=[$13], supervisor_id=[$14], education_level=[$15], marital_status=[$16], gender=[$17], management_role=[$18])\n"
             + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
             + "      EnumerableJoin(condition=[=($0, $9)], joinType=[inner])\n"
             + "        EnumerableTableScan(table=[[foodmart2, department]])\n"
@@ -867,7 +919,7 @@ public class PlannerTest {
             + "    where\n"
             + "      p.`pPartkey` = ps.`psPartkey`\n"
             + "  )\n")
-            .contains("Correlator"));
+            .contains("Correlat"));
   }
 
   public String checkTpchQuery(String tpchTestQuery) throws Exception {

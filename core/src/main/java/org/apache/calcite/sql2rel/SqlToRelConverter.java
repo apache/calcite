@@ -2212,7 +2212,7 @@ public class SqlToRelConverter {
                   + rightCount + extraRightExprs.size(),
               0, 0, leftCount,
               leftCount, leftCount + extraLeftExprs.size(), rightCount);
-      return RelOptUtil.project(join, mapping);
+      return RelOptUtil.createProject(join, mapping);
     }
     return join;
   }

@@ -469,6 +469,15 @@ public class CalciteAssert {
       statement.close();
       connection.close();
     } catch (Throwable e) {
+      // We ignore extended message for non-runtime exception, however
+      // it does not matter much since it is better to have AssertionError
+      // at the very top level of the exception stack.
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      }
+      if (e instanceof Error) {
+        throw (Error) e;
+      }
       throw new RuntimeException(message, e);
     } finally {
       for (Hook.Closeable closeable : closeableList) {
