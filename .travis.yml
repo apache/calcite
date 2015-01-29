@@ -25,6 +25,7 @@ branches:
   only:
     - master
     - javadoc
+    - /^branch-.*$/
 script:
   mvn test site
 git:
