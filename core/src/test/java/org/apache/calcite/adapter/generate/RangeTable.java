@@ -38,16 +38,18 @@ public class RangeTable extends AbstractQueryableTable {
   private final int start;
   private final int end;
 
-  protected RangeTable(String columnName, int start, int end) {
-    super(Object.class);
+  protected RangeTable(Class<?> elementType, String columnName, int start,
+      int end) {
+    super(elementType);
     this.columnName = columnName;
     this.start = start;
     this.end = end;
   }
 
   /** Creates a RangeTable. */
-  public static RangeTable create(String columnName, int start, int end) {
-    return new RangeTable(columnName, start, end);
+  public static RangeTable create(Class<?> elementType, String columnName,
+      int start, int end) {
+    return new RangeTable(elementType, columnName, start, end);
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -104,7 +106,19 @@ public class RangeTable extends AbstractQueryableTable {
       final String columnName = (String) operand.get("column");
       final int start = (Integer) operand.get("start");
       final int end = (Integer) operand.get("end");
-      return RangeTable.create(columnName, start, end);
+      final String elementType = (String) operand.get("elementType");
+      Class<?> type;
+      if ("array".equals(elementType)) {
+        type = Object[].class;
+      } else if ("object".equals(elementType)) {
+        type = Object.class;
+      } else if ("integer".equals(elementType)) {
+        type = Integer.class;
+      } else {
+        throw new IllegalArgumentException(
+            "Illegal 'elementType' value: " + elementType);
+      }
+      return RangeTable.create(type, columnName, start, end);
     }
   }
 }

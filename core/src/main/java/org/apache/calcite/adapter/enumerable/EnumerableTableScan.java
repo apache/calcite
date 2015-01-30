@@ -31,6 +31,9 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Type;
@@ -82,6 +85,14 @@ public class EnumerableTableScan
   }
 
   private Expression toRows(PhysType physType, Expression expression) {
+    if (physType.getFormat() == JavaRowFormat.SCALAR
+        && Object[].class.isAssignableFrom(elementType)
+        && getRowType().getFieldCount() == 1
+        && (table.unwrap(ScannableTable.class) != null
+            || table.unwrap(FilterableTable.class) != null
+            || table.unwrap(ProjectableFilterableTable.class) != null)) {
+      return Expressions.call(BuiltInMethod.SLICE0.method, expression);
+    }
     JavaRowFormat oldFormat = format();
     if (physType.getFormat() == oldFormat) {
       return expression;
@@ -101,15 +112,15 @@ public class EnumerableTableScan
   }
 
   private JavaRowFormat format() {
-    if (Object[].class.isAssignableFrom(elementType)) {
-      return JavaRowFormat.ARRAY;
-    }
-    if (Row.class.isAssignableFrom(elementType)) {
-      return JavaRowFormat.ROW;
-    }
     int fieldCount = getRowType().getFieldCount();
     if (fieldCount == 0) {
       return JavaRowFormat.LIST;
+    }
+    if (Object[].class.isAssignableFrom(elementType)) {
+      return fieldCount == 1 ? JavaRowFormat.SCALAR : JavaRowFormat.ARRAY;
+    }
+    if (Row.class.isAssignableFrom(elementType)) {
+      return JavaRowFormat.ROW;
     }
     if (fieldCount == 1 && (Object.class == elementType
           || Primitive.is(elementType)

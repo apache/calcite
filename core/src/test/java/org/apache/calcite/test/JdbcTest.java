@@ -4666,6 +4666,22 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains custom
    * tables. */
   @Test public void testModelCustomTable2() {
+    testRangeTable("object");
+  }
+
+  /** Tests a JDBC connection that provides a model that contains custom
+   * tables. */
+  @Test public void testModelCustomTableArrayRowSingleColumn() {
+    testRangeTable("array");
+  }
+
+  /** Tests a JDBC connection that provides a model that contains custom
+   * tables. */
+  @Test public void testModelCustomTableIntegerRowSingleColumn() {
+    testRangeTable("integer");
+  }
+
+  private void testRangeTable(String elementType) {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
@@ -4677,7 +4693,8 @@ public class JdbcTest {
         + "           type: 'custom',\n"
         + "           factory: '"
         + RangeTable.Factory.class.getName() + "',\n"
-        + "           operand: {'column': 'N', 'start': 3, 'end': 7 }\n"
+        + "           operand: {'column': 'N', 'start': 3, 'end': 7, "
+        + " 'elementType': '" + elementType + "'}\n"
         + "         }\n"
         + "       ]\n"
         + "     }\n"
