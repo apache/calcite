@@ -41,7 +41,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -240,8 +239,7 @@ public abstract class SparkRules {
           rel.getTraitSet().replace(SparkRel.CONVENTION),
           convert(calc.getInput(),
               calc.getInput().getTraitSet().replace(SparkRel.CONVENTION)),
-          program,
-          Project.Flags.BOXED);
+          program);
     }
   }
 
@@ -250,20 +248,13 @@ public abstract class SparkRules {
   public static class SparkCalc extends SingleRel implements SparkRel {
     private final RexProgram program;
 
-    /**
-     * Values defined in {@link org.apache.calcite.rel.core.Project.Flags}.
-     */
-    protected int flags;
-
     public SparkCalc(RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
-        RexProgram program,
-        int flags) {
+        RexProgram program) {
       super(cluster, traitSet, child);
       assert getConvention() == SparkRel.CONVENTION;
       assert !program.containsAggs();
-      this.flags = flags;
       this.program = program;
       this.rowType = program.getOutputRowType();
     }
@@ -290,12 +281,7 @@ public abstract class SparkRules {
           getCluster(),
           traitSet,
           sole(inputs),
-          program,
-          getFlags());
-    }
-
-    public int getFlags() {
-      return flags;
+          program);
     }
 
     public Result implementSpark(Implementor implementor) {

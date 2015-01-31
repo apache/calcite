@@ -67,11 +67,6 @@ public abstract class Project extends SingleRel {
 
   protected final ImmutableList<RexNode> exps;
 
-  /**
-   * Values defined in {@link Flags}.
-   */
-  protected int flags;
-
   protected final ImmutableList<RelCollation> collationList;
 
   //~ Constructors -----------------------------------------------------------
@@ -84,21 +79,17 @@ public abstract class Project extends SingleRel {
    * @param input   input relational expression
    * @param exps    List of expressions for the input columns
    * @param rowType output row type
-   * @param flags      Flags; values as in {@link Project.Flags},
-   *                   usually {@link Project.Flags#BOXED}
    */
   protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode input,
       List<? extends RexNode> exps,
-      RelDataType rowType,
-      int flags) {
+      RelDataType rowType) {
     super(cluster, traits, input);
     assert rowType != null;
     this.exps = ImmutableList.copyOf(exps);
     this.rowType = rowType;
-    this.flags = flags;
     final RelCollation collation =
         traits.getTrait(RelCollationTraitDef.INSTANCE);
     this.collationList =
@@ -114,7 +105,7 @@ public abstract class Project extends SingleRel {
   protected Project(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
         input.getExpressionList("exprs"),
-        input.getRowType("exprs", "fields"), Flags.BOXED);
+        input.getRowType("exprs", "fields"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -142,10 +133,6 @@ public abstract class Project extends SingleRel {
 
   public List<RelCollation> getCollationList() {
     return collationList;
-  }
-
-  public boolean isBoxed() {
-    return (flags & Flags.BOXED) == Flags.BOXED;
   }
 
   @Override public List<RexNode> getChildExps() {
@@ -179,10 +166,6 @@ public abstract class Project extends SingleRel {
     return Pair.zip(getProjects(), getRowType().getFieldNames());
   }
 
-  public int getFlags() {
-    return flags;
-  }
-
   public boolean isValid(boolean fail) {
     if (!super.isValid(fail)) {
       assert !fail;
@@ -204,12 +187,6 @@ public abstract class Project extends SingleRel {
     if (checker.getFailureCount() > 0) {
       assert !fail;
       return false;
-    }
-    if (!isBoxed()) {
-      if (exps.size() != 1) {
-        assert !fail;
-        return false;
-      }
     }
     if (collationList == null) {
       assert !fail;
@@ -353,22 +330,6 @@ public abstract class Project extends SingleRel {
       }
     }
     return true;
-  }
-
-  //~ Inner Classes ----------------------------------------------------------
-
-  /** A collection of integer constants that describe the kind of project. */
-  public static class Flags {
-    public static final int ANON_FIELDS = 2;
-
-    /**
-     * Whether the resulting row is to be a synthetic class whose fields are
-     * the aliases of the fields. <code>boxed</code> must be true unless
-     * there is only one field: <code>select {dept.deptno} from dept</code>
-     * is boxed, <code>select dept.deptno from dept</code> is not.
-     */
-    public static final int BOXED = 1;
-    public static final int NONE = 0;
   }
 
   //~ Inner Classes ----------------------------------------------------------

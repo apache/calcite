@@ -20,7 +20,6 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
 
 /**
@@ -41,8 +40,7 @@ class EnumerableProjectRule extends ConverterRule {
             project.getInput().getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),
         project.getProjects(),
-        project.getRowType(),
-        Project.Flags.BOXED);
+        project.getRowType());
   }
 }
 

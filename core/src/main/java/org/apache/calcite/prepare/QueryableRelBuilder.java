@@ -40,7 +40,6 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -515,8 +514,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
             translator.cluster,
             child,
             nodes,
-            null,
-            Project.Flags.BOXED));
+            null));
     return null;
   }
 

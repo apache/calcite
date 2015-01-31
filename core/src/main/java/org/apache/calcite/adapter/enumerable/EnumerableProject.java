@@ -33,16 +33,15 @@ public class EnumerableProject extends Project implements EnumerableRel {
       RelTraitSet traitSet,
       RelNode child,
       List<? extends RexNode> exps,
-      RelDataType rowType,
-      int flags) {
-    super(cluster, traitSet, child, exps, rowType, flags);
+      RelDataType rowType) {
+    super(cluster, traitSet, child, exps, rowType);
     assert getConvention() instanceof EnumerableConvention;
   }
 
   public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType) {
     return new EnumerableProject(getCluster(), traitSet, input,
-        exps, rowType, flags);
+        exps, rowType);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

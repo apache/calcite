@@ -354,7 +354,7 @@ public class JdbcRules {
 
       return new JdbcCalc(rel.getCluster(), rel.getTraitSet().replace(out),
           convert(calc.getInput(), calc.getTraitSet().replace(out)),
-          calc.getProgram(), Project.Flags.BOXED);
+          calc.getProgram());
     }
   }
 
@@ -364,19 +364,12 @@ public class JdbcRules {
   public static class JdbcCalc extends SingleRel implements JdbcRel {
     private final RexProgram program;
 
-    /**
-     * Values defined in {@link org.apache.calcite.rel.core.Project.Flags}.
-     */
-    protected final int flags;
-
     public JdbcCalc(RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
-        RexProgram program,
-        int flags) {
+        RexProgram program) {
       super(cluster, traitSet, child);
       assert getConvention() instanceof JdbcConvention;
-      this.flags = flags;
       this.program = program;
       this.rowType = program.getOutputRowType();
     }
@@ -398,8 +391,7 @@ public class JdbcRules {
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new JdbcCalc(getCluster(), traitSet, sole(inputs), program,
-          flags);
+      return new JdbcCalc(getCluster(), traitSet, sole(inputs), program);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -444,8 +436,7 @@ public class JdbcRules {
               project.getInput(),
               project.getInput().getTraitSet().replace(out)),
           project.getProjects(),
-          project.getRowType(),
-          Project.Flags.BOXED);
+          project.getRowType());
     }
   }
 
@@ -459,16 +450,14 @@ public class JdbcRules {
         RelTraitSet traitSet,
         RelNode child,
         List<RexNode> exps,
-        RelDataType rowType,
-        int flags) {
-      super(cluster, traitSet, child, exps, rowType, flags);
+        RelDataType rowType) {
+      super(cluster, traitSet, child, exps, rowType);
       assert getConvention() instanceof JdbcConvention;
     }
 
     @Override public JdbcProject copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> exps, RelDataType rowType) {
-      return new JdbcProject(getCluster(), traitSet, input, exps, rowType,
-          flags);
+      return new JdbcProject(getCluster(), traitSet, input, exps, rowType);
     }
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {

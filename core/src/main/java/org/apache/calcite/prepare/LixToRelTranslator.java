@@ -92,8 +92,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
             toRex(
                 child,
                 (FunctionExpression) call.expressions.get(0)),
-            null,
-            LogicalProject.Flags.BOXED);
+            null);
 
       case WHERE:
         child = translate(call.targetExpression);
