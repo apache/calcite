@@ -541,14 +541,21 @@ public abstract class ReturnTypes {
             SqlOperatorBinding opBinding) {
           final RelDataType argType0 = opBinding.getOperandType(0);
           final RelDataType argType1 = opBinding.getOperandType(1);
-          if (!(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
-              && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
+
+          final boolean containsAnyType =
+              (argType0.getSqlTypeName() == SqlTypeName.ANY)
+                  || (argType1.getSqlTypeName() == SqlTypeName.ANY);
+
+          if (!containsAnyType
+              && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
+                  && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
             Util.pre(
                 SqlTypeUtil.sameNamedType(argType0, argType1),
                 "SqlTypeUtil.sameNamedType(argTypes[0], argTypes[1])");
           }
           SqlCollation pickedCollation = null;
-          if (SqlTypeUtil.inCharFamily(argType0)) {
+          if (!containsAnyType
+              && SqlTypeUtil.inCharFamily(argType0)) {
             if (!SqlTypeUtil.isCharTypeComparable(
                 opBinding.collectOperandTypes().subList(0, 2))) {
               throw opBinding.newError(
@@ -571,10 +578,19 @@ public abstract class ReturnTypes {
           }
 
           RelDataType ret;
-          ret =
-              opBinding.getTypeFactory().createSqlType(
-                  typeName,
-                  argType0.getPrecision() + argType1.getPrecision());
+          int typePrecision;
+          if (argType0.getPrecision()
+              == RelDataType.PRECISION_NOT_SPECIFIED
+                  && argType1.getPrecision()
+                      == RelDataType.PRECISION_NOT_SPECIFIED) {
+            typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
+          } else {
+            typePrecision =
+                argType0.getPrecision() + argType1.getPrecision();
+          }
+
+          ret = opBinding.getTypeFactory()
+              .createSqlType(typeName, typePrecision);
           if (null != pickedCollation) {
             RelDataType pickedType;
             if (argType0.getCollation().equals(

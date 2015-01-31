@@ -1843,6 +1843,7 @@ public abstract class SqlOperatorBaseTest {
         "fedf",
         "BINARY(2) NOT NULL");
     tester.checkNull("x'ff' || cast(null as varbinary)");
+    tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
 
   @Test public void testDivideOperator() {
