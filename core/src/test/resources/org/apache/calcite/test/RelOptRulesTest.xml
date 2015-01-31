@@ -929,7 +929,7 @@ EmptyRel
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-Sort(sort0=[$7], dir0=[ASC])
+LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -937,7 +937,7 @@ Sort(sort0=[$7], dir0=[ASC])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-Sort(sort0=[$7], dir0=[ASC])
+LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalValues(tuples=[[]])
 ]]>
@@ -949,7 +949,7 @@ Sort(sort0=[$7], dir0=[ASC])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-Sort(sort0=[$7], dir0=[ASC], fetch=[0])
+LogicalSort(sort0=[$7], dir0=[ASC], fetch=[0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

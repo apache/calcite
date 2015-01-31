@@ -124,7 +124,7 @@ public class LatticeTest {
   @Test public void testLatticeSqlWithOrderByFails() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s order by \"product_id\"")
-        .connectThrows("Invalid node type Sort in lattice query");
+        .connectThrows("Invalid node type LogicalSort in lattice query");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a UNION ALL. */

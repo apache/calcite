@@ -642,7 +642,10 @@ public class JdbcRules {
     }
 
     @Override public JdbcSort copy(RelTraitSet traitSet, RelNode newInput,
-        RelCollation newCollation) {
+        RelCollation newCollation, RexNode offset, RexNode fetch) {
+      if (offset != null || fetch != null) {
+        throw new IllegalArgumentException("not supported: offset or fetch");
+      }
       return new JdbcSort(getCluster(), traitSet, newInput, newCollation);
     }
 

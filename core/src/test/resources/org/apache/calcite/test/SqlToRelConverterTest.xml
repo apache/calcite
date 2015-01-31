@@ -902,7 +902,7 @@ LogicalProject(NAME=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$0], dir0=[ASC])
+LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -914,7 +914,7 @@ Sort(sort0=[$0], dir0=[ASC])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$0], dir0=[DESC-nulls-last])
+LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -926,7 +926,7 @@ Sort(sort0=[$0], dir0=[DESC-nulls-last])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$1], dir0=[ASC])
+LogicalSort(sort0=[$1], dir0=[ASC])
   LogicalProject(X=[+($0, 1)], Y=[-($0, 2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -934,11 +934,11 @@ Sort(sort0=[$1], dir0=[ASC])
     </TestCase>
     <TestCase name="testOrderByOrdinalDesc">
         <Resource name="sql">
-            <![CDATA[select empno + 1, deptno, empno from emp order by 2.5 desc]]>
+            <![CDATA[select empno + 1, deptno, empno from emp order by 2 desc]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$1], dir0=[DESC])
+LogicalSort(sort0=[$1], dir0=[DESC])
   LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -951,7 +951,7 @@ Sort(sort0=[$1], dir0=[DESC])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[$0])
-  Sort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC])
+  LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC])
     LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -964,7 +964,7 @@ LogicalProject(EXPR$0=[$0])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
-  Sort(sort0=[$3], dir0=[DESC])
+  LogicalSort(sort0=[$3], dir0=[DESC])
     LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0], EXPR$3=[-1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -977,7 +977,7 @@ LogicalProject(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], DEPTNO=[$1], EMPNO=[$2])
-  Sort(sort0=[$3], dir0=[DESC])
+  LogicalSort(sort0=[$3], dir0=[DESC])
     LogicalProject(EXPR$0=[+($0, 1)], DEPTNO=[$7], EMPNO=[$0], EXPR$3=[+(1, 2)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1003,7 +1003,7 @@ ProjectRel(EMPNO=[$0], Y=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(X=[$0], Y=[$1])
-  Sort(sort0=[$2], dir0=[ASC])
+  LogicalSort(sort0=[$2], dir0=[ASC])
     LogicalProject(X=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+(-($0, 2), 3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1016,7 +1016,7 @@ LogicalProject(X=[$0], Y=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], Y=[$1])
-  Sort(sort0=[$2], dir0=[ASC])
+  LogicalSort(sort0=[$2], dir0=[ASC])
     LogicalProject(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+(+($0, 1), 3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1028,7 +1028,7 @@ LogicalProject(EMPNO=[$0], Y=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
+LogicalSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
   LogicalProject(EMPNO=[$0], SAL=[$1])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], SAL=[$5])
@@ -1045,7 +1045,7 @@ Sort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], SAL=[$1])
-  Sort(sort0=[$2], dir0=[ASC])
+  LogicalSort(sort0=[$2], dir0=[ASC])
     LogicalProject(EMPNO=[$0], SAL=[$1], EXPR$2=[+(*($0, $1), 2)])
       LogicalUnion(all=[true])
         LogicalProject(EMPNO=[$0], SAL=[$5])
@@ -1062,7 +1062,7 @@ LogicalProject(EMPNO=[$0], SAL=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
-  Sort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC])
+  LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC])
     LogicalProject(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[*($0, $2)], EXPR$3=[$3])
       LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], agg#1=[SUM($1)], agg#2=[MIN($2)])
         LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
@@ -1077,7 +1077,7 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], EXPR$1=[$1])
-  Sort(sort0=[$2], dir0=[ASC])
+  LogicalSort(sort0=[$2], dir0=[ASC])
     LogicalAggregate(group=[{0, 1, 2}])
       LogicalProject(EMPNO=[$0], EXPR$1=[+($7, 1)], EXPR$2=[+(+($7, 1), $0)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1091,7 +1091,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  Sort(sort0=[$1], sort1=[$2], sort2=[$1], dir0=[DESC], dir1=[ASC], dir2=[ASC])
+  LogicalSort(sort0=[$1], sort1=[$2], sort2=[$1], dir0=[DESC], dir1=[ASC], dir2=[ASC])
     LogicalProject(EMPNO=[$0], EXPR$1=[+($5, $0)], EXPR$2=[*($5, $0)])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1105,7 +1105,7 @@ LogicalProject(EMPNO=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$1], dir0=[ASC])
+LogicalSort(sort0=[$1], dir0=[ASC])
   LogicalProject(EMPNO=[$0], SAL=[$1])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], SAL=[$5])
@@ -1376,7 +1376,7 @@ order by c + a]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
-  Sort(sort0=[$5], dir0=[ASC])
+  LogicalSort(sort0=[$5], dir0=[ASC])
     LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4], EXPR$5=[+($2, $0)])
       LogicalJoin(condition=[=($3, $2)], joinType=[inner])
         LogicalProject(A=[$2], B=[$1], C=[$0])
@@ -1449,7 +1449,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1461,7 +1461,7 @@ Sort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(fetch=[5])
+LogicalSort(fetch=[5])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1473,7 +1473,7 @@ Sort(fetch=[5])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(offset=[10], fetch=[5])
+LogicalSort(offset=[10], fetch=[5])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1485,7 +1485,7 @@ Sort(offset=[10], fetch=[5])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(offset=[10])
+LogicalSort(offset=[10])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1836,7 +1836,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
-          Sort(fetch=[1])
+          LogicalSort(fetch=[1])
             LogicalProject(EXPR$0=[1])
               LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -1857,7 +1857,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalAggregate(group=[{}], agg#0=[MIN($0)])
           LogicalProject($f0=[true])
-            Sort(fetch=[1])
+            LogicalSort(fetch=[1])
               LogicalProject(EXPR$0=[1])
                 LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
                   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -1907,7 +1907,7 @@ select * from emp2 order by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$7], dir0=[ASC])
+LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -1926,7 +1926,7 @@ order by empno + x]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], X=[$1])
-  Sort(sort0=[$2], dir0=[ASC])
+  LogicalSort(sort0=[$2], dir0=[ASC])
     LogicalProject(EMPNO=[$0], X=[$1], EXPR$2=[+($0, $1)])
       LogicalUnion(all=[true])
         LogicalProject(EMPNO=[$0], X=[$1])
@@ -2035,7 +2035,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[NOT(true)])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(ENAME=[$0])
-  Sort(sort0=[$1], dir0=[ASC])
+  LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalProject(ENAME=[$1], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -2100,7 +2100,7 @@ order by 2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$1], dir0=[ASC])
+LogicalSort(sort0=[$1], dir0=[ASC])
   LogicalProject(DEPTNO=[$0], ENAME=[$1], EXPR$2=[$4])
     LogicalProject(DEPTNO=[$0], ENAME=[CASE($3, null, $1)], i$DEPTNO=[$2], i$ENAME=[$3], EXPR$2=[$4])
       LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], indicator=[true], EXPR$2=[SUM($2)])
@@ -2268,7 +2268,7 @@ order by 2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-Sort(sort0=[$1], dir0=[ASC])
+LogicalSort(sort0=[$1], dir0=[ASC])
   LogicalProject(DEPTNO=[$1], EXPR$1=[1], EXPR$2=[$2], EXPR$3=[1])
     LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
       LogicalProject(EMPNO=[$0], DEPTNO=[$7])

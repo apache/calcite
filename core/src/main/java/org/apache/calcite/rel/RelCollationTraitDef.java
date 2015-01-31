@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
 
 /**
  * Definition of the ordering trait.
@@ -76,12 +76,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     // Create a logical sort, then ask the planner to convert its remaining
     // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
     // convention)
-    final Sort sort =
-        new Sort(
-            rel.getCluster(),
-            rel.getCluster().traitSetOf(Convention.NONE, toCollation),
-            rel,
-            toCollation);
+    final Sort sort = LogicalSort.create(rel, toCollation, null, null);
     RelNode newRel = sort;
     final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
     if (!newRel.getTraitSet().equals(newTraitSet)) {

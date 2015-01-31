@@ -27,12 +27,12 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -605,8 +605,8 @@ public class SubstitutionVisitor {
           aggregate.aggCalls);
     case SORT:
       final MutableSort sort = (MutableSort) node;
-      return new Sort(node.cluster, node.cluster.traitSetOf(sort.collation),
-          fromMutable(sort.input), sort.collation, sort.offset, sort.fetch);
+      return LogicalSort.create(fromMutable(sort.input), sort.collation,
+          sort.offset, sort.fetch);
     case UNION:
       final MutableUnion union = (MutableUnion) node;
       return new LogicalUnion(union.cluster, fromMutables(union.inputs),

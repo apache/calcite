@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -37,6 +36,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -384,13 +384,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
     RelCollation newCollation = RexUtil.apply(mapping, oldCollation);
     Sort newRel =
-        new Sort(
-            rel.getCluster(),
-            rel.getCluster().traitSetOf(Convention.NONE).plus(newCollation),
-            newChild,
-            newCollation,
-            rel.offset,
-            rel.fetch);
+        LogicalSort.create(newChild, newCollation, rel.offset, rel.fetch);
     setNewForOldRel(rel, newRel);
   }
 

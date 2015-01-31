@@ -138,7 +138,7 @@ public class PlannerTest {
             + "ORDER BY `emps`.`deptno`\n"
             + "OFFSET 10 ROWS",
 
-        "Sort(sort0=[$1], dir0=[ASC], offset=[10])\n"
+        "LogicalSort(sort0=[$1], dir0=[ASC], offset=[10])\n"
             + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }

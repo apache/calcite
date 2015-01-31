@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -44,7 +43,7 @@ import java.util.List;
  * Relational expression that imposes a particular sort order on its input
  * without otherwise changing its content.
  */
-public class Sort extends SingleRel {
+public abstract class Sort extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final RelCollation collation;
@@ -119,32 +118,17 @@ public class Sort extends SingleRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Sort copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), collation);
+  @Override public final Sort copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs), collation, offset, fetch);
   }
 
-  public Sort copy(
-      RelTraitSet traitSet,
-      RelNode newInput,
+  public final Sort copy(RelTraitSet traitSet, RelNode newInput,
       RelCollation newCollation) {
     return copy(traitSet, newInput, newCollation, offset, fetch);
   }
 
-  public Sort copy(
-      RelTraitSet traitSet,
-      RelNode newInput,
-      RelCollation newCollation,
-      RexNode offset,
-      RexNode fetch) {
-    assert traitSet.containsIfApplicable(Convention.NONE);
-    return new Sort(
-        getCluster(),
-        traitSet,
-        newInput,
-        newCollation,
-        offset,
-        fetch);
-  }
+  public abstract Sort copy(RelTraitSet traitSet, RelNode newInput,
+      RelCollation newCollation, RexNode offset, RexNode fetch);
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // Higher cost if rows are wider discourages pushing a project through a
