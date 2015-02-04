@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.bio.SocketConnector;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
@@ -54,18 +55,20 @@ class HttpServer {
     if (server != null) {
       throw new RuntimeException("Server is already started");
     } else {
-      server = new Server();
-      final SocketConnector connector = new SocketConnector();
-      connector.setMaxIdleTime(60 * 1000);
-      connector.setSoLingerTime(-1);
-      connector.setPort(0);
-      server.addConnector(connector);
-
       QueuedThreadPool threadPool = new QueuedThreadPool();
       threadPool.setDaemon(true);
-      server.setThreadPool(threadPool);
+      server = new Server(threadPool);
+      server.manage(threadPool);
+
+      final ServerConnector connector = new ServerConnector(server);
+      connector.setIdleTimeout(60 * 1000);
+      connector.setSoLingerTime(-1);
+      connector.setPort(0);
+      server.setConnectors(new Connector[] { connector });
+
       final ResourceHandler resHandler = new ResourceHandler();
       resHandler.setResourceBase(resourceBase.getAbsolutePath());
+
       final HandlerList handlerList = new HandlerList();
       handlerList.setHandlers(new Handler[] {resHandler, new DefaultHandler()});
       server.setHandler(handlerList);
@@ -74,7 +77,7 @@ class HttpServer {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      port = server.getConnectors()[0].getLocalPort();
+      port = connector.getLocalPort();
     }
   }
 
