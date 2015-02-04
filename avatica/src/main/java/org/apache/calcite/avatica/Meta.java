@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -315,21 +316,31 @@ public interface Meta {
     public final List<ColumnMetaData> columns;
     public final String sql;
     public final List<AvaticaParameter> parameters;
-    public final Map<String, Object> internalParameters;
+    public final transient Map<String, Object> internalParameters;
     public final CursorFactory cursorFactory;
 
-    @JsonCreator
-    public Signature(@JsonProperty("columns") List<ColumnMetaData> columns,
-        @JsonProperty("sql") String sql,
-        @JsonProperty("parameters") List<AvaticaParameter> parameters,
-        @JsonProperty("internalParameters") Map<String, Object>
-            internalParameters,
-        @JsonProperty("cursorFactory") CursorFactory cursorFactory) {
+    /** Creates a Signature. */
+    public Signature(List<ColumnMetaData> columns,
+        String sql,
+        List<AvaticaParameter> parameters,
+        Map<String, Object> internalParameters,
+        CursorFactory cursorFactory) {
       this.columns = columns;
       this.sql = sql;
       this.parameters = parameters;
       this.internalParameters = internalParameters;
       this.cursorFactory = cursorFactory;
+    }
+
+    /** Used by Jackson to create a Signature by de-serializing JSON. */
+    @JsonCreator
+    public static Signature create(
+        @JsonProperty("columns") List<ColumnMetaData> columns,
+        @JsonProperty("sql") String sql,
+        @JsonProperty("parameters") List<AvaticaParameter> parameters,
+        @JsonProperty("cursorFactory") CursorFactory cursorFactory) {
+      return new Signature(columns, sql, parameters,
+          Collections.<String, Object>emptyMap(), cursorFactory);
     }
 
     /** Returns a copy of this Signature, substituting given CursorFactory. */
