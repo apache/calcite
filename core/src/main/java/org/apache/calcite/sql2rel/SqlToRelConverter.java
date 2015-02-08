@@ -678,8 +678,7 @@ public class SqlToRelConverter {
               cluster,
               rel,
               Pair.left(newProjects),
-              Pair.right(newProjects),
-              LogicalProject.Flags.BOXED);
+              Pair.right(newProjects));
 
       bb.root = rel;
       distinctify(bb, false);
@@ -703,8 +702,7 @@ public class SqlToRelConverter {
               cluster,
               rel,
               Pair.left(undoProjects),
-              Pair.right(undoProjects),
-              LogicalProject.Flags.BOXED);
+              Pair.right(undoProjects));
 
       bb.setRoot(
           rel,
@@ -790,8 +788,7 @@ public class SqlToRelConverter {
               bb.root,
               exprs,
               cluster.getTypeFactory().createStructType(
-                  rowType.getFieldList().subList(0, fieldCount)),
-              Project.Flags.BOXED),
+                  rowType.getFieldList().subList(0, fieldCount))),
           false);
     }
   }

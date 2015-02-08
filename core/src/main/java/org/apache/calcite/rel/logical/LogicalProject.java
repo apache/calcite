@@ -44,15 +44,12 @@ public final class LogicalProject extends Project {
    * @param child      input relational expression
    * @param exps       set of expressions for the input columns
    * @param fieldNames aliases of the expressions
-   * @param flags      Flags; values as in {@link Project.Flags},
-   *                   usually {@link Project.Flags#BOXED}
    */
   public LogicalProject(
       RelOptCluster cluster,
       RelNode child,
       List<RexNode> exps,
-      List<String> fieldNames,
-      int flags) {
+      List<String> fieldNames) {
     this(
         cluster,
         cluster.traitSetOf(RelCollationImpl.EMPTY),
@@ -61,8 +58,7 @@ public final class LogicalProject extends Project {
         RexUtil.createStructType(
             cluster.getTypeFactory(),
             exps,
-            fieldNames),
-        flags);
+            fieldNames));
   }
 
   /**
@@ -73,17 +69,14 @@ public final class LogicalProject extends Project {
    * @param child    input relational expression
    * @param exps     List of expressions for the input columns
    * @param rowType  output row type
-   * @param flags      Flags; values as in {@link Project.Flags},
-   *                   usually {@link Project.Flags#BOXED}
    */
   public LogicalProject(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
       List<? extends RexNode> exps,
-      RelDataType rowType,
-      int flags) {
-    super(cluster, traitSet, child, exps, rowType, flags);
+      RelDataType rowType) {
+    super(cluster, traitSet, child, exps, rowType);
     assert traitSet.containsIfApplicable(Convention.NONE);
   }
 
@@ -98,8 +91,7 @@ public final class LogicalProject extends Project {
 
   @Override public LogicalProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType) {
-    return new LogicalProject(getCluster(), traitSet, input, exps, rowType,
-        flags);
+    return new LogicalProject(getCluster(), traitSet, input, exps, rowType);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

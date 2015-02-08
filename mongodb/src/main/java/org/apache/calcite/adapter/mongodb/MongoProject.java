@@ -37,8 +37,8 @@ import java.util.List;
  */
 public class MongoProject extends Project implements MongoRel {
   public MongoProject(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, List<RexNode> exps, RelDataType rowType, int flags) {
-    super(cluster, traitSet, child, exps, rowType, flags);
+      RelNode child, List<RexNode> exps, RelDataType rowType) {
+    super(cluster, traitSet, child, exps, rowType);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == child.getConvention();
   }
@@ -46,7 +46,7 @@ public class MongoProject extends Project implements MongoRel {
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> exps, RelDataType rowType) {
     return new MongoProject(getCluster(), traitSet, input, exps,
-        rowType, flags);
+        rowType);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {

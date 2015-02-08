@@ -200,8 +200,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                     project.getTraitSet(),
                     project.getInput(),
                     expList,
-                    project.getRowType(),
-                    LogicalProject.Flags.BOXED));
+                    project.getRowType()));
 
             // New plan is absolutely better than old plan.
             call.getPlanner().setImportance(project, 0.0);

@@ -220,8 +220,8 @@ public class Bindables {
               project.getInput().getTraitSet()
                   .replace(BindableConvention.INSTANCE)),
           project.getProjects(),
-          project.getRowType(),
-          Project.Flags.BOXED);
+          project.getRowType()
+      );
     }
   }
 
@@ -229,16 +229,14 @@ public class Bindables {
    * bindable calling convention. */
   public static class BindableProject extends Project implements BindableRel {
     public BindableProject(RelOptCluster cluster, RelTraitSet traitSet,
-        RelNode child, List<? extends RexNode> exps, RelDataType rowType,
-        int flags) {
-      super(cluster, traitSet, child, exps, rowType, flags);
+        RelNode child, List<? extends RexNode> exps, RelDataType rowType) {
+      super(cluster, traitSet, child, exps, rowType);
       assert getConvention() instanceof BindableConvention;
     }
 
     public BindableProject copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> exps, RelDataType rowType) {
-      return new BindableProject(getCluster(), traitSet, input, exps, rowType,
-          flags);
+      return new BindableProject(getCluster(), traitSet, input, exps, rowType);
     }
 
     public Class<Object[]> getElementType() {

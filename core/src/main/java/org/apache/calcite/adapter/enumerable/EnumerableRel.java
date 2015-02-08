@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -54,8 +53,7 @@ public interface EnumerableRel
                       : SqlValidatorUtil.uniquify(fieldNames,
                           SqlValidatorUtil.F_SUGGESTER));
           return new EnumerableProject(cluster,
-              child.getTraitSet(), child, exprs, rowType,
-              Project.Flags.BOXED);
+              child.getTraitSet(), child, exprs, rowType);
         }
       };
 
