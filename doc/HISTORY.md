@@ -3,6 +3,32 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
+## Since the last release
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-586">CALCITE-586</a>]
+  Prevent JSON serialization of `Signature.internalParameters`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-573">CALCITE-573</a>]
+  Use user-given names in `RelOptUtil.createProject` and `createRename`
+* Collation as a trait:
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-88">CALCITE-88</a>]
+    Add collation as a trait and a kind of `RelNode` metadata
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-569">CALCITE-569</a>]
+    `ArrayIndexOutOfBoundsException` when deducing collation (Aman Sinha)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-581">CALCITE-581</a>]
+    Add `LogicalSort` relational expression, and make `Sort` abstract
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-526">CALCITE-526</a>]
+    Add EnumerableMergeJoin, which exploits sorted inputs
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-71">CALCITE-71</a>]
+    Provide a way to declare that tables are sorted
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-576">CALCITE-576</a>]
+    Make RelCollation trait and AbstractRelNode.getCollationList consistent
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-254">CALCITE-254</a>]
+    [CALCITE-254] Propagate RelCollation on aliased columns in JoinRule
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-569">CALCITE-569</a>]
+    [CALCITE-569] ArrayIndexOutOfBoundsException when deducing collation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-572">CALCITE-572</a>]
+  Remove `Project.flags`
+
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-31
 
 Calcite's first major release.
