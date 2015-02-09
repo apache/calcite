@@ -70,6 +70,11 @@ environment, as follows.
 * `-Dcalcite.test.splunk=true` enables tests that run against Splunk.
   Splunk must be installed and running.
 
+To execute tests against mongodb, mysql only, use the following command:
+```bash
+mvn -Dtest=foo -DfailIfNoTests=false -Pit verify
+```
+
 ## Contributing
 
 We welcome contributions.
