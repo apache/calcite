@@ -27,7 +27,7 @@ branches:
     - javadoc
     - /^branch-.*$/
 script:
-  mvn test site
+  mvn -Dsurefire.useFile=false test site
 git:
   depth: 10000
 sudo: false
