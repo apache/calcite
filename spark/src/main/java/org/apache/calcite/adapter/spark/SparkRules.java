@@ -55,6 +55,7 @@ import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -250,13 +251,20 @@ public abstract class SparkRules {
 
     public SparkCalc(RelOptCluster cluster,
         RelTraitSet traitSet,
-        RelNode child,
+        RelNode input,
         RexProgram program) {
-      super(cluster, traitSet, child);
+      super(cluster, traitSet, input);
       assert getConvention() == SparkRel.CONVENTION;
       assert !program.containsAggs();
       this.program = program;
       this.rowType = program.getOutputRowType();
+    }
+
+    @Deprecated // to be removed before 2.0
+    public SparkCalc(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+        RexProgram program, int flags) {
+      this(cluster, traitSet, input, program);
+      Util.discard(flags);
     }
 
     @Override public RelWriter explainTerms(RelWriter pw) {
@@ -282,6 +290,11 @@ public abstract class SparkRules {
           traitSet,
           sole(inputs),
           program);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public int getFlags() {
+      return 1;
     }
 
     public Result implementSpark(Implementor implementor) {

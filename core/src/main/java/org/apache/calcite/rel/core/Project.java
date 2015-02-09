@@ -70,23 +70,30 @@ public abstract class Project extends SingleRel {
   /**
    * Creates a Project.
    *
-   * @param cluster Cluster that this relational expression belongs to
-   * @param traits  traits of this rel
-   * @param input   input relational expression
-   * @param exps    List of expressions for the input columns
-   * @param rowType output row type
+   * @param cluster  Cluster that this relational expression belongs to
+   * @param traits   Traits of this relational expression
+   * @param input    Input relational expression
+   * @param projects List of expressions for the input columns
+   * @param rowType  Output row type
    */
   protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode input,
-      List<? extends RexNode> exps,
+      List<? extends RexNode> projects,
       RelDataType rowType) {
     super(cluster, traits, input);
     assert rowType != null;
-    this.exps = ImmutableList.copyOf(exps);
+    this.exps = ImmutableList.copyOf(projects);
     this.rowType = rowType;
     assert isValid(true);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected Project(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+      List<? extends RexNode> projects, RelDataType rowType, int flags) {
+    this(cluster, traitSet, input, projects, rowType);
+    Util.discard(flags);
   }
 
   /**
@@ -112,7 +119,7 @@ public abstract class Project extends SingleRel {
    *
    * @param traitSet Traits
    * @param input Input
-   * @param exps Project expressions
+   * @param projects Project expressions
    * @param rowType Output row type
    * @return New {@code Project} if any parameter differs from the value of this
    *   {@code Project}, or just {@code this} if all the parameters are
@@ -121,7 +128,19 @@ public abstract class Project extends SingleRel {
    * @see #copy(RelTraitSet, List)
    */
   public abstract Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> exps, RelDataType rowType);
+      List<RexNode> projects, RelDataType rowType);
+
+  @Deprecated // to be removed before 2.0
+  public Project copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> projects, RelDataType rowType, int flags) {
+    Util.discard(flags);
+    return copy(traitSet, input, projects, rowType);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public boolean isBoxed() {
+    return true;
+  }
 
   @Override public List<RexNode> getChildExps() {
     return exps;
@@ -152,6 +171,11 @@ public abstract class Project extends SingleRel {
    */
   public final List<Pair<RexNode, String>> getNamedProjects() {
     return Pair.zip(getProjects(), getRowType().getFieldNames());
+  }
+
+  @Deprecated // to be removed before 2.0
+  public int getFlags() {
+    return 1;
   }
 
   public boolean isValid(boolean fail) {
@@ -311,6 +335,14 @@ public abstract class Project extends SingleRel {
   }
 
   //~ Inner Classes ----------------------------------------------------------
+
+  /** No longer used. */
+  @Deprecated // to be removed before 2.0
+  public static class Flags {
+    public static final int ANON_FIELDS = 2;
+    public static final int BOXED = 1;
+    public static final int NONE = 0;
+  }
 
   /**
    * Visitor which walks over a program and checks validity.

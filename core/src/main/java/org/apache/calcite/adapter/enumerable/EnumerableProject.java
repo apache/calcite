@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
 
@@ -31,17 +32,25 @@ public class EnumerableProject extends Project implements EnumerableRel {
   public EnumerableProject(
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
-      List<? extends RexNode> exps,
+      RelNode input,
+      List<? extends RexNode> projects,
       RelDataType rowType) {
-    super(cluster, traitSet, child, exps, rowType);
+    super(cluster, traitSet, input, projects, rowType);
     assert getConvention() instanceof EnumerableConvention;
   }
 
+  @Deprecated // to be removed before 2.0
+  public EnumerableProject(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, List<? extends RexNode> projects, RelDataType rowType,
+      int flags) {
+    this(cluster, traitSet, input, projects, rowType);
+    Util.discard(flags);
+  }
+
   public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> exps, RelDataType rowType) {
+      List<RexNode> projects, RelDataType rowType) {
     return new EnumerableProject(getCluster(), traitSet, input,
-        exps, rowType);
+        projects, rowType);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

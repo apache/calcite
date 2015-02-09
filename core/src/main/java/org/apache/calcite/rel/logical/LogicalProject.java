@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Supplier;
 
@@ -48,26 +49,37 @@ public final class LogicalProject extends Project {
    * <p>Use {@link #create} unless you know what you're doing.
    *
    * @param cluster  Cluster this relational expression belongs to
-   * @param traitSet traits of this rel
-   * @param input    input relational expression
-   * @param exps     List of expressions for the input columns
-   * @param rowType  output row type
+   * @param traitSet Traits of this relational expression
+   * @param input    Input relational expression
+   * @param projects List of expressions for the input columns
+   * @param rowType  Output row type
    */
   public LogicalProject(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode input,
-      List<? extends RexNode> exps,
+      List<? extends RexNode> projects,
       RelDataType rowType) {
-    super(cluster, traitSet, input, exps, rowType);
+    super(cluster, traitSet, input, projects, rowType);
     assert traitSet.containsIfApplicable(Convention.NONE);
   }
 
   @Deprecated // to be removed before 2.0
-  public LogicalProject(RelOptCluster cluster, RelNode child,
-      List<RexNode> exps, List<String> fieldNames) {
-    this(cluster, cluster.traitSetOf(RelCollations.EMPTY), child, exps,
-        RexUtil.createStructType(cluster.getTypeFactory(), exps, fieldNames));
+  public LogicalProject(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, List<? extends RexNode> projects, RelDataType rowType,
+      int flags) {
+    this(cluster, traitSet, input, projects, rowType);
+    Util.discard(flags);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalProject(RelOptCluster cluster, RelNode input,
+      List<RexNode> projects, List<String> fieldNames, int flags) {
+    this(cluster, cluster.traitSetOf(RelCollations.EMPTY),
+        input, projects,
+        RexUtil.createStructType(cluster.getTypeFactory(), projects,
+            fieldNames));
+    Util.discard(flags);
   }
 
   /**
@@ -95,7 +107,8 @@ public final class LogicalProject extends Project {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet =
         cluster.traitSet().replace(Convention.NONE)
-            .replaceIf(RelCollationTraitDef.INSTANCE,
+            .replaceIf(
+                RelCollationTraitDef.INSTANCE,
                 new Supplier<List<RelCollation>>() {
                   public List<RelCollation> get() {
                     return RelMdCollation.project(input, projects);
@@ -105,8 +118,8 @@ public final class LogicalProject extends Project {
   }
 
   @Override public LogicalProject copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> exps, RelDataType rowType) {
-    return new LogicalProject(getCluster(), traitSet, input, exps, rowType);
+      List<RexNode> projects, RelDataType rowType) {
+    return new LogicalProject(getCluster(), traitSet, input, projects, rowType);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

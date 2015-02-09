@@ -91,6 +91,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
@@ -233,7 +234,7 @@ public class JdbcRules {
   public static class JdbcJoin extends EquiJoin implements JdbcRel {
     protected JdbcJoin(
         RelOptCluster cluster,
-        RelTraitSet traits,
+        RelTraitSet traitSet,
         RelNode left,
         RelNode right,
         RexNode condition,
@@ -242,7 +243,7 @@ public class JdbcRules {
         JoinRelType joinType,
         Set<String> variablesStopped)
         throws InvalidRelException {
-      super(cluster, traits, left, right, condition, leftKeys, rightKeys,
+      super(cluster, traitSet, left, right, condition, leftKeys, rightKeys,
           joinType, variablesStopped);
     }
 
@@ -366,12 +367,19 @@ public class JdbcRules {
 
     public JdbcCalc(RelOptCluster cluster,
         RelTraitSet traitSet,
-        RelNode child,
+        RelNode input,
         RexProgram program) {
-      super(cluster, traitSet, child);
+      super(cluster, traitSet, input);
       assert getConvention() instanceof JdbcConvention;
       this.program = program;
       this.rowType = program.getOutputRowType();
+    }
+
+    @Deprecated // to be removed before 2.0
+    public JdbcCalc(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+        RexProgram program, int flags) {
+      this(cluster, traitSet, input, program);
+      Util.discard(flags);
     }
 
     public RelWriter explainTerms(RelWriter pw) {
@@ -448,16 +456,23 @@ public class JdbcRules {
     public JdbcProject(
         RelOptCluster cluster,
         RelTraitSet traitSet,
-        RelNode child,
-        List<RexNode> exps,
+        RelNode input,
+        List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, child, exps, rowType);
+      super(cluster, traitSet, input, projects, rowType);
       assert getConvention() instanceof JdbcConvention;
     }
 
+    @Deprecated // to be removed before 2.0
+    public JdbcProject(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode input, List<RexNode> projects, RelDataType rowType, int flags) {
+      this(cluster, traitSet, input, projects, rowType);
+      Util.discard(flags);
+    }
+
     @Override public JdbcProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> exps, RelDataType rowType) {
-      return new JdbcProject(getCluster(), traitSet, input, exps, rowType);
+        List<RexNode> projects, RelDataType rowType) {
+      return new JdbcProject(getCluster(), traitSet, input, projects, rowType);
     }
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
@@ -509,9 +524,9 @@ public class JdbcRules {
     public JdbcFilter(
         RelOptCluster cluster,
         RelTraitSet traitSet,
-        RelNode child,
+        RelNode input,
         RexNode condition) {
-      super(cluster, traitSet, child, condition);
+      super(cluster, traitSet, input, condition);
       assert getConvention() instanceof JdbcConvention;
     }
 
@@ -558,13 +573,13 @@ public class JdbcRules {
     public JdbcAggregate(
         RelOptCluster cluster,
         RelTraitSet traitSet,
-        RelNode child,
+        RelNode input,
         boolean indicator,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
     }
 
@@ -634,11 +649,11 @@ public class JdbcRules {
     public JdbcSort(
         RelOptCluster cluster,
         RelTraitSet traitSet,
-        RelNode child,
+        RelNode input,
         RelCollation collation) {
-      super(cluster, traitSet, child, collation);
+      super(cluster, traitSet, input, collation);
       assert getConvention() instanceof JdbcConvention;
-      assert getConvention() == child.getConvention();
+      assert getConvention() == input.getConvention();
     }
 
     @Override public JdbcSort copy(RelTraitSet traitSet, RelNode newInput,
@@ -851,16 +866,16 @@ public class JdbcRules {
     private final Expression expression;
 
     public JdbcTableModify(RelOptCluster cluster,
-        RelTraitSet traits,
+        RelTraitSet traitSet,
         RelOptTable table,
         Prepare.CatalogReader catalogReader,
-        RelNode child,
+        RelNode input,
         Operation operation,
         List<String> updateColumnList,
         boolean flattened) {
-      super(cluster, traits, table, catalogReader, child, operation,
+      super(cluster, traitSet, table, catalogReader, input, operation,
           updateColumnList, flattened);
-      assert child.getConvention() instanceof JdbcConvention;
+      assert input.getConvention() instanceof JdbcConvention;
       assert getConvention() instanceof JdbcConvention;
       final ModifiableTable modifiableTable =
           table.unwrap(ModifiableTable.class);
