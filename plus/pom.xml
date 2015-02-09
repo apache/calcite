@@ -132,10 +132,6 @@ limitations under the License.
           <includes>
             <include>org/apache/calcite/test/PlusSuite.java</include>
           </includes>
-          <threadCount>1</threadCount>
-          <perCoreThreadCount>true</perCoreThreadCount>
-          <parallel>both</parallel>
-          <argLine>-Xmx2g</argLine>
         </configuration>
       </plugin>
     </plugins>

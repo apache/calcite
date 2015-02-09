@@ -147,10 +147,6 @@ limitations under the License.
           <includes>
             <include>org/apache/calcite/test/CalciteSuite.java</include>
           </includes>
-          <threadCount>1</threadCount>
-          <perCoreThreadCount>true</perCoreThreadCount>
-          <parallel>both</parallel>
-          <argLine>-Xmx1536m -XX:MaxPermSize=256m</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -260,6 +256,39 @@ limitations under the License.
   </build>
 
   <profiles>
+    <profile>
+      <id>it</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>failsafe-integration-test</id>
+                <phase/>
+              </execution>
+              <execution>
+                <id>failsafe-test-mysql</id>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <phase>integration-test</phase>
+                <configuration>
+                  <includes>
+                    <include>org/apache/calcite/test/JdbcAdapterTest.java</include>
+                    <include>org/apache/calcite/test/JdbcTest.java</include>
+                  </includes>
+                  <systemPropertyVariables>
+                    <calcite.test.db>mysql</calcite.test.db>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <!-- CALCITE-539: workaround for MSHARED-394: Avoid rewrite of
       destination in DefaultMavenFileFilter#filterFile when producing

@@ -117,18 +117,6 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <includes>
-            <include>org/apache/calcite/test/MongoAdapterTest.java</include>
-          </includes>
-          <threadCount>6</threadCount>
-          <parallel>both</parallel>
-          <argLine>-Xmx1024m</argLine>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
