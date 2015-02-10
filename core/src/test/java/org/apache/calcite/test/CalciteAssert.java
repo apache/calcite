@@ -52,6 +52,7 @@ import com.google.common.collect.Lists;
 
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -67,6 +68,7 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -1461,6 +1463,10 @@ public class CalciteAssert {
   public enum ConnectionSpec {
     HSQLDB(FoodmartHsqldb.URI, "FOODMART", "FOODMART",
         "org.hsqldb.jdbcDriver"),
+    H2("jdbc:h2:" + getDataSetPath()
+        + "/h2/target/foodmart;user=foodmart;password=foodmart",
+        "foodmart", "foodmart",
+        "org.h2.Driver"),
     MYSQL("jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
         "com.mysql.jdbc.Driver"),
     POSTGRESQL(
@@ -1472,6 +1478,21 @@ public class CalciteAssert {
     public final String username;
     public final String password;
     public final String driver;
+
+    private static String getDataSetPath() {
+      String path = System.getProperty("calcite.test.dataset");
+      if (path != null) {
+        return path;
+      }
+      for (String s : Arrays.asList(
+          "../calcite-test-dataset",
+          "../../calcite-test-dataset")) {
+        if (new File(s).exists() && new File(s, "vm").exists()) {
+          return s;
+        }
+      }
+      return ".";
+    }
 
     ConnectionSpec(String url, String username, String password,
         String driver) {

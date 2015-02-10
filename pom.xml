@@ -137,6 +137,12 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>1.4.185</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.incava</groupId>
       <artifactId>java-diff</artifactId>
       <version>1.1</version>

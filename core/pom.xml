@@ -194,6 +194,22 @@ limitations under the License.
                   </systemPropertyVariables>
                 </configuration>
               </execution>
+              <execution>
+                <id>failsafe-test-h2</id>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <phase>integration-test</phase>
+                <configuration>
+                  <includes>
+                    <include>org/apache/calcite/test/JdbcAdapterTest.java</include>
+                    <include>org/apache/calcite/test/JdbcTest.java</include>
+                  </includes>
+                  <systemPropertyVariables>
+                    <calcite.test.db>h2</calcite.test.db>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
             </executions>
           </plugin>
         </plugins>

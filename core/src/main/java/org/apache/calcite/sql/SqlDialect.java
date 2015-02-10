@@ -181,6 +181,8 @@ public class SqlDialect {
       return DatabaseProduct.TERADATA;
     } else if (upperProductName.contains("HSQL")) {
       return DatabaseProduct.HSQLDB;
+    } else if (upperProductName.contains("H2")) {
+      return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
     } else {
@@ -407,6 +409,7 @@ public class SqlDialect {
   public boolean supportsCharSet() {
     switch (databaseProduct) {
     case MYSQL:
+    case H2:
     case HSQLDB:
     case PHOENIX:
     case POSTGRESQL:
@@ -483,6 +486,7 @@ public class SqlDialect {
     DERBY("Apache Derby", null),
     DB2("IBM DB2", null),
     FIREBIRD("Firebird", null),
+    H2("H2", "\""),
     HIVE("Apache Hive", null),
     INFORMIX("Informix", null),
     INGRES("Ingres", null),
