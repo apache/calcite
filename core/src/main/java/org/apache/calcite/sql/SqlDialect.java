@@ -409,6 +409,7 @@ public class SqlDialect {
     case MYSQL:
     case HSQLDB:
     case PHOENIX:
+    case POSTGRESQL:
       return false;
     default:
       return true;

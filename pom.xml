@@ -217,6 +217,12 @@ limitations under the License.
         <version>3.2</version>
       </dependency>
       <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>9.3-1102-jdbc3</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-library</artifactId>
         <version>2.10.3</version>
@@ -240,6 +246,12 @@ limitations under the License.
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
         <version>2.3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <version>1.4.185</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.incava</groupId>

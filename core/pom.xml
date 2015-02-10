@@ -284,6 +284,22 @@ limitations under the License.
                   </systemPropertyVariables>
                 </configuration>
               </execution>
+              <execution>
+                <id>failsafe-test-postgresql</id>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <phase>integration-test</phase>
+                <configuration>
+                  <includes>
+                    <include>org/apache/calcite/test/JdbcAdapterTest.java</include>
+                    <include>org/apache/calcite/test/JdbcTest.java</include>
+                  </includes>
+                  <systemPropertyVariables>
+                    <calcite.test.db>postgresql</calcite.test.db>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
             </executions>
           </plugin>
         </plugins>
