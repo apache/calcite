@@ -39,6 +39,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -469,16 +470,14 @@ public class CalciteAssert {
       resultSet.close();
       statement.close();
       connection.close();
-    } catch (Throwable e) {
+    } catch (Error e) {
       // We ignore extended message for non-runtime exception, however
       // it does not matter much since it is better to have AssertionError
       // at the very top level of the exception stack.
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      if (e instanceof Error) {
-        throw (Error) e;
-      }
+      throw e;
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Throwable e) {
       throw new RuntimeException(message, e);
     } finally {
       for (Hook.Closeable closeable : closeableList) {
@@ -708,6 +707,28 @@ public class CalciteAssert {
     default:
       throw new AssertionError("unknown schema " + schema);
     }
+  }
+
+  /**
+   * Asserts that two objects are equal. If they are not, an
+   * {@link AssertionError} is thrown with the given message. If
+   * <code>expected</code> and <code>actual</code> are <code>null</code>,
+   * they are considered equal.
+   *
+   * <p>This method produces more user-friendly error messages than
+   * {@link org.junit.Assert#assertArrayEquals(String, Object[], Object[])}
+   *
+   * @param message the identifying message for the {@link AssertionError} (<code>null</code>
+   * okay)
+   * @param expected expected value
+   * @param actual actual value
+   */
+  public static void assertArrayEqual(
+      String message, Object[] expected, Object[] actual) {
+    Joiner joiner = Joiner.on('\n');
+    String strExpected = expected == null ? null : joiner.join(expected);
+    String strActual = actual == null ? null : joiner.join(actual);
+    assertEquals(message, strExpected, strActual);
   }
 
   static <F, T> Function<F, T> constantNull() {
