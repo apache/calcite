@@ -19,18 +19,15 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberExpression;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Type;
-import java.util.AbstractList;
 import java.util.List;
 
 /**
@@ -207,10 +204,8 @@ public enum JavaRowFormat {
       return Object.class;
     }
 
-    public Expression record(
-        Type javaRowClass, List<Expression> expressions) {
-      return Expressions.newArrayInit(
-          Object.class, stripCasts(expressions));
+    public Expression record(Type javaRowClass, List<Expression> expressions) {
+      return Expressions.newArrayInit(Object.class, expressions);
     }
 
     @Override public Expression comparer() {
@@ -256,23 +251,6 @@ public enum JavaRowFormat {
 
   public abstract Expression record(
       Type javaRowClass, List<Expression> expressions);
-
-  private static List<Expression> stripCasts(
-      final List<Expression> expressions) {
-    return new AbstractList<Expression>() {
-      public Expression get(int index) {
-        Expression expression = expressions.get(index);
-        while (expression.getNodeType() == ExpressionType.Convert) {
-          expression = ((UnaryExpression) expression).expression;
-        }
-        return expression;
-      }
-
-      public int size() {
-        return expressions.size();
-      }
-    };
-  }
 
   public Expression comparer() {
     return null;

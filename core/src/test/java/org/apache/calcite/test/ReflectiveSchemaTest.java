@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
@@ -33,8 +34,10 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -328,18 +331,65 @@ public class ReflectiveSchemaTest {
   }
 
   private void checkAgg(CalciteAssert.AssertThat with, String fn) {
-    for (Field field
+    for (final Field field
         : fn.equals("avg") ? EveryType.numericFields() : EveryType.fields()) {
-      with.query("select " + fn + "(\"" + field.getName() + "\") as c\n"
-          + "from \"s\".\"everyTypes\"")
-          .returns(CalciteAssert.<ResultSet, Void>constantNull());
+      with.query(
+          "select " + fn + "(\"" + field.getName() + "\") as c\n"
+              + "from \"s\".\"everyTypes\"")
+          .returns(
+              new Function<ResultSet, Void>() {
+                public Void apply(ResultSet input) {
+                  int n = 0;
+                  try {
+                    while (input.next()) {
+                      final Object o = get(input);
+                      Util.discard(o);
+                      ++n;
+                    }
+                  } catch (SQLException e) {
+                    throw Throwables.propagate(e);
+                  }
+                  assertThat(n, equalTo(1));
+                  return null;
+                }
+
+                private Object get(ResultSet input) throws SQLException {
+                  final int type = input.getMetaData().getColumnType(1);
+                  switch (type) {
+                  case java.sql.Types.BOOLEAN:
+                    return input.getBoolean(1);
+                  case java.sql.Types.TINYINT:
+                    return input.getByte(1);
+                  case java.sql.Types.SMALLINT:
+                    return input.getShort(1);
+                  case java.sql.Types.INTEGER:
+                    return input.getInt(1);
+                  case java.sql.Types.BIGINT:
+                    return input.getLong(1);
+                  case java.sql.Types.REAL:
+                    return input.getFloat(1);
+                  case java.sql.Types.DOUBLE:
+                    return input.getDouble(1);
+                  case java.sql.Types.CHAR:
+                  case java.sql.Types.VARCHAR:
+                    return input.getString(1);
+                  case java.sql.Types.DATE:
+                    return input.getDate(1);
+                  case java.sql.Types.TIME:
+                    return input.getTime(1);
+                  case java.sql.Types.TIMESTAMP:
+                    return input.getTimestamp(1);
+                  default:
+                    throw new AssertionError(type);
+                  }
+                }
+              });
     }
   }
 
   @Test public void testClassNames() throws Exception {
     CalciteAssert.that()
-        .withSchema("s", CATCHALL)
-        .query("select * from \"s\".\"everyTypes\"")
+        .withSchema("s", CATCHALL).query("select * from \"s\".\"everyTypes\"")
         .returns(
             new Function<ResultSet, Void>() {
               public Void apply(ResultSet input) {
@@ -491,11 +541,35 @@ public class ReflectiveSchemaTest {
   }
 
   @Test public void testCastFromString() {
-    CalciteAssert.that()
-        .withSchema("s", CATCHALL)
+    CalciteAssert.that().withSchema("s", CATCHALL)
         .query("select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")
         .returns("C=1\n"
             + "C=null\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-580">CALCITE-580</a>,
+   * "Average aggregation on an Integer column throws ClassCastException". */
+  @Test public void testAvgInt() throws Exception {
+    CalciteAssert.that().withSchema("s", CATCHALL).with(Lex.JAVA)
+        .query("select primitiveLong, avg(primitiveInt)\n"
+                + "from s.everyTypes\n"
+                + "group by primitiveLong order by primitiveLong")
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet input) {
+                StringBuilder buf = new StringBuilder();
+                try {
+                  while (input.next()) {
+                    buf.append(input.getInt(2)).append("\n");
+                  }
+                } catch (SQLException e) {
+                  throw Throwables.propagate(e);
+                }
+                assertThat(buf.toString(), equalTo("0\n2147483647\n"));
+                return null;
+              }
+            });
   }
 
   private static boolean isNumeric(Class type) {
@@ -565,8 +639,9 @@ public class ReflectiveSchemaTest {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("select * from table(\"s\".\"view\"('abc'))")
-        .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
-            + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
+        .returns(
+            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+                + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
   /** Finds a table-macro using reflection. */
@@ -575,8 +650,9 @@ public class ReflectiveSchemaTest {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("select * from table(\"s\".\"foo\"(3))")
-        .returns("empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
-            + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
+        .returns(
+            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+                + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
   /** Table with single field as Integer[] */
