@@ -168,6 +168,7 @@ public class PlannerImpl implements Planner {
     this.validator =
         new CalciteSqlValidator(
             operatorTable, createCatalogReader(), typeFactory);
+    this.validator.setIdentifierExpansion(true);
     try {
       validatedSqlNode = validator.validate(sqlNode);
     } catch (RuntimeException e) {
@@ -210,6 +211,7 @@ public class PlannerImpl implements Planner {
           createCatalogReader().withSchemaPath(schemaPath);
       final SqlValidator validator = new CalciteSqlValidator(operatorTable,
           catalogReader, typeFactory);
+      validator.setIdentifierExpansion(true);
       final SqlNode validatedSqlNode = validator.validate(sqlNode);
 
       final SqlToRelConverter sqlToRelConverter = new SqlToRelConverter(
