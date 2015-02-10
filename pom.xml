@@ -149,6 +149,18 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>9.3-1102-jdbc3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>pentaho</groupId>
+      <artifactId>mondrian-data-foodmart-hsqldb</artifactId>
+      <version>0.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>foodmart-queries</artifactId>
       <version>0.4.1</version>

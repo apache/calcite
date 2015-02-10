@@ -102,10 +102,9 @@ public class CalciteAssert {
    * failures.  To run against MySQL, specify '-Dcalcite.test.db=mysql' on the
    * java command line. */
   public static final ConnectionSpec CONNECTION_SPEC =
-      Util.first(System.getProperty("calcite.test.db"), "hsqldb")
-          .equals("mysql")
-          ? ConnectionSpec.MYSQL
-          : ConnectionSpec.HSQLDB;
+      ConnectionSpec.valueOf(
+        Util.first(System.getProperty("calcite.test.db"), "HSQLDB")
+            .toUpperCase());
 
   /** Whether to enable slow tests. Default is false. */
   public static final boolean ENABLE_SLOW =
@@ -1463,7 +1462,11 @@ public class CalciteAssert {
     HSQLDB(FoodmartHsqldb.URI, "FOODMART", "FOODMART",
         "org.hsqldb.jdbcDriver"),
     MYSQL("jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
-        "com.mysql.jdbc.Driver");
+        "com.mysql.jdbc.Driver"),
+    POSTGRESQL(
+        "jdbc:postgresql://localhost/foodmart?user=foodmart&password=foodmart&searchpath=foodmart",
+        "foodmart", "foodmart",
+        "org.postgresql.Driver");
 
     public final String url;
     public final String username;
