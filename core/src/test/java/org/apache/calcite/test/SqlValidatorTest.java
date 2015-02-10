@@ -21,7 +21,10 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTester;
@@ -29,6 +32,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -6586,6 +6592,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
             + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
   }
+
+  @Test public void testFrameworksValidatorWithIdentifierExpansion()
+      throws Exception {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse("select * from \"emps\" ");
+    SqlNode val = planner.validate(parse);
+
+    String valStr =
+        val.toSqlString(SqlDialect.DUMMY, false).getSql();
+
+    String expandedStr =
+        "SELECT `emps`.`empid`, `emps`.`deptno`, `emps`.`name`, `emps`.`salary`, `emps`.`commission`\n"
+            + "FROM `hr`.`emps` AS `emps`";
+    assertEquals("Expanded string does not match!", valStr, expandedStr);
+  }
+
 
   @Test public void testRewriteWithColumnReferenceExpansion() {
     // NOTE jvs 9-Apr-2007:  This tests illustrates that
