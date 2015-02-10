@@ -393,6 +393,9 @@ public class RemoteDriverTest {
   }
 
   @Test public void testConnectionIsolation() throws Exception {
+    // Wait 5s for all other tests to finish. (Sorry! Hack!)
+    Thread.sleep(5000);
+
     final String sql = "select * from (values (1, 'a'))";
     Connection conn1 = ljs();
     Connection conn2 = ljs();

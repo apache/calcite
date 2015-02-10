@@ -157,6 +157,12 @@ limitations under the License.
         <version>14.0.1</version>
       </dependency>
       <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <version>1.4.185</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
         <version>3.0.1</version>
@@ -246,12 +252,6 @@ limitations under the License.
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
         <version>2.3.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <version>1.4.185</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.incava</groupId>

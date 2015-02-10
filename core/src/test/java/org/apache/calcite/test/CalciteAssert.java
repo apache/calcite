@@ -53,6 +53,7 @@ import com.google.common.collect.Lists;
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -1483,6 +1484,10 @@ public class CalciteAssert {
             "org.hsqldb.jdbcDriver"),
         new ConnectionSpec(ScottHsqldb.URI, ScottHsqldb.USER,
             ScottHsqldb.PASSWORD, "org.hsqldb.jdbcDriver")),
+    H2(
+        new ConnectionSpec("jdbc:h2:" + getDataSetPath()
+            + "/h2/target/foodmart;user=foodmart;password=foodmart",
+            "foodmart", "foodmart", "org.h2.Driver"), null),
     MYSQL(
         new ConnectionSpec("jdbc:mysql://localhost/foodmart", "foodmart",
             "foodmart", "com.mysql.jdbc.Driver"), null),
@@ -1493,6 +1498,23 @@ public class CalciteAssert {
 
     public final ConnectionSpec foodmart;
     public final ConnectionSpec scott;
+
+    private static String getDataSetPath() {
+      String path = System.getProperty("calcite.test.dataset");
+      if (path != null) {
+        return path;
+      }
+      final String[] dirs = {
+        "../calcite-test-dataset",
+        "../../calcite-test-dataset"
+      };
+      for (String s : dirs) {
+        if (new File(s).exists() && new File(s, "vm").exists()) {
+          return s;
+        }
+      }
+      return ".";
+    }
 
     DatabaseInstance(ConnectionSpec foodmart, ConnectionSpec scott) {
       this.foodmart = foodmart;

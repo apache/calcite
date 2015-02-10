@@ -76,6 +76,11 @@ limitations under the License.
       <artifactId>guava</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -135,6 +140,11 @@ limitations under the License.
     <dependency>
       <groupId>org.pentaho</groupId>
       <artifactId>pentaho-aggdesigner-algorithm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -229,9 +239,11 @@ limitations under the License.
               <failOnWarning>true</failOnWarning>
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
+                <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>mysql:mysql-connector-java</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:scott-data-hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:foodmart-data-hsqldb</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>mysql:mysql-connector-java</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -266,7 +278,9 @@ limitations under the License.
             <executions>
               <execution>
                 <id>failsafe-integration-test</id>
-                <phase/>
+                <!-- Disable the integration test inherited from the parent pom
+                     so that we can run multiple tests, one per database. -->
+                <phase>none</phase>
               </execution>
               <execution>
                 <id>failsafe-test-mysql</id>
@@ -297,6 +311,22 @@ limitations under the License.
                   </includes>
                   <systemPropertyVariables>
                     <calcite.test.db>postgresql</calcite.test.db>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+              <execution>
+                <id>failsafe-test-h2</id>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <phase>integration-test</phase>
+                <configuration>
+                  <includes>
+                    <include>org/apache/calcite/test/JdbcAdapterTest.java</include>
+                    <include>org/apache/calcite/test/JdbcTest.java</include>
+                  </includes>
+                  <systemPropertyVariables>
+                    <calcite.test.db>h2</calcite.test.db>
                   </systemPropertyVariables>
                 </configuration>
               </execution>
