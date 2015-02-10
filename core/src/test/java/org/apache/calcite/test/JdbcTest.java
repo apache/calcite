@@ -157,6 +157,9 @@ public class JdbcTest {
   public static final Method VIEW_METHOD =
       Types.lookupMethod(JdbcTest.class, "view", String.class);
 
+  public static final Method STR_METHOD =
+      Types.lookupMethod(JdbcTest.class, "str", Object.class, Object.class);
+
   public static final Method STRING_UNION_METHOD =
       Types.lookupMethod(
           JdbcTest.class, "stringUnion", Queryable.class, Queryable.class);
@@ -250,8 +253,8 @@ public class JdbcTest {
   @Test public void testTableFunctionDynamicStructure()
       throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
-    final PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"multiplication\"(4, 3, ?))\n");
+    final PreparedStatement ps = connection.prepareStatement(
+        "select *\n" + "from table(\"s\".\"multiplication\"(4, 3, ?))\n");
     ps.setInt(1, 100);
     ResultSet resultSet = ps.executeQuery();
     assertThat(CalciteAssert.toString(resultSet),
@@ -457,6 +460,32 @@ public class JdbcTest {
         equalTo("N=1\n"
             + "N=3\n"
             + "N=10\n"));
+    connection.close();
+  }
+
+  /** Table macro that takes a MAP as a parameter.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-588">CALCITE-588</a>,
+   * "Allow TableMacro to consume Maps and Collections". */
+  @Test public void testTableMacroMap()
+      throws SQLException, ClassNotFoundException {
+    Connection connection =
+        DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableMacro tableMacro = TableMacroImpl.create(STR_METHOD);
+    schema.add("Str", tableMacro);
+    ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
+        + "from table(\"s\".\"Str\"(MAP['a', 1, 'baz', 2],\n"
+        + "                         ARRAY[3, 4, CAST(null AS INTEGER)])) as t(n)");
+    // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=[3, 4, null]\n"));
+    connection.close();
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
@@ -6153,6 +6182,19 @@ public class JdbcTest {
                 .build();
           }
         }, "values (1), (3), " + s, ImmutableList.<String>of());
+  }
+
+  public static TranslatableTable str(Object o, Object p) {
+    return new ViewTable(Object.class,
+        new RelProtoDataType() {
+          public RelDataType apply(RelDataTypeFactory typeFactory) {
+            return typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100)
+                .build();
+          }
+        },
+        "values " + SqlDialect.CALCITE.quoteStringLiteral(o.toString())
+            + ", " + SqlDialect.CALCITE.quoteStringLiteral(p.toString()),
+        ImmutableList.<String>of());
   }
 
   public static class Employee {

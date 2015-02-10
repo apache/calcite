@@ -29,6 +29,7 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -39,9 +40,13 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -94,26 +99,54 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     // Construct a list of arguments, if they are all constants.
     for (Pair<FunctionParameter, SqlNode> pair
         : Pair.zip(function.getParameters(), operandList)) {
-      if (SqlUtil.isNullLiteral(pair.right, true)) {
-        arguments.add(null);
-      } else if (SqlUtil.isLiteral(pair.right)) {
-        final Object o = ((SqlLiteral) pair.right).getValue();
+      try {
+        final Object o = getValue(pair.right);
         final Object o2 = coerce(o, pair.left.getType(typeFactory));
         arguments.add(o2);
-      } else {
-        arguments.add(null);
+      } catch (NonLiteralException e) {
         if (failOnNonLiteral) {
           throw new IllegalArgumentException("All arguments of call to macro "
               + opName + " should be literal. Actual argument #"
               + pair.left.getOrdinal() + " (" + pair.left.getName()
               + ") is not literal: " + pair.right);
         }
+        arguments.add(null);
       }
     }
     return arguments;
   }
 
+  private static Object getValue(SqlNode right) throws NonLiteralException {
+    switch (right.getKind()) {
+    case ARRAY_VALUE_CONSTRUCTOR:
+      final List<Object> list = Lists.newArrayList();
+      for (SqlNode o : ((SqlCall) right).getOperandList()) {
+        list.add(getValue(o));
+      }
+      return ImmutableNullableList.copyOf(list);
+    case MAP_VALUE_CONSTRUCTOR:
+      final ImmutableMap.Builder<Object, Object> builder2 =
+          ImmutableMap.builder();
+      final List<SqlNode> operands = ((SqlCall) right).getOperandList();
+      for (int i = 0; i < operands.size(); i += 2) {
+        builder2.put(operands.get(i), operands.get(i + 1));
+      }
+      return builder2.build();
+    default:
+      if (SqlUtil.isNullLiteral(right, true)) {
+        return null;
+      }
+      if (SqlUtil.isLiteral(right)) {
+        return ((SqlLiteral) right).getValue();
+      }
+      throw new NonLiteralException();
+    }
+  }
+
   private static Object coerce(Object o, RelDataType type) {
+    if (o == null) {
+      return null;
+    }
     if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
       return null;
     }
@@ -139,6 +172,11 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
         Expressions.lambda(bb.toBlock(),
             Collections.<ParameterExpression>emptyList());
     return convert.compile().dynamicInvoke();
+  }
+
+  /** Thrown when a non-literal occurs in an argument to a user-defined
+   * table macro. */
+  private static class NonLiteralException extends Exception {
   }
 }
 
