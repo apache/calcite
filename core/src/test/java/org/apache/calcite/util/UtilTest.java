@@ -473,11 +473,14 @@ public class UtilTest {
         Util.toPosix(TimeZone.getTimeZone("Australia/Sydney"), true);
 
     if (posixTime.equals("EST10EST1,M10.5.0/2,M3.5.0/3")) {
-      // older JVMs without the fix
+      // very old JVMs without the fix
       assertEquals("EST10EST1,M10.5.0/2,M3.5.0/3", posixTime);
+    } else if (posixTime.equals("EST10EST1,M10.1.0/2,M4.1.0/3")) {
+      // old JVMs without the fix
+      assertEquals("EST10EST1,M10.1.0/2,M4.1.0/3", posixTime);
     } else {
       // newer JVMs with the fix
-      assertEquals("EST10EST1,M10.1.0/2,M4.1.0/3", posixTime);
+      assertEquals("AEST10AEDT1,M10.1.0/2,M4.1.0/3", posixTime);
     }
 
     // Paris, France. (Uses UTC_TIME time-transition mode.)
