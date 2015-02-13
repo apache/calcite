@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.runtime.FlatLists;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableListIterator;
 
 import java.lang.reflect.Array;
@@ -73,15 +74,29 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
   }
 
   /**
-   * Creates an ImmutableIntList from a collection of {@link Number}.
+   * Creates an ImmutableIntList from an iterable of {@link Number}.
    */
-  public static ImmutableIntList copyOf(Collection<? extends Number> list) {
+  public static ImmutableIntList copyOf(Iterable<? extends Number> list) {
     if (list instanceof ImmutableIntList) {
       return (ImmutableIntList) list;
     }
-    if (list.isEmpty()) {
-      return EMPTY;
-    }
+    @SuppressWarnings("unchecked")
+    final Collection<? extends Number> collection =
+        list instanceof Collection
+            ? (Collection<? extends Number>) list
+            : Lists.newArrayList(list);
+    return copyFromCollection(collection);
+  }
+
+  /**
+   * Creates an ImmutableIntList from an iterator of {@link Number}.
+   */
+  public static ImmutableIntList copyOf(Iterator<? extends Number> list) {
+    return copyFromCollection(Lists.newArrayList(list));
+  }
+
+  private static ImmutableIntList copyFromCollection(
+      Collection<? extends Number> list) {
     final int[] ints = new int[list.size()];
     int i = 0;
     for (Number number : list) {

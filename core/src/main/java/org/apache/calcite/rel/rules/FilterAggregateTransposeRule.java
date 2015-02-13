@@ -112,7 +112,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       }
     }
 
-    RelNode rel = RelOptUtil.createFilter(aggRel.getInput(0), pushedConditions,
+    RelNode rel = RelOptUtil.createFilter(aggRel.getInput(), pushedConditions,
         filterFactory);
     if (rel == aggRel.getInput(0)) {
       return;

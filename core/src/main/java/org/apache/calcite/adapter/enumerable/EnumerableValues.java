@@ -25,9 +25,12 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
@@ -56,10 +59,16 @@ public class EnumerableValues extends Values implements EnumerableRel {
       final ImmutableList<ImmutableList<RexLiteral>> tuples) {
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
-            .replaceIf(RelCollationTraitDef.INSTANCE,
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
                 new Supplier<List<RelCollation>>() {
                   public List<RelCollation> get() {
                     return RelMdCollation.values(rowType, tuples);
+                  }
+                })
+            .replaceIf(RelDistributionTraitDef.INSTANCE,
+                new Supplier<RelDistribution>() {
+                  public RelDistribution get() {
+                    return RelMdDistribution.values(rowType, tuples);
                   }
                 });
     return new EnumerableValues(cluster, rowType, tuples, traitSet);

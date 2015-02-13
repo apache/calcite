@@ -18,7 +18,9 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -72,9 +74,17 @@ public interface RelOptTable {
    * Returns a description of the physical ordering (or orderings) of the rows
    * returned from this table.
    *
-   * @see RelNode#getCollationList()
+   * @see RelMetadataQuery#collations(RelNode)
    */
   List<RelCollation> getCollationList();
+
+  /**
+   * Returns a description of the physical distribution of the rows
+   * in this table.
+   *
+   * @see RelMetadataQuery#distribution(RelNode)
+   */
+  RelDistribution getDistribution();
 
   /**
    * Returns whether the given columns are a key or a superset of a unique key

@@ -74,8 +74,7 @@ public class CalcMergeRule extends RelOptRule {
         topCalc.copy(
             topCalc.getTraitSet(),
             bottomCalc.getInput(),
-            mergedProgram,
-            topCalc.getCollationList());
+            mergedProgram);
 
     if (newCalc.getDigest().equals(bottomCalc.getDigest())) {
       // newCalc is equivalent to bottomCalc, which means that topCalc

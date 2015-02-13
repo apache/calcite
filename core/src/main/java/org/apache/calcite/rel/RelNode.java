@@ -319,7 +319,10 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Description of the physical ordering (or orderings) of this
    *   relational expression. Never null
+   *
+   * @deprecated Use {@link RelMetadataQuery#distribution(RelNode)}
    */
+  @Deprecated // to be removed before 2.0
   List<RelCollation> getCollationList();
 
   /**

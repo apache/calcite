@@ -84,6 +84,8 @@ public interface RelInput {
 
   RelCollation getCollation();
 
+  RelDistribution getDistribution();
+
   ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag);
 
   boolean getBoolean(String tag, boolean default_);

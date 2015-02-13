@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -180,6 +181,14 @@ public class RelMdColumnOrigins {
 
   public Set<RelColumnOrigin> getColumnOrigins(
       Sort rel,
+      int iOutputColumn) {
+    return invokeGetColumnOrigins(
+        rel.getInput(),
+        iOutputColumn);
+  }
+
+  public Set<RelColumnOrigin> getColumnOrigins(
+      Exchange rel,
       int iOutputColumn) {
     return invokeGetColumnOrigins(
         rel.getInput(),

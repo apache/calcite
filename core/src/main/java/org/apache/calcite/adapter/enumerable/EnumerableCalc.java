@@ -31,9 +31,12 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -85,10 +88,16 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(EnumerableConvention.INSTANCE)
-        .replaceIf(RelCollationTraitDef.INSTANCE,
+        .replaceIfs(RelCollationTraitDef.INSTANCE,
             new Supplier<List<RelCollation>>() {
               public List<RelCollation> get() {
                 return RelMdCollation.calc(input, program);
+              }
+            })
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+            new Supplier<RelDistribution>() {
+              public RelDistribution get() {
+                return RelMdDistribution.calc(input, program);
               }
             });
     return new EnumerableCalc(cluster, traitSet, input, program);

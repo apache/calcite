@@ -54,10 +54,6 @@ import java.util.List;
  * Relational expression that computes a set of
  * 'select expressions' from its input relational expression.
  *
- * <p>The result is usually 'boxed' as a record with one named field for each
- * column; if there is precisely one expression, the result may be 'unboxed',
- * and consist of the raw value type.
- *
  * @see org.apache.calcite.rel.logical.LogicalProject
  */
 public abstract class Project extends SingleRel {
@@ -283,7 +279,7 @@ public abstract class Project extends SingleRel {
    * @return Mapping of a set of project expressions
    */
   public static Mappings.TargetMapping getMapping(int inputFieldCount,
-      List<RexNode> projects) {
+      List<? extends RexNode> projects) {
     Mappings.TargetMapping mapping =
         Mappings.create(
             MappingType.INVERSE_SURJECTION, inputFieldCount, projects.size());
@@ -298,19 +294,28 @@ public abstract class Project extends SingleRel {
 
   /**
    * Returns a permutation, if this projection is merely a permutation of its
-   * input fields, otherwise null.
+   * input fields; otherwise null.
    *
    * @return Permutation, if this projection is merely a permutation of its
-   *   input fields, otherwise null
+   *   input fields; otherwise null
    */
   public Permutation getPermutation() {
-    final int fieldCount = rowType.getFieldList().size();
-    if (fieldCount != getInput().getRowType().getFieldList().size()) {
+    return getPermutation(getInput().getRowType().getFieldCount(), exps);
+  }
+
+  /**
+   * Returns a permutation, if this projection is merely a permutation of its
+   * input fields; otherwise null.
+   */
+  public static Permutation getPermutation(int inputFieldCount,
+      List<? extends RexNode> projects) {
+    final int fieldCount = projects.size();
+    if (fieldCount != inputFieldCount) {
       return null;
     }
     Permutation permutation = new Permutation(fieldCount);
     for (int i = 0; i < fieldCount; ++i) {
-      final RexNode exp = exps.get(i);
+      final RexNode exp = projects.get(i);
       if (exp instanceof RexInputRef) {
         permutation.set(i, ((RexInputRef) exp).getIndex());
       } else {

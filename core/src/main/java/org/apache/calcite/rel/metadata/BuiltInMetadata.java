@@ -19,6 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -92,6 +93,22 @@ public abstract class BuiltInMetadata {
   public interface Collation extends Metadata {
     /** Determines which columns are sorted. */
     ImmutableList<RelCollation> collations();
+  }
+
+  /** Metadata about how a relational expression is distributed.
+   *
+   * <p>If you are an operator consuming a relational expression, which subset
+   * of the rows are you seeing? You might be seeing all of them (BROADCAST
+   * or SINGLETON), only those whose key column values have a particular hash
+   * code (HASH) or only those whose column values have particular values or
+   * ranges of values (RANGE).
+   *
+   * <p>When a relational expression is partitioned, it is often partitioned
+   * among nodes, but it may be partitioned among threads running on the same
+   * node. */
+  public interface Distribution extends Metadata {
+    /** Determines how the rows are distributed. */
+    RelDistribution distribution();
   }
 
   /** Metadata about the number of rows returned by a relational expression. */
@@ -232,7 +249,8 @@ public abstract class BuiltInMetadata {
 
   /** The built-in forms of metadata. */
   interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
-      PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates {
+      PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates,
+      Collation, Distribution {
   }
 }
 

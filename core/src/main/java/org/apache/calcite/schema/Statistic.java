@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -39,6 +40,9 @@ public interface Statistic {
 
   /** Returns the collections of columns on which this table is sorted. */
   List<RelCollation> getCollations();
+
+  /** Returns the distribution of the data in this table. */
+  RelDistribution getDistribution();
 }
 
 // End Statistic.java

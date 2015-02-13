@@ -809,7 +809,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Create input with trimmed columns.
-    final RelNode input = aggregate.getInput(0);
+    final RelNode input = aggregate.getInput();
     final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
     final TrimResult trimResult =
         trimChild(aggregate, input, inputFieldsUsed.build(), inputExtraFields);

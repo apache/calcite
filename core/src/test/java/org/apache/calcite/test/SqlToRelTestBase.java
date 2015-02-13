@@ -25,6 +25,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -350,6 +352,10 @@ public abstract class SqlToRelTestBase {
         return collationList;
       }
 
+      public RelDistribution getDistribution() {
+        return RelDistributions.BROADCAST_DISTRIBUTED;
+      }
+
       public boolean isKey(ImmutableBitSet columns) {
         return false;
       }
@@ -413,6 +419,10 @@ public abstract class SqlToRelTestBase {
 
     public List<RelCollation> getCollationList() {
       return parent.getCollationList();
+    }
+
+    public RelDistribution getDistribution() {
+      return parent.getDistribution();
     }
 
     public boolean isKey(ImmutableBitSet columns) {

@@ -107,7 +107,7 @@ public final class LogicalProject extends Project {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet =
         cluster.traitSet().replace(Convention.NONE)
-            .replaceIf(
+            .replaceIfs(
                 RelCollationTraitDef.INSTANCE,
                 new Supplier<List<RelCollation>>() {
                   public List<RelCollation> get() {

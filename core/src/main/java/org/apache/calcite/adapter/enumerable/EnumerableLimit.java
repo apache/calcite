@@ -23,10 +23,13 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -62,10 +65,17 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
-            .replaceIf(RelCollationTraitDef.INSTANCE,
+            .replaceIfs(
+                RelCollationTraitDef.INSTANCE,
                 new Supplier<List<RelCollation>>() {
                   public List<RelCollation> get() {
-                    return RelMdCollation.filter(input);
+                    return RelMdCollation.limit(input);
+                  }
+                })
+            .replaceIf(RelDistributionTraitDef.INSTANCE,
+                new Supplier<RelDistribution>() {
+                  public RelDistribution get() {
+                    return RelMdDistribution.limit(input);
                   }
                 });
     return new EnumerableLimit(cluster, traitSet, input, offset, fetch);

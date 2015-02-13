@@ -86,6 +86,7 @@ import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
@@ -292,6 +293,7 @@ public enum BuiltInMethod {
   COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique",
       ImmutableBitSet.class, boolean.class),
   COLLATIONS(Collation.class, "collations"),
+  DISTRIBUTION(Distribution.class, "distribution"),
   ROW_COUNT(RowCount.class, "getRowCount"),
   DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
       ImmutableBitSet.class, RexNode.class),

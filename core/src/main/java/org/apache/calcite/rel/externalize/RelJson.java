@@ -20,6 +20,8 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -179,6 +181,10 @@ public class RelJson {
         Util.enumVal(RelFieldCollation.NullDirection.class,
             (String) map.get("nulls"));
     return new RelFieldCollation(field, direction, nullDirection);
+  }
+
+  public RelDistribution toDistribution(Object o) {
+    return RelDistributions.ANY; // TODO:
   }
 
   public RelDataType toType(RelDataTypeFactory typeFactory, Object o) {

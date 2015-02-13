@@ -46,18 +46,17 @@ public class CalcRemoveRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     LogicalCalc calc = call.rel(0);
     RexProgram program = calc.getProgram();
     if (!program.isTrivial()) {
       return;
     }
-    RelNode child = calc.getInput(0);
-    child = call.getPlanner().register(child, calc);
+    RelNode input = calc.getInput();
+    input = call.getPlanner().register(input, calc);
     call.transformTo(
         convert(
-            child,
+            input,
             calc.getTraitSet()));
   }
 }

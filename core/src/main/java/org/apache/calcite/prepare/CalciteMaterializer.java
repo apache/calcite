@@ -26,16 +26,17 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
-import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
@@ -174,8 +175,11 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
     }
-    public RelNode visit(Sort sort) {
+    public RelNode visit(LogicalSort sort) {
       return sort;
+    }
+    public RelNode visit(LogicalExchange exchange) {
+      return exchange;
     }
     public RelNode visit(RelNode other) {
       return other;

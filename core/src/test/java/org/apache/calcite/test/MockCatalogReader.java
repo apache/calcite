@@ -23,6 +23,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -445,6 +447,10 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public List<RelCollation> getCollationList() {
       return collationList;
+    }
+
+    public RelDistribution getDistribution() {
+      return RelDistributions.BROADCAST_DISTRIBUTED;
     }
 
     public boolean isKey(ImmutableBitSet columns) {

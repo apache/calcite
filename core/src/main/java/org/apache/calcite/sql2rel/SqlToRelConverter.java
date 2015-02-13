@@ -1147,7 +1147,7 @@ public class SqlToRelConverter {
       //   on e.deptno = dt.deptno
       final Join join = (Join) root;
       final Project left = (Project) join.getLeft();
-      final RelNode leftLeft = ((Join) left.getInput(0)).getLeft();
+      final RelNode leftLeft = ((Join) left.getInput()).getLeft();
       final int leftLeftCount = leftLeft.getRowType().getFieldCount();
       final RelDataType nullableBooleanType =
           typeFactory.createTypeWithNullability(

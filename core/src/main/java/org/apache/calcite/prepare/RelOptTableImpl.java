@@ -26,6 +26,8 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
@@ -246,6 +248,13 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       return table.getStatistic().getCollations();
     }
     return ImmutableList.of();
+  }
+
+  public RelDistribution getDistribution() {
+    if (table != null) {
+      return table.getStatistic().getDistribution();
+    }
+    return RelDistributionTraitDef.INSTANCE.getDefault();
   }
 
   public boolean isKey(ImmutableBitSet columns) {

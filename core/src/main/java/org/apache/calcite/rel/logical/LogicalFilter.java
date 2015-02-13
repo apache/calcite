@@ -21,11 +21,14 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.base.Supplier;
@@ -76,10 +79,16 @@ public final class LogicalFilter extends Filter {
   public static LogicalFilter create(final RelNode input, RexNode condition) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
-        .replaceIf(RelCollationTraitDef.INSTANCE,
+        .replaceIfs(RelCollationTraitDef.INSTANCE,
             new Supplier<List<RelCollation>>() {
               public List<RelCollation> get() {
                 return RelMdCollation.filter(input);
+              }
+            })
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+            new Supplier<RelDistribution>() {
+              public RelDistribution get() {
+                return RelMdDistribution.filter(input);
               }
             });
     return new LogicalFilter(cluster, traitSet, input, condition);

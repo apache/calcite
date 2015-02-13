@@ -26,7 +26,6 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -139,10 +138,6 @@ public abstract class Sort extends SingleRel {
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
-  }
-
   @Override public List<RexNode> getChildExps() {
     return fieldExps;
   }
@@ -165,12 +160,12 @@ public abstract class Sort extends SingleRel {
    * Returns the array of {@link RelFieldCollation}s asked for by the sort
    * specification, from most significant to least significant.
    *
-   * <p>See also {@link #getCollationList()}, inherited from {@link RelNode},
+   * <p>See also {@link RelMetadataQuery#collations(RelNode)},
    * which lists all known collations. For example,
    * <code>ORDER BY time_id</code> might also be sorted by
    * <code>the_year, the_month</code> because of a known monotonicity
-   * constraint among the columns. {@code getCollations} would return
-   * <code>[time_id]</code> and {@code getCollationList} would return
+   * constraint among the columns. {@code getCollation} would return
+   * <code>[time_id]</code> and {@code collations} would return
    * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
    */
   public RelCollation getCollation() {
@@ -178,7 +173,6 @@ public abstract class Sort extends SingleRel {
   }
 
   @Override public List<RelCollation> getCollationList() {
-    // TODO: include each prefix of the collation, e.g [[x, y], [x], []]
     return Collections.singletonList(getCollation());
   }
 

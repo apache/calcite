@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -284,7 +285,15 @@ public class RelMdPredicates {
    * Infers predicates for a Sort.
    */
   public RelOptPredicateList getPredicates(Sort sort) {
-    RelNode child = sort.getInput(0);
+    RelNode child = sort.getInput();
+    return RelMetadataQuery.getPulledUpPredicates(child);
+  }
+
+  /**
+   * Infers predicates for an Exchange.
+   */
+  public RelOptPredicateList getPredicates(Exchange exchange) {
+    RelNode child = exchange.getInput();
     return RelMetadataQuery.getPulledUpPredicates(child);
   }
 

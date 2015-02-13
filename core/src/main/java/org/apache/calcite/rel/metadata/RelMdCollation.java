@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
@@ -114,6 +115,11 @@ public class RelMdCollation {
         RelMdCollation.sort(sort.getCollation()));
   }
 
+  public ImmutableList<RelCollation> collations(SortExchange sort) {
+    return ImmutableList.copyOf(
+        RelMdCollation.sort(sort.getCollation()));
+  }
+
   public ImmutableList<RelCollation> collations(Project project) {
     return ImmutableList.copyOf(
         project(project.getInput(), project.getProjects()));
@@ -145,6 +151,12 @@ public class RelMdCollation {
   /** Helper method to determine a
    * {@link org.apache.calcite.rel.core.Filter}'s collation. */
   public static List<RelCollation> filter(RelNode input) {
+    return RelMetadataQuery.collations(input);
+  }
+
+  /** Helper method to determine a
+   * limit's collation. */
+  public static List<RelCollation> limit(RelNode input) {
     return RelMetadataQuery.collations(input);
   }
 

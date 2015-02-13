@@ -18,6 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -53,6 +54,12 @@ public class RelMdPopulationSize {
   }
 
   public Double getPopulationSize(Sort rel, ImmutableBitSet groupKey) {
+    return RelMetadataQuery.getPopulationSize(
+        rel.getInput(),
+        groupKey);
+  }
+
+  public Double getPopulationSize(Exchange rel, ImmutableBitSet groupKey) {
     return RelMetadataQuery.getPopulationSize(
         rel.getInput(),
         groupKey);

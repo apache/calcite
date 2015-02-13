@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -218,6 +219,10 @@ public class RelJsonReader {
 
       public RelCollation getCollation() {
         return relJson.toCollation((List) get("collation"));
+      }
+
+      public RelDistribution getDistribution() {
+        return relJson.toDistribution(get("distribution"));
       }
 
       public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {

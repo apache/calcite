@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -290,6 +291,21 @@ public abstract class RelMetadataQuery {
     final BuiltInMetadata.Collation metadata =
         rel.metadata(BuiltInMetadata.Collation.class);
     return metadata.collations();
+  }
+
+  /**
+   * Returns the
+   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution#distribution()}
+   * statistic.
+   *
+   * @param rel         the relational expression
+   * @return List of sorted column combinations, or
+   * null if not enough information is available to make that determination
+   */
+  public static RelDistribution distribution(RelNode rel) {
+    final BuiltInMetadata.Distribution metadata =
+        rel.metadata(BuiltInMetadata.Distribution.class);
+    return metadata.distribution();
   }
 
   /**

@@ -211,8 +211,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return replace(RelCompositeTrait.of(def, traits));
   }
 
-  /** If a given trait is enabled, replaces it by calling the given function. */
-  public <T extends RelMultipleTrait> RelTraitSet replaceIf(RelTraitDef<T> def,
+  /** If a given multiple trait is enabled, replaces it by calling the given
+   * function. */
+  public <T extends RelMultipleTrait> RelTraitSet replaceIfs(RelTraitDef<T> def,
       Supplier<List<T>> traitSupplier) {
     int index = findIndex(def);
     if (index < 0) {
@@ -220,6 +221,17 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     }
     final List<T> traitList = traitSupplier.get();
     return replace(index, RelCompositeTrait.of(def, traitList));
+  }
+
+  /** If a given trait is enabled, replaces it by calling the given function. */
+  public <T extends RelTrait> RelTraitSet replaceIf(RelTraitDef<T> def,
+      Supplier<T> traitSupplier) {
+    int index = findIndex(def);
+    if (index < 0) {
+      return this; // trait is not enabled; ignore it
+    }
+    final T traitList = traitSupplier.get();
+    return replace(index, traitList);
   }
 
   /**

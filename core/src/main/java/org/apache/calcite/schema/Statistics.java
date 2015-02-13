@@ -17,6 +17,8 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -43,6 +45,10 @@ public class Statistics {
 
         public List<RelCollation> getCollations() {
           return ImmutableList.of();
+        }
+
+        public RelDistribution getDistribution() {
+          return RelDistributionTraitDef.INSTANCE.getDefault();
         }
       };
 
@@ -71,6 +77,10 @@ public class Statistics {
 
       public List<RelCollation> getCollations() {
         return collations;
+      }
+
+      public RelDistribution getDistribution() {
+        return RelDistributionTraitDef.INSTANCE.getDefault();
       }
     };
   }
