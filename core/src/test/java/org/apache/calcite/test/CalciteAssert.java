@@ -33,7 +33,6 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.util.Compatible;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -972,7 +971,7 @@ public class CalciteAssert {
         SchemaPlus rootSchema = con.getRootSchema();
         rootSchema.add(name, schema);
       }
-      Compatible.INSTANCE.setSchema(connection, name);
+      connection.setSchema(name);
       return connection;
     }
   }

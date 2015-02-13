@@ -65,9 +65,9 @@ public class Driver extends UnregisteredDriver {
   @Override protected String getFactoryClassName(JdbcVersion jdbcVersion) {
     switch (jdbcVersion) {
     case JDBC_30:
-      return "org.apache.calcite.jdbc.CalciteJdbc3Factory";
     case JDBC_40:
-      return "org.apache.calcite.jdbc.CalciteJdbc40Factory";
+      throw new IllegalArgumentException("JDBC version not supported: "
+          + jdbcVersion);
     case JDBC_41:
     default:
       return "org.apache.calcite.jdbc.CalciteJdbc41Factory";

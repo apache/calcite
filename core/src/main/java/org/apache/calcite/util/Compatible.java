@@ -57,6 +57,7 @@ public interface Compatible {
    *
    * <p>This method is available in JDK 1.7 and above, and in
    * {@link org.apache.calcite.jdbc.CalciteConnection} in all JDK versions. */
+  @Deprecated // to be removed before 2.0
   void setSchema(Connection connection, String schema);
 
   /** Creates the implementation of Compatible suitable for the

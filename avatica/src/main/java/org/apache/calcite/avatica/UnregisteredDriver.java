@@ -86,9 +86,9 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
   protected String getFactoryClassName(JdbcVersion jdbcVersion) {
     switch (jdbcVersion) {
     case JDBC_30:
-      return "org.apache.calcite.avatica.AvaticaFactoryJdbc3Impl";
     case JDBC_40:
-      return "org.apache.calcite.avatica.AvaticaJdbc40Factory";
+      throw new IllegalArgumentException("JDBC version not supported: "
+          + jdbcVersion);
     case JDBC_41:
     default:
       return "org.apache.calcite.avatica.AvaticaJdbc41Factory";
