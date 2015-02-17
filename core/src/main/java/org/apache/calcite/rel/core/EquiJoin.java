@@ -14,31 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.rel.rules;
+package org.apache.calcite.rel.core;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableIntList;
+
+import com.google.common.base.Preconditions;
 
 import java.util.Set;
 
 /**
  * Base class for any join whose condition is based on column equality.
- *
- * @deprecated Use
- * {@link org.apache.calcite.rel.core.EquiJoin EquiJoin in 'core' package}
  */
-@Deprecated // to be removed before 2.0
-public abstract class EquiJoin extends org.apache.calcite.rel.core.EquiJoin {
+public abstract class EquiJoin extends Join {
+  public final ImmutableIntList leftKeys;
+  public final ImmutableIntList rightKeys;
+
+  /** Creates an EquiJoin. */
   public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
       RelNode right, RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType,
       Set<String> variablesStopped) {
-    super(cluster, traits, left, right, condition, leftKeys, rightKeys,
-        joinType, variablesStopped);
+    super(cluster, traits, left, right, condition, joinType, variablesStopped);
+    this.leftKeys = Preconditions.checkNotNull(leftKeys);
+    this.rightKeys = Preconditions.checkNotNull(rightKeys);
+  }
+
+  public ImmutableIntList getLeftKeys() {
+    return leftKeys;
+  }
+
+  public ImmutableIntList getRightKeys() {
+    return rightKeys;
+  }
+
+  @Override public JoinInfo analyzeCondition() {
+    return JoinInfo.of(leftKeys, rightKeys);
   }
 }
 
