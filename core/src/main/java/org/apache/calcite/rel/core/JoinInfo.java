@@ -38,7 +38,7 @@ import java.util.List;
  * <p>You can create one using {@link #of}, or call
  * {@link Join#analyzeCondition()}; many kinds of join cache their
  * join info, especially those that are equi-joins and sub-class
- * {@link org.apache.calcite.rel.rules.EquiJoin}.</p>
+ * {@link org.apache.calcite.rel.core.EquiJoin}.</p>
  *
  * @see Join#analyzeCondition() */
 public abstract class JoinInfo {
