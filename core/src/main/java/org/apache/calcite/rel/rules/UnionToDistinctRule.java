@@ -19,37 +19,47 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.sql.SqlKind;
 
 /**
  * Planner rule that translates a distinct
- * {@link org.apache.calcite.rel.logical.LogicalUnion}
+ * {@link org.apache.calcite.rel.core.Union}
  * (<code>all</code> = <code>false</code>)
- * into an {@link org.apache.calcite.rel.logical.LogicalAggregate}
- * on top of a non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}
+ * into an {@link org.apache.calcite.rel.core.Aggregate}
+ * on top of a non-distinct {@link org.apache.calcite.rel.core.Union}
  * (<code>all</code> = <code>true</code>).
  */
 public class UnionToDistinctRule extends RelOptRule {
   public static final UnionToDistinctRule INSTANCE =
-      new UnionToDistinctRule();
+      new UnionToDistinctRule(LogicalUnion.class,
+          RelFactories.DEFAULT_SET_OP_FACTORY);
+
+  private final RelFactories.SetOpFactory setOpFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a UnionToDistinctRule.
    */
-  private UnionToDistinctRule() {
-    super(operand(LogicalUnion.class, any()));
+  public UnionToDistinctRule(Class<? extends Union> clazz,
+      RelFactories.SetOpFactory setOpFactory) {
+    super(operand(clazz, any()));
+    this.setOpFactory = setOpFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalUnion union = call.rel(0);
+    Union union = call.rel(0);
     if (union.all) {
       return; // nothing to do
     }
-    LogicalUnion unionAll = LogicalUnion.create(union.getInputs(), true);
+    RelNode unionAll = setOpFactory.createSetOp(SqlKind.UNION,
+        union.getInputs(), true);
     call.transformTo(RelOptUtil.createDistinctRel(unionAll));
   }
 }
