@@ -17,16 +17,19 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -43,15 +46,23 @@ import java.util.Map;
 
 /**
  * Planner rule that pushes an
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}
- * past a non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}.
+ * {@link org.apache.calcite.rel.core.Aggregate}
+ * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
  */
 public class AggregateUnionTransposeRule extends RelOptRule {
   public static final AggregateUnionTransposeRule INSTANCE =
-      new AggregateUnionTransposeRule();
+      new AggregateUnionTransposeRule(LogicalAggregate.class,
+          RelFactories.DEFAULT_AGGREGATE_FACTORY,
+          LogicalUnion.class,
+          RelFactories.DEFAULT_SET_OP_FACTORY);
 
-  private static final Map<Class, Boolean> SUPPORTED_AGGREGATES =
-      new IdentityHashMap<Class, Boolean>();
+  private final RelFactories.AggregateFactory aggregateFactory;
+
+  private final RelFactories.SetOpFactory setOpFactory;
+
+  private static final Map<Class<? extends SqlAggFunction>, Boolean>
+  SUPPORTED_AGGREGATES =
+      new IdentityHashMap<Class<? extends SqlAggFunction>, Boolean>();
 
   static {
     SUPPORTED_AGGREGATES.put(SqlMinMaxAggFunction.class, true);
@@ -61,17 +72,22 @@ public class AggregateUnionTransposeRule extends RelOptRule {
   }
 
   /**
-   * Private constructor.
+   * Constructor.
    */
-  private AggregateUnionTransposeRule() {
+  public AggregateUnionTransposeRule(Class<? extends Aggregate> aggregateClass,
+      RelFactories.AggregateFactory aggregateFactory,
+      Class<? extends Union> unionClass,
+      RelFactories.SetOpFactory setOpFactory) {
     super(
-        operand(LogicalAggregate.class,
-            operand(LogicalUnion.class, any())));
+        operand(aggregateClass,
+            operand(unionClass, any())));
+    this.aggregateFactory = aggregateFactory;
+    this.setOpFactory = setOpFactory;
   }
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalAggregate aggRel = call.rel(0);
-    LogicalUnion union = call.rel(1);
+    Aggregate aggRel = call.rel(0);
+    Union union = call.rel(1);
 
     if (!union.all) {
       // This transformation is only valid for UNION ALL.
@@ -85,8 +101,6 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       // which yields 25 (incorrect).
       return;
     }
-
-    RelOptCluster cluster = union.getCluster();
 
     int groupCount = aggRel.getGroupSet().cardinality();
 
@@ -116,8 +130,8 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       } else {
         anyTransformed = true;
         newUnionInputs.add(
-            LogicalAggregate.create(input, false, aggRel.getGroupSet(),
-                null, aggRel.getAggCallList()));
+            aggregateFactory.createAggregate(input, false,
+                aggRel.getGroupSet(), null, aggRel.getAggCallList()));
       }
     }
 
@@ -129,10 +143,11 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     }
 
     // create a new union whose children are the aggregates created above
-    LogicalUnion newUnion = LogicalUnion.create(newUnionInputs, true);
+    RelNode newUnion = setOpFactory.createSetOp(SqlKind.UNION,
+        newUnionInputs, true);
 
-    LogicalAggregate newTopAggRel =
-        LogicalAggregate.create(newUnion, aggRel.indicator,
+    RelNode newTopAggRel =
+        aggregateFactory.createAggregate(newUnion, aggRel.indicator,
             aggRel.getGroupSet(), aggRel.getGroupSets(), transformedAggCalls);
 
     call.transformTo(newTopAggRel);

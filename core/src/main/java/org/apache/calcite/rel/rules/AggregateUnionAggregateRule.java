@@ -20,8 +20,11 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.collect.ImmutableList;
 
@@ -29,45 +32,57 @@ import java.util.List;
 
 /**
  * Planner rule that matches
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}s beneath a
- * {@link org.apache.calcite.rel.logical.LogicalUnion} and pulls them up, so
+ * {@link org.apache.calcite.rel.core.Aggregate}s beneath a
+ * {@link org.apache.calcite.rel.core.Union} and pulls them up, so
  * that a single
- * {@link org.apache.calcite.rel.logical.LogicalAggregate} removes duplicates.
+ * {@link org.apache.calcite.rel.core.Aggregate} removes duplicates.
  *
  * <p>This rule only handles cases where the
- * {@link org.apache.calcite.rel.logical.LogicalUnion}s
+ * {@link org.apache.calcite.rel.logical.Union}s
  * still have only two inputs.
  */
 public class AggregateUnionAggregateRule extends RelOptRule {
   public static final AggregateUnionAggregateRule INSTANCE =
-      new AggregateUnionAggregateRule();
+      new AggregateUnionAggregateRule(LogicalAggregate.class,
+          RelFactories.DEFAULT_AGGREGATE_FACTORY,
+          LogicalUnion.class,
+          RelFactories.DEFAULT_SET_OP_FACTORY);
+
+  private final RelFactories.AggregateFactory aggregateFactory;
+
+  private final RelFactories.SetOpFactory setOpFactory;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a AggregateUnionAggregateRule.
    */
-  private AggregateUnionAggregateRule() {
+  public AggregateUnionAggregateRule(Class<? extends Aggregate> aggregateClass,
+      RelFactories.AggregateFactory aggregateFactory,
+      Class<? extends Union> unionClass,
+      RelFactories.SetOpFactory setOpFactory) {
     super(
-        operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
-            operand(LogicalUnion.class,
+        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
+            operand(unionClass,
                 operand(RelNode.class, any()),
                 operand(RelNode.class, any()))));
+    this.aggregateFactory = aggregateFactory;
+    this.setOpFactory = setOpFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    LogicalUnion union = call.rel(1);
+    Union union = call.rel(1);
 
     // If distincts haven't been removed yet, defer invoking this rule
     if (!union.all) {
       return;
     }
 
-    LogicalAggregate topAggRel = call.rel(0);
-    LogicalAggregate bottomAggRel;
+    Aggregate topAggRel = call.rel(0);
+    Aggregate bottomAggRel;
 
     // We want to apply this rule on the pattern where the LogicalAggregate
     // is the second input into the Union first.  Hence, that's why the
@@ -75,12 +90,12 @@ public class AggregateUnionAggregateRule extends RelOptRule {
     // UnionRels.  By doing so, and firing this rule in a bottom-up order,
     // it allows us to only specify a single pattern for this rule.
     List<RelNode> unionInputs;
-    if (call.rel(3) instanceof LogicalAggregate) {
+    if (call.rel(3) instanceof Aggregate) {
       bottomAggRel = call.rel(3);
       unionInputs = ImmutableList.of(
           call.rel(2),
           call.rel(3).getInput(0));
-    } else if (call.rel(2) instanceof LogicalAggregate) {
+    } else if (call.rel(2) instanceof Aggregate) {
       bottomAggRel = call.rel(2);
       unionInputs = ImmutableList.of(
           call.rel(2).getInput(0),
@@ -95,10 +110,11 @@ public class AggregateUnionAggregateRule extends RelOptRule {
       return;
     }
 
-    LogicalUnion newUnion = LogicalUnion.create(unionInputs, true);
+    RelNode newUnion = setOpFactory.createSetOp(SqlKind.UNION,
+        unionInputs, true);
 
-    LogicalAggregate newAggRel =
-        LogicalAggregate.create(newUnion, false,
+    RelNode newAggRel =
+        aggregateFactory.createAggregate(newUnion, false,
             topAggRel.getGroupSet(), null, topAggRel.getAggCallList());
 
     call.transformTo(newAggRel);
