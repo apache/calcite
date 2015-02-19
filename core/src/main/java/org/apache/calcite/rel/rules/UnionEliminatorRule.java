@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
 
 /**
@@ -27,21 +28,21 @@ import org.apache.calcite.rel.logical.LogicalUnion;
  */
 public class UnionEliminatorRule extends RelOptRule {
   public static final UnionEliminatorRule INSTANCE =
-      new UnionEliminatorRule();
+      new UnionEliminatorRule(LogicalUnion.class);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a UnionEliminatorRule.
    */
-  private UnionEliminatorRule() {
-    super(operand(LogicalUnion.class, any()));
+  private UnionEliminatorRule(Class<? extends Union> clazz) {
+    super(operand(clazz, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalUnion union = call.rel(0);
+    Union union = call.rel(0);
     if (union.getInputs().size() != 1) {
       return;
     }
