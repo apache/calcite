@@ -16,9 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.Linq4j;
-
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Node visitor.
@@ -41,7 +40,7 @@ public class Visitor {
   }
 
   public Statement visit(ConditionalStatement conditionalStatement,
-                   List<Node> list) {
+      List<Node> list) {
     return list.equals(conditionalStatement.expressionList)
         ? conditionalStatement
         : Expressions.ifThenElse(list);
@@ -246,7 +245,7 @@ public class Visitor {
   public Expression visit(NewExpression newExpression,
       List<Expression> arguments, List<MemberDeclaration> memberDeclarations) {
     return arguments.equals(newExpression.arguments)
-        && Linq4j.equals(memberDeclarations, newExpression.memberDeclarations)
+        && Objects.equals(memberDeclarations, newExpression.memberDeclarations)
         ? newExpression
         : Expressions.new_(newExpression.type, arguments, memberDeclarations);
   }
@@ -314,8 +313,8 @@ public class Visitor {
 
   public ClassDeclaration visit(ClassDeclaration classDeclaration,
       List<MemberDeclaration> memberDeclarations) {
-    return Linq4j.equals(memberDeclarations,
-      classDeclaration.memberDeclarations)
+    return Objects.equals(memberDeclarations,
+        classDeclaration.memberDeclarations)
         ? classDeclaration
         : Expressions.classDecl(classDeclaration.modifier,
             classDeclaration.name, classDeclaration.extended,

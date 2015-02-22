@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.schema;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.rel.stream.Delta;
 
 /**
- * Defines the keywords which can occur immediately after the "SELECT" keyword.
+ * Table that can be converted to a stream.
+ *
+ * @see Delta
  */
-public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
-  DISTINCT,
-  ALL,
-  STREAM;
-
-  /**
-   * Creates a parse-tree node representing an occurrence of this keyword
-   * at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
-  }
+public interface StreamableTable extends Table {
+  /** Returns an enumerator over the rows in this Table. Each row is represented
+   * as an array of its column values. */
+  Table stream();
 }
 
-// End SqlSelectKeyword.java
+// End StreamableTable.java

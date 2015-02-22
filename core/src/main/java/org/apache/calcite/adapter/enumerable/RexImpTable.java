@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -236,14 +238,20 @@ public class RexImpTable {
     defineMethod(LN, "ln", NullPolicy.STRICT);
     defineMethod(LOG10, "log10", NullPolicy.STRICT);
     defineMethod(ABS, "abs", NullPolicy.STRICT);
-    defineMethod(CEIL, "ceil", NullPolicy.STRICT);
-    defineMethod(FLOOR, "floor", NullPolicy.STRICT);
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
         new DatetimeArithmeticImplementor(), false);
     defineMethod(EXTRACT_DATE, BuiltInMethod.UNIX_DATE_EXTRACT.method,
         NullPolicy.STRICT);
+    defineImplementor(FLOOR, NullPolicy.STRICT,
+        new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.UNIX_DATE_FLOOR.method), false);
+    defineImplementor(CEIL, NullPolicy.STRICT,
+        new FloorImplementor(BuiltInMethod.CEIL.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
+            BuiltInMethod.UNIX_DATE_CEIL.method), false);
 
     map.put(IS_NULL, new IsXxxImplementor(null, false));
     map.put(IS_NOT_NULL, new IsXxxImplementor(null, true));
@@ -1402,9 +1410,70 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code FLOOR} and {@code CEIL} functions. */
+  private static class FloorImplementor extends MethodNameImplementor {
+    final Method timestampMethod;
+    final Method dateMethod;
+
+    FloorImplementor(String methodName, Method timestampMethod,
+        Method dateMethod) {
+      super(methodName);
+      this.timestampMethod = timestampMethod;
+      this.dateMethod = dateMethod;
+    }
+
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+        List<Expression> translatedOperands) {
+      switch (call.getOperands().size()) {
+      case 1:
+        switch (call.getType().getSqlTypeName()) {
+        case BIGINT:
+        case INTEGER:
+        case SMALLINT:
+        case TINYINT:
+          return translatedOperands.get(0);
+        }
+        return super.implement(translator, call, translatedOperands);
+      case 2:
+        final Type type;
+        final Method floorMethod;
+        switch (call.getType().getSqlTypeName()) {
+        case TIMESTAMP:
+          type = long.class;
+          floorMethod = timestampMethod;
+          break;
+        default:
+          type = int.class;
+          floorMethod = dateMethod;
+        }
+        final ConstantExpression tur =
+            (ConstantExpression) translatedOperands.get(1);
+        final TimeUnitRange timeUnitRange = (TimeUnitRange) tur.value;
+        switch (timeUnitRange) {
+        case YEAR:
+        case MONTH:
+          return Expressions.call(floorMethod, tur,
+              call(translatedOperands, type, TimeUnit.DAY));
+        default:
+          return call(translatedOperands, type, timeUnitRange.startUnit);
+        }
+      default:
+        throw new AssertionError();
+      }
+    }
+
+    private Expression call(List<Expression> translatedOperands, Type type,
+        TimeUnit timeUnit) {
+      return Expressions.call(SqlFunctions.class, methodName,
+          Types.castIfNecessary(type, translatedOperands.get(0)),
+          Types.castIfNecessary(type,
+              Expressions.constant(timeUnit.multiplier)));
+    }
+  }
+
   /** Implementor for a function that generates calls to a given method. */
   private static class MethodImplementor implements NotNullImplementor {
-    private final Method method;
+    protected final Method method;
 
     MethodImplementor(Method method) {
       this.method = method;
@@ -1428,7 +1497,7 @@ public class RexImpTable {
    * <p>Use this, as opposed to {@link MethodImplementor}, if the SQL function
    * is overloaded; then you can use one implementor for several overloads. */
   private static class MethodNameImplementor implements NotNullImplementor {
-    private final String methodName;
+    protected final String methodName;
 
     MethodNameImplementor(String methodName) {
       this.methodName = methodName;

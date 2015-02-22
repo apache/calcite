@@ -28,6 +28,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.OverScope;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
@@ -192,6 +193,11 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     } else {
       namespace.setType(emptyStructType);
     }
+  }
+
+  @Override public boolean validateModality(SqlSelect select,
+      SqlModality modality, boolean fail) {
+    return true;
   }
 
   protected boolean shouldAllowOverRelation() {

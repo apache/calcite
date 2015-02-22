@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
-
-/**
- * Defines the keywords which can occur immediately after the "SELECT" keyword.
- */
-public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
-  DISTINCT,
-  ALL,
-  STREAM;
-
-  /**
-   * Creates a parse-tree node representing an occurrence of this keyword
-   * at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
-  }
+/** Relational or streaming. */
+public enum SqlModality {
+  RELATION,
+  STREAM
 }
 
-// End SqlSelectKeyword.java
+// End SqlModality.java

@@ -69,7 +69,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.EMP_ADDRESS)",
           "TABLE(CATALOG.SALES.DEPT)",
           "TABLE(CATALOG.SALES.BONUS)",
-          "TABLE(CATALOG.SALES.SALGRADE)");
+          "TABLE(CATALOG.SALES.ORDERS)",
+          "TABLE(CATALOG.SALES.SALGRADE)",
+          "TABLE(CATALOG.SALES.SHIPMENTS)");
 
   private static final List<String> SCHEMAS =
       Arrays.asList(
@@ -185,6 +187,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       Arrays.asList(
           "KEYWORD(ALL)",
           "KEYWORD(DISTINCT)",
+          "KEYWORD(STREAM)",
           "KEYWORD(*)");
 
   private static final List<String> ORDER_KEYWORDS =

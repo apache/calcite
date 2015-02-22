@@ -700,6 +700,66 @@ public class DateTimeUtils {
     }
   }
 
+  public static long unixTimestampFloor(TimeUnitRange range, long timestamp) {
+    int date = (int) (timestamp / MILLIS_PER_DAY);
+    final int f = julianDateFloor(range, date + EPOCH_JULIAN, true);
+    return (long) f * MILLIS_PER_DAY;
+  }
+
+  public static long unixDateFloor(TimeUnitRange range, long date) {
+    return julianDateFloor(range, (int) date + EPOCH_JULIAN, true);
+  }
+
+  public static long unixTimestampCeil(TimeUnitRange range, long timestamp) {
+    int date = (int) (timestamp / MILLIS_PER_DAY);
+    final int f = julianDateFloor(range, date + EPOCH_JULIAN, false);
+    return (long) f * MILLIS_PER_DAY;
+  }
+
+  public static long unixDateCeil(TimeUnitRange range, long date) {
+    return julianDateFloor(range, (int) date + EPOCH_JULIAN, true);
+  }
+
+  private static int julianDateFloor(TimeUnitRange range, int julian,
+      boolean floor) {
+    // this shifts the epoch back to astronomical year -4800 instead of the
+    // start of the Christian era in year AD 1 of the proleptic Gregorian
+    // calendar.
+    int j = julian + 32044;
+    int g = j / 146097;
+    int dg = j % 146097;
+    int c = (dg / 36524 + 1) * 3 / 4;
+    int dc = dg - c * 36524;
+    int b = dc / 1461;
+    int db = dc % 1461;
+    int a = (db / 365 + 1) * 3 / 4;
+    int da = db - a * 365;
+
+    // integer number of full years elapsed since March 1, 4801 BC
+    int y = g * 400 + c * 100 + b * 4 + a;
+    // integer number of full months elapsed since the last March 1
+    int m = (da * 5 + 308) / 153 - 2;
+    // number of days elapsed since day 1 of the month
+    int d = da - (m + 4) * 153 / 5 + 122;
+    int year = y - 4800 + (m + 2) / 12;
+    int month = (m + 2) % 12 + 1;
+    int day = d + 1;
+    switch (range) {
+    case YEAR:
+      if (!floor && (month > 1 || day > 1)) {
+        ++year;
+      }
+      return ymdToUnixDate(year, 1, 1);
+    case MONTH:
+      if (!floor && day > 1) {
+        ++month;
+      }
+      return ymdToUnixDate(year, month, 1);
+    default:
+      throw new AssertionError(range);
+    }
+  }
+
   public static int ymdToUnixDate(int year, int month, int day) {
     final int julian = ymdToJulian(year, month, day);
     return julian - EPOCH_JULIAN;
@@ -719,6 +779,15 @@ public class DateTimeUtils {
       j = day + (153 * m + 2) / 5 + 365 * y + y / 4 - 32083;
     }
     return j;
+  }
+
+  public static long unixTimestamp(int year, int month, int day, int hour,
+      int minute, int second) {
+    final int date = ymdToUnixDate(year, month, day);
+    return (long) date * MILLIS_PER_DAY
+        + (long) hour * MILLIS_PER_HOUR
+        + (long) minute * MILLIS_PER_MINUTE
+        + (long) second * MILLIS_PER_SECOND;
   }
 
   //~ Inner Classes ----------------------------------------------------------

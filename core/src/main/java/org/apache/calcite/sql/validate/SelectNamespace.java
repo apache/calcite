@@ -61,6 +61,10 @@ public class SelectNamespace extends AbstractNamespace {
     return rowType;
   }
 
+  @Override public boolean supportsModality(SqlModality modality) {
+    return validator.validateModality(select, modality, false);
+  }
+
   public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);

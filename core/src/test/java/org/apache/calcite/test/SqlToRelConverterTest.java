@@ -1033,6 +1033,27 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     }
   }
 
+  @Test public void testStream() {
+    sql("select stream productId from orders where productId = 10")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testStreamGroupBy() {
+    sql("select stream floor(rowtime to second) as rowtime, count(*) as c\n"
+            + "from orders\n"
+            + "group by floor(rowtime to second)")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testStreamWindowedAggregation() {
+    sql("select stream *,\n"
+            + "  count(*) over (partition by productId\n"
+            + "    order by rowtime\n"
+            + "    range interval '1' second preceding) as c\n"
+            + "from orders")
+        .convertsTo("${plan}");
+  }
+
   @Test public void testExplainAsXml() {
     String sql = "select 1 + 2, 3 from (values (true))";
     final RelNode rel = tester.convertSqlToRel(sql);

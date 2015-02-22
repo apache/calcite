@@ -483,6 +483,21 @@ public class SqlParserTest {
             + "WHERE (TRUE IS NOT DISTINCT FROM TRUE)");
   }
 
+  @Test public void testFloor() {
+    checkExp("floor(1.5)", "FLOOR(1.5)");
+    checkExp("floor(x)", "FLOOR(`X`)");
+    checkExp("floor(x to hour)", "FLOOR(`X` TO HOUR)");
+    checkExp("ceil(x to hour)", "CEIL(`X` TO HOUR)");
+    checkExp("ceil(x + interval '1' minute to second)",
+        "CEIL((`X` + INTERVAL '1' MINUTE TO SECOND))");
+    checkExp("ceil((x + interval '1' minute) to second)",
+        "CEIL((`X` + INTERVAL '1' MINUTE) TO SECOND)");
+    checkExp("ceil(x + (interval '1:23' minute to second))",
+        "CEIL((`X` + INTERVAL '1:23' MINUTE TO SECOND))");
+    checkExp("ceil(x + interval '1:23' minute to second to second)",
+        "CEIL((`X` + INTERVAL '1:23' MINUTE TO SECOND) TO SECOND)");
+  }
+
   @Test public void testCast() {
     checkExp("cast(x as boolean)", "CAST(`X` AS BOOLEAN)");
     checkExp("cast(x as integer)", "CAST(`X` AS INTEGER)");
@@ -1893,6 +1908,18 @@ public class SqlParserTest {
         "SELECT *\n"
             + "FROM (SELECT ALL `FOO`\n"
             + "FROM `BAR`) AS `XYZ`");
+  }
+
+  @Test public void testSelectStream() {
+    sql("select stream foo from bar")
+        .ok("SELECT STREAM `FOO`\n"
+            + "FROM `BAR`");
+  }
+
+  @Test public void testSelectStreamDistinct() {
+    sql("select stream distinct foo from bar")
+        .ok("SELECT STREAM DISTINCT `FOO`\n"
+                + "FROM `BAR`");
   }
 
   @Test public void testWhere() {

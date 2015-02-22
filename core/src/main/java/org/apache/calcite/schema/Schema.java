@@ -181,6 +181,9 @@ public interface Schema {
      * <p>Used by Apache Phoenix, and others. Must have a single BIGINT column
      * called "$seq". */
     SEQUENCE,
+
+    /** Stream. */
+    STREAM,
   }
 }
 

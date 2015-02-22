@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.rel.stream;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
 
 /**
- * Defines the keywords which can occur immediately after the "SELECT" keyword.
+ * Relational operator that converts a stream to a relation.
+ *
+ * <p>Chi is named for the Greek letter &chi; and pronounced 'kai'.
+ *
+ * <p>Chi is the inverse of {@link Delta}. For any relation {@code R},
+ * Chi(Delta(R)) == R.
  */
-public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
-  DISTINCT,
-  ALL,
-  STREAM;
-
-  /**
-   * Creates a parse-tree node representing an occurrence of this keyword
-   * at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
+public class Chi extends SingleRel {
+  protected Chi(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+    super(cluster, traits, input);
   }
 }
 
-// End SqlSelectKeyword.java
+// End Chi.java

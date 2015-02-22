@@ -23,6 +23,7 @@ import org.apache.calcite.runtime.Utilities;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUni
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixDateExtract;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixDateToString;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimeToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimestamp;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimestampToString;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToJulian;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
@@ -53,6 +55,7 @@ import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -310,6 +313,47 @@ public class SqlFunctionsTest {
         equalTo((long) day));
   }
 
+  @Test public void testUnixTimestamp() {
+    assertThat(unixTimestamp(1970, 1, 1, 0, 0, 0), is(0L));
+    assertThat(unixTimestamp(1970, 1, 2, 0, 0, 0), is(86400000L));
+    assertThat(unixTimestamp(1970, 1, 1, 23, 59, 59), is(86399000L));
+  }
+
+  @Test public void testFloor() {
+    checkFloor(0, 10, 0);
+    checkFloor(27, 10, 20);
+    checkFloor(30, 10, 30);
+    checkFloor(-30, 10, -30);
+    checkFloor(-27, 10, -30);
+  }
+
+  private void checkFloor(int x, int y, int result) {
+    assertThat(SqlFunctions.floor(x, y), is(result));
+    assertThat(SqlFunctions.floor((long) x, (long) y), is((long) result));
+    assertThat(SqlFunctions.floor((short) x, (short) y), is((short) result));
+    assertThat(SqlFunctions.floor((byte) x, (byte) y), is((byte) result));
+    assertThat(SqlFunctions.floor(BigDecimal.valueOf(x), BigDecimal.valueOf(y)),
+        is(BigDecimal.valueOf(result)));
+  }
+
+  @Test public void testCeil() {
+    checkCeil(0, 10, 0);
+    checkCeil(27, 10, 30);
+    checkCeil(30, 10, 30);
+    checkCeil(-30, 10, -30);
+    checkCeil(-27, 10, -20);
+    checkCeil(-27, 1, -27);
+  }
+
+  private void checkCeil(int x, int y, int result) {
+    assertThat(SqlFunctions.ceil(x, y), is(result));
+    assertThat(SqlFunctions.ceil((long) x, (long) y), is((long) result));
+    assertThat(SqlFunctions.ceil((short) x, (short) y), is((short) result));
+    assertThat(SqlFunctions.ceil((byte) x, (byte) y), is((byte) result));
+    assertThat(SqlFunctions.ceil(BigDecimal.valueOf(x), BigDecimal.valueOf(y)),
+        is(BigDecimal.valueOf(result)));
+  }
+
   /** Unit test for
    * {@link Utilities#compare(java.util.List, java.util.List)}. */
   @Test public void testCompare() {
@@ -318,7 +362,7 @@ public class SqlFunctionsTest {
     final List<String> a = Arrays.asList("a");
     final List<String> empty = Collections.emptyList();
     assertEquals(0, Utilities.compare(ac, ac));
-    assertEquals(0, Utilities.compare(ac, new ArrayList<String>(ac)));
+    assertEquals(0, Utilities.compare(ac, new ArrayList<>(ac)));
     assertEquals(-1, Utilities.compare(a, ac));
     assertEquals(-1, Utilities.compare(empty, ac));
     assertEquals(1, Utilities.compare(ac, a));

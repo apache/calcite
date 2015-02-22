@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlFunctionalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.SqlModality;
 
 /**
  * SqlCollectionTableOperator is the "table function derived table" operator. It
@@ -30,33 +31,19 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * {@link SqlStdOperatorTable#EXPLICIT_TABLE} is a prefix operator.
  */
 public class SqlCollectionTableOperator extends SqlFunctionalOperator {
-  //~ Static fields/initializers ---------------------------------------------
-
-  public static final int MODALITY_RELATIONAL = 1;
-  public static final int MODALITY_STREAM = 2;
-
-  //~ Instance fields --------------------------------------------------------
-
-  private final int modality;
+  private final SqlModality modality;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlCollectionTableOperator(String name, int modality) {
-    super(
-        name,
-        SqlKind.COLLECTION_TABLE,
-        200,
-        true,
-        ReturnTypes.ARG0,
-        null,
+  public SqlCollectionTableOperator(String name, SqlModality modality) {
+    super(name, SqlKind.COLLECTION_TABLE, 200, true, ReturnTypes.ARG0, null,
         OperandTypes.ANY);
-
     this.modality = modality;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public int getModality() {
+  public SqlModality getModality() {
     return modality;
   }
 }

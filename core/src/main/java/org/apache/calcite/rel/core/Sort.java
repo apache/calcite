@@ -45,7 +45,7 @@ import java.util.List;
 public abstract class Sort extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
-  protected final RelCollation collation;
+  public final RelCollation collation;
   protected final ImmutableList<RexNode> fieldExps;
   public final RexNode offset;
   public final RexNode fetch;

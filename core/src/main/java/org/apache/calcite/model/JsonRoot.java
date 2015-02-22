@@ -32,6 +32,7 @@ import java.util.List;
  *   {@link JsonSchema} (in collection {@link JsonRoot#schemas schemas})
  *     {@link JsonTable} (in collection {@link JsonMapSchema#tables tables})
  *       {@link JsonColumn} (in collection {@link JsonTable#columns columns}
+ *       {@link JsonStream} (in field {@link JsonTable#stream stream}
  *     {@link JsonView}
  *     {@link JsonFunction} (in collection {@link JsonMapSchema#functions functions})
  *     {@link JsonLattice} (in collection {@link JsonSchema#lattices lattices})

@@ -549,6 +549,24 @@ public interface CalciteResource {
 
   @BaseMessage("FilterableTable.scan must not return null")
   ExInst<CalciteException> filterableTableScanReturnedNull();
+
+  @BaseMessage("Cannot convert table ''{0}'' to stream")
+  ExInst<SqlValidatorException> cannotConvertToStream(String tableName);
+
+  @BaseMessage("Cannot convert stream ''{0}'' to relation")
+  ExInst<SqlValidatorException> cannotConvertToRelation(String tableName);
+
+  @BaseMessage("Streaming aggregation requires at least one monotonic expression in GROUP BY clause")
+  ExInst<SqlValidatorException> streamMustGroupByMonotonic();
+
+  @BaseMessage("Streaming ORDER BY must start with monotonic expression")
+  ExInst<SqlValidatorException> streamMustOrderByMonotonic();
+
+  @BaseMessage("Set operator cannot combine streaming and non-streaming inputs")
+  ExInst<SqlValidatorException> streamSetOpInconsistentInputs();
+
+  @BaseMessage("Cannot stream VALUES")
+  ExInst<SqlValidatorException> cannotStreamValues();
 }
 
 // End CalciteResource.java

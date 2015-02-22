@@ -14,25 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
-
-import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
- * Defines the keywords which can occur immediately after the "SELECT" keyword.
+ * Defines relational expressions for streaming.
+ *
+ * <h2>Related packages and classes</h2>
+ * <ul>
+ *
+ * <li>Package <code>
+ * <a href="../core/package-summary.html">org.apache.calcite.rel.core</a></code>
+ * contains core relational expressions
+ *
+ * </ul>
  */
-public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
-  DISTINCT,
-  ALL,
-  STREAM;
+@PackageMarker
+package org.apache.calcite.rel.stream;
 
-  /**
-   * Creates a parse-tree node representing an occurrence of this keyword
-   * at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
-  }
-}
+import org.apache.calcite.avatica.util.PackageMarker;
 
-// End SqlSelectKeyword.java
+// End package-info.java

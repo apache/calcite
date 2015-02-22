@@ -934,7 +934,7 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     </TestCase>
     <TestCase name="testOrderByOrdinalDesc">
         <Resource name="sql">
-            <![CDATA[select empno + 1, deptno, empno from emp order by 2 desc]]>
+            <![CDATA[select empno + 1, deptno, empno from emp order by 2.5 desc]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2354,6 +2354,50 @@ LogicalProject(EXPR$0=[$0])
     LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
       LogicalProject(DEPTNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStream">
+        <Resource name="sql">
+            <![CDATA[select stream productId from orders where productId = 10]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(PRODUCTID=[$1])
+    LogicalFilter(condition=[=($1, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStreamGroupBy">
+        <Resource name="sql">
+            <![CDATA[select stream floor(rowtime to second) as rowtime, count(*) as c
+from orders
+group by floor(rowtime to second)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalAggregate(group=[{0}], C=[COUNT()])
+    LogicalProject(ROWTIME=[FLOOR($0, FLAG(SECOND))])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStreamWindowedAggregation">
+        <Resource name="sql">
+            <![CDATA[select stream *,
+  count(*) over (partition by productId
+    order by rowtime
+    range interval '1' second preceding) as c
+from orders]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], C=[COUNT() OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW)])
+    LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
     </TestCase>

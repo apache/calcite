@@ -180,6 +180,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return this;
   }
 
+  public boolean supportsModality(SqlModality modality) {
+    return true;
+  }
+
   public <T> T unwrap(Class<T> clazz) {
     return clazz.cast(this);
   }

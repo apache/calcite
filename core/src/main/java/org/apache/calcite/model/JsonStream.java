@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
-
-import org.apache.calcite.sql.parser.SqlParserPos;
+package org.apache.calcite.model;
 
 /**
- * Defines the keywords which can occur immediately after the "SELECT" keyword.
+ * Information about whether a table allows streaming.
+ *
+ * @see org.apache.calcite.model.JsonRoot Description of schema elements
+ * @see org.apache.calcite.model.JsonTable#stream
  */
-public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
-  DISTINCT,
-  ALL,
-  STREAM;
+public class JsonStream {
+  /** Whether the table allows streaming. */
+  public boolean stream = true;
 
-  /**
-   * Creates a parse-tree node representing an occurrence of this keyword
-   * at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
-  }
+  /** Whether the history of the table is available. */
+  public boolean history = false;
 }
 
-// End SqlSelectKeyword.java
+// End JsonStream.java

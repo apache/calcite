@@ -42,6 +42,8 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.stream.LogicalChi;
+import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -655,6 +657,14 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           RelOptUtil.createProject(newRel, flattenedExpList, false);
     }
     setNewForOldRel(rel, newRel);
+  }
+
+  public void rewriteRel(LogicalDelta rel) {
+    rewriteGeneric(rel);
+  }
+
+  public void rewriteRel(LogicalChi rel) {
+    rewriteGeneric(rel);
   }
 
   /** Generates expressions that reference the flattened input fields from

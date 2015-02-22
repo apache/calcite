@@ -199,9 +199,17 @@ public class IdentifierNamespace extends AbstractNamespace {
     return monotonicExprs;
   }
 
-  public SqlMonotonicity getMonotonicity(String columnName) {
+  @Override public SqlMonotonicity getMonotonicity(String columnName) {
     final SqlValidatorTable table = getTable();
     return table.getMonotonicity(columnName);
+  }
+
+  @Override public boolean supportsModality(SqlModality modality) {
+    final SqlValidatorTable table = getTable();
+    if (table == null) {
+      return modality == SqlModality.RELATION;
+    }
+    return table.supportsModality(modality);
   }
 }
 

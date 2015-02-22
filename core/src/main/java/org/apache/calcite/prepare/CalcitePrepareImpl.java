@@ -82,6 +82,7 @@ import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
+import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -153,6 +154,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Whether the enumerable convention is enabled. */
   public static final boolean ENABLE_ENUMERABLE = true;
+
+  /** Whether the streaming is enabled. */
+  public static final boolean ENABLE_STREAM = true;
 
   private static final Set<String> SIMPLE_SQLS =
       ImmutableSet.of(
@@ -336,6 +340,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (ENABLE_BINDABLE && ENABLE_ENUMERABLE) {
       planner.addRule(
           EnumerableBindable.EnumerableToBindableConverterRule.INSTANCE);
+    }
+
+    if (ENABLE_STREAM) {
+      for (RelOptRule rule : StreamRules.RULES) {
+        planner.addRule(rule);
+      }
     }
 
     // Change the below to enable constant-reduction.

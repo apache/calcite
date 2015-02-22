@@ -37,6 +37,7 @@ import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -104,7 +105,8 @@ public class EnumerableTableScan
       }
     } else if (table instanceof ScannableTable
         || table instanceof FilterableTable
-        || table instanceof ProjectableFilterableTable) {
+        || table instanceof ProjectableFilterableTable
+        || table instanceof StreamableTable) {
       return Object[].class;
     } else {
       return Object.class;

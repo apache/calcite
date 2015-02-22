@@ -793,7 +793,7 @@ public class RelOptRulesTest extends RelOptTestBase {
                     typeFactory.createSqlType(SqlTypeName.INTEGER);
                 for (int i = 0; i < 10; i++) {
                   String t = String.valueOf((char) ('A' + i));
-                  MockTable table = MockTable.create(this, schema, t);
+                  MockTable table = MockTable.create(this, schema, t, false);
                   table.addColumn(t, intType);
                   registerTable(table);
                 }

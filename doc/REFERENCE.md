@@ -67,7 +67,7 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ ALL | DISTINCT ]
+      SELECT [ STREAM ] [ ALL | DISTINCT ]
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
@@ -324,6 +324,8 @@ Not implemented:
 | CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
 | CURRENT_TIMESTAMP         | Returns the current date and time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
+| FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*
+| CEIL(datetime TO timeUnit) | Rounds *datetime* up to *timeUnit*
 
 Not implemented:
 * EXTRACT(timeUnit FROM interval)
@@ -533,3 +535,5 @@ Not implemented:
 | Operator syntax      | Description
 | -------------------- | -----------
 | GROUPING(expression) | Returns 1 if expression is rolled up in the current row's grouping set, 0 otherwise
+| GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
+| GROUPING_ID(expression [, expression ] * ) | Returns a bit vector of the given grouping expressions

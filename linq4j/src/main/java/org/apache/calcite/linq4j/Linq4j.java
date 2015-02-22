@@ -393,8 +393,9 @@ public abstract class Linq4j {
   /**
    * Returns whether the arguments are equal to each other.
    *
-   * <p>Equivalent to {@code Objects#equals} in JDK 1.7 and above.</p>
+   * <p>Equivalent to {@link java.util.Objects#equals} in JDK 1.7 and above.
    */
+  @Deprecated // to be removed before 2.0
   public static <T> boolean equals(T t0, T t1) {
     return t0 == t1 || t0 != null && t0.equals(t1);
   }
@@ -403,8 +404,10 @@ public abstract class Linq4j {
    * Throws {@link NullPointerException} if argument is null, otherwise
    * returns argument.
    *
-   * <p>Equivalent to {@code Objects#equireNonNull} in JDK 1.7 and above.</p>
+   * <p>Equivalent to {@link java.util.Objects#requireNonNull} in JDK 1.7 and
+   * above.
    */
+  @Deprecated // to be removed before 2.0
   public static <T> T requireNonNull(T o) {
     if (o == null) {
       throw new NullPointerException();

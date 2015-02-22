@@ -493,6 +493,16 @@ public enum SqlKind {
   CURRENT_VALUE,
 
   /**
+   * The "FLOOR" function
+   */
+  FLOOR,
+
+  /**
+   * The "CEIL" function
+   */
+  CEIL,
+
+  /**
    * The "TRIM" function.
    */
   TRIM,
@@ -639,7 +649,7 @@ public enum SqlKind {
       EnumSet.complementOf(
           EnumSet.of(
               AS, DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
-              SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM,
+              SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
               LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
               NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
               WITH, WITH_ITEM));

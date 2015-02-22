@@ -64,6 +64,11 @@ class TableNamespace extends AbstractNamespace {
     return table;
   }
 
+  @Override public SqlMonotonicity getMonotonicity(String columnName) {
+    final SqlValidatorTable table = getTable();
+    return table.getMonotonicity(columnName);
+  }
+
   /** Creates a TableNamespace based on the same table as this one, but with
    * extended fields.
    *

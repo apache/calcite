@@ -85,6 +85,10 @@ public class TableConstructorNamespace extends AbstractNamespace {
   public SqlValidatorScope getScope() {
     return scope;
   }
+
+  @Override public boolean supportsModality(SqlModality modality) {
+    return modality == SqlModality.RELATION;
+  }
 }
 
 // End TableConstructorNamespace.java

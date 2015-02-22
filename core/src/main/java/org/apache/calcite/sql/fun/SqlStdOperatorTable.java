@@ -48,6 +48,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlModality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -958,9 +959,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * {@link #EXPLICIT_TABLE} is a prefix operator.
    */
   public static final SqlSpecialOperator COLLECTION_TABLE =
-      new SqlCollectionTableOperator(
-          "TABLE",
-          SqlCollectionTableOperator.MODALITY_RELATIONAL);
+      new SqlCollectionTableOperator("TABLE", SqlModality.RELATION);
 
   public static final SqlOverlapsOperator OVERLAPS =
       new SqlOverlapsOperator();
@@ -1208,26 +1207,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The <code>FLOOR</code> function.
    */
-  public static final SqlFunction FLOOR =
-      new SqlMonotonicUnaryFunction(
-          "FLOOR",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_OR_EXACT_NO_SCALE,
-          null,
-          OperandTypes.NUMERIC_OR_INTERVAL,
-          SqlFunctionCategory.NUMERIC);
+  public static final SqlFunction FLOOR = new SqlFloorFunction(SqlKind.FLOOR);
 
   /**
    * The <code>CEIL</code> function.
    */
-  public static final SqlFunction CEIL =
-      new SqlMonotonicUnaryFunction(
-          "CEIL",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_OR_EXACT_NO_SCALE,
-          null,
-          OperandTypes.NUMERIC_OR_INTERVAL,
-          SqlFunctionCategory.NUMERIC);
+  public static final SqlFunction CEIL = new SqlFloorFunction(SqlKind.CEIL);
 
   /**
    * The <code>USER</code> function.

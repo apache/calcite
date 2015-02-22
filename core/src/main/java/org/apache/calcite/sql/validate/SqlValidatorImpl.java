@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -75,6 +74,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -131,6 +131,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Alias prefix generated for source columns when rewriting UPDATE to MERGE.
    */
   public static final String UPDATE_ANON_PREFIX = "SYS$ANON";
+
+  private SqlNode top;
 
   @VisibleForTesting
   public SqlValidatorScope getEmptyScope() {
@@ -275,14 +277,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       SqlConformance conformance) {
-    Linq4j.requireNonNull(opTab);
-    Linq4j.requireNonNull(catalogReader);
-    Linq4j.requireNonNull(typeFactory);
-    Linq4j.requireNonNull(conformance);
-    this.opTab = opTab;
-    this.catalogReader = catalogReader;
-    this.typeFactory = typeFactory;
-    this.conformance = conformance;
+    this.opTab = Preconditions.checkNotNull(opTab);
+    this.catalogReader = Preconditions.checkNotNull(catalogReader);
+    this.typeFactory = Preconditions.checkNotNull(typeFactory);
+    this.conformance = Preconditions.checkNotNull(conformance);
 
     // NOTE jvs 23-Dec-2003:  This is used as the type for dynamic
     // parameters and null literals until a real type is imposed for them.
@@ -795,6 +793,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorScope scope) {
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
+    top = outermostNode;
     if (TRACER.isLoggable(Level.FINER)) {
       TRACER.finer("After unconditional rewrite: " + outermostNode.toString());
     }
@@ -828,6 +827,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     validateNamespace(ns);
+    if (node == top) {
+      validateModality(node);
+    }
     validateAccess(
         node,
         ns.getTable(),
@@ -2452,9 +2454,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public boolean isAggregate(SqlSelect select) {
-    return select.getGroup() != null
-        || select.getHaving() != null
-        || getAgg(select) != null;
+    return getAggregate(select) != null;
+  }
+
+  /** Returns the parse tree node (GROUP BY, HAVING, or an aggregate function
+   * call) that causes {@code select} to be an aggregate query, or null if it is
+   * not an aggregate query.
+   *
+   * <p>The node is useful context for error messages. */
+  protected SqlNode getAggregate(SqlSelect select) {
+    SqlNode node = select.getGroup();
+    if (node != null) {
+      return node;
+    }
+    node = select.getHaving();
+    if (node != null) {
+      return node;
+    }
+    return getAgg(select);
   }
 
   private SqlNode getAgg(SqlSelect select) {
@@ -2928,6 +2945,146 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // dialects you can refer to columns of the select list, e.g.
     // "SELECT empno AS x FROM emp ORDER BY x"
     validateOrderList(select);
+  }
+
+  /** Validates that a query can deliver the modality it promises. Only called
+   * on the top-most SELECT or set operator in the tree. */
+  private void validateModality(SqlNode query) {
+    final SqlModality modality = deduceModality(query);
+    if (query instanceof SqlSelect) {
+      final SqlSelect select = (SqlSelect) query;
+      validateModality(select, modality, true);
+    } else if (query.getKind() == SqlKind.VALUES) {
+      switch (modality) {
+      case STREAM:
+        throw newValidationError(query, Static.RESOURCE.cannotStreamValues());
+      }
+    } else {
+      assert query.isA(SqlKind.SET_QUERY);
+      final SqlCall call = (SqlCall) query;
+      for (SqlNode operand : call.getOperandList()) {
+        if (deduceModality(operand) != modality) {
+          throw newValidationError(operand,
+              Static.RESOURCE.streamSetOpInconsistentInputs());
+        }
+        validateModality(operand);
+      }
+    }
+  }
+
+  /** Return the intended modality of a SELECT or set-op. */
+  private SqlModality deduceModality(SqlNode query) {
+    if (query instanceof SqlSelect) {
+      SqlSelect select = (SqlSelect) query;
+      return select.getModifierNode(SqlSelectKeyword.STREAM) != null
+          ? SqlModality.STREAM
+          : SqlModality.RELATION;
+    } else if (query.getKind() == SqlKind.VALUES) {
+      return SqlModality.RELATION;
+    } else {
+      assert query.isA(SqlKind.SET_QUERY);
+      final SqlCall call = (SqlCall) query;
+      return deduceModality(call.getOperandList().get(0));
+    }
+  }
+
+  public boolean validateModality(SqlSelect select, SqlModality modality,
+      boolean fail) {
+    final SelectScope scope = getRawSelectScope(select);
+    for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+      if (!namespace.right.supportsModality(modality)) {
+        switch (modality) {
+        case STREAM:
+          if (fail) {
+            throw newValidationError(namespace.right.getNode(),
+                Static.RESOURCE.cannotConvertToStream(namespace.left));
+          } else {
+            return false;
+          }
+        default:
+          if (fail) {
+            throw newValidationError(namespace.right.getNode(),
+                Static.RESOURCE.cannotConvertToRelation(namespace.left));
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+
+    // Make sure that aggregation is possible.
+    final SqlNode aggregateNode = getAggregate(select);
+    if (aggregateNode != null) {
+      switch (modality) {
+      case STREAM:
+        SqlNodeList groupList = select.getGroup();
+        if (groupList == null || !containsMonotonic(scope, groupList)) {
+          if (fail) {
+            throw newValidationError(aggregateNode,
+                Static.RESOURCE.streamMustGroupByMonotonic());
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+
+    // Make sure that ORDER BY is possible.
+    final SqlNodeList orderList  = select.getOrderList();
+    if (orderList != null && orderList.size() > 0) {
+      switch (modality) {
+      case STREAM:
+        if (!hasSortedPrefix(scope, orderList)) {
+          if (fail) {
+            throw newValidationError(orderList.get(0),
+                Static.RESOURCE.streamMustOrderByMonotonic());
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  /** Returns whether the prefix is sorted. */
+  private boolean hasSortedPrefix(SelectScope scope, SqlNodeList orderList) {
+    return isSortCompatible(scope, orderList.get(0), false);
+  }
+
+  private boolean isSortCompatible(SelectScope scope, SqlNode node,
+      boolean descending) {
+    switch (node.getKind()) {
+    case DESCENDING:
+      return isSortCompatible(scope, ((SqlCall) node).getOperandList().get(0),
+          true);
+    }
+    final SqlMonotonicity monotonicity = scope.getMonotonicity(node);
+    switch (monotonicity) {
+    case INCREASING:
+    case STRICTLY_INCREASING:
+      return !descending;
+    case DECREASING:
+    case STRICTLY_DECREASING:
+      return descending;
+    default:
+      return false;
+    }
+  }
+
+  private static boolean containsMonotonic(SelectScope scope,
+      SqlNodeList nodes) {
+    for (SqlNode node : nodes) {
+      final SqlMonotonicity monotonicity = scope.getMonotonicity(node);
+      switch (monotonicity) {
+      case CONSTANT:
+      case NOT_MONOTONIC:
+        break;
+      default:
+        return true;
+      }
+    }
+    return false;
   }
 
   protected void validateWindowClause(SqlSelect select) {

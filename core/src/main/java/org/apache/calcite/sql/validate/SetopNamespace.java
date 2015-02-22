@@ -55,6 +55,40 @@ public class SetopNamespace extends AbstractNamespace {
     return call;
   }
 
+  @Override public SqlMonotonicity getMonotonicity(String columnName) {
+    SqlMonotonicity monotonicity = null;
+    int index = getRowType().getFieldNames().indexOf(columnName);
+    if (index < 0) {
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
+    for (SqlNode operand : call.getOperandList()) {
+      final SqlValidatorNamespace namespace = validator.getNamespace(operand);
+      monotonicity = combine(monotonicity,
+          namespace.getMonotonicity(
+              namespace.getRowType().getFieldNames().get(index)));
+    }
+    return monotonicity;
+  }
+
+  private SqlMonotonicity combine(SqlMonotonicity m0, SqlMonotonicity m1) {
+    if (m0 == null) {
+      return m1;
+    }
+    if (m1 == null) {
+      return m0;
+    }
+    if (m0 == m1) {
+      return m0;
+    }
+    if (m0.unstrict() == m1) {
+      return m1;
+    }
+    if (m1.unstrict() == m0) {
+      return m0;
+    }
+    return SqlMonotonicity.NOT_MONOTONIC;
+  }
+
   public RelDataType validateImpl() {
     switch (call.getKind()) {
     case UNION:

@@ -42,6 +42,8 @@ public interface SqlValidatorTable {
    * Returns the access type of the table
    */
   SqlAccessType getAllowedAccess();
+
+  boolean supportsModality(SqlModality modality);
 }
 
 // End SqlValidatorTable.java

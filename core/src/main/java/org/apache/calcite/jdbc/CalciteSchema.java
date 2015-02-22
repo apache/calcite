@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.schema.Function;
@@ -522,10 +521,8 @@ public class CalciteSchema {
     public final String name;
 
     public Entry(CalciteSchema schema, String name) {
-      Linq4j.requireNonNull(schema);
-      Linq4j.requireNonNull(name);
-      this.schema = schema;
-      this.name = name;
+      this.schema = Preconditions.checkNotNull(schema);
+      this.name = Preconditions.checkNotNull(name);
     }
 
     /** Returns this object's path. For example ["hr", "emps"]. */

@@ -195,6 +195,13 @@ public interface SqlValidatorNamespace {
    * <p>You must not call this method before {@link #validate()} has
    * completed.</p> */
   SqlValidatorNamespace resolve();
+
+  /** Returns whether this namespace is capable of giving results of the desired
+   * modality. {@code true} means streaming, {@code false} means relational.
+   *
+   * @param modality Modality
+   */
+  boolean supportsModality(SqlModality modality);
 }
 
 // End SqlValidatorNamespace.java

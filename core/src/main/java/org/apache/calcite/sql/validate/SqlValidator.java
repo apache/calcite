@@ -711,6 +711,19 @@ public interface SqlValidator {
    */
   SqlValidatorScope getOverScope(SqlNode node);
 
+  /**
+   * Validates that a query is capable of producing a return of given modality
+   * (relational or streaming).
+   *
+   * @param select Query
+   * @param modality Modality (streaming or relational)
+   * @param fail Whether to throw a user error if does not support required
+   *             modality
+   * @return whether query supports the given modality
+   */
+  boolean validateModality(SqlSelect select, SqlModality modality,
+      boolean fail);
+
   void validateWith(SqlWith with, SqlValidatorScope scope);
 
   void validateWithItem(SqlWithItem withItem);

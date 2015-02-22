@@ -18,15 +18,15 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be
@@ -75,8 +75,7 @@ import java.util.List;
  * SqlSingleOperandTypeChecker, and signature generation is not supported. For
  * AND composition, only the first rule is used for signature generation.
  */
-public class CompositeOperandTypeChecker
-    implements SqlSingleOperandTypeChecker {
+public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Enums ------------------------------------------------------------------
 
   /** How operands are composed. */
@@ -86,8 +85,9 @@ public class CompositeOperandTypeChecker
 
   //~ Instance fields --------------------------------------------------------
 
-  private final ImmutableList<SqlSingleOperandTypeChecker> allowedRules;
-  private final Composition composition;
+  protected final ImmutableList<? extends SqlOperandTypeChecker> allowedRules;
+  protected final Composition composition;
+  private final String allowedSignatures;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -97,25 +97,30 @@ public class CompositeOperandTypeChecker
    */
   CompositeOperandTypeChecker(
       Composition composition,
-      ImmutableList<SqlSingleOperandTypeChecker> allowedRules) {
-    assert null != allowedRules;
+      ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
+      @Nullable String allowedSignatures) {
+    this.allowedRules = Preconditions.checkNotNull(allowedRules);
+    this.composition = Preconditions.checkNotNull(composition);
+    this.allowedSignatures = allowedSignatures;
     assert allowedRules.size() > 1;
-    this.allowedRules = allowedRules;
-    this.composition = composition;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public ImmutableList<SqlSingleOperandTypeChecker> getRules() {
+  public ImmutableList<? extends SqlOperandTypeChecker> getRules() {
     return allowedRules;
   }
 
   public String getAllowedSignatures(SqlOperator op, String opName) {
+    if (allowedSignatures != null) {
+      return allowedSignatures;
+    }
     if (composition == Composition.SEQUENCE) {
-      throw Util.needToImplement("must override getAllowedSignatures");
+      throw new AssertionError(
+          "specify allowedSignatures or override getAllowedSignatures");
     }
     StringBuilder ret = new StringBuilder();
-    for (Ord<SqlSingleOperandTypeChecker> ord : Ord.zip(allowedRules)) {
+    for (Ord<SqlOperandTypeChecker> ord : Ord.zip(allowedRules)) {
       if (ord.i > 0) {
         ret.append(SqlOperator.NL);
       }
@@ -213,134 +218,66 @@ public class CompositeOperandTypeChecker
     return max;
   }
 
-  public boolean checkSingleOperandType(
-      SqlCallBinding callBinding,
-      SqlNode node,
-      int iFormalOperand,
-      boolean throwOnFailure) {
-    assert allowedRules.size() >= 1;
-
-    if (composition == Composition.SEQUENCE) {
-      return allowedRules.get(iFormalOperand).checkSingleOperandType(
-          callBinding, node, 0, throwOnFailure);
-    }
-
-    int typeErrorCount = 0;
-
-    boolean throwOnAndFailure =
-        (composition == Composition.AND)
-            && throwOnFailure;
-
-    for (SqlSingleOperandTypeChecker rule : allowedRules) {
-      if (!rule.checkSingleOperandType(
-          callBinding,
-          node,
-          iFormalOperand,
-          throwOnAndFailure)) {
-        typeErrorCount++;
-      }
-    }
-
-    boolean ret;
-    switch (composition) {
-    case AND:
-      ret = typeErrorCount == 0;
-      break;
-    case OR:
-      ret = typeErrorCount < allowedRules.size();
-      break;
-    default:
-      // should never come here
-      throw Util.unexpected(composition);
-    }
-
-    if (!ret && throwOnFailure) {
-      // In the case of a composite OR, we want to throw an error
-      // describing in more detail what the problem was, hence doing the
-      // loop again.
-      for (SqlSingleOperandTypeChecker rule : allowedRules) {
-        rule.checkSingleOperandType(
-            callBinding,
-            node,
-            iFormalOperand,
-            true);
-      }
-
-      // If no exception thrown, just throw a generic validation signature
-      // error.
-      throw callBinding.newValidationSignatureError();
-    }
-
-    return ret;
-  }
-
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    int typeErrorCount = 0;
+    if (check(callBinding)) {
+      return true;
+    }
+    if (!throwOnFailure) {
+      return false;
+    }
+    if (composition == Composition.OR) {
+      for (SqlOperandTypeChecker allowedRule : allowedRules) {
+        allowedRule.checkOperandTypes(callBinding, true);
+      }
+    }
 
-  label:
-    for (Ord<SqlSingleOperandTypeChecker> ord : Ord.zip(allowedRules)) {
-      SqlSingleOperandTypeChecker rule = ord.e;
+    // If no exception thrown, just throw a generic validation
+    // signature error.
+    throw callBinding.newValidationSignatureError();
+  }
 
-      switch (composition) {
-      case SEQUENCE:
-        if (ord.i >= callBinding.getOperandCount()) {
-          break label;
-        }
-        if (!rule.checkSingleOperandType(
+  private boolean check(SqlCallBinding callBinding) {
+    switch (composition) {
+    case SEQUENCE:
+      if (callBinding.getOperandCount() != allowedRules.size()) {
+        return false;
+      }
+      for (Ord<SqlOperandTypeChecker> ord : Ord.zip(allowedRules)) {
+        SqlOperandTypeChecker rule = ord.e;
+        if (!((SqlSingleOperandTypeChecker) rule).checkSingleOperandType(
             callBinding,
             callBinding.getCall().operand(ord.i),
             0,
             false)) {
-          typeErrorCount++;
+          return false;
         }
-        break;
-      default:
-        if (!rule.checkOperandTypes(callBinding, false)) {
-          typeErrorCount++;
-          if (composition == Composition.AND) {
-            // Avoid trying other rules in AND if the first one fails.
-            break label;
-          }
-        } else if (composition == Composition.OR) {
-          break label; // true OR any == true, just break
-        }
-        break;
       }
-    }
+      return true;
 
-    boolean failed;
-    switch (composition) {
     case AND:
-    case SEQUENCE:
-      failed = typeErrorCount > 0;
-      break;
+      for (Ord<SqlOperandTypeChecker> ord : Ord.zip(allowedRules)) {
+        SqlOperandTypeChecker rule = ord.e;
+        if (!rule.checkOperandTypes(callBinding, false)) {
+          // Avoid trying other rules in AND if the first one fails.
+          return false;
+        }
+      }
+      return true;
+
     case OR:
-      failed = typeErrorCount == allowedRules.size();
-      break;
+      for (Ord<SqlOperandTypeChecker> ord : Ord.zip(allowedRules)) {
+        SqlOperandTypeChecker rule = ord.e;
+        if (rule.checkOperandTypes(callBinding, false)) {
+          return true;
+        }
+      }
+      return false;
+
     default:
       throw new AssertionError();
     }
-
-    if (failed) {
-      if (throwOnFailure) {
-        // In the case of a composite OR, we want to throw an error
-        // describing in more detail what the problem was, hence doing
-        // the loop again.
-        if (composition == Composition.OR) {
-          for (SqlOperandTypeChecker allowedRule : allowedRules) {
-            allowedRule.checkOperandTypes(callBinding, true);
-          }
-        }
-
-        // If no exception thrown, just throw a generic validation
-        // signature error.
-        throw callBinding.newValidationSignatureError();
-      }
-      return false;
-    }
-    return true;
   }
 }
 

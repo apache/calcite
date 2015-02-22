@@ -198,6 +198,7 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 * <a href="doc/HOWTO.md">HOWTO</a>
 * <a href="doc/MODEL.md">JSON model</a>
 * <a href="doc/REFERENCE.md">Reference guide</a>
+* <a href="doc/STREAM.md">Streaming SQL</a>
 * <a href="doc/HISTORY.md">Release notes and history</a>
 
 ### Pre-Apache resources

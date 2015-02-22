@@ -116,6 +116,7 @@ import org.junit.runners.Suite;
     ReflectiveSchemaTest.class,
     JdbcTest.class,
     CalciteRemoteDriverTest.class,
+    StreamTest.class,
 
     // test cases
     TableInRootSchemaTest.class,

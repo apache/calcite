@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.function;
 
-import org.apache.calcite.linq4j.Linq4j;
-
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -29,6 +27,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Utilities relating to functions.
@@ -524,7 +523,7 @@ public abstract class Functions {
   private static class IdentityEqualityComparer
       implements EqualityComparer<Object> {
     public boolean equal(Object v1, Object v2) {
-      return Linq4j.equals(v1, v2);
+      return Objects.equals(v1, v2);
     }
 
     public int hashCode(Object t) {
@@ -545,7 +544,7 @@ public abstract class Functions {
       return v1 == v2
           || v1 != null
           && v2 != null
-          && Linq4j.equals(selector.apply(v1), selector.apply(v2));
+          && Objects.equals(selector.apply(v1), selector.apply(v2));
     }
 
     public int hashCode(T t) {

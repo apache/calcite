@@ -18,8 +18,8 @@ package org.apache.calcite.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -36,7 +36,11 @@ import java.util.List;
     @JsonSubTypes.Type(value = JsonView.class, name = "view") })
 public abstract class JsonTable {
   public String name;
-  public final List<JsonColumn> columns = new ArrayList<JsonColumn>();
+  public final List<JsonColumn> columns = Lists.newArrayList();
+
+  /** Information about whether the table can be streamed, and if so, whether
+   * the history of the table is also available. */
+  public JsonStream stream;
 
   public abstract void accept(ModelHandler handler);
 }

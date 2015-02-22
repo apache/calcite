@@ -72,21 +72,52 @@ public abstract class OperandTypes {
   /**
    * Creates a checker that passes if any one of the rules passes.
    */
-  public static SqlSingleOperandTypeChecker or(
-      SqlSingleOperandTypeChecker... rules) {
+  public static SqlOperandTypeChecker or(SqlOperandTypeChecker... rules) {
     return new CompositeOperandTypeChecker(
         CompositeOperandTypeChecker.Composition.OR,
-        ImmutableList.copyOf(rules));
+        ImmutableList.copyOf(rules), null);
   }
 
   /**
-   * Creates a checker that passes if any one of the rules passes.
+   * Creates a single-operand checker that passes if any one of the rules
+   * passes.
+   */
+  public static SqlOperandTypeChecker and(SqlOperandTypeChecker... rules) {
+    return new CompositeOperandTypeChecker(
+        CompositeOperandTypeChecker.Composition.AND,
+        ImmutableList.copyOf(rules), null);
+  }
+
+  /**
+   * Creates a single-operand checker that passes if any one of the rules
+   * passes.
+   */
+  public static SqlSingleOperandTypeChecker or(
+      SqlSingleOperandTypeChecker... rules) {
+    return new CompositeSingleOperandTypeChecker(
+        CompositeOperandTypeChecker.Composition.OR,
+        ImmutableList.copyOf(rules), null);
+  }
+
+  /**
+   * Creates a single-operand checker that passes if any one of the rules
+   * passes.
    */
   public static SqlSingleOperandTypeChecker and(
       SqlSingleOperandTypeChecker... rules) {
-    return new CompositeOperandTypeChecker(
+    return new CompositeSingleOperandTypeChecker(
         CompositeOperandTypeChecker.Composition.AND,
-        ImmutableList.copyOf(rules));
+        ImmutableList.copyOf(rules), null);
+  }
+
+  /**
+   * Creates an operand checker from a sequence of single-operand checkers.
+   */
+  public static SqlOperandTypeChecker sequence(String allowedSignatures,
+      SqlSingleOperandTypeChecker... rules) {
+    return new CompositeOperandTypeChecker(
+        CompositeOperandTypeChecker.Composition.SEQUENCE,
+        ImmutableList.copyOf(rules), allowedSignatures);
   }
 
   // ----------------------------------------------------------------------
@@ -111,7 +142,7 @@ public abstract class OperandTypes {
   public static final SqlOperandTypeChecker ONE_OR_MORE =
       variadic(SqlOperandCountRanges.from(1));
 
-  private static SqlOperandTypeChecker variadic(
+  public static SqlOperandTypeChecker variadic(
       final SqlOperandCountRange range) {
     return new SqlOperandTypeChecker() {
       public boolean checkOperandTypes(

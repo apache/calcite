@@ -59,9 +59,9 @@ public class SqlExtractFunction extends SqlFunction {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, 0, 0);
     writer.sep("FROM");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(frame);
   }
 }

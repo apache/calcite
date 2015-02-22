@@ -687,6 +687,116 @@ public class SqlFunctions {
     return bigDecimals[1];
   }
 
+  // FLOOR
+
+  public static double floor(double b0) {
+    return Math.floor(b0);
+  }
+
+  public static BigDecimal floor(BigDecimal b0) {
+    return b0.setScale(0, BigDecimal.ROUND_FLOOR);
+  }
+
+  /** SQL <code>FLOOR</code> operator applied to byte values. */
+  public static byte floor(byte b0, byte b1) {
+    return (byte) floor((int) b0, (int) b1);
+  }
+
+  /** SQL <code>FLOOR</code> operator applied to short values. */
+  public static short floor(short b0, short b1) {
+    return (short) floor((int) b0, (int) b1);
+  }
+
+  /** SQL <code>FLOOR</code> operator applied to int values. */
+  public static int floor(int b0, int b1) {
+    int r = b0 % b1;
+    if (r < 0) {
+      r += b1;
+    }
+    return b0 - r;
+  }
+
+  /** SQL <code>FLOOR</code> operator applied to long values. */
+  public static long floor(long b0, long b1) {
+    long r = b0 % b1;
+    if (r < 0) {
+      r += b1;
+    }
+    return b0 - r;
+  }
+
+  // temporary
+  public static BigDecimal floor(BigDecimal b0, int b1) {
+    return floor(b0, BigDecimal.valueOf(b1));
+  }
+
+  // temporary
+  public static int floor(int b0, BigDecimal b1) {
+    return floor(b0, b1.intValue());
+  }
+
+  public static BigDecimal floor(BigDecimal b0, BigDecimal b1) {
+    final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
+    BigDecimal r = bigDecimals[1];
+    if (r.signum() < 0) {
+      r = r.add(b1);
+    }
+    return b0.subtract(r);
+  }
+
+  // CEIL
+
+  public static double ceil(double b0) {
+    return Math.ceil(b0);
+  }
+
+  public static BigDecimal ceil(BigDecimal b0) {
+    return b0.setScale(0, BigDecimal.ROUND_CEILING);
+  }
+
+  /** SQL <code>CEIL</code> operator applied to byte values. */
+  public static byte ceil(byte b0, byte b1) {
+    return floor((byte) (b0 + b1 - 1), b1);
+  }
+
+  /** SQL <code>CEIL</code> operator applied to short values. */
+  public static short ceil(short b0, short b1) {
+    return floor((short) (b0 + b1 - 1), b1);
+  }
+
+  /** SQL <code>CEIL</code> operator applied to int values. */
+  public static int ceil(int b0, int b1) {
+    int r = b0 % b1;
+    if (r > 0) {
+      r -= b1;
+    }
+    return b0 - r;
+  }
+
+  /** SQL <code>CEIL</code> operator applied to long values. */
+  public static long ceil(long b0, long b1) {
+    return floor(b0 + b1 - 1, b1);
+  }
+
+  // temporary
+  public static BigDecimal ceil(BigDecimal b0, int b1) {
+    return ceil(b0, BigDecimal.valueOf(b1));
+  }
+
+  // temporary
+  public static int ceil(int b0, BigDecimal b1) {
+    return ceil(b0, b1.intValue());
+  }
+
+  public static BigDecimal ceil(BigDecimal b0, BigDecimal b1) {
+    final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
+    BigDecimal r = bigDecimals[1];
+    if (r.signum() > 0) {
+      r = r.subtract(b1);
+    }
+    return b0.subtract(r);
+  }
+
   // ABS
 
   /** SQL <code>ABS</code> operator applied to byte values. */

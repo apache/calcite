@@ -54,6 +54,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -524,6 +525,9 @@ public class SqlToRelConverter {
     }
 
     RelNode result = convertQueryRecursive(query, top, null);
+    if (top && isStream(query)) {
+      result = new LogicalDelta(cluster, result.getTraitSet(), result);
+    }
     checkConvertedType(query, result);
 
     boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
@@ -537,6 +541,11 @@ public class SqlToRelConverter {
     }
 
     return result;
+  }
+
+  private static boolean isStream(SqlNode query) {
+    return query instanceof SqlSelect
+        && ((SqlSelect) query).isKeywordPresent(SqlSelectKeyword.STREAM);
   }
 
   protected boolean checkConvertedRowType(
