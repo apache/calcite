@@ -86,136 +86,172 @@ public class TableScanNode implements Node {
    * any filters and projects that cannot be implemented by the table. */
   static TableScanNode create(Interpreter interpreter, TableScan rel,
       ImmutableList<RexNode> filters, ImmutableIntList projects) {
-    final DataContext root = interpreter.getDataContext();
     final RelOptTable relOptTable = rel.getTable();
     final ProjectableFilterableTable pfTable =
         relOptTable.unwrap(ProjectableFilterableTable.class);
     if (pfTable != null) {
-      final ImmutableIntList originalProjects = projects;
-      for (;;) {
-        final List<RexNode> mutableFilters = Lists.newArrayList(filters);
-        final int[] projectInts;
-        if (projects == null
-            || projects.equals(TableScan.identity(relOptTable))) {
-          projectInts = null;
-        } else {
-          projectInts = projects.toIntArray();
-        }
-        final Enumerable<Object[]> enumerable1 =
-            pfTable.scan(root, mutableFilters, projectInts);
-        for (RexNode filter : mutableFilters) {
-          if (!filters.contains(filter)) {
-            throw RESOURCE.filterableTableInventedFilter(filter.toString())
-                .ex();
-          }
-        }
-        final ImmutableBitSet usedFields =
-            RelOptUtil.InputFinder.bits(mutableFilters, null);
-        if (projects != null) {
-          int changeCount = 0;
-          for (int usedField : usedFields) {
-            if (!projects.contains(usedField)) {
-              // A field that is not projected is used in a filter that the
-              // table rejected. We won't be able to apply the filter later.
-              // Try again without any projects.
-              projects =
-                  ImmutableIntList.copyOf(
-                      Iterables.concat(projects, ImmutableList.of(usedField)));
-              ++changeCount;
-            }
-          }
-          if (changeCount > 0) {
-            continue;
-          }
-        }
-        final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable1);
-        final ImmutableIntList rejectedProjects;
-        if (Objects.equal(projects, originalProjects)) {
-          rejectedProjects = null;
-        } else {
-          // We projected extra columns because they were needed in filters. Now
-          // project the leading columns.
-          rejectedProjects = ImmutableIntList.identity(originalProjects.size());
-        }
-        return create2(interpreter, rel, rowEnumerable,
-            projects, mutableFilters, rejectedProjects);
-      }
+      return createProjectableFilterable(interpreter, rel, filters, projects,
+          pfTable);
     }
     final FilterableTable filterableTable =
         relOptTable.unwrap(FilterableTable.class);
     if (filterableTable != null) {
-      final List<RexNode> mutableFilters = Lists.newArrayList(filters);
-      final Enumerable<Object[]> enumerable =
-          filterableTable.scan(root, mutableFilters);
-      for (RexNode filter : mutableFilters) {
-        if (!filters.contains(filter)) {
-          throw RESOURCE.filterableTableInventedFilter(filter.toString()).ex();
-        }
-      }
-      final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable);
-      return create2(interpreter, rel, rowEnumerable, null, mutableFilters,
-          projects);
+      return createFilterable(interpreter, rel, filters, projects,
+          filterableTable);
     }
     final ScannableTable scannableTable =
         relOptTable.unwrap(ScannableTable.class);
     if (scannableTable != null) {
-      final Enumerable<Row> rowEnumerable =
-          Enumerables.toRow(scannableTable.scan(root));
-      return create2(interpreter, rel, rowEnumerable, null, filters, projects);
+      return createScannable(interpreter, rel, filters, projects,
+          scannableTable);
     }
     //noinspection unchecked
     final Enumerable<Row> enumerable = relOptTable.unwrap(Enumerable.class);
     if (enumerable != null) {
-      return create2(interpreter, rel, enumerable, null, filters, projects);
+      return createEnumerable(interpreter, rel, enumerable, null, filters,
+          projects);
     }
     final QueryableTable queryableTable =
         relOptTable.unwrap(QueryableTable.class);
     if (queryableTable != null) {
-      final Type elementType = queryableTable.getElementType();
-      SchemaPlus schema = root.getRootSchema();
-      for (String name : Util.skipLast(relOptTable.getQualifiedName())) {
-        schema = schema.getSubSchema(name);
-      }
-      final Enumerable<Row> rowEnumerable;
-      if (elementType instanceof Class) {
-        //noinspection unchecked
-        final Queryable<Object> queryable = Schemas.queryable(root,
-            (Class) elementType, relOptTable.getQualifiedName());
-        ImmutableList.Builder<Field> fieldBuilder = ImmutableList.builder();
-        Class type = (Class) elementType;
-        for (Field field : type.getFields()) {
-          if (Modifier.isPublic(field.getModifiers())
-              && !Modifier.isStatic(field.getModifiers())) {
-            fieldBuilder.add(field);
-          }
-        }
-        final List<Field> fields = fieldBuilder.build();
-        rowEnumerable = queryable.select(
-            new Function1<Object, Row>() {
-              public Row apply(Object o) {
-                final Object[] values = new Object[fields.size()];
-                for (int i = 0; i < fields.size(); i++) {
-                  Field field = fields.get(i);
-                  try {
-                    values[i] = field.get(o);
-                  } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                  }
-                }
-                return new Row(values);
-              }
-            });
-      } else {
-        rowEnumerable =
-            Schemas.queryable(root, Row.class, relOptTable.getQualifiedName());
-      }
-      return create2(interpreter, rel, rowEnumerable, null, filters, projects);
+      return createQueryable(interpreter, rel, filters, projects,
+          queryableTable);
     }
     throw new AssertionError("cannot convert table " + relOptTable
         + " to enumerable");
   }
 
-  private static TableScanNode create2(Interpreter interpreter, TableScan rel,
+  private static TableScanNode createScannable(Interpreter interpreter,
+      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      ScannableTable scannableTable) {
+    final Enumerable<Row> rowEnumerable =
+        Enumerables.toRow(scannableTable.scan(interpreter.getDataContext()));
+    return createEnumerable(interpreter, rel, rowEnumerable, null, filters,
+        projects);
+  }
+
+  private static TableScanNode createQueryable(Interpreter interpreter,
+      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      QueryableTable queryableTable) {
+    final DataContext root = interpreter.getDataContext();
+    final RelOptTable relOptTable = rel.getTable();
+    final Type elementType = queryableTable.getElementType();
+    SchemaPlus schema = root.getRootSchema();
+    for (String name : Util.skipLast(relOptTable.getQualifiedName())) {
+      schema = schema.getSubSchema(name);
+    }
+    final Enumerable<Row> rowEnumerable;
+    if (elementType instanceof Class) {
+      //noinspection unchecked
+      final Queryable<Object> queryable = Schemas.queryable(root,
+          (Class) elementType,
+          relOptTable.getQualifiedName());
+      ImmutableList.Builder<Field> fieldBuilder = ImmutableList.builder();
+      Class type = (Class) elementType;
+      for (Field field : type.getFields()) {
+        if (Modifier.isPublic(field.getModifiers())
+            && !Modifier.isStatic(field.getModifiers())) {
+          fieldBuilder.add(field);
+        }
+      }
+      final List<Field> fields = fieldBuilder.build();
+      rowEnumerable = queryable.select(
+          new Function1<Object, Row>() {
+            public Row apply(Object o) {
+              final Object[] values = new Object[fields.size()];
+              for (int i = 0; i < fields.size(); i++) {
+                Field field = fields.get(i);
+                try {
+                  values[i] = field.get(o);
+                } catch (IllegalAccessException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+              return new Row(values);
+            }
+          });
+    } else {
+      rowEnumerable =
+          Schemas.queryable(root, Row.class, relOptTable.getQualifiedName());
+    }
+    return createEnumerable(interpreter, rel, rowEnumerable, null, filters,
+        projects);
+  }
+
+  private static TableScanNode createFilterable(Interpreter interpreter,
+      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      FilterableTable filterableTable) {
+    final DataContext root = interpreter.getDataContext();
+    final List<RexNode> mutableFilters = Lists.newArrayList(filters);
+    final Enumerable<Object[]> enumerable =
+        filterableTable.scan(root, mutableFilters);
+    for (RexNode filter : mutableFilters) {
+      if (!filters.contains(filter)) {
+        throw RESOURCE.filterableTableInventedFilter(filter.toString()).ex();
+      }
+    }
+    final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable);
+    return createEnumerable(interpreter, rel, rowEnumerable, null,
+        mutableFilters, projects);
+  }
+
+  private static TableScanNode createProjectableFilterable(
+      Interpreter interpreter, TableScan rel, ImmutableList<RexNode> filters,
+      ImmutableIntList projects, ProjectableFilterableTable pfTable) {
+    final DataContext root = interpreter.getDataContext();
+    final ImmutableIntList originalProjects = projects;
+    for (;;) {
+      final List<RexNode> mutableFilters = Lists.newArrayList(filters);
+      final int[] projectInts;
+      if (projects == null
+          || projects.equals(TableScan.identity(rel.getTable()))) {
+        projectInts = null;
+      } else {
+        projectInts = projects.toIntArray();
+      }
+      final Enumerable<Object[]> enumerable1 =
+          pfTable.scan(root, mutableFilters, projectInts);
+      for (RexNode filter : mutableFilters) {
+        if (!filters.contains(filter)) {
+          throw RESOURCE.filterableTableInventedFilter(filter.toString())
+              .ex();
+        }
+      }
+      final ImmutableBitSet usedFields =
+          RelOptUtil.InputFinder.bits(mutableFilters, null);
+      if (projects != null) {
+        int changeCount = 0;
+        for (int usedField : usedFields) {
+          if (!projects.contains(usedField)) {
+            // A field that is not projected is used in a filter that the
+            // table rejected. We won't be able to apply the filter later.
+            // Try again without any projects.
+            projects =
+                ImmutableIntList.copyOf(
+                    Iterables.concat(projects, ImmutableList.of(usedField)));
+            ++changeCount;
+          }
+        }
+        if (changeCount > 0) {
+          continue;
+        }
+      }
+      final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable1);
+      final ImmutableIntList rejectedProjects;
+      if (Objects.equal(projects, originalProjects)) {
+        rejectedProjects = null;
+      } else {
+        // We projected extra columns because they were needed in filters. Now
+        // project the leading columns.
+        rejectedProjects = ImmutableIntList.identity(originalProjects.size());
+      }
+      return createEnumerable(interpreter, rel, rowEnumerable, projects,
+          mutableFilters, rejectedProjects);
+    }
+  }
+
+  private static TableScanNode createEnumerable(
+      Interpreter interpreter, TableScan rel,
       Enumerable<Row> enumerable, final ImmutableIntList acceptedProjects,
       List<RexNode> rejectedFilters, final ImmutableIntList rejectedProjects) {
     if (!rejectedFilters.isEmpty()) {
