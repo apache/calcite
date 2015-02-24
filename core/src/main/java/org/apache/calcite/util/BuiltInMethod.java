@@ -43,6 +43,9 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Size;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
@@ -293,6 +296,14 @@ public enum BuiltInMethod {
   ELEMENT(SqlFunctions.class, "element", List.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
+  AVERAGE_ROW_SIZE(Size.class, "averageRowSize"),
+  AVERAGE_COLUMN_SIZES(Size.class, "averageColumnSizes"),
+  IS_PHASE_TRANSITION(Parallelism.class, "isPhaseTransition"),
+  SPLIT_COUNT(Parallelism.class, "splitCount"),
+  MEMORY(Memory.class, "memory"),
+  CUMULATIVE_MEMORY_WITHIN_PHASE(Memory.class, "cumulativeMemoryWithinPhase"),
+  CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT(Memory.class,
+      "cumulativeMemoryWithinPhaseSplit"),
   COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique",
       ImmutableBitSet.class, boolean.class),
   COLLATIONS(Collation.class, "collations"),

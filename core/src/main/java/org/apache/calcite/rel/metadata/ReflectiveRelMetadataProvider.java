@@ -18,12 +18,16 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -31,7 +35,10 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -86,72 +93,110 @@ public class ReflectiveRelMetadataProvider
    * <blockquote><pre><code>
    * class RelMdSelectivity {
    *   public Double getSelectivity(Union rel, RexNode predicate) { }
-   *   public Double getSelectivity(LogicalFilter rel, RexNode predicate) { }
+   *   public Double getSelectivity(Filter rel, RexNode predicate) { }
    * </code></pre></blockquote>
    *
    * <p>provides implementations of selectivity for relational expressions
-   * that extend {@link org.apache.calcite.rel.logical.LogicalUnion}
-   * or {@link org.apache.calcite.rel.logical.LogicalFilter}.</p>
+   * that extend {@link org.apache.calcite.rel.core.Union}
+   * or {@link org.apache.calcite.rel.core.Filter}.</p>
    */
   public static RelMetadataProvider reflectiveSource(Method method,
-      final Object target) {
-    final Class<?> metadataClass0 = method.getDeclaringClass();
+      Object target) {
+    return reflectiveSource(target, ImmutableList.of(method));
+  }
+
+  /** Returns a reflective metadata provider that implements several
+   * methods. */
+  public static RelMetadataProvider reflectiveSource(Object target,
+      Method... methods) {
+    return reflectiveSource(target, ImmutableList.copyOf(methods));
+  }
+
+  private static RelMetadataProvider reflectiveSource(final Object target,
+      final ImmutableList<Method> methods) {
+    assert methods.size() > 0;
+    final Method method0 = methods.get(0);
+    final Class<?> metadataClass0 = method0.getDeclaringClass();
     assert Metadata.class.isAssignableFrom(metadataClass0);
-    final Map<Class<RelNode>, Function<RelNode, Metadata>> treeMap =
-        Maps.<Class<RelNode>, Class<RelNode>, Function<RelNode, Metadata>>
-            newTreeMap(SUPERCLASS_COMPARATOR);
-    for (final Method method1 : target.getClass().getMethods()) {
-      if (method1.getName().equals(method.getName())
-          && (method1.getModifiers() & Modifier.STATIC) == 0
-          && (method1.getModifiers() & Modifier.PUBLIC) != 0) {
-        final Class<?>[] parameterTypes1 = method1.getParameterTypes();
-        final Class<?>[] parameterTypes = method.getParameterTypes();
-        if (parameterTypes1.length == parameterTypes.length + 1
-            && RelNode.class.isAssignableFrom(parameterTypes1[0])
-            && Util.skip(Arrays.asList(parameterTypes1))
-                .equals(Arrays.asList(parameterTypes))) {
-          //noinspection unchecked
-          final Class<RelNode> key = (Class) parameterTypes1[0];
-          final Function<RelNode, Metadata> function =
-              new Function<RelNode, Metadata>() {
-                public Metadata apply(final RelNode rel) {
-                  return (Metadata) Proxy.newProxyInstance(
-                      metadataClass0.getClassLoader(),
-                      new Class[]{metadataClass0},
-                      new InvocationHandler() {
-                        public Object invoke(Object proxy, Method method,
-                            Object[] args) throws Throwable {
-                          // Suppose we are an implementation of Selectivity
-                          // that wraps "filter", a LogicalFilter. Then we
-                          // implement
-                          //   Selectivity.selectivity(rex)
-                          // by calling method
-                          //   new SelectivityImpl().selectivity(filter, rex)
-                          if (method.equals(
-                              BuiltInMethod.METADATA_REL.method)) {
-                            return rel;
-                          }
-                          if (method.equals(
-                              BuiltInMethod.OBJECT_TO_STRING.method)) {
-                            return metadataClass0.getSimpleName() + "(" + rel
-                                + ")";
-                          }
-                          final Object[] args1;
-                          if (args == null) {
-                            args1 = new Object[]{rel};
-                          } else {
-                            args1 = new Object[args.length + 1];
-                            args1[0] = rel;
-                            System.arraycopy(args, 0, args1, 1, args.length);
-                          }
-                          return method1.invoke(target, args1);
-                        }
-                      });
-                }
-              };
-          treeMap.put(key, function);
+    for (Method method : methods) {
+      assert method.getDeclaringClass() == metadataClass0;
+    }
+
+    // Find the distinct set of RelNode classes handled by this provider,
+    // ordered base-class first.
+    final TreeSet<Class<RelNode>> classes =
+        Sets.newTreeSet(SUPERCLASS_COMPARATOR);
+    final Map<Pair<Class<RelNode>, Method>, Method> handlerMap =
+        Maps.newHashMap();
+    for (final Method handlerMethod : target.getClass().getMethods()) {
+      for (Method method : methods) {
+        if (couldImplement(handlerMethod, method)) {
+          @SuppressWarnings("unchecked") final Class<RelNode> relNodeClass =
+              (Class<RelNode>) handlerMethod.getParameterTypes()[0];
+          classes.add(relNodeClass);
+          handlerMap.put(Pair.of(relNodeClass, method), handlerMethod);
         }
       }
+    }
+
+    final Map<Class<RelNode>, Function<RelNode, Metadata>> treeMap =
+        Maps.newTreeMap(SUPERCLASS_COMPARATOR);
+
+    for (Class<RelNode> key : classes) {
+      ImmutableNullableList.Builder<Method> builder =
+          ImmutableNullableList.builder();
+      for (final Method method : methods) {
+        builder.add(find(classes, handlerMap, key, method));
+      }
+      final List<Method> handlerMethods = builder.build();
+      final Function<RelNode, Metadata> function =
+          new Function<RelNode, Metadata>() {
+            public Metadata apply(final RelNode rel) {
+              return (Metadata) Proxy.newProxyInstance(
+                  metadataClass0.getClassLoader(),
+                  new Class[]{metadataClass0},
+                  new InvocationHandler() {
+                    public Object invoke(Object proxy, Method method,
+                        Object[] args) throws Throwable {
+                      // Suppose we are an implementation of Selectivity
+                      // that wraps "filter", a LogicalFilter. Then we
+                      // implement
+                      //   Selectivity.selectivity(rex)
+                      // by calling method
+                      //   new SelectivityImpl().selectivity(filter, rex)
+                      if (method.equals(
+                          BuiltInMethod.METADATA_REL.method)) {
+                        return rel;
+                      }
+                      if (method.equals(
+                          BuiltInMethod.OBJECT_TO_STRING.method)) {
+                        return metadataClass0.getSimpleName() + "(" + rel
+                            + ")";
+                      }
+                      int i = methods.indexOf(method);
+                      if (i < 0) {
+                        throw new AssertionError("not handled: " + method
+                            + " for " + rel);
+                      }
+                      final Object[] args1;
+                      if (args == null) {
+                        args1 = new Object[]{rel};
+                      } else {
+                        args1 = new Object[args.length + 1];
+                        args1[0] = rel;
+                        System.arraycopy(args, 0, args1, 1, args.length);
+                      }
+                      final Method handlerMethod = handlerMethods.get(i);
+                      if (handlerMethod == null) {
+                        throw new AssertionError("not handled: " + method
+                            + " for " + rel);
+                      }
+                      return handlerMethod.invoke(target, args1);
+                    }
+                  });
+            }
+          };
+      treeMap.put(key, function);
     }
     // Due to the comparator, the TreeMap is sorted such that any derived class
     // will occur before its base class. The immutable map is not a sorted map,
@@ -159,6 +204,42 @@ public class ReflectiveRelMetadataProvider
     final ImmutableMap<Class<RelNode>, Function<RelNode, Metadata>> map =
         ImmutableMap.copyOf(treeMap);
     return new ReflectiveRelMetadataProvider(map, metadataClass0);
+  }
+
+  /** Finds an implementation of a method for {@code relNodeClass} or its
+   * nearest base class. Assumes that base classes have already been added to
+   * {@code map}. */
+  private static Method find(TreeSet<Class<RelNode>> classes,
+      Map<Pair<Class<RelNode>, Method>, Method> handlerMap,
+      Class<RelNode> relNodeClass, Method method) {
+    final Iterator<Class<RelNode>> iterator = classes.descendingIterator();
+    for (;;) {
+      final Method implementingMethod =
+          handlerMap.get(Pair.of(relNodeClass, method));
+      if (implementingMethod != null) {
+        return implementingMethod;
+      }
+      if (!iterator.hasNext()) {
+        return null;
+      }
+      relNodeClass = iterator.next();
+    }
+  }
+
+  private static boolean couldImplement(Method handlerMethod, Method method) {
+    if (!handlerMethod.getName().equals(method.getName())
+        || (handlerMethod.getModifiers() & Modifier.STATIC) != 0
+        || (handlerMethod.getModifiers() & Modifier.PUBLIC) == 0) {
+      return false;
+    }
+    final Class<?>[] parameterTypes1 = handlerMethod.getParameterTypes();
+    final Class<?>[] parameterTypes = method.getParameterTypes();
+    if (parameterTypes1.length != parameterTypes.length + 1
+        || !RelNode.class.isAssignableFrom(parameterTypes1[0])) {
+      return false;
+    }
+    return Util.skip(Arrays.asList(parameterTypes1))
+        .equals(Arrays.asList(parameterTypes));
   }
 
   //~ Methods ----------------------------------------------------------------

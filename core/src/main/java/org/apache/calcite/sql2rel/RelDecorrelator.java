@@ -112,7 +112,7 @@ import java.util.logging.Logger;
  *   <li>replace {@code CorelMap} constructor parameter with a RelNode
  *   <li>make {@link #currentRel} immutable (would require a fresh
  *      RelDecorrelator for each node being decorrelated)</li>
- *   <li>make fields of {@link CorelMap} immutable</li>
+ *   <li>make fields of {@code CorelMap} immutable</li>
  *   <li>make sub-class rules static, and have them create their own
  *   de-correlator</li>
  * </ul>

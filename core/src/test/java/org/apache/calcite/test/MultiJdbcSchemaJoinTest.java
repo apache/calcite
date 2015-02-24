@@ -81,7 +81,7 @@ public class MultiJdbcSchemaJoinTest {
   }
 
   /** Makes sure that {@link #test} is re-entrant.
-   * Effectively a test for {@link TempDb}. */
+   * Effectively a test for {@code TempDb}. */
   @Test public void test2() throws SQLException, ClassNotFoundException {
     test();
   }

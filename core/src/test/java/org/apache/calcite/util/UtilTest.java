@@ -1303,6 +1303,18 @@ public class UtilTest {
     }
   }
 
+  /** Test for {@link org.apache.calcite.util.ImmutableNullableList.Builder}. */
+  @Test public void testImmutableNullableListBuilder() {
+    final ImmutableNullableList.Builder<String> builder =
+        ImmutableNullableList.builder();
+    builder.add("a")
+        .add((String) null)
+        .add("c");
+    final List<String> arrayList = Arrays.asList("a", null, "c");
+    final List<String> list = builder.build();
+    assertThat(arrayList.equals(list), is(true));
+  }
+
   @Test public void testHuman() {
     assertThat(Util.human(0D), equalTo("0"));
     assertThat(Util.human(1D), equalTo("1"));

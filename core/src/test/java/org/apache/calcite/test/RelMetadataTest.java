@@ -28,15 +28,18 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
@@ -60,21 +63,24 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -109,7 +115,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   //~ Methods ----------------------------------------------------------------
 
   private static Matcher<? super Number> nearTo(Number v, Number epsilon) {
-    return CoreMatchers.equalTo(v); // TODO: use epsilon
+    return equalTo(v); // TODO: use epsilon
   }
 
   // ----------------------------------------------------------------------
@@ -597,7 +603,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testCustomProvider() {
-    final List<String> buf = new ArrayList<String>();
+    final List<String> buf = Lists.newArrayList();
     ColTypeImpl.THREAD_LIST.set(buf);
 
     RelNode rel =
@@ -788,9 +794,162 @@ public class RelMetadataTest extends SqlToRelTestBase {
       RexBuilder rexBuilder, Object... values) {
     ImmutableList.Builder<RexLiteral> b = ImmutableList.builder();
     for (Object value : values) {
-      b.add(rexBuilder.makeExactLiteral(BigDecimal.valueOf((Integer) value)));
+      final RexLiteral literal;
+      if (value == null) {
+        literal = (RexLiteral) rexBuilder.makeNullLiteral(SqlTypeName.VARCHAR);
+      } else if (value instanceof Integer) {
+        literal = rexBuilder.makeExactLiteral(
+            BigDecimal.valueOf((Integer) value));
+      } else {
+        literal = rexBuilder.makeLiteral((String) value);
+      }
+      b.add(literal);
     }
     builder.add(b.build());
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageColumnSizes(org.apache.calcite.rel.RelNode)},
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageRowSize(org.apache.calcite.rel.RelNode)}. */
+  @Test public void testAverageRowSize() {
+    final Project rel = (Project) convertSql("select * from emp, dept");
+    final Join join = (Join) rel.getInput();
+    final RelOptTable empTable = join.getInput(0).getTable();
+    final RelOptTable deptTable = join.getInput(1).getTable();
+    Frameworks.withPlanner(
+        new Frameworks.PlannerAction<Void>() {
+          public Void apply(RelOptCluster cluster,
+              RelOptSchema relOptSchema,
+              SchemaPlus rootSchema) {
+            checkAverageRowSize(cluster, empTable, deptTable);
+            return null;
+          }
+        });
+  }
+
+  private void checkAverageRowSize(RelOptCluster cluster, RelOptTable empTable,
+      RelOptTable deptTable) {
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final LogicalTableScan empScan = LogicalTableScan.create(cluster, empTable);
+
+    Double rowSize = RelMetadataQuery.getAverageRowSize(empScan);
+    List<Double> columnSizes = RelMetadataQuery.getAverageColumnSizes(empScan);
+
+    assertThat(columnSizes.size(),
+        equalTo(empScan.getRowType().getFieldCount()));
+    assertThat(columnSizes,
+        equalTo(Arrays.asList(4.0, 40.0, 20.0, 4.0, 8.0, 4.0, 4.0, 4.0, 1.0)));
+    assertThat(rowSize, equalTo(89.0));
+
+    // Empty values
+    final LogicalValues emptyValues =
+        LogicalValues.createEmpty(cluster, empTable.getRowType());
+    rowSize = RelMetadataQuery.getAverageRowSize(emptyValues);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(emptyValues);
+    assertThat(columnSizes.size(),
+        equalTo(emptyValues.getRowType().getFieldCount()));
+    assertThat(columnSizes,
+        equalTo(Arrays.asList(4.0, 40.0, 20.0, 4.0, 8.0, 4.0, 4.0, 4.0, 1.0)));
+    assertThat(rowSize, equalTo(89.0));
+
+    // Values
+    final RelDataType rowType = cluster.getTypeFactory().builder()
+        .add("a", SqlTypeName.INTEGER)
+        .add("b", SqlTypeName.VARCHAR)
+        .add("c", SqlTypeName.VARCHAR)
+        .build();
+    final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
+        ImmutableList.builder();
+    addRow(tuples, rexBuilder, 1, "1234567890", "ABC");
+    addRow(tuples, rexBuilder, 2, "1",          "A");
+    addRow(tuples, rexBuilder, 3, "2",          null);
+    final LogicalValues values =
+        LogicalValues.create(cluster, rowType, tuples.build());
+    rowSize = RelMetadataQuery.getAverageRowSize(values);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(values);
+    assertThat(columnSizes.size(),
+        equalTo(values.getRowType().getFieldCount()));
+    assertThat(columnSizes, equalTo(Arrays.asList(4.0, 8.0, 3.0)));
+    assertThat(rowSize, equalTo(15.0));
+
+    // Union
+    final LogicalUnion union =
+        LogicalUnion.create(ImmutableList.<RelNode>of(empScan, emptyValues),
+            true);
+    rowSize = RelMetadataQuery.getAverageRowSize(union);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(union);
+    assertThat(columnSizes.size(), equalTo(9));
+    assertThat(columnSizes,
+        equalTo(Arrays.asList(4.0, 40.0, 20.0, 4.0, 8.0, 4.0, 4.0, 4.0, 1.0)));
+    assertThat(rowSize, equalTo(89.0));
+
+    // Filter
+    final LogicalTableScan deptScan =
+        LogicalTableScan.create(cluster, deptTable);
+    final LogicalFilter filter =
+        LogicalFilter.create(deptScan,
+            rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
+                rexBuilder.makeInputRef(deptScan, 0),
+                rexBuilder.makeExactLiteral(BigDecimal.TEN)));
+    rowSize = RelMetadataQuery.getAverageRowSize(filter);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(filter);
+    assertThat(columnSizes.size(), equalTo(2));
+    assertThat(columnSizes, equalTo(Arrays.asList(4.0, 20.0)));
+    assertThat(rowSize, equalTo(24.0));
+
+    // Project
+    final LogicalProject deptProject =
+        LogicalProject.create(filter,
+            ImmutableList.of(
+                rexBuilder.makeInputRef(filter, 0),
+                rexBuilder.makeInputRef(filter, 1),
+                rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                    rexBuilder.makeInputRef(filter, 0),
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE)),
+                rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH,
+                    rexBuilder.makeInputRef(filter, 1))),
+            (List<String>) null);
+    rowSize = RelMetadataQuery.getAverageRowSize(deptProject);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(deptProject);
+    assertThat(columnSizes.size(), equalTo(4));
+    assertThat(columnSizes, equalTo(Arrays.asList(4.0, 20.0, 4.0, 4.0)));
+    assertThat(rowSize, equalTo(32.0));
+
+    // Join
+    final LogicalJoin join =
+        LogicalJoin.create(empScan, deptProject, rexBuilder.makeLiteral(true),
+            JoinRelType.INNER, ImmutableSet.<String>of());
+    rowSize = RelMetadataQuery.getAverageRowSize(join);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(join);
+    assertThat(columnSizes.size(), equalTo(13));
+    assertThat(columnSizes,
+        equalTo(
+            Arrays.asList(4.0, 40.0, 20.0, 4.0, 8.0, 4.0, 4.0, 4.0, 1.0, 4.0,
+                20.0, 4.0, 4.0)));
+    assertThat(rowSize, equalTo(121.0));
+
+    // Aggregate
+    final LogicalAggregate aggregate =
+        LogicalAggregate.create(join, false, ImmutableBitSet.of(2, 0),
+            ImmutableList.<ImmutableBitSet>of(),
+            ImmutableList.of(
+                AggregateCall.create(
+                    SqlStdOperatorTable.COUNT, false, ImmutableIntList.of(),
+                    2, join, null, null)));
+    rowSize = RelMetadataQuery.getAverageRowSize(aggregate);
+    columnSizes = RelMetadataQuery.getAverageColumnSizes(aggregate);
+    assertThat(columnSizes.size(), equalTo(3));
+    assertThat(columnSizes, equalTo(Arrays.asList(4.0, 20.0, 8.0)));
+    assertThat(rowSize, equalTo(32.0));
+
+    // Smoke test Parallelism and Memory metadata providers
+    assertThat(RelMetadataQuery.memory(aggregate), nullValue());
+    assertThat(RelMetadataQuery.cumulativeMemoryWithinPhase(aggregate),
+        nullValue());
+    assertThat(RelMetadataQuery.cumulativeMemoryWithinPhaseSplit(aggregate),
+        nullValue());
+    assertThat(RelMetadataQuery.isPhaseTransition(aggregate), is(false));
+    assertThat(RelMetadataQuery.splitCount(aggregate), is(1));
   }
 
   /** Custom metadata interface. */
@@ -801,8 +960,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** A provider for {@link org.apache.calcite.test.RelMetadataTest.ColType} via
    * reflection. */
   public static class ColTypeImpl {
-    static final ThreadLocal<List<String>> THREAD_LIST =
-        new ThreadLocal<List<String>>();
+    static final ThreadLocal<List<String>> THREAD_LIST = new ThreadLocal<>();
     static final Method METHOD;
     static {
       try {
