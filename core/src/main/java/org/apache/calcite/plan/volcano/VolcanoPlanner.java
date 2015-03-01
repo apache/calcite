@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
@@ -1090,7 +1091,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
     }
-    if (rel.getTraitSet().getTrait(0) == Convention.NONE) {
+    if (rel.getTraitSet().getTrait(ConventionTraitDef.INSTANCE)
+        == Convention.NONE) {
       return costFactory.makeInfiniteCost();
     }
     RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
@@ -1622,8 +1624,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Now is a good time to ensure that the relational expression
     // implements the interface required by its calling convention.
     final RelTraitSet traits = rel.getTraitSet();
-    final Convention convention =
-        (Convention) traits.getTrait(0);
+    final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
       throw Util.newInternal(
