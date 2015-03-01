@@ -40,7 +40,7 @@ public class RelMdParallelism {
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdParallelism() {}
+  protected RelMdParallelism() {}
 
   //~ Methods ----------------------------------------------------------------
 

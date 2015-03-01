@@ -68,7 +68,7 @@ public class RelMdSize {
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdSize() {}
+  protected RelMdSize() {}
 
   //~ Methods ----------------------------------------------------------------
 

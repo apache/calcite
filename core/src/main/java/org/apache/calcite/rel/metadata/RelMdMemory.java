@@ -38,7 +38,7 @@ public class RelMdMemory {
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdMemory() {}
+  protected RelMdMemory() {}
 
   //~ Methods ----------------------------------------------------------------
 
