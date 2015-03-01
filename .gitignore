@@ -11,3 +11,4 @@ settings.xml
 .buildpath
 .classpath
 .settings
+.checkstyle
