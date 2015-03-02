@@ -45,6 +45,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ExtensibleTable;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
@@ -400,6 +401,11 @@ public abstract class Prepare {
 
   public RelRoot expandView(RelDataType rowType, String queryString,
       List<String> schemaPath, List<String> viewPath) {
+    throw new UnsupportedOperationException();
+  }
+
+  public RelRoot expandView(RelDataType rowType, String queryString,
+      SchemaPlus rootSchema, List<String> schemaPath) {
     throw new UnsupportedOperationException();
   }
 

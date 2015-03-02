@@ -35,6 +35,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
@@ -67,6 +68,11 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
   public RelRoot expandView(RelDataType rowType, String queryString,
       List<String> schemaPath, List<String> viewPath) {
     return preparingStmt.expandView(rowType, queryString, schemaPath, viewPath);
+  }
+
+  public RelRoot expandView(RelDataType rowType, String queryString,
+      SchemaPlus rootSchema, List<String> schemaPath) {
+    return preparingStmt.expandView(rowType, queryString, rootSchema, schemaPath);
   }
 
   public <T> RelNode translate(Queryable<T> queryable) {
