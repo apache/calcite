@@ -26,6 +26,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ColumnStrategy;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -125,7 +126,7 @@ public interface RelOptTable extends Wrapper {
   List<ColumnStrategy> getColumnStrategies();
 
   /** Can expand a view into relational expressions. */
-  interface ViewExpander {
+  @FunctionalInterface interface ViewExpander {
     /**
      * Returns a relational expression that is to be substituted for an access
      * to a SQL view.
@@ -138,6 +139,21 @@ public interface RelOptTable extends Wrapper {
      */
     RelRoot expandView(RelDataType rowType, String queryString,
         List<String> schemaPath, List<String> viewPath);
+
+    /**
+     * Returns a relational expression which is to be substituted for an access
+     * to a SQL view.
+     *
+     * @param rowType Row type of the view
+     * @param queryString Body of the view
+     * @param rootSchema Root schema of the schema tree
+     * @param schemaPath List of schema names wherein to find referenced tables
+     * @return Relational expression
+     */
+    default RelRoot expandView(RelDataType rowType, String queryString,
+        SchemaPlus rootSchema, List<String> schemaPath) {
+      throw new UnsupportedOperationException("cannot expand view");
+    }
   }
 
   /** Contains the context needed to convert a a table into a relational

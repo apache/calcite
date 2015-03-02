@@ -18,6 +18,7 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.SchemaPlus;
 
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -45,6 +46,12 @@ public abstract class ViewExpanders {
           List<String> schemaPath, List<String> viewPath) {
         return viewExpander.expandView(rowType, queryString, schemaPath,
             viewPath);
+      }
+
+      public RelRoot expandView(RelDataType rowType, String queryString,
+                                SchemaPlus rootSchema, List<String> schemaPath) {
+        return viewExpander.expandView(rowType, queryString,
+            rootSchema, schemaPath);
       }
     };
   }
