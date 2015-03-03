@@ -18,7 +18,6 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteRootSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -86,7 +85,7 @@ public class Lattice {
         }
       };
 
-  public final CalciteRootSchema rootSchema;
+  public final CalciteSchema rootSchema;
   public final ImmutableList<Node> nodes;
   public final ImmutableList<Column> columns;
   public final boolean auto;
@@ -112,7 +111,7 @@ public class Lattice {
         }
       };
 
-  private Lattice(CalciteRootSchema rootSchema, ImmutableList<Node> nodes,
+  private Lattice(CalciteSchema rootSchema, ImmutableList<Node> nodes,
       boolean auto, boolean algorithm, long algorithmMaxMillis,
       LatticeStatisticProvider statisticProvider, Double rowCountEstimate,
       ImmutableList<Column> columns, ImmutableList<Measure> defaultMeasures,
@@ -568,7 +567,7 @@ public class Lattice {
         ImmutableList.builder();
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();
-    private final CalciteRootSchema rootSchema;
+    private final CalciteSchema rootSchema;
     private boolean algorithm = false;
     private long algorithmMaxMillis = -1;
     private boolean auto = true;
@@ -576,7 +575,8 @@ public class Lattice {
     private String statisticProvider;
 
     public Builder(CalciteSchema schema, String sql) {
-      this.rootSchema = schema.root();
+      this.rootSchema = Preconditions.checkNotNull(schema.root());
+      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
@@ -695,6 +695,7 @@ public class Lattice {
               ? AvaticaUtils.instantiatePlugin(LatticeStatisticProvider.class,
                   this.statisticProvider)
               : Lattices.CACHED_SQL;
+      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       return new Lattice(rootSchema, ImmutableList.copyOf(nodes), auto,
           algorithm, algorithmMaxMillis, statisticProvider, rowCountEstimate,
           columns, defaultMeasureListBuilder.build(), tileListBuilder.build());

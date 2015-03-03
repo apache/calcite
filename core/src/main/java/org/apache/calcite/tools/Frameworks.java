@@ -76,7 +76,6 @@ public class Frameworks {
    * statement. */
   public abstract static class PrepareAction<R> {
     private final FrameworkConfig config;
-
     public PrepareAction() {
       this.config = newConfigBuilder() //
           .defaultSchema(Frameworks.createRootSchema(true)).build();

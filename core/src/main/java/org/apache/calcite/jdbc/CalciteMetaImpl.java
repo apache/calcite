@@ -647,7 +647,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
-  public static CalciteConnection connect(CalciteRootSchema schema,
+  public static CalciteConnection connect(CalciteSchema schema,
       JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
   }
