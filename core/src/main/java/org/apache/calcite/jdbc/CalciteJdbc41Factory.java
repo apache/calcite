@@ -55,7 +55,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
   public CalciteJdbc41Connection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      CalciteRootSchema rootSchema, JavaTypeFactory typeFactory) {
+      CalciteSchema rootSchema, JavaTypeFactory typeFactory) {
     return new CalciteJdbc41Connection(
         (Driver) driver, factory, url, info, rootSchema, typeFactory);
   }
@@ -109,7 +109,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
   /** Implementation of connection for JDBC 4.1. */
   private static class CalciteJdbc41Connection extends CalciteConnectionImpl {
     CalciteJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
-        Properties info, CalciteRootSchema rootSchema,
+        Properties info, CalciteSchema rootSchema,
         JavaTypeFactory typeFactory) {
       super(driver, factory, url, info, rootSchema, typeFactory);
     }

@@ -318,7 +318,7 @@ New adapters can be created by implementing `CalcitePrepare.Context`:
 {% highlight java %}
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteRootSchema;
+import org.apache.calcite.jdbc.CalciteSchema;
 
 public class AdapterContext implements CalcitePrepare.Context {
   @Override
@@ -328,7 +328,7 @@ public class AdapterContext implements CalcitePrepare.Context {
   }
 
   @Override
-  public CalciteRootSchema getRootSchema() {
+  public CalciteSchema getRootSchema() {
     // adapter implementation
     return rootSchema;
   }

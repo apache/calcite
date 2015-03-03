@@ -116,7 +116,7 @@ public class Driver extends UnregisteredDriver {
   }
 
   /** Creates an internal connection. */
-  CalciteConnection connect(CalciteRootSchema rootSchema,
+  CalciteConnection connect(CalciteSchema rootSchema,
       JavaTypeFactory typeFactory) {
     return (CalciteConnection) ((CalciteFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, new Properties(),
