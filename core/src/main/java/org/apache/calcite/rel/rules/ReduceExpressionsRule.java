@@ -153,7 +153,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           // If the expression is a IS [NOT] NULL on a non-nullable
           // column, then we can either remove the filter or replace
           // it with an Empty.
-          SqlOperator op = rexCall.getOperator();
           boolean alwaysTrue;
           switch (rexCall.getKind()) {
           case IS_NULL:
@@ -386,6 +385,17 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     // Compute the values they reduce to.
     RelOptPlanner.Executor executor =
         rel.getCluster().getPlanner().getExecutor();
+    if (executor == null) {
+      // Cannot reduce expressions: caller has not set an executor in their
+      // environment. Caller should execute something like the following before
+      // invoking the planner:
+      //
+      // final RexExecutorImpl executor =
+      //   new RexExecutorImpl(Schemas.createDataContext(null));
+      // rootRel.getCluster().getPlanner().setExecutor(executor);
+      return false;
+    }
+
     final List<RexNode> reducedValues = Lists.newArrayList();
     executor.reduce(rexBuilder, constExps2, reducedValues);
 

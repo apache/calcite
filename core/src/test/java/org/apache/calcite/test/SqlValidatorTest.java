@@ -5333,7 +5333,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // self-reference is not ok, even in table not used
     checkFails("with emp2 as (select * from emp),\n"
-            + " emp3 as (select * from ^emp3^)\n" + "values (1)",
+            + " emp3 as (select * from ^emp3^)\n"
+            + "values (1)",
         "Table 'EMP3' not found");
 
     // self-reference not ok

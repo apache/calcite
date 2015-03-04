@@ -825,7 +825,8 @@ public class SqlParserTest {
   @Test public void testGroupByRollup() {
     sql("select deptno from emp\n"
         + "group by rollup (deptno, deptno + 1, gender)")
-        .ok("SELECT `DEPTNO`\n" + "FROM `EMP`\n"
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
             + "GROUP BY (ROLLUP(`DEPTNO`, (`DEPTNO` + 1), `GENDER`))");
 
     // Nested rollup not ok

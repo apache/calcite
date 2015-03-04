@@ -3340,4 +3340,23 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstantsRequiresExecutor">
+        <Resource name="sql">
+            <![CDATA[select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+  LogicalFilter(condition=[>(+(1, 2), +(3, null))])
+    LogicalValues(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+  LogicalFilter(condition=[>(+(1, 2), +(3, null))])
+    LogicalValues(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
