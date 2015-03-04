@@ -480,9 +480,8 @@ public abstract class RelOptRule {
   }
 
   /**
-   * Converts a relation expression to a give set of traits, if it does not
-   * already have those traits. If the conversion is not possible, returns
-   * null.
+   * Converts a relation expression to a given set of traits, if it does not
+   * already have those traits.
    *
    * @param rel      Relational expression to convert
    * @param toTraits desired traits
@@ -508,6 +507,28 @@ public abstract class RelOptRule {
     }
 
     return planner.changeTraits(rel, outTraits);
+  }
+
+  /**
+   * Converts one trait of a relational expression, if it does not
+   * already have that trait.
+   *
+   * @param rel      Relational expression to convert
+   * @param toTrait  Desired trait
+   * @return a relational expression with the desired trait; never null
+   */
+  public static RelNode convert(RelNode rel, RelTrait toTrait) {
+    RelOptPlanner planner = rel.getCluster().getPlanner();
+    RelTraitSet outTraits = rel.getTraitSet();
+    if (toTrait != null) {
+      outTraits = outTraits.replace(toTrait);
+    }
+
+    if (rel.getTraitSet().matches(outTraits)) {
+      return rel;
+    }
+
+    return planner.changeTraits(rel, outTraits.simplify());
   }
 
   /**

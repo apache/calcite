@@ -684,15 +684,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public RelNode changeTraits(final RelNode rel, RelTraitSet toTraits) {
-    assert !rel.getTraitSet().equals(toTraits)
-        : "pre: !rel.getTraits().equals(toTraits)";
+    assert !rel.getTraitSet().equals(toTraits);
+    assert toTraits.allSimple();
 
     RelSubset rel2 = ensureRegistered(rel, null);
     if (rel2.getTraitSet().equals(toTraits)) {
       return rel2;
     }
 
-    return rel2.set.getOrCreateSubset(rel.getCluster(), toTraits);
+    return rel2.set.getOrCreateSubset(rel.getCluster(), toTraits.simplify());
   }
 
   public RelOptPlanner chooseDelegate() {

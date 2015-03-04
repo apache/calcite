@@ -16,20 +16,6 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import static org.junit.Assert.assertEquals;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-
-
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -49,24 +35,30 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.server.CalciteServerStatement;
@@ -79,48 +71,46 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
-/**
- * Tests that determine whether trait propagation work in Volcano Planner
- */
-public class TestTraitPropagation {
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 
+import org.junit.Test;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+
+/**
+ * Tests that determine whether trait propagation work in Volcano Planner.
+ */
+public class TraitPropagationTest {
   static final Convention PHYSICAL =
       new Convention.Impl("PHYSICAL", Phys.class);
   static final RelCollation COLLATION =
-      RelCollations.of(new RelFieldCollation(0,
-        RelFieldCollation.Direction.ASCENDING,
-        RelFieldCollation.NullDirection.FIRST));
+      RelCollations.of(
+          new RelFieldCollation(0,
+              RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.FIRST));
 
-  static final RuleSet RULES_NO_HACK = RuleSets.ofList(
-      PhysAggRule.INSTANCE, //
-      PhysProjRule.INSTANCE, //
-      PhysTableRule.INSTANCE, //
-      PhysSortRule.INSTANCE, //
-      ExpandConversionRule.INSTANCE //
-  );
+  static final RuleSet RULES =
+      RuleSets.ofList(PhysAggRule.INSTANCE,
+          PhysProjRule.INSTANCE,
+          PhysTableRule.INSTANCE,
+          PhysSortRule.INSTANCE,
+          SortRemoveRule.INSTANCE,
+          ExpandConversionRule.INSTANCE);
 
-  static final RuleSet RULES_HACK = RuleSets.ofList(
-      PhysAggRule.INSTANCE, //
-      PhysProjRule.INSTANCE_HACK, //
-      PhysTableRule.INSTANCE, //
-      PhysSortRule.INSTANCE, //
-      ExpandConversionRule.INSTANCE //
-  );
-
-  @Test
-  public void withoutHack() throws Exception {
-    RelNode planned = run(new PropAction(), RULES_NO_HACK);
-    System.out.println(RelOptUtil.dumpPlan("LOGICAL PLAN", planned, false,
-        SqlExplainLevel.ALL_ATTRIBUTES));
-    assertEquals("Sortedness was not propagated", 3,
-        RelMetadataQuery.getCumulativeCost(planned).getRows(), 0);
-  }
-
-  @Test
-  public void withHack() throws Exception {
-    RelNode planned = run(new PropAction(), RULES_HACK);
-    System.out.println(RelOptUtil.dumpPlan("LOGICAL PLAN", planned, false,
-        SqlExplainLevel.ALL_ATTRIBUTES));
+  @Test public void testOne() throws Exception {
+    RelNode planned = run(new PropAction(), RULES);
+    if (CalcitePrepareImpl.DEBUG) {
+      System.out.println(
+          RelOptUtil.dumpPlan("LOGICAL PLAN", planned, false,
+              SqlExplainLevel.ALL_ATTRIBUTES));
+    }
     assertEquals("Sortedness was not propagated", 3,
         RelMetadataQuery.getCumulativeCost(planned).getRows(), 0);
   }
@@ -128,7 +118,7 @@ public class TestTraitPropagation {
   /**
    * Materialized anonymous class for simplicity
    */
-  private class PropAction {
+  private static class PropAction {
     public RelNode apply(RelOptCluster cluster, RelOptSchema relOptSchema,
         SchemaPlus rootSchema) {
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -137,28 +127,36 @@ public class TestTraitPropagation {
 
       final RelDataType stringType = typeFactory.createJavaType(String.class);
       final RelDataType integerType = typeFactory.createJavaType(Integer.class);
-      final RelDataType sqlBigInt = typeFactory
-          .createSqlType(SqlTypeName.BIGINT);
+      final RelDataType sqlBigInt =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
 
       // SELECT * from T;
       final Table table = new AbstractTable() {
         public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-          return typeFactory.builder().add("s", stringType)
+          return typeFactory.builder()
+              .add("s", stringType)
               .add("i", integerType).build();
+        }
+
+        @Override public Statistic getStatistic() {
+          return Statistics.of(100d, ImmutableList.<ImmutableBitSet>of(),
+              ImmutableList.of(COLLATION));
         }
       };
 
       final RelOptAbstractTable t1 = new RelOptAbstractTable(relOptSchema,
           "t1", table.getRowType(typeFactory)) {
+        @Override public <T> T unwrap(Class<T> clazz) {
+          return clazz.isInstance(table)
+              ? clazz.cast(table)
+              : super.unwrap(clazz);
+        }
       };
 
-      final RelNode rt1 = new EnumerableTableScan(cluster,
-          cluster.traitSetOf(EnumerableConvention.INSTANCE), t1,
-          Object[].class);
+      final RelNode rt1 = EnumerableTableScan.create(cluster, t1);
 
       // project s column
-      RelNode project = new LogicalProject(cluster,
-          cluster.traitSetOf(Convention.NONE), rt1,
+      RelNode project = LogicalProject.create(rt1,
           ImmutableList.of(
               (RexNode) rexBuilder.makeInputRef(stringType, 0),
               rexBuilder.makeInputRef(integerType, 1)),
@@ -185,8 +183,8 @@ public class TestTraitPropagation {
     }
   }
 
+  // RULES
 
-  /* RULES */
   /** Rule for PhysAgg */
   private static class PhysAggRule extends RelOptRule {
     static final PhysAggRule INSTANCE = new PhysAggRule();
@@ -197,38 +195,40 @@ public class TestTraitPropagation {
 
     public void onMatch(RelOptRuleCall call) {
       RelTraitSet empty = call.getPlanner().emptyTraitSet();
-      LogicalAggregate rel = (LogicalAggregate) call.rel(0);
+      LogicalAggregate rel = call.rel(0);
       assert rel.getGroupSet().cardinality() == 1;
       int aggIndex = rel.getGroupSet().iterator().next();
-      RelTrait collation = RelCollations.of(new RelFieldCollation(aggIndex,
-          RelFieldCollation.Direction.ASCENDING,
-          RelFieldCollation.NullDirection.FIRST));
+      RelTrait collation = RelCollations.of(
+          new RelFieldCollation(aggIndex,
+              RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.FIRST));
       RelTraitSet desiredTraits = empty.replace(PHYSICAL).replace(collation);
       RelNode convertedInput = convert(rel.getInput(), desiredTraits);
-      call.transformTo(new PhysAgg(rel.getCluster(), empty.replace(PHYSICAL),
-          convertedInput, rel.indicator, rel
-          .getGroupSet(), rel.getGroupSets(), rel.getAggCallList()));
+      call.transformTo(
+          new PhysAgg(rel.getCluster(), empty.replace(PHYSICAL),
+              convertedInput, rel.indicator, rel.getGroupSet(),
+              rel.getGroupSets(), rel.getAggCallList()));
     }
   }
 
   /** Rule for PhysProj */
   private static class PhysProjRule extends RelOptRule {
     static final PhysProjRule INSTANCE = new PhysProjRule(false);
-    static final PhysProjRule INSTANCE_HACK = new PhysProjRule(true);
 
     final boolean subsetHack;
 
     private PhysProjRule(boolean subsetHack) {
-      super(RelOptRule.operand(LogicalProject.class,
-          anyChild(RelNode.class)), "PhysProj");
+      super(
+          RelOptRule.operand(LogicalProject.class,
+              anyChild(RelNode.class)),
+          "PhysProj");
       this.subsetHack = subsetHack;
     }
 
     public void onMatch(RelOptRuleCall call) {
-      RelTraitSet empty = call.getPlanner().emptyTraitSet();
-      LogicalProject rel = (LogicalProject) call.rel(0);
-      RelNode input = convert(rel.getInput(), empty.replace(PHYSICAL));
-
+      LogicalProject rel = call.rel(0);
+      RelNode rawInput = call.rel(1);
+      RelNode input = convert(rawInput, PHYSICAL);
 
       if (subsetHack && input instanceof RelSubset) {
         RelSubset subset = (RelSubset) input;
@@ -239,39 +239,38 @@ public class TestTraitPropagation {
             continue;
           } else {
             RelTraitSet outcome = child.getTraitSet().replace(PHYSICAL);
-            call.transformTo(new PhysProj(rel.getCluster(), outcome,
-                convert(child, outcome), rel.getChildExps(), rel.getRowType()));
+            call.transformTo(
+                new PhysProj(rel.getCluster(), outcome, convert(child, outcome),
+                    rel.getChildExps(), rel.getRowType()));
           }
         }
       } else {
-        call.transformTo(new PhysProj(rel.getCluster(), input.getTraitSet(),
-            input, rel.getChildExps(), rel.getRowType()));
+        call.transformTo(
+            PhysProj.create(input, rel.getChildExps(), rel.getRowType()));
       }
 
     }
   }
 
   /** Rule for PhysSort */
-  private static class PhysSortRule extends RelOptRule {
+  private static class PhysSortRule extends ConverterRule {
     static final PhysSortRule INSTANCE = new PhysSortRule();
 
-    private PhysSortRule() {
-      super(anyChild(Sort.class), "PhysSort");
+    PhysSortRule() {
+      super(Sort.class, Convention.NONE, PHYSICAL, "PhysSortRule");
     }
 
-    public boolean matches(RelOptRuleCall call) {
-      return !(call.rel(0) instanceof PhysSort);
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      RelTraitSet empty = call.getPlanner().emptyTraitSet();
-      Sort rel = (Sort) call.rel(0);
-      RelNode input = convert(rel.getInput(), empty.plus(PHYSICAL));
-      call.transformTo(
-          new PhysSort(rel.getCluster(),
-          input.getTraitSet().plus(rel.getCollation()),
-          input, rel.getCollation(), rel.offset,
-          rel.fetch));
+    public RelNode convert(RelNode rel) {
+      final Sort sort = (Sort) rel;
+      final RelNode input = convert(sort.getInput(),
+          rel.getCluster().traitSetOf(PHYSICAL));
+      return new PhysSort(
+          rel.getCluster(),
+          input.getTraitSet().plus(sort.getCollation()),
+          convert(input, input.getTraitSet().replace(PHYSICAL)),
+          sort.getCollation(),
+          null,
+          null);
     }
   }
 
@@ -284,7 +283,7 @@ public class TestTraitPropagation {
     }
 
     public void onMatch(RelOptRuleCall call) {
-      EnumerableTableScan rel = (EnumerableTableScan) call.rel(0);
+      EnumerableTableScan rel = call.rel(0);
       call.transformTo(new PhysTable(rel.getCluster()));
     }
   }
@@ -319,6 +318,21 @@ public class TestTraitPropagation {
     public PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
       super(cluster, traits, child, exps, rowType);
+    }
+
+    public static PhysProj create(final RelNode input,
+        final List<RexNode> projects, RelDataType rowType) {
+      final RelOptCluster cluster = input.getCluster();
+      final RelTraitSet traitSet =
+          cluster.traitSet().replace(PHYSICAL)
+              .replaceIfs(
+                  RelCollationTraitDef.INSTANCE,
+                  new Supplier<List<RelCollation>>() {
+                    public List<RelCollation> get() {
+                      return RelMdCollation.project(input, projects);
+                    }
+                  });
+      return new PhysProj(cluster, traitSet, input, projects, rowType);
     }
 
     public PhysProj copy(RelTraitSet traitSet, RelNode input,
@@ -413,6 +427,7 @@ public class TestTraitPropagation {
         rexBuilder.getTypeFactory(), rexBuilder);
     return action.apply(cluster, catalogReader,
         prepareContext.getRootSchema().plus());
-
   }
 }
+
+// End TraitPropagationTest.java

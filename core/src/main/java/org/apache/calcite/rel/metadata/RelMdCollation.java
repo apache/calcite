@@ -20,7 +20,9 @@ import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -132,6 +134,11 @@ public class RelMdCollation {
 
   public ImmutableList<RelCollation> collations(HepRelVertex rel) {
     return RelMetadataQuery.collations(rel.getCurrentRel());
+  }
+
+  public ImmutableList<RelCollation> collations(RelSubset rel) {
+    return ImmutableList.copyOf(
+        rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE));
   }
 
   // Helper methods

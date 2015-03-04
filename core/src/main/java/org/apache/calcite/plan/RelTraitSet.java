@@ -180,6 +180,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   public RelTraitSet replace(
       RelTrait trait) {
+    // Quick check for common case
+    if (containsShallow(traits, trait)) {
+      return this;
+    }
     final RelTraitDef traitDef = trait.getTraitDef();
     int index = findIndex(traitDef);
     if (index < 0) {
@@ -188,6 +192,18 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     }
 
     return replace(index, trait);
+  }
+
+  /** Returns whether an element occurs within an array.
+   *
+   * <p>Uses {@code ==}, not {@link #equals}. Nulls are allowed. */
+  private static <T> boolean containsShallow(T[] ts, RelTrait seek) {
+    for (T t : ts) {
+      if (t == seek) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Replaces the trait(s) of a given type with a list of traits of the same
@@ -259,7 +275,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (trait instanceof RelCompositeTrait) {
       // Composite traits are canonized on creation
       //noinspection unchecked
-      return (T) trait;
+      return trait;
     }
 
     //noinspection unchecked
@@ -452,6 +468,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     // Then we can justify the cost of computing RelTraitSet.string in the
     // constructor.
     final RelTrait canonizedTrait = canonize(trait);
+    assert canonizedTrait != null;
     List<RelTrait> newTraits;
     switch (traits.length) {
     case 0:
@@ -511,13 +528,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     for (int i = 0; i < traits.length; i++) {
       final RelTrait trait = traits[i];
       if (trait instanceof RelCompositeTrait) {
-        //noinspection unchecked
-        final RelCompositeTrait<RelMultipleTrait> compositeTrait =
-            (RelCompositeTrait<RelMultipleTrait>) trait;
         x = x.replace(i,
-            compositeTrait.size() == 0
-                ?  trait.getTraitDef().getDefault()
-                : compositeTrait.trait(0));
+            ((RelCompositeTrait) trait).size() == 1
+                ? ((RelCompositeTrait) trait).trait(0)
+                : trait.getTraitDef().getDefault());
       }
     }
     return x;

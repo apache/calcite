@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.clone.ArrayTableTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
 import org.apache.calcite.plan.RelOptUtilTest;
 import org.apache.calcite.plan.RelWriterTest;
+import org.apache.calcite.plan.volcano.TraitPropagationTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
 import org.apache.calcite.rel.RelCollationTest;
@@ -79,6 +80,7 @@ import org.junit.runners.Suite;
     InterpreterTest.class,
     VolcanoPlannerTest.class,
     HepPlannerTest.class,
+    TraitPropagationTest.class,
     RelWriterTest.class,
     RexProgramTest.class,
     RexTransformerTest.class,
