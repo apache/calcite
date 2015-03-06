@@ -513,7 +513,8 @@ public class RelMdUtil {
       } else {
         // aggregate column -- set a bit for each argument being
         // aggregated
-        AggregateCall agg = aggCalls.get(bit - aggRel.getGroupCount());
+        AggregateCall agg = aggCalls.get(bit
+            - (aggRel.getGroupCount() + aggRel.getIndicatorCount()));
         for (Integer arg : agg.getArgList()) {
           childKey.set(arg);
         }
