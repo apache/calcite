@@ -23,8 +23,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 
-import mondrian.test.data.FoodMartQuery;
-
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -199,7 +197,8 @@ public class FoodmartTest {
       mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
       mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
-      final InputStream inputStream = new FoodMartQuery().getQueries();
+      final InputStream inputStream =
+          new net.hydromatic.foodmart.queries.FoodmartQuerySet().getQueries();
       FoodmartRoot root = mapper.readValue(inputStream, FoodmartRoot.class);
       for (FoodmartQuery query : root.queries) {
         queries.put(query.id, query);

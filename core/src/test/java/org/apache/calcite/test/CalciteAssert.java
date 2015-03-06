@@ -49,6 +49,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
 
+import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -1437,7 +1439,7 @@ public class CalciteAssert {
   /** Information necessary to create a JDBC connection. Specify one to run
    * tests against a different database. (hsqldb is the default.) */
   public enum ConnectionSpec {
-    HSQLDB("jdbc:hsqldb:res:foodmart", "FOODMART", "FOODMART",
+    HSQLDB(FoodmartHsqldb.URI, "FOODMART", "FOODMART",
         "org.hsqldb.jdbcDriver"),
     MYSQL("jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
         "com.mysql.jdbc.Driver");

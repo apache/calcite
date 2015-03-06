@@ -98,9 +98,9 @@ limitations under the License.
       <version>11.0.2</version>
     </dependency>
     <dependency>
-      <groupId>eigenbase</groupId>
+      <groupId>net.hydromatic</groupId>
       <artifactId>eigenbase-properties</artifactId>
-      <version>1.1.4</version>
+      <version>1.1.5</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -117,7 +117,7 @@ limitations under the License.
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>quidem</artifactId>
-      <version>0.2</version>
+      <version>0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -143,21 +143,21 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>pentaho</groupId>
-      <artifactId>mondrian-data-foodmart-hsqldb</artifactId>
-      <version>0.2</version>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>foodmart-data-hsqldb</artifactId>
+      <version>0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>pentaho</groupId>
-      <artifactId>mondrian-data-foodmart-queries</artifactId>
-      <version>0.3</version>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>foodmart-queries</artifactId>
+      <version>0.4.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>sqlline</groupId>
       <artifactId>sqlline</artifactId>
-      <version>1.1.7</version>
+      <version>1.1.9</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -206,7 +206,7 @@ limitations under the License.
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>tpcds</artifactId>
-        <version>0.2</version>
+        <version>0.3</version>
         <type>jar</type>
       </dependency>
       <dependency>
@@ -366,7 +366,7 @@ limitations under the License.
         <plugin>
           <groupId>net.hydromatic</groupId>
           <artifactId>hydromatic-resource-maven-plugin</artifactId>
-          <version>0.3</version>
+          <version>0.4</version>
         </plugin>
         <plugin>
           <groupId>net.ju-n.maven.plugins</groupId>
@@ -454,6 +454,15 @@ limitations under the License.
 
   <repositories>
     <repository>
+      <id>central</id>
+      <name>Central Repository</name>
+      <url>http://repo.maven.apache.org/maven2</url>
+      <layout>default</layout>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
       <releases>
         <enabled>true</enabled>
         <updatePolicy>always</updatePolicy>
@@ -465,20 +474,6 @@ limitations under the License.
       <layout>default</layout>
     </repository>
   </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>warn</checksumPolicy>
-      </releases>
-      <id>conjars</id>
-      <name>Conjars</name>
-      <url>http://conjars.org/repo</url>
-      <layout>default</layout>
-    </pluginRepository>
-  </pluginRepositories>
 
   <profiles>
     <profile>
