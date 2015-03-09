@@ -138,7 +138,8 @@ public class RelMdDistribution {
     final RelDistribution inputDistribution =
         RelMetadataQuery.distribution(input);
     final Mappings.TargetMapping mapping =
-        Project.getMapping(input.getRowType().getFieldCount(), projects);
+        Project.getPartialMapping(input.getRowType().getFieldCount(),
+            projects);
     return inputDistribution.apply(mapping);
   }
 

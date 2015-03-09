@@ -276,18 +276,45 @@ public abstract class Project extends SingleRel {
    *
    * @param inputFieldCount Number of input fields
    * @param projects Project expressions
-   * @return Mapping of a set of project expressions
+   * @return Mapping of a set of project expressions, or null if projection is
+   * not a mapping
    */
   public static Mappings.TargetMapping getMapping(int inputFieldCount,
       List<? extends RexNode> projects) {
     Mappings.TargetMapping mapping =
-        Mappings.create(
-            MappingType.INVERSE_SURJECTION, inputFieldCount, projects.size());
+        Mappings.create(MappingType.INVERSE_SURJECTION,
+            inputFieldCount, projects.size());
     for (Ord<RexNode> exp : Ord.zip(projects)) {
       if (!(exp.e instanceof RexInputRef)) {
         return null;
       }
       mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
+    }
+    return mapping;
+  }
+
+  /**
+   * Returns a partial mapping of a set of project expressions.
+   *
+   * <p>The mapping is an inverse function.
+   * Every target has a source field, but
+   * a source might have 0, 1 or more targets.
+   * Project expressions that do not consist of
+   * a mapping are ignored.
+   *
+   * @param inputFieldCount Number of input fields
+   * @param projects Project expressions
+   * @return Mapping of a set of project expressions, never null
+   */
+  public static Mappings.TargetMapping getPartialMapping(int inputFieldCount,
+      List<? extends RexNode> projects) {
+    Mappings.TargetMapping mapping =
+        Mappings.create(MappingType.INVERSE_FUNCTION,
+            inputFieldCount, projects.size());
+    for (Ord<RexNode> exp : Ord.zip(projects)) {
+      if (exp.e instanceof RexInputRef) {
+        mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
+      }
     }
     return mapping;
   }
