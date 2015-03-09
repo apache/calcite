@@ -83,10 +83,10 @@ an error:
 
 ```sql
 > SELECT * FROM Shipments;
-ERROR: Cannot convert table 'SHIPMENTS' to a stream
+ERROR: Cannot convert stream 'SHIPMENTS' to a table
 
 > SELECT STREAM * FROM Products;
-ERROR: Cannot convert stream 'PRODUCTS' to a table
+ERROR: Cannot convert table 'PRODUCTS' to a stream
 ```
 
 # Filtering rows
@@ -486,6 +486,89 @@ would never return any rows.
 ERROR: Cannot stream VALUES
 ```
 
+## Sliding windows
+
+Standard SQL features so-called "analytic functions" that can be used in the
+`SELECT` clause. Unlike `GROUP BY`, these do not collapse records. For each
+record that goes in, one record comes out. But the aggregate function is based
+on a window of many rows.
+
+Let's look at an example.
+
+```sql
+SELECT STREAM rowtime,
+  productId,
+  units,
+  SUM(units) OVER (ORDER BY rowtime RANGE INTERVAL '1' HOUR PRECEDING) unitsLastHour
+FROM Orders;
+```
+
+The feature packs a lot of power with little effort. You can have multiple
+functions in the `SELECT` clause, based on multiple window specifications.
+
+The following example returns orders whose average order size over the last
+10 minutes is greater than the average order size for the last week.
+
+```sql
+SELECT STREAM *
+FROM (
+  SELECT STREAM rowtime,
+    productId,
+    units,
+    AVG(units) OVER product (RANGE INTERVAL '10' MINUTE PRECEDING) AS m10,
+    AVG(units) OVER product (RANGE INTERVAL '7' DAY PRECEDING) AS d7
+  FROM Orders
+  WINDOW product AS (
+    ORDER BY rowtime
+    PARTITION BY productId))
+WHERE m10 > d7;
+```
+
+For conciseness, here we use a syntax where you partially define a window
+using a `WINDOW` clause and then refine the window in each `OVER` clause.
+You could also define all windows in the `WINDOW` clause, or all windows inline,
+if you wish.
+
+But the real power goes beyond syntax. Behind the scenes, this query is
+maintaining two tables, and adding and removing values from sub-totals using
+with FIFO queues. But you can access those tables without introducing a join
+into the query.
+
+Some other features of the windowed aggregation syntax:
+* You can define windows based on row count.
+* The window can reference rows that have not yet arrived.
+  (The stream will wait until they have arrived).
+* You can compute order-dependent functions such as `RANK` and median.
+
+## Cascading windows
+
+What if we want a query that returns a result for every record, like a
+sliding window, but resets totals on a fixed time period, like a
+tumbling window? Such a pattern is called a *cascading window*. Here
+is an example:
+
+```sql
+SELECT STREAM rowtime,
+  productId,
+  units,
+  SUM(units) OVER (PARTITION BY FLOOR(rowtime TO HOUR)) AS unitsSinceTopOfHour
+FROM Orders;
+```
+
+It looks similar to a sliding window query, but the monotonic
+expression occurs within the `PARTITION BY` clause of the window. As
+the rowtime moves from from 10:59:59 to 11:00:00, `FLOOR(rowtime TO
+HOUR)` changes from 10:00:00 to 11:00:00, and therefore a new
+partition starts. The first row to arrive in the new hour will start a
+new total; the second row will have a total that consists of two rows,
+and so on.
+
+Calcite knows that the old partition will never be used again, so
+removes all sub-totals for that partition from its internal storage.
+
+Analytic functions that using cascading and sliding windows can be
+combined in the same query.
+
 ## State of the stream
 
 Not all concepts in this article have been implemented in Calcite.
@@ -504,11 +587,22 @@ such as Samza SQL [<a href="#ref3">3</a>].
 * Stream on view
 * Streaming UNION ALL with ORDER BY (merge)
 * Relational query on stream
-* Streaming windowed aggregation
+* Streaming windowed aggregation (sliding and cascading windows)
 * Check that STREAM in sub-queries and views is ignored
 * Check that streaming ORDER BY cannot have OFFSET or LIMIT
 * Limited history; at run time, check that there is sufficient history
   to run the query.
+
+### To do in this document
+* Re-visit whether you can stream VALUES
+* OVER clause to define window on stream
+* Windowed aggregation
+* Punctuation
+* Stream-to-table join
+** Stream-to-table join where table is changing
+* Stream-to-stream join
+* Relational queries on streams (e.g. "pie chart" query)
+* Diagrams for various window types
 
 ## References
 

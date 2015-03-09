@@ -260,7 +260,7 @@ the tables <code>EMPS</code> and <code>DEPTS</code>.
 ## Tables and views in schemas
 
 Note how we did not need to define any tables in the model; the schema
-generated the tables automatically. 
+generated the tables automatically.
 
 You can define extra tables,
 beyond those that are created automatically,
