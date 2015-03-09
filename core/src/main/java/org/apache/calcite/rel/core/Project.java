@@ -293,6 +293,32 @@ public abstract class Project extends SingleRel {
   }
 
   /**
+   * Returns a partial mapping of a set of project expressions.
+   *
+   * <p>The mapping is an inverse function.
+   * Every target has a source field, but
+   * a source might have 0, 1 or more targets.
+   * Project expressions that do not consist of
+   * a mapping are ignored.
+   *
+   * @param inputFieldCount Number of input fields
+   * @param projects Project expressions
+   * @return Mapping of a set of project expressions
+   */
+  public static Mappings.TargetMapping getPartialMapping(int inputFieldCount,
+      List<? extends RexNode> projects) {
+    Mappings.TargetMapping mapping =
+        Mappings.create(
+            MappingType.INVERSE_FUNCTION, inputFieldCount, projects.size());
+    for (Ord<RexNode> exp : Ord.zip(projects)) {
+      if (exp.e instanceof RexInputRef) {
+        mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
+      }
+    }
+    return mapping;
+  }
+
+  /**
    * Returns a permutation, if this projection is merely a permutation of its
    * input fields; otherwise null.
    *
