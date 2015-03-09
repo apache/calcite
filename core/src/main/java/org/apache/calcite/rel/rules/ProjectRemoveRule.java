@@ -41,51 +41,29 @@ import java.util.List;
  */
 public class ProjectRemoveRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
-  private final boolean useNamesInIdentityProjCalc;
-
   private static final Predicate<Project> PREDICATE =
       new Predicate<Project>() {
         public boolean apply(Project input) {
-          return isTrivial(input, false);
+          return isTrivial(input);
         }
       };
 
-  private static final Predicate<Project> NAME_CALC_PREDICATE =
-      new Predicate<Project>() {
-        public boolean apply(Project input) {
-          return isTrivial(input, true);
-        }
-      };
-
-  public static final ProjectRemoveRule INSTANCE = new ProjectRemoveRule(false);
-
-  @Deprecated // to be removed before 1.1
-  public static final ProjectRemoveRule NAME_CALC_INSTANCE =
-      new ProjectRemoveRule(true);
+  public static final ProjectRemoveRule INSTANCE = new ProjectRemoveRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a ProjectRemoveRule.
-   *
-   * @param useNamesInIdentityProjCalc If true consider names while determining
-   *                                   if two projects are same
-   */
-  private ProjectRemoveRule(boolean useNamesInIdentityProjCalc) {
+  /** Creates a ProjectRemoveRule. */
+  private ProjectRemoveRule() {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.
-    super(
-        operand(Project.class, null,
-            useNamesInIdentityProjCalc ? NAME_CALC_PREDICATE : PREDICATE,
-            any()));
-    this.useNamesInIdentityProjCalc = useNamesInIdentityProjCalc;
+    super(operand(Project.class, null, PREDICATE, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
     Project project = call.rel(0);
-    assert isTrivial(project, useNamesInIdentityProjCalc);
+    assert isTrivial(project);
     RelNode stripped = project.getInput();
     if (stripped instanceof Project) {
       // Rename columns of child projection if desired field names are given.
@@ -106,45 +84,14 @@ public class ProjectRemoveRule extends RelOptRule {
     return isTrivial(project) ? project.getInput() : project;
   }
 
-  /**
-   * Returns the child of a project if the project is trivial
-   * otherwise the project itself. If useNamesInIdentityProjCalc is true
-   * then trivial comparison uses both names and types. */
-  @Deprecated // to be removed before 1.1
-  public static RelNode strip(Project project,
-      boolean useNamesInIdentityProjCalc) {
-    return isTrivial(project, useNamesInIdentityProjCalc)
-        ? project.getInput() : project;
-  }
-
   public static boolean isTrivial(Project project) {
-    return isTrivial(project, false);
-  }
-
-  @Deprecated // to be removed before 1.1
-  public static boolean isTrivial(Project project,
-    boolean useNamesInIdentityProjCalc) {
-    RelNode child = project.getInput();
-    final RelDataType childRowType = child.getRowType();
-    if (useNamesInIdentityProjCalc) {
-      return isIdentity(project.getProjects(), project.getRowType(),
-          childRowType);
-    } else {
-      return isIdentity(project.getProjects(), childRowType);
-    }
+    return isIdentity(project.getProjects(), project.getInput().getRowType());
   }
 
   public static boolean isIdentity(List<? extends RexNode> exps,
       RelDataType childRowType) {
     return childRowType.getFieldCount() == exps.size()
         && RexUtil.containIdentity(exps, childRowType, false);
-  }
-
-  @Deprecated // to be removed before 1.1
-  public static boolean isIdentity(List<? extends RexNode> exps,
-      RelDataType rowType, RelDataType childRowType) {
-    return childRowType.getFieldCount() == exps.size()
-        && RexUtil.containIdentity(exps, rowType, childRowType);
   }
 }
 
