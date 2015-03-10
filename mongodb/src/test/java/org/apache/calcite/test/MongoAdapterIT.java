@@ -56,7 +56,7 @@ import static org.junit.Assert.assertThat;
  * done<br>
  * </code></blockquote>
  */
-public class MongoAdapterTest {
+public class MongoAdapterIT {
   public static final String MONGO_FOODMART_SCHEMA = "     {\n"
       + "       type: 'custom',\n"
       + "       name: '_foodmart',\n"
@@ -103,20 +103,20 @@ public class MongoAdapterTest {
   /** Connection factory based on the "mongo-zips" model. */
   public static final ImmutableMap<String, String> ZIPS =
       ImmutableMap.of("model",
-          MongoAdapterTest.class.getResource("/mongo-zips-model.json")
+          MongoAdapterIT.class.getResource("/mongo-zips-model.json")
               .getPath());
 
   /** Connection factory based on the "mongo-zips" model. */
   public static final ImmutableMap<String, String> FOODMART =
       ImmutableMap.of("model",
-          MongoAdapterTest.class.getResource("/mongo-foodmart-model.json")
+          MongoAdapterIT.class.getResource("/mongo-foodmart-model.json")
               .getPath());
 
   /** Whether to run Mongo tests. Disabled by default, because we do not expect
-   * Mongo to be installed and populated with the FoodMart data set. To enable,
-   * specify {@code -Dcalcite.test.mongodb=true} on the Java command line. */
+   * Mongo to be installed and populated with the FoodMart data set. To disable,
+   * specify {@code -Dcalcite.test.mongodb=false} on the Java command line. */
   public static final boolean ENABLED =
-      Boolean.getBoolean("calcite.test.mongodb");
+      Boolean.valueOf(System.getProperty("calcite.test.mongodb", "true"));
 
   /** Whether to run this test. */
   protected boolean enabled() {
@@ -276,7 +276,7 @@ public class MongoAdapterTest {
         .query("select * from \"sales_fact_1997\"\n"
             + "union all\n"
             + "select * from \"sales_fact_1998\"")
-        .explainContains("PLAN=EnumerableUnionRel(all=[true])\n"
+        .explainContains("PLAN=EnumerableUnion(all=[true])\n"
             + "  MongoToEnumerableConverter\n"
             + "    MongoProject(product_id=[CAST(ITEM($0, 'product_id')):DOUBLE])\n"
             + "      MongoTableScan(table=[[_foodmart, sales_fact_1997]])\n"
@@ -714,4 +714,4 @@ public class MongoAdapterTest {
   }
 }
 
-// End MongoAdapterTest.java
+// End MongoAdapterIT.java

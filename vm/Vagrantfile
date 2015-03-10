@@ -1,0 +1,55 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "puppetlabs/ubuntu-14.04-64-puppet"
+
+  config.vm.define :ubuntucalcite do |ubuntucalcite|
+    ubuntucalcite.vm.network :forwarded_port, guest: 27017, host: 27017 # mongodb
+    ubuntucalcite.vm.network :forwarded_port, guest: 5432, host: 5432 # postgresql
+    ubuntucalcite.vm.network :forwarded_port, guest: 3306, host: 3306 # mysql
+    ubuntucalcite.vm.network :forwarded_port, guest: 8089, host: 8089 # splunk
+
+    ubuntucalcite.vm.hostname = "ubuntucalcite"
+
+    ubuntucalcite.vm.provider :virtualbox do |v|
+      # This allows symlinks to be created within the /vagrant root directory,
+      # which is something librarian-puppet needs to be able to do. This might
+      # be enabled by default depending on what version of VirtualBox is used.
+      v.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/v-root", "1"]
+
+      v.customize ['modifyvm', :id, '--name', 'ubuntu1404-calcite']
+      v.customize ['modifyvm', :id, '--cpus', '1']
+      v.customize ['modifyvm', :id, '--memory', 512]
+      v.customize ['modifyvm', :id, '--ioapic', 'off']
+      v.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
+      v.customize ['modifyvm', :id, '--nictype1', 'virtio']
+      v.customize ['modifyvm', :id, '--nictype2', 'virtio']
+    end
+
+    ubuntucalcite.vm.provision :file, source: "Puppetfile", destination: "/home/vagrant/puppet/Puppetfile"
+    ubuntucalcite.vm.provision :shell, inline: "if [[ ! -f /apt-get-run ]]; then apt-get update && sudo touch /apt-get-run; fi"
+    ubuntucalcite.vm.provision :shell, inline: "apt-get install -y git-core ruby-dev unzip"
+    ubuntucalcite.vm.provision :shell, inline: "gem install --verbose librarian-puppet"
+    ubuntucalcite.vm.provision :shell, inline: "cd puppet && librarian-puppet install --verbose"
+    ubuntucalcite.vm.provision :shell, inline: "cd puppet && puppet apply -vv --modulepath=modules /vagrant/default.pp"
+
+    # Populate MongoDB
+    ubuntucalcite.vm.provision :shell, path: "init_mongodb.sh"
+  end
+end

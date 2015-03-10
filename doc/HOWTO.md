@@ -208,6 +208,93 @@ load Splunk's `tutorialdata.zip` data set as described in
 queries. It is also necessary if you intend to run the test suite, using
 `-Dcalcite.test.splunk=true`.)
 
+## Creating a development virtual machine
+
+To simplify testing of MongoDB, MySQL, PostgreSQL, and Splunk adapters,
+a virtual machine might be helpful.
+
+The step by step is as follows:
+  * Install <a href="https://www.vagrantup.com/">Vagrant</a>
+  * Install <a href="https://www.virtualbox.org/">Virtual Box</a>
+  * Ensure you have 5GiB space at host machine
+  * Provision a VM:
+```bash
+cd vm
+vagrant up # this will download base image and install all the databases
+```
+  * MongoDB zips and foodmart data are popupated during VM provision
+  * Populate MySQL and PostgreSQL databases with test data:
+```bash
+cd mondrian-loader
+mvn verify
+```
+
+Basic flow:
+  * Startup the VM: `vagrant up`
+  * Shutdown the VM: `vagrant halt`
+  * Rebuild the VM: `vagrant destroy`, then `vagrant up && cd mondrian-loader && mvn verify`
+
+### Accessing MongoDB in the VM
+Zips data:
+```bash
+$ vagrant ssh
+vagrant@ubuntucalcite:~$ mongo test
+MongoDB shell version: 2.6.6
+connecting to: test
+> show collections
+system.indexes
+zips
+```
+
+Foodmart data:
+```bash
+$ vagrant ssh
+vagrant@ubuntucalcite:~$ mongo foodmart
+MongoDB shell version: 2.6.6
+connecting to: foodmart
+> show collections
+account
+agg_c_10_sales_fact_1997
+agg_c_14_sales_fact_1997
+agg_c_special_sales_fact_1997
+agg_g_ms_pcat_sales_fact_1997
+...
+```
+
+### Accessing MySQL in the VM
+```bash
+$ vagrant ssh
+vagrant@ubuntucalcite:~$ mysql --user=foodmart --password=foodmart --database=foodmart
+...
+Server version: 5.5.40-0ubuntu0.14.04.1 (Ubuntu)
+...
+mysql> show tables
+    -> ;
++-------------------------------+
+| Tables_in_foodmart            |
++-------------------------------+
+| account                       |
+| agg_c_10_sales_fact_1997      |
+| agg_c_14_sales_fact_1997      |
+| agg_c_special_sales_fact_1997 |
+| agg_g_ms_pcat_sales_fact_1997 |
+...
+```
+
+### Accessing PostgreSQL in the VM
+```bash
+$ vagrant ssh
+vagrant@ubuntucalcite:~$ PGPASSWORD=foodmart PGHOST=localhost psql -U foodmart -d foodmart
+psql (9.3.5)
+foodmart=> \d
+ public | account                       | table | foodmart
+ public | agg_c_10_sales_fact_1997      | table | foodmart
+ public | agg_c_14_sales_fact_1997      | table | foodmart
+ public | agg_c_special_sales_fact_1997 | table | foodmart
+ public | agg_g_ms_pcat_sales_fact_1997 | table | foodmart
+...
+```
+
 ## Implementing an adapter
 
 New adapters can be created by implementing `CalcitePrepare.Context`:

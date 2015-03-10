@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.apache.calcite</groupId>
+  <artifactId>calcite-foodmart-loader</artifactId>
+  <packaging>pom</packaging>
+  <version>1.0.0-incubating-SNAPSHOT</version>
+  <name>Calcite foodmart data loader</name>
+  <description>Test data loader</description>
+
+  <repositories>
+    <repository>
+      <id>pentaho-repo</id>
+      <name>pentaho repository</name>
+      <url>http://ivy-nexus.pentaho.org/content/groups/omni</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.3.2</version>
+        <executions>
+          <execution>
+            <id>foodmart-mysql</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>integration-test</phase>
+            <configuration>
+              <mainClass>mondrian.test.loader.MondrianFoodMartLoader</mainClass>
+              <arguments>
+                <argument>-tables</argument>
+                <argument>-data</argument>
+                <argument>-indexes</argument>
+                <argument>-jdbcDrivers=com.mysql.jdbc.Driver</argument>
+                <argument>-inputFile=target/FoodMartCreateData.zip</argument>
+                <argument>-outputJdbcURL=jdbc:mysql://localhost/foodmart?user=foodmart&amp;password=foodmart</argument>
+              </arguments>
+              <systemProperties>
+                <systemProperty>
+                  <key>log4j.configuration</key>
+                  <value>file:src/main/resources/log4j.properties</value>
+                </systemProperty>
+              </systemProperties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>foodmart-postgresql</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>integration-test</phase>
+            <configuration>
+              <mainClass>mondrian.test.loader.MondrianFoodMartLoader</mainClass>
+              <arguments>
+                <argument>-tables</argument>
+                <argument>-data</argument>
+                <argument>-indexes</argument>
+                <argument>-jdbcDrivers=org.postgresql.Driver</argument>
+                <argument>-inputFile=target/FoodMartCreateData.zip</argument>
+                <argument>-outputJdbcURL=jdbc:postgresql://localhost/foodmart?user=foodmart&amp;password=foodmart</argument>
+              </arguments>
+              <systemProperties>
+                <systemProperty>
+                  <key>log4j.configuration</key>
+                  <value>file:src/main/resources/log4j.properties</value>
+                </systemProperty>
+              </systemProperties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>5.1.34</version>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>9.3-1102-jdbc3</version>
+    </dependency>
+    <dependency>
+      <groupId>pentaho</groupId>
+      <artifactId>mondrian</artifactId>
+      <version>3.8.1.0-148</version>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>download-foodmart</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <file><missing>target/FoodMartCreateData.zip</missing></file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>wagon-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>download-foodmart-data</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>download-single</goal>
+                </goals>
+                <configuration>
+                  <serverId>github</serverId>
+                  <url>https://github.com/pentaho/mondrian/raw/master/demo</url>
+                  <fromFile>FoodMartCreateData.zip</fromFile>
+                  <toDir>target</toDir>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
