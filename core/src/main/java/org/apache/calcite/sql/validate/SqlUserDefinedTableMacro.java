@@ -129,7 +129,9 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
           ImmutableMap.builder();
       final List<SqlNode> operands = ((SqlCall) right).getOperandList();
       for (int i = 0; i < operands.size(); i += 2) {
-        builder2.put(operands.get(i), operands.get(i + 1));
+        final SqlNode key = operands.get(i);
+        final SqlNode value = operands.get(i + 1);
+        builder2.put(getValue(key), getValue(value));
       }
       return builder2.build();
     default:

@@ -26,6 +26,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
@@ -40,6 +41,8 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 /**
@@ -253,6 +256,38 @@ public class RexLiteral extends RexNode {
     printAsJava(value, pw, typeName, false);
     pw.flush();
     return sw.toString();
+  }
+
+  /** Returns whether a value is valid as a constant value, using the same
+   * criteria as {@link #valueMatchesType}. */
+  public static boolean validConstant(Object o, Litmus litmus) {
+    if (o == null
+        || o instanceof BigDecimal
+        || o instanceof NlsString
+        || o instanceof ByteString) {
+      return litmus.succeed();
+    } else if (o instanceof List) {
+      List list = (List) o;
+      for (Object o1 : list) {
+        if (!validConstant(o1, litmus)) {
+          return litmus.fail("not a constant: " + o1);
+        }
+      }
+      return litmus.succeed();
+    } else if (o instanceof Map) {
+      final Map<Object, Object> map = (Map) o;
+      for (Map.Entry entry : map.entrySet()) {
+        if (!validConstant(entry.getKey(), litmus)) {
+          return litmus.fail("not a constant: " + entry.getKey());
+        }
+        if (!validConstant(entry.getValue(), litmus)) {
+          return litmus.fail("not a constant: " + entry.getValue());
+        }
+      }
+      return litmus.succeed();
+    } else {
+      return litmus.fail("not a constant: " + o);
+    }
   }
 
   /**

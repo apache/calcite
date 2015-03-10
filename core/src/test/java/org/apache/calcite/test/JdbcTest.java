@@ -54,6 +54,7 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ModifiableTable;
@@ -78,6 +79,7 @@ import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -6185,6 +6187,8 @@ public class JdbcTest {
   }
 
   public static TranslatableTable str(Object o, Object p) {
+    assertThat(RexLiteral.validConstant(o, Litmus.THROW), is(true));
+    assertThat(RexLiteral.validConstant(p, Litmus.THROW), is(true));
     return new ViewTable(Object.class,
         new RelProtoDataType() {
           public RelDataType apply(RelDataTypeFactory typeFactory) {
