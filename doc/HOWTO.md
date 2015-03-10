@@ -45,35 +45,84 @@ The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
 ```bash
-$ mvn clean
+$ mvn clean # Note: mvn clean install does not work, use mvn clean && mvn install
 $ mvn -DskipTests install
 ```
 
 There are other options that control which tests are run, and in what
 environment, as follows.
 
-* `-Dcalcite.test.db=DB` (where db is `hsqldb` or `mysql`) allows you
+* `-Dcalcite.test.db=DB` (where db is `h2`, `hsqldb`, `mysql`, or `postgresql`) allows you
   to change the JDBC data source for the test suite. Calcite's test
   suite requires a JDBC data source populated with the foodmart data
   set.
    * `hsqldb`, the default, uses an in-memory hsqldb database.
-   * `mysql` uses a MySQL database in `jdbc:mysql://localhost/foodmart`.
-     It is somewhat faster than hsqldb, but you need to populate it
-     manually.
+   * all others access test virtual machine (see [integration tests](HOWTO.md#Running-integration-tests) below)
+     `mysql` and `postgresql` might be somewhat faster than hsqldb, but you need to populate it (i.e. provision a VM).
 * `-Dcalcite.debug` prints extra debugging information to stdout.
 * `-Dcalcite.test.slow` enables tests that take longer to execute. For
   example, there are tests that create virtual TPC-H and TPC-DS schemas
   in-memory and run tests from those benchmarks.
-* `-Dcalcite.test.mongodb=true` enables tests that run against
-  MongoDB. MongoDB must be installed, running, and
-  [populated with the zips.json data set](HOWTO.md#mongodb-adapter).
 * `-Dcalcite.test.splunk=true` enables tests that run against Splunk.
   Splunk must be installed and running.
 
-To execute tests against mongodb, mysql only, use the following command:
+## Running integration tests
+
+For testing Calcite's external adapters, a test virtual machine should be used.
+The VM includes H2, HSQLDB, MySQL, MongoDB, and PostgreSQL.
+
+Test VM requires 5GiB of disk space and it takes 30 minutes to build.
+
+Note: you can use [calcite-test-dataset](https://github.com/vlsi/calcite-test-dataset)
+ to populate your own database, however it is recommended to use test VM so the test environment can be reproduced.
+
+### VM preparation
+
+0) Install dependencies: [Vagrant](https://www.vagrantup.com/) and [VirtualBox](https://www.virtualbox.org/)
+
+1) Clone https://github.com/vlsi/calcite-test-dataset.git at the same level as calcite repository.
+For instance:
 ```bash
-mvn -Dtest=foo -DfailIfNoTests=false -Pit verify
+code
+  +-- calcite
+  +-- calcite-test-dataset
 ```
+
+Note: integration tests search for ../calcite-test-dataset or ../../calcite-test-dataset.
+ You can specify full path via calcite.test.dataset system property.
+
+2) Build and start the VM:
+```bash
+cd calcite-test-dataset && mvn install
+```
+
+### VM management
+
+Test VM is provisioned by Vagrant, so regular Vagrant `vagrant up` and `vagrant halt` should be used to start and stop the VM.
+The connection strings for different databases are listed in [calcite-test-dataset](https://github.com/vlsi/calcite-test-dataset) readme.
+
+### Suggested test flow
+
+Note: test VM should be started before you launch integration tests. Calcite itself does not start/stop the VM.
+
+Command line:
+* Executing regular unit tests (does not require external data): no change. `mvn test` or `mvn install`.
+* Executing all tests, for all the DBs: `mvn verify -Pit`. `it` stands for "integration-test". `mvn install -Pit` works as well.
+* Executing just tests for external DBs, excluding unit tests: `mvn -Dtest=foo -DfailIfNoTests=false -Pit verify`
+* Executing just MongoDB tests: `cd mongo; mvn verify -Pit`
+
+From within IDE:
+* Executing regular unit tests: no change.
+* Executing MongoDB tests: run `MongoAdapterIT.java` as usual (no additional properties are required)
+* Executing MySQL tests: run `JdbcTest` and `JdbcAdapterTest` with setting `-Dcalcite.test.db=mysql`
+* Executing PostgreSQL tests: run `JdbcTest` and `JdbcAdapterTest` with setting `-Dcalcite.test.db=postgresql`
+
+### Integration tests technical details
+
+Tests with external data are executed at maven's integration-test phase.
+We do not currently use pre-integration-test/post-integration-test, however we could use that in future.
+The verification of build pass/failure is performed at verify phase.
+Integration tests should be named `...IT.java`, so they are not picked up on unit test execution.
 
 ## Contributing
 
@@ -146,6 +195,8 @@ See the <a href="TUTORIAL.md">tutorial</a>.
 
 First, download and install Calcite,
 and <a href="http://www.mongodb.org/downloads">install MongoDB</a>.
+
+Note: you can use MongoDB from integration test virtual machine above.
 
 Import MongoDB's zipcode data set into MongoDB:
 
