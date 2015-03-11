@@ -3,13 +3,45 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
-## Since the last release
+## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.1.0-incubating">1.1.0-incubating</a> / 2015-03-13
 
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-586">CALCITE-586</a>]
-  Prevent JSON serialization of `Signature.internalParameters`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-573">CALCITE-573</a>]
-  Use user-given names in `RelOptUtil.createProject` and `createRename`
-* Collation as a trait:
+This Calcite release makes it possible to exploit physical properties
+of relational expressions to produce more efficient plans, introducing
+collation and distribution as traits, `Exchange` relational operator,
+and several new forms of metadata.
+
+We add experimental support for streaming SQL.
+
+This release drops support for JDK 1.6; Calcite now requires 1.7 or
+later.
+
+We have introduced static `create` methods for many sub-classes of
+`RelNode`. We strongly suggest that you use these rather than
+calling constructors directly.
+
+New features
+* SQL
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-602">CALCITE-602</a>]
+    Streaming queries (experimental)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-588">CALCITE-588</a>]
+    Allow `TableMacro` to consume maps and collections
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-583">CALCITE-583</a>]
+    Operator `||` mishandles `ANY` type (Sean Hsuan-Yi Chu)
+* Planner rule improvements
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-445">CALCITE-445</a>]
+    Pull up filters rejected by a `ProjectableFilterableTable`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-600">CALCITE-600</a>]
+    Use `SetOpFactory` in rules containing `Union` operator (Jesus
+    Camacho Rodriguez)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-603">CALCITE-603</a>]
+    Metadata providers for size, memory, parallelism
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-607">CALCITE-607</a>]
+      Change visibility of constructor in metadata providers for size,
+      memory, parallelism (Jesus Camacho Rodriguez)
+    * [<a href="https://issues.apache.org/jira/browse/CALCITE-608">CALCITE-608</a>]
+      Exception is thrown when `RelMdDistribution` for `Project`
+      operator is called (Jesus Camacho Rodriguez)
+* Collation and distribution as traits
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-88">CALCITE-88</a>]
     Add collation as a trait and a kind of `RelNode` metadata
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-569">CALCITE-569</a>]
@@ -17,17 +49,61 @@ For a full list of releases, see
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-581">CALCITE-581</a>]
     Add `LogicalSort` relational expression, and make `Sort` abstract
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-526">CALCITE-526</a>]
-    Add EnumerableMergeJoin, which exploits sorted inputs
+    Add `EnumerableMergeJoin`, which exploits sorted inputs
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-71">CALCITE-71</a>]
     Provide a way to declare that tables are sorted
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-576">CALCITE-576</a>]
-    Make RelCollation trait and AbstractRelNode.getCollationList consistent
+    Make `RelCollation` trait and `AbstractRelNode.getCollationList` consistent
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-254">CALCITE-254</a>]
-    [CALCITE-254] Propagate RelCollation on aliased columns in JoinRule
+    Propagate `RelCollation` on aliased columns in `JoinRule`
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-569">CALCITE-569</a>]
-    [CALCITE-569] ArrayIndexOutOfBoundsException when deducing collation
+    `ArrayIndexOutOfBoundsException` when deducing collation
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-594">CALCITE-594</a>]
+    Add `RelDistribution` trait and `Exchange` relational expression
+
+API changes
+* Many sub-classes of `RelNode` now have a static `create` method
+  which automatically sets up traits such as collation and
+  distribution. The constructors are not marked deprecated, but we
+  strongly suggest that you use the `create` method if it exists.
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-591">CALCITE-591</a>]
+  Drop support for Java 1.6 (and JDBC 4.0)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-587">CALCITE-587</a>]
+  Upgrade `jetty-server` to 9.2.7.v20150116 and port avatica-server `HttpServer`
+  (Trevor Hartman)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-577">CALCITE-577</a>]
+  Revert temporary API changes introduced in
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-575">CALCITE-575</a>]
+* Add means to create `Context` instances by wrapping objects and by chaining
+  contexts
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-599">CALCITE-599</a>]
+  `EquiJoin` in wrong package (Jesus Camacho Rodriguez)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-573">CALCITE-573</a>]
+  Use user-given names in `RelOptUtil.createProject` and `createRename`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-572">CALCITE-572</a>]
-  Remove `Project.flags`
+  Remove `Project.flags` (methods are deprecated, to be removed before 2.0)
+
+Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-615">CALCITE-615</a>]
+  AvaticaParameter should be Jackson serializable (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-612">CALCITE-612</a>]
+  Update AvaticaStatement to handle cancelled queries (Parth Chandra)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-605">CALCITE-605</a>]
+  Reduce dependency on third-party maven repositories
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-611">CALCITE-611</a>]
+  Method `setAggChildKeys` should take into account indicator columns of
+  `Aggregate` operator (Jesus Camacho Rodriguez)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-566">CALCITE-566</a>]
+  `ReduceExpressionsRule` requires planner to have an `Executor`
+* Refactor `TableScanNode.create` method
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-593">CALCITE-593</a>]
+  Validator in `Frameworks` should expand identifiers (Jinfeng Ni)
+* Australian time-zones changed in `tzdata2014f`, Java 1.8.0_31
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-580">CALCITE-580</a>]
+  Average aggregation on an `Integer` column throws `ClassCastException`
+* In Travis, ask Surefire to print results to screen
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-586">CALCITE-586</a>]
+  Prevent JSON serialization of `Signature.internalParameters`
 
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-31
 

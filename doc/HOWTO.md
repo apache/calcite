@@ -13,8 +13,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 ```bash
-$ tar xvfz calcite-1.0.0-incubating-source.tar.gz
-$ cd calcite-1.0.0-incubating
+$ tar xvfz calcite-1.1.0-incubating-source.tar.gz
+$ cd calcite-1.1.0-incubating
 $ mvn install
 ```
 
@@ -287,10 +287,10 @@ Before you start:
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 ```bash
-# set passphrase variable without putting it into shell history
+# Set passphrase variable without putting it into shell history
 read -s GPG_PASSPHRASE
 
-# make sure that there are no junk files in the sandbox
+# Make sure that there are no junk files in the sandbox
 git clean -xn
 mvn clean
 
@@ -334,7 +334,6 @@ git clean -xn
 mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers.
-mvn clean
 mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 ```
 
