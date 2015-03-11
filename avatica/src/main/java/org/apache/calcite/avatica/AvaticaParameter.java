@@ -18,6 +18,9 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.util.ByteString;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -35,7 +38,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 /**
- * Metadata for a parameter. Plus a slot to hold its value.
+ * Metadata for a parameter.
  */
 public class AvaticaParameter {
   public final boolean signed;
@@ -48,16 +51,17 @@ public class AvaticaParameter {
 
   /** Value that means the parameter has been set to null.
    * If value is null, parameter has not been set. */
-  public static final Object DUMMY_VALUE = new Object();
+  public static final Object DUMMY_VALUE = Dummy.INSTANCE;
 
+  @JsonCreator
   public AvaticaParameter(
-      boolean signed,
-      int precision,
-      int scale,
-      int parameterType,
-      String typeName,
-      String className,
-      String name) {
+      @JsonProperty("signed") boolean signed,
+      @JsonProperty("precision") int precision,
+      @JsonProperty("scale") int scale,
+      @JsonProperty("parameterType") int parameterType,
+      @JsonProperty("typeName") String typeName,
+      @JsonProperty("className") String className,
+      @JsonProperty("name") String name) {
     this.signed = signed;
     this.precision = precision;
     this.scale = scale;
@@ -243,6 +247,16 @@ public class AvaticaParameter {
 
   public void setObject(Object[] slots, int index, Object x, int targetSqlType,
       int scaleOrLength) {
+  }
+
+  /** Singleton value to denote parameters that have been set to null (as
+   * opposed to not set).
+   *
+   * <p>Not a valid value for a parameter.
+   *
+   * <p>As an enum, it is serializable by Jackson. */
+  private enum Dummy {
+    INSTANCE
   }
 }
 
