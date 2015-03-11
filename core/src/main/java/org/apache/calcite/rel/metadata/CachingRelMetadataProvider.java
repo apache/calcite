@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.InvocationHandler;
@@ -100,7 +101,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     private final Metadata metadata;
 
     public CachingInvocationHandler(Metadata metadata) {
-      this.metadata = metadata;
+      this.metadata = Preconditions.checkNotNull(metadata);
     }
 
     public Object invoke(Object proxy, Method method, Object[] args)
