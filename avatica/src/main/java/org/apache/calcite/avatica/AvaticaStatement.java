@@ -376,6 +376,10 @@ public abstract class AvaticaStatement
   protected boolean executeInternal(Meta.Signature signature)
       throws SQLException {
     ResultSet resultSet = executeQueryInternal(signature);
+    // user may have cancelled the query
+    if (resultSet.isClosed()) {
+      return false;
+    }
     return true;
   }
 
