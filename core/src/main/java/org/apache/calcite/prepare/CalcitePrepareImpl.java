@@ -307,7 +307,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       org.apache.calcite.plan.Context externalContext,
       RelOptCostFactory costFactory) {
     if (externalContext == null) {
-      externalContext = Contexts.withConfig(prepareContext.config());
+      externalContext = Contexts.of(prepareContext.config());
     }
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
