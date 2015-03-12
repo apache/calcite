@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -53,7 +54,7 @@ public abstract class AvaticaStatement
   final int resultSetHoldability;
   private int fetchSize;
   private int fetchDirection;
-  protected int maxRowCount;
+  protected int maxRowCount = 0;
 
   /**
    * Creates an AvaticaStatement.
@@ -95,17 +96,6 @@ public abstract class AvaticaStatement
       return executeInternal(x);
     } catch (RuntimeException e) {
       throw connection.helper.createException("while executing SQL: " + sql, e);
-    }
-  }
-
-  public ResultSet executeQueryOld(String sql) throws SQLException {
-    try {
-      final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
-      Meta.Signature x = connection.meta.prepare(handle, sql, maxRowCount1);
-      return executeQueryInternal(x);
-    } catch (RuntimeException e) {
-      throw connection.helper.createException(
-        "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
     }
   }
 
@@ -416,6 +406,25 @@ public abstract class AvaticaStatement
    */
   protected List<Object> getParameterValues() {
     return Collections.emptyList();
+  }
+
+  /** Returns a list of bound parameter values.
+   *
+   * <p>If any of the parameters have not been bound, throws.
+   * If parameters have been bound to null, the value in the list is null.
+   */
+  protected List<Object> getBoundParameterValues() throws SQLException {
+    final List<Object> list = new ArrayList<>();
+    for (Object parameterValue : getParameterValues()) {
+      if (parameterValue == null) {
+        throw new SQLException("unbound parameter");
+      }
+      if (parameterValue == AvaticaParameter.DUMMY_VALUE) {
+        parameterValue = null;
+      }
+      list.add(parameterValue);
+    }
+    return list;
   }
 }
 

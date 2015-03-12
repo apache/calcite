@@ -32,7 +32,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -76,11 +76,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   @Override protected List<Object> getParameterValues() {
-    final List<Object> list = new ArrayList<Object>();
-    for (Object o : slots) {
-      list.add(o == AvaticaParameter.DUMMY_VALUE ? null : o);
-    }
-    return list;
+    return Arrays.asList(slots);
   }
 
   // implement PreparedStatement
@@ -174,7 +170,9 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void clearParameters() throws SQLException {
-    throw new UnsupportedOperationException();
+    for (int i = 0; i < slots.length; i++) {
+      slots[i] = null;
+    }
   }
 
   public void setObject(int parameterIndex, Object x, int targetSqlType)

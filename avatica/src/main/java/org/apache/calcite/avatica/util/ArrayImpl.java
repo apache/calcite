@@ -39,11 +39,11 @@ public class ArrayImpl implements Array {
   }
 
   public String getBaseTypeName() throws SQLException {
-    return elementType.typeName;
+    return elementType.name;
   }
 
   public int getBaseType() throws SQLException {
-    return elementType.type;
+    return elementType.id;
   }
 
   public Object getArray() throws SQLException {
@@ -65,7 +65,7 @@ public class ArrayImpl implements Array {
   @SuppressWarnings("unchecked")
   protected Object getArray(List list) throws SQLException {
     int i = 0;
-    switch (elementType.representation) {
+    switch (elementType.rep) {
     case PRIMITIVE_DOUBLE:
       final double[] doubles = new double[list.size()];
       for (double v : (List<Double>) list) {
@@ -118,7 +118,7 @@ public class ArrayImpl implements Array {
       // fall through
     }
     final Object[] objects = list.toArray();
-    switch (elementType.type) {
+    switch (elementType.id) {
     case Types.ARRAY:
       final ColumnMetaData.ArrayType arrayType =
           (ColumnMetaData.ArrayType) elementType;

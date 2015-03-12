@@ -126,7 +126,7 @@ public class MaterializationService {
               Functions.adapt(calciteSignature.columns,
                   new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
                     public ColumnMetaData.Rep apply(ColumnMetaData column) {
-                      return column.type.representation;
+                      return column.type.rep;
                     }
                   }),
               new AbstractQueryable<Object>() {

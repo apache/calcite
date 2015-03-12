@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.ColumnMetaData;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.URL;
 import java.sql.Array;
@@ -71,12 +72,12 @@ public abstract class AbstractCursor implements Cursor {
     return accessors;
   }
 
-  protected Accessor createAccessor(ColumnMetaData type, int ordinal,
+  protected Accessor createAccessor(ColumnMetaData columnMetaData, int ordinal,
       Calendar localCalendar, ArrayImpl.Factory factory) {
     // Create an accessor appropriate to the underlying type; the accessor
     // can convert to any type in the same family.
     Getter getter = createGetter(ordinal);
-    switch (type.type.type) {
+    switch (columnMetaData.type.id) {
     case Types.TINYINT:
       return new ByteAccessor(getter);
     case Types.SMALLINT:
@@ -92,15 +93,17 @@ public abstract class AbstractCursor implements Cursor {
       return new FloatAccessor(getter);
     case Types.DOUBLE:
       return new DoubleAccessor(getter);
+    case Types.NUMERIC:
+      return new NumberAccessor(getter);
     case Types.DECIMAL:
       return new BigDecimalAccessor(getter);
     case Types.CHAR:
-      switch (type.type.representation) {
+      switch (columnMetaData.type.rep) {
       case PRIMITIVE_CHAR:
       case CHARACTER:
-        return new StringFromCharAccessor(getter, type.displaySize);
+        return new StringFromCharAccessor(getter, columnMetaData.displaySize);
       default:
-        return new FixedStringAccessor(getter, type.displaySize);
+        return new FixedStringAccessor(getter, columnMetaData.displaySize);
       }
     case Types.VARCHAR:
       return new StringAccessor(getter);
@@ -108,27 +111,27 @@ public abstract class AbstractCursor implements Cursor {
     case Types.VARBINARY:
       return new BinaryAccessor(getter);
     case Types.DATE:
-      switch (type.type.representation) {
+      switch (columnMetaData.type.rep) {
       case PRIMITIVE_INT:
       case INTEGER:
         return new DateFromIntAccessor(getter, localCalendar);
       case JAVA_SQL_DATE:
         return new DateAccessor(getter, localCalendar);
       default:
-        throw new AssertionError("bad " + type.type.representation);
+        throw new AssertionError("bad " + columnMetaData.type.rep);
       }
     case Types.TIME:
-      switch (type.type.representation) {
+      switch (columnMetaData.type.rep) {
       case PRIMITIVE_INT:
       case INTEGER:
         return new TimeFromIntAccessor(getter, localCalendar);
       case JAVA_SQL_TIME:
         return new TimeAccessor(getter, localCalendar);
       default:
-        throw new AssertionError("bad " + type.type.representation);
+        throw new AssertionError("bad " + columnMetaData.type.rep);
       }
     case Types.TIMESTAMP:
-      switch (type.type.representation) {
+      switch (columnMetaData.type.rep) {
       case PRIMITIVE_LONG:
       case LONG:
         return new TimestampFromLongAccessor(getter, localCalendar);
@@ -137,31 +140,32 @@ public abstract class AbstractCursor implements Cursor {
       case JAVA_UTIL_DATE:
         return new TimestampFromUtilDateAccessor(getter, localCalendar);
       default:
-        throw new AssertionError("bad " + type.type.representation);
+        throw new AssertionError("bad " + columnMetaData.type.rep);
       }
     case Types.ARRAY:
       return new ArrayAccessor(getter,
-          ((ColumnMetaData.ArrayType) type.type).component, factory);
+          ((ColumnMetaData.ArrayType) columnMetaData.type).component, factory);
     case Types.JAVA_OBJECT:
     case Types.STRUCT:
     case Types.OTHER: // e.g. map
-      if (type.type.typeName.startsWith("INTERVAL_")) {
-        int end = type.type.typeName.indexOf("(");
+      if (columnMetaData.type.name.startsWith("INTERVAL_")) {
+        int end = columnMetaData.type.name.indexOf("(");
         if (end < 0) {
-          end = type.type.typeName.length();
+          end = columnMetaData.type.name.length();
         }
         TimeUnitRange range =
             TimeUnitRange.valueOf(
-                type.type.typeName.substring("INTERVAL_".length(), end));
+                columnMetaData.type.name.substring("INTERVAL_".length(), end));
         if (range.monthly()) {
           return new IntervalYearMonthAccessor(getter, range);
         } else {
-          return new IntervalDayTimeAccessor(getter, range, type.scale);
+          return new IntervalDayTimeAccessor(getter, range,
+              columnMetaData.scale);
         }
       }
       return new ObjectAccessor(getter);
     default:
-      throw new RuntimeException("unknown type " + type.type.type);
+      throw new RuntimeException("unknown type " + columnMetaData.type.id);
     }
   }
 
@@ -613,6 +617,41 @@ public abstract class AbstractCursor implements Cursor {
 
     public BigDecimal getBigDecimal() {
       return (BigDecimal) getObject();
+    }
+  }
+
+  /**
+   * Accessor that assumes that the underlying value is a {@link Number};
+   * corresponds to {@link java.sql.Types#NUMERIC}.
+   *
+   * <p>This is useful when numbers have been translated over JSON. JSON
+   * converts a 0L (0 long) value to the string "0" and back to 0 (0 int).
+   * So you cannot be sure that the source and target type are the same.
+   */
+  private static class NumberAccessor extends BigNumberAccessor {
+    public NumberAccessor(Getter getter) {
+      super(getter);
+    }
+
+    protected Number getNumber() {
+      return (Number) getObject();
+    }
+
+    public BigDecimal getBigDecimal(int scale) {
+      return getBigDecimal();
+    }
+
+    public BigDecimal getBigDecimal() {
+      Number n = getNumber();
+      return n == null ? null
+          : n instanceof BigDecimal ? (BigDecimal) n
+          : n instanceof BigInteger ? new BigDecimal((BigInteger) n)
+          : n instanceof Long ? new BigDecimal((long) n)
+          : n instanceof Integer ? new BigDecimal((int) n)
+          : n instanceof Short ? new BigDecimal((short) n)
+          : n instanceof Byte ? new BigDecimal((byte) n)
+          : n instanceof Double ? new BigDecimal((double) n)
+          : new BigDecimal((float) n);
     }
   }
 

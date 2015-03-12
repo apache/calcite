@@ -84,11 +84,11 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
   }
 
   public AvaticaResultSet newResultSet(AvaticaStatement statement,
-      Meta.Signature signature, TimeZone timeZone, Iterable<Object> iterable) {
+      Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame) {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, signature);
     return new AvaticaResultSet(statement, signature, metaData, timeZone,
-        iterable);
+        firstFrame);
   }
 
   public AvaticaResultSetMetaData newResultSetMetaData(

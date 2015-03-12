@@ -49,7 +49,7 @@ import java.util.TimeZone;
 public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   protected final AvaticaStatement statement;
   protected final Meta.Signature signature;
-  protected final Iterable<Object> iterable;
+  protected final Meta.Frame firstFrame;
   protected final List<ColumnMetaData> columnMetaDataList;
   protected final ResultSetMetaData resultSetMetaData;
   protected final Calendar localCalendar;
@@ -71,10 +71,10 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
       Meta.Signature signature,
       ResultSetMetaData resultSetMetaData,
       TimeZone timeZone,
-      Iterable<Object> iterable) {
+      Meta.Frame firstFrame) {
     this.statement = statement;
     this.signature = signature;
-    this.iterable = iterable;
+    this.firstFrame = firstFrame;
     this.columnMetaDataList = signature.columns;
     this.type = statement.resultSetType;
     this.concurrency = statement.resultSetConcurrency;
@@ -179,9 +179,11 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
    * @throws SQLException if execute fails for some reason.
    */
   protected AvaticaResultSet execute() throws SQLException {
-    this.cursor = MetaImpl.createCursor(signature.cursorFactory,
+    final List<Object> parameterValues = statement.getBoundParameterValues();
+    final Iterable<Object> iterable1 =
         statement.connection.meta.createIterable(statement.handle, signature,
-            iterable));
+            parameterValues, firstFrame);
+    this.cursor = MetaImpl.createCursor(signature.cursorFactory, iterable1);
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar, this);
     this.row = -1;

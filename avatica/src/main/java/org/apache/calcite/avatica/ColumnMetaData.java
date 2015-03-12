@@ -160,6 +160,13 @@ public class ColumnMetaData {
         type.columnClassName());
   }
 
+  public ColumnMetaData setTypeId(int typeId) {
+    return new ColumnMetaData(ordinal, autoIncrement, caseSensitive, searchable,
+        currency, nullable, signed, displaySize, label, columnName, schemaName,
+        precision, scale, tableName, catalogName, type.setId(typeId), readOnly,
+        writable, definitelyWritable, columnClassName);
+  }
+
   /** Description of the type used to internally represent a value. For example,
    * a {@link java.sql.Date} might be represented as a {@link #PRIMITIVE_INT}
    * if not nullable, or a {@link #JAVA_SQL_DATE}. */
@@ -192,7 +199,7 @@ public class ColumnMetaData {
     public static final Map<Class, Rep> VALUE_MAP;
 
     static {
-      Map<Class, Rep> builder = new HashMap<Class, Rep>();
+      Map<Class, Rep> builder = new HashMap<>();
       for (Rep rep : values()) {
         builder.put(rep.clazz, rep);
       }
@@ -220,31 +227,39 @@ public class ColumnMetaData {
       @JsonSubTypes.Type(value = StructType.class, name = "struct"),
       @JsonSubTypes.Type(value = ArrayType.class, name = "array") })
   public static class AvaticaType {
-    public final int type;
-    public final String typeName;
+    public final int id;
+    public final String name;
 
     /** The type of the field that holds the value. Not a JDBC property. */
-    public final Rep representation;
+    public final Rep rep;
 
-    protected AvaticaType(int type, String typeName, Rep representation) {
-      this.type = type;
-      this.typeName = typeName;
-      this.representation = representation;
-      assert representation != null;
+    protected AvaticaType(int id, String name, Rep rep) {
+      this.id = id;
+      this.name = name;
+      this.rep = rep;
+      assert rep != null;
     }
 
     public String columnClassName() {
-      return SqlType.valueOf(type).clazz.getName();
+      return SqlType.valueOf(id).clazz.getName();
+    }
+
+    public AvaticaType setId(int rep) {
+      throw new UnsupportedOperationException();
     }
   }
 
   /** Scalar type. */
   public static class ScalarType extends AvaticaType {
     @JsonCreator
-    public ScalarType(@JsonProperty("type") int type,
-        @JsonProperty("typeName") String typeName,
-        @JsonProperty("representation") Rep representation) {
-      super(type, typeName, representation);
+    public ScalarType(@JsonProperty("id") int id,
+        @JsonProperty("name") String name,
+        @JsonProperty("rep") Rep rep) {
+      super(id, name, rep);
+    }
+
+    @Override public AvaticaType setId(int id) {
+      return new ScalarType(id, name, rep);
     }
   }
 
@@ -306,8 +321,7 @@ public class ColumnMetaData {
     private final int type;
     private final Class clazz;
 
-    private static final Map<Integer, SqlType> BY_ID =
-        new HashMap<Integer, SqlType>();
+    private static final Map<Integer, SqlType> BY_ID = new HashMap<>();
     static {
       for (SqlType sqlType : values()) {
         BY_ID.put(sqlType.type, sqlType);

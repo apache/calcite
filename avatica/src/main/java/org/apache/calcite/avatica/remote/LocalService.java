@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -27,6 +30,8 @@ import java.util.List;
  */
 public class LocalService implements Service {
   final Meta meta;
+  /** Whether output is going to JSON. */
+  private final boolean json = true;
 
   public LocalService(Meta meta) {
     this.meta = meta;
@@ -47,8 +52,8 @@ public class LocalService implements Service {
   public ResultSetResponse toResponse(Meta.MetaResultSet resultSet) {
     Meta.CursorFactory cursorFactory = resultSet.signature.cursorFactory;
     final List<Object> list;
-    if (resultSet.iterable != null) {
-      list = list(resultSet.iterable);
+    if (resultSet.firstFrame != null) {
+      list = list(resultSet.firstFrame.rows);
       switch (cursorFactory.style) {
       case ARRAY:
         cursorFactory = Meta.CursorFactory.LIST;
@@ -68,16 +73,16 @@ public class LocalService implements Service {
       signature = signature.setCursorFactory(cursorFactory);
     }
     return new ResultSetResponse(resultSet.statementId, resultSet.ownStatement,
-        signature, list);
+        signature, new Meta.Frame(0, true, list));
   }
 
   private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
-    List<List<Object>> list = new ArrayList<List<Object>>();
-    return MetaImpl.collect(resultSet.signature.cursorFactory,
-        meta.createIterable(new Meta.StatementHandle(resultSet.statementId),
-            resultSet.signature,
-            resultSet.iterable),
-        list);
+    final Meta.StatementHandle h =
+        new Meta.StatementHandle(resultSet.statementId);
+    final Iterable<Object> iterable = meta.createIterable(h,
+        resultSet.signature, Collections.emptyList(), resultSet.firstFrame);
+    final List<List<Object>> list = new ArrayList<>();
+    return MetaImpl.collect(resultSet.signature.cursorFactory, iterable, list);
   }
 
   public ResultSetResponse apply(CatalogsRequest request) {
@@ -91,11 +96,43 @@ public class LocalService implements Service {
     return toResponse(resultSet);
   }
 
+  public ResultSetResponse apply(TablesRequest request) {
+    final Meta.MetaResultSet resultSet =
+        meta.getTables(request.catalog, Meta.Pat.of(request.schemaPattern),
+            Meta.Pat.of(request.tableNamePattern), request.typeList);
+    return toResponse(resultSet);
+  }
+
   public PrepareResponse apply(PrepareRequest request) {
     final Meta.StatementHandle h =
         new Meta.StatementHandle(request.statementId);
-    final Meta.Signature signature =
-        meta.prepare(h, request.sql, request.maxRowCount);
+    Meta.Signature signature =
+        meta.prepare(h, request.sql, request.maxRowCount)
+            .setCursorFactory(Meta.CursorFactory.LIST);
+    if (json) {
+      final List<ColumnMetaData> columns = new ArrayList<>();
+      for (ColumnMetaData column : signature.columns) {
+        switch (column.type.rep) {
+        case BYTE:
+        case PRIMITIVE_BYTE:
+        case DOUBLE:
+        case PRIMITIVE_DOUBLE:
+        case FLOAT:
+        case PRIMITIVE_FLOAT:
+        case INTEGER:
+        case PRIMITIVE_INT:
+        case SHORT:
+        case PRIMITIVE_SHORT:
+        case LONG:
+        case PRIMITIVE_LONG:
+          column = column.setTypeId(Types.NUMERIC);
+        }
+        columns.add(column);
+      }
+      signature = new Meta.Signature(columns, signature.sql,
+          signature.parameters, signature.internalParameters,
+          signature.cursorFactory);
+    }
     return new PrepareResponse(signature);
   }
 
@@ -105,18 +142,27 @@ public class LocalService implements Service {
     final Meta.MetaResultSet resultSet =
         meta.prepareAndExecute(h, request.sql, request.maxRowCount,
             new Meta.PrepareCallback() {
-              public Object getMonitor() {
+              @Override public Object getMonitor() {
                 return LocalService.class;
               }
 
-              public void clear() {}
+              @Override public void clear() {}
 
-              public void assign(Meta.Signature signature,
-                  Iterable<Object> iterable) {}
+              @Override public void assign(Meta.Signature signature,
+                  Meta.Frame firstFrame) {}
 
-              public void execute() {}
+              @Override public void execute() {}
             });
     return toResponse(resultSet);
+  }
+
+  public FetchResponse apply(FetchRequest request) {
+    final Meta.StatementHandle h =
+        new Meta.StatementHandle(request.statementId);
+    final Meta.Frame frame =
+        meta.fetch(h, request.parameterValues, request.offset,
+            request.fetchMaxRowCount);
+    return new FetchResponse(frame);
   }
 
   public CreateStatementResponse apply(CreateStatementRequest request) {

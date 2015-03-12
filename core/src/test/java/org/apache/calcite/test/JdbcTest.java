@@ -177,10 +177,10 @@ public class JdbcTest {
   public static final String FOODMART_SCHEMA = "     {\n"
       + "       type: 'jdbc',\n"
       + "       name: 'foodmart',\n"
-      + "       jdbcDriver: '" + CalciteAssert.CONNECTION_SPEC.driver + "',\n"
-      + "       jdbcUser: '" + CalciteAssert.CONNECTION_SPEC.username + "',\n"
-      + "       jdbcPassword: '" + CalciteAssert.CONNECTION_SPEC.password + "',\n"
-      + "       jdbcUrl: '" + CalciteAssert.CONNECTION_SPEC.url + "',\n"
+      + "       jdbcDriver: '" + CalciteAssert.DB.foodmart.driver + "',\n"
+      + "       jdbcUser: '" + CalciteAssert.DB.foodmart.username + "',\n"
+      + "       jdbcPassword: '" + CalciteAssert.DB.foodmart.password + "',\n"
+      + "       jdbcUrl: '" + CalciteAssert.DB.foodmart.url + "',\n"
       + "       jdbcCatalog: null,\n"
       + "       jdbcSchema: 'foodmart'\n"
       + "     }\n";
@@ -4644,8 +4644,21 @@ public class JdbcTest {
                           + "from \"hr\".\"emps\"\n"
                           + "where \"deptno\" < ? and \"name\" like ?");
 
+                  // execute with vars unbound - gives error
+                  ResultSet resultSet;
+                  try {
+                    resultSet = preparedStatement.executeQuery();
+                    fail("expected error, got " + resultSet);
+                  } catch (SQLException e) {
+                    assertThat(e.getMessage(),
+                        equalTo(
+                            "exception while executing query: unbound parameter"));
+                  }
+
                   // execute with both vars null - no results
-                  ResultSet resultSet = preparedStatement.executeQuery();
+                  preparedStatement.setNull(1, java.sql.Types.INTEGER);
+                  preparedStatement.setNull(2, java.sql.Types.VARCHAR);
+                  resultSet = preparedStatement.executeQuery();
                   assertFalse(resultSet.next());
 
                   // execute with ?0=15, ?1='%' - 3 rows
@@ -5943,7 +5956,7 @@ public class JdbcTest {
               }
             })
         .returns("C=0\n");
-    switch (CalciteAssert.CONNECTION_SPEC) {
+    switch (CalciteAssert.DB) {
     case HSQLDB:
       assertThat(Util.toLinux(sqls[0]),
           equalTo("SELECT COUNT(*) AS \"C\"\n"

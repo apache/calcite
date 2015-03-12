@@ -91,13 +91,13 @@ public class CalciteJdbc41Factory extends CalciteFactory {
   }
 
   public CalciteResultSet newResultSet(AvaticaStatement statement,
-      Meta.Signature signature, TimeZone timeZone, Iterable<Object> iterable) {
+      Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame) {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, signature);
     final CalcitePrepare.CalciteSignature calciteSignature =
         (CalcitePrepare.CalciteSignature) signature;
     return new CalciteResultSet(statement, calciteSignature, metaData, timeZone,
-        iterable);
+        firstFrame);
   }
 
   public ResultSetMetaData newResultSetMetaData(AvaticaStatement statement,

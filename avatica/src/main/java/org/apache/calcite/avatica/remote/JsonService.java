@@ -41,11 +41,14 @@ public abstract class JsonService implements Service {
    * responses to and from the peer service. */
   public abstract String apply(String request);
 
-  private <T> T decode(String response, Class<T> valueType) throws IOException {
+  //@VisibleForTesting
+  protected static <T> T decode(String response, Class<T> valueType)
+      throws IOException {
     return MAPPER.readValue(response, valueType);
   }
 
-  private <T> String encode(T request) throws IOException {
+  //@VisibleForTesting
+  protected static <T> String encode(T request) throws IOException {
     final StringWriter w = new StringWriter();
     MAPPER.writeValue(w, request);
     return w.toString();
@@ -71,6 +74,14 @@ public abstract class JsonService implements Service {
     }
   }
 
+  public ResultSetResponse apply(TablesRequest request) {
+    try {
+      return decode(apply(encode(request)), ResultSetResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
   public PrepareResponse apply(PrepareRequest request) {
     try {
       return decode(apply(encode(request)), PrepareResponse.class);
@@ -82,6 +93,14 @@ public abstract class JsonService implements Service {
   public ResultSetResponse apply(PrepareAndExecuteRequest request) {
     try {
       return decode(apply(encode(request)), ResultSetResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
+  public FetchResponse apply(FetchRequest request) {
+    try {
+      return decode(apply(encode(request)), FetchResponse.class);
     } catch (IOException e) {
       throw handle(e);
     }

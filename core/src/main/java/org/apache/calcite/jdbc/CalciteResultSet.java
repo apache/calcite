@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.AvaticaResultSet;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Handler;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -42,8 +43,8 @@ public class CalciteResultSet extends AvaticaResultSet {
   CalciteResultSet(AvaticaStatement statement,
       CalcitePrepare.CalciteSignature calciteSignature,
       ResultSetMetaData resultSetMetaData, TimeZone timeZone,
-      Iterable<Object> iterable) {
-    super(statement, calciteSignature, resultSetMetaData, timeZone, iterable);
+      Meta.Frame firstFrame) {
+    super(statement, calciteSignature, resultSetMetaData, timeZone, firstFrame);
   }
 
   @Override protected CalciteResultSet execute() throws SQLException {
@@ -68,7 +69,7 @@ public class CalciteResultSet extends AvaticaResultSet {
     final CalciteResultSet resultSet =
         new CalciteResultSet(statement,
             (CalcitePrepare.CalciteSignature) signature, resultSetMetaData,
-            localCalendar.getTimeZone(), iterable);
+            localCalendar.getTimeZone(), new Meta.Frame(0, true, iterable));
     final Cursor cursor = resultSet.createCursor(elementType, iterable);
     final List<ColumnMetaData> columnMetaDataList;
     if (elementType instanceof ColumnMetaData.StructType) {

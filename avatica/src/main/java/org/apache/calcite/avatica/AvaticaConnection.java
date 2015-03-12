@@ -269,7 +269,17 @@ public abstract class AvaticaConnection implements Connection {
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
-    throw new UnsupportedOperationException(); // TODO:
+    try {
+      // TODO: cut out round-trip to create a statement handle
+      final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(id);
+      final Meta.StatementHandle h = meta.createStatement(ch);
+
+      final Meta.Signature x = meta.prepare(h, sql, -1);
+      return factory.newPreparedStatement(this, h, x, resultSetType,
+          resultSetConcurrency, resultSetHoldability);
+    } catch (RuntimeException e) {
+      throw helper.createException("while preparing SQL: " + sql, e);
+    }
   }
 
   public CallableStatement prepareCall(
@@ -391,12 +401,12 @@ public abstract class AvaticaConnection implements Connection {
    *
    * @param statement     Statement
    * @param signature     Prepared query
-   * @param iterable      List of rows, or null if we need to execute
+   * @param firstFrame    First frame of rows, or null if we need to execute
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs
    */
   protected ResultSet executeQueryInternal(AvaticaStatement statement,
-      Meta.Signature signature, Iterable<Object> iterable) throws SQLException {
+      Meta.Signature signature, Meta.Frame firstFrame) throws SQLException {
     // Close the previous open result set, if there is one.
     synchronized (statement) {
       if (statement.openResultSet != null) {
@@ -412,7 +422,7 @@ public abstract class AvaticaConnection implements Connection {
 
       final TimeZone timeZone = getTimeZone();
       statement.openResultSet =
-          factory.newResultSet(statement, signature, timeZone, iterable);
+          factory.newResultSet(statement, signature, timeZone, firstFrame);
     }
     // Release the monitor before executing, to give another thread the
     // opportunity to call cancel.
@@ -447,11 +457,12 @@ public abstract class AvaticaConnection implements Connection {
             }
           }
 
-          public void assign(Meta.Signature signature,
-              Iterable<Object> iterable) throws SQLException {
+          public void assign(Meta.Signature signature, Meta.Frame firstFrame)
+              throws SQLException {
             final TimeZone timeZone = getTimeZone();
             statement.openResultSet =
-                factory.newResultSet(statement, signature, timeZone, iterable);
+                factory.newResultSet(statement, signature, timeZone,
+                    firstFrame);
           }
 
           public void execute() throws SQLException {
@@ -467,9 +478,8 @@ public abstract class AvaticaConnection implements Connection {
     final Meta.StatementHandle h =
         new Meta.StatementHandle(metaResultSet.statementId);
     final AvaticaStatement statement = lookupStatement(h);
-    return executeQueryInternal(statement,
-        metaResultSet.signature,
-        metaResultSet.iterable);
+    return executeQueryInternal(statement, metaResultSet.signature.sanitize(),
+        metaResultSet.firstFrame);
   }
 
   /** Creates a statement wrapper around an existing handle. */

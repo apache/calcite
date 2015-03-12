@@ -36,8 +36,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Basic implementation of {@link Meta}.
@@ -171,7 +173,7 @@ public abstract class MetaImpl implements Meta {
     return createResultSet(Collections.<String, Object>emptyMap(),
         fieldMetaData(clazz).columns,
         CursorFactory.deduce(fieldMetaData(clazz).columns, null),
-        Collections.emptyList());
+        Frame.EMPTY);
   }
 
   protected static ColumnMetaData columnMetaData(String name, int index,
@@ -207,14 +209,13 @@ public abstract class MetaImpl implements Meta {
 
   protected MetaResultSet createResultSet(
       Map<String, Object> internalParameters, List<ColumnMetaData> columns,
-      CursorFactory cursorFactory, Iterable<Object> iterable) {
+      CursorFactory cursorFactory, Frame firstFrame) {
     try {
       final AvaticaStatement statement = connection.createStatement();
-      final SignatureWithIterable signature =
-          new SignatureWithIterable(internalParameters, columns, "",
-              Collections.<AvaticaParameter>emptyList(), cursorFactory,
-              iterable);
-      return new MetaResultSet(statement.getId(), true, signature, iterable);
+      final Signature signature =
+          new Signature(columns, "", Collections.<AvaticaParameter>emptyList(),
+              internalParameters, cursorFactory);
+      return new MetaResultSet(statement.getId(), true, signature, firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -646,8 +647,16 @@ public abstract class MetaImpl implements Meta {
   }
 
   public Iterable<Object> createIterable(StatementHandle handle,
-      Signature signature, Iterable<Object> iterable) {
-    return iterable;
+      Signature signature, List<Object> parameterValues, Frame firstFrame) {
+    if (firstFrame != null && firstFrame.done) {
+      return firstFrame.rows;
+    }
+    return new FetchIterable(handle, firstFrame, parameterValues);
+  }
+
+  public Frame fetch(StatementHandle h, List<Object> parameterValues,
+      int offset, int fetchMaxRowCount) {
+    return null;
   }
 
   /** Information about a type. */
@@ -691,27 +700,99 @@ public abstract class MetaImpl implements Meta {
     }
   }
 
-  /** Prepare result with a iterable. Use this for simple statements
-   * that have a canned response and don't need to be executed. */
-  protected interface WithIterable {
-    Iterable getIterable();
-  }
+  /** Iterator that never returns any elements. */
+  private static class EmptyIterator implements Iterator<Object> {
+    public static final Iterator<Object> INSTANCE = new EmptyIterator();
 
-  /** Prepare result that contains an iterable. */
-  protected static class SignatureWithIterable extends Signature
-      implements WithIterable {
-    private final Iterable iterable;
-
-    public SignatureWithIterable(Map<String, Object> internalParameters,
-        List<ColumnMetaData> columns, String sql,
-        List<AvaticaParameter> parameters, CursorFactory cursorFactory,
-        Iterable<Object> iterable) {
-      super(columns, sql, parameters, internalParameters, cursorFactory);
-      this.iterable = iterable;
+    public void remove() {
+      throw new UnsupportedOperationException();
     }
 
-    public Iterable getIterable() {
-      return iterable;
+    public boolean hasNext() {
+      return false;
+    }
+
+    public Object next() {
+      throw new NoSuchElementException();
+    }
+  }
+
+  /** Iterable that yields an iterator over rows coming from a sequence of
+   * {@link Frame}s. */
+  private class FetchIterable implements Iterable<Object> {
+    private final StatementHandle handle;
+    private final Frame firstFrame;
+    private final List<Object> parameterValues;
+
+    public FetchIterable(StatementHandle handle, Frame firstFrame,
+        List<Object> parameterValues) {
+      this.handle = handle;
+      this.firstFrame = firstFrame;
+      this.parameterValues = parameterValues;
+    }
+
+    public Iterator<Object> iterator() {
+      return new FetchIterator(handle, firstFrame, parameterValues);
+    }
+  }
+
+  /** Iterator over rows coming from a sequence of {@link Frame}s. */
+  private class FetchIterator implements Iterator<Object> {
+    private final StatementHandle handle;
+    private Frame frame;
+    private Iterator<Object> rows;
+    private List<Object> parameterValues;
+
+    public FetchIterator(StatementHandle handle, Frame firstFrame,
+        List<Object> parameterValues) {
+      this.handle = handle;
+      this.parameterValues = parameterValues;
+      if (firstFrame == null) {
+        frame = Frame.MORE;
+        rows = EmptyIterator.INSTANCE;
+      } else {
+        frame = firstFrame;
+        rows = firstFrame.rows.iterator();
+      }
+      moveNext();
+    }
+
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
+
+    public boolean hasNext() {
+      return rows != null;
+    }
+
+    public Object next() {
+      if (rows == null) {
+        throw new NoSuchElementException();
+      }
+      final Object o = rows.next();
+      moveNext();
+      return o;
+    }
+
+    private void moveNext() {
+      for (;;) {
+        if (rows.hasNext()) {
+          break;
+        }
+        if (frame.done) {
+          rows = null;
+          break;
+        }
+        frame = fetch(handle, parameterValues, frame.offset, 100);
+        parameterValues = null; // don't execute next time
+        if (frame == null) {
+          rows = null;
+          break;
+        }
+        // It is valid for rows to be empty, so we go around the loop again to
+        // check
+        rows = frame.rows.iterator();
+      }
     }
   }
 }

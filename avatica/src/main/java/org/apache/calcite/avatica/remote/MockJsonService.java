@@ -18,6 +18,8 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,10 +46,44 @@ public class MockJsonService extends JsonService {
   /** Factory that creates a {@code MockJsonService}. */
   public static class Factory implements Service.Factory {
     public Service create(AvaticaConnection connection) {
-      final Map<String, String> map1 = new HashMap<String, String>();
-      map1.put(
-          "{\"request\":\"getSchemas\",\"catalog\":null,\"schemaPattern\":{\"s\":null}}",
-          "{\"response\":\"resultSet\", rows: []}");
+      final Map<String, String> map1 = new HashMap<>();
+      try {
+        map1.put(
+            "{\"request\":\"getSchemas\",\"catalog\":null,\"schemaPattern\":{\"s\":null}}",
+            "{\"response\":\"resultSet\", firstFrame: {offset: 0, done: true, rows: []}}");
+        map1.put(
+            JsonService.encode(new SchemasRequest(null, null)),
+            "{\"response\":\"resultSet\", firstFrame: {offset: 0, done: true, rows: []}}");
+        map1.put(
+            JsonService.encode(
+                new TablesRequest(null, null, null, Arrays.<String>asList())),
+            "{\"response\":\"resultSet\", firstFrame: {offset: 0, done: true, rows: []}}");
+        map1.put(
+            "{\"request\":\"createStatement\",\"connectionId\":0}",
+            "{\"response\":\"createStatement\",\"id\":0}");
+        map1.put(
+            "{\"request\":\"prepareAndExecute\",\"statementId\":0,"
+                + "\"sql\":\"select * from (\\n  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)\",\"maxRowCount\":-1}",
+            "{\"response\":\"resultSet\",\"signature\": {\n"
+                + " \"columns\": [\n"
+                + "   {\"columnName\": \"C1\", \"type\": {type: \"scalar\", id: 4, rep: \"INTEGER\"}},\n"
+                + "   {\"columnName\": \"C2\", \"type\": {type: \"scalar\", id: 12, rep: \"STRING\"}}\n"
+                + " ], \"cursorFactory\": {\"style\": \"ARRAY\"}\n"
+                + "}, \"rows\": [[1, \"a\"], [null, \"b\"], [3, \"c\"]]}");
+        map1.put(
+            "{\"request\":\"prepare\",\"statementId\":0,"
+                + "\"sql\":\"select * from (\\n  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)\",\"maxRowCount\":-1}",
+            "{\"response\":\"prepare\",\"signature\": {\n"
+                + " \"columns\": [\n"
+                + "   {\"columnName\": \"C1\", \"type\": {type: \"scalar\", id: 4, rep: \"INTEGER\"}},\n"
+                + "   {\"columnName\": \"C2\", \"type\": {type: \"scalar\", id: 12, rep: \"STRING\"}}\n"
+                + " ],\n"
+                + " \"parameters\": [],\n"
+                + " \"cursorFactory\": {\"style\": \"ARRAY\"}\n"
+                + "}}");
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       return new MockJsonService(map1);
     }
   }

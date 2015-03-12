@@ -32,7 +32,7 @@ public class JdbcAdapterTest {
             + "    JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
             + "    JdbcTableScan(table=[[foodmart, sales_fact_1998]])")
         .runs()
-        .enable(CalciteAssert.CONNECTION_SPEC.url.startsWith("jdbc:hsqldb:"))
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT *\n"
             + "FROM \"foodmart\".\"sales_fact_1997\"\n"
             + "UNION ALL\n"
@@ -48,7 +48,7 @@ public class JdbcAdapterTest {
             + "  select * from \"sales_fact_1998\")\n"
             + "where \"product_id\" = 1")
         .runs()
-        .enable(CalciteAssert.CONNECTION_SPEC.url.startsWith("jdbc:hsqldb:"))
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT *\n"
             + "FROM \"foodmart\".\"sales_fact_1997\"\n"
             + "WHERE \"product_id\" = 1\n"
@@ -63,7 +63,7 @@ public class JdbcAdapterTest {
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
         .runs()
-        .enable(CalciteAssert.CONNECTION_SPEC.url.startsWith("jdbc:hsqldb:"))
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql(
             "SELECT \"store_id\", \"store_name\"\n"
             + "FROM \"foodmart\".\"store\"\n"

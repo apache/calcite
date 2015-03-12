@@ -32,8 +32,10 @@ import java.util.List;
 public interface Service {
   ResultSetResponse apply(CatalogsRequest request);
   ResultSetResponse apply(SchemasRequest request);
+  ResultSetResponse apply(TablesRequest request);
   PrepareResponse apply(PrepareRequest request);
   ResultSetResponse apply(PrepareAndExecuteRequest request);
+  FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
 
   /** Factory that creates a {@code Service}. */
@@ -49,9 +51,11 @@ public interface Service {
   @JsonSubTypes({
       @JsonSubTypes.Type(value = CatalogsRequest.class, name = "getCatalogs"),
       @JsonSubTypes.Type(value = SchemasRequest.class, name = "getSchemas"),
+      @JsonSubTypes.Type(value = TablesRequest.class, name = "getTables"),
       @JsonSubTypes.Type(value = PrepareRequest.class, name = "prepare"),
       @JsonSubTypes.Type(value = PrepareAndExecuteRequest.class,
           name = "prepareAndExecute"),
+      @JsonSubTypes.Type(value = FetchRequest.class, name = "fetch"),
       @JsonSubTypes.Type(value = CreateStatementRequest.class,
           name = "createStatement") })
   abstract class Request {
@@ -66,6 +70,7 @@ public interface Service {
   @JsonSubTypes({
       @JsonSubTypes.Type(value = ResultSetResponse.class, name = "resultSet"),
       @JsonSubTypes.Type(value = PrepareResponse.class, name = "prepare"),
+      @JsonSubTypes.Type(value = FetchResponse.class, name = "fetch"),
       @JsonSubTypes.Type(value = CreateStatementResponse.class,
           name = "createStatement") })
   abstract class Response {
@@ -97,6 +102,31 @@ public interface Service {
     }
   }
 
+  /** Request for
+   * {@link Meta#getTables(String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, java.util.List)}
+   */
+  class TablesRequest extends Request {
+    public final String catalog;
+    public final String schemaPattern;
+    public final String tableNamePattern;
+    public final List<String> typeList;
+
+    @JsonCreator
+    public TablesRequest(@JsonProperty("catalog") String catalog,
+        @JsonProperty("schemaPattern") String schemaPattern,
+        @JsonProperty("tableNamePattern") String tableNamePattern,
+        @JsonProperty("typeList") List<String> typeList) {
+      this.catalog = catalog;
+      this.schemaPattern = schemaPattern;
+      this.tableNamePattern = tableNamePattern;
+      this.typeList = typeList;
+    }
+
+    @Override Response accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
   /** Response that contains a result set.
    *
    * <p>Several types of request, including
@@ -107,17 +137,17 @@ public interface Service {
     public final int statementId;
     public final boolean ownStatement;
     public final Meta.Signature signature;
-    public final List<Object> rows;
+    public final Meta.Frame firstFrame;
 
     @JsonCreator
     public ResultSetResponse(@JsonProperty("statementId") int statementId,
         @JsonProperty("ownStatement") boolean ownStatement,
         @JsonProperty("signature") Meta.Signature signature,
-        @JsonProperty("rows") List<Object> rows) {
+        @JsonProperty("firstFrame") Meta.Frame firstFrame) {
       this.statementId = statementId;
       this.ownStatement = ownStatement;
       this.signature = signature;
-      this.rows = rows;
+      this.firstFrame = firstFrame;
     }
   }
 
@@ -173,6 +203,45 @@ public interface Service {
     public PrepareResponse(
         @JsonProperty("signature") Meta.Signature signature) {
       this.signature = signature;
+    }
+  }
+
+  /** Request for
+   * {@link org.apache.calcite.avatica.Meta#fetch(Meta.StatementHandle, List, int, int)}. */
+  class FetchRequest extends Request {
+    public final int statementId;
+    public final int offset;
+    /** Maximum number of rows to be returned in the frame. Negative means no
+     * limit. */
+    public final int fetchMaxRowCount;
+    /** A list of parameter values, if statement is to be executed; otherwise
+     * null. */
+    public final List<Object> parameterValues;
+
+    @JsonCreator
+    public FetchRequest(@JsonProperty("statementId") int statementId,
+        @JsonProperty("parameterValues") List<Object> parameterValues,
+        @JsonProperty("offset") int offset,
+        @JsonProperty("fetchMaxRowCount") int fetchMaxRowCount) {
+      this.statementId = statementId;
+      this.parameterValues = parameterValues;
+      this.offset = offset;
+      this.fetchMaxRowCount = fetchMaxRowCount;
+    }
+
+    @Override FetchResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Response from
+   * {@link org.apache.calcite.avatica.remote.Service.FetchRequest}. */
+  class FetchResponse extends Response {
+    public final Meta.Frame frame;
+
+    @JsonCreator
+    public FetchResponse(@JsonProperty("frame") Meta.Frame frame) {
+      this.frame = frame;
     }
   }
 

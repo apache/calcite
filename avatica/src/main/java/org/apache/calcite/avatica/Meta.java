@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Command handler for getting various metadata. Should be implemented by each
@@ -148,7 +149,7 @@ public interface Meta {
    * requires to be not null; derived classes may instead choose to execute the
    * relational expression in {@code signature}. */
   Iterable<Object> createIterable(StatementHandle handle, Signature signature,
-      Iterable<Object> iterable);
+      List<Object> parameterValues, Frame firstFrame);
 
   /** Prepares a statement.
    *
@@ -169,6 +170,25 @@ public interface Meta {
    */
   MetaResultSet prepareAndExecute(StatementHandle h, String sql,
       int maxRowCount, PrepareCallback callback);
+
+  /** Returns a frame of rows.
+   *
+   * <p>The frame describes whether there may be another frame. If there is not
+   * another frame, the current iteration is done when we have finished the
+   * rows in the this frame.
+   *
+   * <p>The default implementation always returns null.
+   *
+   * @param h Statement handle
+   * @param parameterValues A list of parameter values, if statement is to be
+   *                        executed; otherwise null
+   * @param offset Zero-based offset of first row in the requested frame
+   * @param fetchMaxRowCount Maximum number of rows to return; negative means
+   * no limit
+   * @return Frame, or null if there are no more
+   */
+  Frame fetch(StatementHandle h, List<Object> parameterValues, int offset,
+      int fetchMaxRowCount);
 
   /** Called during the creation of a statement to allocate a new handle.
    *
@@ -201,15 +221,15 @@ public interface Meta {
   class MetaResultSet {
     public final int statementId;
     public final boolean ownStatement;
-    public final Iterable<Object> iterable;
+    public final Frame firstFrame;
     public final Signature signature;
 
     public MetaResultSet(int statementId, boolean ownStatement,
-        Signature signature, Iterable<Object> iterable) {
-      this.signature = signature;
+        Signature signature, Frame firstFrame) {
+      this.signature = Objects.requireNonNull(signature);
       this.statementId = statementId;
       this.ownStatement = ownStatement;
-      this.iterable = iterable;
+      this.firstFrame = firstFrame; // may be null
     }
   }
 
@@ -227,7 +247,7 @@ public interface Meta {
       assert (fieldNames != null)
           == (style == Style.RECORD_PROJECTION || style == Style.MAP);
       assert (fields != null) == (style == Style.RECORD_PROJECTION);
-      this.style = style;
+      this.style = Objects.requireNonNull(style);
       this.clazz = clazz;
       this.fields = fields;
       this.fieldNames = fieldNames;
@@ -271,7 +291,7 @@ public interface Meta {
     public static CursorFactory record(Class resultClass, List<Field> fields,
         List<String> fieldNames) {
       if (fields == null) {
-        fields = new ArrayList<Field>();
+        fields = new ArrayList<>();
         for (String fieldName : fieldNames) {
           try {
             fields.add(resultClass.getField(fieldName));
@@ -348,6 +368,60 @@ public interface Meta {
       return new Signature(columns, sql, parameters, internalParameters,
           cursorFactory);
     }
+
+    /** Creates a copy of this Signature with null lists and maps converted to
+     * empty. */
+    public Signature sanitize() {
+      if (columns == null || parameters == null || internalParameters == null) {
+        return new Signature(sanitize(columns), sql, sanitize(parameters),
+            sanitize(internalParameters), cursorFactory);
+      }
+      return this;
+    }
+
+    private <E> List<E> sanitize(List<E> list) {
+      return list == null ? Collections.<E>emptyList() : list;
+    }
+
+    private <K, V> Map<K, V> sanitize(Map<K, V> map) {
+      return map == null ? Collections.<K, V>emptyMap() : map;
+    }
+  }
+
+  /** A collection of rows. */
+  class Frame {
+    /** Frame that has zero rows and is the last frame. */
+    public static final Frame EMPTY =
+        new Frame(0, true, Collections.emptyList());
+
+    /** Frame that has zero rows but may have another frame. */
+    public static final Frame MORE =
+        new Frame(0, false, Collections.emptyList());
+
+    /** Zero-based offset of first row. */
+    public final int offset;
+    /** Whether this is definitely the last frame of rows.
+     * If true, there are no more rows.
+     * If false, there may or may not be more rows. */
+    public final boolean done;
+    /** The rows. */
+    public final Iterable<Object> rows;
+
+    public Frame(int offset, boolean done, Iterable<Object> rows) {
+      this.offset = offset;
+      this.done = done;
+      this.rows = rows;
+    }
+
+    @JsonCreator
+    public static Frame create(@JsonProperty("offset") int offset,
+        @JsonProperty("done") boolean done,
+        @JsonProperty("rows") List<Object> rows) {
+      if (offset == 0 && done && rows.isEmpty()) {
+        return EMPTY;
+      }
+      return new Frame(offset, done, rows);
+    }
   }
 
   /** Connection handle. */
@@ -383,7 +457,7 @@ public interface Meta {
   interface PrepareCallback {
     Object getMonitor();
     void clear() throws SQLException;
-    void assign(Signature signature, Iterable<Object> iterable)
+    void assign(Signature signature, Frame firstFrame)
         throws SQLException;
     void execute() throws SQLException;
   }
