@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.avatica;
 
-import com.google.common.base.Preconditions;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Implementation of {@link java.sql.Statement}
@@ -68,7 +67,7 @@ public abstract class AvaticaStatement
   protected AvaticaStatement(AvaticaConnection connection,
       Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) {
-    this.connection = Preconditions.checkNotNull(connection);
+    this.connection = Objects.requireNonNull(connection);
     this.resultSetType = resultSetType;
     this.resultSetConcurrency = resultSetConcurrency;
     this.resultSetHoldability = resultSetHoldability;

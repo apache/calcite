@@ -34,6 +34,18 @@ limitations under the License.
     <build.timestamp>${maven.build.timestamp}</build.timestamp>
   </properties>
 
+  <dependencies>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
       <!-- Parent module has the same plugin and does the work of

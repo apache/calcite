@@ -38,6 +38,10 @@ limitations under the License.
          in dependencyManagement in the root POM, not here. -->
     <dependency>
       <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-avatica</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
       <type>jar</type>
     </dependency>
@@ -46,6 +50,10 @@ limitations under the License.
       <artifactId>calcite-core</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-linq4j</artifactId>
     </dependency>
 
     <dependency>
@@ -58,6 +66,11 @@ limitations under the License.
       <groupId>io.airlift.tpch</groupId>
       <artifactId>tpch</artifactId>
       <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>

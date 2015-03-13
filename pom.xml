@@ -49,7 +49,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>1</version.minor>
+    <version.minor>2</version.minor>
   </properties>
 
   <issueManagement>
@@ -77,90 +77,10 @@ limitations under the License.
     <module>ubenchmark</module>
   </modules>
 
-  <!-- Dependencies. -->
-  <dependencies>
-    <!-- Sorted by groupId, artifactId. -->
-    <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <!-- We support versions as old as 11.0.2 (the version used by
-           Hadoop) but prefer more recent versions. -->
-      <version>11.0.2</version>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>eigenbase-properties</artifactId>
-      <version>1.1.5</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <version>5.1.20</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>quidem</artifactId>
-      <version>0.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.janino</groupId>
-      <artifactId>janino</artifactId>
-      <version>2.7.6</version>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.janino</groupId>
-      <artifactId>commons-compiler</artifactId>
-      <version>2.7.6</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hsqldb</groupId>
-      <artifactId>hsqldb</artifactId>
-      <version>2.3.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.incava</groupId>
-      <artifactId>java-diff</artifactId>
-      <version>1.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>foodmart-data-hsqldb</artifactId>
-      <version>0.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>foodmart-queries</artifactId>
-      <version>0.4.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>sqlline</groupId>
-      <artifactId>sqlline</artifactId>
-      <version>1.1.9</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <!-- No dependencies here. Declare dependency VERSIONS in
+       dependencyManagement, below, and each dependency in the module that uses
+       it. -->
+  <dependencies />
 
   <dependencyManagement>
     <dependencies>
@@ -168,35 +88,103 @@ limitations under the License.
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica</artifactId>
-        <version>${project.version}</version>
+        <version>1.2.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica-server</artifactId>
-        <version>${project.version}</version>
+        <version>1.2.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
-        <version>${project.version}</version>
+        <version>1.2.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
         <type>test-jar</type>
-        <version>${project.version}</version>
+        <version>1.2.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-linq4j</artifactId>
-        <version>${project.version}</version>
+        <version>1.2.0-incubating-SNAPSHOT</version>
       </dependency>
 
-      <!-- Now third-party dependencies. -->
+      <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
+      <dependency>
+        <groupId>commons-dbcp</groupId>
+        <artifactId>commons-dbcp</artifactId>
+        <version>1.4</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <!-- We support versions as old as 11.0.2 (the version used by Hadoop)
+             but prefer more recent versions. -->
+        <version>11.0.2</version>
+      </dependency>
       <dependency>
         <groupId>io.airlift.tpch</groupId>
         <artifactId>tpch</artifactId>
         <version>0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>5.1.20</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>eigenbase-properties</artifactId>
+        <version>1.1.5</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>foodmart-data-hsqldb</artifactId>
+        <version>0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>foodmart-queries</artifactId>
+        <version>0.4.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>quidem</artifactId>
+        <version>0.3</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.janino</groupId>
+        <artifactId>janino</artifactId>
+        <version>2.7.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.janino</groupId>
+        <artifactId>commons-compiler</artifactId>
+        <version>2.7.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hsqldb</groupId>
+        <artifactId>hsqldb</artifactId>
+        <version>2.3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.incava</groupId>
+        <artifactId>java-diff</artifactId>
+        <version>1.1</version>
       </dependency>
       <dependency>
         <groupId>org.pentaho</groupId>
@@ -238,6 +226,11 @@ limitations under the License.
         <groupId>org.openjdk.jmh</groupId>
         <artifactId>jmh-generator-annprocess</artifactId>
         <version>0.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
       </dependency>
       <dependency>
         <groupId>xerces</groupId>

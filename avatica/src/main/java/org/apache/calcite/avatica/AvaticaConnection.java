@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.avatica;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -38,6 +35,7 @@ import java.sql.Struct;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.Executor;
@@ -67,9 +65,8 @@ public abstract class AvaticaConnection implements Connection {
   private String schema;
   protected final AvaticaDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
-  public final Map<InternalProperty, Object> properties =
-      new HashMap<InternalProperty, Object>();
-  public final Map<Integer, AvaticaStatement> statementMap = Maps.newHashMap();
+  public final Map<InternalProperty, Object> properties = new HashMap<>();
+  public final Map<Integer, AvaticaStatement> statementMap = new HashMap<>();
 
   private static int nextId;
 
@@ -483,7 +480,7 @@ public abstract class AvaticaConnection implements Connection {
       return statement;
     }
     //noinspection MagicConstant
-    return factory.newStatement(this, Preconditions.checkNotNull(h),
+    return factory.newStatement(this, Objects.requireNonNull(h),
         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, holdability);
   }
 
