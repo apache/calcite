@@ -318,6 +318,20 @@ Before you start:
   a fix version assigned (most likely the version we are
   just about to release)
 
+Create a release branch named after the release, e.g. `branch-1.1`, and push it to Apache.
+
+```bash
+$ git checkout -b branch-X.Y
+$ git push -u origin branch-X.Y
+
+We will use the branch for the entire the release process. Meanwhile,
+we do not allow commits to the master branch. After the release is
+final, we can use `git merge --ff-only` to append the changes on the
+release branch onto the master branch. (Apache does not allow reverts
+to the master branch, which makes it difficult to clean up the kind of
+messy commits that inevitably happen while you are trying to finalize
+a release.)
+
 Now, set up your environment and do a dry run. The dry run will not
 commit any changes back to git and gives you the opportunity to verify
 that the release process will complete as expected.
@@ -353,9 +367,8 @@ Check the artifacts:
   no binary distro), check that all files belong to a directory called
   `apache-calcite-X.Y.Z-incubating-src`.
 * That directory must contain files `DISCLAIMER`, `NOTICE`, `LICENSE`,
-  `README`, `README.md`, `git.properties`
+  `README`, `README.md`
   * Check that the version in `README` is correct
-  * Check that `git.properties` is current
 * In each .jar (for example
   `core/target/calcite-core-X.Y.Z-incubating.jar` and
   `mongodb/target/calcite-mongodb-X.Y.Z-incubating-sources.jar`), check
@@ -385,17 +398,25 @@ Verify the staged artifacts in the Nexus repository:
   https://repository.apache.org/content/repositories/orgapachecalcite-1000
   (or a similar URL)
 
-Upload the artifacts to a staging area (in this case, your
-people.apache.org home directory):
+Upload the artifacts via subversion to a staging area,
+https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN:
 
 ```bash
+# Create a subversion workspace, if you haven't already
+mkdir -p ~/dist/dev
+pushd ~/dist/dev
+svn co https://dist.apache.org/repos/dist/dev/incubator/calcite
+popd
+
 # Move the files into a directory
 cd target
-mkdir apache-calcite-X.Y.Z-incubating-rcN
-mv apache-calcite-* calcite-X.Y.Z-incubating-rcN
+mkdir ~/dist/dev/calcite/apache-calcite-X.Y.Z-incubating-rcN
+mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-incubating-rcN
 
-# Upload to staging area (your people.apache.org home directory)
-scp -rp apache-calcite-X.Y.Z-incubating-rcN people.apache.org:public_html
+# Check in
+cd ~/dist/dev/calcite
+svn add apache-calcite-X.Y.Z-incubating-rcN
+svn ci
 ```
 
 ## Cleaning up after a failed release attempt (for Calcite committers)
@@ -482,7 +503,7 @@ http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
 Its hash is XXXX.
 
 The artifacts to be voted on are located here:
-http://people.apache.org/~jhyde/apache-calcite-X.Y.Z-incubating-rcN/
+https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN/
 
 The hashes of the artifacts are as follows:
 src.tar.gz.md5 XXXX
@@ -567,7 +588,7 @@ http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
 Its hash is XXXX.
 
 The artifacts to be voted on are located here:
-http://people.apache.org/~jhyde/apache-calcite-X.Y.Z-incubating-rcN/
+https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN/
 
 The hashes of the artifacts are as follows:
 src.tar.gz.md5 XXXX
@@ -630,12 +651,19 @@ Promote the staged nexus artifacts.
 Check the artifacts into svn.
 
 ```bash
-ssh people.apache.org
-mkdir -p dist
-cd dist
-svn co https://dist.apache.org/repos/dist/release/incubator/calcite
+# Get the release candidate.
+mkdir -p ~/dist/dev
+cd ~/dist/dev
+svn co https://dist.apache.org/repos/dist/dev/incubator/calcite
+
 # Copy the artifacts. Note that the copy does not have '-rcN' suffix.
-cp -rp ../public_html/apache-calcite-X.Y.Z-incubating-rcN calcite/apache-calcite-X.Y.Z-incubating
+mkdir -p ~/dist/release
+cd ~/dist/release
+svn co https://dist.apache.org/repos/dist/release/incubator/calcite
+cd calcite
+cp -rp ../../dev/calcite/apache-calcite-X.Y.Z-incubating-rcN apache-calcite-X.Y.Z-incubating
+svn add apache-calcite-X.Y.Z-incubating
+
 # Check in.
 svn ci
 ```
