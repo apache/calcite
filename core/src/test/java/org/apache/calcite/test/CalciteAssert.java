@@ -39,6 +39,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -51,6 +52,7 @@ import com.google.common.collect.Lists;
 
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -66,6 +68,7 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -101,10 +104,9 @@ public class CalciteAssert {
    * failures.  To run against MySQL, specify '-Dcalcite.test.db=mysql' on the
    * java command line. */
   public static final ConnectionSpec CONNECTION_SPEC =
-      Util.first(System.getProperty("calcite.test.db"), "hsqldb")
-          .equals("mysql")
-          ? ConnectionSpec.MYSQL
-          : ConnectionSpec.HSQLDB;
+      ConnectionSpec.valueOf(
+        Util.first(System.getProperty("calcite.test.db"), "HSQLDB")
+            .toUpperCase());
 
   /** Whether to enable slow tests. Default is false. */
   public static final boolean ENABLE_SLOW =
@@ -469,16 +471,14 @@ public class CalciteAssert {
       resultSet.close();
       statement.close();
       connection.close();
-    } catch (Throwable e) {
+    } catch (Error e) {
       // We ignore extended message for non-runtime exception, however
       // it does not matter much since it is better to have AssertionError
       // at the very top level of the exception stack.
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      if (e instanceof Error) {
-        throw (Error) e;
-      }
+      throw e;
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Throwable e) {
       throw new RuntimeException(message, e);
     } finally {
       for (Hook.Closeable closeable : closeableList) {
@@ -708,6 +708,28 @@ public class CalciteAssert {
     default:
       throw new AssertionError("unknown schema " + schema);
     }
+  }
+
+  /**
+   * Asserts that two objects are equal. If they are not, an
+   * {@link AssertionError} is thrown with the given message. If
+   * <code>expected</code> and <code>actual</code> are <code>null</code>,
+   * they are considered equal.
+   *
+   * <p>This method produces more user-friendly error messages than
+   * {@link org.junit.Assert#assertArrayEquals(String, Object[], Object[])}
+   *
+   * @param message the identifying message for the {@link AssertionError} (<code>null</code>
+   * okay)
+   * @param expected expected value
+   * @param actual actual value
+   */
+  public static void assertArrayEqual(
+      String message, Object[] expected, Object[] actual) {
+    Joiner joiner = Joiner.on('\n');
+    String strExpected = expected == null ? null : joiner.join(expected);
+    String strActual = actual == null ? null : joiner.join(actual);
+    assertEquals(message, strExpected, strActual);
   }
 
   static <F, T> Function<F, T> constantNull() {
@@ -1441,13 +1463,36 @@ public class CalciteAssert {
   public enum ConnectionSpec {
     HSQLDB(FoodmartHsqldb.URI, "FOODMART", "FOODMART",
         "org.hsqldb.jdbcDriver"),
+    H2("jdbc:h2:" + getDataSetPath()
+        + "/h2/target/foodmart;user=foodmart;password=foodmart",
+        "foodmart", "foodmart",
+        "org.h2.Driver"),
     MYSQL("jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
-        "com.mysql.jdbc.Driver");
+        "com.mysql.jdbc.Driver"),
+    POSTGRESQL(
+        "jdbc:postgresql://localhost/foodmart?user=foodmart&password=foodmart&searchpath=foodmart",
+        "foodmart", "foodmart",
+        "org.postgresql.Driver");
 
     public final String url;
     public final String username;
     public final String password;
     public final String driver;
+
+    private static String getDataSetPath() {
+      String path = System.getProperty("calcite.test.dataset");
+      if (path != null) {
+        return path;
+      }
+      for (String s : Arrays.asList(
+          "../calcite-test-dataset",
+          "../../calcite-test-dataset")) {
+        if (new File(s).exists() && new File(s, "vm").exists()) {
+          return s;
+        }
+      }
+      return ".";
+    }
 
     ConnectionSpec(String url, String username, String password,
         String driver) {
