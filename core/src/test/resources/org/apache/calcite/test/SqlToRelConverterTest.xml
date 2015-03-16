@@ -2342,18 +2342,13 @@ FROM emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[$0])
-  LogicalJoin(condition=[true], joinType=[left])
-    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-      LogicalProject(EXPR$0=[$9])
-        LogicalJoin(condition=[true], joinType=[left])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-          LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
-            LogicalProject(DEPTNO=[$0])
-              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
-      LogicalProject(DEPTNO=[$0])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(EXPR$0=[$9])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -2398,6 +2393,20 @@ from orders]]>
 LogicalDelta
   LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], C=[COUNT() OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW)])
     LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupByCaseIn">
+        <Resource name="sql">
+            <![CDATA[select (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END),
+ min(empno) from EMP
+group by (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
+  LogicalProject(EXPR$0=[CASE(OR(=($7, 10), =($7, 20)), 0, $7)], EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
