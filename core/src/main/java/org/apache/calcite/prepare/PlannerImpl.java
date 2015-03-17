@@ -253,9 +253,10 @@ public class PlannerImpl implements Planner {
 
   public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) throws RelConversionException {
+    RelTraitSet designedTraitSet = requiredOutputTraits.simplify();
     ensure(State.STATE_5_CONVERTED);
     Program program = programs.get(ruleSetIndex);
-    return program.run(planner, rel, requiredOutputTraits);
+    return program.run(planner, rel, designedTraitSet);
   }
 
   /** Stage of a statement in the query-preparation lifecycle. */
