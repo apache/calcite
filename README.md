@@ -144,13 +144,12 @@ to the JDBC data source.
 
 ### Writing an adapter
 
-The <a href="https://github.com/julianhyde/optiq-csv">optiq-csv</a>
-project provides a CSV adapter, which is fully functional for use in applications
+The subproject under example/csv provides a CSV adapter, which is fully functional for use in applications
 but is also simple enough to serve as a good template if you are writing
 your own adapter.
 
-See the <a href="https://github.com/julianhyde/optiq-csv/blob/master/TUTORIAL.md">optiq-csv tutorial</a>
-for information on using optiq-csv and writing adapters.
+See the <a href="https://github.com/apache/incubator-calcite/blob/master/doc/TUTORIAL.md">csv tutorial</a>
+for information on using csv adapter and writing other adapters.
 
 See the <a href="doc/HOWTO.md">HOWTO</a> for more information about using other
 adapters, and about using Calcite in general.
@@ -176,7 +175,7 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
 
 * <a href="https://github.com/apache/incubator-drill">Apache Drill adapter</a>
 * Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
-* CSV adapter (<a href="https://github.com/julianhyde/optiq-csv">optiq-csv</a>)
+* CSV adapter (example/csv)
 * JDBC adapter (part of <a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/jdbc/package-summary.html">calcite-core</a>)
 * MongoDB adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/mongodb/package-summary.html">calcite-mongodb</a>)
 * Spark adapter (<a href="http://www.hydromatic.net/calcite/apidocs/net/hydromatic/optiq/impl/spark/package-summary.html">calcite-spark</a>)
