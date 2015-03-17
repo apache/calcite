@@ -508,9 +508,182 @@ public class Linq4jTest {
     assertEquals(people[1], Linq4j.asEnumerable(people).first(startWithS));
     assertEquals(numbers[3], Linq4j.asEnumerable(numbers).first(numberGT15));
 
-    // FIXME: What we need return if no one element is satisfied?
-    assertNull(Linq4j.asEnumerable(peopleWithoutCharS).first(startWithS));
+    try {
+      String s = Linq4j.asEnumerable(peopleWithoutCharS).first(startWithS);
+      fail("expected exception, but got" + s);
+    } catch (NoSuchElementException e) {
+      // ok
+    }
+  }
 
+  @Test public void testFirstOrDefault() {
+
+    String[] people = {"Brill", "Smith", "Simpsom"};
+    String[] empty = {};
+    Integer[] numbers = {5, 10, 15, 20, 25};
+
+    assertEquals(people[0], Linq4j.asEnumerable(people).firstOrDefault());
+    assertEquals(numbers[0], Linq4j.asEnumerable(numbers).firstOrDefault());
+
+    assertNull(Linq4j.asEnumerable(empty).firstOrDefault());
+  }
+
+  @Test public void testFirstOrDefaultPredicate1() {
+    Predicate1<String> startWithS = new Predicate1<String>() {
+      public boolean apply(String s) {
+        return s != null && Character.toString(s.charAt(0)).equals("S");
+      }
+    };
+
+    Predicate1<Integer> numberGT15 = new Predicate1<Integer>() {
+      public boolean apply(Integer i) {
+        return i > 15;
+      }
+    };
+
+    String[] people = {"Brill", "Smith", "Simpsom"};
+    String[] peopleWithoutCharS = {"Brill", "Andrew", "Alice"};
+    Integer[] numbers = {5, 10, 15, 20, 25};
+
+    assertEquals(people[1], Linq4j.asEnumerable(people)
+          .firstOrDefault(startWithS));
+    assertEquals(numbers[3], Linq4j.asEnumerable(numbers)
+          .firstOrDefault(numberGT15));
+
+    assertNull(Linq4j.asEnumerable(peopleWithoutCharS)
+          .firstOrDefault(startWithS));
+  }
+
+  @Test public void testSingle() {
+
+    String[] person = {"Smith"};
+    String[] people = {"Brill", "Smith", "Simpson"};
+    Integer[] number = {20};
+    Integer[] numbers = {5, 10, 15, 20};
+
+    assertEquals(person[0], Linq4j.asEnumerable(person).single());
+    assertEquals(number[0], Linq4j.asEnumerable(number).single());
+
+    try {
+      String s = Linq4j.asEnumerable(people).single();
+      fail("expected exception, but got" + s);
+    } catch (IllegalStateException e) {
+      // ok
+    }
+
+    try {
+      int i = Linq4j.asEnumerable(numbers).single();
+      fail("expected exception, but got" + i);
+    } catch (IllegalStateException e) {
+      // ok
+    }
+  }
+
+  @Test public void testSingleOrDefault() {
+
+    String[] person = {"Smith"};
+    String[] people = {"Brill", "Smith", "Simpson"};
+    Integer[] number = {20};
+    Integer[] numbers = {5, 10, 15, 20};
+
+    assertEquals(person[0], Linq4j.asEnumerable(person).singleOrDefault());
+    assertEquals(number[0], Linq4j.asEnumerable(number).singleOrDefault());
+
+    assertNull(Linq4j.asEnumerable(people).singleOrDefault());
+    assertNull(Linq4j.asEnumerable(numbers).singleOrDefault());
+  }
+
+  @Test public void testSinglePredicate1() {
+    Predicate1<String> startWithS = new Predicate1<String>() {
+      public boolean apply(String s) {
+        return s != null && Character.toString(s.charAt(0)).equals("S");
+      }
+    };
+
+    Predicate1<Integer> numberGT15 = new Predicate1<Integer>() {
+      public boolean apply(Integer i) {
+        return i > 15;
+      }
+    };
+
+    String[] people = {"Brill", "Smith"};
+    String[] twoPeopleWithCharS = {"Brill", "Smith", "Simpson"};
+    String[] peopleWithoutCharS = {"Brill", "Andrew", "Alice"};
+    Integer[] numbers = {5, 10, 15, 20};
+    Integer[] numbersWithoutGT15 = {5, 10, 15};
+    Integer[] numbersWithTwoGT15 = {5, 10, 15, 20, 25};
+
+    assertEquals(people[1], Linq4j.asEnumerable(people).single(startWithS));
+    assertEquals(numbers[3], Linq4j.asEnumerable(numbers).single(numberGT15));
+
+
+    try {
+      String s = Linq4j.asEnumerable(twoPeopleWithCharS).single(startWithS);
+      fail("expected exception, but got" + s);
+    } catch (IllegalStateException e) {
+      // ok
+    }
+
+    try {
+      int i = Linq4j.asEnumerable(numbersWithTwoGT15).single(numberGT15);
+      fail("expected exception, but got" + i);
+    } catch (IllegalStateException e) {
+      // ok
+    }
+
+    try {
+      String s = Linq4j.asEnumerable(peopleWithoutCharS).single(startWithS);
+      fail("expected exception, but got" + s);
+    } catch (IllegalStateException e) {
+      // ok
+    }
+
+    try {
+      int i = Linq4j.asEnumerable(numbersWithoutGT15).single(numberGT15);
+      fail("expected exception, but got" + i);
+    } catch (IllegalStateException e) {
+      // ok
+    }
+  }
+
+  @Test
+  public void testSingleOrDefaultPredicate1() {
+    Predicate1<String> startWithS = new Predicate1<String>() {
+      public boolean apply(String s) {
+        return s != null && Character.toString(s.charAt(0)).equals("S");
+      }
+    };
+
+    Predicate1<Integer> numberGT15 = new Predicate1<Integer>() {
+      public boolean apply(Integer i) {
+        return i > 15;
+      }
+    };
+
+    String[] people = {"Brill", "Smith"};
+    String[] twoPeopleWithCharS = {"Brill", "Smith", "Simpson"};
+    String[] peopleWithoutCharS = {"Brill", "Andrew", "Alice"};
+    Integer[] numbers = {5, 10, 15, 20};
+    Integer[] numbersWithTwoGT15 = {5, 10, 15, 20, 25};
+    Integer[] numbersWithoutGT15 = {5, 10, 15};
+
+    assertEquals(people[1], Linq4j.asEnumerable(people)
+          .singleOrDefault(startWithS));
+
+    assertEquals(numbers[3], Linq4j.asEnumerable(numbers)
+          .singleOrDefault(numberGT15));
+
+    assertNull(Linq4j.asEnumerable(twoPeopleWithCharS)
+          .singleOrDefault(startWithS));
+
+    assertNull(Linq4j.asEnumerable(numbersWithTwoGT15)
+          .singleOrDefault(numberGT15));
+
+    assertNull(Linq4j.asEnumerable(peopleWithoutCharS)
+          .singleOrDefault(startWithS));
+
+    assertNull(Linq4j.asEnumerable(numbersWithoutGT15)
+          .singleOrDefault(numberGT15));
   }
 
   @SuppressWarnings("UnnecessaryBoxing")
