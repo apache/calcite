@@ -103,6 +103,20 @@ public class LocalService implements Service {
     return toResponse(resultSet);
   }
 
+  public ResultSetResponse apply(TableTypesRequest request) {
+    final Meta.MetaResultSet resultSet = meta.getTableTypes();
+    return toResponse(resultSet);
+  }
+
+  public ResultSetResponse apply(ColumnsRequest request) {
+    final Meta.MetaResultSet resultSet =
+        meta.getColumns(request.catalog,
+            Meta.Pat.of(request.schemaPattern),
+            Meta.Pat.of(request.tableNamePattern),
+            Meta.Pat.of(request.columnNamePattern));
+    return toResponse(resultSet);
+  }
+
   public PrepareResponse apply(PrepareRequest request) {
     final Meta.StatementHandle h =
         new Meta.StatementHandle(request.statementId);

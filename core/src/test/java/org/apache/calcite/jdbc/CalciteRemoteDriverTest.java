@@ -81,6 +81,26 @@ public class CalciteRemoteDriverTest {
           }
         }
       };
+  private static final Function<Connection, ResultSet> GET_COLUMNS =
+      new Function<Connection, ResultSet>() {
+        public ResultSet apply(Connection input) {
+          try {
+            return input.getMetaData().getColumns(null, null, null, null);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      };
+  private static final Function<Connection, ResultSet> GET_TABLE_TYPES =
+      new Function<Connection, ResultSet>() {
+        public ResultSet apply(Connection input) {
+          try {
+            return input.getMetaData().getTableTypes();
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      };
 
   private static Connection localConnection;
   private static Connection remoteConnection;
@@ -157,6 +177,19 @@ public class CalciteRemoteDriverTest {
             + "TABLE_SCHEM=foodmart; TABLE_CATALOG=null\n"
             + "TABLE_SCHEM=hr; TABLE_CATALOG=null\n"
             + "TABLE_SCHEM=metadata; TABLE_CATALOG=null\n");
+  }
+
+  @Test public void testRemoteColumns() throws Exception {
+    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
+        .metaData(GET_COLUMNS)
+        .returns(CalciteAssert.checkResultContains("COLUMN_NAME=EMPNO"));
+  }
+
+  @Test public void testRemoteTableTypes() throws Exception {
+    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
+        .metaData(GET_TABLE_TYPES)
+        .returns("TABLE_TYPE=TABLE\n"
+            + "TABLE_TYPE=VIEW\n");
   }
 
   @Test public void testRemoteExecuteQuery() throws Exception {

@@ -79,6 +79,21 @@ class RemoteMeta extends MetaImpl {
     return toResultSet(MetaTable.class, response);
   }
 
+  @Override public MetaResultSet getTableTypes() {
+    final Service.ResultSetResponse response =
+        service.apply(new Service.TableTypesRequest());
+    return toResultSet(MetaTableType.class, response);
+  }
+
+  @Override public MetaResultSet getColumns(String catalog, Pat schemaPattern,
+      Pat tableNamePattern, Pat columnNamePattern) {
+    final Service.ResultSetResponse response =
+        service.apply(
+            new Service.ColumnsRequest(catalog, schemaPattern.s,
+                tableNamePattern.s, columnNamePattern.s));
+    return toResultSet(MetaColumn.class, response);
+  }
+
   @Override public Signature prepare(StatementHandle h, String sql,
       int maxRowCount) {
     final Service.PrepareResponse response =

@@ -33,6 +33,8 @@ public interface Service {
   ResultSetResponse apply(CatalogsRequest request);
   ResultSetResponse apply(SchemasRequest request);
   ResultSetResponse apply(TablesRequest request);
+  ResultSetResponse apply(TableTypesRequest request);
+  ResultSetResponse apply(ColumnsRequest request);
   PrepareResponse apply(PrepareRequest request);
   ResultSetResponse apply(PrepareAndExecuteRequest request);
   FetchResponse apply(FetchRequest request);
@@ -52,6 +54,9 @@ public interface Service {
       @JsonSubTypes.Type(value = CatalogsRequest.class, name = "getCatalogs"),
       @JsonSubTypes.Type(value = SchemasRequest.class, name = "getSchemas"),
       @JsonSubTypes.Type(value = TablesRequest.class, name = "getTables"),
+      @JsonSubTypes.Type(value = TableTypesRequest.class,
+          name = "getTableTypes"),
+      @JsonSubTypes.Type(value = ColumnsRequest.class, name = "getColumns"),
       @JsonSubTypes.Type(value = PrepareRequest.class, name = "prepare"),
       @JsonSubTypes.Type(value = PrepareAndExecuteRequest.class,
           name = "prepareAndExecute"),
@@ -127,11 +132,47 @@ public interface Service {
     }
   }
 
+  /** Request for
+   * {@link Meta#getTableTypes()}. */
+  class TableTypesRequest extends Request {
+
+    ResultSetResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Request for
+   * {@link Meta#getColumns(String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat)}.
+   */
+  class ColumnsRequest extends Request {
+    public final String catalog;
+    public final String schemaPattern;
+    public final String tableNamePattern;
+    public final String columnNamePattern;
+
+    @JsonCreator
+    public ColumnsRequest(@JsonProperty("catalog") String catalog,
+        @JsonProperty("schemaPattern") String schemaPattern,
+        @JsonProperty("tableNamePattern") String tableNamePattern,
+        @JsonProperty("columnNamePattern") String columnNamePattern) {
+      this.catalog = catalog;
+      this.schemaPattern = schemaPattern;
+      this.tableNamePattern = tableNamePattern;
+      this.columnNamePattern = columnNamePattern;
+    }
+
+    ResultSetResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
   /** Response that contains a result set.
    *
    * <p>Several types of request, including
    * {@link org.apache.calcite.avatica.Meta#getCatalogs()} and
    * {@link org.apache.calcite.avatica.Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}
+   * {@link Meta#getTables(String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, List<String>)}
+   * {@link Meta#getTableTypes()}
    * return this response. */
   class ResultSetResponse extends Response {
     public final int statementId;
