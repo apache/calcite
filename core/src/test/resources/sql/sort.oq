@@ -68,4 +68,21 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>=($t0, $t2)], expr#4=[
   EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 
+!use post
+
+# [CALCITE-603] WITH ... ORDER BY cannot find table
+with e as (select "empid" as empid from "hr"."emps" where "empid" < 120)
+select * from e as e1, e as e2 order by e1.empid + e2.empid, e1.empid;
++-------+--------+
+| EMPID | EMPID0 |
++-------+--------+
+|   100 |    100 |
+|   100 |    110 |
+|   110 |    100 |
+|   110 |    110 |
++-------+--------+
+(4 rows)
+
+!ok
+
 # End sort.oq

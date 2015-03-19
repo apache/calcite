@@ -5619,6 +5619,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s)Cannot apply '\\+' to arguments of type '<CHAR\\(3\\)> \\+ <INTEGER>'\\..*");
   }
 
+  @Test public void testOrderJoin() {
+    sql("select * from emp as e, dept as d order by e.empno").ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-633">[CALCITE-633],
+   * WITH ... ORDER BY cannot find table</a>. */
+  @Test public void testWithOrder() {
+    sql("with e as (select * from emp)\n"
+            + "select * from e as e1 order by e1.empno").ok();
+    sql("with e as (select * from emp)\n"
+            + "select * from e as e1, e as e2 order by e1.empno").ok();
+  }
+
   @Test public void testOrderUnion() {
     check("select empno, sal from emp "
         + "union all "

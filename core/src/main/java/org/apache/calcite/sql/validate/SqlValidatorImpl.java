@@ -1039,6 +1039,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           return select;
         }
       }
+      if (orderBy.query instanceof SqlWith
+          && ((SqlWith) orderBy.query).body instanceof SqlSelect) {
+        SqlWith with = (SqlWith) orderBy.query;
+        SqlSelect select = (SqlSelect) with.body;
+
+        // Don't clobber existing ORDER BY.  It may be needed for
+        // an order-sensitive function like RANK.
+        if (select.getOrderList() == null) {
+          // push ORDER BY into existing select
+          select.setOrderBy(orderBy.orderList);
+          select.setOffset(orderBy.offset);
+          select.setFetch(orderBy.fetch);
+          return with;
+        }
+      }
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
       selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
       final SqlNodeList orderList;
