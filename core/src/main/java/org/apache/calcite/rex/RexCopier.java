@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.rel.type.RelDataType;
+
 /**
  * Shuttle which creates a deep copy of a Rex expression.
  *
@@ -45,6 +47,10 @@ class RexCopier extends RexShuttle {
 
   //~ Methods ----------------------------------------------------------------
 
+  private RelDataType copy(RelDataType type) {
+    return builder.getTypeFactory().copyType(type);
+  }
+
   public RexNode visitOver(RexOver over) {
     throw new UnsupportedOperationException();
   }
@@ -55,8 +61,7 @@ class RexCopier extends RexShuttle {
 
   public RexNode visitCall(final RexCall call) {
     final boolean[] update = null;
-    return builder.makeCall(
-        builder.getTypeFactory().copyType(call.getType()),
+    return builder.makeCall(copy(call.getType()),
         call.getOperator(),
         visitList(call.getOperands(), update));
   }
@@ -66,13 +71,12 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-    return builder.makeFieldAccess(
-        fieldAccess.getReferenceExpr().accept(this),
+    return builder.makeFieldAccess(fieldAccess.getReferenceExpr().accept(this),
         fieldAccess.getField().getIndex());
   }
 
   public RexNode visitInputRef(RexInputRef inputRef) {
-    throw new UnsupportedOperationException();
+    return builder.makeInputRef(copy(inputRef.getType()), inputRef.getIndex());
   }
 
   public RexNode visitLocalRef(RexLocalRef localRef) {
@@ -80,9 +84,7 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitLiteral(RexLiteral literal) {
-    return new RexLiteral(
-        literal.getValue(),
-        builder.getTypeFactory().copyType(literal.getType()),
+    return new RexLiteral(literal.getValue(), copy(literal.getType()),
         literal.getTypeName());
   }
 

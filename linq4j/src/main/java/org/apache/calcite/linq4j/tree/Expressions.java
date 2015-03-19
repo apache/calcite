@@ -566,7 +566,11 @@ public abstract class Expressions {
       if (primitive != null) {
         clazz = primitive.boxClass;
       }
-      if (!clazz.isInstance(value)) {
+      if ((clazz == Float.class || clazz == Double.class)
+          && value instanceof BigDecimal) {
+        // Don't try to convert the value of float and double literals.
+        // We'd experience rounding, e.g. 3.2 becomes 3.1999998.
+      } else if (!clazz.isInstance(value)) {
         String stringValue = String.valueOf(value);
         if (type == BigDecimal.class) {
           value = new BigDecimal(stringValue);

@@ -586,6 +586,9 @@ public class RexToLixTranslator {
     final Object value2;
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:
+      if (javaClass == float.class) {
+        return Expressions.constant(value, javaClass);
+      }
       assert javaClass == BigDecimal.class;
       return Expressions.new_(BigDecimal.class,
           Expressions.constant(value.toString()));

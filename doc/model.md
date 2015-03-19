@@ -224,7 +224,8 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 {
   name: 'female_emps',
   type: 'view',
-  sql: "select * from emps where gender = 'F'"
+  sql: "select * from emps where gender = 'F'",
+  modifiable: true
 }
 ```
 
@@ -235,6 +236,29 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 
 `path` (optional list) is the SQL path to resolve the query. If not
 specified, defaults to the current schema.
+
+`modifiable` (optional boolean) is whether the view is modifiable.
+If null or not specified, Calcite deduces whether the view is modifiable.
+
+A view is modifiable if contains only SELECT, FROM, WHERE (no JOIN, aggregation
+or sub-queries) and every column:
+* is specified once in the SELECT clause; or
+* occurs in the WHERE clause with a `column = literal` predicate; or
+* is nullable.
+
+The second clause allows Calcite to automatically provide the correct value for
+hidden columns. It is useful in multi-tenant environments, where the `tenantId`
+column is hidden, mandatory (NOT NULL), and has a constant value for a
+particular view.
+
+Errors regarding modifiable views:
+* If a view is marked `modifiable: true` and is not modifiable, Calcite throws
+  an error while reading the schema.
+* If you submit an INSERT, UPDATE or UPSERT command to a non-modifiable view,
+  Calcite throws an error when validating the statement.
+* If a DML statement creates a row that would not appear in the view
+  (for example, a row in `female_emps`, above, with `gender = 'M'`),
+  Calcite throws an error when executing the statement.
 
 ### Custom Table
 

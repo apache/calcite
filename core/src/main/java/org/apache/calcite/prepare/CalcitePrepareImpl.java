@@ -64,6 +64,9 @@ import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
@@ -87,11 +90,13 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -109,6 +114,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -121,9 +127,12 @@ import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Shit just got real.
@@ -223,15 +232,21 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   public ParseResult parse(
       Context context, String sql) {
-    return parse_(context, sql, false);
+    return parse_(context, sql, false, false, false);
   }
 
   public ConvertResult convert(Context context, String sql) {
-    return (ConvertResult) parse_(context, sql, true);
+    return (ConvertResult) parse_(context, sql, true, false, false);
   }
 
-  /** Shared implementation for {@link #parse} and {@link #convert}. */
-  private ParseResult parse_(Context context, String sql, boolean convert) {
+  public AnalyzeViewResult analyzeView(Context context, String sql, boolean fail) {
+    return (AnalyzeViewResult) parse_(context, sql, true, true, fail);
+  }
+
+  /** Shared implementation for {@link #parse}, {@link #convert} and
+   * {@link #analyzeView}. */
+  private ParseResult parse_(Context context, String sql, boolean convert,
+      boolean analyze, boolean fail) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(
@@ -250,22 +265,142 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         new CalciteSqlValidator(
             SqlStdOperatorTable.instance(), catalogReader, typeFactory);
     SqlNode sqlNode1 = validator.validate(sqlNode);
-    if (!convert) {
-      return new ParseResult(this, validator, sql, sqlNode1,
-          validator.getValidatedNodeType(sqlNode1));
+    if (convert) {
+      return convert_(
+          context, sql, analyze, fail, catalogReader, validator, sqlNode1);
     }
+    return new ParseResult(this, validator, sql, sqlNode1,
+        validator.getValidatedNodeType(sqlNode1));
+  }
+
+  private ParseResult convert_(Context context, String sql, boolean analyze,
+      boolean fail, CalciteCatalogReader catalogReader, SqlValidator validator,
+      SqlNode sqlNode1) {
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
     final Convention resultConvention =
         ENABLE_BINDABLE ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
             context.getRootSchema(), null, planner, resultConvention);
     final SqlToRelConverter converter =
         preparingStmt.getSqlToRelConverter(validator, catalogReader);
+    if (analyze) {
+      converter.enableTableAccessConversion(false);
+    }
     final RelNode relNode = converter.convertQuery(sqlNode1, false, true);
+    if (analyze) {
+      return analyze_(validator, sql, sqlNode1, relNode, fail);
+    }
     return new ConvertResult(this, validator, sql, sqlNode1,
         validator.getValidatedNodeType(sqlNode1), relNode);
+  }
+
+  private AnalyzeViewResult analyze_(SqlValidator validator, String sql,
+      SqlNode sqlNode, RelNode rel, boolean fail) {
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final RelNode viewRel = rel;
+    Project project;
+    if (rel instanceof Project) {
+      project = (Project) rel;
+      rel = project.getInput();
+    } else {
+      project = null;
+    }
+    Filter filter;
+    if (rel instanceof Filter) {
+      filter = (Filter) rel;
+      rel = filter.getInput();
+    } else {
+      filter = null;
+    }
+    TableScan scan;
+    if (rel instanceof TableScan) {
+      scan = (TableScan) rel;
+    } else {
+      scan = null;
+    }
+    if (scan == null) {
+      if (fail) {
+        throw validator.newValidationError(sqlNode,
+            RESOURCE.modifiableViewMustBeBasedOnSingleTable());
+      }
+      return new AnalyzeViewResult(this, validator, sql, sqlNode,
+          validator.getValidatedNodeType(sqlNode), rel, null, null, null,
+          null);
+    }
+    final RelOptTable targetRelTable = scan.getTable();
+    final RelDataType targetRowType = targetRelTable.getRowType();
+    final Table table = targetRelTable.unwrap(Table.class);
+    final List<String> tablePath = targetRelTable.getQualifiedName();
+    assert table != null;
+    List<Integer> columnMapping;
+    final Map<Integer, RexNode> projectMap = new HashMap<>();
+    if (project == null) {
+      columnMapping = ImmutableIntList.range(0, targetRowType.getFieldCount());
+    } else {
+      columnMapping = new ArrayList<>();
+      for (Ord<RexNode> node : Ord.zip(project.getProjects())) {
+        if (node.e instanceof RexInputRef) {
+          RexInputRef rexInputRef = (RexInputRef) node.e;
+          int index = rexInputRef.getIndex();
+          if (projectMap.get(index) != null) {
+            if (fail) {
+              throw validator.newValidationError(sqlNode,
+                  RESOURCE.moreThanOneMappedColumn(
+                      targetRowType.getFieldList().get(index).getName(),
+                      Util.last(tablePath)));
+            }
+            return new AnalyzeViewResult(this, validator, sql, sqlNode,
+                validator.getValidatedNodeType(sqlNode), rel, null, null, null,
+                null);
+          }
+          projectMap.put(index, rexBuilder.makeInputRef(viewRel, node.i));
+          columnMapping.add(index);
+        } else {
+          columnMapping.add(-1);
+        }
+      }
+    }
+    final RexNode constraint;
+    if (filter != null) {
+      constraint = filter.getCondition();
+    } else {
+      constraint = rexBuilder.makeLiteral(true);
+    }
+    final List<RexNode> filters = new ArrayList<>();
+    RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
+
+    // Check that all columns that are not projected have a constant value
+    for (RelDataTypeField field : targetRowType.getFieldList()) {
+      final int x = columnMapping.indexOf(field.getIndex());
+      if (x >= 0) {
+        assert Util.skip(columnMapping, x + 1).indexOf(field.getIndex()) < 0
+            : "column projected more than once; should have checked above";
+        continue; // target column is projected
+      }
+      if (projectMap.get(field.getIndex()) != null) {
+        continue; // constant expression
+      }
+      if (field.getType().isNullable()) {
+        continue; // don't need expression for nullable columns; NULL suffices
+      }
+      if (fail) {
+        throw validator.newValidationError(sqlNode,
+            RESOURCE.noValueSuppliedForViewColumn(field.getName(),
+                Util.last(tablePath)));
+      }
+      return new AnalyzeViewResult(this, validator, sql, sqlNode,
+          validator.getValidatedNodeType(sqlNode), rel, null, null, null,
+          null);
+    }
+
+    return new AnalyzeViewResult(this, validator, sql, sqlNode,
+        validator.getValidatedNodeType(sqlNode), rel, table,
+        ImmutableList.copyOf(tablePath),
+        constraint, ImmutableIntList.copyOf(columnMapping));
   }
 
   /** Factory method for default SQL parser. */

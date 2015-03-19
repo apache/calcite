@@ -1142,6 +1142,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
+  @Test public void testInsert() {
+    sql("insert into emp (deptno, empno, ename) values (10, 150, 'Fred')")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testSelectView() {
+    // translated condition: deptno = 20 and sal > 1000 and empno > 100
+    sql("select * from emp_20 where empno > 100")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testInsertView() {
+    sql("insert into emp_20 (empno, ename) values (150, 'Fred')")
+        .convertsTo("${plan}");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]

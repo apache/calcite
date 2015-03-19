@@ -33,13 +33,18 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Stacks;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -61,13 +66,23 @@ public interface CalcitePrepare {
   ThreadLocal<ArrayList<Context>> THREAD_CONTEXT_STACK =
       new ThreadLocal<ArrayList<Context>>() {
         @Override protected ArrayList<Context> initialValue() {
-          return new ArrayList<Context>();
+          return new ArrayList<>();
         }
       };
 
   ParseResult parse(Context context, String sql);
 
   ConvertResult convert(Context context, String sql);
+
+  /** Analyzes a view.
+   *
+   * @param context Context
+   * @param sql View SQL
+   * @param fail Whether to fail (and throw a descriptive error message) if the
+   *             view is not modifiable
+   * @return Result of analyzing the view
+   */
+  AnalyzeViewResult analyzeView(Context context, String sql, boolean fail);
 
   <T> CalciteSignature<T> prepareSql(
       Context context,
@@ -97,7 +112,7 @@ public interface CalcitePrepare {
   }
 
   /** Callback to register Spark as the main engine. */
-  public interface SparkHandler {
+  interface SparkHandler {
     RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
         boolean restructure);
 
@@ -118,8 +133,10 @@ public interface CalcitePrepare {
 
   /** Namespace that allows us to define non-abstract methods inside an
    * interface. */
-  public static class Dummy {
+  class Dummy {
     private static SparkHandler sparkHandler;
+
+    private Dummy() {}
 
     /** Returns a spark handler. Returns a trivial handler, for which
      * {@link SparkHandler#enabled()} returns {@code false}, if {@code enable}
@@ -140,13 +157,10 @@ public interface CalcitePrepare {
         return (CalcitePrepare.SparkHandler) method.invoke(null);
       } catch (ClassNotFoundException e) {
         return new TrivialSparkHandler();
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (ClassCastException e) {
-        throw new RuntimeException(e);
-      } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (IllegalAccessException
+          | ClassCastException
+          | InvocationTargetException
+          | NoSuchMethodException e) {
         throw new RuntimeException(e);
       }
     }
@@ -189,7 +203,7 @@ public interface CalcitePrepare {
   }
 
   /** The result of parsing and validating a SQL query. */
-  public static class ParseResult {
+  class ParseResult {
     public final CalcitePrepareImpl prepare;
     public final String sql; // for debug
     public final SqlNode sqlNode;
@@ -210,7 +224,7 @@ public interface CalcitePrepare {
 
   /** The result of parsing and validating a SQL query and converting it to
    * relational algebra. */
-  public static class ConvertResult extends ParseResult {
+  class ConvertResult extends ParseResult {
     public final RelNode relNode;
 
     public ConvertResult(CalcitePrepareImpl prepare, SqlValidator validator,
@@ -220,10 +234,31 @@ public interface CalcitePrepare {
     }
   }
 
+  /** The result of analyzing a view. */
+  class AnalyzeViewResult extends ConvertResult {
+    /** Not null if and only if the view is modifiable. */
+    public final Table table;
+    public final ImmutableList<String> tablePath;
+    public final RexNode constraint;
+    public final ImmutableIntList columnMapping;
+
+    public AnalyzeViewResult(CalcitePrepareImpl prepare,
+        SqlValidator validator, String sql, SqlNode sqlNode,
+        RelDataType rowType, RelNode relNode, Table table,
+        ImmutableList<String> tablePath, RexNode constraint,
+        ImmutableIntList columnMapping) {
+      super(prepare, validator, sql, sqlNode, rowType, relNode);
+      this.table = table;
+      this.tablePath = tablePath;
+      this.constraint = constraint;
+      this.columnMapping = columnMapping;
+    }
+  }
+
   /** The result of preparing a query. It gives the Avatica driver framework
    * the information it needs to create a prepared statement, or to execute a
    * statement directly, without an explicit prepare step. */
-  public static class CalciteSignature<T> extends Meta.Signature {
+  class CalciteSignature<T> extends Meta.Signature {
     @JsonIgnore public final RelDataType rowType;
     private final int maxRowCount;
     private final Bindable<T> bindable;

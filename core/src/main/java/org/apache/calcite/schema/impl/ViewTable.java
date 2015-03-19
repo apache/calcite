@@ -29,12 +29,18 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -64,9 +70,33 @@ public class ViewTable
   }
 
   /** Table macro that returns a view. */
+  @Deprecated // to be removed before 2.0
   public static ViewTableMacro viewMacro(SchemaPlus schema,
       final String viewSql, final List<String> schemaPath) {
-    return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath);
+    return viewMacro(schema, viewSql, schemaPath, Boolean.TRUE);
+  }
+
+  /** Table macro that returns a view.
+   *
+   * @param schema Schema the view will belong to
+   * @param viewSql SQL query
+   * @param schemaPath Path of schema
+   * @param modifiable Whether view is modifiable, or null to deduce it
+   */
+  public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
+      List<String> schemaPath, Boolean modifiable) {
+    return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
+        modifiable);
+  }
+
+  /** Returns the view's SQL definition. */
+  public String getViewSql() {
+    return viewSql;
+  }
+
+  /** Returns the the schema path of the view. */
+  public List<String> getSchemaPath() {
+    return schemaPath;
   }
 
   @Override public Schema.TableType getJdbcTableType() {
@@ -80,8 +110,7 @@ public class ViewTable
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return queryProvider.createQuery(
-        getExpression(schema, tableName, Queryable.class),
-        elementType);
+        getExpression(schema, tableName, Queryable.class), elementType);
   }
 
   public RelNode toRel(
@@ -111,14 +140,16 @@ public class ViewTable
   static class ViewTableMacro implements TableMacro {
     protected final String viewSql;
     protected final CalciteSchema schema;
+    private final Boolean modifiable;
     /** Typically null. If specified, overrides the path of the schema as the
      * context for validating {@code viewSql}. */
     protected final List<String> schemaPath;
 
-    ViewTableMacro(CalciteSchema schema, String viewSql,
-        List<String> schemaPath) {
+    ViewTableMacro(CalciteSchema schema, String viewSql, List<String> schemaPath,
+        Boolean modifiable) {
       this.viewSql = viewSql;
       this.schema = schema;
+      this.modifiable = modifiable;
       this.schemaPath =
           schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
     }
@@ -128,25 +159,60 @@ public class ViewTable
     }
 
     public TranslatableTable apply(List<Object> arguments) {
-      CalcitePrepare.ParseResult parsed =
-          Schemas.parse(MaterializedViewTable.MATERIALIZATION_CONNECTION,
-              schema, schemaPath, viewSql);
+      CalcitePrepare.AnalyzeViewResult parsed =
+          Schemas.analyzeView(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+              schema, schemaPath, viewSql, modifiable != null && modifiable);
       final List<String> schemaPath1 =
           schemaPath != null ? schemaPath : schema.path(null);
       final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
-      return new ViewTable(typeFactory.getJavaClass(parsed.rowType),
-          RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);
+      final Type elementType = typeFactory.getJavaClass(parsed.rowType);
+      if ((modifiable == null || modifiable) && parsed.table != null) {
+        return new ModifiableViewTable(elementType,
+            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1,
+            parsed.table, Schemas.path(schema.root(), parsed.tablePath),
+            parsed.constraint, parsed.columnMapping);
+      } else {
+        return new ViewTable(elementType,
+            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);
+      }
     }
   }
 
-  /** Returns the view's SQL definition. */
-  public String getViewSql() {
-    return viewSql;
-  }
+  /** Extension to {@link ViewTable} that is modifiable. */
+  static class ModifiableViewTable extends ViewTable
+      implements ModifiableView {
+    private final Table table;
+    private final Path tablePath;
+    private final RexNode constraint;
+    private final ImmutableIntList columnMapping;
 
-  /** Returns the the schema path of the view. */
-  public List<String> getSchemaPath() {
-    return schemaPath;
+    public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
+        String viewSql, List<String> schemaPath, Table table,
+        Path tablePath, RexNode constraint,
+        ImmutableIntList columnMapping) {
+      super(elementType, rowType, viewSql, schemaPath);
+      this.table = table;
+      this.tablePath = tablePath;
+      this.constraint = constraint;
+      this.columnMapping = columnMapping;
+    }
+
+    public RexNode getConstraint(RexBuilder rexBuilder,
+        RelDataType tableRowType) {
+      return rexBuilder.copy(constraint);
+    }
+
+    public ImmutableIntList getColumnMapping() {
+      return columnMapping;
+    }
+
+    public Table getTable() {
+      return table;
+    }
+
+    public Path getTablePath() {
+      return tablePath;
+    }
   }
 }
 

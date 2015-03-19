@@ -7079,6 +7079,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester1.checkQuery("select empNo from (select Empno from emP)");
   }
 
+  @Test public void testInsert() {
+    tester.checkQuery("insert into emp (empno, deptno) values (1, 1)");
+    tester.checkQuery("insert into emp (empno, deptno)\n"
+        + "select 1, 1 from (values 'a')");
+  }
+
   @Test public void testStream() {
     sql("select stream * from orders").ok();
     sql("select stream * from ^emp^")

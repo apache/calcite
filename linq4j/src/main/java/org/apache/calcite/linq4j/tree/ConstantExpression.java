@@ -43,7 +43,9 @@ public class ConstantExpression extends Expression {
         if (primitive != null) {
           clazz = primitive.boxClass;
         }
-        if (!clazz.isInstance(value)) {
+        if (!clazz.isInstance(value)
+            && !((clazz == Float.class || clazz == Double.class)
+                && value instanceof BigDecimal)) {
           throw new AssertionError(
               "value " + value + " does not match type " + type);
         }
@@ -85,6 +87,7 @@ public class ConstantExpression extends Expression {
       return writer;
     }
     final Primitive primitive = Primitive.of(type);
+    final BigDecimal bigDecimal;
     if (primitive != null) {
       switch (primitive) {
       case BYTE:
@@ -96,8 +99,28 @@ public class ConstantExpression extends Expression {
       case LONG:
         return writer.append(value).append("L");
       case FLOAT:
+        if (value instanceof BigDecimal) {
+          bigDecimal = (BigDecimal) value;
+        } else {
+          bigDecimal = BigDecimal.valueOf((Float) value);
+        }
+        if (bigDecimal.precision() > 6) {
+          return writer.append("Float.intBitsToFloat(")
+              .append(Float.floatToIntBits(bigDecimal.floatValue()))
+              .append(")");
+        }
         return writer.append(value).append("F");
       case DOUBLE:
+        if (value instanceof BigDecimal) {
+          bigDecimal = (BigDecimal) value;
+        } else {
+          bigDecimal = BigDecimal.valueOf((Double) value);
+        }
+        if (bigDecimal.precision() > 10) {
+          return writer.append("Double.longBitsToDouble(")
+              .append(Double.doubleToLongBits(bigDecimal.doubleValue()))
+              .append("L)");
+        }
         return writer.append(value).append("D");
       default:
         return writer.append(value);
@@ -115,7 +138,7 @@ public class ConstantExpression extends Expression {
           .append(((Enum) value).name());
     }
     if (value instanceof BigDecimal) {
-      BigDecimal bigDecimal = ((BigDecimal) value).stripTrailingZeros();
+      bigDecimal = ((BigDecimal) value).stripTrailingZeros();
       try {
         final int scale = bigDecimal.scale();
         final long exact = bigDecimal.scaleByPowerOfTen(scale).longValueExact();

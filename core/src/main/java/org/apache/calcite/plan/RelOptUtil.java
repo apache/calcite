@@ -92,6 +92,7 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -636,8 +637,8 @@ public abstract class RelOptUtil {
       final RelNode rel,
       RelDataType castRowType,
       boolean rename) {
-    return createCastRel(rel, castRowType, rename,
-        RelFactories.DEFAULT_PROJECT_FACTORY);
+    return createCastRel(
+        rel, castRowType, rename, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
   /**
@@ -2033,6 +2034,45 @@ public abstract class RelOptUtil {
     return left;
   }
 
+  /** Decomposes the WHERE clause of a view into predicates that constraint
+   * a column to a particular value.
+   *
+   * <p>This method is key to the validation of a modifiable view. Columns that
+   * are constrained to a single value can be omitted from the
+   * SELECT clause of a modifiable view.
+   *
+   * @param projectMap Mapping from column ordinal to the expression that
+   * populate that column, to be populated by this method
+   * @param filters List of remaining filters, to be populated by this method
+   * @param constraint Constraint to be analyzed
+   */
+  public static void inferViewPredicates(Map<Integer, RexNode> projectMap,
+      List<RexNode> filters, RexNode constraint) {
+    for (RexNode node : conjunctions(constraint)) {
+      switch (node.getKind()) {
+      case EQUALS:
+        final List<RexNode> operands = ((RexCall) node).getOperands();
+        RexNode o0 = operands.get(0);
+        RexNode o1 = operands.get(1);
+        if (o0 instanceof RexLiteral) {
+          o0 = operands.get(1);
+          o1 = operands.get(0);
+        }
+        if (o0.getKind() == SqlKind.CAST) {
+          o0 = ((RexCall) o0).getOperands().get(0);
+        }
+        if (o0 instanceof RexInputRef && o1 instanceof RexLiteral) {
+          final int index = ((RexInputRef) o0).getIndex();
+          if (projectMap.get(index) == null) {
+            projectMap.put(index, o1);
+            continue;
+          }
+        }
+      }
+      filters.add(node);
+    }
+  }
+
   /**
    * Adjusts key values in a list by some fixed amount.
    *
@@ -2623,8 +2663,8 @@ public abstract class RelOptUtil {
    */
   public static RelNode createProject(final RelNode child,
       final List<Integer> posList) {
-    return createProject(RelFactories.DEFAULT_PROJECT_FACTORY,
-        child, posList);
+    return createProject(
+        RelFactories.DEFAULT_PROJECT_FACTORY, child, posList);
   }
 
   /**
