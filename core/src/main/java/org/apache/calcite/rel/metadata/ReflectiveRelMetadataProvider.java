@@ -25,7 +25,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -34,11 +34,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
+import java.util.Set;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -55,16 +53,8 @@ import java.util.TreeSet;
 public class ReflectiveRelMetadataProvider
     implements RelMetadataProvider, ReflectiveVisitor {
 
-  /** Comparator that sorts derived classes before their base classes. */
-  private static final Comparator<Class<RelNode>> SUPERCLASS_COMPARATOR =
-      new Comparator<Class<RelNode>>() {
-        public int compare(Class<RelNode> c1, Class<RelNode> c2) {
-          return c1 == c2 ? 0 : c2.isAssignableFrom(c1) ? -1 : 1;
-        }
-      };
-
   //~ Instance fields --------------------------------------------------------
-  private final ImmutableMap<Class<RelNode>, Function<RelNode, Metadata>> map;
+  private final Map<Class<RelNode>, Function<RelNode, Metadata>> map;
   private final Class<?> metadataClass0;
 
   //~ Constructors -----------------------------------------------------------
@@ -76,7 +66,7 @@ public class ReflectiveRelMetadataProvider
    * @param metadataClass0 Metadata class
    */
   protected ReflectiveRelMetadataProvider(
-      ImmutableMap<Class<RelNode>, Function<RelNode, Metadata>> map,
+      Map<Class<RelNode>, Function<RelNode, Metadata>> map,
       Class<?> metadataClass0) {
     assert !map.isEmpty() : "are your methods named wrong?";
     this.map = map;
@@ -124,8 +114,7 @@ public class ReflectiveRelMetadataProvider
 
     // Find the distinct set of RelNode classes handled by this provider,
     // ordered base-class first.
-    final TreeSet<Class<RelNode>> classes =
-        Sets.newTreeSet(SUPERCLASS_COMPARATOR);
+    final Set<Class<RelNode>> classes = Sets.newHashSet();
     final Map<Pair<Class<RelNode>, Method>, Method> handlerMap =
         Maps.newHashMap();
     for (final Method handlerMethod : target.getClass().getMethods()) {
@@ -139,14 +128,13 @@ public class ReflectiveRelMetadataProvider
       }
     }
 
-    final Map<Class<RelNode>, Function<RelNode, Metadata>> treeMap =
-        Maps.newTreeMap(SUPERCLASS_COMPARATOR);
-
+    final Map<Class<RelNode>, Function<RelNode, Metadata>> methodsMap =
+        Maps.newHashMap();
     for (Class<RelNode> key : classes) {
       ImmutableNullableList.Builder<Method> builder =
           ImmutableNullableList.builder();
       for (final Method method : methods) {
-        builder.add(find(classes, handlerMap, key, method));
+        builder.add(find(handlerMap, key, method));
       }
       final List<Method> handlerMethods = builder.build();
       final Function<RelNode, Metadata> function =
@@ -196,34 +184,41 @@ public class ReflectiveRelMetadataProvider
                   });
             }
           };
-      treeMap.put(key, function);
+      methodsMap.put(key, function);
     }
-    // Due to the comparator, the TreeMap is sorted such that any derived class
-    // will occur before its base class. The immutable map is not a sorted map,
-    // but it retains the traversal order, and that is sufficient.
-    final ImmutableMap<Class<RelNode>, Function<RelNode, Metadata>> map =
-        ImmutableMap.copyOf(treeMap);
-    return new ReflectiveRelMetadataProvider(map, metadataClass0);
+    return new ReflectiveRelMetadataProvider(methodsMap, metadataClass0);
   }
 
   /** Finds an implementation of a method for {@code relNodeClass} or its
    * nearest base class. Assumes that base classes have already been added to
    * {@code map}. */
-  private static Method find(TreeSet<Class<RelNode>> classes,
-      Map<Pair<Class<RelNode>, Method>, Method> handlerMap,
-      Class<RelNode> relNodeClass, Method method) {
-    final Iterator<Class<RelNode>> iterator = classes.descendingIterator();
-    for (;;) {
-      final Method implementingMethod =
-          handlerMap.get(Pair.of(relNodeClass, method));
+  @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
+  private static Method find(Map<Pair<Class<RelNode>, Method>,
+      Method> handlerMap, Class<RelNode> relNodeClass, Method method) {
+    List<Class<RelNode>> newSources = Lists.newArrayList();
+    Method implementingMethod;
+    while (relNodeClass != null) {
+      implementingMethod = handlerMap.get(Pair.of(relNodeClass, method));
       if (implementingMethod != null) {
         return implementingMethod;
+      } else {
+        newSources.add(relNodeClass);
       }
-      if (!iterator.hasNext()) {
-        return null;
+      for (Class<?> clazz : relNodeClass.getInterfaces()) {
+        if (RelNode.class.isAssignableFrom(clazz)) {
+          implementingMethod = handlerMap.get(Pair.of(clazz, method));
+          if (implementingMethod != null) {
+            return implementingMethod;
+          }
+        }
       }
-      relNodeClass = iterator.next();
+      if (RelNode.class.isAssignableFrom(relNodeClass.getSuperclass())) {
+        relNodeClass = (Class<RelNode>) relNodeClass.getSuperclass();
+      } else {
+        relNodeClass = null;
+      }
     }
+    return null;
   }
 
   private static boolean couldImplement(Method handlerMethod, Method method) {
@@ -244,20 +239,39 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
+  @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
   public Function<RelNode, Metadata> apply(
       Class<? extends RelNode> relClass,
       Class<? extends Metadata> metadataClass) {
     if (metadataClass == metadataClass0) {
       //noinspection SuspiciousMethodCalls
-      final Function<RelNode, Metadata> function = map.get(relClass);
-      if (function != null) {
-        return function;
-      }
-      for (Map.Entry<Class<RelNode>, Function<RelNode, Metadata>> entry
-          : map.entrySet()) {
-        if (entry.getKey().isAssignableFrom(relClass)) {
-          // REVIEW: We are assuming that the first we find is the "best".
-          return entry.getValue();
+      List<Class<? extends RelNode>> newSources = Lists.newArrayList();
+      Function<RelNode, Metadata> function;
+      while (relClass != null) {
+        function = map.get(relClass);
+        if (function != null) {
+          for (@SuppressWarnings("rawtypes") Class clazz : newSources) {
+            map.put(clazz, function);
+          }
+          return function;
+        } else {
+          newSources.add(relClass);
+        }
+        for (Class<?> interfaceClass : relClass.getInterfaces()) {
+          if (RelNode.class.isAssignableFrom(interfaceClass)) {
+            function = map.get(interfaceClass);
+            if (function != null) {
+              for (@SuppressWarnings("rawtypes") Class clazz : newSources) {
+                map.put(clazz, function);
+              }
+              return function;
+            }
+          }
+        }
+        if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
+          relClass = (Class<RelNode>) relClass.getSuperclass();
+        } else {
+          relClass = null;
         }
       }
     }
