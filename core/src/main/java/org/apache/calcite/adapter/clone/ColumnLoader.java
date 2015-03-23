@@ -21,12 +21,13 @@ import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -52,15 +53,15 @@ class ColumnLoader<T> {
     0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000L};
   static final int[] LONG_S = {1, 2, 4, 8, 16, 32};
 
-  private static final Function1<Timestamp, Long> TIMESTAMP_TO_LONG =
-      new Function1<Timestamp, Long>() {
+  private static final Function<Timestamp, Long> TIMESTAMP_TO_LONG =
+      new Function<Timestamp, Long>() {
         public Long apply(Timestamp a0) {
           return a0 == null ? null : a0.getTime();
         }
       };
 
-  private static final Function1<Time, Integer> TIME_TO_INT =
-      new Function1<Time, Integer>() {
+  private static final Function<Time, Integer> TIME_TO_INT =
+      new Function<Time, Integer>() {
         public Integer apply(Time a0) {
           return a0 == null
               ? null
@@ -68,8 +69,8 @@ class ColumnLoader<T> {
         }
       };
 
-  private static final Function1<Date, Integer> DATE_TO_INT =
-      new Function1<Date, Integer>() {
+  private static final Function<Date, Integer> DATE_TO_INT =
+      new Function<Date, Integer>() {
         public Integer apply(Date a0) {
           return a0 == null
               ? null
@@ -77,9 +78,8 @@ class ColumnLoader<T> {
         }
       };
 
-  public final List<T> list = new ArrayList<T>();
-  public final List<ArrayTable.Column> representationValues =
-      new ArrayList<ArrayTable.Column>();
+  public final List<T> list = new ArrayList<>();
+  public final List<ArrayTable.Column> representationValues = new ArrayList<>();
   private final JavaTypeFactory typeFactory;
   public final int sortField;
 
@@ -264,21 +264,21 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIMESTAMP:
-        return Functions.adapt(list, TIMESTAMP_TO_LONG);
+        return Lists.transform(list, TIMESTAMP_TO_LONG);
       }
       break;
     case TIME:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIME:
-        return Functions.adapt(list, TIME_TO_INT);
+        return Lists.transform(list, TIME_TO_INT);
       }
       break;
     case DATE:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_DATE:
-        return Functions.adapt(list, DATE_TO_INT);
+        return Lists.transform(list, DATE_TO_INT);
       }
       break;
     }
@@ -291,9 +291,8 @@ class ColumnLoader<T> {
    */
   static class ValueSet {
     final Class clazz;
-    final Map<Comparable, Comparable> map =
-        new HashMap<Comparable, Comparable>();
-    final List<Comparable> values = new ArrayList<Comparable>();
+    final Map<Comparable, Comparable> map = new HashMap<>();
+    final List<Comparable> values = new ArrayList<>();
     Comparable min;
     Comparable max;
     boolean containsNull;

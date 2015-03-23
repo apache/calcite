@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -34,8 +32,10 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -47,8 +47,8 @@ public abstract class Values extends AbstractRelNode {
   /**
    * Lambda that helps render tuples as strings.
    */
-  private static final Function1<ImmutableList<RexLiteral>, Object> F =
-      new Function1<ImmutableList<RexLiteral>, Object>() {
+  private static final Function<ImmutableList<RexLiteral>, Object> F =
+      new Function<ImmutableList<RexLiteral>, Object>() {
         public Object apply(ImmutableList<RexLiteral> tuple) {
           String s = tuple.toString();
           assert s.startsWith("[");
@@ -171,13 +171,10 @@ public abstract class Values extends AbstractRelNode {
     return super.explainTerms(pw)
         // For rel digest, include the row type since a rendered
         // literal may leave the type ambiguous (e.g. "null").
-        .itemIf(
-            "type", rowType,
+        .itemIf("type", rowType,
             pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
-        .itemIf(
-            "type", rowType.getFieldList(),
-            pw.nest())
-        .itemIf("tuples", Functions.adapt(tuples, F), !pw.nest())
+        .itemIf("type", rowType.getFieldList(), pw.nest())
+        .itemIf("tuples", Lists.transform(tuples, F), !pw.nest())
         .itemIf("tuples", tuples, pw.nest());
   }
 }

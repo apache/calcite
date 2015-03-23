@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -89,8 +90,7 @@ public class ConstantExpression extends Expression {
       case BYTE:
         return writer.append("(byte)").append(((Byte) value).intValue());
       case CHAR:
-        return writer.append("(char)")
-            .append((int) ((Character) value).charValue());
+        return writer.append("(char)").append((int) (Character) value);
       case SHORT:
         return writer.append("(short)").append(((Short) value).intValue());
       case LONG:
@@ -149,11 +149,10 @@ public class ConstantExpression extends Expression {
     }
     Constructor constructor = matchingConstructor(value);
     if (constructor != null) {
-      final Field[] fields = value.getClass().getFields();
       writer.append("new ").append(value.getClass());
       list(writer,
-          Functions.adapt(fields,
-              new Function1<Field, Object>() {
+          Lists.transform(Arrays.asList(value.getClass().getFields()),
+              new Function<Field, Object>() {
                 public Object apply(Field field) {
                   try {
                     return field.get(value);

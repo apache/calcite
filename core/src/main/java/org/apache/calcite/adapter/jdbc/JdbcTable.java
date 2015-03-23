@@ -24,8 +24,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
@@ -47,6 +45,9 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -110,9 +111,8 @@ class JdbcTable extends AbstractQueryableTable
   private List<Pair<Primitive, Integer>> fieldClasses(
       final JavaTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
-    return Functions.adapt(
-        rowType.getFieldList(),
-        new Function1<RelDataTypeField, Pair<Primitive, Integer>>() {
+    return Lists.transform(rowType.getFieldList(),
+        new Function<RelDataTypeField, Pair<Primitive, Integer>>() {
           public Pair<Primitive, Integer> apply(RelDataTypeField field) {
             RelDataType type = field.getType();
             Class clazz = (Class) typeFactory.getJavaClass(type);
@@ -137,7 +137,7 @@ class JdbcTable extends AbstractQueryableTable
   }
 
   SqlIdentifier tableName() {
-    final List<String> strings = new ArrayList<String>();
+    final List<String> strings = new ArrayList<>();
     if (jdbcSchema.catalog != null) {
       strings.add(jdbcSchema.catalog);
     }
@@ -156,7 +156,7 @@ class JdbcTable extends AbstractQueryableTable
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
-    return new JdbcTableQueryable<T>(queryProvider, schema, tableName);
+    return new JdbcTableQueryable<>(queryProvider, schema, tableName);
   }
 
   public Enumerable<Object[]> scan(DataContext root) {

@@ -28,8 +28,6 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.AbstractQueryable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
@@ -41,6 +39,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -123,8 +122,8 @@ public class MaterializationService {
       materializedTable =
           CloneSchema.createCloneTable(typeFactory,
               RelDataTypeImpl.proto(calciteSignature.rowType),
-              Functions.adapt(calciteSignature.columns,
-                  new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
+              Lists.transform(calciteSignature.columns,
+                  new Function<ColumnMetaData, ColumnMetaData.Rep>() {
                     public ColumnMetaData.Rep apply(ColumnMetaData column) {
                       return column.type.rep;
                     }
@@ -245,7 +244,7 @@ public class MaterializationService {
     // through all tiles.
     if (!exact) {
       final PriorityQueue<Pair<CalciteSchema.TableEntry, TileKey>> queue =
-          new PriorityQueue<Pair<CalciteSchema.TableEntry, TileKey>>(1, C);
+          new PriorityQueue<>(1, C);
       for (Map.Entry<TileKey, MaterializationKey> entry
           : actor.keyByTile.entrySet()) {
         final TileKey tileKey2 = entry.getKey();
@@ -327,8 +326,7 @@ public class MaterializationService {
    * with the current schema. Especially in a test run, the contents of two
    * root schemas may look similar.) */
   public List<Prepare.Materialization> query(CalciteSchema rootSchema) {
-    final List<Prepare.Materialization> list =
-        new ArrayList<Prepare.Materialization>();
+    final List<Prepare.Materialization> list = new ArrayList<>();
     for (MaterializationActor.Materialization materialization
         : actor.keyMap.values()) {
       if (materialization.rootSchema == rootSchema

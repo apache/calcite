@@ -129,21 +129,6 @@ public class FunctionTest {
       // ok
     }
   }
-
-  /** Unit test for {@link Functions#adapt(Object[], Function1)}. */
-  @Test public void testAdaptArray() {
-    String[] abc = {"a", "b", "c"};
-    final Function1<String, String> toUpper =
-        new Function1<String, String>() {
-          public String apply(String s) {
-            return s.toUpperCase();
-          }
-        };
-    Assert.assertEquals("[A, B, C]",
-        Functions.adapt(abc, toUpper).toString());
-    Assert.assertEquals("[]",
-        Functions.adapt(new String[0], toUpper).toString());
-  }
 }
 
 // End FunctionTest.java

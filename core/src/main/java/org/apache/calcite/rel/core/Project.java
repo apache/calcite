@@ -17,8 +17,6 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -46,7 +44,9 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -202,9 +202,8 @@ public abstract class Project extends SingleRel {
     }
     //CHECKSTYLE: IGNORE 1
     if (false && !Util.isDistinct(
-        Functions.adapt(
-            exps,
-            new Function1<RexNode, Object>() {
+        Lists.transform(exps,
+            new Function<RexNode, Object>() {
               public Object apply(RexNode a0) {
                 return a0.toString();
               }

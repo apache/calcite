@@ -54,8 +54,7 @@ public abstract class Functions {
 
   private static final Map<Class, Class<? extends Function>> FUNCTION1_CLASSES =
       Collections.unmodifiableMap(
-          new HashMap<Class, Class<? extends Function>>(
-              inverse(FUNCTION_RESULT_TYPES)));
+          new HashMap<>(inverse(FUNCTION_RESULT_TYPES)));
 
   private static final Comparator NULLS_FIRST_COMPARATOR =
       new NullsFirstComparator();
@@ -91,7 +90,7 @@ public abstract class Functions {
 
   @SuppressWarnings("unchecked")
   private static <K, V> Map<K, V> map(K k, V v, Object... rest) {
-    final Map<K, V> map = new HashMap<K, V>();
+    final Map<K, V> map = new HashMap<>();
     map.put(k, v);
     for (int i = 0; i < rest.length; i++) {
       map.put((K) rest[i++], (V) rest[i++]);
@@ -100,7 +99,7 @@ public abstract class Functions {
   }
 
   private static <K, V> Map<V, K> inverse(Map<K, V> map) {
-    HashMap<V, K> inverseMap = new HashMap<V, K>();
+    HashMap<V, K> inverseMap = new HashMap<>();
     for (Map.Entry<K, V> entry : map.entrySet()) {
       inverseMap.put(entry.getValue(), entry.getKey());
     }
@@ -306,7 +305,10 @@ public abstract class Functions {
 
   /**
    * Creates a view of a list that applies a function to each element.
+   *
+   * @deprecated Use {@link com.google.common.collect.Lists#transform}
    */
+  @Deprecated // to be removed before 2.0
   public static <T1, R> List<R> adapt(final List<T1> list,
       final Function1<T1, R> f) {
     return new AbstractList<R>() {
@@ -322,7 +324,11 @@ public abstract class Functions {
 
   /**
    * Creates a view of an array that applies a function to each element.
+   *
+   * @deprecated Use {@link com.google.common.collect.Lists#transform}
+   * and {@link Arrays#asList(Object[])}
    */
+  @Deprecated // to be removed before 2.0
   public static <T, R> List<R> adapt(final T[] ts,
       final Function1<T, R> f) {
     return new AbstractList<R>() {
@@ -341,7 +347,7 @@ public abstract class Functions {
    */
   public static <T1, R> List<R> apply(final List<T1> list,
       final Function1<T1, R> f) {
-    final ArrayList<R> list2 = new ArrayList<R>(list.size());
+    final List<R> list2 = new ArrayList<>(list.size());
     for (T1 t : list) {
       list2.add(f.apply(t));
     }
@@ -376,7 +382,7 @@ public abstract class Functions {
         return list;
       }
     }
-    final List<E> list2 = new ArrayList<E>(list.size());
+    final List<E> list2 = new ArrayList<>(list.size());
     for (E e : list) {
       if (predicate.apply(e)) {
         list2.add(e);
@@ -504,7 +510,7 @@ public abstract class Functions {
    */
   public static <T, T2> EqualityComparer<T> selectorComparer(
       Function1<T, T2> selector) {
-    return new SelectorEqualityComparer<T, T2>(selector);
+    return new SelectorEqualityComparer<>(selector);
   }
 
   /** Array equality comparer. */
