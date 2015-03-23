@@ -6137,6 +6137,66 @@ public class JdbcTest {
         .returnsUnordered("DID=1", "DID=2");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-596">[CALCITE-596]
+   * JDBC adapter incorrectly reads null values as 0</a>.
+   */
+  @Test public void testPrimitiveColumnsWithNullValues() throws Exception {
+    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
+    Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+    Statement baseStmt = baseConnection.createStatement();
+    baseStmt.execute("CREATE TABLE T1 (\n"
+        + "ID INTEGER,\n"
+        + "VALS DOUBLE)");
+    baseStmt.execute("INSERT INTO T1 VALUES (1, 1.0)");
+    baseStmt.execute("INSERT INTO T1 VALUES (2, null)");
+    baseStmt.execute("INSERT INTO T1 VALUES (null, 2.0)");
+
+    baseStmt.close();
+    baseConnection.commit();
+
+    Properties info = new Properties();
+    info.put("model",
+      "inline:"
+      + "{\n"
+      + "  version: '1.0',\n"
+      + "  defaultSchema: 'BASEJDBC',\n"
+      + "  schemas: [\n"
+      + "     {\n"
+      + "       type: 'jdbc',\n"
+      + "       name: 'BASEJDBC',\n"
+      + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+      + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+      + "       jdbcCatalog: null,\n"
+      + "       jdbcSchema: null\n"
+      + "     }\n"
+      + "  ]\n"
+      + "}");
+
+    Connection calciteConnection = DriverManager.getConnection(
+      "jdbc:calcite:", info);
+
+    ResultSet rs = calciteConnection.prepareStatement("select * from t1")
+      .executeQuery();
+
+    assertThat(rs.next(), is(true));
+    assertThat((Integer) rs.getObject("ID"), equalTo(1));
+    assertThat((Double) rs.getObject("VALS"), equalTo(1.0));
+
+    assertThat(rs.next(), is(true));
+    assertThat((Integer) rs.getObject("ID"), equalTo(2));
+    assertThat((Double) rs.getObject("VALS"), nullValue());
+
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getObject("ID"), nullValue());
+    assertThat((Double) rs.getObject("VALS"), equalTo(2.0));
+
+    rs.close();
+    calciteConnection.close();
+
+  }
+
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 

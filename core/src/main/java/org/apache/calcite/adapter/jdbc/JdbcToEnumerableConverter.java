@@ -232,6 +232,17 @@ public class JdbcToEnumerableConverter
         Expressions.statement(
             Expressions.assign(
                 target, source)));
+
+    // [CALCITE-596] If primitive type columns contain null value, returns null
+    // object
+    if (primitive != null) {
+      builder.add(
+          Expressions.ifThen(
+              Expressions.call(resultSet_, "wasNull"),
+              Expressions.statement(
+                  Expressions.assign(target,
+                      Expressions.constant(null)))));
+    }
   }
 
   private Method getMethod(SqlTypeName sqlTypeName, boolean nullable,
