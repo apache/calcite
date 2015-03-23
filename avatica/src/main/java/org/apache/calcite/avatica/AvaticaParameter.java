@@ -248,14 +248,6 @@ public class AvaticaParameter {
         setBlob(slots, index, (InputStream) x);
       }
       throw unsupportedCast(x.getClass(), Blob.class);
-    case Types.CHAR:
-    case Types.NCHAR:
-      String s = toString(x);
-      if (s.length() == 1) {
-        setChar(slots, index, s.charAt(0));
-        break;
-      }
-      throw unsupportedCast(x.getClass(), Character.TYPE);
     case Types.DATE:
       setDate(slots, index, toDate(x));
       break;
@@ -266,7 +258,7 @@ public class AvaticaParameter {
     case Types.DISTINCT:
       throw notImplemented();
     case Types.DOUBLE:
-    case Types.FLOAT:
+    case Types.FLOAT: // yes really; SQL FLOAT is up to 8 bytes
       setDouble(slots, index, toDouble(x));
       break;
     case Types.INTEGER:
@@ -279,6 +271,8 @@ public class AvaticaParameter {
     case Types.LONGVARCHAR:
     case Types.NVARCHAR:
     case Types.VARCHAR:
+    case Types.CHAR:
+    case Types.NCHAR:
       setString(slots, index, toString(x));
       break;
     case Types.REAL:
@@ -366,7 +360,13 @@ public class AvaticaParameter {
     } else if (x instanceof BigInteger) {
       return new BigDecimal((BigInteger) x);
     } else if (x instanceof Number) {
-      return new BigDecimal(x.toString());
+      if (x instanceof Double || x instanceof Float) {
+        return new BigDecimal(((Number) x).doubleValue());
+      } else {
+        return new BigDecimal(((Number) x).longValue());
+      }
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? BigDecimal.ONE : BigDecimal.ZERO;
     } else if (x instanceof String) {
       return new BigDecimal((String) x);
     }
@@ -392,6 +392,8 @@ public class AvaticaParameter {
   private static byte toByte(Object x) {
     if (x instanceof Number) {
       return ((Number) x).byteValue();
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? (byte) 1 : (byte) 0;
     } else if (x instanceof String) {
       return Byte.parseByte((String) x);
     } else {
@@ -403,16 +405,38 @@ public class AvaticaParameter {
     if (x instanceof byte[]) {
       return (byte[]) x;
     }
+    if (x instanceof String) {
+      return ((String) x).getBytes();
+    }
     throw unsupportedCast(x.getClass(), byte[].class);
   }
 
   private static Date toDate(Object x) {
+    if (x instanceof String) {
+      return Date.valueOf((String) x);
+    }
     return new Date(toLong(x));
+  }
+
+  private static Time toTime(Object x) {
+    if (x instanceof String) {
+      return Time.valueOf((String) x);
+    }
+    return new Time(toLong(x));
+  }
+
+  private static Timestamp toTimestamp(Object x) {
+    if (x instanceof String) {
+      return Timestamp.valueOf((String) x);
+    }
+    return new Timestamp(toLong(x));
   }
 
   private static double toDouble(Object x) {
     if (x instanceof Number) {
       return ((Number) x).doubleValue();
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? 1D : 0D;
     } else if (x instanceof String) {
       return Double.parseDouble((String) x);
     } else {
@@ -423,6 +447,8 @@ public class AvaticaParameter {
   private static float toFloat(Object x) {
     if (x instanceof Number) {
       return ((Number) x).floatValue();
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? 1F : 0F;
     } else if (x instanceof String) {
       return Float.parseFloat((String) x);
     } else {
@@ -433,6 +459,8 @@ public class AvaticaParameter {
   private static int toInt(Object x) {
     if (x instanceof Number) {
       return ((Number) x).intValue();
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? 1 : 0;
     } else if (x instanceof String) {
       return Integer.parseInt((String) x);
     } else {
@@ -443,6 +471,8 @@ public class AvaticaParameter {
   private static long toLong(Object x) {
     if (x instanceof Number) {
       return ((Number) x).longValue();
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? 1L : 0L;
     } else if (x instanceof String) {
       return Long.parseLong((String) x);
     } else {
@@ -453,6 +483,8 @@ public class AvaticaParameter {
   private static short toShort(Object x) {
     if (x instanceof Number) {
       return ((Number) x).shortValue();
+    } else if (x instanceof Boolean) {
+      return (Boolean) x ? (short) 1 : (short) 0;
     } else if (x instanceof String) {
       return Short.parseShort((String) x);
     } else {
@@ -463,18 +495,11 @@ public class AvaticaParameter {
   private static String toString(Object x) {
     if (x instanceof String) {
       return (String) x;
-    } else if (x instanceof Character) {
+    } else if (x instanceof Character
+        || x instanceof Boolean) {
       return x.toString();
     }
     throw unsupportedCast(x.getClass(), String.class);
-  }
-
-  private static Time toTime(Object x) {
-    return new Time(toLong(x));
-  }
-
-  private static Timestamp toTimestamp(Object x) {
-    return new Timestamp(toLong(x));
   }
 
   /** Singleton value to denote parameters that have been set to null (as

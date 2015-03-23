@@ -152,9 +152,9 @@ public class JavaTypeFactoryImpl
       case BOOLEAN:
         return type.isNullable() ? Boolean.class : boolean.class;
       case DOUBLE:
+      case FLOAT: // sic
         return type.isNullable() ? Double.class : double.class;
       case REAL:
-      case FLOAT:
         return type.isNullable() ? Float.class : float.class;
       case BINARY:
       case VARBINARY:

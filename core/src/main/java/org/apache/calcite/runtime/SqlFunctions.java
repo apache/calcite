@@ -693,6 +693,10 @@ public class SqlFunctions {
     return Math.floor(b0);
   }
 
+  public static float floor(float b0) {
+    return (float) Math.floor(b0);
+  }
+
   public static BigDecimal floor(BigDecimal b0) {
     return b0.setScale(0, BigDecimal.ROUND_FLOOR);
   }
@@ -748,6 +752,10 @@ public class SqlFunctions {
 
   public static double ceil(double b0) {
     return Math.ceil(b0);
+  }
+
+  public static float ceil(float b0) {
+    return (float) Math.ceil(b0);
   }
 
   public static BigDecimal ceil(BigDecimal b0) {

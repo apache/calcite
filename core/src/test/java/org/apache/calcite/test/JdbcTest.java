@@ -86,7 +86,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 
 import net.hydromatic.quidem.Quidem;
 
@@ -2379,116 +2378,6 @@ public class JdbcTest {
     CalciteAssert.that()
         .query("values (-2-1)")
         .returns("EXPR$0=-3\n");
-  }
-
-  /**
-   * Conversions table, per JDBC 1.1 specification, table 6.
-   *
-   * <pre>
-   *                    T S I B R F D D N B C V L B V L D T T
-   *                    I M N I E L O E U I H A O I A O A I I
-   *                    N A T G A O U C M T A R N N R N T M M
-   *                    Y L E I L A B I E   R C G A B G E E E
-   *                    I L G N     L M R     H V R I V E   S
-   *                    N I E T     E A I     A A Y   A     T
-   *                    T N R         L C     R R     R     A
-   *                      T                     C     B     M
-   *                                            H     I     P
-   * Java type
-   * ================== = = = = = = = = = = = = = = = = = = =
-   * String             x x x x x x x x x x x x x x x x x x x
-   * BigDecimal         x x x x x x x x x x x x . . . . . . .
-   * Boolean            x x x x x x x x x x x x . . . . . . .
-   * Integer            x x x x x x x x x x x x . . . . . . .
-   * Long               x x x x x x x x x x x x . . . . . . .
-   * Float              x x x x x x x x x x x x . . . . . . .
-   * Double             x x x x x x x x x x x x . . . . . . .
-   * byte[]             . . . . . . . . . . . . . x x x . . .
-   * java.sql.Date      . . . . . . . . . . x x x . . . x . x
-   * java.sql.Time      . . . . . . . . . . x x x . . . . x .
-   * java.sql.Timestamp . . . . . . . . . . x x x . . . x x x
-   * </pre>
-   */
-  public static final ImmutableMultimap<Class, Integer> CONVERSIONS = x();
-
-  private static ImmutableMultimap<Class, Integer> x() {
-    final ImmutableMultimap.Builder<Class, Integer> builder =
-        ImmutableMultimap.builder();
-    int[] allTypes = {
-      java.sql.Types.TINYINT,
-      java.sql.Types.SMALLINT,
-      java.sql.Types.INTEGER,
-      java.sql.Types.BIGINT,
-      java.sql.Types.REAL,
-      java.sql.Types.FLOAT,
-      java.sql.Types.DOUBLE,
-      java.sql.Types.DECIMAL,
-      java.sql.Types.NUMERIC,
-      java.sql.Types.BIT,
-      java.sql.Types.CHAR,
-      java.sql.Types.VARCHAR,
-      java.sql.Types.LONGVARCHAR,
-      java.sql.Types.BINARY,
-      java.sql.Types.VARBINARY,
-      java.sql.Types.LONGVARBINARY,
-      java.sql.Types.DATE,
-      java.sql.Types.TIME,
-      java.sql.Types.TIMESTAMP
-    };
-    int[] numericTypes = {
-      java.sql.Types.TINYINT,
-      java.sql.Types.SMALLINT,
-      java.sql.Types.INTEGER,
-      java.sql.Types.BIGINT,
-      java.sql.Types.REAL,
-      java.sql.Types.FLOAT,
-      java.sql.Types.DOUBLE,
-      java.sql.Types.DECIMAL,
-      java.sql.Types.NUMERIC,
-      java.sql.Types.BIT
-    };
-    Class[] numericClasses = {
-      BigDecimal.class, Boolean.class, Integer.class, Long.class, Float.class,
-      Double.class
-    };
-    Class[] allClasses = {
-      String.class, BigDecimal.class, Boolean.class, Integer.class,
-      Long.class, Float.class, Double.class, byte[].class,
-      java.sql.Date.class, java.sql.Time.class, java.sql.Timestamp.class,
-    };
-    int[] charTypes = {
-      java.sql.Types.CHAR,
-      java.sql.Types.VARCHAR,
-      java.sql.Types.LONGVARCHAR
-    };
-    int[] binaryTypes = {
-      java.sql.Types.BINARY,
-      java.sql.Types.VARBINARY,
-      java.sql.Types.LONGVARBINARY
-    };
-    for (int type : allTypes) {
-      builder.put(String.class, type);
-    }
-    for (Class clazz : numericClasses) {
-      for (int type : numericTypes) {
-        builder.put(clazz, type);
-      }
-    }
-    for (int type : charTypes) {
-      for (Class clazz : allClasses) {
-        builder.put(clazz, type);
-      }
-    }
-    for (int type : binaryTypes) {
-      builder.put(byte[].class, type);
-    }
-    builder.put(java.sql.Date.class, java.sql.Types.DATE);
-    builder.put(java.sql.Date.class, java.sql.Types.TIMESTAMP);
-    builder.put(java.sql.Time.class, java.sql.Types.TIME);
-    builder.put(java.sql.Timestamp.class, java.sql.Types.DATE);
-    builder.put(java.sql.Time.class, java.sql.Types.TIME);
-    builder.put(java.sql.Timestamp.class, java.sql.Types.TIMESTAMP);
-    return builder.build();
   }
 
   /** Tests a table constructor that has multiple rows and multiple columns.

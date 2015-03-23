@@ -265,13 +265,13 @@ public class RelMdSize {
     case SMALLINT:
       return 2d;
     case INTEGER:
-    case FLOAT:
     case REAL:
     case DATE:
     case TIME:
       return 4d;
     case BIGINT:
     case DOUBLE:
+    case FLOAT: // sic
     case TIMESTAMP:
     case INTERVAL_DAY_TIME:
     case INTERVAL_YEAR_MONTH:

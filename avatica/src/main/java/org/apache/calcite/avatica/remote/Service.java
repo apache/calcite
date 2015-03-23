@@ -171,7 +171,7 @@ public interface Service {
    * <p>Several types of request, including
    * {@link org.apache.calcite.avatica.Meta#getCatalogs()} and
    * {@link org.apache.calcite.avatica.Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}
-   * {@link Meta#getTables(String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, List<String>)}
+   * {@link Meta#getTables(String, Meta.Pat, Meta.Pat, List)}
    * {@link Meta#getTableTypes()}
    * return this response. */
   class ResultSetResponse extends Response {

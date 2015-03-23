@@ -187,7 +187,7 @@ public abstract class SqlTests {
       return ColumnMetaData.Rep.INTEGER;
     case Types.BIGINT:
       return ColumnMetaData.Rep.LONG;
-    case Types.FLOAT:
+    case Types.REAL:
       return ColumnMetaData.Rep.FLOAT;
     case Types.DOUBLE:
       return ColumnMetaData.Rep.DOUBLE;
