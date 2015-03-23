@@ -124,11 +124,16 @@ limitations under the License.
         <version>2.1.1</version>
       </dependency>
       <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>1.3.9</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <!-- We support versions as old as 11.0.2 (the version used by Hadoop)
+        <!-- We support versions as old as 14.0.1 (the version used by Hive)
              but prefer more recent versions. -->
-        <version>11.0.2</version>
+        <version>14.0.1</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
