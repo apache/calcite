@@ -196,6 +196,10 @@ public interface Meta {
    */
   StatementHandle createStatement(ConnectionHandle ch);
 
+  /** Close a statement.
+   */
+  void closeStatement(StatementHandle h);
+
   /** Factory to create instances of {@link Meta}. */
   interface Factory {
     Meta create(List<String> args);

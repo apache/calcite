@@ -135,6 +135,13 @@ public class CalciteMetaImpl extends MetaImpl {
     return h;
   }
 
+  @Override public void closeStatement(StatementHandle h) {
+    final CalciteConnectionImpl calciteConnection = getConnection();
+    CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
+    // stmt.close(); // TODO: implement
+    calciteConnection.server.removeStatement(h);
+  }
+
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
     final List<ColumnMetaData> columns = new ArrayList<ColumnMetaData>();

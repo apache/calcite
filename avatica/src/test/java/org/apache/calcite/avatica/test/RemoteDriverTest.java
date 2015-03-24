@@ -17,6 +17,8 @@
 package org.apache.calcite.avatica.test;
 
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.LocalJsonService;
 import org.apache.calcite.avatica.remote.LocalService;
@@ -28,6 +30,7 @@ import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
@@ -36,6 +39,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -186,6 +190,41 @@ public class RemoteDriverTest {
     connection.close();
   }
 
+  @Test public void testStatementLifecycle() throws Exception {
+    try (AvaticaConnection connection = (AvaticaConnection) ljs()) {
+      Map<Integer, AvaticaStatement> clientMap = connection.statementMap;
+      Map<Integer, Statement> serverMap =
+          QuasiRemoteJdbcServiceFactory.getRemoteMap(connection);
+      assertEquals(0, clientMap.size());
+      assertEquals(0, serverMap.size());
+      Statement stmt = connection.createStatement();
+      assertEquals(1, clientMap.size());
+      assertEquals(1, serverMap.size());
+      stmt.close();
+      assertEquals(0, clientMap.size());
+      assertEquals(0, serverMap.size());
+    }
+  }
+
+  private void checkStatementExecuteQuery(Connection connection)
+      throws SQLException {
+    final Statement statement = connection.createStatement();
+    final ResultSet resultSet =
+        statement.executeQuery("select * from (\n"
+            + "  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)");
+    final ResultSetMetaData metaData = resultSet.getMetaData();
+    assertEquals(2, metaData.getColumnCount());
+    assertEquals("C1", metaData.getColumnName(1));
+    assertEquals("C2", metaData.getColumnName(2));
+    assertTrue(resultSet.next());
+    assertTrue(resultSet.next());
+    assertTrue(resultSet.next());
+    assertFalse(resultSet.next());
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
   @Test public void testPrepareBindExecuteFetch() throws Exception {
     checkPrepareBindExecuteFetch(ljs());
   }
@@ -268,6 +307,30 @@ public class RemoteDriverTest {
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
+    }
+
+    /**
+     * Reach into the guts of a quasi-remote connection and pull out the
+     * statement map from the other side.
+     */
+    static Map<Integer, Statement> getRemoteMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalJsonService remoteMetaService = (LocalJsonService) remoteMetaServiceF.get(clientMeta);
+      Field remoteMetaServiceServiceF = remoteMetaService.getClass().getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementMap");
+      jdbcMetaStatementMapF.setAccessible(true);
+      return (Map<Integer, Statement>) jdbcMetaStatementMapF.get(serverMeta);
     }
   }
 

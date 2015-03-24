@@ -184,6 +184,12 @@ public class LocalService implements Service {
         meta.createStatement(new Meta.ConnectionHandle(request.connectionId));
     return new CreateStatementResponse(h.id);
   }
+
+  @Override
+  public CloseStatementResponse apply(CloseStatementRequest request) {
+    meta.closeStatement(new Meta.StatementHandle(request.statementId));
+    return new CloseStatementResponse();
+  }
 }
 
 // End LocalService.java

@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 /**
@@ -66,7 +67,8 @@ public abstract class AvaticaConnection implements Connection {
   protected final AvaticaDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
   public final Map<InternalProperty, Object> properties = new HashMap<>();
-  public final Map<Integer, AvaticaStatement> statementMap = new HashMap<>();
+  public final Map<Integer, AvaticaStatement> statementMap =
+      new ConcurrentHashMap<>();
 
   private static int nextId;
 

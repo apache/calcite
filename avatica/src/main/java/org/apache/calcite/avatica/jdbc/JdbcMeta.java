@@ -370,6 +370,20 @@ public class JdbcMeta implements Meta {
     }
   }
 
+  @Override public void closeStatement(StatementHandle h) {
+    Statement stmt = statementMap.get(h.id).statement;
+    if (stmt == null) {
+      return;
+    }
+    try {
+      stmt.close();
+    } catch (SQLException e) {
+      throw propagate(e);
+    } finally {
+      statementMap.remove(h.id);
+    }
+  }
+
   private RuntimeException propagate(Throwable e) {
     if (e instanceof RuntimeException) {
       throw (RuntimeException) e;

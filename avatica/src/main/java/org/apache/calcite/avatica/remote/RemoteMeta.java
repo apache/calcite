@@ -58,6 +58,11 @@ class RemoteMeta extends MetaImpl {
     return new StatementHandle(response.id);
   }
 
+  @Override public void closeStatement(StatementHandle h) {
+    final Service.CloseStatementResponse response =
+        service.apply(new Service.CloseStatementRequest(h.id));
+  }
+
   @Override public MetaResultSet getCatalogs() {
     final Service.ResultSetResponse response =
         service.apply(new Service.CatalogsRequest());
