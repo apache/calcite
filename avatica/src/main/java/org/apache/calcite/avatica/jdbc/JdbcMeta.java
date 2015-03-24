@@ -24,6 +24,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,6 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
+import java.util.UUID;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
@@ -72,6 +75,13 @@ public class JdbcMeta implements Meta {
     SQL_TYPE_TO_JAVA_TYPE.put(Types.ARRAY, Array.class);
   }
 
+  private static final String DEFAULT_CONN_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000000").toString();
+
+  private final String url;
+  private final Properties info;
+  private final Connection connection; // TODO: remove default connection
+  private final Map<String, Connection> connectionMap = new HashMap<>();
   private final Map<Integer, StatementInfo> statementMap = new HashMap<>();
 
   /**
@@ -124,7 +134,7 @@ public class JdbcMeta implements Meta {
   protected static Signature signature(ResultSetMetaData metaData,
       ParameterMetaData parameterMetaData, String sql) throws  SQLException {
     return new Signature(columns(metaData), sql, parameters(parameterMetaData),
-        null, CursorFactory.ARRAY);
+        null, CursorFactory.LIST /* LIST because JdbcResultSet#frame */);
   }
 
   protected static Signature signature(ResultSetMetaData metaData)
@@ -132,10 +142,43 @@ public class JdbcMeta implements Meta {
     return signature(metaData, null, null);
   }
 
-  protected final Connection connection;
+  /**
+   * @param url a database url of the form
+   *  <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   */
+  public JdbcMeta(String url) throws SQLException {
+    this(url, new Properties());
+  }
 
-  public JdbcMeta(Connection connection) {
-    this.connection = connection;
+  /**
+   * @param url a database url of the form
+   * <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   * @param user the database user on whose behalf the connection is being
+   *   made
+   * @param password the user's password
+   */
+  public JdbcMeta(final String url, final String user, final String password)
+      throws SQLException {
+    this(url, new Properties() {
+      {
+        put("user", user);
+        put("password", password);
+      }
+    });
+  }
+
+  /**
+   * @param url a database url of the form
+   * <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   * @param info a list of arbitrary string tag/value pairs as
+   * connection arguments; normally at least a "user" and
+   * "password" property should be included
+   */
+  public JdbcMeta(String url, Properties info) throws SQLException {
+    this.url = url;
+    this.info = info;
+    this.connection = DriverManager.getConnection(url, info);
+    this.connectionMap.put(DEFAULT_CONN_ID, connection);
   }
 
   public String getSqlKeywords() {
@@ -170,7 +213,7 @@ public class JdbcMeta implements Meta {
       Pat tableNamePattern, List<String> typeList) {
     try {
       String[] types = new String[typeList == null ? 0 : typeList.size()];
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getTables(catalog, schemaPattern.s,
               tableNamePattern.s,
               typeList == null ? types : typeList.toArray(types)));
@@ -182,7 +225,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getColumns(String catalog, Pat schemaPattern,
       Pat tableNamePattern, Pat columnNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getColumns(catalog, schemaPattern.s,
               tableNamePattern.s, columnNamePattern.s));
     } catch (SQLException e) {
@@ -192,7 +235,7 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getSchemas(String catalog, Pat schemaPattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getSchemas(catalog, schemaPattern.s));
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -201,7 +244,8 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getCatalogs() {
     try {
-      return JdbcResultSet.create(connection.getMetaData().getCatalogs());
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
+          connection.getMetaData().getCatalogs());
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -209,7 +253,8 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getTableTypes() {
     try {
-      return JdbcResultSet.create(connection.getMetaData().getTableTypes());
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
+          connection.getMetaData().getTableTypes());
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -218,7 +263,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getProcedures(String catalog, Pat schemaPattern,
       Pat procedureNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getProcedures(catalog, schemaPattern.s,
               procedureNamePattern.s));
     } catch (SQLException e) {
@@ -229,7 +274,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getProcedureColumns(String catalog, Pat schemaPattern,
       Pat procedureNamePattern, Pat columnNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getProcedureColumns(catalog,
               schemaPattern.s, procedureNamePattern.s, columnNamePattern.s));
     } catch (SQLException e) {
@@ -240,7 +285,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getColumnPrivileges(String catalog, String schema,
       String table, Pat columnNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getColumnPrivileges(catalog, schema,
               table, columnNamePattern.s));
     } catch (SQLException e) {
@@ -251,7 +296,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getTablePrivileges(String catalog, Pat schemaPattern,
       Pat tableNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getTablePrivileges(catalog,
               schemaPattern.s, tableNamePattern.s));
     } catch (SQLException e) {
@@ -262,7 +307,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getBestRowIdentifier(String catalog, String schema,
       String table, int scope, boolean nullable) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getBestRowIdentifier(catalog, schema,
               table, scope, nullable));
     } catch (SQLException e) {
@@ -273,7 +318,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getVersionColumns(String catalog, String schema,
       String table) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getVersionColumns(catalog, schema, table));
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -283,7 +328,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getPrimaryKeys(String catalog, String schema,
       String table) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getPrimaryKeys(catalog, schema, table));
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -359,12 +404,20 @@ public class JdbcMeta implements Meta {
     return null;
   }
 
+  protected Connection getConnection(String id) throws SQLException {
+    if (connectionMap.get(id) == null) {
+      connectionMap.put(id, DriverManager.getConnection(url, info));
+    }
+    return connectionMap.get(id);
+  }
+
   public StatementHandle createStatement(ConnectionHandle ch) {
     try {
-      final Statement statement = connection.createStatement();
-      final int id = statementMap.size();
+      final Connection conn = getConnection(ch.id);
+      final Statement statement = conn.createStatement();
+      final int id = System.identityHashCode(statement);
       statementMap.put(id, new StatementInfo(statement));
-      return new StatementHandle(id);
+      return new StatementHandle(ch.id, id, null);
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -376,6 +429,7 @@ public class JdbcMeta implements Meta {
       return;
     }
     try {
+      assert stmt.getConnection() == connectionMap.get(h.connectionId);
       stmt.close();
     } catch (SQLException e) {
       throw propagate(e);
@@ -394,24 +448,30 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public Signature prepare(StatementHandle h, String sql, int maxRowCount) {
-    // TODO: can't actually prepare an existing statement...
+  public StatementHandle prepare(ConnectionHandle ch, String sql,
+      int maxRowCount) {
     try {
-      PreparedStatement statement = connection.prepareStatement(sql);
-      statementMap.put(h.id, new StatementInfo(statement));
-      return signature(statement.getMetaData(),
-          statement.getParameterMetaData(), sql);
+      final Connection conn = getConnection(ch.id);
+      final PreparedStatement statement = conn.prepareStatement(sql);
+      final int id = System.identityHashCode(statement);
+      statementMap.put(id, new StatementInfo(statement));
+      return new StatementHandle(ch.id, id, signature(statement.getMetaData(),
+          statement.getParameterMetaData(), sql));
     } catch (SQLException e) {
       throw propagate(e);
     }
   }
 
-  public MetaResultSet prepareAndExecute(StatementHandle h, String sql,
+  public MetaResultSet prepareAndExecute(ConnectionHandle ch, String sql,
       int maxRowCount, PrepareCallback callback) {
-    final StatementInfo statementInfo = statementMap.get(h.id);
     try {
-      statementInfo.resultSet = statementInfo.statement.executeQuery(sql);
-      return JdbcResultSet.create(statementInfo.resultSet);
+      final Connection connection = getConnection(ch.id);
+      final PreparedStatement statement = connection.prepareStatement(sql);
+      final int id = System.identityHashCode(statement);
+      final StatementInfo info = new StatementInfo(statement);
+      statementMap.put(id, info);
+      info.resultSet = statement.executeQuery();
+      return JdbcResultSet.create(ch.id, id, info.resultSet);
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -421,6 +481,8 @@ public class JdbcMeta implements Meta {
       int offset, int fetchMaxRowCount) {
     final StatementInfo statementInfo = statementMap.get(h.id);
     try {
+      assert statementInfo.statement.getConnection()
+          == connectionMap.get(h.connectionId);
       if (statementInfo.resultSet == null || parameterValues != null) {
         if (statementInfo.resultSet != null) {
           statementInfo.resultSet.close();

@@ -30,19 +30,20 @@ import java.util.List;
  *
  *  @see org.apache.calcite.avatica.jdbc.JdbcMeta */
 class JdbcResultSet extends Meta.MetaResultSet {
-  protected JdbcResultSet(int statementId, boolean ownStatement,
-      Meta.Signature signature, Meta.Frame firstFrame) {
-    super(statementId, ownStatement, signature, firstFrame);
+  protected JdbcResultSet(String connectionId, int statementId,
+      boolean ownStatement, Meta.Signature signature, Meta.Frame firstFrame) {
+    super(connectionId, statementId, ownStatement, signature, firstFrame);
   }
 
   /** Creates a result set. */
-  public static JdbcResultSet create(ResultSet resultSet) {
+  public static JdbcResultSet create(String connectionId, int statementId,
+      ResultSet resultSet) {
     try {
-      int id = resultSet.getStatement().hashCode();
       Meta.Signature sig = JdbcMeta.signature(resultSet.getMetaData());
       final Meta.Frame firstFrame = frame(resultSet, 0, -1);
       resultSet.close();
-      return new JdbcResultSet(id, true, sig, firstFrame);
+      return new JdbcResultSet(connectionId, statementId, true, sig,
+          firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

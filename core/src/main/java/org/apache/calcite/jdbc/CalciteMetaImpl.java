@@ -190,7 +190,8 @@ public class CalciteMetaImpl extends MetaImpl {
               return Linq4j.asEnumerable(firstFrame.rows);
             }
           };
-      return new MetaResultSet(statement.getId(), true, signature, firstFrame);
+      return new MetaResultSet(connection.id, statement.getId(), true,
+          signature, firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -459,16 +460,20 @@ public class CalciteMetaImpl extends MetaImpl {
     }
   }
 
-  public Signature prepare(StatementHandle h, String sql, int maxRowCount) {
+  @Override public StatementHandle prepare(ConnectionHandle ch, String sql,
+      int maxRowCount) {
+    final StatementHandle h = createStatement(ch);
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement statement = calciteConnection.server.getStatement(h);
-    return calciteConnection.parseQuery(sql, statement.createPrepareContext(),
+    calciteConnection.parseQuery(sql, statement.createPrepareContext(),
         maxRowCount);
+    return h;
   }
 
-  public MetaResultSet prepareAndExecute(StatementHandle h, String sql,
-      int maxRowCount, PrepareCallback callback) {
+  @Override public MetaResultSet prepareAndExecute(ConnectionHandle ch,
+      String sql, int maxRowCount, PrepareCallback callback) {
     final CalcitePrepare.CalciteSignature<Object> signature;
+    final StatementHandle h = createStatement(ch);
     try {
       synchronized (callback.getMonitor()) {
         callback.clear();
@@ -480,7 +485,7 @@ public class CalciteMetaImpl extends MetaImpl {
         callback.assign(signature, null);
       }
       callback.execute();
-      return new MetaResultSet(h.id, false, signature, null);
+      return new MetaResultSet(h.connectionId, h.id, false, signature, null);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
