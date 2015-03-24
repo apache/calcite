@@ -200,6 +200,9 @@ public interface Meta {
    */
   void closeStatement(StatementHandle h);
 
+  /** Close a connection */
+  void closeConnection(ConnectionHandle ch);
+
   /** Factory to create instances of {@link Meta}. */
   interface Factory {
     Meta create(List<String> args);

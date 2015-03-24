@@ -40,6 +40,7 @@ public interface Service {
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
   CloseStatementResponse apply(CloseStatementRequest request);
+  CloseConnectionResponse apply(CloseConnectionRequest request);
 
   /** Factory that creates a {@code Service}. */
   interface Factory {
@@ -65,7 +66,9 @@ public interface Service {
       @JsonSubTypes.Type(value = CreateStatementRequest.class,
           name = "createStatement"),
       @JsonSubTypes.Type(value = CloseStatementRequest.class,
-          name = "closeStatement") })
+          name = "closeStatement"),
+      @JsonSubTypes.Type(value = CloseConnectionRequest.class,
+          name = "closeConnection") })
   abstract class Request {
     abstract Response accept(Service service);
   }
@@ -82,7 +85,9 @@ public interface Service {
       @JsonSubTypes.Type(value = CreateStatementResponse.class,
           name = "createStatement"),
       @JsonSubTypes.Type(value = CloseStatementResponse.class,
-          name = "closeStatement") })
+          name = "closeStatement"),
+      @JsonSubTypes.Type(value = CloseConnectionResponse.class,
+          name = "closeConnection") })
   abstract class Response {
   }
 
@@ -202,7 +207,7 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(org.apache.calcite.avatica.Meta.StatementHandle, String, int, org.apache.calcite.avatica.Meta.PrepareCallback)}. */
+   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(org.apache.calcite.avatica.Meta.ConnectionHandle, String, int, org.apache.calcite.avatica.Meta.PrepareCallback)}. */
   class PrepareAndExecuteRequest extends Request {
     public final String connectionId;
     public final String sql;
@@ -355,6 +360,29 @@ public interface Service {
   class CloseStatementResponse extends Response {
     @JsonCreator
     public CloseStatementResponse() {}
+  }
+
+  /** Request for
+   * {@link Meta#closeConnection(org.apache.calcite.avatica.Meta.ConnectionHandle)}. */
+  class CloseConnectionRequest extends Request {
+    public final String connectionId;
+
+    @JsonCreator
+    public CloseConnectionRequest(
+        @JsonProperty("connectionId") String connectionId) {
+      this.connectionId = connectionId;
+    }
+
+    @Override CloseConnectionResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Response from
+   * {@link org.apache.calcite.avatica.remote.Service.CloseConnectionRequest}. */
+  class CloseConnectionResponse extends Response {
+    @JsonCreator
+    public CloseConnectionResponse() {}
   }
 }
 
