@@ -118,8 +118,8 @@ class RemoteMeta extends MetaImpl {
     try {
       synchronized (callback.getMonitor()) {
         callback.clear();
-        response = service.apply(new Service.PrepareAndExecuteRequest(
-            ch.id, sql, maxRowCount));
+        response = service.apply(
+            new Service.PrepareAndExecuteRequest(ch.id, sql, maxRowCount));
         callback.assign(response.signature, response.firstFrame);
       }
       callback.execute();

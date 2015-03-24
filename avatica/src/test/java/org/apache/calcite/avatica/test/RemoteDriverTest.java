@@ -26,6 +26,8 @@ import org.apache.calcite.avatica.remote.LocalService;
 import org.apache.calcite.avatica.remote.MockJsonService;
 import org.apache.calcite.avatica.remote.Service;
 
+import com.google.common.cache.Cache;
+
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.junit.Before;
@@ -200,7 +202,7 @@ public class RemoteDriverTest {
   @Test public void testStatementLifecycle() throws Exception {
     try (AvaticaConnection connection = (AvaticaConnection) ljs()) {
       Map<Integer, AvaticaStatement> clientMap = connection.statementMap;
-      Map<Integer, Statement> serverMap =
+      Cache<Integer, Object> serverMap =
           QuasiRemoteJdbcServiceFactory.getRemoteStatementMap(connection);
       assertEquals(0, clientMap.size());
       assertEquals(0, serverMap.size());
@@ -217,27 +219,29 @@ public class RemoteDriverTest {
     final String sql = "select * from (values (1, 'a'))";
     Connection conn1 = ljs();
     Connection conn2 = ljs();
-    Map<String, Connection> connectionMap =
+    Cache<String, Connection> connectionMap =
         QuasiRemoteJdbcServiceFactory.getRemoteConnectionMap(
             (AvaticaConnection) conn1);
-    assertEquals("should contain at least the default connection",
-        1, connectionMap.size());
+    assertEquals("connection cache should start empty",
+        0, connectionMap.size());
     PreparedStatement conn1stmt1 = conn1.prepareStatement(sql);
     assertEquals(
         "statement creation implicitly creates a connection server-side",
-        2, connectionMap.size());
+        1, connectionMap.size());
     PreparedStatement conn2stmt1 = conn2.prepareStatement(sql);
     assertEquals(
         "statement creation implicitly creates a connection server-side",
-        3, connectionMap.size());
+        2, connectionMap.size());
     AvaticaPreparedStatement s1 = (AvaticaPreparedStatement) conn1stmt1;
     AvaticaPreparedStatement s2 = (AvaticaPreparedStatement) conn2stmt1;
     assertFalse("connection id's should be unique",
         s1.handle.connectionId.equalsIgnoreCase(s2.handle.connectionId));
     conn2.close();
-    conn1.close();
     assertEquals("closing a connection closes the server-side connection",
         1, connectionMap.size());
+    conn1.close();
+    assertEquals("closing a connection closes the server-side connection",
+        0, connectionMap.size());
   }
 
   private void checkStatementExecuteQuery(Connection connection)
@@ -318,8 +322,9 @@ public class RemoteDriverTest {
   public static class LocalJdbcServiceFactory implements Service.Factory {
     @Override public Service create(AvaticaConnection connection) {
       try {
-        return new LocalService(new JdbcMeta(CONNECTION_SPEC.url,
-            CONNECTION_SPEC.username, CONNECTION_SPEC.password));
+        return new LocalService(
+            new JdbcMeta(CONNECTION_SPEC.url, CONNECTION_SPEC.username,
+                CONNECTION_SPEC.password));
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -355,7 +360,7 @@ public class RemoteDriverTest {
      * statement map from the other side.
      * TODO: refactor tests to replace reflection with package-local access
      */
-    static Map<Integer, Statement>
+    static Cache<Integer, Object>
     getRemoteStatementMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -371,9 +376,10 @@ public class RemoteDriverTest {
           remoteMetaServiceService.getClass().getDeclaredField("meta");
       remoteMetaServiceServiceMetaF.setAccessible(true);
       JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
-      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementMap");
+      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementCache");
       jdbcMetaStatementMapF.setAccessible(true);
-      return (Map<Integer, Statement>) jdbcMetaStatementMapF.get(serverMeta);
+      //noinspection unchecked
+      return (Cache<Integer, Object>) jdbcMetaStatementMapF.get(serverMeta);
     }
 
     /**
@@ -381,7 +387,7 @@ public class RemoteDriverTest {
      * connection map from the other side.
      * TODO: refactor tests to replace reflection with package-local access
      */
-    static Map<String, Connection>
+    static Cache<String, Connection>
     getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -397,9 +403,10 @@ public class RemoteDriverTest {
           remoteMetaServiceService.getClass().getDeclaredField("meta");
       remoteMetaServiceServiceMetaF.setAccessible(true);
       JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
-      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("connectionMap");
-      jdbcMetaStatementMapF.setAccessible(true);
-      return (Map<String, Connection>) jdbcMetaStatementMapF.get(serverMeta);
+      Field jdbcMetaConnectionCacheF = JdbcMeta.class.getDeclaredField("connectionCache");
+      jdbcMetaConnectionCacheF.setAccessible(true);
+      //noinspection unchecked
+      return (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
     }
   }
 

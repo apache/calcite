@@ -190,14 +190,13 @@ public class LocalService implements Service {
     return new CreateStatementResponse(h.connectionId, h.id);
   }
 
-  @Override
   public CloseStatementResponse apply(CloseStatementRequest request) {
-    meta.closeStatement(new Meta.StatementHandle(
-        request.connectionId, request.statementId, null));
+    meta.closeStatement(
+        new Meta.StatementHandle(request.connectionId, request.statementId,
+            null));
     return new CloseStatementResponse();
   }
 
-  @Override
   public CloseConnectionResponse apply(CloseConnectionRequest request) {
     meta.closeConnection(new Meta.ConnectionHandle(request.connectionId));
     return new CloseConnectionResponse();

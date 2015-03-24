@@ -36,10 +36,16 @@ public class Main {
   }
 
   /**
-   * Create and start an {@link HttpServer}.
-   * @param args <br />&nbsp;&nbsp;args[0]: the {@link Meta.Factory} class name.<br />
-   *             &nbsp;&nbsp;args[1:]: arguments passed along to
-   *             {@link Meta.Factory#create(java.util.List)}
+   * Creates and starts an {@link HttpServer}.
+   *
+   * <p>Arguments are as follows:
+   * <ul>
+   *   <li>args[0]: the {@link Meta.Factory} class name
+   *   <li>args[1+]: arguments passed along to
+   *   {@link Meta.Factory#create(java.util.List)}
+   * </ul>
+   *
+   * @param args Command-line arguments
    */
   public static HttpServer start(String[] args)
       throws ClassNotFoundException, InstantiationException,

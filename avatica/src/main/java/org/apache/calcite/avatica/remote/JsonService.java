@@ -130,7 +130,6 @@ public abstract class JsonService implements Service {
     }
   }
 
-  @Override
   public CloseStatementResponse apply(CloseStatementRequest request) {
     try {
       return decode(apply(encode(request)), CloseStatementResponse.class);
@@ -139,7 +138,6 @@ public abstract class JsonService implements Service {
     }
   }
 
-  @Override
   public CloseConnectionResponse apply(CloseConnectionRequest request) {
     try {
       return decode(apply(encode(request)), CloseConnectionResponse.class);
