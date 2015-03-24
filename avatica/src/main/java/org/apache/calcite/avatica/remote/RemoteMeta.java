@@ -64,6 +64,11 @@ class RemoteMeta extends MetaImpl {
         service.apply(new Service.CloseStatementRequest(h.connectionId, h.id));
   }
 
+  @Override public void closeConnection(ConnectionHandle ch) {
+    final Service.CloseConnectionResponse response =
+        service.apply(new Service.CloseConnectionRequest(ch.id));
+  }
+
   @Override public MetaResultSet getCatalogs() {
     final Service.ResultSetResponse response =
         service.apply(new Service.CatalogsRequest());

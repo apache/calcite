@@ -236,8 +236,8 @@ public class RemoteDriverTest {
         s1.handle.connectionId.equalsIgnoreCase(s2.handle.connectionId));
     conn2.close();
     conn1.close();
-//    assertEquals("closing a connection closes the server-side connection",
-//        1, connectionMap.size());
+    assertEquals("closing a connection closes the server-side connection",
+        1, connectionMap.size());
   }
 
   private void checkStatementExecuteQuery(Connection connection)

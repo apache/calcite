@@ -162,6 +162,19 @@ public abstract class MetaImpl implements Meta {
     }
   }
 
+  @Override public void closeConnection(ConnectionHandle ch) {
+    // TODO: implement
+    //
+    // lots of Calcite tests break with this simple implementation,
+    // requires investigation
+
+//    try {
+//      connection.close();
+//    } catch (SQLException e) {
+//      throw new RuntimeException(e);
+//    }
+  }
+
   public StatementHandle createStatement(ConnectionHandle ch) {
     return new StatementHandle(ch.id, connection.statementCount++, null);
   }

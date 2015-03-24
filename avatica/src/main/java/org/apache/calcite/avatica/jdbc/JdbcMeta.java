@@ -20,6 +20,9 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -43,6 +46,9 @@ import java.util.UUID;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
+
+  private static final Log LOG = LogFactory.getLog(JdbcMeta.class);
+
   /**
    * JDBC Types Mapped to Java Types
    *
@@ -417,7 +423,11 @@ public class JdbcMeta implements Meta {
       final Statement statement = conn.createStatement();
       final int id = System.identityHashCode(statement);
       statementMap.put(id, new StatementInfo(statement));
-      return new StatementHandle(ch.id, id, null);
+      StatementHandle h = new StatementHandle(ch.id, id, null);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("created statement " + h);
+      }
+      return h;
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -426,15 +436,39 @@ public class JdbcMeta implements Meta {
   @Override public void closeStatement(StatementHandle h) {
     Statement stmt = statementMap.get(h.id).statement;
     if (stmt == null) {
+      LOG.debug("client requested close unknown statement " + h);
       return;
     }
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("closing statement " + h);
+    }
     try {
-      assert stmt.getConnection() == connectionMap.get(h.connectionId);
+      boolean isOwned =
+          stmt.getConnection() == connectionMap.get(h.connectionId);
       stmt.close();
+      assert isOwned : "no connection found while closing " + h;
     } catch (SQLException e) {
       throw propagate(e);
     } finally {
       statementMap.remove(h.id);
+    }
+  }
+
+  @Override public void closeConnection(ConnectionHandle ch) {
+    Connection conn = connectionMap.get(ch.id);
+    if (conn == null) {
+      LOG.debug("client requested close unknown connection " + ch);
+      return;
+    }
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("closing connection " + ch);
+    }
+    try {
+      conn.close();
+    } catch (SQLException e) {
+      throw propagate(e);
+    } finally {
+      connectionMap.remove(ch.id);
     }
   }
 
@@ -455,8 +489,12 @@ public class JdbcMeta implements Meta {
       final PreparedStatement statement = conn.prepareStatement(sql);
       final int id = System.identityHashCode(statement);
       statementMap.put(id, new StatementInfo(statement));
-      return new StatementHandle(ch.id, id, signature(statement.getMetaData(),
-          statement.getParameterMetaData(), sql));
+      StatementHandle h = new StatementHandle(ch.id, id, signature(
+          statement.getMetaData(), statement.getParameterMetaData(), sql));
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("prepared statement " + h);
+      }
+      return h;
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -471,7 +509,12 @@ public class JdbcMeta implements Meta {
       final StatementInfo info = new StatementInfo(statement);
       statementMap.put(id, info);
       info.resultSet = statement.executeQuery();
-      return JdbcResultSet.create(ch.id, id, info.resultSet);
+      MetaResultSet mrs = JdbcResultSet.create(ch.id, id, info.resultSet);
+      if (LOG.isTraceEnabled()) {
+        StatementHandle h = new StatementHandle(ch.id, id, null);
+        LOG.trace("prepAndExec statement " + h);
+      }
+      return mrs;
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -479,6 +522,9 @@ public class JdbcMeta implements Meta {
 
   public Frame fetch(StatementHandle h, List<Object> parameterValues,
       int offset, int fetchMaxRowCount) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:" + fetchMaxRowCount);
+    }
     final StatementInfo statementInfo = statementMap.get(h.id);
     try {
       assert statementInfo.statement.getConnection()

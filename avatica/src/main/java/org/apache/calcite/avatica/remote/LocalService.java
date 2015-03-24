@@ -196,6 +196,12 @@ public class LocalService implements Service {
         request.connectionId, request.statementId, null));
     return new CloseStatementResponse();
   }
+
+  @Override
+  public CloseConnectionResponse apply(CloseConnectionRequest request) {
+    meta.closeConnection(new Meta.ConnectionHandle(request.connectionId));
+    return new CloseConnectionResponse();
+  }
 }
 
 // End LocalService.java

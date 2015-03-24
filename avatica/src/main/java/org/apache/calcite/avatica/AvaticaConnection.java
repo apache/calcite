@@ -154,6 +154,7 @@ public abstract class AvaticaConnection implements Connection {
       // Per specification, if onConnectionClose throws, this method will throw
       // a SQLException, but statement will still be closed.
       try {
+        meta.closeConnection(handle);
         driver.handler.onConnectionClose(this);
       } catch (RuntimeException e) {
         throw helper.createException("While closing connection", e);
