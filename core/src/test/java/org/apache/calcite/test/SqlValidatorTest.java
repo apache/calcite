@@ -5743,7 +5743,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by empno, deptno "
         + "order by empno * sum(sal + 2)")
         .failsIf(tester.getConformance().isSortByAliasObscures(), "xxxx");
+  }
 
+  /**
+   * Tests validation of the ORDER BY clause when DISTINCT is present.
+   */
+  @Test public void testOrderDistinct() {
     // Distinct on expressions with attempts to order on a column in
     // the underlying table
     checkFails(
@@ -5796,6 +5801,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " order by upper(^eno^)",
         tester.getConformance().isSortByAlias() ? null
             : "Column 'ENO' not found in any table");
+  }
+
+  /**
+   * Tests validation of the ORDER BY clause when DISTINCT and GROUP BY are
+   * present.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-634">[CALCITE-634]
+   * Allow ORDER BY aggregate function in SELECT DISTINCT, provided that it
+   * occurs in SELECT clause</a>.
+   */
+  @Test public void testOrderGroupDistinct() {
+    // Order by an aggregate function,
+    // which exists in select-clause with distinct being present
+    check("select distinct count(empno) AS countEMPNO from emp\n"
+        + "group by empno\n"
+        + "order by 1");
+
+    check("select distinct count(empno) from emp\n"
+        + "group by empno\n"
+        + "order by 1");
+
+    check("select distinct count(empno) AS countEMPNO from emp\n"
+        + "group by empno\n"
+        + "order by count(empno)");
+
+    check("select distinct count(empno) from emp\n"
+        + "group by empno\n"
+        + "order by count(empno)");
+
+    check("select distinct count(empno) from emp\n"
+        + "group by empno\n"
+        + "order by count(empno) desc");
+
+    checkFails("SELECT DISTINCT deptno from emp\n"
+        + "ORDER BY deptno, ^sum(empno)^",
+        "Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT");
+    checkFails("SELECT DISTINCT deptno from emp\n"
+        + "GROUP BY deptno ORDER BY deptno, ^sum(empno)^",
+        "Expression 'SUM\\(`EMP`\\.`EMPNO`\\)' is not in the select clause");
+    checkFails("SELECT DISTINCT deptno, min(empno) from emp\n"
+        + "GROUP BY deptno ORDER BY deptno, ^sum(empno)^",
+        "Expression 'SUM\\(`EMP`\\.`EMPNO`\\)' is not in the select clause");
+    check("SELECT DISTINCT deptno, sum(empno) from emp\n"
+        + "GROUP BY deptno ORDER BY deptno, sum(empno)");
   }
 
   @Test public void testGroup() {
@@ -6387,12 +6437,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "SELECT DISTINCT deptno from emp ORDER BY deptno, ^empno^",
         "Expression 'EMP\\.EMPNO' is not in the select clause");
     check("SELECT DISTINCT deptno from emp ORDER BY deptno + 2");
-    if (false) { // Hersker 2008917: Julian will fix immediately after
-      // integration
-      checkFails(
-          "SELECT DISTINCT deptno from emp ORDER BY deptno, ^sum(empno)^",
-          "Expression 'SUM\\(`EMP`\\.`EMPNO`\\)' is not in the select clause");
-    }
 
     // The ORDER BY clause works on what is projected by DISTINCT - even if
     // GROUP BY is present.

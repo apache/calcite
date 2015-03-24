@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Stacks;
@@ -112,8 +114,25 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   public Void visit(SqlCall call) {
+    final SqlValidatorScope scope = Stacks.peek(scopes);
     if (call.getOperator().isAggregator()) {
       if (distinct) {
+        if (scope instanceof AggregatingSelectScope) {
+          SqlNodeList selectList =
+              ((SqlSelect) scope.getNode()).getSelectList();
+
+          // Check if this aggregation function is just an element in the select
+          for (SqlNode sqlNode : selectList) {
+            if (sqlNode.getKind() == SqlKind.AS) {
+              sqlNode = ((SqlCall) sqlNode).operand(0);
+            }
+
+            if (validator.expand(sqlNode, scope).equalsDeep(call, false)) {
+              return null;
+            }
+          }
+        }
+
         // Cannot use agg fun in ORDER BY clause if have SELECT DISTINCT.
         SqlNode originalExpr = validator.getOriginal(call);
         final String exprString = originalExpr.toString();
@@ -136,8 +155,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Switch to new scope.
-    SqlValidatorScope oldScope = Stacks.peek(scopes);
-    SqlValidatorScope newScope = oldScope.getOperandScope(call);
+    SqlValidatorScope newScope = scope.getOperandScope(call);
     Stacks.push(scopes, newScope);
 
     // Visit the operands (only expressions).

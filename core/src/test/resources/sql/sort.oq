@@ -85,4 +85,20 @@ select * from e as e1, e as e2 order by e1.empid + e2.empid, e1.empid;
 
 !ok
 
+# [CALCITE-634] Allow ORDER BY aggregate function in SELECT DISTINCT, provided
+# that it occurs in SELECT clause
+select distinct "deptno", count(*) as c
+from "hr"."emps"
+group by "deptno"
+order by count(*) desc;
++--------+---+
+| deptno | C |
++--------+---+
+|     10 | 3 |
+|     20 | 1 |
++--------+---+
+(2 rows)
+
+!ok
+
 # End sort.oq
