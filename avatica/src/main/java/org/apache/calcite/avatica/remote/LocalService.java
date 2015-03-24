@@ -59,6 +59,7 @@ public class LocalService implements Service {
         cursorFactory = Meta.CursorFactory.LIST;
         break;
       case MAP:
+      case LIST:
         break;
       default:
         cursorFactory = Meta.CursorFactory.map(cursorFactory.fieldNames);
@@ -72,13 +73,13 @@ public class LocalService implements Service {
     if (cursorFactory != resultSet.signature.cursorFactory) {
       signature = signature.setCursorFactory(cursorFactory);
     }
-    return new ResultSetResponse(resultSet.statementId, resultSet.ownStatement,
-        signature, new Meta.Frame(0, true, list));
+    return new ResultSetResponse(resultSet.connectionId, resultSet.statementId,
+        resultSet.ownStatement, signature, new Meta.Frame(0, true, list));
   }
 
   private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
-    final Meta.StatementHandle h =
-        new Meta.StatementHandle(resultSet.statementId);
+    final Meta.StatementHandle h = new Meta.StatementHandle(
+        resultSet.connectionId, resultSet.statementId, null);
     final Iterable<Object> iterable = meta.createIterable(h,
         resultSet.signature, Collections.emptyList(), resultSet.firstFrame);
     final List<List<Object>> list = new ArrayList<>();
@@ -118,12 +119,12 @@ public class LocalService implements Service {
   }
 
   public PrepareResponse apply(PrepareRequest request) {
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
     final Meta.StatementHandle h =
-        new Meta.StatementHandle(request.statementId);
-    Meta.Signature signature =
-        meta.prepare(h, request.sql, request.maxRowCount)
-            .setCursorFactory(Meta.CursorFactory.LIST);
+        meta.prepare(ch, request.sql, request.maxRowCount);
     if (json) {
+      Meta.Signature signature = h.signature;
       final List<ColumnMetaData> columns = new ArrayList<>();
       for (ColumnMetaData column : signature.columns) {
         switch (column.type.rep) {
@@ -146,33 +147,37 @@ public class LocalService implements Service {
       signature = new Meta.Signature(columns, signature.sql,
           signature.parameters, signature.internalParameters,
           signature.cursorFactory);
+      h.signature = signature;
     }
-    return new PrepareResponse(signature);
+    return new PrepareResponse(h);
   }
 
   public ResultSetResponse apply(PrepareAndExecuteRequest request) {
-    final Meta.StatementHandle h =
-        new Meta.StatementHandle(request.statementId);
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
     final Meta.MetaResultSet resultSet =
-        meta.prepareAndExecute(h, request.sql, request.maxRowCount,
+        meta.prepareAndExecute(ch, request.sql, request.maxRowCount,
             new Meta.PrepareCallback() {
               @Override public Object getMonitor() {
                 return LocalService.class;
               }
 
-              @Override public void clear() {}
+              @Override public void clear() {
+              }
 
               @Override public void assign(Meta.Signature signature,
-                  Meta.Frame firstFrame) {}
+                  Meta.Frame firstFrame) {
+              }
 
-              @Override public void execute() {}
+              @Override public void execute() {
+              }
             });
     return toResponse(resultSet);
   }
 
   public FetchResponse apply(FetchRequest request) {
-    final Meta.StatementHandle h =
-        new Meta.StatementHandle(request.statementId);
+    final Meta.StatementHandle h = new Meta.StatementHandle(
+        request.connectionId, request.statementId, null);
     final Meta.Frame frame =
         meta.fetch(h, request.parameterValues, request.offset,
             request.fetchMaxRowCount);
@@ -182,12 +187,13 @@ public class LocalService implements Service {
   public CreateStatementResponse apply(CreateStatementRequest request) {
     final Meta.StatementHandle h =
         meta.createStatement(new Meta.ConnectionHandle(request.connectionId));
-    return new CreateStatementResponse(h.id);
+    return new CreateStatementResponse(h.connectionId, h.id);
   }
 
   @Override
   public CloseStatementResponse apply(CloseStatementRequest request) {
-    meta.closeStatement(new Meta.StatementHandle(request.statementId));
+    meta.closeStatement(new Meta.StatementHandle(
+        request.connectionId, request.statementId, null));
     return new CloseStatementResponse();
   }
 }

@@ -153,22 +153,22 @@ public interface Meta {
 
   /** Prepares a statement.
    *
-   * @param h Statement handle
+   * @param ch Connection handle
    * @param sql SQL query
    * @param maxRowCount Negative for no limit (different meaning than JDBC)
    * @return Signature of prepared statement
    */
-  Signature prepare(StatementHandle h, String sql, int maxRowCount);
+  StatementHandle prepare(ConnectionHandle ch, String sql, int maxRowCount);
 
   /** Prepares and executes a statement.
    *
-   * @param h Statement handle
+   * @param ch Connection handle
    * @param sql SQL query
    * @param maxRowCount Negative for no limit (different meaning than JDBC)
    * @param callback Callback to lock, clear and assign cursor
-   * @return Signature of prepared statement
+   * @return MetaResultSet containing statement ID and first frame of data
    */
-  MetaResultSet prepareAndExecute(StatementHandle h, String sql,
+  MetaResultSet prepareAndExecute(ConnectionHandle ch, String sql,
       int maxRowCount, PrepareCallback callback);
 
   /** Returns a frame of rows.
@@ -223,14 +223,16 @@ public interface Meta {
 
   /** Meta data from which a result set can be constructed. */
   class MetaResultSet {
+    public final String connectionId;
     public final int statementId;
     public final boolean ownStatement;
     public final Frame firstFrame;
     public final Signature signature;
 
-    public MetaResultSet(int statementId, boolean ownStatement,
-        Signature signature, Frame firstFrame) {
+    public MetaResultSet(String connectionId, int statementId,
+        boolean ownStatement, Signature signature, Frame firstFrame) {
       this.signature = Objects.requireNonNull(signature);
+      this.connectionId = connectionId;
       this.statementId = statementId;
       this.ownStatement = ownStatement;
       this.firstFrame = firstFrame; // may be null
@@ -430,29 +432,39 @@ public interface Meta {
 
   /** Connection handle. */
   class ConnectionHandle {
-    public final int id;
+    public final String id;
 
     @Override public String toString() {
-      return Integer.toString(id);
+      return id;
     }
 
     @JsonCreator
-    public ConnectionHandle(@JsonProperty("id") int id) {
+    public ConnectionHandle(@JsonProperty("id") String id) {
       this.id = id;
     }
   }
 
   /** Statement handle. */
   class StatementHandle {
+    public final String connectionId;
     public final int id;
 
+    // not final because LocalService#apply(PrepareRequest)
+    /** Only present for PreparedStatement handles, null otherwise. */
+    public Signature signature;
+
     @Override public String toString() {
-      return Integer.toString(id);
+      return connectionId + "::" + Integer.toString(id);
     }
 
     @JsonCreator
-    public StatementHandle(@JsonProperty("id") int id) {
+    public StatementHandle(
+        @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("id") int id,
+        @JsonProperty("signature") Signature signature) {
+      this.connectionId = connectionId;
       this.id = id;
+      this.signature = signature;
     }
   }
 
