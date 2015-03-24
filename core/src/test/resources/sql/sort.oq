@@ -101,4 +101,17 @@ order by count(*) desc;
 
 !ok
 
+select distinct count("empid") as c
+from "hr"."emps"
+group by "empid"
+order by 1;
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
 # End sort.oq
