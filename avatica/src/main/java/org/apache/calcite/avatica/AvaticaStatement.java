@@ -142,6 +142,13 @@ public abstract class AvaticaStatement
         openResultSet = null;
         c.close();
       }
+      try {
+        // inform the server to close the resource
+        connection.meta.closeStatement(handle);
+      } finally {
+        // make sure we don't leak on our side
+        connection.statementMap.remove(handle.id);
+      }
       // If onStatementClose throws, this method will throw an exception (later
       // converted to SQLException), but this statement still gets closed.
       connection.driver.handler.onStatementClose(this);

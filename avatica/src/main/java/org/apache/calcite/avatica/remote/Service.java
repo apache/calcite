@@ -39,6 +39,7 @@ public interface Service {
   ResultSetResponse apply(PrepareAndExecuteRequest request);
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
+  CloseStatementResponse apply(CloseStatementRequest request);
 
   /** Factory that creates a {@code Service}. */
   interface Factory {
@@ -62,7 +63,9 @@ public interface Service {
           name = "prepareAndExecute"),
       @JsonSubTypes.Type(value = FetchRequest.class, name = "fetch"),
       @JsonSubTypes.Type(value = CreateStatementRequest.class,
-          name = "createStatement") })
+          name = "createStatement"),
+      @JsonSubTypes.Type(value = CloseStatementRequest.class,
+          name = "closeStatement") })
   abstract class Request {
     abstract Response accept(Service service);
   }
@@ -77,7 +80,9 @@ public interface Service {
       @JsonSubTypes.Type(value = PrepareResponse.class, name = "prepare"),
       @JsonSubTypes.Type(value = FetchResponse.class, name = "fetch"),
       @JsonSubTypes.Type(value = CreateStatementResponse.class,
-          name = "createStatement") })
+          name = "createStatement"),
+      @JsonSubTypes.Type(value = CloseStatementResponse.class,
+          name = "closeStatement") })
   abstract class Response {
   }
 
@@ -310,6 +315,28 @@ public interface Service {
     public CreateStatementResponse(@JsonProperty("id") int id) {
       this.id = id;
     }
+  }
+
+  /** Request for
+   * {@link org.apache.calcite.avatica.Meta#closeStatement(org.apache.calcite.avatica.Meta.StatementHandle)}. */
+  class CloseStatementRequest extends Request {
+    public final int statementId;
+
+    @JsonCreator
+    public CloseStatementRequest(@JsonProperty("id") int statementId) {
+      this.statementId = statementId;
+    }
+
+    @Override CloseStatementResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Response from
+   * {@link org.apache.calcite.avatica.remote.Service.CloseStatementRequest}. */
+  class CloseStatementResponse extends Response {
+    @JsonCreator
+    public CloseStatementResponse() {}
   }
 }
 
