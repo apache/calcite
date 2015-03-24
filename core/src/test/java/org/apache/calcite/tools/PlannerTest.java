@@ -26,11 +26,15 @@ import org.apache.calcite.adapter.jdbc.JdbcImplementor;
 import org.apache.calcite.adapter.jdbc.JdbcRel;
 import org.apache.calcite.adapter.jdbc.JdbcRules;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
@@ -38,13 +42,16 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -69,6 +76,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -1005,6 +1013,123 @@ public class PlannerTest {
         + "        LogicalProject(psPartkey=[$0], psSupplyCost=[$1])\n"
         + "          EnumerableTableScan(table=[[tpch, partsupp]])\n"));
   }
+
+
+  /**
+   * Testcase for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-628">[CALCITE-628]:
+   * Ensure only simple traitsets are specified as target traitsets</a>.
+   * @throws Exception
+   */
+  @Test public void testFrameworkPlannerWithCollationTrait() throws Exception {
+    final SchemaPlus schema = Frameworks.createRootSchema(true)
+        .add("tpch", new ReflectiveSchema(new TpchSchema()));
+
+    String query = " select ps.psPartkey from `tpch`.`partsupp` ps \n";
+
+    List<RelTraitDef> traitDefs = new ArrayList<RelTraitDef>();
+    traitDefs.add(ConventionTraitDef.INSTANCE);
+    traitDefs.add(RelCollationTraitDef.INSTANCE);
+    final SqlParser.Config parserConfig =
+        SqlParser.configBuilder().setLex(Lex.MYSQL).build();
+    Planner p = Frameworks.getPlanner(
+        Frameworks.newConfigBuilder()
+            .parserConfig(parserConfig)
+            .defaultSchema(schema)
+            .traitDefs(traitDefs)
+            .programs(Programs.ofRules(ImmutableSet.of(
+                EnumerableRules.ENUMERABLE_PROJECT_RULE,
+                PhysProjRule.INSTANCE,
+                PhysTableRule.INSTANCE
+        )))
+                .build());
+    SqlNode n = p.parse(query);
+    n = p.validate(n);
+    RelNode r = p.convert(n);
+    RelNode optNode = p.transform(0, r.getTraitSet().replace(PHYSICAL), r);
+    String plan = RelOptUtil.toString(optNode);
+    plan = Util.toLinux(plan);
+    assertThat(plan,
+        equalTo("PhysProj(psPartkey=[$0])\n"
+           + "  PhysTable(table=[[tpch, partsupp]])\n"));
+    p.close();
+  }
+
+  /** Market interface for Phys nodes */
+  private interface Phys extends RelNode { }
+
+  private static final Convention PHYSICAL =
+      new Convention.Impl("PHY", Phys.class);
+
+  /* UTILS */
+  private static RelOptRuleOperand anyChild(Class<? extends RelNode> first) {
+    return RelOptRule.operand(first, RelOptRule.any());
+  }
+
+  /** Rule to convert Logical Project to Physical Project */
+  private static class PhysProjRule extends RelOptRule {
+    static final PhysProjRule INSTANCE = new PhysProjRule();
+
+    private PhysProjRule() {
+      super(RelOptRule.operand(LogicalProject.class,
+          anyChild(RelNode.class)), "PhysProj");
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      LogicalProject rel = (LogicalProject) call.rel(0);
+      RelNode input = convert(rel.getInput(),
+          rel.getTraitSet().replace(PHYSICAL));
+
+      call.transformTo(new PhysProj(rel.getCluster(), input.getTraitSet(),
+          input, rel.getChildExps(), rel.getRowType()));
+
+    }
+  }
+
+  /** Rule to convert Logical TableScan to Physical TableScan */
+  private static class PhysTableRule extends RelOptRule {
+    static final PhysTableRule INSTANCE = new PhysTableRule();
+
+    private PhysTableRule() {
+      super(anyChild(EnumerableTableScan.class), "PhysScan");
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      EnumerableTableScan rel = (EnumerableTableScan) call.rel(0);
+      call.transformTo(new PhysTable(rel.getCluster(),
+          rel.getTraitSet().replace(PHYSICAL), rel.getTable()));
+    }
+  }
+
+  /** Physical Project RelNode */
+  private static class PhysProj extends Project implements Phys {
+    public PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
+                    List<RexNode> exps, RelDataType rowType) {
+      super(cluster, traits, child, exps, rowType);
+    }
+
+    public PhysProj copy(RelTraitSet traitSet, RelNode input,
+                         List<RexNode> exps, RelDataType rowType) {
+      return new PhysProj(getCluster(), traitSet, input, exps, rowType);
+    }
+
+    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return planner.getCostFactory().makeCost(1, 1, 1);
+    }
+  }
+
+  /** Physical Table RelNode */
+  private static class PhysTable extends TableScan implements Phys {
+    public PhysTable(RelOptCluster cluster, RelTraitSet traitSet,
+                     RelOptTable table) {
+      super(cluster, traitSet, table);
+    }
+
+    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return planner.getCostFactory().makeCost(1, 1, 1);
+    }
+  }
+
 }
 
 // End PlannerTest.java
