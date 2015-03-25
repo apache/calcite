@@ -83,9 +83,8 @@ public class SqlBetweenOperator extends SqlInfixOperator {
    * Custom operand-type checking strategy.
    */
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      new ComparableOperandTypeChecker(
-          3,
-          RelDataTypeComparability.ALL);
+      new ComparableOperandTypeChecker(3, RelDataTypeComparability.ALL,
+          SqlOperandTypeChecker.Consistency.COMPARE);
   private static final SqlWriter.FrameType FRAME_TYPE =
       SqlWriter.FrameTypeEnum.create("BETWEEN");
 

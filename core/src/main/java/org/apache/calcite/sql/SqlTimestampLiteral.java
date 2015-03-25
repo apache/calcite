@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Calendar;
 
 /**
@@ -36,11 +38,7 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
       int precision,
       boolean hasTimeZone,
       SqlParserPos pos) {
-    super(
-        cal,
-        hasTimeZone,
-        SqlTypeName.TIMESTAMP,
-        precision, DateTimeUtils.TIMESTAMP_FORMAT_STRING,
+    this(cal, precision, hasTimeZone, DateTimeUtils.TIMESTAMP_FORMAT_STRING,
         pos);
   }
 
@@ -50,32 +48,11 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
       boolean hasTimeZone,
       String format,
       SqlParserPos pos) {
-    super(
-        cal, hasTimeZone, SqlTypeName.TIMESTAMP, precision,
-        format, pos);
+    super(cal, hasTimeZone, SqlTypeName.TIMESTAMP, precision, format, pos);
+    Preconditions.checkArgument(this.precision >= 0 && this.precision <= 3);
   }
 
   //~ Methods ----------------------------------------------------------------
-
-/*
-  /**
-   * Converts this literal to a {@link java.sql.Timestamp} object.
-   o/
-  public Timestamp getTimestamp() {
-    return new Timestamp(getCal().getTimeInMillis());
-  }
-*/
-
-/*
-  /**
-   * Converts this literal to a {@link java.sql.Time} object.
-   o/
-  public Time getTime() {
-    long millis = getCal().getTimeInMillis();
-    int tzOffset = Calendar.getInstance().getTimeZone().getOffset(millis);
-    return new Time(millis - tzOffset);
-  }
-*/
 
   public SqlNode clone(SqlParserPos pos) {
     return new SqlTimestampLiteral(

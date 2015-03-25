@@ -629,13 +629,22 @@ public class CalciteAssert {
 
   public static SchemaPlus addSchema(SchemaPlus rootSchema, SchemaSpec schema) {
     SchemaPlus foodmart;
+    SchemaPlus jdbcScott;
+    final ConnectionSpec cs;
+    final DataSource dataSource;
     switch (schema) {
     case REFLECTIVE_FOODMART:
       return rootSchema.add("foodmart",
           new ReflectiveSchema(new JdbcTest.FoodmartSchema()));
+    case JDBC_SCOTT:
+      cs = DatabaseInstance.HSQLDB.scott;
+      dataSource = JdbcSchema.dataSource(cs.url, cs.driver, cs.username,
+          cs.password);
+      return rootSchema.add("jdbc_scott",
+          JdbcSchema.create(rootSchema, "jdbc_scott", dataSource, null, null));
     case JDBC_FOODMART:
-      final ConnectionSpec cs = DB.foodmart;
-      final DataSource dataSource =
+      cs = DB.foodmart;
+      dataSource =
           JdbcSchema.dataSource(cs.url, cs.driver, cs.username, cs.password);
       return rootSchema.add("foodmart",
           JdbcSchema.create(rootSchema, "foodmart", dataSource, null,
@@ -655,6 +664,13 @@ public class CalciteAssert {
                   + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"",
               true));
       return foodmart;
+    case SCOTT:
+      jdbcScott = rootSchema.getSubSchema("jdbc_scott");
+      if (jdbcScott == null) {
+        jdbcScott =
+            CalciteAssert.addSchema(rootSchema, SchemaSpec.JDBC_SCOTT);
+      }
+      return rootSchema.add("scott", new CloneSchema(jdbcScott));
     case CLONE_FOODMART:
       foodmart = rootSchema.getSubSchema("foodmart");
       if (foodmart == null) {
@@ -747,6 +763,8 @@ public class CalciteAssert {
         return with(SchemaSpec.CLONE_FOODMART);
       case JDBC_FOODMART_WITH_LATTICE:
         return with(SchemaSpec.JDBC_FOODMART_WITH_LATTICE);
+      case SCOTT:
+        return with(SchemaSpec.SCOTT);
       default:
         throw Util.unexpected(config);
       }
@@ -1378,6 +1396,9 @@ public class CalciteAssert {
     /** Configuration that includes the metadata schema. */
     REGULAR_PLUS_METADATA,
 
+    /** Configuration that loads the "scott/tiger" database. */
+    SCOTT,
+
     /** Configuration that loads Spark. */
     SPARK,
   }
@@ -1462,6 +1483,8 @@ public class CalciteAssert {
     CLONE_FOODMART,
     JDBC_FOODMART_WITH_LATTICE,
     HR,
+    JDBC_SCOTT,
+    SCOTT,
     LINGUAL,
     POST
   }

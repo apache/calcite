@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Calendar;
 
 /**
@@ -34,23 +36,19 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
   SqlTimeLiteral(
       Calendar t,
       int precision,
-      boolean hasTZ,
+      boolean hasTimeZone,
       SqlParserPos pos) {
-    super(
-        t,
-        hasTZ,
-        SqlTypeName.TIME,
-        precision, DateTimeUtils.TIME_FORMAT_STRING,
-        pos);
+    this(t, precision, hasTimeZone, DateTimeUtils.TIME_FORMAT_STRING, pos);
   }
 
   SqlTimeLiteral(
       Calendar t,
       int precision,
-      boolean hasTZ,
+      boolean hasTimeZone,
       String format,
       SqlParserPos pos) {
-    super(t, hasTZ, SqlTypeName.TIME, precision, format, pos);
+    super(t, hasTimeZone, SqlTypeName.TIME, precision, format, pos);
+    Preconditions.checkArgument(this.precision >= 0 && this.precision <= 3);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -75,8 +73,6 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
     String result = getTime().toString(formatString);
     final Calendar cal = getCal();
     if (precision > 0) {
-      assert precision <= 3;
-
       // get the millisecond count.  millisecond => at most 3 digits.
       String digits = Long.toString(cal.getTimeInMillis());
       result =

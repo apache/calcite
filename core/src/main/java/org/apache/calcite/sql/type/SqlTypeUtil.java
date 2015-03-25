@@ -1217,6 +1217,36 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
+    // We can implicitly convert from character to date
+    if (family1 == SqlTypeFamily.CHARACTER
+        && canConvertStringInCompare(family2)
+        || family2 == SqlTypeFamily.CHARACTER
+        && canConvertStringInCompare(family1)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Returns whether a character data type can be implicitly converted to a
+   * given family in a compare operation. */
+  private static boolean canConvertStringInCompare(RelDataTypeFamily family) {
+    if (family instanceof SqlTypeFamily) {
+      SqlTypeFamily sqlTypeFamily = (SqlTypeFamily) family;
+      switch (sqlTypeFamily) {
+      case DATE:
+      case TIME:
+      case TIMESTAMP:
+      case INTERVAL_DAY_TIME:
+      case INTERVAL_YEAR_MONTH:
+      case NUMERIC:
+      case APPROXIMATE_NUMERIC:
+      case EXACT_NUMERIC:
+      case INTEGER:
+      case BOOLEAN:
+        return true;
+      }
+    }
     return false;
   }
 

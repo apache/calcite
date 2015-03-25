@@ -158,6 +158,10 @@ public abstract class OperandTypes {
       public String getAllowedSignatures(SqlOperator op, String opName) {
         return opName + "(...)";
       }
+
+      public Consistency getConsistency() {
+        return Consistency.NONE;
+      }
     };
   }
 
@@ -315,7 +319,8 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker
   COMPARABLE_ORDERED_COMPARABLE_ORDERED =
-      new ComparableOperandTypeChecker(2, RelDataTypeComparability.ALL);
+      new ComparableOperandTypeChecker(2, RelDataTypeComparability.ALL,
+          SqlOperandTypeChecker.Consistency.COMPARE);
 
   /**
    * Operand type-checking strategy where operand type must allow ordered
@@ -323,7 +328,8 @@ public abstract class OperandTypes {
    * functions
    */
   public static final SqlOperandTypeChecker COMPARABLE_ORDERED =
-      new ComparableOperandTypeChecker(1, RelDataTypeComparability.ALL);
+      new ComparableOperandTypeChecker(1, RelDataTypeComparability.ALL,
+          SqlOperandTypeChecker.Consistency.NONE);
 
   /**
    * Operand type-checking strategy where operand types must allow unordered
@@ -331,7 +337,8 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker
   COMPARABLE_UNORDERED_COMPARABLE_UNORDERED =
-      new ComparableOperandTypeChecker(2, RelDataTypeComparability.UNORDERED);
+      new ComparableOperandTypeChecker(2, RelDataTypeComparability.UNORDERED,
+          SqlOperandTypeChecker.Consistency.LEAST_RESTRICTIVE);
 
   /**
    * Operand type-checking strategy where two operands must both be in the
@@ -479,6 +486,10 @@ public abstract class OperandTypes {
         public String getAllowedSignatures(SqlOperator op, String opName) {
           return "UNNEST(<MULTISET>)";
         }
+
+        public Consistency getConsistency() {
+          return Consistency.NONE;
+        }
       };
 
   /** Checker that returns whether a value is a collection (multiset or array)
@@ -538,6 +549,10 @@ public abstract class OperandTypes {
         public String getAllowedSignatures(SqlOperator op, String opName) {
           return SqlUtil.getAliasedSignature(op, opName,
               ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
+        }
+
+        public Consistency getConsistency() {
+          return Consistency.NONE;
         }
       };
 }

@@ -49,7 +49,10 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement SqlOperandTypeChecker
+  public Consistency getConsistency() {
+    return Consistency.NONE;
+  }
+
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {

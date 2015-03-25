@@ -1308,7 +1308,8 @@ public class SqlToRelConverter {
             rexBuilder.makeCall(
                 SqlStdOperatorTable.EQUALS,
                 leftKeys.get(0),
-                bb.convertExpression(rightVals));
+                rexBuilder.ensureType(leftKeys.get(0).getType(),
+                    bb.convertExpression(rightVals), true));
       } else {
         assert rightVals instanceof SqlCall;
         final SqlBasicCall call = (SqlBasicCall) rightVals;
@@ -1322,7 +1323,9 @@ public class SqlToRelConverter {
                     new Function<Pair<RexNode, SqlNode>, RexNode>() {
                       public RexNode apply(Pair<RexNode, SqlNode> pair) {
                         return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                            pair.left, bb.convertExpression(pair.right));
+                            pair.left,
+                            rexBuilder.ensureType(pair.left.getType(),
+                                bb.convertExpression(pair.right), true));
                       }
                     }),
                 false);

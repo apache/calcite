@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Collections;
 
 /**
@@ -33,14 +35,21 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeComparability requiredComparability;
+  private final Consistency consistency;
 
   //~ Constructors -----------------------------------------------------------
 
-  public ComparableOperandTypeChecker(
-      int nOperands,
+  @Deprecated // to be removed before 2.0
+  public ComparableOperandTypeChecker(int nOperands,
       RelDataTypeComparability requiredComparability) {
+    this(nOperands, requiredComparability, Consistency.NONE);
+  }
+
+  public ComparableOperandTypeChecker(int nOperands,
+      RelDataTypeComparability requiredComparability, Consistency consistency) {
     super(nOperands);
     this.requiredComparability = requiredComparability;
+    this.consistency = Preconditions.checkNotNull(consistency);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -107,10 +116,13 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
     return b;
   }
 
-  // implement SqlOperandTypeChecker
   public String getAllowedSignatures(SqlOperator op, String opName) {
     return SqlUtil.getAliasedSignature(op, opName,
         Collections.nCopies(nOperands, "COMPARABLE_TYPE"));
+  }
+
+  @Override public Consistency getConsistency() {
+    return consistency;
   }
 }
 

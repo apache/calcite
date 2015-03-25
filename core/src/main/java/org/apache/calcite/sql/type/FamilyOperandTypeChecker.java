@@ -50,7 +50,6 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement SqlSingleOperandTypeChecker
   public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
@@ -89,7 +88,6 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  // implement SqlOperandTypeChecker
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -111,14 +109,16 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  // implement SqlOperandTypeChecker
   public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(families.size());
   }
 
-  // implement SqlOperandTypeChecker
   public String getAllowedSignatures(SqlOperator op, String opName) {
     return SqlUtil.getAliasedSignature(op, opName, families);
+  }
+
+  public Consistency getConsistency() {
+    return Consistency.NONE;
   }
 }
 

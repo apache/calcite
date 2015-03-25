@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -128,8 +129,8 @@ public class JdbcSchema implements Schema {
     }
     String jdbcCatalog = (String) operand.get("jdbcCatalog");
     String jdbcSchema = (String) operand.get("jdbcSchema");
-    return JdbcSchema.create(parentSchema, name, dataSource, jdbcCatalog,
-        jdbcSchema);
+    return JdbcSchema.create(
+        parentSchema, name, dataSource, jdbcCatalog, jdbcSchema);
   }
 
   /** Returns a suitable SQL dialect for the given data source. */
@@ -256,10 +257,21 @@ public class JdbcSchema implements Schema {
       final String columnName = resultSet.getString(4);
       final int dataType = resultSet.getInt(5);
       final String typeString = resultSet.getString(6);
-      final int size = resultSet.getInt(7);
-      final int scale = resultSet.getInt(9);
+      final int precision;
+      final int scale;
+      switch (SqlType.valueOf(dataType)) {
+      case TIMESTAMP:
+      case TIME:
+        precision = resultSet.getInt(9); // SCALE
+        scale = 0;
+        break;
+      default:
+        precision = resultSet.getInt(7); // SIZE
+        scale = resultSet.getInt(9); // SCALE
+        break;
+      }
       RelDataType sqlType =
-          sqlType(typeFactory, dataType, size, scale, typeString);
+          sqlType(typeFactory, dataType, precision, scale, typeString);
       boolean nullable = resultSet.getBoolean(11);
       fieldInfo.add(columnName, sqlType).nullable(nullable);
     }

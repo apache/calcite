@@ -52,12 +52,10 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement SqlOperandTypeChecker
   public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(paramTypes.size());
   }
 
-  // implement SqlOperandTypeChecker
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -78,7 +76,6 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     return true;
   }
 
-  // implement SqlOperandTypeChecker
   public String getAllowedSignatures(SqlOperator op, String opName) {
     StringBuilder sb = new StringBuilder();
     sb.append(opName);
@@ -93,6 +90,10 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     }
     sb.append(")");
     return sb.toString();
+  }
+
+  public Consistency getConsistency() {
+    return Consistency.NONE;
   }
 }
 

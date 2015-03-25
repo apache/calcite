@@ -91,6 +91,10 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
   public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<LITERAL>";
   }
+
+  public Consistency getConsistency() {
+    return Consistency.NONE;
+  }
 }
 
 // End LiteralOperandTypeChecker.java

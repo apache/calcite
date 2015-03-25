@@ -4406,6 +4406,11 @@ public class JdbcTest {
                   .with(CalciteAssert.Config.FOODMART_CLONE)
                   .connect();
             }
+            if (name.equals("scott")) {
+              return CalciteAssert.that()
+                  .with(CalciteAssert.Config.SCOTT)
+                  .connect();
+            }
             if (name.equals("post")) {
               return CalciteAssert.that()
                   .with(CalciteAssert.Config.REGULAR)

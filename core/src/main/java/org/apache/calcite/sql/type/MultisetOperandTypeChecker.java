@@ -89,6 +89,10 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
   public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<MULTISET> " + opName + " <MULTISET>";
   }
+
+  public Consistency getConsistency() {
+    return Consistency.NONE;
+  }
 }
 
 // End MultisetOperandTypeChecker.java

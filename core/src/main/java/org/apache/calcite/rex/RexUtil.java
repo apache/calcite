@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
@@ -72,6 +73,20 @@ public class RexUtil {
       new Function<Object, String>() {
         public String apply(Object input) {
           return input.toString();
+        }
+      };
+
+  private static final Function<RexNode, RelDataType> TYPE_FN =
+      new Function<RexNode, RelDataType>() {
+        public RelDataType apply(RexNode input) {
+          return input.getType();
+        }
+      };
+
+  private static final Function<RelDataType, RelDataTypeFamily> FAMILY_FN =
+      new Function<RelDataType, RelDataTypeFamily>() {
+        public RelDataTypeFamily apply(RelDataType input) {
+          return input.getFamily();
         }
       };
 
@@ -1130,6 +1145,15 @@ public class RexUtil {
       }
       // CHECKSTYLE: IGNORE 1
     }.apply(nodes);
+  }
+
+  /** Transforms a list of expressions into a list of their types. */
+  public static List<RelDataType> types(List<? extends RexNode> nodes) {
+    return Lists.transform(nodes, TYPE_FN);
+  }
+
+  public static List<RelDataTypeFamily> families(List<RelDataType> types) {
+    return Lists.transform(types, FAMILY_FN);
   }
 
   //~ Inner Classes ----------------------------------------------------------

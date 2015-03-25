@@ -55,6 +55,21 @@ public interface SqlOperandTypeChecker {
    * @return generated string
    */
   String getAllowedSignatures(SqlOperator op, String opName);
+
+  /** Returns the strategy for making the arguments have consistency types. */
+  Consistency getConsistency();
+
+  /** Strategy used to make arguments consistent. */
+  enum Consistency {
+    /** Do not try to make arguments consistent. */
+    NONE,
+    /** Make arguments of consistent type using comparison semantics.
+     * Character values are implicitly converted to numeric, date-time, interval
+     * or boolean. */
+    COMPARE,
+    /** Convert all arguments to the least restrictive type. */
+    LEAST_RESTRICTIVE
+  }
 }
 
 // End SqlOperandTypeChecker.java

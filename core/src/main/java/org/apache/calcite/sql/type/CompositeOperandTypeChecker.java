@@ -111,6 +111,10 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return allowedRules;
   }
 
+  public Consistency getConsistency() {
+    return Consistency.NONE;
+  }
+
   public String getAllowedSignatures(SqlOperator op, String opName) {
     if (allowedSignatures != null) {
       return allowedSignatures;

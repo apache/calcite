@@ -123,7 +123,11 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   }
 
   public String getAllowedSignatures(SqlOperator op, String opName) {
-    return "{0} " + opName + " {1}"; // todo: Wael, please review.
+    return "{0} " + opName + " {1}";
+  }
+
+  public Consistency getConsistency() {
+    return Consistency.NONE;
   }
 }
 

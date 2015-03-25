@@ -364,24 +364,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testEqualNotEqualFails() {
-    checkExpFails(
-        "^''<>1^",
-        "(?s).*Cannot apply '<>' to arguments of type '<CHAR.0.> <> <INTEGER>'.*");
-    checkExpFails(
-        "^'1'>=1^",
-        "(?s).*Cannot apply '>=' to arguments of type '<CHAR.1.> >= <INTEGER>'.*");
-    checkExpFails(
-        "^1<>n'abc'^",
-        "(?s).*Cannot apply '<>' to arguments of type '<INTEGER> <> <CHAR.3.>'.*");
-    checkExpFails(
-        "^''=.1^",
-        "(?s).*Cannot apply '=' to arguments of type '<CHAR.0.> = <DECIMAL.1..1.>'.*");
+    checkExp("''<>1"); // compare CHAR, INTEGER ok; implicitly convert CHAR
+    checkExp("'1'>=1");
+    checkExp("1<>n'abc'"); // compare INTEGER, NCHAR ok
+    checkExp("''=.1"); // compare CHAR, DECIMAL ok
     checkExpFails(
         "^true<>1e-1^",
         "(?s).*Cannot apply '<>' to arguments of type '<BOOLEAN> <> <DOUBLE>'.*");
-    checkExpFails(
-        "^false=''^",
-        "(?s).*Cannot apply '=' to arguments of type '<BOOLEAN> = <CHAR.0.>'.*");
+    checkExp("false=''"); // compare BOOLEAN, CHAR ok
     checkExpFails(
         "^x'a4'=0.01^",
         "(?s).*Cannot apply '=' to arguments of type '<BINARY.1.> = <DECIMAL.3, 2.>'.*");
@@ -628,8 +618,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testBetween() {
     checkExp("1 between 2 and 3");
     checkExp("'a' between 'b' and 'c'");
-    checkWholeExpFails(
-        "'' between 2 and 3",
+    checkExp("'' between 2 and 3"); // can implicitly convert CHAR to INTEGER
+    checkWholeExpFails("date '2012-02-03' between 2 and 3",
         "(?s).*Cannot apply 'BETWEEN' to arguments of type.*");
   }
 
@@ -4486,7 +4476,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    *
    * <p>See also
    * <a href="https://issues.apache.org/jira/browse/CALCITE-546">[CALCITE-546]
-   * "Allow table, column and field called '*'"</a> (not yet fixed).
+   * Allow table, column and field called '*'</a> (not yet fixed).
    */
   @Test public void testStarInFromFails() {
     sql("select emp.empno AS x from ^sales.*^")
@@ -4570,8 +4560,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpFails(
         "1 in ^((2), (3,4))^",
         ERR_IN_VALUES_INCOMPATIBLE);
-    checkExpFails(
-        "false and ^1 in ('b', 'c')^",
+    checkExp("false and ^1 in ('b', 'c')^");
+    checkExpFails("false and ^1 in (date '2012-01-02', date '2012-01-04')^",
         ERR_IN_OPERANDS_INCOMPATIBLE);
     checkExpFails(
         "1 > 5 ^or (1, 2) in (3, 4)^",
@@ -5149,10 +5139,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testNaturalJoinIncompatibleDatatype() {
-    checkFails(
-        "select * from emp natural ^join^\n"
+    checkFails("select *\n"
+            + "from (select ename as name, hiredate as deptno from emp)\n"
+            + "natural ^join^\n"
             + "(select deptno, name as sal from dept)",
-        "Column 'SAL' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'INTEGER' to 'VARCHAR\\(10\\)'");
+        "Column 'DEPTNO' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'TIMESTAMP\\(0\\)' to 'INTEGER'");
+
+    // INTEGER and VARCHAR are comparable: VARCHAR implicit converts to INTEGER
+    check("select * from emp natural ^join^\n"
+            + "(select deptno, name as sal from dept)");
 
     // make sal occur more than once on rhs, it is ignored and therefore
     // there is no error about incompatible types
@@ -5161,9 +5156,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testJoinUsingIncompatibleDatatype() {
-    checkFails(
-        "select * from emp join (select deptno, name as sal from dept) using (deptno, ^sal^)",
-        "Column 'SAL' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'INTEGER' to 'VARCHAR\\(10\\)'");
+    checkFails("select *\n"
+            + "from (select ename as name, hiredate as deptno from emp)\n"
+            + "join (select deptno, name as sal from dept) using (^deptno^, sal)",
+        "Column 'DEPTNO' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'TIMESTAMP\\(0\\)' to 'INTEGER'");
+
+    // INTEGER and VARCHAR are comparable: VARCHAR implicit converts to INTEGER
+    check("select * from emp\n"
+        + "join (select deptno, name as sal from dept) using (deptno, sal)");
   }
 
   @Test public void testJoinUsingInvalidColsFails() {
@@ -5624,7 +5624,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-633">[CALCITE-633],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-633">[CALCITE-633]
    * WITH ... ORDER BY cannot find table</a>. */
   @Test public void testWithOrder() {
     sql("with e as (select * from emp)\n"
@@ -6183,6 +6183,41 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Cannot apply '=' to arguments of type '<INTERVAL MONTH> = <INTERVAL DAY>'.*");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-613">[CALCITE-613]
+   * Implicitly convert strings in comparisons</a>. */
+  @Test public void testDateCompare() {
+    // can convert character value to date, time, timestamp, interval
+    // provided it is on one side of a comparison operator (=, <, >, BETWEEN)
+    checkExpType("date '2015-03-17' < '2015-03-18'", "BOOLEAN NOT NULL");
+    checkExpType("date '2015-03-17' > '2015-03-18'", "BOOLEAN NOT NULL");
+    checkExpType("date '2015-03-17' = '2015-03-18'", "BOOLEAN NOT NULL");
+    checkExpType("'2015-03-17' < date '2015-03-18'", "BOOLEAN NOT NULL");
+    checkExpType("date '2015-03-17' between '2015-03-16' and '2015-03-19'",
+        "BOOLEAN NOT NULL");
+    checkExpType("date '2015-03-17' between '2015-03-16' and '2015-03'||'-19'",
+        "BOOLEAN NOT NULL");
+    checkExpType("'2015-03-17' between date '2015-03-16' and date '2015-03-19'",
+        "BOOLEAN NOT NULL");
+    checkExpType("date '2015-03-17' between date '2015-03-16' and '2015-03-19'",
+        "BOOLEAN NOT NULL");
+    checkExpType("date '2015-03-17' between '2015-03-16' and date '2015-03-19'",
+        "BOOLEAN NOT NULL");
+    checkExpType("time '12:34:56' < '12:34:57'", "BOOLEAN NOT NULL");
+    checkExpType("timestamp '2015-03-17 12:34:56' < '2015-03-17 12:34:57'",
+        "BOOLEAN NOT NULL");
+    checkExpType("interval '2' hour < '2:30'", "BOOLEAN NOT NULL");
+
+    // can convert to exact and approximate numeric
+    checkExpType("123 > '72'", "BOOLEAN NOT NULL");
+    checkExpType("12.3 > '7.2'", "BOOLEAN NOT NULL");
+
+    // can convert to boolean
+    checkExpType("true = 'true'", "BOOLEAN NOT NULL");
+    checkExpFails("^true and 'true'^",
+        "Cannot apply 'AND' to arguments of type '<BOOLEAN> AND <CHAR\\(4\\)>'\\..*");
+  }
+
   @Test public void testOverlaps() {
     checkExpType(
         "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', date '1-2-3')",
@@ -6549,8 +6584,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-xxx">CALCITE-xxx,
-   * "Unexpected upper-casing of keywords when using java lexer"</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-497">[CALCITE-497]
+   * Support optional qualifier for column name references</a>. */
   @Test public void testRecordTypeElided() {
     checkResultType(
         "SELECT contact.x, contact.coord.y FROM customer.contact",
@@ -6811,8 +6846,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-145">CALCITE-145,
-   * "Unexpected upper-casing of keywords when using java lexer"</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-145">[CALCITE-145]
+   * Unexpected upper-casing of keywords when using java lexer</a>. */
   @Test public void testLexJavaKeyword() {
     final SqlTester tester1 = tester.withLex(Lex.JAVA);
     tester1.checkResultType(

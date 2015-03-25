@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -62,17 +63,20 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSequenceValueOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
@@ -513,7 +517,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCall call) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final List<SqlNode> operands = call.getOperandList();
-    final List<RexNode> exprs = convertExpressionList(cx, operands);
+    final List<RexNode> exprs = convertExpressionList(cx, operands,
+        SqlOperandTypeChecker.Consistency.NONE);
 
     // TODO: Will need to use decimal type for seconds with precision
     RelDataType resType =
@@ -626,7 +631,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // Rewrite datetime minus
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final List<SqlNode> operands = call.getOperandList();
-    final List<RexNode> exprs = convertExpressionList(cx, operands);
+    final List<RexNode> exprs = convertExpressionList(cx, operands,
+        SqlOperandTypeChecker.Consistency.NONE);
 
     // TODO: Handle year month interval (represented in months)
     for (RexNode expr : exprs) {
@@ -668,7 +674,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlFunction fun,
       SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();
-    final List<RexNode> exprs = convertExpressionList(cx, operands);
+    final List<RexNode> exprs = convertExpressionList(cx, operands,
+        SqlOperandTypeChecker.Consistency.NONE);
     if (fun.getFunctionType() == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR) {
       return makeConstructorCall(cx, fun, exprs);
     }
@@ -703,7 +710,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (call.isCountStar()) {
       exprs = ImmutableList.of();
     } else {
-      exprs = convertExpressionList(cx, operands);
+      exprs = convertExpressionList(cx, operands,
+          SqlOperandTypeChecker.Consistency.NONE);
     }
     RelDataType returnType =
         cx.getValidator().getValidatedNodeTypeIfKnown(call);
@@ -769,11 +777,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlOperator op) {
     final List<SqlNode> operands = call.getOperandList();
     final RexBuilder rexBuilder = cx.getRexBuilder();
-    final List<RexNode> exprs = convertExpressionList(cx, operands);
-    if (op.getOperandTypeChecker()
-        == OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED) {
-      ensureSameType(cx, exprs);
-    }
+    final SqlOperandTypeChecker.Consistency consistency =
+        op.getOperandTypeChecker() == null
+            ? SqlOperandTypeChecker.Consistency.NONE
+            : op.getOperandTypeChecker().getConsistency();
+    final List<RexNode> exprs =
+        convertExpressionList(cx, operands, consistency);
     RelDataType type = rexBuilder.deriveReturnType(op, exprs);
     return rexBuilder.makeCall(type, op, RexUtil.flatten(exprs, op));
   }
@@ -793,33 +802,66 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return list;
   }
 
-  private void ensureSameType(SqlRexContext cx, final List<RexNode> exprs) {
-    RelDataType type =
-        cx.getTypeFactory().leastRestrictive(
-            new AbstractList<RelDataType>() {
-              public RelDataType get(int index) {
-                return exprs.get(index).getType();
-              }
-
-              public int size() {
-                return exprs.size();
-              }
-            });
-    for (int i = 0; i < exprs.size(); i++) {
-      // REVIEW: assigning to a list that may be immutable?
-      exprs.set(
-          i, cx.getRexBuilder().ensureType(type, exprs.get(i), true));
-    }
-  }
-
-  private static List<RexNode> convertExpressionList(
-      SqlRexContext cx,
-      List<SqlNode> nodes) {
-    final ArrayList<RexNode> exprs = new ArrayList<RexNode>();
+  private static List<RexNode> convertExpressionList(SqlRexContext cx,
+      List<SqlNode> nodes, SqlOperandTypeChecker.Consistency consistency) {
+    final List<RexNode> exprs = Lists.newArrayList();
     for (SqlNode node : nodes) {
       exprs.add(cx.convertExpression(node));
     }
+    if (exprs.size() > 1) {
+      final RelDataType type =
+          consistentType(cx, consistency, RexUtil.types(exprs));
+      if (type != null) {
+        final List<RexNode> oldExprs = Lists.newArrayList(exprs);
+        exprs.clear();
+        for (RexNode expr : oldExprs) {
+          exprs.add(cx.getRexBuilder().ensureType(type, expr, true));
+        }
+      }
+    }
     return exprs;
+  }
+
+  private static RelDataType consistentType(SqlRexContext cx,
+      SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
+    switch (consistency) {
+    case COMPARE:
+      final Set<RelDataTypeFamily> families =
+          Sets.newHashSet(RexUtil.families(types));
+      if (families.size() < 2) {
+        // All arguments are of same family. No need for explicit casts.
+        return null;
+      }
+      final List<RelDataType> nonCharacterTypes = Lists.newArrayList();
+      for (RelDataType type : types) {
+        if (type.getFamily() != SqlTypeFamily.CHARACTER) {
+          nonCharacterTypes.add(type);
+        }
+      }
+      if (!nonCharacterTypes.isEmpty()) {
+        final int typeCount = types.size();
+        types = nonCharacterTypes;
+        if (nonCharacterTypes.size() < typeCount) {
+          final RelDataTypeFamily family =
+              nonCharacterTypes.get(0).getFamily();
+          if (family instanceof SqlTypeFamily) {
+            // The character arguments might be larger than the numeric
+            // argument. Give ourselves some headroom.
+            switch ((SqlTypeFamily) family) {
+            case INTEGER:
+            case NUMERIC:
+              nonCharacterTypes.add(
+                  cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT));
+            }
+          }
+        }
+      }
+      // fall through
+    case LEAST_RESTRICTIVE:
+      return cx.getTypeFactory().leastRestrictive(types);
+    default:
+      return null;
+    }
   }
 
   private RexNode convertPlus(SqlRexContext cx, SqlCall call) {
@@ -853,20 +895,17 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlRexContext cx,
       SqlBetweenOperator op,
       SqlCall call) {
-    final SqlNode value = call.operand(SqlBetweenOperator.VALUE_OPERAND);
-    RexNode x = cx.convertExpression(value);
-    final SqlBetweenOperator.Flag symmetric = op.flag;
-    final SqlNode lower = call.operand(SqlBetweenOperator.LOWER_OPERAND);
-    RexNode y = cx.convertExpression(lower);
-    final SqlNode upper = call.operand(SqlBetweenOperator.UPPER_OPERAND);
-    RexNode z = cx.convertExpression(upper);
+    final List<RexNode> list =
+        convertExpressionList(cx, call.getOperandList(),
+            op.getOperandTypeChecker().getConsistency());
+    final RexNode x = list.get(SqlBetweenOperator.VALUE_OPERAND);
+    final RexNode y = list.get(SqlBetweenOperator.LOWER_OPERAND);
+    final RexNode z = list.get(SqlBetweenOperator.UPPER_OPERAND);
 
     final RexBuilder rexBuilder = cx.getRexBuilder();
     RexNode ge1 =
         rexBuilder.makeCall(
-            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-            x,
-            y);
+            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, x, y);
     RexNode le1 =
         rexBuilder.makeCall(
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
@@ -879,6 +918,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             le1);
 
     RexNode res;
+    final SqlBetweenOperator.Flag symmetric = op.flag;
     switch (symmetric) {
     case ASYMMETRIC:
       res = and1;
