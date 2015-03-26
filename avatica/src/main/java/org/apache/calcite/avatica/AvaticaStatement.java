@@ -92,8 +92,12 @@ public abstract class AvaticaStatement
     try {
       // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
       final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
-      Meta.Signature x = connection.meta.prepare(handle, sql, maxRowCount1);
-      return executeInternal(x);
+      ResultSet resultSet =
+          connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
+      if (resultSet.isClosed()) {
+        return false;
+      }
+      return true;
     } catch (RuntimeException e) {
       throw connection.helper.createException("while executing SQL: " + sql, e);
     }
@@ -141,6 +145,13 @@ public abstract class AvaticaStatement
         AvaticaResultSet c = openResultSet;
         openResultSet = null;
         c.close();
+      }
+      try {
+        // inform the server to close the resource
+        connection.meta.closeStatement(handle);
+      } finally {
+        // make sure we don't leak on our side
+        connection.statementMap.remove(handle.id);
       }
       // If onStatementClose throws, this method will throw an exception (later
       // converted to SQLException), but this statement still gets closed.

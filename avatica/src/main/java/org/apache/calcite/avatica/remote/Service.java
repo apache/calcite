@@ -39,6 +39,8 @@ public interface Service {
   ResultSetResponse apply(PrepareAndExecuteRequest request);
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
+  CloseStatementResponse apply(CloseStatementRequest request);
+  CloseConnectionResponse apply(CloseConnectionRequest request);
 
   /** Factory that creates a {@code Service}. */
   interface Factory {
@@ -62,7 +64,11 @@ public interface Service {
           name = "prepareAndExecute"),
       @JsonSubTypes.Type(value = FetchRequest.class, name = "fetch"),
       @JsonSubTypes.Type(value = CreateStatementRequest.class,
-          name = "createStatement") })
+          name = "createStatement"),
+      @JsonSubTypes.Type(value = CloseStatementRequest.class,
+          name = "closeStatement"),
+      @JsonSubTypes.Type(value = CloseConnectionRequest.class,
+          name = "closeConnection") })
   abstract class Request {
     abstract Response accept(Service service);
   }
@@ -77,7 +83,11 @@ public interface Service {
       @JsonSubTypes.Type(value = PrepareResponse.class, name = "prepare"),
       @JsonSubTypes.Type(value = FetchResponse.class, name = "fetch"),
       @JsonSubTypes.Type(value = CreateStatementResponse.class,
-          name = "createStatement") })
+          name = "createStatement"),
+      @JsonSubTypes.Type(value = CloseStatementResponse.class,
+          name = "closeStatement"),
+      @JsonSubTypes.Type(value = CloseConnectionResponse.class,
+          name = "closeConnection") })
   abstract class Response {
   }
 
@@ -175,16 +185,20 @@ public interface Service {
    * {@link Meta#getTableTypes()}
    * return this response. */
   class ResultSetResponse extends Response {
+    public final String connectionId;
     public final int statementId;
     public final boolean ownStatement;
     public final Meta.Signature signature;
     public final Meta.Frame firstFrame;
 
     @JsonCreator
-    public ResultSetResponse(@JsonProperty("statementId") int statementId,
+    public ResultSetResponse(
+        @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId,
         @JsonProperty("ownStatement") boolean ownStatement,
         @JsonProperty("signature") Meta.Signature signature,
         @JsonProperty("firstFrame") Meta.Frame firstFrame) {
+      this.connectionId = connectionId;
       this.statementId = statementId;
       this.ownStatement = ownStatement;
       this.signature = signature;
@@ -193,18 +207,18 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(org.apache.calcite.avatica.Meta.StatementHandle, String, int, org.apache.calcite.avatica.Meta.PrepareCallback)}. */
+   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(org.apache.calcite.avatica.Meta.ConnectionHandle, String, int, org.apache.calcite.avatica.Meta.PrepareCallback)}. */
   class PrepareAndExecuteRequest extends Request {
-    public final int statementId;
+    public final String connectionId;
     public final String sql;
     public final int maxRowCount;
 
     @JsonCreator
     public PrepareAndExecuteRequest(
-        @JsonProperty("statementId") int statementId,
+        @JsonProperty("connectionId") String connectionId,
         @JsonProperty("sql") String sql,
         @JsonProperty("maxRowCount") int maxRowCount) {
-      this.statementId = statementId;
+      this.connectionId = connectionId;
       this.sql = sql;
       this.maxRowCount = maxRowCount;
     }
@@ -215,17 +229,18 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#prepare(org.apache.calcite.avatica.Meta.StatementHandle, String, int)}. */
+   * {@link org.apache.calcite.avatica.Meta#prepare(org.apache.calcite.avatica.Meta.ConnectionHandle, String, int)}. */
   class PrepareRequest extends Request {
-    public final int statementId;
+    public final String connectionId;
     public final String sql;
     public final int maxRowCount;
 
     @JsonCreator
-    public PrepareRequest(@JsonProperty("statementId") int statementId,
+    public PrepareRequest(
+        @JsonProperty("connectionId") String connectionId,
         @JsonProperty("sql") String sql,
         @JsonProperty("maxRowCount") int maxRowCount) {
-      this.statementId = statementId;
+      this.connectionId = connectionId;
       this.sql = sql;
       this.maxRowCount = maxRowCount;
     }
@@ -238,18 +253,19 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.PrepareRequest}. */
   class PrepareResponse extends Response {
-    public final Meta.Signature signature;
+    public final Meta.StatementHandle statement;
 
     @JsonCreator
     public PrepareResponse(
-        @JsonProperty("signature") Meta.Signature signature) {
-      this.signature = signature;
+        @JsonProperty("statement") Meta.StatementHandle statement) {
+      this.statement = statement;
     }
   }
 
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#fetch(Meta.StatementHandle, List, int, int)}. */
   class FetchRequest extends Request {
+    public final String connectionId;
     public final int statementId;
     public final int offset;
     /** Maximum number of rows to be returned in the frame. Negative means no
@@ -260,10 +276,13 @@ public interface Service {
     public final List<Object> parameterValues;
 
     @JsonCreator
-    public FetchRequest(@JsonProperty("statementId") int statementId,
+    public FetchRequest(
+        @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId,
         @JsonProperty("parameterValues") List<Object> parameterValues,
         @JsonProperty("offset") int offset,
         @JsonProperty("fetchMaxRowCount") int fetchMaxRowCount) {
+      this.connectionId = connectionId;
       this.statementId = statementId;
       this.parameterValues = parameterValues;
       this.offset = offset;
@@ -289,10 +308,11 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#createStatement(org.apache.calcite.avatica.Meta.ConnectionHandle)}. */
   class CreateStatementRequest extends Request {
-    public final int connectionId;
+    public final String connectionId;
 
     @JsonCreator
-    public CreateStatementRequest(@JsonProperty("signature") int connectionId) {
+    public CreateStatementRequest(
+        @JsonProperty("signature") String connectionId) {
       this.connectionId = connectionId;
     }
 
@@ -304,12 +324,65 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CreateStatementRequest}. */
   class CreateStatementResponse extends Response {
-    public final int id;
+    public final String connectionId;
+    public final int statementId;
 
     @JsonCreator
-    public CreateStatementResponse(@JsonProperty("id") int id) {
-      this.id = id;
+    public CreateStatementResponse(
+        @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId) {
+      this.connectionId = connectionId;
+      this.statementId = statementId;
     }
+  }
+
+  /** Request for
+   * {@link org.apache.calcite.avatica.Meta#closeStatement(org.apache.calcite.avatica.Meta.StatementHandle)}. */
+  class CloseStatementRequest extends Request {
+    public final String connectionId;
+    public final int statementId;
+
+    @JsonCreator
+    public CloseStatementRequest(
+        @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId) {
+      this.connectionId = connectionId;
+      this.statementId = statementId;
+    }
+
+    @Override CloseStatementResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Response from
+   * {@link org.apache.calcite.avatica.remote.Service.CloseStatementRequest}. */
+  class CloseStatementResponse extends Response {
+    @JsonCreator
+    public CloseStatementResponse() {}
+  }
+
+  /** Request for
+   * {@link Meta#closeConnection(org.apache.calcite.avatica.Meta.ConnectionHandle)}. */
+  class CloseConnectionRequest extends Request {
+    public final String connectionId;
+
+    @JsonCreator
+    public CloseConnectionRequest(
+        @JsonProperty("connectionId") String connectionId) {
+      this.connectionId = connectionId;
+    }
+
+    @Override CloseConnectionResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Response from
+   * {@link org.apache.calcite.avatica.remote.Service.CloseConnectionRequest}. */
+  class CloseConnectionResponse extends Response {
+    @JsonCreator
+    public CloseConnectionResponse() {}
   }
 }
 

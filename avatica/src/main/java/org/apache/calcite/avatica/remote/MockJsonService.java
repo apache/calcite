@@ -36,11 +36,25 @@ public class MockJsonService extends JsonService {
   }
 
   @Override public String apply(String request) {
-    final String response = map.get(request);
+    String response = map.get(request);
+    if (response == null) {
+      response = handleCloseConnection(request);
+    }
     if (response == null) {
       throw new RuntimeException("No response for " + request);
     }
     return response;
+  }
+
+  /**
+   * Special case for closeConnection because connection IDs are random.
+   * @return response if is a CloseConnectionRequest, null otherwise.
+   */
+  private static String handleCloseConnection(String request) {
+    if (request.contains("closeConnection")) {
+      return "{\"response\":\"closeConnection\"}";
+    }
+    return null;
   }
 
   /** Factory that creates a {@code MockJsonService}. */

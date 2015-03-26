@@ -17,17 +17,24 @@
 package org.apache.calcite.avatica.test;
 
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaPreparedStatement;
+import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.LocalJsonService;
 import org.apache.calcite.avatica.remote.LocalService;
 import org.apache.calcite.avatica.remote.MockJsonService;
 import org.apache.calcite.avatica.remote.Service;
 
+import com.google.common.cache.Cache;
+
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
@@ -36,6 +43,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -66,6 +74,11 @@ public class RemoteDriverTest {
 
   private Connection ljs() throws SQLException {
     return DriverManager.getConnection("jdbc:avatica:remote:factory=" + QRJS);
+  }
+
+  @Before
+  public void before() throws Exception {
+    QuasiRemoteJdbcServiceFactory.initService();
   }
 
   @Test public void testRegister() throws Exception {
@@ -186,6 +199,70 @@ public class RemoteDriverTest {
     connection.close();
   }
 
+  @Test public void testStatementLifecycle() throws Exception {
+    try (AvaticaConnection connection = (AvaticaConnection) ljs()) {
+      Map<Integer, AvaticaStatement> clientMap = connection.statementMap;
+      Cache<Integer, Object> serverMap =
+          QuasiRemoteJdbcServiceFactory.getRemoteStatementMap(connection);
+      assertEquals(0, clientMap.size());
+      assertEquals(0, serverMap.size());
+      Statement stmt = connection.createStatement();
+      assertEquals(1, clientMap.size());
+      assertEquals(1, serverMap.size());
+      stmt.close();
+      assertEquals(0, clientMap.size());
+      assertEquals(0, serverMap.size());
+    }
+  }
+
+  @Test public void testConnectionIsolation() throws Exception {
+    final String sql = "select * from (values (1, 'a'))";
+    Connection conn1 = ljs();
+    Connection conn2 = ljs();
+    Cache<String, Connection> connectionMap =
+        QuasiRemoteJdbcServiceFactory.getRemoteConnectionMap(
+            (AvaticaConnection) conn1);
+    assertEquals("connection cache should start empty",
+        0, connectionMap.size());
+    PreparedStatement conn1stmt1 = conn1.prepareStatement(sql);
+    assertEquals(
+        "statement creation implicitly creates a connection server-side",
+        1, connectionMap.size());
+    PreparedStatement conn2stmt1 = conn2.prepareStatement(sql);
+    assertEquals(
+        "statement creation implicitly creates a connection server-side",
+        2, connectionMap.size());
+    AvaticaPreparedStatement s1 = (AvaticaPreparedStatement) conn1stmt1;
+    AvaticaPreparedStatement s2 = (AvaticaPreparedStatement) conn2stmt1;
+    assertFalse("connection id's should be unique",
+        s1.handle.connectionId.equalsIgnoreCase(s2.handle.connectionId));
+    conn2.close();
+    assertEquals("closing a connection closes the server-side connection",
+        1, connectionMap.size());
+    conn1.close();
+    assertEquals("closing a connection closes the server-side connection",
+        0, connectionMap.size());
+  }
+
+  private void checkStatementExecuteQuery(Connection connection)
+      throws SQLException {
+    final Statement statement = connection.createStatement();
+    final ResultSet resultSet =
+        statement.executeQuery("select * from (\n"
+            + "  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)");
+    final ResultSetMetaData metaData = resultSet.getMetaData();
+    assertEquals(2, metaData.getColumnCount());
+    assertEquals("C1", metaData.getColumnName(1));
+    assertEquals("C2", metaData.getColumnName(2));
+    assertTrue(resultSet.next());
+    assertTrue(resultSet.next());
+    assertTrue(resultSet.next());
+    assertFalse(resultSet.next());
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
   @Test public void testPrepareBindExecuteFetch() throws Exception {
     checkPrepareBindExecuteFetch(ljs());
   }
@@ -239,35 +316,94 @@ public class RemoteDriverTest {
     connection.close();
   }
 
-  /** Factory that creates a service based on a local JDBC connection. */
+  /**
+   * Factory that creates a service based on a local JDBC connection.
+   */
   public static class LocalJdbcServiceFactory implements Service.Factory {
     @Override public Service create(AvaticaConnection connection) {
       try {
-        Connection connection1 =
-            DriverManager.getConnection(CONNECTION_SPEC.url,
-                CONNECTION_SPEC.username, CONNECTION_SPEC.password);
-        return new LocalService(new JdbcMeta(connection1));
+        return new LocalService(new JdbcMeta(CONNECTION_SPEC.url,
+            CONNECTION_SPEC.username, CONNECTION_SPEC.password));
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
     }
   }
 
-  /** Factory that creates a service based on a local JDBC connection. */
+  /**
+   * Factory that creates a service based on a local JDBC connection.
+   */
   public static class QuasiRemoteJdbcServiceFactory implements Service.Factory {
-    @Override public Service create(AvaticaConnection connection) {
+
+    /** a singleton instance that is recreated for each test */
+    private static Service service;
+
+    static void initService() {
       try {
-        Connection connection1 =
-            DriverManager.getConnection(CONNECTION_SPEC.url,
-                CONNECTION_SPEC.username, CONNECTION_SPEC.password);
-        final JdbcMeta jdbcMeta = new JdbcMeta(connection1);
+        final JdbcMeta jdbcMeta = new JdbcMeta(CONNECTION_SPEC.url,
+            CONNECTION_SPEC.username, CONNECTION_SPEC.password);
         final LocalService localService = new LocalService(jdbcMeta);
-        final LocalJsonService localJsonService =
-            new LocalJsonService(localService);
-        return localJsonService;
+        service = new LocalJsonService(localService);
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
+    }
+
+    @Override public Service create(AvaticaConnection connection) {
+      assert service != null;
+      return service;
+    }
+
+    /**
+     * Reach into the guts of a quasi-remote connection and pull out the
+     * statement map from the other side.
+     * TODO: refactor tests to replace reflection with package-local access
+     */
+    static Cache<Integer, Object>
+    getRemoteStatementMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalJsonService remoteMetaService = (LocalJsonService) remoteMetaServiceF.get(clientMeta);
+      Field remoteMetaServiceServiceF = remoteMetaService.getClass().getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementCache");
+      jdbcMetaStatementMapF.setAccessible(true);
+      return (Cache<Integer, Object>) jdbcMetaStatementMapF.get(serverMeta);
+    }
+
+    /**
+     * Reach into the guts of a quasi-remote connection and pull out the
+     * connection map from the other side.
+     * TODO: refactor tests to replace reflection with package-local access
+     */
+    static Cache<String, Connection>
+    getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalJsonService remoteMetaService = (LocalJsonService) remoteMetaServiceF.get(clientMeta);
+      Field remoteMetaServiceServiceF = remoteMetaService.getClass().getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaConnectionCacheF = JdbcMeta.class.getDeclaredField("connectionCache");
+      jdbcMetaConnectionCacheF.setAccessible(true);
+      return (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
     }
   }
 

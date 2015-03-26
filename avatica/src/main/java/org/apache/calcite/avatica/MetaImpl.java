@@ -162,8 +162,21 @@ public abstract class MetaImpl implements Meta {
     }
   }
 
+  @Override public void closeConnection(ConnectionHandle ch) {
+    // TODO: implement
+    //
+    // lots of Calcite tests break with this simple implementation,
+    // requires investigation
+
+//    try {
+//      connection.close();
+//    } catch (SQLException e) {
+//      throw new RuntimeException(e);
+//    }
+  }
+
   public StatementHandle createStatement(ConnectionHandle ch) {
-    return new StatementHandle(connection.statementCount++);
+    return new StatementHandle(ch.id, connection.statementCount++, null);
   }
 
   /** Creates an empty result set. Useful for JDBC metadata methods that are
@@ -215,7 +228,8 @@ public abstract class MetaImpl implements Meta {
       final Signature signature =
           new Signature(columns, "", Collections.<AvaticaParameter>emptyList(),
               internalParameters, cursorFactory);
-      return new MetaResultSet(statement.getId(), true, signature, firstFrame);
+      return new MetaResultSet(connection.id, statement.getId(), true,
+          signature, firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

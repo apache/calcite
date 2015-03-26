@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 /**
@@ -56,7 +58,8 @@ public abstract class AvaticaConnection implements Connection {
   private int networkTimeout;
   private String catalog;
 
-  public final int id;
+  public final String id;
+  public final Meta.ConnectionHandle handle;
   protected final UnregisteredDriver driver;
   protected final AvaticaFactory factory;
   final String url;
@@ -66,9 +69,8 @@ public abstract class AvaticaConnection implements Connection {
   protected final AvaticaDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
   public final Map<InternalProperty, Object> properties = new HashMap<>();
-  public final Map<Integer, AvaticaStatement> statementMap = new HashMap<>();
-
-  private static int nextId;
+  public final Map<Integer, AvaticaStatement> statementMap =
+      new ConcurrentHashMap<>();
 
   /**
    * Creates an AvaticaConnection.
@@ -85,7 +87,8 @@ public abstract class AvaticaConnection implements Connection {
       AvaticaFactory factory,
       String url,
       Properties info) {
-    this.id = nextId++;
+    this.id = UUID.randomUUID().toString();
+    this.handle = new Meta.ConnectionHandle(this.id);
     this.driver = driver;
     this.factory = factory;
     this.url = url;
@@ -151,6 +154,7 @@ public abstract class AvaticaConnection implements Connection {
       // Per specification, if onConnectionClose throws, this method will throw
       // a SQLException, but statement will still be closed.
       try {
+        meta.closeConnection(handle);
         driver.handler.onConnectionClose(this);
       } catch (RuntimeException e) {
         throw helper.createException("While closing connection", e);
@@ -270,12 +274,9 @@ public abstract class AvaticaConnection implements Connection {
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     try {
-      // TODO: cut out round-trip to create a statement handle
       final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(id);
-      final Meta.StatementHandle h = meta.createStatement(ch);
-
-      final Meta.Signature x = meta.prepare(h, sql, -1);
-      return factory.newPreparedStatement(this, h, x, resultSetType,
+      final Meta.StatementHandle h = meta.prepare(ch, sql, -1);
+      return factory.newPreparedStatement(this, h, h.signature, resultSetType,
           resultSetConcurrency, resultSetHoldability);
     } catch (RuntimeException e) {
       throw helper.createException("while preparing SQL: " + sql, e);
@@ -438,8 +439,8 @@ public abstract class AvaticaConnection implements Connection {
   protected ResultSet prepareAndExecuteInternal(
       final AvaticaStatement statement, String sql, int maxRowCount)
       throws SQLException {
-    Meta.MetaResultSet x = meta.prepareAndExecute(statement.handle, sql,
-        maxRowCount, new Meta.PrepareCallback() {
+    Meta.MetaResultSet x = meta.prepareAndExecute(handle, sql, maxRowCount,
+        new Meta.PrepareCallback() {
           public Object getMonitor() {
             return statement;
           }
@@ -475,8 +476,8 @@ public abstract class AvaticaConnection implements Connection {
 
   protected ResultSet createResultSet(Meta.MetaResultSet metaResultSet)
       throws SQLException {
-    final Meta.StatementHandle h =
-        new Meta.StatementHandle(metaResultSet.statementId);
+    final Meta.StatementHandle h = new Meta.StatementHandle(
+        metaResultSet.connectionId, metaResultSet.statementId, null);
     final AvaticaStatement statement = lookupStatement(h);
     return executeQueryInternal(statement, metaResultSet.signature.sanitize(),
         metaResultSet.firstFrame);

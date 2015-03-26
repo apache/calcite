@@ -20,10 +20,19 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,9 +46,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
+
+  private static final Log LOG = LogFactory.getLog(JdbcMeta.class);
+
   /**
    * JDBC Types Mapped to Java Types
    *
@@ -72,7 +87,64 @@ public class JdbcMeta implements Meta {
     SQL_TYPE_TO_JAVA_TYPE.put(Types.ARRAY, Array.class);
   }
 
-  private final Map<Integer, StatementInfo> statementMap = new HashMap<>();
+  //
+  // Constants for connection cache settings.
+  //
+
+  private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
+  /** JDBC connection property for setting connection cache concurrency level. */
+  public static final String CONN_CACHE_CONCURRENCY_KEY =
+      CONN_CACHE_KEY_BASE + ".concurrency";
+  public static final String DEFAULT_CONN_CACHE_CONCURRENCY_LEVEL = "10";
+  /** JDBC connection property for setting connection cache initial capacity. */
+  public static final String CONN_CACHE_INITIAL_CAPACITY_KEY =
+      CONN_CACHE_KEY_BASE + ".initialcapacity";
+  public static final String DEFAULT_CONN_CACHE_INITIAL_CAPACITY = "100";
+  /** JDBC connection property for setting connection cache maximum capacity. */
+  public static final String CONN_CACHE_MAX_CAPACITY_KEY =
+      CONN_CACHE_KEY_BASE + ".maxcapacity";
+  public static final String DEFAULT_CONN_CACHE_MAX_CAPACITY = "1000";
+  /** JDBC connection property for setting connection cache expiration duration. */
+  public static final String CONN_CACHE_EXPIRY_DURATION_KEY =
+      CONN_CACHE_KEY_BASE + ".expirydiration";
+  public static final String DEFAULT_CONN_CACHE_EXPIRY_DURATION = "10";
+  /** JDBC connection property for setting connection cache expiration unit. */
+  public static final String CONN_CACHE_EXPIRY_UNIT_KEY = CONN_CACHE_KEY_BASE + ".expiryunit";
+  public static final String DEFAULT_CONN_CACHE_EXPIRY_UNIT = TimeUnit.MINUTES.name();
+
+  //
+  // Constants for statement cache settings.
+  //
+
+  private static final String STMT_CACHE_KEY_BASE = "avatica.statementcache";
+  /** JDBC connection property for setting connection cache concurrency level. */
+  public static final String STMT_CACHE_CONCURRENCY_KEY =
+      STMT_CACHE_KEY_BASE + ".concurrency";
+  public static final String DEFAULT_STMT_CACHE_CONCURRENCY_LEVEL = "100";
+  /** JDBC connection property for setting connection cache initial capacity. */
+  public static final String STMT_CACHE_INITIAL_CAPACITY_KEY =
+      STMT_CACHE_KEY_BASE + ".initialcapacity";
+  public static final String DEFAULT_STMT_CACHE_INITIAL_CAPACITY = "1000";
+  /** JDBC connection property for setting connection cache maximum capacity. */
+  public static final String STMT_CACHE_MAX_CAPACITY_KEY =
+      STMT_CACHE_KEY_BASE + ".maxcapacity";
+  public static final String DEFAULT_STMT_CACHE_MAX_CAPACITY = "10000";
+  /** JDBC connection property for setting connection cache expiration duration. */
+  public static final String STMT_CACHE_EXPIRY_DURATION_KEY =
+      STMT_CACHE_KEY_BASE + ".expirydiration";
+  public static final String DEFAULT_STMT_CACHE_EXPIRY_DURATION = "5";
+  /** JDBC connection property for setting connection cache expiration unit. */
+  public static final String STMT_CACHE_EXPIRY_UNIT_KEY = STMT_CACHE_KEY_BASE + ".expiryunit";
+  public static final String DEFAULT_STMT_CACHE_EXPIRY_UNIT = TimeUnit.MINUTES.name();
+
+  private static final String DEFAULT_CONN_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000000").toString();
+
+  private final String url;
+  private final Properties info;
+  private final Connection connection; // TODO: remove default connection
+  private final Cache<String, Connection> connectionCache;
+  private final Cache<Integer, StatementInfo> statementCache;
 
   /**
    * Convert from JDBC metadata to Avatica columns.
@@ -124,7 +196,7 @@ public class JdbcMeta implements Meta {
   protected static Signature signature(ResultSetMetaData metaData,
       ParameterMetaData parameterMetaData, String sql) throws  SQLException {
     return new Signature(columns(metaData), sql, parameters(parameterMetaData),
-        null, CursorFactory.ARRAY);
+        null, CursorFactory.LIST /* LIST because JdbcResultSet#frame */);
   }
 
   protected static Signature signature(ResultSetMetaData metaData)
@@ -132,10 +204,139 @@ public class JdbcMeta implements Meta {
     return signature(metaData, null, null);
   }
 
-  protected final Connection connection;
+  /** Callback for {@link #connectionCache} member expiration. */
+  private class ConnectionExpiryHandler
+      implements RemovalListener<String, Connection> {
 
-  public JdbcMeta(Connection connection) {
-    this.connection = connection;
+    @Override
+    public void onRemoval(RemovalNotification<String, Connection> notification) {
+      String connectionId = notification.getKey();
+      Connection doomed = notification.getValue();
+      // is String.equals() more efficient?
+      if (notification.getValue() == connection) {
+        return;
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Expiring connection " + connectionId + " because "
+            + notification.getCause());
+      }
+      try {
+        if (doomed != null) {
+          doomed.close();
+        }
+      } catch (Throwable t) {
+        LOG.info("Exception thrown while expiring connection " + connectionId, t);
+      }
+    }
+  }
+
+  /** Callback for {@link #statementCache} member expiration. */
+  private class StatementExpiryHandler
+      implements RemovalListener<Integer, StatementInfo> {
+
+    @Override
+    public void onRemoval(RemovalNotification<Integer, StatementInfo> notification) {
+      Integer stmtId = notification.getKey();
+      StatementInfo doomed = notification.getValue();
+      if (doomed == null) {
+        // log/throw?
+        return;
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Expiring statement " + stmtId + " because "
+            + notification.getCause());
+      }
+      try {
+        if (doomed.resultSet != null) {
+          doomed.resultSet.close();
+        }
+        if (doomed.statement != null) {
+          doomed.statement.close();
+        }
+      } catch (Throwable t) {
+        LOG.info("Exception thrown while expiring statement " + stmtId);
+      }
+    }
+  }
+
+  /**
+   * @param url a database url of the form
+   *  <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   */
+  public JdbcMeta(String url) throws SQLException {
+    this(url, new Properties());
+  }
+
+  /**
+   * @param url a database url of the form
+   * <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   * @param user the database user on whose behalf the connection is being
+   *   made
+   * @param password the user's password
+   */
+  public JdbcMeta(final String url, final String user, final String password)
+      throws SQLException {
+    this(url, new Properties() {
+      {
+        put("user", user);
+        put("password", password);
+      }
+    });
+  }
+
+  /**
+   * @param url a database url of the form
+   * <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   * @param info a list of arbitrary string tag/value pairs as
+   * connection arguments; normally at least a "user" and
+   * "password" property should be included
+   */
+  public JdbcMeta(String url, Properties info) throws SQLException {
+    this.url = url;
+    this.info = info;
+    this.connection = DriverManager.getConnection(url, info);
+
+    int concurrencyLevel = Integer.parseInt(
+        info.getProperty(CONN_CACHE_CONCURRENCY_KEY, DEFAULT_CONN_CACHE_CONCURRENCY_LEVEL));
+    int initialCapacity = Integer.parseInt(
+        info.getProperty(CONN_CACHE_INITIAL_CAPACITY_KEY, DEFAULT_CONN_CACHE_INITIAL_CAPACITY));
+    long maxCapacity = Long.parseLong(
+        info.getProperty(CONN_CACHE_MAX_CAPACITY_KEY, DEFAULT_CONN_CACHE_MAX_CAPACITY));
+    long connectionExpiryDuration = Long.parseLong(
+        info.getProperty(CONN_CACHE_EXPIRY_DURATION_KEY, DEFAULT_CONN_CACHE_EXPIRY_DURATION));
+    TimeUnit connectionExpiryUnit = TimeUnit.valueOf(
+        info.getProperty(CONN_CACHE_EXPIRY_UNIT_KEY, DEFAULT_CONN_CACHE_EXPIRY_UNIT));
+    this.connectionCache = CacheBuilder.newBuilder()
+        .concurrencyLevel(concurrencyLevel)
+        .initialCapacity(initialCapacity)
+        .maximumSize(maxCapacity)
+        .expireAfterAccess(connectionExpiryDuration, connectionExpiryUnit)
+        .removalListener(new ConnectionExpiryHandler())
+        .build();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("instantiated connection cache: " + connectionCache.stats());
+    }
+
+    concurrencyLevel = Integer.parseInt(
+        info.getProperty(STMT_CACHE_CONCURRENCY_KEY, DEFAULT_STMT_CACHE_CONCURRENCY_LEVEL));
+    initialCapacity = Integer.parseInt(
+        info.getProperty(STMT_CACHE_INITIAL_CAPACITY_KEY, DEFAULT_STMT_CACHE_INITIAL_CAPACITY));
+    maxCapacity = Long.parseLong(
+        info.getProperty(STMT_CACHE_MAX_CAPACITY_KEY, DEFAULT_STMT_CACHE_MAX_CAPACITY));
+    connectionExpiryDuration = Long.parseLong(
+        info.getProperty(STMT_CACHE_EXPIRY_DURATION_KEY, DEFAULT_STMT_CACHE_EXPIRY_DURATION));
+    connectionExpiryUnit = TimeUnit.valueOf(
+        info.getProperty(STMT_CACHE_EXPIRY_UNIT_KEY, DEFAULT_STMT_CACHE_EXPIRY_UNIT));
+    this.statementCache = CacheBuilder.newBuilder()
+        .concurrencyLevel(concurrencyLevel)
+        .initialCapacity(initialCapacity)
+        .maximumSize(maxCapacity)
+        .expireAfterAccess(connectionExpiryDuration, connectionExpiryUnit)
+        .removalListener(new StatementExpiryHandler())
+        .build();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("instantiated statement cache: " + statementCache.stats());
+    }
   }
 
   public String getSqlKeywords() {
@@ -170,7 +371,7 @@ public class JdbcMeta implements Meta {
       Pat tableNamePattern, List<String> typeList) {
     try {
       String[] types = new String[typeList == null ? 0 : typeList.size()];
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getTables(catalog, schemaPattern.s,
               tableNamePattern.s,
               typeList == null ? types : typeList.toArray(types)));
@@ -182,7 +383,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getColumns(String catalog, Pat schemaPattern,
       Pat tableNamePattern, Pat columnNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getColumns(catalog, schemaPattern.s,
               tableNamePattern.s, columnNamePattern.s));
     } catch (SQLException e) {
@@ -192,7 +393,7 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getSchemas(String catalog, Pat schemaPattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getSchemas(catalog, schemaPattern.s));
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -201,7 +402,8 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getCatalogs() {
     try {
-      return JdbcResultSet.create(connection.getMetaData().getCatalogs());
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
+          connection.getMetaData().getCatalogs());
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -209,7 +411,8 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getTableTypes() {
     try {
-      return JdbcResultSet.create(connection.getMetaData().getTableTypes());
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
+          connection.getMetaData().getTableTypes());
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -218,7 +421,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getProcedures(String catalog, Pat schemaPattern,
       Pat procedureNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getProcedures(catalog, schemaPattern.s,
               procedureNamePattern.s));
     } catch (SQLException e) {
@@ -229,7 +432,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getProcedureColumns(String catalog, Pat schemaPattern,
       Pat procedureNamePattern, Pat columnNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getProcedureColumns(catalog,
               schemaPattern.s, procedureNamePattern.s, columnNamePattern.s));
     } catch (SQLException e) {
@@ -240,7 +443,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getColumnPrivileges(String catalog, String schema,
       String table, Pat columnNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getColumnPrivileges(catalog, schema,
               table, columnNamePattern.s));
     } catch (SQLException e) {
@@ -251,7 +454,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getTablePrivileges(String catalog, Pat schemaPattern,
       Pat tableNamePattern) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getTablePrivileges(catalog,
               schemaPattern.s, tableNamePattern.s));
     } catch (SQLException e) {
@@ -262,7 +465,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getBestRowIdentifier(String catalog, String schema,
       String table, int scope, boolean nullable) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getBestRowIdentifier(catalog, schema,
               table, scope, nullable));
     } catch (SQLException e) {
@@ -273,7 +476,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getVersionColumns(String catalog, String schema,
       String table) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getVersionColumns(catalog, schema, table));
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -283,7 +486,7 @@ public class JdbcMeta implements Meta {
   public MetaResultSet getPrimaryKeys(String catalog, String schema,
       String table) {
     try {
-      return JdbcResultSet.create(
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getPrimaryKeys(catalog, schema, table));
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -359,14 +562,67 @@ public class JdbcMeta implements Meta {
     return null;
   }
 
+  protected Connection getConnection(String id) throws SQLException {
+    Connection conn = connectionCache.getIfPresent(id);
+    if (conn == null) {
+      conn = DriverManager.getConnection(url, info);
+      connectionCache.put(id, conn);
+    }
+    return conn;
+  }
+
   public StatementHandle createStatement(ConnectionHandle ch) {
     try {
-      final Statement statement = connection.createStatement();
-      final int id = statementMap.size();
-      statementMap.put(id, new StatementInfo(statement));
-      return new StatementHandle(id);
+      final Connection conn = getConnection(ch.id);
+      final Statement statement = conn.createStatement();
+      final int id = System.identityHashCode(statement);
+      statementCache.put(id, new StatementInfo(statement));
+      StatementHandle h = new StatementHandle(ch.id, id, null);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("created statement " + h);
+      }
+      return h;
     } catch (SQLException e) {
       throw propagate(e);
+    }
+  }
+
+  @Override public void closeStatement(StatementHandle h) {
+    StatementInfo info = statementCache.getIfPresent(h.id);
+    if (info == null || info.statement == null) {
+      LOG.debug("client requested close unknown statement " + h);
+      return;
+    }
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("closing statement " + h);
+    }
+    try {
+      if (info.resultSet != null) {
+        info.resultSet.close();
+      }
+      info.statement.close();
+    } catch (SQLException e) {
+      throw propagate(e);
+    } finally {
+      statementCache.invalidate(h.id);
+    }
+  }
+
+  @Override public void closeConnection(ConnectionHandle ch) {
+    Connection conn = connectionCache.getIfPresent(ch.id);
+    if (conn == null) {
+      LOG.debug("client requested close unknown connection " + ch);
+      return;
+    }
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("closing connection " + ch);
+    }
+    try {
+      conn.close();
+    } catch (SQLException e) {
+      throw propagate(e);
+    } finally {
+      connectionCache.invalidate(ch.id);
     }
   }
 
@@ -380,24 +636,39 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public Signature prepare(StatementHandle h, String sql, int maxRowCount) {
-    // TODO: can't actually prepare an existing statement...
+  public StatementHandle prepare(ConnectionHandle ch, String sql,
+      int maxRowCount) {
     try {
-      PreparedStatement statement = connection.prepareStatement(sql);
-      statementMap.put(h.id, new StatementInfo(statement));
-      return signature(statement.getMetaData(),
-          statement.getParameterMetaData(), sql);
+      final Connection conn = getConnection(ch.id);
+      final PreparedStatement statement = conn.prepareStatement(sql);
+      final int id = System.identityHashCode(statement);
+      statementCache.put(id, new StatementInfo(statement));
+      StatementHandle h = new StatementHandle(ch.id, id, signature(
+          statement.getMetaData(), statement.getParameterMetaData(), sql));
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("prepared statement " + h);
+      }
+      return h;
     } catch (SQLException e) {
       throw propagate(e);
     }
   }
 
-  public MetaResultSet prepareAndExecute(StatementHandle h, String sql,
+  public MetaResultSet prepareAndExecute(ConnectionHandle ch, String sql,
       int maxRowCount, PrepareCallback callback) {
-    final StatementInfo statementInfo = statementMap.get(h.id);
     try {
-      statementInfo.resultSet = statementInfo.statement.executeQuery(sql);
-      return JdbcResultSet.create(statementInfo.resultSet);
+      final Connection connection = getConnection(ch.id);
+      final PreparedStatement statement = connection.prepareStatement(sql);
+      final int id = System.identityHashCode(statement);
+      final StatementInfo info = new StatementInfo(statement);
+      statementCache.put(id, info);
+      info.resultSet = statement.executeQuery();
+      MetaResultSet mrs = JdbcResultSet.create(ch.id, id, info.resultSet);
+      if (LOG.isTraceEnabled()) {
+        StatementHandle h = new StatementHandle(ch.id, id, null);
+        LOG.trace("prepAndExec statement " + h);
+      }
+      return mrs;
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -405,8 +676,13 @@ public class JdbcMeta implements Meta {
 
   public Frame fetch(StatementHandle h, List<Object> parameterValues,
       int offset, int fetchMaxRowCount) {
-    final StatementInfo statementInfo = statementMap.get(h.id);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:" + fetchMaxRowCount);
+    }
     try {
+      final StatementInfo statementInfo = Objects.requireNonNull(
+          statementCache.getIfPresent(h.id),
+          "Statement not found, potentially expired. " + h);
       if (statementInfo.resultSet == null || parameterValues != null) {
         if (statementInfo.resultSet != null) {
           statementInfo.resultSet.close();

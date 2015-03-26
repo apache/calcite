@@ -226,7 +226,7 @@ limitations under the License.
     <!-- Lines cannot exceed 80 chars, except if they are hyperlinks
          or strings (possibly preceded by '+' and followed by say '),'. -->
     <module name="LineLength">
-      <property name="max" value="80"/>
+      <property name="max" value="100"/>
       <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
     </module>
       <!-- Over time, we will revise this down -->

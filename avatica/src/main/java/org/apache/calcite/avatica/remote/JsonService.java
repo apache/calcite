@@ -129,6 +129,24 @@ public abstract class JsonService implements Service {
       throw handle(e);
     }
   }
+
+  @Override
+  public CloseStatementResponse apply(CloseStatementRequest request) {
+    try {
+      return decode(apply(encode(request)), CloseStatementResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
+  @Override
+  public CloseConnectionResponse apply(CloseConnectionRequest request) {
+    try {
+      return decode(apply(encode(request)), CloseConnectionResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
 }
 
 // End JsonService.java
