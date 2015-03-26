@@ -32,12 +32,12 @@ public class HttpServer {
   private int port = -1;
   private final Handler handler;
 
-  HttpServer(int port, Handler handler) {
+  public HttpServer(int port, Handler handler) {
     this.port = port;
     this.handler = handler;
   }
 
-  void start() {
+  public void start() {
     if (server != null) {
       throw new RuntimeException("Server is already started");
     } else {

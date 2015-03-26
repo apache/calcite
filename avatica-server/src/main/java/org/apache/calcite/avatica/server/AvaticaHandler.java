@@ -30,7 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Jetty handler that executes Avatica JSON request-responses.
  */
-class AvaticaHandler extends AbstractHandler {
+public class AvaticaHandler extends AbstractHandler {
   final JsonHandler jsonHandler;
 
   public AvaticaHandler(Service service) {
