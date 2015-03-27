@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -172,13 +173,21 @@ public class RelMdSize {
     return list.build();
   }
 
+  public List<Double> averageColumnSizes(SemiJoin rel) {
+    return averageJoinColumnSizes(rel, true);
+  }
+
   public List<Double> averageColumnSizes(Join rel) {
+    return averageJoinColumnSizes(rel, false);
+  }
+
+  private List<Double> averageJoinColumnSizes(Join rel, boolean semijoin) {
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
     final List<Double> lefts =
         RelMetadataQuery.getAverageColumnSizes(left);
-    final List<Double> rights =
-        RelMetadataQuery.getAverageColumnSizes(right);
+    final List<Double> rights = semijoin
+        ? null : RelMetadataQuery.getAverageColumnSizes(right);
     if (lefts == null && rights == null) {
       return null;
     }
