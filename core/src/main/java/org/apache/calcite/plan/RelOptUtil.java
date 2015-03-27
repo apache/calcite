@@ -174,7 +174,7 @@ public abstract class RelOptUtil {
     if (used.size() == 0) {
       return ImmutableList.of();
     }
-    List<String> result = new ArrayList<String>();
+    final List<String> result = new ArrayList<>();
     for (String s : set) {
       if (used.contains(s) && !result.contains(s)) {
         result.add(s);
@@ -439,7 +439,7 @@ public abstract class RelOptUtil {
       }
 
       // for IN/NOT IN, it needs to output the fields
-      final List<RexNode> exprs = new ArrayList<RexNode>();
+      final List<RexNode> exprs = new ArrayList<>();
       if (subqueryType == SubqueryType.IN) {
         for (int i = 0; i < keyCount; i++) {
           exprs.add(rexBuilder.makeInputRef(ret, i));
@@ -502,17 +502,16 @@ public abstract class RelOptUtil {
         : "rename: field count mismatch: in=" + inputType
         + ", out" + outputType;
 
-    List<Pair<RexNode, String>> renames =
-        new ArrayList<Pair<RexNode, String>>();
+    final List<Pair<RexNode, String>> renames = new ArrayList<>();
     for (Pair<RelDataTypeField, RelDataTypeField> pair
         : Pair.zip(inputFields, outputFields)) {
       final RelDataTypeField inputField = pair.left;
       final RelDataTypeField outputField = pair.right;
       assert inputField.getType().equals(outputField.getType());
+      final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
       renames.add(
-          Pair.of(
-              (RexNode) rel.getCluster().getRexBuilder().makeInputRef(
-                  inputField.getType(),
+          Pair.<RexNode, String>of(
+              rexBuilder.makeInputRef(inputField.getType(),
                   inputField.getIndex()),
               outputField.getName()));
     }
@@ -582,7 +581,7 @@ public abstract class RelOptUtil {
       RelNode rel,
       Integer[] fieldOrdinals) {
     RexNode condition = null;
-    RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     RelDataType rowType = rel.getRowType();
     int n;
     if (fieldOrdinals != null) {
@@ -662,9 +661,9 @@ public abstract class RelOptUtil {
       // nothing to do
       return rel;
     }
-    List<RexNode> castExps =
-        RexUtil.generateCastExpressions(
-            rel.getCluster().getRexBuilder(), castRowType, rowType);
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final List<RexNode> castExps =
+        RexUtil.generateCastExpressions(rexBuilder, castRowType, rowType);
     if (rename) {
       // Use names and types from castRowType.
       return projectFactory.createProject(
@@ -691,8 +690,8 @@ public abstract class RelOptUtil {
       RelOptCluster cluster,
       RelNode rel) {
     // assert (rel.getRowType().getFieldCount() == 1);
-    int aggCallCnt = rel.getRowType().getFieldCount();
-    List<AggregateCall> aggCalls = new ArrayList<AggregateCall>();
+    final int aggCallCnt = rel.getRowType().getFieldCount();
+    final List<AggregateCall> aggCalls = new ArrayList<>();
 
     for (int i = 0; i < aggCallCnt; i++) {
       RelDataType returnType =
@@ -794,7 +793,7 @@ public abstract class RelOptUtil {
       RexNode condition,
       List<Integer> leftKeys,
       List<Integer> rightKeys) {
-    List<RexNode> nonEquiList = new ArrayList<RexNode>();
+    final List<RexNode> nonEquiList = new ArrayList<>();
 
     splitJoinCondition(
         left.getRowType().getFieldCount(),
@@ -819,9 +818,9 @@ public abstract class RelOptUtil {
       RelNode left,
       RelNode right,
       RexNode condition) {
-    final List<Integer> leftKeys = new ArrayList<Integer>();
-    final List<Integer> rightKeys = new ArrayList<Integer>();
-    final List<RexNode> nonEquiList = new ArrayList<RexNode>();
+    final List<Integer> leftKeys = new ArrayList<>();
+    final List<Integer> rightKeys = new ArrayList<>();
+    final List<RexNode> nonEquiList = new ArrayList<>();
     splitJoinCondition(
         left.getRowType().getFieldCount(),
         condition,
@@ -864,29 +863,64 @@ public abstract class RelOptUtil {
       List<RexNode> rightJoinKeys,
       List<Integer> filterNulls,
       List<SqlOperator> rangeOp) {
-    List<RexNode> nonEquiList = new ArrayList<RexNode>();
+    return splitJoinCondition(
+        sysFieldList,
+        ImmutableList.of(leftRel, rightRel),
+        condition,
+        ImmutableList.of(leftJoinKeys, rightJoinKeys),
+        filterNulls,
+        rangeOp);
+  }
+
+  /**
+   * Splits out the equi-join (and optionally, a single non-equi) components
+   * of a join condition, and returns what's left. Projection might be
+   * required by the caller to provide join keys that are not direct field
+   * references.
+   *
+   * @param sysFieldList  list of system fields
+   * @param inputs        join inputs
+   * @param condition     join condition
+   * @param joinKeys      The join keys from the inputs which are equi-join
+   *                      keys
+   * @param filterNulls   The join key positions for which null values will not
+   *                      match. null values only match for the "is not distinct
+   *                      from" condition.
+   * @param rangeOp       if null, only locate equi-joins; otherwise, locate a
+   *                      single non-equi join predicate and return its operator
+   *                      in this list; join keys associated with the non-equi
+   *                      join predicate are at the end of the key lists
+   *                      returned
+   * @return What's left, never null
+   */
+  public static RexNode splitJoinCondition(
+      List<RelDataTypeField> sysFieldList,
+      List<RelNode> inputs,
+      RexNode condition,
+      List<List<RexNode>> joinKeys,
+      List<Integer> filterNulls,
+      List<SqlOperator> rangeOp) {
+    final List<RexNode> nonEquiList = new ArrayList<>();
 
     splitJoinCondition(
         sysFieldList,
-        leftRel,
-        rightRel,
+        inputs,
         condition,
-        leftJoinKeys,
-        rightJoinKeys,
+        joinKeys,
         filterNulls,
         rangeOp,
         nonEquiList);
 
     // Convert the remainders into a list that are AND'ed together.
     return RexUtil.composeConjunction(
-        leftRel.getCluster().getRexBuilder(), nonEquiList, false);
+        inputs.get(0).getCluster().getRexBuilder(), nonEquiList, false);
   }
 
   public static RexNode splitCorrelatedFilterCondition(
       LogicalFilter filter,
       List<RexInputRef> joinKeys,
       List<RexNode> correlatedJoinKeys) {
-    List<RexNode> nonEquiList = new ArrayList<RexNode>();
+    final List<RexNode> nonEquiList = new ArrayList<>();
 
     splitCorrelatedFilterCondition(
         filter,
@@ -905,7 +939,7 @@ public abstract class RelOptUtil {
       List<RexNode> joinKeys,
       List<RexNode> correlatedJoinKeys,
       boolean extractCorrelatedFieldAccess) {
-    List<RexNode> nonEquiList = new ArrayList<RexNode>();
+    final List<RexNode> nonEquiList = new ArrayList<>();
 
     splitCorrelatedFilterCondition(
         filter,
@@ -922,36 +956,33 @@ public abstract class RelOptUtil {
 
   private static void splitJoinCondition(
       List<RelDataTypeField> sysFieldList,
-      RelNode leftRel,
-      RelNode rightRel,
+      List<RelNode> inputs,
       RexNode condition,
-      List<RexNode> leftJoinKeys,
-      List<RexNode> rightJoinKeys,
+      List<List<RexNode>> joinKeys,
       List<Integer> filterNulls,
       List<SqlOperator> rangeOp,
       List<RexNode> nonEquiList) {
     final int sysFieldCount = sysFieldList.size();
-    final int leftFieldCount = leftRel.getRowType().getFieldCount();
-    final int rightFieldCount = rightRel.getRowType().getFieldCount();
-    final int firstLeftField = sysFieldCount;
-    final int firstRightField = sysFieldCount + leftFieldCount;
-    final int totalFieldCount = firstRightField + rightFieldCount;
+    final RelOptCluster cluster = inputs.get(0).getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
 
-    final List<RelDataTypeField> leftFields =
-        leftRel.getRowType().getFieldList();
-    final List<RelDataTypeField> rightFields =
-        rightRel.getRowType().getFieldList();
-
-    RexBuilder rexBuilder = leftRel.getCluster().getRexBuilder();
-    RelDataTypeFactory typeFactory = leftRel.getCluster().getTypeFactory();
+    int[] firstFieldInputs = new int[inputs.size()];
+    int totalFieldCount = 0;
+    for (int i = 0; i < inputs.size(); i++) {
+      firstFieldInputs[i] = totalFieldCount + sysFieldCount;
+      totalFieldCount += sysFieldCount
+              + inputs.get(i).getRowType().getFieldCount();
+    }
 
     // adjustment array
     int[] adjustments = new int[totalFieldCount];
-    for (int i = firstLeftField; i < firstRightField; i++) {
-      adjustments[i] = -firstLeftField;
-    }
-    for (int i = firstRightField; i < totalFieldCount; i++) {
-      adjustments[i] = -firstRightField;
+    for (int i = 0; i < inputs.size(); i++) {
+      int limit = i == inputs.size() - 1
+              ? totalFieldCount : firstFieldInputs[i + 1];
+      for (int j = firstFieldInputs[i]; j < limit; j++) {
+        adjustments[j] = -firstFieldInputs[i];
+      }
     }
 
     if (condition instanceof RexCall) {
@@ -960,11 +991,9 @@ public abstract class RelOptUtil {
         for (RexNode operand : call.getOperands()) {
           splitJoinCondition(
               sysFieldList,
-              leftRel,
-              rightRel,
+              inputs,
               operand,
-              leftJoinKeys,
-              rightJoinKeys,
+              joinKeys,
               filterNulls,
               rangeOp,
               nonEquiList);
@@ -974,6 +1003,10 @@ public abstract class RelOptUtil {
 
       RexNode leftKey = null;
       RexNode rightKey = null;
+      int leftInput = 0;
+      int rightInput = 0;
+      List<RelDataTypeField> leftFields = null;
+      List<RelDataTypeField> rightFields = null;
       boolean reverse = false;
 
       SqlKind kind = call.getKind();
@@ -995,18 +1028,37 @@ public abstract class RelOptUtil {
         final ImmutableBitSet projRefs0 = InputFinder.bits(op0);
         final ImmutableBitSet projRefs1 = InputFinder.bits(op1);
 
-        if ((projRefs0.nextSetBit(firstRightField) < 0)
-            && (projRefs1.nextSetBit(firstLeftField)
-            >= firstRightField)) {
-          leftKey = op0;
-          rightKey = op1;
-        } else if (
-            (projRefs1.nextSetBit(firstRightField) < 0)
-                && (projRefs0.nextSetBit(firstLeftField)
-                >= firstRightField)) {
-          leftKey = op1;
-          rightKey = op0;
-          reverse = true;
+        boolean foundBothInputs = false;
+        for (int i = 0; i < inputs.size() && !foundBothInputs; i++) {
+          final int lowerLimit = firstFieldInputs[i];
+          final int upperLimit = i == inputs.size() - 1
+                  ? totalFieldCount : firstFieldInputs[i + 1];
+          if (projRefs0.nextSetBit(lowerLimit) < upperLimit
+                  && projRefs0.nextSetBit(lowerLimit) != -1) {
+            if (leftKey == null) {
+              leftKey = op0;
+              leftInput = i;
+              leftFields = inputs.get(leftInput).getRowType().getFieldList();
+            } else {
+              rightKey = op0;
+              rightInput = i;
+              rightFields = inputs.get(rightInput).getRowType().getFieldList();
+              reverse = true;
+              foundBothInputs = true;
+            }
+          } else if (projRefs1.nextSetBit(lowerLimit) < upperLimit
+                  && projRefs1.nextSetBit(lowerLimit) != -1) {
+            if (leftKey == null) {
+              leftKey = op1;
+              leftInput = i;
+              leftFields = inputs.get(leftInput).getRowType().getFieldList();
+            } else {
+              rightKey = op1;
+              rightInput = i;
+              rightFields = inputs.get(rightInput).getRowType().getFieldList();
+              foundBothInputs = true;
+            }
+          }
         }
 
         if ((leftKey != null) && (rightKey != null)) {
@@ -1070,33 +1122,29 @@ public abstract class RelOptUtil {
         leftKey = null;
         rightKey = null;
 
-        if (projRefs.nextSetBit(firstRightField) < 0) {
-          leftKey = condition.accept(
-              new RelOptUtil.RexInputConverter(
-                  rexBuilder,
-                  leftFields,
-                  leftFields,
-                  adjustments));
+        boolean foundInput = false;
+        for (int i = 0; i < inputs.size() && !foundInput; i++) {
+          final int lowerLimit = firstFieldInputs[i];
+          final int upperLimit = i == inputs.size() - 1
+                  ? totalFieldCount : firstFieldInputs[i + 1];
+          if (projRefs.nextSetBit(lowerLimit) < upperLimit) {
+            leftInput = i;
+            leftFields = inputs.get(leftInput).getRowType().getFieldList();
 
-          rightKey = rexBuilder.makeLiteral(true);
+            leftKey = condition.accept(
+                new RelOptUtil.RexInputConverter(
+                    rexBuilder,
+                    leftFields,
+                    leftFields,
+                    adjustments));
 
-          // effectively performing an equality comparison
-          kind = SqlKind.EQUALS;
-        } else if (projRefs.nextSetBit(firstLeftField)
-            >= firstRightField) {
-          leftKey = rexBuilder.makeLiteral(true);
+            rightKey = rexBuilder.makeLiteral(true);
 
-          // replace right Key input ref
-          rightKey =
-              condition.accept(
-                  new RelOptUtil.RexInputConverter(
-                      rexBuilder,
-                      rightFields,
-                      rightFields,
-                      adjustments));
+            // effectively performing an equality comparison
+            kind = SqlKind.EQUALS;
 
-          // effectively performing an equality comparison
-          kind = SqlKind.EQUALS;
+            foundInput = true;
+          }
         }
       }
 
@@ -1106,18 +1154,18 @@ public abstract class RelOptUtil {
         // non-equi join predicate, it appears at the end of the
         // key list; also mark the null filtering property
         addJoinKey(
-            leftJoinKeys,
+            joinKeys.get(leftInput),
             leftKey,
             (rangeOp != null) && !rangeOp.isEmpty());
         addJoinKey(
-            rightJoinKeys,
+            joinKeys.get(rightInput),
             rightKey,
             (rangeOp != null) && !rangeOp.isEmpty());
         if (filterNulls != null
             && kind == SqlKind.EQUALS) {
           // nulls are considered not matching for equality comparison
           // add the position of the most recently inserted key
-          filterNulls.add(leftJoinKeys.size() - 1);
+          filterNulls.add(joinKeys.get(leftInput).size() - 1);
         }
         if (rangeOp != null
             && kind != SqlKind.EQUALS
@@ -1420,11 +1468,11 @@ public abstract class RelOptUtil {
     int origLeftInputSize = leftRel.getRowType().getFieldCount();
     int origRightInputSize = rightRel.getRowType().getFieldCount();
 
-    List<RexNode> newLeftFields = new ArrayList<RexNode>();
-    List<String> newLeftFieldNames = new ArrayList<String>();
+    final List<RexNode> newLeftFields = new ArrayList<>();
+    final List<String> newLeftFieldNames = new ArrayList<>();
 
-    List<RexNode> newRightFields = new ArrayList<RexNode>();
-    List<String> newRightFieldNames = new ArrayList<String>();
+    final List<RexNode> newRightFields = new ArrayList<>();
+    final List<String> newRightFieldNames = new ArrayList<>();
     int leftKeyCount = leftJoinKeys.size();
     int rightKeyCount = rightJoinKeys.size();
     int i;
@@ -1519,15 +1567,13 @@ public abstract class RelOptUtil {
     // join, then no need to create a projection
     if ((newProjectOutputSize > 0)
         && (newProjectOutputSize < joinOutputFields.size())) {
-      List<Pair<RexNode, String>> newProjects =
-          new ArrayList<Pair<RexNode, String>>();
+      final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
       RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
       for (int fieldIndex : outputProj) {
         final RelDataTypeField field = joinOutputFields.get(fieldIndex);
         newProjects.add(
-            Pair.of(
-                (RexNode) rexBuilder.makeInputRef(
-                    field.getType(), fieldIndex),
+            Pair.<RexNode, String>of(
+                rexBuilder.makeInputRef(field.getType(), fieldIndex),
                 field.getName()));
       }
 
@@ -1945,7 +1991,7 @@ public abstract class RelOptUtil {
    * {@code conjunctions(FALSE)} returns list {@code {FALSE}}.</p>
    */
   public static List<RexNode> conjunctions(RexNode rexPredicate) {
-    final List<RexNode> list = new ArrayList<RexNode>();
+    final List<RexNode> list = new ArrayList<>();
     decomposeConjunction(rexPredicate, list);
     return list;
   }
@@ -1956,7 +2002,7 @@ public abstract class RelOptUtil {
    * <p>For example, {@code disjunctions(FALSE)} returns the empty list.</p>
    */
   public static List<RexNode> disjunctions(RexNode rexPredicate) {
-    final List<RexNode> list = new ArrayList<RexNode>();
+    final List<RexNode> list = new ArrayList<>();
     decomposeDisjunction(rexPredicate, list);
     return list;
   }
@@ -2007,7 +2053,7 @@ public abstract class RelOptUtil {
     if (adjustment == 0) {
       return keys;
     }
-    List<Integer> newKeys = new ArrayList<Integer>();
+    final List<Integer> newKeys = new ArrayList<>();
     for (int key : keys) {
       newKeys.add(key + adjustment);
     }
@@ -2295,7 +2341,7 @@ public abstract class RelOptUtil {
     final List<RelDataTypeField> newJoinFields =
         newJoin.getRowType().getFieldList();
     final RexBuilder rexBuilder = newJoin.getCluster().getRexBuilder();
-    final List<RexNode> exps = new ArrayList<RexNode>();
+    final List<RexNode> exps = new ArrayList<>();
     final int nFields =
         origOrder ? origJoin.getRight().getRowType().getFieldCount()
             : origJoin.getLeft().getRowType().getFieldCount();
@@ -2421,7 +2467,7 @@ public abstract class RelOptUtil {
    */
   public static RelNode replaceInput(
       RelNode parent, int ordinal, RelNode newInput) {
-    final List<RelNode> inputs = new ArrayList<RelNode>(parent.getInputs());
+    final List<RelNode> inputs = new ArrayList<>(parent.getInputs());
     if (inputs.get(ordinal) == newInput) {
       return parent;
     }
@@ -2485,7 +2531,7 @@ public abstract class RelOptUtil {
     }
     final List<RelNode> inputs = query.getInputs();
     if (!inputs.isEmpty()) {
-      final List<RelNode> newInputs = new ArrayList<RelNode>();
+      final List<RelNode> newInputs = new ArrayList<>();
       for (RelNode input : inputs) {
         newInputs.add(replaceRecurse(input, find, replace));
       }
@@ -2708,11 +2754,12 @@ public abstract class RelOptUtil {
         return permute(rel, permutation2, null);
       }
     }
-    final List<RelDataType> outputTypeList = new ArrayList<RelDataType>();
-    final List<String> outputNameList = new ArrayList<String>();
-    final List<RexNode> exprList = new ArrayList<RexNode>();
-    final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
+    final List<RelDataType> outputTypeList = new ArrayList<>();
+    final List<String> outputNameList = new ArrayList<>();
+    final List<RexNode> exprList = new ArrayList<>();
+    final List<RexLocalRef> projectRefList = new ArrayList<>();
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    final RelOptCluster cluster = rel.getCluster();
     for (int i = 0; i < permutation.getTargetCount(); i++) {
       int target = permutation.getTarget(i);
       final RelDataTypeField targetField = fields.get(target);
@@ -2723,24 +2770,21 @@ public abstract class RelOptUtil {
               || (fieldNames.get(i) == null)) ? targetField.getName()
               : fieldNames.get(i));
       exprList.add(
-          rel.getCluster().getRexBuilder().makeInputRef(
-              fields.get(i).getType(),
-              i));
+          cluster.getRexBuilder().makeInputRef(fields.get(i).getType(), i));
       final int source = permutation.getSource(i);
       projectRefList.add(
           new RexLocalRef(
               source,
               fields.get(source).getType()));
     }
+    final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
     final RexProgram program =
         new RexProgram(
             rel.getRowType(),
             exprList,
             projectRefList,
             null,
-            rel.getCluster().getTypeFactory().createStructType(
-                outputTypeList,
-                outputNameList));
+            typeFactory.createStructType(outputTypeList, outputNameList));
     return LogicalCalc.create(rel, program);
   }
 
@@ -2884,7 +2928,7 @@ public abstract class RelOptUtil {
 
   /** Visitor that finds all variables used but not stopped in an expression. */
   private static class VariableSetVisitor extends RelVisitor {
-    final Set<String> variables = new HashSet<String>();
+    final Set<String> variables = new HashSet<>();
 
     // implement RelVisitor
     public void visit(
@@ -2902,7 +2946,7 @@ public abstract class RelOptUtil {
 
   /** Visitor that finds all variables used in an expression. */
   public static class VariableUsedVisitor extends RexShuttle {
-    public final Set<String> variables = new LinkedHashSet<String>();
+    public final Set<String> variables = new LinkedHashSet<>();
 
     public RexNode visitCorrelVariable(RexCorrelVariable p) {
       variables.add(p.getName());
@@ -2912,8 +2956,7 @@ public abstract class RelOptUtil {
 
   /** Shuttle that finds the set of inputs that are used. */
   public static class InputReferencedVisitor extends RexShuttle {
-    public final SortedSet<Integer> inputPosReferenced =
-        new TreeSet<Integer>();
+    public final SortedSet<Integer> inputPosReferenced = new TreeSet<>();
 
     public RexNode visitInputRef(RexInputRef inputRef) {
       inputPosReferenced.add(inputRef.getIndex());
