@@ -38,9 +38,11 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -473,7 +475,7 @@ public class PlannerTest {
             FilterMergeRule.INSTANCE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
-    final List<RelTraitDef> traitDefs = new ArrayList<RelTraitDef>();
+    final List<RelTraitDef> traitDefs = new ArrayList<>();
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelCollationTraitDef.INSTANCE);
 
@@ -979,7 +981,7 @@ public class PlannerTest {
       + "order by ps.psPartkey, ps.psSupplyCost) t \n"
       + "order by t.psPartkey";
 
-    List<RelTraitDef> traitDefs = new ArrayList<RelTraitDef>();
+    List<RelTraitDef> traitDefs = new ArrayList<>();
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelCollationTraitDef.INSTANCE);
     final SqlParser.Config parserConfig =
@@ -1004,6 +1006,17 @@ public class PlannerTest {
         + "      LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
         + "        LogicalProject(psPartkey=[$0], psSupplyCost=[$1])\n"
         + "          EnumerableTableScan(table=[[tpch, partsupp]])\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-648">[CALCITE-649]
+   * Update ProjectMergeRule description for new naming convention</a>. */
+  @Test public void testMergeProjectForceMode() throws Exception {
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            new ProjectMergeRule(true, RelFactories.DEFAULT_PROJECT_FACTORY));
+    Planner planner = getPlanner(null, Programs.of(ruleSet));
+    planner.close();
   }
 }
 

@@ -62,18 +62,17 @@ public class ProjectMergeRule extends RelOptRule {
    *
    * @param force Whether to always merge projects
    */
-  public ProjectMergeRule(boolean force, ProjectFactory pFactory) {
+  public ProjectMergeRule(boolean force, ProjectFactory projectFactory) {
     super(
         operand(Project.class,
             operand(Project.class, any())),
-        "ProjectMergeRule" + (force ? ": force mode" : ""));
+             "ProjectMergeRule" + (force ? ":force_mode" : ""));
     this.force = force;
-    projectFactory = pFactory;
+    this.projectFactory = projectFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     Project topProject = call.rel(0);
     Project bottomProject = call.rel(1);
@@ -121,11 +120,11 @@ public class ProjectMergeRule extends RelOptRule {
             rexBuilder);
 
     // create a RexProgram for the topmost project
-    List<RexNode> projExprs = topProject.getProjects();
+    final List<RexNode> projects = topProject.getProjects();
     RexProgram topProgram =
         RexProgram.create(
             bottomProject.getRowType(),
-            projExprs,
+            projects,
             null,
             topProject.getRowType(),
             rexBuilder);
@@ -139,16 +138,16 @@ public class ProjectMergeRule extends RelOptRule {
 
     // re-expand the topmost projection expressions, now that they
     // reference the children of the bottom-most project
-    int nProjExprs = projExprs.size();
-    List<RexNode> newProjExprs = new ArrayList<RexNode>();
-    List<RexLocalRef> projList = mergedProgram.getProjectList();
-    for (int i = 0; i < nProjExprs; i++) {
-      newProjExprs.add(mergedProgram.expandLocalRef(projList.get(i)));
+    final int projectCount = projects.size();
+    final List<RexNode> newProjects = new ArrayList<>();
+    List<RexLocalRef> projectRefs = mergedProgram.getProjectList();
+    for (int i = 0; i < projectCount; i++) {
+      newProjects.add(mergedProgram.expandLocalRef(projectRefs.get(i)));
     }
 
     // replace the two projects with a combined projection
     RelNode newProjectRel = projectFactory.createProject(
-        bottomProject.getInput(), newProjExprs,
+        bottomProject.getInput(), newProjects,
         topProject.getRowType().getFieldNames());
 
     call.transformTo(newProjectRel);
