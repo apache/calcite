@@ -87,55 +87,94 @@ public class JdbcMeta implements Meta {
     SQL_TYPE_TO_JAVA_TYPE.put(Types.ARRAY, Array.class);
   }
 
-  //
-  // Constants for connection cache settings.
-  //
+  /** A "magic column" descriptor used to return statement execute update count via a
+   * {@link Meta.MetaResultSet}. */
+  private static final ColumnMetaData UPDATE_COL = new ColumnMetaData(1, false, false, false,
+      false, ResultSetMetaData.columnNoNulls, true, 10, "u", "u", null, 15, 15, "update_result",
+      "avatica_internal", ColumnMetaData.scalar(Types.INTEGER, "INTEGER",
+        ColumnMetaData.Rep.INTEGER), true, false, false, "java.lang.Integer");
 
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
-  /** JDBC connection property for setting connection cache concurrency level. */
-  public static final String CONN_CACHE_CONCURRENCY_KEY =
-      CONN_CACHE_KEY_BASE + ".concurrency";
-  public static final String DEFAULT_CONN_CACHE_CONCURRENCY_LEVEL = "10";
-  /** JDBC connection property for setting connection cache initial capacity. */
-  public static final String CONN_CACHE_INITIAL_CAPACITY_KEY =
-      CONN_CACHE_KEY_BASE + ".initialcapacity";
-  public static final String DEFAULT_CONN_CACHE_INITIAL_CAPACITY = "100";
-  /** JDBC connection property for setting connection cache maximum capacity. */
-  public static final String CONN_CACHE_MAX_CAPACITY_KEY =
-      CONN_CACHE_KEY_BASE + ".maxcapacity";
-  public static final String DEFAULT_CONN_CACHE_MAX_CAPACITY = "1000";
-  /** JDBC connection property for setting connection cache expiration duration. */
-  public static final String CONN_CACHE_EXPIRY_DURATION_KEY =
-      CONN_CACHE_KEY_BASE + ".expirydiration";
-  public static final String DEFAULT_CONN_CACHE_EXPIRY_DURATION = "10";
-  /** JDBC connection property for setting connection cache expiration unit. */
-  public static final String CONN_CACHE_EXPIRY_UNIT_KEY = CONN_CACHE_KEY_BASE + ".expiryunit";
-  public static final String DEFAULT_CONN_CACHE_EXPIRY_UNIT = TimeUnit.MINUTES.name();
 
-  //
-  // Constants for statement cache settings.
-  //
+  /** Configurable connection cache settings. */
+  public enum ConnectionCacheSettings {
+    /** JDBC connection property for setting connection cache concurrency level. */
+    CONCURRENCY_LEVEL(CONN_CACHE_KEY_BASE + ".concurrency", "10"),
+
+    /** JDBC connection property for setting connection cache initial capacity. */
+    INITIAL_CAPACITY(CONN_CACHE_KEY_BASE + ".initialcapacity", "100"),
+
+    /** JDBC connection property for setting connection cache maximum capacity. */
+    MAX_CAPACITY(CONN_CACHE_KEY_BASE + ".maxcapacity", "1000"),
+
+    /** JDBC connection property for setting connection cache expiration duration. */
+    EXPIRY_DURATION(CONN_CACHE_KEY_BASE + ".expirydiration", "10"),
+
+    /** JDBC connection property for setting connection cache expiration unit. */
+    EXPIRY_UNIT(CONN_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
+
+    private final String key;
+    private final String defaultValue;
+
+    private ConnectionCacheSettings(String key, String defaultValue) {
+      this.key = key;
+      this.defaultValue = defaultValue;
+    }
+
+    /** The configuration key for specifying this setting. */
+    public String key() {
+      return key;
+    }
+
+    /** The default value for this setting. */
+    public String defaultValue() {
+      return defaultValue;
+    }
+  }
 
   private static final String STMT_CACHE_KEY_BASE = "avatica.statementcache";
-  /** JDBC connection property for setting connection cache concurrency level. */
-  public static final String STMT_CACHE_CONCURRENCY_KEY =
-      STMT_CACHE_KEY_BASE + ".concurrency";
-  public static final String DEFAULT_STMT_CACHE_CONCURRENCY_LEVEL = "100";
-  /** JDBC connection property for setting connection cache initial capacity. */
-  public static final String STMT_CACHE_INITIAL_CAPACITY_KEY =
-      STMT_CACHE_KEY_BASE + ".initialcapacity";
-  public static final String DEFAULT_STMT_CACHE_INITIAL_CAPACITY = "1000";
-  /** JDBC connection property for setting connection cache maximum capacity. */
-  public static final String STMT_CACHE_MAX_CAPACITY_KEY =
-      STMT_CACHE_KEY_BASE + ".maxcapacity";
-  public static final String DEFAULT_STMT_CACHE_MAX_CAPACITY = "10000";
-  /** JDBC connection property for setting connection cache expiration duration. */
-  public static final String STMT_CACHE_EXPIRY_DURATION_KEY =
-      STMT_CACHE_KEY_BASE + ".expirydiration";
-  public static final String DEFAULT_STMT_CACHE_EXPIRY_DURATION = "5";
-  /** JDBC connection property for setting connection cache expiration unit. */
-  public static final String STMT_CACHE_EXPIRY_UNIT_KEY = STMT_CACHE_KEY_BASE + ".expiryunit";
-  public static final String DEFAULT_STMT_CACHE_EXPIRY_UNIT = TimeUnit.MINUTES.name();
+
+  /** Configurable statement cache settings. */
+  public enum StatementCacheSettings {
+    /** JDBC connection property for setting connection cache concurrency level. */
+    CONCURRENCY_LEVEL(STMT_CACHE_KEY_BASE + ".concurrency", "100"),
+
+    /** JDBC connection property for setting connection cache initial capacity. */
+    INITIAL_CAPACITY(STMT_CACHE_KEY_BASE + ".initialcapacity", "1000"),
+
+    /** JDBC connection property for setting connection cache maximum capacity. */
+    MAX_CAPACITY(STMT_CACHE_KEY_BASE + ".maxcapacity", "10000"),
+
+    /** JDBC connection property for setting connection cache expiration duration.
+     *
+     * <p>Used in conjunction with {@link #EXPIRY_UNIT}.</p>
+     */
+    EXPIRY_DURATION(STMT_CACHE_KEY_BASE + ".expirydiration", "5"),
+
+    /** JDBC connection property for setting connection cache expiration unit.
+     *
+     * <p>Used in conjunction with {@link #EXPIRY_DURATION}.</p>
+     */
+    EXPIRY_UNIT(STMT_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
+
+    private final String key;
+    private final String defaultValue;
+
+    private StatementCacheSettings(String key, String defaultValue) {
+      this.key = key;
+      this.defaultValue = defaultValue;
+    }
+
+    /** The configuration key for specifying this setting. */
+    public String key() {
+      return key;
+    }
+
+    /** The default value for this setting. */
+    public String defaultValue() {
+      return defaultValue;
+    }
+  }
 
   private static final String DEFAULT_CONN_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000000").toString();
@@ -294,15 +333,20 @@ public class JdbcMeta implements Meta {
     this.connection = DriverManager.getConnection(url, info);
 
     int concurrencyLevel = Integer.parseInt(
-        info.getProperty(CONN_CACHE_CONCURRENCY_KEY, DEFAULT_CONN_CACHE_CONCURRENCY_LEVEL));
+        info.getProperty(ConnectionCacheSettings.CONCURRENCY_LEVEL.key(),
+            ConnectionCacheSettings.CONCURRENCY_LEVEL.defaultValue()));
     int initialCapacity = Integer.parseInt(
-        info.getProperty(CONN_CACHE_INITIAL_CAPACITY_KEY, DEFAULT_CONN_CACHE_INITIAL_CAPACITY));
+        info.getProperty(ConnectionCacheSettings.INITIAL_CAPACITY.key(),
+            ConnectionCacheSettings.INITIAL_CAPACITY.defaultValue()));
     long maxCapacity = Long.parseLong(
-        info.getProperty(CONN_CACHE_MAX_CAPACITY_KEY, DEFAULT_CONN_CACHE_MAX_CAPACITY));
+        info.getProperty(ConnectionCacheSettings.MAX_CAPACITY.key(),
+            ConnectionCacheSettings.MAX_CAPACITY.defaultValue()));
     long connectionExpiryDuration = Long.parseLong(
-        info.getProperty(CONN_CACHE_EXPIRY_DURATION_KEY, DEFAULT_CONN_CACHE_EXPIRY_DURATION));
+        info.getProperty(ConnectionCacheSettings.EXPIRY_DURATION.key(),
+            ConnectionCacheSettings.EXPIRY_DURATION.defaultValue()));
     TimeUnit connectionExpiryUnit = TimeUnit.valueOf(
-        info.getProperty(CONN_CACHE_EXPIRY_UNIT_KEY, DEFAULT_CONN_CACHE_EXPIRY_UNIT));
+        info.getProperty(ConnectionCacheSettings.EXPIRY_UNIT.key(),
+            ConnectionCacheSettings.EXPIRY_UNIT.defaultValue()));
     this.connectionCache = CacheBuilder.newBuilder()
         .concurrencyLevel(concurrencyLevel)
         .initialCapacity(initialCapacity)
@@ -315,15 +359,20 @@ public class JdbcMeta implements Meta {
     }
 
     concurrencyLevel = Integer.parseInt(
-        info.getProperty(STMT_CACHE_CONCURRENCY_KEY, DEFAULT_STMT_CACHE_CONCURRENCY_LEVEL));
+        info.getProperty(StatementCacheSettings.CONCURRENCY_LEVEL.key(),
+            StatementCacheSettings.CONCURRENCY_LEVEL.defaultValue()));
     initialCapacity = Integer.parseInt(
-        info.getProperty(STMT_CACHE_INITIAL_CAPACITY_KEY, DEFAULT_STMT_CACHE_INITIAL_CAPACITY));
+        info.getProperty(StatementCacheSettings.INITIAL_CAPACITY.key(),
+            StatementCacheSettings.INITIAL_CAPACITY.defaultValue()));
     maxCapacity = Long.parseLong(
-        info.getProperty(STMT_CACHE_MAX_CAPACITY_KEY, DEFAULT_STMT_CACHE_MAX_CAPACITY));
+        info.getProperty(StatementCacheSettings.MAX_CAPACITY.key(),
+            StatementCacheSettings.MAX_CAPACITY.defaultValue()));
     connectionExpiryDuration = Long.parseLong(
-        info.getProperty(STMT_CACHE_EXPIRY_DURATION_KEY, DEFAULT_STMT_CACHE_EXPIRY_DURATION));
+        info.getProperty(StatementCacheSettings.EXPIRY_DURATION.key(),
+            StatementCacheSettings.EXPIRY_DURATION.defaultValue()));
     connectionExpiryUnit = TimeUnit.valueOf(
-        info.getProperty(STMT_CACHE_EXPIRY_UNIT_KEY, DEFAULT_STMT_CACHE_EXPIRY_UNIT));
+        info.getProperty(StatementCacheSettings.EXPIRY_UNIT.key(),
+            StatementCacheSettings.EXPIRY_UNIT.defaultValue()));
     this.statementCache = CacheBuilder.newBuilder()
         .concurrencyLevel(concurrencyLevel)
         .initialCapacity(initialCapacity)
