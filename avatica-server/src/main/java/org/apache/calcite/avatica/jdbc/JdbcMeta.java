@@ -708,13 +708,28 @@ public class JdbcMeta implements Meta {
       final PreparedStatement statement = connection.prepareStatement(sql);
       final int id = System.identityHashCode(statement);
       final StatementInfo info = new StatementInfo(statement);
-      statementCache.put(id, info);
-      info.resultSet = statement.executeQuery();
-      MetaResultSet mrs = JdbcResultSet.create(ch.id, id, info.resultSet);
+      statementCache.put(id, info); // TODO: must we retain a statement in all cases?
+      boolean ret = statement.execute();
+      info.resultSet = statement.getResultSet();
+      assert ret || info.resultSet == null;
+      final MetaResultSet mrs;
+      if (info.resultSet == null) {
+        // build a non-JDBC result that contains the update count
+        int updateCount = statement.getUpdateCount();
+        List<ColumnMetaData> columns = new ArrayList<>(1);
+        columns.add(UPDATE_COL);
+        List<Object> val = new ArrayList<>();
+        val.add(new Object[] { updateCount });
+        mrs = new MetaResultSet(ch.id, id, true, new Signature(columns, sql, null, null,
+            CursorFactory.ARRAY), new Frame(0, true, val));
+      } else {
+        mrs = JdbcResultSet.create(ch.id, id, info.resultSet);
+      }
       if (LOG.isTraceEnabled()) {
         StatementHandle h = new StatementHandle(ch.id, id, null);
         LOG.trace("prepAndExec statement " + h);
       }
+      // TODO: review client to ensure statementId is updated when appropriate
       return mrs;
     } catch (SQLException e) {
       throw propagate(e);

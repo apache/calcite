@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
@@ -55,6 +56,7 @@ public abstract class AvaticaStatement
   private int fetchSize;
   private int fetchDirection;
   protected int maxRowCount = 0;
+  private int updateCount = -1;
 
   /**
    * Creates an AvaticaStatement.
@@ -89,21 +91,30 @@ public abstract class AvaticaStatement
   // implement Statement
 
   public boolean execute(String sql) throws SQLException {
-    try {
-      // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
-      final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
-      ResultSet resultSet =
-          connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
-      if (resultSet.isClosed()) {
-        return false;
+    ResultSet resultSet = executeQuery(sql);
+    ResultSetMetaData md = resultSet.getMetaData();
+    // hackish, but be sure we're looking at an update count result, not user data
+    if (md.getCatalogName(1).equalsIgnoreCase("avatica_internal")
+        && md.getTableName(1).equalsIgnoreCase("update_result")
+        && md.getColumnCount() == 1
+        && md.getColumnName(1).equalsIgnoreCase("u")) {
+      if (!resultSet.next()) {
+        throw new SQLException("expected one row, got zero");
       }
-      return true;
-    } catch (RuntimeException e) {
-      throw connection.helper.createException("while executing SQL: " + sql, e);
+      this.updateCount = resultSet.getInt(1);
+      if (resultSet.next()) {
+        throw new SQLException("expected one row, got two or more");
+      }
+      resultSet.close();
+      return false;
+    } else {
+      return !resultSet.isClosed();
     }
   }
 
   public ResultSet executeQuery(String sql) throws SQLException {
+    // reset previous state before moving forward.
+    this.updateCount = -1;
     try {
       // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
       final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
@@ -122,12 +133,12 @@ public abstract class AvaticaStatement
     if (!resultSet.next()) {
       throw new SQLException("expected one row, got zero");
     }
-    int result = resultSet.getInt(1);
+    this.updateCount = resultSet.getInt(1);
     if (resultSet.next()) {
       throw new SQLException("expected one row, got two or more");
     }
     resultSet.close();
-    return result;
+    return this.updateCount;
   }
 
   public synchronized void close() throws SQLException {
@@ -240,7 +251,7 @@ public abstract class AvaticaStatement
   }
 
   public int getUpdateCount() throws SQLException {
-    return -1;
+    return updateCount;
   }
 
   public boolean getMoreResults() throws SQLException {

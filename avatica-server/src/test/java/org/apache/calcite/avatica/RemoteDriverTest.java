@@ -152,7 +152,6 @@ public class RemoteDriverTest {
     checkStatementExecuteQuery(mjs(), false);
   }
 
-  @Ignore
   @Test public void testPrepareExecuteQueryLocal() throws Exception {
     checkStatementExecuteQuery(ljs(), true);
   }
@@ -180,7 +179,7 @@ public class RemoteDriverTest {
       resultSet = statement.executeQuery(sql);
     }
     if (parameterMetaData != null) {
-      assertThat(parameterMetaData.getParameterCount(), equalTo(2));
+      assertThat(parameterMetaData.getParameterCount(), equalTo(0));
     }
     final ResultSetMetaData metaData = resultSet.getMetaData();
     assertEquals(2, metaData.getColumnCount());
@@ -193,6 +192,27 @@ public class RemoteDriverTest {
     resultSet.close();
     statement.close();
     connection.close();
+  }
+
+  @Test public void testCreateInsertUpdateDrop() throws Exception {
+    final String drop = "drop table TEST_TABLE if exists";
+    final String create = "create table TEST_TABLE("
+        + "id int not null, "
+        + "msg varchar(3) not null)";
+    final String insert = "insert into TEST_TABLE values(1, 'foo')";
+    final String update = "update TEST_TABLE set msg='bar' where id=1";
+    try (Connection connection = ljs();
+        Statement statement = connection.createStatement()) {
+      boolean ret;
+      assertFalse(statement.execute(drop));
+      assertEquals(0, statement.getUpdateCount());
+      assertFalse(statement.execute(create));
+      assertEquals(0, statement.getUpdateCount());
+      assertFalse(statement.execute(insert));
+      assertEquals(1, statement.getUpdateCount());
+      assertFalse(statement.execute(update));
+      assertEquals(0, statement.executeUpdate(drop));
+    }
   }
 
   @Test public void testStatementLifecycle() throws Exception {
@@ -311,6 +331,8 @@ public class RemoteDriverTest {
     ps.close();
     connection.close();
   }
+
+
 
   /**
    * Factory that creates a service based on a local JDBC connection.
