@@ -14,12 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.test;
+package org.apache.calcite.avatica;
 
-import org.apache.calcite.avatica.AvaticaConnection;
-import org.apache.calcite.avatica.AvaticaPreparedStatement;
-import org.apache.calcite.avatica.AvaticaStatement;
-import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.LocalJsonService;
 import org.apache.calcite.avatica.remote.LocalService;
