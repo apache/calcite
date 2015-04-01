@@ -275,6 +275,7 @@ public class RelMdSize {
       return 2d;
     case INTEGER:
     case REAL:
+    case DECIMAL:
     case DATE:
     case TIME:
       return 4d;
@@ -294,6 +295,12 @@ public class RelMdSize {
     case VARCHAR:
       // Even in large (say VARCHAR(2000)) columns most strings are small
       return Math.min((double) type.getPrecision() * BYTES_PER_CHARACTER, 100d);
+    case ROW:
+      Double average = 0.0;
+      for (RelDataTypeField field : type.getFieldList()) {
+        average += averageTypeValueSize(field.getType());
+      }
+      return average;
     default:
       return null;
     }
