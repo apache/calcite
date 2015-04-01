@@ -38,10 +38,9 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
-import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
@@ -61,6 +60,7 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -80,6 +80,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -89,7 +90,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -206,10 +206,7 @@ public class JdbcRules {
         }
         newInputs.add(input);
       }
-      final JoinInfo joinInfo =
-          JoinInfo.of(newInputs.get(0), newInputs.get(1), join.getCondition());
-      if (!joinInfo.isEqui()) {
-        // JdbcJoin only supports equi-join
+      if (!canJoinOnCondition(join.getCondition())) {
         return null;
       }
       try {
@@ -219,8 +216,6 @@ public class JdbcRules {
             newInputs.get(0),
             newInputs.get(1),
             join.getCondition(),
-            joinInfo.leftKeys,
-            joinInfo.rightKeys,
             join.getJoinType(),
             join.getVariablesStopped());
       } catch (InvalidRelException e) {
@@ -228,34 +223,70 @@ public class JdbcRules {
         return null;
       }
     }
+
+    /**
+     * Returns whether a condition is supported by {@link JdbcJoin}.
+     *
+     * <p>Corresponds to the capabilities of
+     * {@link JdbcJoin#convertConditionToSqlNode}.
+     *
+     * @param node Condition
+     * @return Whether condition is supported
+     */
+    private boolean canJoinOnCondition(RexNode node) {
+      final List<RexNode> operands;
+      switch (node.getKind()) {
+      case AND:
+      case OR:
+        operands = ((RexCall) node).getOperands();
+        for (RexNode operand : operands) {
+          if (!canJoinOnCondition(operand)) {
+            return false;
+          }
+        }
+        return true;
+
+      case EQUALS:
+      case IS_NOT_DISTINCT_FROM:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+        operands = ((RexCall) node).getOperands();
+        if ((operands.get(0) instanceof RexInputRef)
+            && (operands.get(1) instanceof RexInputRef)) {
+          return true;
+        }
+        // fall through
+
+      default:
+        return false;
+      }
+    }
   }
 
   /** Join operator implemented in JDBC convention. */
-  public static class JdbcJoin extends EquiJoin implements JdbcRel {
+  public static class JdbcJoin extends Join implements JdbcRel {
     protected JdbcJoin(
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode left,
         RelNode right,
         RexNode condition,
-        ImmutableIntList leftKeys,
-        ImmutableIntList rightKeys,
         JoinRelType joinType,
         Set<String> variablesStopped)
         throws InvalidRelException {
-      super(cluster, traitSet, left, right, condition, leftKeys, rightKeys,
+      super(cluster, traitSet, left, right, condition,
           joinType, variablesStopped);
     }
 
     @Override public JdbcJoin copy(RelTraitSet traitSet, RexNode condition,
         RelNode left, RelNode right, JoinRelType joinType,
         boolean semiJoinDone) {
-      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      assert joinInfo.isEqui();
       try {
         return new JdbcJoin(getCluster(), traitSet, left, right,
-            condition, joinInfo.leftKeys, joinInfo.rightKeys, joinType,
-            variablesStopped);
+            condition, joinType, variablesStopped);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.
@@ -271,20 +302,9 @@ public class JdbcRules {
     }
 
     @Override public double getRows() {
-      final boolean leftKey = left.isKey(ImmutableBitSet.of(leftKeys));
-      final boolean rightKey = right.isKey(ImmutableBitSet.of(rightKeys));
       final double leftRowCount = left.getRows();
       final double rightRowCount = right.getRows();
-      if (leftKey && rightKey) {
-        return Math.min(leftRowCount, rightRowCount);
-      }
-      if (leftKey) {
-        return rightRowCount;
-      }
-      if (rightKey) {
-        return leftRowCount;
-      }
-      return leftRowCount * rightRowCount;
+      return Math.max(leftRowCount, rightRowCount);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -292,22 +312,13 @@ public class JdbcRules {
           implementor.visitChild(0, left);
       final JdbcImplementor.Result rightResult =
           implementor.visitChild(1, right);
-      SqlNode sqlCondition = null;
       final JdbcImplementor.Context leftContext = leftResult.qualifiedContext();
       final JdbcImplementor.Context rightContext =
           rightResult.qualifiedContext();
-      for (Pair<Integer, Integer> pair : Pair.zip(leftKeys, rightKeys)) {
-        SqlNode x =
-            SqlStdOperatorTable.EQUALS.createCall(POS,
-                leftContext.field(pair.left),
-                rightContext.field(pair.right));
-        if (sqlCondition == null) {
-          sqlCondition = x;
-        } else {
-          sqlCondition =
-              SqlStdOperatorTable.AND.createCall(POS, sqlCondition, x);
-        }
-      }
+      SqlNode sqlCondition = convertConditionToSqlNode(condition,
+          leftContext,
+          rightContext,
+          left.getRowType().getFieldCount());
       SqlNode join =
           new SqlJoin(POS,
               leftResult.asFrom(),
@@ -317,6 +328,92 @@ public class JdbcRules {
               JoinConditionType.ON.symbol(POS),
               sqlCondition);
       return implementor.result(join, leftResult, rightResult);
+    }
+
+    /**
+     * Convert {@link RexNode} condition into {@link SqlNode}
+     *
+     * @param node            condition Node
+     * @param leftContext     LeftContext
+     * @param rightContext    RightContext
+     * @param leftFieldCount  Number of field on left result
+     * @return SqlJoin which represent the condition
+     */
+    private SqlNode convertConditionToSqlNode(RexNode node,
+        JdbcImplementor.Context leftContext,
+        JdbcImplementor.Context rightContext, int leftFieldCount) {
+      if (!(node instanceof RexCall)) {
+        throw new AssertionError(node);
+      }
+      final List<RexNode> operands;
+      final SqlOperator op;
+      switch (node.getKind()) {
+      case AND:
+      case OR:
+        operands = ((RexCall) node).getOperands();
+        op = ((RexCall) node).getOperator();
+        SqlNode sqlCondition = null;
+        for (RexNode operand : operands) {
+          SqlNode x = convertConditionToSqlNode(operand, leftContext,
+              rightContext, leftFieldCount);
+          if (sqlCondition == null) {
+            sqlCondition = x;
+          } else {
+            sqlCondition = op.createCall(POS, sqlCondition, x);
+          }
+        }
+        return sqlCondition;
+
+      case EQUALS:
+      case IS_NOT_DISTINCT_FROM:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+        operands = ((RexCall) node).getOperands();
+        op = ((RexCall) node).getOperator();
+        if (operands.get(0) instanceof RexInputRef
+            && operands.get(1) instanceof RexInputRef) {
+          final RexInputRef op0 = (RexInputRef) operands.get(0);
+          final RexInputRef op1 = (RexInputRef) operands.get(1);
+
+          if (op0.getIndex() < leftFieldCount
+              && op1.getIndex() >= leftFieldCount) {
+            // Arguments were of form 'op0 = op1'
+            return op.createCall(POS,
+                leftContext.field(op0.getIndex()),
+                rightContext.field(op1.getIndex() - leftFieldCount));
+          }
+          if (op1.getIndex() < leftFieldCount
+              && op0.getIndex() >= leftFieldCount) {
+            // Arguments were of form 'op1 = op0'
+            return reverseOperatorDirection(op).createCall(POS,
+                leftContext.field(op1.getIndex()),
+                rightContext.field(op0.getIndex() - leftFieldCount));
+          }
+        }
+      }
+      throw new AssertionError(node);
+    }
+
+    private static SqlOperator reverseOperatorDirection(SqlOperator op) {
+      switch (op.kind) {
+      case GREATER_THAN:
+        return SqlStdOperatorTable.LESS_THAN;
+      case GREATER_THAN_OR_EQUAL:
+        return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+      case LESS_THAN:
+        return SqlStdOperatorTable.GREATER_THAN;
+      case LESS_THAN_OR_EQUAL:
+        return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+      case EQUALS:
+      case IS_NOT_DISTINCT_FROM:
+      case NOT_EQUALS:
+        return op;
+      default:
+        throw new AssertionError(op);
+      }
     }
 
     private static JoinType joinType(JoinRelType joinType) {

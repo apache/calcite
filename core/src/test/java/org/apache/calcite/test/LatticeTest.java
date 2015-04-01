@@ -357,19 +357,16 @@ public class LatticeTest {
                 + "JOIN \"foodmart\".\"product_class\" AS \"pc\" ON \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"\n"
                 + "GROUP BY \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\"")
         .explainContains(
-            "EnumerableAggregate(group=[{0, 1, 2, 3, 4, 5}], m0=[COUNT()], m1=[SUM($6)], m2=[SUM($0)])\n"
-                + "  EnumerableCalc(expr#0..37=[{inputs}], unit_sales=[$t17], recyclable_package=[$t26], the_day=[$t2], the_year=[$t4], quarter=[$t8], product_family=[$t37], store_sales=[$t15])\n"
-                + "    EnumerableJoin(condition=[=($0, $11)], joinType=[inner])\n"
-                + "      JdbcToEnumerableConverter\n"
-                + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
-                + "      EnumerableJoin(condition=[=($8, $23)], joinType=[inner])\n"
-                + "        EnumerableJoin(condition=[=($0, $9)], joinType=[inner])\n"
-                + "          JdbcToEnumerableConverter\n"
+            "JdbcToEnumerableConverter\n"
+                + "  JdbcAggregate(group=[{0, 1, 2, 3, 4, 5}], m0=[COUNT()], m1=[SUM($6)], m2=[SUM($0)])\n"
+                + "    JdbcProject(unit_sales=[$12], recyclable_package=[$21], the_day=[$30], the_year=[$32], quarter=[$36], product_family=[$4], store_sales=[$10])\n"
+                + "      JdbcJoin(condition=[=($13, $0)], joinType=[inner])\n"
+                + "        JdbcTableScan(table=[[foodmart, product_class]])\n"
+                + "        JdbcJoin(condition=[=($1, $23)], joinType=[inner])\n"
+                + "          JdbcJoin(condition=[=($0, $9)], joinType=[inner])\n"
                 + "            JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
-                + "          JdbcToEnumerableConverter\n"
                 + "            JdbcTableScan(table=[[foodmart, product]])\n"
-                + "        JdbcToEnumerableConverter\n"
-                + "          JdbcTableScan(table=[[foodmart, product_class]])");
+                + "          JdbcTableScan(table=[[foodmart, time_by_day]])");
   }
 
   /** Tests a query that uses no columns from the fact table. */

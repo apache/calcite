@@ -192,6 +192,25 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+  public static final String SCOTT_SCHEMA = "     {\n"
+      + "       type: 'jdbc',\n"
+      + "       name: 'SCOTT',\n"
+      + "       jdbcDriver: '" + CalciteAssert.DB.scott.driver + "',\n"
+      + "       jdbcUser: '" + CalciteAssert.DB.scott.username + "',\n"
+      + "       jdbcPassword: '" + CalciteAssert.DB.scott.password + "',\n"
+      + "       jdbcUrl: '" + CalciteAssert.DB.scott.url + "',\n"
+      + "       jdbcCatalog: null,\n"
+      + "       jdbcSchema: 'SCOTT'\n"
+      + "     }\n";
+
+  public static final String SCOTT_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "  defaultSchema: 'SCOTT',\n"
+      + "   schemas: [\n"
+      + SCOTT_SCHEMA
+      + "   ]\n"
+      + "}";
+
   public static final String HR_SCHEMA = "     {\n"
       + "       type: 'custom',\n"
       + "       name: 'hr',\n"
@@ -2892,17 +2911,16 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query(
-            "select count(*) as c from \"foodmart\".\"sales_fact_1997\" as p1 join \"foodmart\".\"sales_fact_1997\" as p2 using (\"store_id\")")
-        .returns("C=749681031\n")
-        .explainContains("EnumerableAggregate(group=[{}], C=[COUNT()])\n"
-            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], DUMMY=[$t2])\n"
-            + "    EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
-            + "      JdbcToEnumerableConverter\n"
-            + "        JdbcProject(store_id=[$4])\n"
-            + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
-            + "      JdbcToEnumerableConverter\n"
-            + "        JdbcProject(store_id=[$4])\n"
-            + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n");
+            "select count(*) as c from \"foodmart\".\"store\" as p1 join \"foodmart\".\"store\" as p2 using (\"store_id\")")
+        .returns("C=25\n")
+        .explainContains("JdbcToEnumerableConverter\n"
+            + "  JdbcAggregate(group=[{}], C=[COUNT()])\n"
+            + "    JdbcProject(DUMMY=[0])\n"
+            + "      JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
+            + "        JdbcProject(store_id=[$0])\n"
+            + "          JdbcTableScan(table=[[foodmart, store]])\n"
+            + "        JdbcProject(store_id=[$0])\n"
+            + "          JdbcTableScan(table=[[foodmart, store]])\n");
   }
 
   /** Tests composite GROUP BY where one of the columns has NULL values. */
