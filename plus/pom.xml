@@ -38,10 +38,6 @@ limitations under the License.
          in dependencyManagement in the root POM, not here. -->
     <dependency>
       <groupId>org.apache.calcite</groupId>
-      <artifactId>calcite-avatica</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
       <type>jar</type>
     </dependency>
@@ -76,6 +72,11 @@ limitations under the License.
       <groupId>net.hydromatic</groupId>
       <artifactId>tpcds</artifactId>
       <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-core</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
