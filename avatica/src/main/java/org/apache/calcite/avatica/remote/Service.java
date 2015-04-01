@@ -41,6 +41,7 @@ public interface Service {
   CreateStatementResponse apply(CreateStatementRequest request);
   CloseStatementResponse apply(CloseStatementRequest request);
   CloseConnectionResponse apply(CloseConnectionRequest request);
+  ConnectionSyncResponse apply(ConnectionSyncRequest request);
 
   /** Factory that creates a {@code Service}. */
   interface Factory {
@@ -68,7 +69,8 @@ public interface Service {
       @JsonSubTypes.Type(value = CloseStatementRequest.class,
           name = "closeStatement"),
       @JsonSubTypes.Type(value = CloseConnectionRequest.class,
-          name = "closeConnection") })
+          name = "closeConnection"),
+      @JsonSubTypes.Type(value = ConnectionSyncRequest.class, name = "connectionSync") })
   abstract class Request {
     abstract Response accept(Service service);
   }
@@ -87,7 +89,8 @@ public interface Service {
       @JsonSubTypes.Type(value = CloseStatementResponse.class,
           name = "closeStatement"),
       @JsonSubTypes.Type(value = CloseConnectionResponse.class,
-          name = "closeConnection") })
+          name = "closeConnection"),
+      @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync") })
   abstract class Response {
   }
 
@@ -383,6 +386,35 @@ public interface Service {
   class CloseConnectionResponse extends Response {
     @JsonCreator
     public CloseConnectionResponse() {}
+  }
+
+  /** Request for {@link Meta#connectionSync(Meta.ConnectionHandle, Meta.ConnectionProperties)}. */
+  class ConnectionSyncRequest extends Request {
+    public final String connectionId;
+    public final Meta.ConnectionProperties connProps;
+
+    @JsonCreator
+    public ConnectionSyncRequest(
+        @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("connProps") Meta.ConnectionProperties connProps) {
+      this.connectionId = connectionId;
+      this.connProps = connProps;
+    }
+
+    @Override ConnectionSyncResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Response for
+   * {@link Meta#connectionSync(Meta.ConnectionHandle, Meta.ConnectionProperties)}. */
+  class ConnectionSyncResponse extends Response {
+    public final Meta.ConnectionProperties connProps;
+
+    @JsonCreator
+    public ConnectionSyncResponse(@JsonProperty("connProps") Meta.ConnectionProperties connProps) {
+      this.connProps = connProps;
+    }
   }
 }
 

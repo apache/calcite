@@ -52,10 +52,18 @@ import java.util.NoSuchElementException;
  * default metadata methods return empty collections.
  */
 public abstract class MetaImpl implements Meta {
+  /** The {@link AvaticaConnection} backing {@code this}. */
   protected final AvaticaConnection connection;
+  /** Represents the various states specific to {@link #connection}.
+   *
+   * <p>Note: this instance is used recursively with {@link #connection}'s getter and setter
+   * methods.</p>
+   */
+  protected final ConnectionPropertiesImpl connProps;
 
   public MetaImpl(AvaticaConnection connection) {
     this.connection = connection;
+    this.connProps = new ConnectionPropertiesImpl();
   }
 
   /** Uses a {@link org.apache.calcite.avatica.Meta.CursorFactory} to convert
@@ -173,6 +181,13 @@ public abstract class MetaImpl implements Meta {
 //    } catch (SQLException e) {
 //      throw new RuntimeException(e);
 //    }
+  }
+
+  @Override public ConnectionProperties connectionSync(ConnectionHandle ch,
+      ConnectionProperties connProps) {
+    this.connProps.merge(connProps);
+    this.connProps.setDirty(false);
+    return this.connProps;
   }
 
   public StatementHandle createStatement(ConnectionHandle ch) {

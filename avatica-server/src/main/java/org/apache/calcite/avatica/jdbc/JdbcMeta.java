@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.jdbc;
 
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 
 import org.apache.commons.logging.Log;
@@ -116,7 +117,7 @@ public class JdbcMeta implements Meta {
     private final String key;
     private final String defaultValue;
 
-    private ConnectionCacheSettings(String key, String defaultValue) {
+    ConnectionCacheSettings(String key, String defaultValue) {
       this.key = key;
       this.defaultValue = defaultValue;
     }
@@ -672,6 +673,43 @@ public class JdbcMeta implements Meta {
     }
   }
 
+  protected void apply(Connection conn, ConnectionProperties connProps)
+      throws SQLException {
+    if (connProps.isAutoCommit() != null) {
+      conn.setAutoCommit(connProps.isAutoCommit());
+    }
+    if (connProps.isReadOnly() != null) {
+      conn.setReadOnly(connProps.isReadOnly());
+    }
+    if (connProps.getTransactionIsolation() != null) {
+      conn.setTransactionIsolation(connProps.getTransactionIsolation());
+    }
+    if (connProps.getCatalog() != null) {
+      conn.setCatalog(connProps.getCatalog());
+    }
+    if (connProps.getSchema() != null) {
+      conn.setSchema(connProps.getSchema());
+    }
+  }
+
+  @Override public ConnectionProperties connectionSync(ConnectionHandle ch,
+      ConnectionProperties connProps) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("syncing properties for connection " + ch);
+    }
+    try {
+      Connection conn = getConnection(ch.id);
+      ConnectionPropertiesImpl props = new ConnectionPropertiesImpl(conn).merge(connProps);
+      if (props.isDirty()) {
+        apply(conn, props);
+        props.setDirty(false);
+      }
+      return props;
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
   private RuntimeException propagate(Throwable e) {
     if (e instanceof RuntimeException) {
       throw (RuntimeException) e;
@@ -720,8 +758,10 @@ public class JdbcMeta implements Meta {
         columns.add(UPDATE_COL);
         List<Object> val = new ArrayList<>();
         val.add(new Object[] { updateCount });
-        mrs = new MetaResultSet(ch.id, id, true, new Signature(columns, sql, null, null,
-            CursorFactory.ARRAY), new Frame(0, true, val));
+        final Signature signature =
+            new Signature(columns, sql, null, null, CursorFactory.ARRAY);
+        final Frame frame = new Frame(0, true, val);
+        mrs = new MetaResultSet(ch.id, id, true, signature, frame);
       } else {
         mrs = JdbcResultSet.create(ch.id, id, info.resultSet);
       }

@@ -332,8 +332,6 @@ public class RemoteDriverTest {
     connection.close();
   }
 
-
-
   /**
    * Factory that creates a service based on a local JDBC connection.
    */

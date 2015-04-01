@@ -49,14 +49,11 @@ import java.util.concurrent.Executor;
  * <p>Abstract to allow newer versions of JDBC to add methods.
  */
 public abstract class AvaticaConnection implements Connection {
+
   protected int statementCount;
-  private boolean autoCommit;
   private boolean closed;
-  private boolean readOnly;
-  private int transactionIsolation;
   private int holdability;
   private int networkTimeout;
-  private String catalog;
 
   public final String id;
   public final Meta.ConnectionHandle handle;
@@ -65,7 +62,6 @@ public abstract class AvaticaConnection implements Connection {
   final String url;
   protected final Properties info;
   protected final Meta meta;
-  private String schema;
   protected final AvaticaDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
   public final Map<InternalProperty, Object> properties = new HashMap<>();
@@ -132,11 +128,11 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setAutoCommit(boolean autoCommit) throws SQLException {
-    this.autoCommit = autoCommit;
+    meta.connectionSync(handle, new ConnectionPropertiesImpl().setAutoCommit(autoCommit));
   }
 
   public boolean getAutoCommit() throws SQLException {
-    return autoCommit;
+    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).isAutoCommit();
   }
 
   public void commit() throws SQLException {
@@ -171,27 +167,27 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
-    this.readOnly = readOnly;
+    meta.connectionSync(handle, new ConnectionPropertiesImpl().setReadOnly(readOnly));
   }
 
   public boolean isReadOnly() throws SQLException {
-    return readOnly;
+    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).isReadOnly();
   }
 
   public void setCatalog(String catalog) throws SQLException {
-    this.catalog = catalog;
+    meta.connectionSync(handle, new ConnectionPropertiesImpl().setCatalog(catalog));
   }
 
   public String getCatalog() {
-    return catalog;
+    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getCatalog();
   }
 
   public void setTransactionIsolation(int level) throws SQLException {
-    this.transactionIsolation = level;
+    meta.connectionSync(handle, new ConnectionPropertiesImpl().setTransactionIsolation(level));
   }
 
   public int getTransactionIsolation() throws SQLException {
-    return transactionIsolation;
+    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getTransactionIsolation();
   }
 
   public SQLWarning getWarnings() throws SQLException {
@@ -355,11 +351,11 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setSchema(String schema) throws SQLException {
-    this.schema = schema;
+    meta.connectionSync(handle, new ConnectionPropertiesImpl().setSchema(schema));
   }
 
   public String getSchema() {
-    return schema;
+    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getSchema();
   }
 
   public void abort(Executor executor) throws SQLException {

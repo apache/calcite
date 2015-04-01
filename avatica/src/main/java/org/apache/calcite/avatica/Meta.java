@@ -19,6 +19,8 @@ package org.apache.calcite.avatica;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.lang.reflect.Field;
 import java.sql.SQLException;
@@ -202,6 +204,14 @@ public interface Meta {
 
   /** Close a connection */
   void closeConnection(ConnectionHandle ch);
+
+  /** Sync client and server view of connection properties.
+   *
+   * <p>Note: this interface is considered "experimental" and may undergo further changes as this
+   * functionality is extended to other aspects of state management for
+   * {@link java.sql.Connection}, {@link java.sql.Statement}, and {@link java.sql.ResultSet}.</p>
+   */
+  ConnectionProperties connectionSync(ConnectionHandle ch, ConnectionProperties connProps);
 
   /** Factory to create instances of {@link Meta}. */
   interface Factory {
@@ -469,6 +479,75 @@ public interface Meta {
       this.id = id;
       this.signature = signature;
     }
+  }
+
+  /** A pojo containing various client-settable {@link java.sql.Connection} properties.
+   *
+   * <p>{@code java.lang} types are used here so that {@code null} can be used to indicate
+   * a value has no been set.</p>
+   *
+   * <p>Note: this interface is considered "experimental" and may undergo further changes as this
+   * functionality is extended to other aspects of state management for
+   * {@link java.sql.Connection}, {@link java.sql.Statement}, and {@link java.sql.ResultSet}.</p>
+   */
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.NAME,
+      property = "connProps",
+      defaultImpl = ConnectionPropertiesImpl.class)
+  @JsonSubTypes({
+      @JsonSubTypes.Type(value = ConnectionPropertiesImpl.class, name = "connPropsImpl")
+  })
+  interface ConnectionProperties {
+
+    /** Overwrite fields in {@code this} with any non-null fields in {@code that}
+     *
+     * @return {@code this}
+     */
+    ConnectionProperties merge(ConnectionProperties that);
+
+    /** @return {@code true} when no properies have been set, {@code false} otherwise. */
+    @JsonIgnore
+    boolean isEmpty();
+
+    /** Set {@code autoCommit} status.
+     *
+     * @return {@code this}
+     */
+    ConnectionProperties setAutoCommit(boolean val);
+
+    Boolean isAutoCommit();
+
+    /** Set {@code readOnly} status.
+     *
+     * @return {@code this}
+     */
+    ConnectionProperties setReadOnly(boolean val);
+
+    Boolean isReadOnly();
+
+    /** Set {@code transactionIsolation} status.
+     *
+     * @return {@code this}
+     */
+    ConnectionProperties setTransactionIsolation(int val);
+
+    Integer getTransactionIsolation();
+
+    /** Set {@code catalog}.
+     *
+     * @return {@code this}
+     */
+    ConnectionProperties setCatalog(String val);
+
+    String getCatalog();
+
+    /** Set {@code schema}.
+     *
+     * @return {@code this}
+     */
+    ConnectionProperties setSchema(String val);
+
+    String getSchema();
   }
 
   /** API to put a result set into a statement, being careful to enforce

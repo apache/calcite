@@ -52,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Field;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -69,6 +70,11 @@ public class CalciteMetaImpl extends MetaImpl {
 
   public CalciteMetaImpl(CalciteConnectionImpl connection) {
     super(connection);
+    this.connProps
+        .setAutoCommit(false)
+        .setReadOnly(false)
+        .setTransactionIsolation(Connection.TRANSACTION_NONE);
+    this.connProps.setDirty(false);
   }
 
   static <T extends Named> Predicate1<T> namedMatcher(final Pat pattern) {

@@ -201,6 +201,12 @@ public class LocalService implements Service {
     meta.closeConnection(new Meta.ConnectionHandle(request.connectionId));
     return new CloseConnectionResponse();
   }
+
+  public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
+    final Meta.ConnectionProperties connProps =
+        meta.connectionSync(new Meta.ConnectionHandle(request.connectionId), request.connProps);
+    return new ConnectionSyncResponse(connProps);
+  }
 }
 
 // End LocalService.java

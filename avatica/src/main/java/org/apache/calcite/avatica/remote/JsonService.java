@@ -145,6 +145,14 @@ public abstract class JsonService implements Service {
       throw handle(e);
     }
   }
+
+  public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
+    try {
+      return decode(apply(encode(request)), ConnectionSyncResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
 }
 
 // End JsonService.java

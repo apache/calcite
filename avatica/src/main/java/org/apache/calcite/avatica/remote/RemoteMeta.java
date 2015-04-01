@@ -19,18 +19,22 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of {@link Meta} for the remote driver.
  */
 class RemoteMeta extends MetaImpl {
   final Service service;
+  final Map<String, ConnectionPropertiesImpl> propsMap = new HashMap<>();
 
   public RemoteMeta(AvaticaConnection connection, Service service) {
     super(connection);
@@ -53,6 +57,7 @@ class RemoteMeta extends MetaImpl {
   }
 
   @Override public StatementHandle createStatement(ConnectionHandle ch) {
+    connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
     final Service.CreateStatementResponse response =
         service.apply(new Service.CreateStatementRequest(ch.id));
     return new StatementHandle(response.connectionId, response.statementId,
@@ -67,6 +72,30 @@ class RemoteMeta extends MetaImpl {
   @Override public void closeConnection(ConnectionHandle ch) {
     final Service.CloseConnectionResponse response =
         service.apply(new Service.CloseConnectionRequest(ch.id));
+    propsMap.remove(ch.id);
+  }
+
+  @Override public ConnectionProperties connectionSync(ConnectionHandle ch,
+      ConnectionProperties connProps) {
+    ConnectionPropertiesImpl localProps = propsMap.get(ch.id);
+    if (localProps == null) {
+      localProps = new ConnectionPropertiesImpl();
+      localProps.setDirty(true);
+      propsMap.put(ch.id, localProps);
+    }
+
+    // Only make an RPC if necessary. RPC is necessary when we have local changes that need
+    // flushed to the server (be sure to introduce any new changes from connProps before checking
+    // AND when connProps.isEmpty() (meaning, this was a request for a value, not overriding a
+    // value). Otherwise, accumulate the change locally and return immediately.
+    if (localProps.merge(connProps).isDirty() && connProps.isEmpty()) {
+      final Service.ConnectionSyncResponse response = service.apply(
+          new Service.ConnectionSyncRequest(ch.id, localProps));
+      propsMap.put(ch.id, (ConnectionPropertiesImpl) response.connProps);
+      return response.connProps;
+    } else {
+      return localProps;
+    }
   }
 
   @Override public MetaResultSet getCatalogs() {
@@ -107,6 +136,7 @@ class RemoteMeta extends MetaImpl {
 
   @Override public StatementHandle prepare(ConnectionHandle ch, String sql,
       int maxRowCount) {
+    connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
     final Service.PrepareResponse response = service.apply(
         new Service.PrepareRequest(ch.id, sql, maxRowCount));
     return response.statement;
@@ -114,6 +144,7 @@ class RemoteMeta extends MetaImpl {
 
   @Override public MetaResultSet prepareAndExecute(ConnectionHandle ch,
       String sql, int maxRowCount, PrepareCallback callback) {
+    connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
     final Service.ResultSetResponse response;
     try {
       synchronized (callback.getMonitor()) {
