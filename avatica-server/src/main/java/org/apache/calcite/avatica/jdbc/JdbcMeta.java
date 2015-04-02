@@ -195,9 +195,21 @@ public class JdbcMeta implements Meta {
     for (int i = 1; i <= metaData.getColumnCount(); i++) {
       final Type javaType =
           SQL_TYPE_TO_JAVA_TYPE.get(metaData.getColumnType(i));
+      final ColumnMetaData.Rep rep;
+      switch (metaData.getColumnType(i)) {
+      case Types.DATE:
+      case Types.TIME:
+        rep = ColumnMetaData.Rep.INTEGER;
+        break;
+      case Types.TIMESTAMP:
+        rep = ColumnMetaData.Rep.LONG;
+        break;
+      default:
+        rep = ColumnMetaData.Rep.of(javaType);
+      }
       ColumnMetaData.AvaticaType t =
           ColumnMetaData.scalar(metaData.getColumnType(i),
-              metaData.getColumnTypeName(i), ColumnMetaData.Rep.of(javaType));
+              metaData.getColumnTypeName(i), rep);
       ColumnMetaData md =
           new ColumnMetaData(i - 1, metaData.isAutoIncrement(i),
               metaData.isCaseSensitive(i), metaData.isSearchable(i),

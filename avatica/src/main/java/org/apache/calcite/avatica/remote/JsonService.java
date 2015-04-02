@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Meta;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implementation of {@link org.apache.calcite.avatica.remote.Service}
@@ -40,6 +45,62 @@ public abstract class JsonService implements Service {
   /** Derived class should implement this method to transport requests and
    * responses to and from the peer service. */
   public abstract String apply(String request);
+
+  /** Modifies a signature, changing the type of columns within it. */
+  private static Meta.Signature fangle(Meta.Signature signature) {
+    final List<ColumnMetaData> columns = new ArrayList<>();
+    int changeCount = 0;
+    for (ColumnMetaData column : signature.columns) {
+      switch (column.type.rep) {
+      case BYTE:
+      case PRIMITIVE_BYTE:
+      case DOUBLE:
+      case PRIMITIVE_DOUBLE:
+      case FLOAT:
+      case PRIMITIVE_FLOAT:
+      case INTEGER:
+      case PRIMITIVE_INT:
+      case SHORT:
+      case PRIMITIVE_SHORT:
+      case LONG:
+      case PRIMITIVE_LONG:
+        column = column.setRep(ColumnMetaData.Rep.OBJECT);
+        ++changeCount;
+      }
+      columns.add(column);
+    }
+    if (changeCount == 0) {
+      return signature;
+    }
+    return new Meta.Signature(columns, signature.sql,
+        signature.parameters, signature.internalParameters,
+        signature.cursorFactory);
+  }
+
+  private static PrepareResponse fangle(PrepareResponse response) {
+    final Meta.StatementHandle statement = fangle(response.statement);
+    if (statement == response.statement) {
+      return response;
+    }
+    return new PrepareResponse(statement);
+  }
+
+  private static Meta.StatementHandle fangle(Meta.StatementHandle h) {
+    final Meta.Signature signature = fangle(h.signature);
+    if (signature == h.signature) {
+      return h;
+    }
+    return new Meta.StatementHandle(h.connectionId, h.id, signature);
+  }
+
+  private static ResultSetResponse fangle(ResultSetResponse r) {
+    final Meta.Signature signature = fangle(r.signature);
+    if (signature == r.signature) {
+      return r;
+    }
+    return new ResultSetResponse(r.connectionId, r.statementId, r.ownStatement,
+        signature, r.firstFrame);
+  }
 
   //@VisibleForTesting
   protected static <T> T decode(String response, Class<T> valueType)
@@ -100,7 +161,7 @@ public abstract class JsonService implements Service {
 
   public PrepareResponse apply(PrepareRequest request) {
     try {
-      return decode(apply(encode(request)), PrepareResponse.class);
+      return fangle(decode(apply(encode(request)), PrepareResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
@@ -108,7 +169,7 @@ public abstract class JsonService implements Service {
 
   public ResultSetResponse apply(PrepareAndExecuteRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return fangle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }

@@ -16,11 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,8 +28,6 @@ import java.util.List;
  */
 public class LocalService implements Service {
   final Meta meta;
-  /** Whether output is going to JSON. */
-  private final boolean json = true;
 
   public LocalService(Meta meta) {
     this.meta = meta;
@@ -41,7 +37,7 @@ public class LocalService implements Service {
     if (iterable instanceof List) {
       return (List<E>) iterable;
     }
-    final List<E> rowList = new ArrayList<E>();
+    final List<E> rowList = new ArrayList<>();
     for (E row : iterable) {
       rowList.add(row);
     }
@@ -99,8 +95,10 @@ public class LocalService implements Service {
 
   public ResultSetResponse apply(TablesRequest request) {
     final Meta.MetaResultSet resultSet =
-        meta.getTables(request.catalog, Meta.Pat.of(request.schemaPattern),
-            Meta.Pat.of(request.tableNamePattern), request.typeList);
+        meta.getTables(request.catalog,
+            Meta.Pat.of(request.schemaPattern),
+            Meta.Pat.of(request.tableNamePattern),
+            request.typeList);
     return toResponse(resultSet);
   }
 
@@ -123,32 +121,6 @@ public class LocalService implements Service {
         new Meta.ConnectionHandle(request.connectionId);
     final Meta.StatementHandle h =
         meta.prepare(ch, request.sql, request.maxRowCount);
-    if (json) {
-      Meta.Signature signature = h.signature;
-      final List<ColumnMetaData> columns = new ArrayList<>();
-      for (ColumnMetaData column : signature.columns) {
-        switch (column.type.rep) {
-        case BYTE:
-        case PRIMITIVE_BYTE:
-        case DOUBLE:
-        case PRIMITIVE_DOUBLE:
-        case FLOAT:
-        case PRIMITIVE_FLOAT:
-        case INTEGER:
-        case PRIMITIVE_INT:
-        case SHORT:
-        case PRIMITIVE_SHORT:
-        case LONG:
-        case PRIMITIVE_LONG:
-          column = column.setTypeId(Types.NUMERIC);
-        }
-        columns.add(column);
-      }
-      signature = new Meta.Signature(columns, signature.sql,
-          signature.parameters, signature.internalParameters,
-          signature.cursorFactory);
-      h.signature = signature;
-    }
     return new PrepareResponse(h);
   }
 
@@ -179,7 +151,9 @@ public class LocalService implements Service {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         request.connectionId, request.statementId, null);
     final Meta.Frame frame =
-        meta.fetch(h, request.parameterValues, request.offset,
+        meta.fetch(h,
+            request.parameterValues,
+            request.offset,
             request.fetchMaxRowCount);
     return new FetchResponse(frame);
   }

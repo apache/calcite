@@ -375,7 +375,9 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   }
 
   public Object getObject(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex).getObject();
+    final Cursor.Accessor accessor = getAccessor(columnIndex);
+    final ColumnMetaData metaData = columnMetaDataList.get(columnIndex - 1);
+    return AvaticaParameter.get(accessor, metaData.type.id, localCalendar);
   }
 
   public Object getObject(String columnLabel) throws SQLException {

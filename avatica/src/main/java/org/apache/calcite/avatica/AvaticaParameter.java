@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.Cursor;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -33,6 +34,7 @@ import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
+import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -301,6 +303,97 @@ public class AvaticaParameter {
     }
   }
 
+  /** Similar logic to {@link #setObject}. */
+  public static Object get(Cursor.Accessor accessor, int targetSqlType,
+      Calendar localCalendar) throws SQLException {
+    switch (targetSqlType) {
+    case Types.CLOB:
+    case Types.DATALINK:
+    case Types.NCLOB:
+    case Types.REF:
+    case Types.SQLXML:
+    case Types.STRUCT:
+      throw notImplemented();
+    case Types.ARRAY:
+      return accessor.getArray();
+    case Types.BIGINT:
+      final long aLong = accessor.getLong();
+      if (aLong == 0 && accessor.wasNull()) {
+        return null;
+      }
+      return aLong;
+    case Types.BINARY:
+    case Types.LONGVARBINARY:
+    case Types.VARBINARY:
+      return accessor.getBytes();
+    case Types.BIT:
+    case Types.BOOLEAN:
+      final boolean aBoolean = accessor.getBoolean();
+      if (!aBoolean && accessor.wasNull()) {
+        return null;
+      }
+      return aBoolean;
+    case Types.BLOB:
+      return accessor.getBlob();
+    case Types.DATE:
+      return accessor.getDate(localCalendar);
+    case Types.DECIMAL:
+    case Types.NUMERIC:
+      return accessor.getBigDecimal();
+    case Types.DISTINCT:
+      throw notImplemented();
+    case Types.DOUBLE:
+    case Types.FLOAT: // yes really; SQL FLOAT is up to 8 bytes
+      final double aDouble = accessor.getDouble();
+      if (aDouble == 0 && accessor.wasNull()) {
+        return null;
+      }
+      return aDouble;
+    case Types.INTEGER:
+      final int anInt = accessor.getInt();
+      if (anInt == 0 && accessor.wasNull()) {
+        return null;
+      }
+      return anInt;
+    case Types.JAVA_OBJECT:
+    case Types.OTHER:
+      return accessor.getObject();
+    case Types.LONGNVARCHAR:
+    case Types.LONGVARCHAR:
+    case Types.NVARCHAR:
+    case Types.VARCHAR:
+    case Types.CHAR:
+    case Types.NCHAR:
+      return accessor.getString();
+    case Types.REAL:
+      final float aFloat = accessor.getFloat();
+      if (aFloat == 0 && accessor.wasNull()) {
+        return null;
+      }
+      return aFloat;
+    case Types.ROWID:
+      throw notImplemented();
+    case Types.SMALLINT:
+      final short aShort = accessor.getShort();
+      if (aShort == 0 && accessor.wasNull()) {
+        return null;
+      }
+      return aShort;
+    case Types.TIME:
+      return accessor.getTime(localCalendar);
+    case Types.TIMESTAMP:
+      return accessor.getTimestamp(localCalendar);
+    case Types.TINYINT:
+      final byte aByte = accessor.getByte();
+      if (aByte == 0 && accessor.wasNull()) {
+        return null;
+      }
+      return aByte;
+    default:
+      throw notImplemented();
+    }
+  }
+
   public void setObject(Object[] slots, int index, Object x) {
     slots[index] = wrap(x);
   }
@@ -354,7 +447,7 @@ public class AvaticaParameter {
     throw unsupportedCast(x.getClass(), Array.class);
   }
 
-  private static BigDecimal toBigDecimal(Object x) {
+  public static BigDecimal toBigDecimal(Object x) {
     if (x instanceof BigDecimal) {
       return (BigDecimal) x;
     } else if (x instanceof BigInteger) {

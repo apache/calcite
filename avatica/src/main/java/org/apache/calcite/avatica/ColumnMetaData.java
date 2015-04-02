@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Metadata for a column.
@@ -158,10 +159,10 @@ public class ColumnMetaData {
         type.columnClassName());
   }
 
-  public ColumnMetaData setTypeId(int typeId) {
+  public ColumnMetaData setRep(Rep rep) {
     return new ColumnMetaData(ordinal, autoIncrement, caseSensitive, searchable,
         currency, nullable, signed, displaySize, label, columnName, schemaName,
-        precision, scale, tableName, catalogName, type.setId(typeId), readOnly,
+        precision, scale, tableName, catalogName, type.setRep(rep), readOnly,
         writable, definitelyWritable, columnClassName);
   }
 
@@ -233,16 +234,15 @@ public class ColumnMetaData {
 
     protected AvaticaType(int id, String name, Rep rep) {
       this.id = id;
-      this.name = name;
-      this.rep = rep;
-      assert rep != null;
+      this.name = Objects.requireNonNull(name);
+      this.rep = Objects.requireNonNull(rep);
     }
 
     public String columnClassName() {
       return SqlType.valueOf(id).clazz.getName();
     }
 
-    public AvaticaType setId(int rep) {
+    public AvaticaType setRep(Rep rep) {
       throw new UnsupportedOperationException();
     }
   }
@@ -256,7 +256,7 @@ public class ColumnMetaData {
       super(id, name, rep);
     }
 
-    @Override public AvaticaType setId(int id) {
+    @Override public AvaticaType setRep(Rep rep) {
       return new ScalarType(id, name, rep);
     }
   }

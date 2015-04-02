@@ -215,6 +215,40 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testTypeHandling() throws Exception {
+    final String query = "select * from EMP";
+    try (Connection cannon =
+             DriverManager.getConnection(CONNECTION_SPEC.url,
+                 CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+        Connection underTest = ljs();
+        Statement s1 = cannon.createStatement();
+        Statement s2 = underTest.createStatement()) {
+      assertTrue(s1.execute(query));
+      assertTrue(s2.execute(query));
+      try (ResultSet rs1 = s1.getResultSet();
+          ResultSet rs2 = s2.getResultSet()) {
+        assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
+        int colCount = rs1.getMetaData().getColumnCount();
+        while (rs1.next() && rs2.next()) {
+          for (int i = 0; i < colCount; i++) {
+            Object o1 = rs1.getObject(i + 1);
+            Object o2 = rs2.getObject(i + 1);
+            if (o1 instanceof Integer && o2 instanceof Short) {
+              // Hsqldb returns Integer for short columns; we prefer Short
+              o1 = ((Number) o1).shortValue();
+            }
+            if (o1 instanceof Integer && o2 instanceof Byte) {
+              // Hsqldb returns Integer for tinyint columns; we prefer Byte
+              o1 = ((Number) o1).byteValue();
+            }
+            assertEquals(o1, o2);
+          }
+        }
+        assertEquals(rs1.next(), rs2.next());
+      }
+    }
+  }
+
   @Test public void testStatementLifecycle() throws Exception {
     try (AvaticaConnection connection = (AvaticaConnection) ljs()) {
       Map<Integer, AvaticaStatement> clientMap = connection.statementMap;

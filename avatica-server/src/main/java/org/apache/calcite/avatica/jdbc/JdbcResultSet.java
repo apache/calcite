@@ -17,10 +17,14 @@
 package org.apache.calcite.avatica.jdbc;
 
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -97,6 +101,19 @@ class JdbcResultSet extends Meta.MetaResultSet {
     case Types.REAL:
       final float aFloat = resultSet.getFloat(j + 1);
       return aFloat == 0D && resultSet.wasNull() ? null : aFloat;
+    case Types.DATE:
+      final Date aDate = resultSet.getDate(j + 1);
+      return aDate == null
+          ? null
+          : (int) (aDate.getTime() / DateTimeUtils.MILLIS_PER_DAY);
+    case Types.TIME:
+      final Time aTime = resultSet.getTime(j + 1);
+      return aTime == null
+          ? null
+          : (int) (aTime.getTime() % DateTimeUtils.MILLIS_PER_DAY);
+    case Types.TIMESTAMP:
+      final Timestamp aTimestamp = resultSet.getTimestamp(j + 1);
+      return aTimestamp == null ? null : aTimestamp.getTime();
     default:
       return resultSet.getObject(j + 1);
     }
