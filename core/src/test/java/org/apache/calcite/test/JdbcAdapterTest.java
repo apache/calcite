@@ -16,7 +16,18 @@
  */
 package org.apache.calcite.test;
 
+import org.hsqldb.jdbcDriver;
 import org.junit.Test;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.Properties;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
@@ -273,6 +284,52 @@ public class JdbcAdapterTest {
             + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
             + "WHERE CAST(\"DEPTNO\" AS INTEGER) = 20) AS \"t1\" ON \"t\".\"DEPTNO\" = \"t1\".\"DEPTNO\"");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-657">[CALCITE-657]
+   * NullPointerException when executing JdbcAggregate implement method</a>. */
+  @Test public void testJdbcAggregate() throws Exception {
+    final String url = MultiJdbcSchemaJoinTest.TempDb.INSTANCE.getUrl();
+    Connection baseConnection = DriverManager.getConnection(url);
+    Statement baseStmt = baseConnection.createStatement();
+    baseStmt.execute("CREATE TABLE T2 (\n"
+            + "ID INTEGER,\n"
+            + "VALS INTEGER)");
+    baseStmt.execute("INSERT INTO T2 VALUES (1, 1)");
+    baseStmt.execute("INSERT INTO T2 VALUES (2, null)");
+    baseStmt.close();
+    baseConnection.commit();
+
+    Properties info = new Properties();
+    info.put("model",
+        "inline:"
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'BASEJDBC',\n"
+            + "  schemas: [\n"
+            + "     {\n"
+            + "       type: 'jdbc',\n"
+            + "       name: 'BASEJDBC',\n"
+            + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+            + "       jdbcUrl: '" + url + "',\n"
+            + "       jdbcCatalog: null,\n"
+            + "       jdbcSchema: null\n"
+            + "     }\n"
+            + "  ]\n"
+            + "}");
+
+    final Connection calciteConnection =
+        DriverManager.getConnection("jdbc:calcite:", info);
+    ResultSet rs = calciteConnection
+        .prepareStatement("select 10 * count(ID) from t2").executeQuery();
+
+    assertThat(rs.next(), is(true));
+    assertThat((Long) rs.getObject(1), equalTo(20L));
+    assertThat(rs.next(), is(false));
+
+    rs.close();
+    calciteConnection.close();
   }
 }
 

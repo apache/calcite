@@ -706,7 +706,7 @@ public class JdbcRules {
         groupByList.add(field);
       }
       for (AggregateCall aggCall : aggCalls) {
-        addSelect(selectList, builder.context.toSql(aggCall), rowType);
+        addSelect(selectList, builder.context.toSql(aggCall), getRowType());
       }
       builder.setSelect(new SqlNodeList(selectList, POS));
       if (!groupByList.isEmpty() || aggCalls.isEmpty()) {

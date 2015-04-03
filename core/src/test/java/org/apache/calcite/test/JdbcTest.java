@@ -1845,8 +1845,8 @@ public class JdbcTest {
 
   /** Tests accessing a column in a JDBC source whose type is ARRAY. */
   @Test public void testArray() throws Exception {
-    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
-    Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+    final String url = MultiJdbcSchemaJoinTest.TempDb.INSTANCE.getUrl();
+    Connection baseConnection = DriverManager.getConnection(url);
     Statement baseStmt = baseConnection.createStatement();
     baseStmt.execute("CREATE TABLE ARR_TABLE (\n"
         + "ID INTEGER,\n"
@@ -1872,7 +1872,7 @@ public class JdbcTest {
             + "       type: 'jdbc',\n"
             + "       name: 'BASEJDBC',\n"
             + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
-            + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+            + "       jdbcUrl: '" + url + "',\n"
             + "       jdbcCatalog: null,\n"
             + "       jdbcSchema: null\n"
             + "     }\n"
