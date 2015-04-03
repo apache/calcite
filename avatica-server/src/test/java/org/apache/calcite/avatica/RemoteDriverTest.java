@@ -45,6 +45,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -202,16 +203,95 @@ public class RemoteDriverTest {
     final String insert = "insert into TEST_TABLE values(1, 'foo')";
     final String update = "update TEST_TABLE set msg='bar' where id=1";
     try (Connection connection = ljs();
-        Statement statement = connection.createStatement()) {
-      boolean ret;
+        Statement statement = connection.createStatement();
+        PreparedStatement pstmt = connection.prepareStatement("values 1")) {
+      // drop
       assertFalse(statement.execute(drop));
       assertEquals(0, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+      try {
+        final ResultSet rs = statement.executeQuery(drop);
+        fail("expected error, got " + rs);
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+            equalTo("Statement did not return a result set"));
+      }
+      assertEquals(0, statement.executeUpdate(drop));
+      assertEquals(0, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+
+      // create
       assertFalse(statement.execute(create));
       assertEquals(0, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+      assertFalse(statement.execute(drop)); // tidy up
+      try {
+        final ResultSet rs = statement.executeQuery(create);
+        fail("expected error, got " + rs);
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+            equalTo("Statement did not return a result set"));
+      }
+      assertFalse(statement.execute(drop)); // tidy up
+      assertEquals(0, statement.executeUpdate(create));
+      assertEquals(0, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+
+      // insert
       assertFalse(statement.execute(insert));
       assertEquals(1, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+      try {
+        final ResultSet rs = statement.executeQuery(insert);
+        fail("expected error, got " + rs);
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+            equalTo("Statement did not return a result set"));
+      }
+      assertEquals(1, statement.executeUpdate(insert));
+      assertEquals(1, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+
+      // update
       assertFalse(statement.execute(update));
-      assertEquals(0, statement.executeUpdate(drop));
+      assertEquals(3, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+      try {
+        final ResultSet rs = statement.executeQuery(update);
+        fail("expected error, got " + rs);
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+            equalTo("Statement did not return a result set"));
+      }
+      assertEquals(3, statement.executeUpdate(update));
+      assertEquals(3, statement.getUpdateCount());
+      assertNull(statement.getResultSet());
+
+      final String[] messages = {
+        "Cannot call executeQuery(String) on prepared or callable statement",
+        "Cannot call execute(String) on prepared or callable statement",
+        "Cannot call executeUpdate(String) on prepared or callable statement",
+      };
+      for (String sql : new String[]{drop, create, insert, update}) {
+        for (int i = 0; i <= 2; i++) {
+          try {
+            Object o;
+            switch (i) {
+            case 0:
+              o = pstmt.executeQuery(sql);
+              break;
+            case 1:
+              o = pstmt.execute(sql);
+              break;
+            default:
+              o = pstmt.executeUpdate(sql);
+            }
+            fail("expected error, got " + o);
+          } catch (SQLException e) {
+            assertThat(e.getMessage(), equalTo(messages[i]));
+          }
+        }
+      }
     }
   }
 
@@ -292,25 +372,6 @@ public class RemoteDriverTest {
     conn1.close();
     assertEquals("closing a connection closes the server-side connection",
         0, connectionMap.size());
-  }
-
-  private void checkStatementExecuteQuery(Connection connection)
-      throws SQLException {
-    final Statement statement = connection.createStatement();
-    final ResultSet resultSet =
-        statement.executeQuery("select * from (\n"
-            + "  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)");
-    final ResultSetMetaData metaData = resultSet.getMetaData();
-    assertEquals(2, metaData.getColumnCount());
-    assertEquals("C1", metaData.getColumnName(1));
-    assertEquals("C2", metaData.getColumnName(2));
-    assertTrue(resultSet.next());
-    assertTrue(resultSet.next());
-    assertTrue(resultSet.next());
-    assertFalse(resultSet.next());
-    resultSet.close();
-    statement.close();
-    connection.close();
   }
 
   @Test public void testPrepareBindExecuteFetch() throws Exception {

@@ -46,6 +46,11 @@ public class LocalService implements Service {
 
   /** Converts a result set (not serializable) into a serializable response. */
   public ResultSetResponse toResponse(Meta.MetaResultSet resultSet) {
+    if (resultSet.updateCount != -1) {
+      return new ResultSetResponse(resultSet.connectionId,
+          resultSet.statementId, resultSet.ownStatement, null, null,
+          resultSet.updateCount);
+    }
     Meta.CursorFactory cursorFactory = resultSet.signature.cursorFactory;
     final List<Object> list;
     if (resultSet.firstFrame != null) {
@@ -70,7 +75,7 @@ public class LocalService implements Service {
       signature = signature.setCursorFactory(cursorFactory);
     }
     return new ResultSetResponse(resultSet.connectionId, resultSet.statementId,
-        resultSet.ownStatement, signature, new Meta.Frame(0, true, list));
+        resultSet.ownStatement, signature, new Meta.Frame(0, true, list), -1);
   }
 
   private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
@@ -124,10 +129,10 @@ public class LocalService implements Service {
     return new PrepareResponse(h);
   }
 
-  public ResultSetResponse apply(PrepareAndExecuteRequest request) {
+  public ExecuteResponse apply(PrepareAndExecuteRequest request) {
     final Meta.ConnectionHandle ch =
         new Meta.ConnectionHandle(request.connectionId);
-    final Meta.MetaResultSet resultSet =
+    final Meta.ExecuteResult executeResult =
         meta.prepareAndExecute(ch, request.sql, request.maxRowCount,
             new Meta.PrepareCallback() {
               @Override public Object getMonitor() {
@@ -138,13 +143,17 @@ public class LocalService implements Service {
               }
 
               @Override public void assign(Meta.Signature signature,
-                  Meta.Frame firstFrame) {
+                  Meta.Frame firstFrame, int updateCount) {
               }
 
               @Override public void execute() {
               }
             });
-    return toResponse(resultSet);
+    final List<ResultSetResponse> results = new ArrayList<>();
+    for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
+      results.add(toResponse(metaResultSet));
+    }
+    return new ExecuteResponse(results);
   }
 
   public FetchResponse apply(FetchRequest request) {

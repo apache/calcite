@@ -243,7 +243,7 @@ public abstract class MetaImpl implements Meta {
       final Signature signature =
           new Signature(columns, "", Collections.<AvaticaParameter>emptyList(),
               internalParameters, cursorFactory);
-      return new MetaResultSet(connection.id, statement.getId(), true,
+      return MetaResultSet.create(connection.id, statement.getId(), true,
           signature, firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);

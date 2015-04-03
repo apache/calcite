@@ -381,6 +381,23 @@ public class CalciteRemoteDriverTest {
     }
   }
 
+  /** Checks {@link Statement#execute} on a query over a remote connection.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-646">[CALCITE-646]
+   * AvaticaStatement execute method broken over remote JDBC</a>. */
+  @Test public void testRemoteStatementExecute() throws Exception {
+    final Statement statement = remoteConnection.createStatement();
+    final boolean status = statement.execute("values (1, 2), (3, 4), (5, 6)");
+    final ResultSet resultSet = statement.getResultSet();
+    int n = 0;
+    while (resultSet.next()) {
+      ++n;
+    }
+    assertThat(n, equalTo(3));
+
+  }
+
   /** A bunch of sample values of various types. */
   private static final List<Object> SAMPLE_VALUES =
       ImmutableList.<Object>of(false, true,

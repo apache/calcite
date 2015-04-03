@@ -432,10 +432,10 @@ public abstract class AvaticaConnection implements Connection {
     return statement.openResultSet;
   }
 
-  protected ResultSet prepareAndExecuteInternal(
+  protected Meta.ExecuteResult prepareAndExecuteInternal(
       final AvaticaStatement statement, String sql, int maxRowCount)
       throws SQLException {
-    Meta.MetaResultSet x = meta.prepareAndExecute(handle, sql, maxRowCount,
+    final Meta.PrepareCallback callback =
         new Meta.PrepareCallback() {
           public Object getMonitor() {
             return statement;
@@ -454,20 +454,24 @@ public abstract class AvaticaConnection implements Connection {
             }
           }
 
-          public void assign(Meta.Signature signature, Meta.Frame firstFrame)
-              throws SQLException {
-            final TimeZone timeZone = getTimeZone();
-            statement.openResultSet =
-                factory.newResultSet(statement, signature, timeZone,
-                    firstFrame);
+          public void assign(Meta.Signature signature, Meta.Frame firstFrame,
+              int updateCount) throws SQLException {
+            if (updateCount != -1) {
+              statement.updateCount = updateCount;
+            } else {
+              final TimeZone timeZone = getTimeZone();
+              statement.openResultSet = factory.newResultSet(statement,
+                  signature, timeZone, firstFrame);
+            }
           }
 
           public void execute() throws SQLException {
-            statement.openResultSet.execute();
+            if (statement.openResultSet != null) {
+              statement.openResultSet.execute();
+            }
           }
-        });
-    assert statement.openResultSet != null;
-    return statement.openResultSet;
+        };
+    return meta.prepareAndExecute(handle, sql, maxRowCount, callback);
   }
 
   protected ResultSet createResultSet(Meta.MetaResultSet metaResultSet)

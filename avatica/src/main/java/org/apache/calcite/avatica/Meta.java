@@ -168,9 +168,11 @@ public interface Meta {
    * @param sql SQL query
    * @param maxRowCount Negative for no limit (different meaning than JDBC)
    * @param callback Callback to lock, clear and assign cursor
-   * @return MetaResultSet containing statement ID and first frame of data
+   *
+   * @return Result containing statement ID, and if a query, a result set and
+   * first frame of data
    */
-  MetaResultSet prepareAndExecute(ConnectionHandle ch, String sql,
+  ExecuteResult prepareAndExecute(ConnectionHandle ch, String sql,
       int maxRowCount, PrepareCallback callback);
 
   /** Returns a frame of rows.
@@ -234,21 +236,53 @@ public interface Meta {
     }
   }
 
-  /** Meta data from which a result set can be constructed. */
+  /** Response from execute.
+   *
+   * <p>Typically a query will have a result set and rowCount = -1;
+   * a DML statement will have a rowCount and no result sets.
+   */
+  class ExecuteResult {
+    public final List<MetaResultSet> resultSets;
+
+    public ExecuteResult(List<MetaResultSet> resultSets) {
+      this.resultSets = resultSets;
+    }
+  }
+
+  /** Meta data from which a result set can be constructed.
+   *
+   * <p>If {@code updateCount} is not -1, the result is just a count. A result
+   * set cannot be constructed. */
   class MetaResultSet {
     public final String connectionId;
     public final int statementId;
     public final boolean ownStatement;
     public final Frame firstFrame;
     public final Signature signature;
+    public final int updateCount;
 
-    public MetaResultSet(String connectionId, int statementId,
-        boolean ownStatement, Signature signature, Frame firstFrame) {
-      this.signature = Objects.requireNonNull(signature);
+    protected MetaResultSet(String connectionId, int statementId,
+        boolean ownStatement, Signature signature, Frame firstFrame,
+        int updateCount) {
+      this.signature = signature;
       this.connectionId = connectionId;
       this.statementId = statementId;
       this.ownStatement = ownStatement;
-      this.firstFrame = firstFrame; // may be null
+      this.firstFrame = firstFrame; // may be null even if signature is not null
+      this.updateCount = updateCount;
+    }
+
+    public static MetaResultSet create(String connectionId, int statementId,
+        boolean ownStatement, Signature signature, Frame firstFrame) {
+      return new MetaResultSet(connectionId, statementId, ownStatement,
+          Objects.requireNonNull(signature), firstFrame, -1);
+    }
+
+    public static MetaResultSet count(String connectionId, int statementId,
+        int updateCount) {
+      assert updateCount >= 0;
+      return new MetaResultSet(connectionId, statementId, false, null, null,
+          updateCount);
     }
   }
 
@@ -555,7 +589,7 @@ public interface Meta {
   interface PrepareCallback {
     Object getMonitor();
     void clear() throws SQLException;
-    void assign(Signature signature, Frame firstFrame)
+    void assign(Signature signature, Frame firstFrame, int updateCount)
         throws SQLException;
     void execute() throws SQLException;
   }

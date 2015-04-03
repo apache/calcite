@@ -150,9 +150,9 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
-    final List<ColumnMetaData> columns = new ArrayList<ColumnMetaData>();
-    final List<Field> fields = new ArrayList<Field>();
-    final List<String> fieldNames = new ArrayList<String>();
+    final List<ColumnMetaData> columns = new ArrayList<>();
+    final List<Field> fields = new ArrayList<>();
+    final List<String> fieldNames = new ArrayList<>();
     for (String name : names) {
       final int index = fields.size();
       final String fieldName = AvaticaUtils.toCamelCase(name);
@@ -196,7 +196,7 @@ public class CalciteMetaImpl extends MetaImpl {
               return Linq4j.asEnumerable(firstFrame.rows);
             }
           };
-      return new MetaResultSet(connection.id, statement.getId(), true,
+      return MetaResultSet.create(connection.id, statement.getId(), true,
           signature, firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -476,7 +476,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return h;
   }
 
-  @Override public MetaResultSet prepareAndExecute(ConnectionHandle ch,
+  @Override public ExecuteResult prepareAndExecute(ConnectionHandle ch,
       String sql, int maxRowCount, PrepareCallback callback) {
     final CalcitePrepare.CalciteSignature<Object> signature;
     final StatementHandle h = createStatement(ch);
@@ -488,10 +488,12 @@ public class CalciteMetaImpl extends MetaImpl {
             calciteConnection.server.getStatement(h);
         signature = calciteConnection.parseQuery(sql,
             statement.createPrepareContext(), maxRowCount);
-        callback.assign(signature, null);
+        callback.assign(signature, null, -1);
       }
       callback.execute();
-      return new MetaResultSet(h.connectionId, h.id, false, signature, null);
+      final MetaResultSet metaResultSet =
+          MetaResultSet.create(h.connectionId, h.id, false, signature, null);
+      return new ExecuteResult(ImmutableList.of(metaResultSet));
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

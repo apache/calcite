@@ -36,7 +36,7 @@ import java.util.List;
 class JdbcResultSet extends Meta.MetaResultSet {
   protected JdbcResultSet(String connectionId, int statementId,
       boolean ownStatement, Meta.Signature signature, Meta.Frame firstFrame) {
-    super(connectionId, statementId, ownStatement, signature, firstFrame);
+    super(connectionId, statementId, ownStatement, signature, firstFrame, -1);
   }
 
   /** Creates a result set. */

@@ -16,8 +16,9 @@
  */
 package org.apache.calcite.avatica;
 
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
@@ -49,6 +50,9 @@ public abstract class AvaticaStatement
    */
   protected AvaticaResultSet openResultSet;
 
+  /** Current update count. Same lifecycle as {@link #openResultSet}. */
+  protected int updateCount;
+
   private int queryTimeoutMillis;
   final int resultSetType;
   final int resultSetConcurrency;
@@ -56,7 +60,6 @@ public abstract class AvaticaStatement
   private int fetchSize;
   private int fetchDirection;
   protected int maxRowCount = 0;
-  private int updateCount = -1;
 
   /**
    * Creates an AvaticaStatement.
@@ -88,37 +91,47 @@ public abstract class AvaticaStatement
     return handle.id;
   }
 
-  // implement Statement
-
-  public boolean execute(String sql) throws SQLException {
-    ResultSet resultSet = executeQuery(sql);
-    ResultSetMetaData md = resultSet.getMetaData();
-    // hackish, but be sure we're looking at an update count result, not user data
-    if (md.getCatalogName(1).equalsIgnoreCase("avatica_internal")
-        && md.getTableName(1).equalsIgnoreCase("update_result")
-        && md.getColumnCount() == 1
-        && md.getColumnName(1).equalsIgnoreCase("u")) {
-      if (!resultSet.next()) {
-        throw new SQLException("expected one row, got zero");
-      }
-      this.updateCount = resultSet.getInt(1);
-      if (resultSet.next()) {
-        throw new SQLException("expected one row, got two or more");
-      }
-      resultSet.close();
-      return false;
-    } else {
-      return !resultSet.isClosed();
+  private void checkNotPreparedOrCallable(String s) throws SQLException {
+    if (this instanceof PreparedStatement
+        || this instanceof CallableStatement) {
+      throw connection.helper.createException("Cannot call " + s
+          + " on prepared or callable statement");
     }
   }
 
-  public ResultSet executeQuery(String sql) throws SQLException {
+  protected void executeInternal(String sql) throws SQLException {
     // reset previous state before moving forward.
     this.updateCount = -1;
     try {
       // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
       final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
-      return connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
+      Meta.ExecuteResult x =
+          connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
+    } catch (RuntimeException e) {
+      throw connection.helper.createException(
+          "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
+    }
+  }
+
+  // implement Statement
+
+  public boolean execute(String sql) throws SQLException {
+    checkNotPreparedOrCallable("execute(String)");
+    executeInternal(sql);
+    // Result set is null for DML or DDL.
+    // Result set is closed if user cancelled the query.
+    return openResultSet != null && !openResultSet.isClosed();
+  }
+
+  public ResultSet executeQuery(String sql) throws SQLException {
+    checkNotPreparedOrCallable("executeQuery(String)");
+    try {
+      executeInternal(sql);
+      if (openResultSet == null) {
+        throw connection.helper.createException(
+            "Statement did not return a result set");
+      }
+      return openResultSet;
     } catch (RuntimeException e) {
       throw connection.helper.createException(
         "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
@@ -126,19 +139,9 @@ public abstract class AvaticaStatement
   }
 
   public int executeUpdate(String sql) throws SQLException {
-    ResultSet resultSet = executeQuery(sql);
-    if (resultSet.getMetaData().getColumnCount() != 1) {
-      throw new SQLException("expected one result column");
-    }
-    if (!resultSet.next()) {
-      throw new SQLException("expected one row, got zero");
-    }
-    this.updateCount = resultSet.getInt(1);
-    if (resultSet.next()) {
-      throw new SQLException("expected one row, got two or more");
-    }
-    resultSet.close();
-    return this.updateCount;
+    checkNotPreparedOrCallable("executeUpdate(String)");
+    executeInternal(sql);
+    return updateCount;
   }
 
   public synchronized void close() throws SQLException {

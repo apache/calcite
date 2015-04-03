@@ -46,8 +46,11 @@ public abstract class JsonService implements Service {
    * responses to and from the peer service. */
   public abstract String apply(String request);
 
-  /** Modifies a signature, changing the type of columns within it. */
-  private static Meta.Signature fangle(Meta.Signature signature) {
+  /** Modifies a signature, changing the representation of numeric columns
+   * within it. This deals with the fact that JSON transmits a small long value,
+   * or a float which is a whole number, as an integer. Thus the accessors need
+   * be prepared to accept any numeric type. */
+  private static Meta.Signature finagle(Meta.Signature signature) {
     final List<ColumnMetaData> columns = new ArrayList<>();
     int changeCount = 0;
     for (ColumnMetaData column : signature.columns) {
@@ -77,29 +80,49 @@ public abstract class JsonService implements Service {
         signature.cursorFactory);
   }
 
-  private static PrepareResponse fangle(PrepareResponse response) {
-    final Meta.StatementHandle statement = fangle(response.statement);
+  private static PrepareResponse finagle(PrepareResponse response) {
+    final Meta.StatementHandle statement = finagle(response.statement);
     if (statement == response.statement) {
       return response;
     }
     return new PrepareResponse(statement);
   }
 
-  private static Meta.StatementHandle fangle(Meta.StatementHandle h) {
-    final Meta.Signature signature = fangle(h.signature);
+  private static Meta.StatementHandle finagle(Meta.StatementHandle h) {
+    final Meta.Signature signature = finagle(h.signature);
     if (signature == h.signature) {
       return h;
     }
     return new Meta.StatementHandle(h.connectionId, h.id, signature);
   }
 
-  private static ResultSetResponse fangle(ResultSetResponse r) {
-    final Meta.Signature signature = fangle(r.signature);
+  private static ResultSetResponse finagle(ResultSetResponse r) {
+    if (r.updateCount != -1) {
+      assert r.signature == null;
+      return r;
+    }
+    final Meta.Signature signature = finagle(r.signature);
     if (signature == r.signature) {
       return r;
     }
     return new ResultSetResponse(r.connectionId, r.statementId, r.ownStatement,
-        signature, r.firstFrame);
+        signature, r.firstFrame, r.updateCount);
+  }
+
+  private static ExecuteResponse finagle(ExecuteResponse r) {
+    final List<ResultSetResponse> results = new ArrayList<>();
+    int changeCount = 0;
+    for (ResultSetResponse result : r.results) {
+      ResultSetResponse result2 = finagle(result);
+      if (result2 != result) {
+        ++changeCount;
+      }
+      results.add(result2);
+    }
+    if (changeCount == 0) {
+      return r;
+    }
+    return new ExecuteResponse(results);
   }
 
   //@VisibleForTesting
@@ -161,15 +184,15 @@ public abstract class JsonService implements Service {
 
   public PrepareResponse apply(PrepareRequest request) {
     try {
-      return fangle(decode(apply(encode(request)), PrepareResponse.class));
+      return finagle(decode(apply(encode(request)), PrepareResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
   }
 
-  public ResultSetResponse apply(PrepareAndExecuteRequest request) {
+  public ExecuteResponse apply(PrepareAndExecuteRequest request) {
     try {
-      return fangle(decode(apply(encode(request)), ResultSetResponse.class));
+      return finagle(decode(apply(encode(request)), ExecuteResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }

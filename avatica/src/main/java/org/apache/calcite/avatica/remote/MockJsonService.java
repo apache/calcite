@@ -64,21 +64,21 @@ public class MockJsonService extends JsonService {
       try {
         map1.put(
             "{\"request\":\"getSchemas\",\"catalog\":null,\"schemaPattern\":{\"s\":null}}",
-            "{\"response\":\"resultSet\", firstFrame: {offset: 0, done: true, rows: []}}");
+            "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             JsonService.encode(new SchemasRequest(null, null)),
-            "{\"response\":\"resultSet\", firstFrame: {offset: 0, done: true, rows: []}}");
+            "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             JsonService.encode(
                 new TablesRequest(null, null, null, Arrays.<String>asList())),
-            "{\"response\":\"resultSet\", firstFrame: {offset: 0, done: true, rows: []}}");
+            "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             "{\"request\":\"createStatement\",\"connectionId\":0}",
             "{\"response\":\"createStatement\",\"id\":0}");
         map1.put(
             "{\"request\":\"prepareAndExecute\",\"statementId\":0,"
                 + "\"sql\":\"select * from (\\n  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)\",\"maxRowCount\":-1}",
-            "{\"response\":\"resultSet\",\"signature\": {\n"
+            "{\"response\":\"resultSet\", updateCount: -1, \"signature\": {\n"
                 + " \"columns\": [\n"
                 + "   {\"columnName\": \"C1\", \"type\": {type: \"scalar\", id: 4, rep: \"INTEGER\"}},\n"
                 + "   {\"columnName\": \"C2\", \"type\": {type: \"scalar\", id: 12, rep: \"STRING\"}}\n"

@@ -88,13 +88,6 @@ public class JdbcMeta implements Meta {
     SQL_TYPE_TO_JAVA_TYPE.put(Types.ARRAY, Array.class);
   }
 
-  /** A "magic column" descriptor used to return statement execute update count via a
-   * {@link Meta.MetaResultSet}. */
-  private static final ColumnMetaData UPDATE_COL = new ColumnMetaData(1, false, false, false,
-      false, ResultSetMetaData.columnNoNulls, true, 10, "u", "u", null, 15, 15, "update_result",
-      "avatica_internal", ColumnMetaData.scalar(Types.INTEGER, "INTEGER",
-        ColumnMetaData.Rep.INTEGER), true, false, false, "java.lang.Integer");
-
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
 
   /** Configurable connection cache settings. */
@@ -751,7 +744,7 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public MetaResultSet prepareAndExecute(ConnectionHandle ch, String sql,
+  public ExecuteResult prepareAndExecute(ConnectionHandle ch, String sql,
       int maxRowCount, PrepareCallback callback) {
     try {
       final Connection connection = getConnection(ch.id);
@@ -762,27 +755,20 @@ public class JdbcMeta implements Meta {
       boolean ret = statement.execute();
       info.resultSet = statement.getResultSet();
       assert ret || info.resultSet == null;
-      final MetaResultSet mrs;
+      final List<MetaResultSet> resultSets = new ArrayList<>();
       if (info.resultSet == null) {
-        // build a non-JDBC result that contains the update count
-        int updateCount = statement.getUpdateCount();
-        List<ColumnMetaData> columns = new ArrayList<>(1);
-        columns.add(UPDATE_COL);
-        List<Object> val = new ArrayList<>();
-        val.add(new Object[] { updateCount });
-        final Signature signature =
-            new Signature(columns, sql, null, null, CursorFactory.ARRAY);
-        final Frame frame = new Frame(0, true, val);
-        mrs = new MetaResultSet(ch.id, id, true, signature, frame);
+        // Create a special result set that just carries update count
+        resultSets.add(
+            MetaResultSet.count(ch.id, id, statement.getUpdateCount()));
       } else {
-        mrs = JdbcResultSet.create(ch.id, id, info.resultSet);
+        resultSets.add(JdbcResultSet.create(ch.id, id, info.resultSet));
       }
       if (LOG.isTraceEnabled()) {
         StatementHandle h = new StatementHandle(ch.id, id, null);
         LOG.trace("prepAndExec statement " + h);
       }
       // TODO: review client to ensure statementId is updated when appropriate
-      return mrs;
+      return new ExecuteResult(resultSets);
     } catch (SQLException e) {
       throw propagate(e);
     }

@@ -24,6 +24,7 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +44,10 @@ class RemoteMeta extends MetaImpl {
 
   private MetaResultSet toResultSet(Class clazz,
       Service.ResultSetResponse response) {
+    if (response.updateCount != -1) {
+      return MetaResultSet.count(response.connectionId, response.statementId,
+          response.updateCount);
+    }
     Signature signature0 = response.signature;
     if (signature0 == null) {
       final List<ColumnMetaData> columns =
@@ -52,7 +57,7 @@ class RemoteMeta extends MetaImpl {
       signature0 = Signature.create(columns,
           "?", Collections.<AvaticaParameter>emptyList(), CursorFactory.ARRAY);
     }
-    return new MetaResultSet(response.connectionId, response.statementId,
+    return MetaResultSet.create(response.connectionId, response.statementId,
         response.ownStatement, signature0, response.firstFrame);
   }
 
@@ -142,19 +147,27 @@ class RemoteMeta extends MetaImpl {
     return response.statement;
   }
 
-  @Override public MetaResultSet prepareAndExecute(ConnectionHandle ch,
+  @Override public ExecuteResult prepareAndExecute(ConnectionHandle ch,
       String sql, int maxRowCount, PrepareCallback callback) {
     connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
-    final Service.ResultSetResponse response;
+    final Service.ExecuteResponse response;
     try {
       synchronized (callback.getMonitor()) {
         callback.clear();
         response = service.apply(
             new Service.PrepareAndExecuteRequest(ch.id, sql, maxRowCount));
-        callback.assign(response.signature, response.firstFrame);
+        if (response.results.size() > 0) {
+          final Service.ResultSetResponse result = response.results.get(0);
+          callback.assign(result.signature, result.firstFrame,
+              result.updateCount);
+        }
       }
       callback.execute();
-      return toResultSet(null, response);
+      List<MetaResultSet> metaResultSets = new ArrayList<>();
+      for (Service.ResultSetResponse result : response.results) {
+        metaResultSets.add(toResultSet(null, result));
+      }
+      return new ExecuteResult(metaResultSets);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

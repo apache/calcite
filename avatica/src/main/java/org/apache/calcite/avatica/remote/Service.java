@@ -36,7 +36,7 @@ public interface Service {
   ResultSetResponse apply(TableTypesRequest request);
   ResultSetResponse apply(ColumnsRequest request);
   PrepareResponse apply(PrepareRequest request);
-  ResultSetResponse apply(PrepareAndExecuteRequest request);
+  ExecuteResponse apply(PrepareAndExecuteRequest request);
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
   CloseStatementResponse apply(CloseStatementRequest request);
@@ -148,8 +148,7 @@ public interface Service {
   /** Request for
    * {@link Meta#getTableTypes()}. */
   class TableTypesRequest extends Request {
-
-    ResultSetResponse accept(Service service) {
+    @Override ResultSetResponse accept(Service service) {
       return service.apply(this);
     }
   }
@@ -181,6 +180,10 @@ public interface Service {
 
   /** Response that contains a result set.
    *
+   * <p>Regular result sets have {@code updateCount} -1;
+   * any other value means a dummy result set that is just a count, and has
+   * no signature and no other data.
+   *
    * <p>Several types of request, including
    * {@link org.apache.calcite.avatica.Meta#getCatalogs()} and
    * {@link org.apache.calcite.avatica.Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}
@@ -193,6 +196,7 @@ public interface Service {
     public final boolean ownStatement;
     public final Meta.Signature signature;
     public final Meta.Frame firstFrame;
+    public final int updateCount;
 
     @JsonCreator
     public ResultSetResponse(
@@ -200,12 +204,14 @@ public interface Service {
         @JsonProperty("statementId") int statementId,
         @JsonProperty("ownStatement") boolean ownStatement,
         @JsonProperty("signature") Meta.Signature signature,
-        @JsonProperty("firstFrame") Meta.Frame firstFrame) {
+        @JsonProperty("firstFrame") Meta.Frame firstFrame,
+        @JsonProperty("updateCount") int updateCount) {
       this.connectionId = connectionId;
       this.statementId = statementId;
       this.ownStatement = ownStatement;
       this.signature = signature;
       this.firstFrame = firstFrame;
+      this.updateCount = updateCount;
     }
   }
 
@@ -226,8 +232,20 @@ public interface Service {
       this.maxRowCount = maxRowCount;
     }
 
-    @Override ResultSetResponse accept(Service service) {
+    @Override ExecuteResponse accept(Service service) {
       return service.apply(this);
+    }
+  }
+
+  /** Response to a
+   * {@link org.apache.calcite.avatica.remote.Service.PrepareAndExecuteRequest}. */
+  class ExecuteResponse extends Response {
+    public final List<ResultSetResponse> results;
+
+    @JsonCreator
+    public ExecuteResponse(
+        @JsonProperty("resultSets") List<ResultSetResponse> results) {
+      this.results = results;
     }
   }
 
