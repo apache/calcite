@@ -195,6 +195,48 @@ public class RemoteDriverTest {
     connection.close();
   }
 
+  @Test public void testStatementExecuteLocal() throws Exception {
+    checkStatementExecute(ljs(), false);
+  }
+
+  @Test public void testPrepareExecuteLocal() throws Exception {
+    checkStatementExecute(ljs(), true);
+  }
+
+  private void checkStatementExecute(Connection connection, boolean prepare) throws SQLException {
+    final String sql = "select * from (\n"
+        + "  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)";
+    final Statement statement;
+    final ResultSet resultSet;
+    final ParameterMetaData parameterMetaData;
+    if (prepare) {
+      final PreparedStatement ps = connection.prepareStatement(sql);
+      statement = ps;
+      parameterMetaData = ps.getParameterMetaData();
+      assertTrue(ps.execute());
+      resultSet = ps.getResultSet();
+    } else {
+      statement = connection.createStatement();
+      parameterMetaData = null;
+      assertTrue(statement.execute(sql));
+      resultSet = statement.getResultSet();
+    }
+    if (parameterMetaData != null) {
+      assertThat(parameterMetaData.getParameterCount(), equalTo(0));
+    }
+    final ResultSetMetaData metaData = resultSet.getMetaData();
+    assertEquals(2, metaData.getColumnCount());
+    assertEquals("C1", metaData.getColumnName(1));
+    assertEquals("C2", metaData.getColumnName(2));
+    assertTrue(resultSet.next());
+    assertTrue(resultSet.next());
+    assertTrue(resultSet.next());
+    assertFalse(resultSet.next());
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
   @Test public void testCreateInsertUpdateDrop() throws Exception {
     final String drop = "drop table TEST_TABLE if exists";
     final String create = "create table TEST_TABLE("

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.avatica.server;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -28,6 +31,9 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
  * Avatica HTTP server.
  */
 public class HttpServer {
+
+  private static final Log LOG = LogFactory.getLog(HttpServer.class);
+
   private Server server;
   private int port = -1;
   private final Handler handler;
@@ -40,42 +46,45 @@ public class HttpServer {
   public void start() {
     if (server != null) {
       throw new RuntimeException("Server is already started");
-    } else {
-      QueuedThreadPool threadPool = new QueuedThreadPool();
-      threadPool.setDaemon(true);
-      server = new Server(threadPool);
-      server.manage(threadPool);
-
-      final ServerConnector connector = new ServerConnector(server);
-      connector.setIdleTimeout(60 * 1000);
-      connector.setSoLingerTime(-1);
-      connector.setPort(port);
-      server.setConnectors(new Connector[] { connector });
-
-      final HandlerList handlerList = new HandlerList();
-      handlerList.setHandlers(new Handler[] {handler, new DefaultHandler()});
-      server.setHandler(handlerList);
-      try {
-        server.start();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-      port = connector.getLocalPort();
     }
+
+    QueuedThreadPool threadPool = new QueuedThreadPool();
+    threadPool.setDaemon(true);
+    server = new Server(threadPool);
+    server.manage(threadPool);
+
+    final ServerConnector connector = new ServerConnector(server);
+    connector.setIdleTimeout(60 * 1000);
+    connector.setSoLingerTime(-1);
+    connector.setPort(port);
+    server.setConnectors(new Connector[] { connector });
+
+    final HandlerList handlerList = new HandlerList();
+    handlerList.setHandlers(new Handler[] { handler, new DefaultHandler() });
+    server.setHandler(handlerList);
+    try {
+      server.start();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    port = connector.getLocalPort();
+
+    LOG.info("Service listening on port " + getPort() + ".");
   }
 
   public void stop() {
     if (server == null) {
       throw new RuntimeException("Server is already stopped");
-    } else {
-      try {
-        final Server server1 = server;
-        port = -1;
-        server = null;
-        server1.stop();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+    }
+
+    LOG.info("Service terminating.");
+    try {
+      final Server server1 = server;
+      port = -1;
+      server = null;
+      server1.stop();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 

@@ -184,6 +184,9 @@ public class JdbcMeta implements Meta {
    */
   protected static List<ColumnMetaData>
   columns(ResultSetMetaData metaData) throws SQLException {
+    if (metaData == null) {
+      return Collections.emptyList();
+    }
     final List<ColumnMetaData> columns = new ArrayList<>();
     for (int i = 1; i <= metaData.getColumnCount(); i++) {
       final Type javaType =
@@ -516,6 +519,10 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getBestRowIdentifier(String catalog, String schema,
       String table, int scope, boolean nullable) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("getBestRowIdentifier catalog:" + catalog + " schema:" + schema
+          + " table:" + table + " scope:" + scope + " nullable:" + nullable);
+    }
     try {
       return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getBestRowIdentifier(catalog, schema,
@@ -527,6 +534,9 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getVersionColumns(String catalog, String schema,
       String table) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("getVersionColumns catalog:" + catalog + " schema:" + schema + " table:" + table);
+    }
     try {
       return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getVersionColumns(catalog, schema, table));
@@ -537,6 +547,9 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getPrimaryKeys(String catalog, String schema,
       String table) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("getPrimaryKeys catalog:" + catalog + " schema:" + schema + " table:" + table);
+    }
     try {
       return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getPrimaryKeys(catalog, schema, table));
@@ -795,10 +808,15 @@ public class JdbcMeta implements Meta {
             preparedStatement.setObject(i + 1, o);
           }
         }
-        statementInfo.resultSet = preparedStatement.executeQuery();
+        if (preparedStatement.execute()) {
+          statementInfo.resultSet = preparedStatement.getResultSet();
+        }
       }
-      return JdbcResultSet.frame(statementInfo.resultSet, offset,
-          fetchMaxRowCount);
+      if (statementInfo.resultSet == null) {
+        return Frame.EMPTY;
+      } else {
+        return JdbcResultSet.frame(statementInfo.resultSet, offset, fetchMaxRowCount);
+      }
     } catch (SQLException e) {
       throw propagate(e);
     }
