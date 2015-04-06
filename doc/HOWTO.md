@@ -13,8 +13,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 ```bash
-$ tar xvfz calcite-1.1.0-incubating-source.tar.gz
-$ cd calcite-1.1.0-incubating
+$ tar xvfz calcite-1.2.0-incubating-source.tar.gz
+$ cd calcite-1.2.0-incubating
 $ mvn install
 ```
 

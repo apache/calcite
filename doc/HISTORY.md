@@ -3,6 +3,131 @@
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
+## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.2.0-incubating">1.2.0-incubating</a> / 2015-04-07
+
+A short release, less than a month after 1.1.
+
+There have been many changes to Avatica, hugely improving its coverage of the
+JDBC API and overall robustness. A new provider, `JdbcMeta`, allows
+you to remote an existing JDBC driver.
+
+[<a href="https://issues.apache.org/jira/browse/CALCITE-606">CALCITE-606</a>]
+improves how the planner propagates traits such as collation and
+distribution among relational expressions.
+
+[<a href="https://issues.apache.org/jira/browse/CALCITE-613">CALCITE-613</a>]
+and [<a href="https://issues.apache.org/jira/browse/CALCITE-307">CALCITE-307</a>]
+improve implicit and explicit conversions in SQL.
+
+New features
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-366">CALCITE-366</a>]
+  Support Aggregate push down in bushy joins (Jesus Camacho Rodriguez)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-613">CALCITE-613</a>]
+  Implicitly convert character values in comparisons
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-307">CALCITE-307</a>]
+  Implement `CAST` between date-time types
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-634">CALCITE-634</a>]
+  Allow `ORDER BY` aggregate function in `SELECT DISTINCT`, provided that it
+  occurs in `SELECT` clause (Sean Hsuan-Yi Chu)
+* In linq4j, implement `firstOrDefault`, `single`, and `singleOrDefault` methods
+  (Daniel Cooper)
+* JDBC adapter
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-631">CALCITE-631</a>]
+    Push theta joins down to JDBC adapter (Ng Jiunn Jye)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-657">CALCITE-657</a>]
+    `NullPointerException` when executing `JdbcAggregate.implement`
+    method (Yuri Au Yong)
+* Metadata
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-659">CALCITE-659</a>]
+    Missing types in `averageTypeValueSize` method in `RelMdSize`
+    (Jesus Camacho Rodriguez)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-650">CALCITE-650</a>]
+    Add metadata for average size of a tuple in `SemiJoin` (Jesus
+    Camacho Rodriguez)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-649">CALCITE-649</a>]
+    Extend `splitCondition` method in `RelOptUtil` to handle multiple
+    joins on the same key (Jesus Camacho Rodriguez)
+
+Avatica features and bug fixes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-670">CALCITE-670</a>]
+  `AvaticaPreparedStatement` should support `execute()` and
+  `executeUpdate()` (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-641">CALCITE-641</a>]
+  Implement logging throughout Avatica server (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-646">CALCITE-646</a>]
+  `AvaticaStatement.execute` method broken over remote JDBC (Yeong Wei
+  and Julian Hyde)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-660">CALCITE-660</a>]
+  Improve Avatica date support
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-655">CALCITE-655</a>]
+  Implement `ConnectionSync` RPC (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-654">CALCITE-654</a>]
+  Tighten up `AvaticaStatement.execute` semantics (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-658">CALCITE-658</a>]
+  Cleanup dependency usage (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-652">CALCITE-652</a>]
+  Move server pieces of `avatica` into `avatica-server` (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-651">CALCITE-651</a>]
+  In `JdbcMeta`, convert property definitions to an enum (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-640">CALCITE-640</a>]
+  Avatica server should expire stale connections/statements (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-639">CALCITE-639</a>]
+  Open up permissions on avatica server components (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-637">CALCITE-637</a>]
+  Implement Avatica `CloseConnection` RPC (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-636">CALCITE-636</a>]
+  Connection isolation for Avatica clients (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-626">CALCITE-626</a>]
+  Implement `CloseStatement` RPC (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-630">CALCITE-630</a>]
+  Flesh out `AvaticaParameter.setObject` (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-627">CALCITE-627</a>]
+  Add Avatica support for `getTableTypes`, `getColumns` (Xavier FH Leong)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-618">CALCITE-618</a>]
+  Add Avatica support for `getTables` (Julian Hyde and Nick Dimiduk)
+
+API changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-617">CALCITE-617</a>]
+  Check at initialization time in `CachingInvocationHandler` that MD provider
+  is not null (Jesus Camacho Rodriguez)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-638">CALCITE-638</a>]
+  SQL standard `REAL` is 4 bytes, `FLOAT` is 8 bytes
+
+Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-672">CALCITE-672</a>]
+  SQL `ANY` type should be nullable (Jinfeng Ni)
+* Disable tests, pending
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-673">CALCITE-673</a>]
+  Timeout executing joins against MySQL
+* Fix traits in MongoDB adapter, and `NullPointerException` in `JdbcTest`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-662">CALCITE-662</a>]
+  Query validation fails when an `ORDER BY` clause is used with `WITH CLAUSE`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-606">CALCITE-606</a>]
+  Fix trait propagation and add test case
+* Remove checkstyle Eclipse properties from git tracking
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-644">CALCITE-644</a>]
+  Increase check style line limit to 100 chars (Nick Dimiduk)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-648">CALCITE-648</a>]
+  Update `ProjectMergeRule` description for new naming convention (Jinfeng Ni)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-625">CALCITE-625</a>]
+  `README.md` linking to the wrong page of `optiq-csv` (hongbin ma)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-632">CALCITE-632</a>]
+  Sort order returned by `SUPERCLASS_COMPARATOR` in
+  `ReflectiveRelMetadataProvider` is inconsistent (Jesus Camacho
+  Rodriguez)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-335">CALCITE-335</a>]
+  Remove uses of linq4j `Functions.adapt`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-592">CALCITE-592</a>]
+  Upgrade to Guava 14.0.1
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-596">CALCITE-596</a>]
+  JDBC adapter incorrectly reads null values as 0 (Ng Jiunn Jye)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-633">CALCITE-633</a>]
+  `WITH ... ORDER BY` cannot find table
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-614">CALCITE-614</a>]
+  `IN` clause in `CASE` in `GROUP BY` gives `AssertionError`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-619">CALCITE-619</a>]
+  Slim down dependencies in parent POM
+
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.1.0-incubating">1.1.0-incubating</a> / 2015-03-13
 
 This Calcite release makes it possible to exploit physical properties
