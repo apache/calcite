@@ -19,6 +19,9 @@ package org.apache.calcite.avatica.server;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
@@ -31,6 +34,9 @@ import javax.servlet.http.HttpServletResponse;
  * Jetty handler that executes Avatica JSON request-responses.
  */
 public class AvaticaHandler extends AbstractHandler {
+
+  private static final Log LOG = LogFactory.getLog(AvaticaHandler.class);
+
   final JsonHandler jsonHandler;
 
   public AvaticaHandler(Service service) {
@@ -44,7 +50,13 @@ public class AvaticaHandler extends AbstractHandler {
     response.setStatus(HttpServletResponse.SC_OK);
     if (request.getMethod().equals("POST")) {
       final String jsonRequest = request.getHeader("request");
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("request: " + jsonRequest);
+      }
       final String jsonResponse = jsonHandler.apply(jsonRequest);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("response: " + jsonResponse);
+      }
       baseRequest.setHandled(true);
       response.getWriter().println(jsonResponse);
     }
