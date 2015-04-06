@@ -516,6 +516,10 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getBestRowIdentifier(String catalog, String schema,
       String table, int scope, boolean nullable) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("getBestRowIdentifier catalog:" + catalog + " schema:" + schema
+          + " table:" + table + " scope:" + scope + " nullable:" + nullable);
+    }
     try {
       return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getBestRowIdentifier(catalog, schema,
@@ -527,6 +531,9 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getVersionColumns(String catalog, String schema,
       String table) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("getVersionColumns catalog:" + catalog + " schema:" + schema + " table:" + table);
+    }
     try {
       return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getVersionColumns(catalog, schema, table));
@@ -537,6 +544,9 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getPrimaryKeys(String catalog, String schema,
       String table) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("getPrimaryKeys catalog:" + catalog + " schema:" + schema + " table:" + table);
+    }
     try {
       return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
           connection.getMetaData().getPrimaryKeys(catalog, schema, table));
