@@ -184,6 +184,9 @@ public class JdbcMeta implements Meta {
    */
   protected static List<ColumnMetaData>
   columns(ResultSetMetaData metaData) throws SQLException {
+    if (metaData == null) {
+      return Collections.emptyList();
+    }
     final List<ColumnMetaData> columns = new ArrayList<>();
     for (int i = 1; i <= metaData.getColumnCount(); i++) {
       final Type javaType =
@@ -805,10 +808,15 @@ public class JdbcMeta implements Meta {
             preparedStatement.setObject(i + 1, o);
           }
         }
-        statementInfo.resultSet = preparedStatement.executeQuery();
+        if (preparedStatement.execute()) {
+          statementInfo.resultSet = preparedStatement.getResultSet();
+        }
       }
-      return JdbcResultSet.frame(statementInfo.resultSet, offset,
-          fetchMaxRowCount);
+      if (statementInfo.resultSet == null) {
+        return Frame.EMPTY;
+      } else {
+        return JdbcResultSet.frame(statementInfo.resultSet, offset, fetchMaxRowCount);
+      }
     } catch (SQLException e) {
       throw propagate(e);
     }
