@@ -5633,6 +5633,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "select * from e as e1, e as e2 order by e1.empno").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-662">[CALCITE-662]
+   * Query validation fails when an ORDER BY clause is used with WITH
+   * CLAUSE</a>. */
+  @Test public void testWithOrderInParentheses() {
+    sql("with e as (select * from emp)\n"
+            + "(select e.empno from e order by e.empno)").ok();
+    sql("with e as (select * from emp)\n"
+            + "(select e.empno from e order by 1)").ok();
+    sql("with e as (select * from emp)\n"
+            + "(select ee.empno from e as ee order by ee.deptno)").ok();
+    // worked even before CALCITE-662 fixed
+    sql("with e as (select * from emp)\n"
+            + "(select e.empno from e)").ok();
+  }
+
   @Test public void testOrderUnion() {
     check("select empno, sal from emp "
         + "union all "

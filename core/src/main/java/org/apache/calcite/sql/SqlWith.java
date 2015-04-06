@@ -28,8 +28,8 @@ import java.util.List;
  * The WITH clause of a query. It wraps a SELECT, UNION, or INTERSECT.
  */
 public class SqlWith extends SqlCall {
-  public final SqlNodeList withList;
-  public final SqlNode body;
+  public SqlNodeList withList;
+  public SqlNode body;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,6 +51,19 @@ public class SqlWith extends SqlCall {
 
   public List<SqlNode> getOperandList() {
     return ImmutableList.of(withList, body);
+  }
+
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      withList = (SqlNodeList) operand;
+      break;
+    case 1:
+      body = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
   }
 
   @Override public void validate(SqlValidator validator,
