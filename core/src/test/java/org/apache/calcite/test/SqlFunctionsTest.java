@@ -45,6 +45,8 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToJulian;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.floorDiv;
+import static org.apache.calcite.runtime.SqlFunctions.floorMod;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
@@ -332,8 +334,10 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.floor((long) x, (long) y), is((long) result));
     assertThat(SqlFunctions.floor((short) x, (short) y), is((short) result));
     assertThat(SqlFunctions.floor((byte) x, (byte) y), is((byte) result));
-    assertThat(SqlFunctions.floor(BigDecimal.valueOf(x), BigDecimal.valueOf(y)),
-        is(BigDecimal.valueOf(result)));
+    assertThat(
+        SqlFunctions.floor(BigDecimal.valueOf(x), BigDecimal.valueOf(y)), is(
+            BigDecimal.valueOf(
+                result)));
   }
 
   @Test public void testCeil() {
@@ -350,8 +354,10 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.ceil((long) x, (long) y), is((long) result));
     assertThat(SqlFunctions.ceil((short) x, (short) y), is((short) result));
     assertThat(SqlFunctions.ceil((byte) x, (byte) y), is((byte) result));
-    assertThat(SqlFunctions.ceil(BigDecimal.valueOf(x), BigDecimal.valueOf(y)),
-        is(BigDecimal.valueOf(result)));
+    assertThat(
+        SqlFunctions.ceil(BigDecimal.valueOf(x), BigDecimal.valueOf(y)), is(
+            BigDecimal.valueOf(
+                result)));
   }
 
   /** Unit test for
@@ -442,6 +448,30 @@ public class SqlFunctionsTest {
     assertEquals(2, digitCount(11));
     assertEquals(2, digitCount(99));
     assertEquals(3, digitCount(100));
+  }
+
+  @Test public void testFloorDiv() {
+    assertThat(floorDiv(13, 3), equalTo(4L));
+    assertThat(floorDiv(12, 3), equalTo(4L));
+    assertThat(floorDiv(11, 3), equalTo(3L));
+    assertThat(floorDiv(-13, 3), equalTo(-5L));
+    assertThat(floorDiv(-12, 3), equalTo(-4L));
+    assertThat(floorDiv(-11, 3), equalTo(-4L));
+    assertThat(floorDiv(0, 3), equalTo(0L));
+    assertThat(floorDiv(1, 3), equalTo(0L));
+    assertThat(floorDiv(-1, 3), equalTo(-1L));
+  }
+
+  @Test public void testFloorMod() {
+    assertThat(floorMod(13, 3), equalTo(1L));
+    assertThat(floorMod(12, 3), equalTo(0L));
+    assertThat(floorMod(11, 3), equalTo(2L));
+    assertThat(floorMod(-13, 3), equalTo(2L));
+    assertThat(floorMod(-12, 3), equalTo(0L));
+    assertThat(floorMod(-11, 3), equalTo(1L));
+    assertThat(floorMod(0, 3), equalTo(0L));
+    assertThat(floorMod(1, 3), equalTo(1L));
+    assertThat(floorMod(-1, 3), equalTo(2L));
   }
 }
 

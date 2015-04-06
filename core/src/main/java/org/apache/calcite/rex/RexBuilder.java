@@ -467,12 +467,15 @@ public class RexBuilder {
       RexLiteral literal = (RexLiteral) exp;
       Comparable value = literal.getValue();
       if (RexLiteral.valueMatchesType(value, sqlType, false)
+          && (type.getSqlTypeName() == literal.getTypeName()
+              || !SqlTypeFamily.DATETIME.getTypeNames().contains(
+                  literal.getTypeName()))
           && (!(value instanceof NlsString)
-          || (type.getPrecision()
-          >= ((NlsString) value).getValue().length()))
+              || (type.getPrecision()
+                  >= ((NlsString) value).getValue().length()))
           && (!(value instanceof ByteString)
-          || (type.getPrecision()
-          >= ((ByteString) value).length()))) {
+              || (type.getPrecision()
+                  >= ((ByteString) value).length()))) {
         switch (literal.getTypeName()) {
         case CHAR:
           if (value instanceof NlsString) {

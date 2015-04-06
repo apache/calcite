@@ -1087,12 +1087,10 @@ public abstract class SqlOperatorBaseTest {
         "DATE NOT NULL");
 
     // timestamp <-> time
-    if (enable) {
-      tester.checkScalar(
-          "cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIME)",
-          "12:42:25",
-          "TIME(0) NOT NULL");
-    }
+    tester.checkScalar(
+        "cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIME)",
+        "12:42:25",
+        "TIME(0) NOT NULL");
 
     // time <-> string
     checkCastToString("TIME '12:42:25'", null, "12:42:25");
@@ -1107,16 +1105,10 @@ public abstract class SqlOperatorBaseTest {
         new SimpleDateFormat("yyyy-MM-dd").format(
             getCalendarNotTooNear(Calendar.DAY_OF_MONTH).getTime());
 
-    if (enable) {
-      tester.checkScalar(
-          "cast(DATE '1945-02-24' as TIMESTAMP)",
-          "1945-02-24 00:00:00",
-          "TIMESTAMP(0) NOT NULL");
-    }
-
-    if (!enable) {
-      return;
-    }
+    tester.checkScalar(
+        "cast(DATE '1945-02-24' as TIMESTAMP)",
+        "1945-02-24 00:00:00",
+        "TIMESTAMP(0) NOT NULL");
 
     // Note: Casting to time(0) should lose date info and fractional
     // seconds, then casting back to timestamp should initialize to

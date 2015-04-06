@@ -236,6 +236,12 @@ public class RexToLixTranslator {
       case VARCHAR:
         convert =
             Expressions.call(BuiltInMethod.STRING_TO_DATE.method, operand);
+        break;
+      case TIMESTAMP:
+        convert = Expressions.convert_(
+            Expressions.call(BuiltInMethod.FLOOR_DIV.method,
+                operand, Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+            int.class);
       }
       break;
     case TIME:
@@ -244,6 +250,14 @@ public class RexToLixTranslator {
       case VARCHAR:
         convert =
             Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
+        break;
+      case TIMESTAMP:
+        convert = Expressions.convert_(
+            Expressions.call(
+                BuiltInMethod.FLOOR_MOD.method,
+                operand,
+                Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+            int.class);
       }
       break;
     case TIMESTAMP:
@@ -252,6 +266,22 @@ public class RexToLixTranslator {
       case VARCHAR:
         convert =
             Expressions.call(BuiltInMethod.STRING_TO_TIMESTAMP.method, operand);
+        break;
+      case DATE:
+        convert = Expressions.multiply(
+            Expressions.convert_(operand, long.class),
+            Expressions.constant(DateTimeUtils.MILLIS_PER_DAY));
+        break;
+      case TIME:
+        convert =
+            Expressions.add(
+                Expressions.multiply(
+                    Expressions.convert_(
+                        Expressions.call(BuiltInMethod.CURRENT_DATE.method, root),
+                        long.class),
+                    Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+                Expressions.convert_(operand, long.class));
+        break;
       }
       break;
     case BOOLEAN:
