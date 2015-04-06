@@ -239,7 +239,7 @@ public class MongoRules {
       return new MongoFilter(
           rel.getCluster(),
           traitSet,
-          convert(filter.getInput(), traitSet),
+          convert(filter.getInput(), out),
           filter.getCondition());
     }
   }
@@ -260,7 +260,7 @@ public class MongoRules {
       final LogicalProject project = (LogicalProject) rel;
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new MongoProject(project.getCluster(), traitSet,
-          convert(project.getInput(), traitSet), project.getProjects(),
+          convert(project.getInput(), out), project.getProjects(),
           project.getRowType());
     }
   }

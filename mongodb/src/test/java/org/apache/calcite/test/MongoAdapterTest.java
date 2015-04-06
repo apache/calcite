@@ -530,8 +530,15 @@ public class MongoAdapterTest {
             + " min(pop) as min_pop, max(pop) as max_pop, sum(pop) as sum_pop\n"
             + "from zips group by state")
         .limit(2)
-        .returns("C=659; STATE=WV; MIN_POP=0; MAX_POP=70185; SUM_POP=1793477\n"
-            + "C=484; STATE=WA; MIN_POP=2; MAX_POP=50515; SUM_POP=4866692\n");
+        .returns("C=195; STATE=AK; MIN_POP=0; MAX_POP=32383; SUM_POP=544698\n"
+            + "C=567; STATE=AL; MIN_POP=0; MAX_POP=44165; SUM_POP=4040587\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {STATE: '$state', POP: '$pop'}}",
+                "{$group: {_id: '$STATE', C: {$sum: 1}, MIN_POP: {$min: '$POP'}, MAX_POP: {$max: '$POP'}, SUM_POP: {$sum: '$POP'}}}",
+                "{$project: {STATE: '$_id', C: '$C', MIN_POP: '$MIN_POP', MAX_POP: '$MAX_POP', SUM_POP: '$SUM_POP'}}",
+                "{$project: {C: 1, STATE: 1, MIN_POP: 1, MAX_POP: 1, SUM_POP: 1}}",
+                "{$sort: {STATE: 1}}"));
   }
 
   @Test public void testGroupComposite() {
@@ -547,9 +554,9 @@ public class MongoAdapterTest {
                 "{$project: {STATE: '$state', CITY: '$city'}}",
                 "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}, C: {$sum: 1}}}",
                 "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY', C: '$C'}}",
-                "{$project: {C: 1, STATE: 1, CITY: 1}}",
                 "{$sort: {C: -1}}",
-                "{$limit: 2}"));
+                "{$limit: 2}",
+                "{$project: {C: 1, STATE: 1, CITY: 1}}"));
   }
 
   @Test public void testDistinctCount() {
@@ -615,7 +622,9 @@ public class MongoAdapterTest {
             + "STATE=AL; CITY=ADAMSVILLE; ZERO=0\n")
         .queryContains(
             mongoChecker(
-                "{$project: {STATE: '$state', CITY: '$city', ZERO: {$ifNull: [null, 0]}}}"));
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {STATE: 1, CITY: 1}}",
+                "{$project: {STATE: 1, CITY: 1, ZERO: {$ifNull: [null, 0]}}}"));
   }
 
   @Test public void testFilter() {

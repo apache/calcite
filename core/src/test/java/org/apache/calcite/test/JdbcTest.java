@@ -192,13 +192,17 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+  private static final ConnectionSpec SCOTT =
+      Util.first(CalciteAssert.DB.scott,
+          CalciteAssert.DatabaseInstance.HSQLDB.scott);
+
   public static final String SCOTT_SCHEMA = "     {\n"
       + "       type: 'jdbc',\n"
       + "       name: 'SCOTT',\n"
-      + "       jdbcDriver: '" + CalciteAssert.DB.scott.driver + "',\n"
-      + "       jdbcUser: '" + CalciteAssert.DB.scott.username + "',\n"
-      + "       jdbcPassword: '" + CalciteAssert.DB.scott.password + "',\n"
-      + "       jdbcUrl: '" + CalciteAssert.DB.scott.url + "',\n"
+      + "       jdbcDriver: '" + SCOTT.driver + "',\n"
+      + "       jdbcUser: '" + SCOTT.username + "',\n"
+      + "       jdbcPassword: '" + SCOTT.password + "',\n"
+      + "       jdbcUrl: '" + SCOTT.url + "',\n"
       + "       jdbcCatalog: null,\n"
       + "       jdbcSchema: 'SCOTT'\n"
       + "     }\n";
