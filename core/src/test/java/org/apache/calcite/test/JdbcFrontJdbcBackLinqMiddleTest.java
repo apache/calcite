@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.util.Bug;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -132,6 +134,10 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testJoinGroupByEmpty() {
+    if (CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL
+        && !Bug.CALCITE_673_FIXED) {
+      return;
+    }
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select count(*) from (\n"
@@ -143,6 +149,10 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testJoinGroupByOrderBy() {
+    if (CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL
+        && !Bug.CALCITE_673_FIXED) {
+      return;
+    }
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select count(*), c.\"state_province\",\n"
