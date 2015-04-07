@@ -110,4 +110,28 @@ EnumerableCalc(expr#0..5=[{inputs}], proj#0..2=[{exprs}], DEPTNO0=[$t4], DNAME=[
     EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 
+!use scott
+
+# Push aggregate through join
+select distinct dept.deptno, emp.deptno
+from "scott".emp join "scott".dept using (deptno);
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     20 |     20 |
+|     30 |     30 |
++--------+--------+
+(3 rows)
+
+!ok
+EnumerableJoin(condition=[=($0, $1)], joinType=[inner])
+  EnumerableAggregate(group=[{0}])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableAggregate(group=[{0}])
+    EnumerableCalc(expr#0..7=[{inputs}], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End join.oq
