@@ -47,7 +47,8 @@ public class JsonTable extends AbstractTable implements ScannableTable {
     return typeFactory.builder().add("_MAP",
         typeFactory.createMapType(
             typeFactory.createSqlType(SqlTypeName.VARCHAR),
-            typeFactory.createSqlType(SqlTypeName.ANY))).build();
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.ANY), true))).build();
   }
 
   public Enumerable<Object[]> scan(DataContext root) {

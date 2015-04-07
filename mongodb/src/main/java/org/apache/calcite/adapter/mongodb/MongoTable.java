@@ -69,7 +69,8 @@ public class MongoTable extends AbstractQueryableTable
     final RelDataType mapType =
         typeFactory.createMapType(
             typeFactory.createSqlType(SqlTypeName.VARCHAR),
-            typeFactory.createSqlType(SqlTypeName.ANY));
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.ANY), true));
     return typeFactory.builder().add("_MAP", mapType).build();
   }
 
