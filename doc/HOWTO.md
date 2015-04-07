@@ -391,7 +391,7 @@ mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}
 Verify the staged artifacts in the Nexus repository:
 * Go to https://repository.apache.org/
 * Under `Build Promotion`, click `Staging Repositories`
-* In the `Staging Repositories` tab there should be a with with profile `org.apache.calcite`
+* In the `Staging Repositories` tab there should be a line with profile `org.apache.calcite`
 * Navigate through the artifact tree and make sure the .jar, .pom, .asc files are present
 * Check the box on in the first column of the row,
   and press the 'Close' button to publish the repository at
@@ -562,6 +562,11 @@ please recast your vote on the new thread.
 Julian
 ```
 
+Use the [Apache URL shortener](http://s.apache.org) to generate
+shortened URLs for the vote proposal and result emails. Examples:
+[s.apache.org/calcite-1.2-vote](http://s.apache.org/calcite-1.2-vote) and
+[s.apache.org/calcite-1.2-result](http://s.apache.org/calcite-1.2-result).
+
 Propose a vote on the incubator list.
 
 ```
@@ -574,13 +579,13 @@ The Calcite community has voted on and approved a proposal to release
 Apache Calcite X.Y.Z (incubating).
 
 Proposal:
-http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201408.mbox/MESSAGE-URI
+http://s.apache.org/calcite-X.Y.Z-vote
 
 Vote result:
 N binding +1 votes
 N non-binding +1 votes
 No -1 votes
-http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201408.mbox/MESSAGE-URI
+http://s.apache.org/calcite-X.Y.Z-result
 
 The commit to be voted upon:
 http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
