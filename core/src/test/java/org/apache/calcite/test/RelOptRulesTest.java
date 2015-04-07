@@ -34,6 +34,7 @@ import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
+import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
@@ -1437,6 +1438,68 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "  from emp) e1\n"
         + "where r < 2");
   }
+
+  @Test public void testPushAggregateThroughJoin1() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram,
+        new HepPlanner(program),
+        "select e.empno,d.deptno \n"
+                + "from (select * from sales.emp where empno = 10) as e "
+                + "join sales.dept as d on e.empno = d.deptno "
+                + "group by e.empno,d.deptno");
+  }
+
+  @Test public void testPushAggregateThroughJoin2() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram,
+        new HepPlanner(program),
+        "select e.empno,d.deptno \n"
+                + "from (select * from sales.emp where empno = 10) as e "
+                + "join sales.dept as d on e.empno = d.deptno "
+                + "and e.deptno + e.empno = d.deptno + 5 "
+                + "group by e.empno,d.deptno");
+  }
+
+  @Test public void testPushAggregateThroughJoin3() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram,
+        new HepPlanner(program),
+        "select e.empno,d.deptno \n"
+                + "from (select * from sales.emp where empno = 10) as e "
+                + "join sales.dept as d on e.empno < d.deptno "
+                + "group by e.empno,d.deptno");
+  }
+
+  @Test public void testPushAggregateThroughJoin4() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram,
+        new HepPlanner(program),
+        "select e.empno,sum(sal) \n"
+                + "from (select * from sales.emp where empno = 10) as e "
+                + "join sales.dept as d on e.empno = d.deptno "
+                + "group by e.empno,d.deptno");
+  }
+
 }
 
 // End RelOptRulesTest.java
