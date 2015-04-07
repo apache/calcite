@@ -111,11 +111,11 @@ public class JavaTypeFactoryImpl
           createType(clazz.getComponentType()), -1);
     } else if (List.class.isAssignableFrom(clazz)) {
       return createArrayType(
-          createSqlType(SqlTypeName.ANY), -1);
+          createTypeWithNullability(createSqlType(SqlTypeName.ANY), true), -1);
     } else if (Map.class.isAssignableFrom(clazz)) {
       return createMapType(
-          createSqlType(SqlTypeName.ANY),
-          createSqlType(SqlTypeName.ANY));
+          createTypeWithNullability(createSqlType(SqlTypeName.ANY), true),
+          createTypeWithNullability(createSqlType(SqlTypeName.ANY), true));
     } else {
       return createStructType(clazz);
     }

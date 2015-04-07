@@ -293,7 +293,8 @@ public class JdbcSchema implements Schema {
         component = parseTypeString(typeFactory, remaining);
       }
       if (component == null) {
-        component = typeFactory.createSqlType(SqlTypeName.ANY);
+        component = typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.ANY), true);
       }
       return typeFactory.createArrayType(component, -1);
     }
@@ -339,7 +340,8 @@ public class JdbcSchema implements Schema {
           ? typeFactory.createSqlType(typeName, precision)
           : typeFactory.createSqlType(typeName);
     } catch (IllegalArgumentException e) {
-      return typeFactory.createSqlType(SqlTypeName.ANY);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.ANY), true);
     }
   }
 

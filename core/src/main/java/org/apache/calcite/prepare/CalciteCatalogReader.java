@@ -287,7 +287,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader,
             if (input instanceof RelDataTypeFactoryImpl.JavaType
                 && ((RelDataTypeFactoryImpl.JavaType) input).getJavaClass()
                 == Object.class) {
-              return typeFactory.createSqlType(SqlTypeName.ANY);
+              return typeFactory.createTypeWithNullability(
+                  typeFactory.createSqlType(SqlTypeName.ANY), true);
             }
             return typeFactory.toSql(input);
           }

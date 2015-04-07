@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -63,7 +64,9 @@ public class SqlUnresolvedFunction extends SqlFunction {
    * fail.
    */
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.ANY), true);
   }
 }
 
