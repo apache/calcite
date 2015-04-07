@@ -19,9 +19,11 @@ package org.apache.calcite.tools;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.util.Pair;
 
 /**
  * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,
@@ -51,6 +53,15 @@ public interface Planner {
    * @throws ValidationException if not valid
    */
   SqlNode validate(SqlNode sqlNode) throws ValidationException;
+
+  /**
+   * Validates a SQL statement.
+   *
+   * @param sqlNode Root node of the SQL parse tree.
+   * @return Validated node and its validated type.
+   * @throws ValidationException if not valid
+   */
+  Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode) throws ValidationException;
 
   /**
    * Converts a SQL parse tree into a tree of relational expressions.

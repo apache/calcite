@@ -44,6 +44,7 @@ import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -178,6 +179,14 @@ public class PlannerImpl implements Planner {
     }
     state = State.STATE_4_VALIDATED;
     return validatedSqlNode;
+  }
+
+  public Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode)
+      throws ValidationException {
+    final SqlNode validatedNode = this.validate(sqlNode);
+    final RelDataType type =
+        this.validator.getValidatedNodeType(validatedNode);
+    return Pair.of(validatedNode, type);
   }
 
   public final RelNode convert(SqlNode sql) throws RelConversionException {
