@@ -294,13 +294,13 @@ public interface Service {
     public final int fetchMaxRowCount;
     /** A list of parameter values, if statement is to be executed; otherwise
      * null. */
-    public final List<Object> parameterValues;
+    public final List<TypedValue> parameterValues;
 
     @JsonCreator
     public FetchRequest(
         @JsonProperty("connectionId") String connectionId,
         @JsonProperty("statementId") int statementId,
-        @JsonProperty("parameterValues") List<Object> parameterValues,
+        @JsonProperty("parameterValues") List<TypedValue> parameterValues,
         @JsonProperty("offset") int offset,
         @JsonProperty("fetchMaxRowCount") int fetchMaxRowCount) {
       this.connectionId = connectionId;

@@ -122,7 +122,12 @@ public abstract class AbstractCursor implements Cursor {
       return new StringAccessor(getter);
     case Types.BINARY:
     case Types.VARBINARY:
-      return new BinaryAccessor(getter);
+      switch (columnMetaData.type.rep) {
+      case STRING:
+        return new BinaryFromStringAccessor(getter);
+      default:
+        return new BinaryAccessor(getter);
+      }
     case Types.DATE:
       switch (columnMetaData.type.rep) {
       case PRIMITIVE_INT:
@@ -681,6 +686,10 @@ public abstract class AbstractCursor implements Cursor {
     public String getString() {
       return (String) getObject();
     }
+
+    @Override public byte[] getBytes() {
+      return super.getBytes();
+    }
   }
 
   /**
@@ -736,6 +745,29 @@ public abstract class AbstractCursor implements Cursor {
     public byte[] getBytes() {
       final ByteString o = (ByteString) getObject();
       return o == null ? null : o.getBytes();
+    }
+  }
+
+  /**
+   * Accessor that assumes that the underlying value is a {@link String},
+   * encoding {@link java.sql.Types#BINARY}
+   * and {@link java.sql.Types#VARBINARY} values in Base64 format.
+   */
+  private static class BinaryFromStringAccessor extends StringAccessor {
+    public BinaryFromStringAccessor(Getter getter) {
+      super(getter);
+    }
+
+    @Override public Object getObject() {
+      return super.getObject();
+    }
+
+    @Override public byte[] getBytes() {
+      final String string = getString();
+      if (string == null) {
+        return null;
+      }
+      return ByteString.parseBase64(string);
     }
   }
 

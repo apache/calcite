@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica.util;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -132,6 +133,101 @@ public class ByteString implements Comparable<ByteString>, Serializable {
       throw new IllegalArgumentException("bad base " + base);
     }
     return new String(chars, 0, j);
+  }
+
+  /**
+   * Returns this byte string in Base64 format.
+   *
+   * @return Base64 string
+   */
+  public String toBase64String() {
+    return Base64.encodeBytes(bytes);
+  }
+
+  /**
+   * Creates a byte string from a hexadecimal or binary string.
+   *
+   * <p>For example, <tt>of("DEAD", 16)</tt>
+   * returns the same as {@code ByteString(new byte[] {0xDE, 0xAD})}.
+   *
+   * @param string Array of bytes
+   * @param base Base (2 or 16)
+   * @return String
+   */
+  public static ByteString of(String string, int base) {
+    final byte[] bytes = parse(string, base);
+    return new ByteString(bytes, false);
+  }
+
+  /**
+   * Parses a hexadecimal or binary string to a byte array.
+   *
+   * @param string Hexadecimal or binary string
+   * @param base Base (2 or 16)
+   * @return Byte array
+   */
+  public static byte[] parse(String string, int base) {
+    char[] chars = string.toCharArray();
+    byte[] bytes;
+    int j = 0;
+    byte b = 0;
+    switch (base) {
+    case 2:
+      bytes = new byte[chars.length / 8];
+      for (char c : chars) {
+        b <<= 1;
+        if (c == '1') {
+          b |= 0x1;
+        }
+        if (j % 8 == 0) {
+          bytes[j / 8] = b;
+          b = 0;
+        }
+        ++j;
+      }
+      break;
+    case 16:
+      bytes = new byte[chars.length / 2];
+      for (char c : chars) {
+        b <<= 4;
+        int i = c - '0';
+        b |= i & 0x0F;
+        if (j % 2 == 0) {
+          bytes[j / 2] = b;
+          b = 0;
+        }
+        ++j;
+      }
+      break;
+    default:
+      throw new IllegalArgumentException("bad base " + base);
+    }
+    return bytes;
+  }
+
+  /**
+   * Creates a byte string from a Base64 string.
+   *
+   * @param string Base64 string
+   * @return Byte string
+   */
+  public static ByteString ofBase64(String string) {
+    final byte[] bytes = parseBase64(string);
+    return new ByteString(bytes, false);
+  }
+
+  /**
+   * Parses a Base64 to a byte array.
+   *
+   * @param string Base64 string
+   * @return Byte array
+   */
+  public static byte[] parseBase64(String string) {
+    try {
+      return Base64.decode(string);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("bad base64 string", e);
+    }
   }
 
   @SuppressWarnings({

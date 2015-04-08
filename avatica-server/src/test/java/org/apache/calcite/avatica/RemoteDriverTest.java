@@ -469,6 +469,28 @@ public class RemoteDriverTest {
     connection.close();
   }
 
+  @Test public void testPrepareBindExecuteFetch2() throws Exception {
+    checkPrepareBindExecuteFetch2(ljs());
+  }
+
+  private void checkPrepareBindExecuteFetch2(Connection connection)
+      throws SQLException {
+    final String sql = "select x'de' || ? as c from (values (1, 'a'))";
+    final PreparedStatement ps =
+        connection.prepareStatement(sql);
+    final ParameterMetaData parameterMetaData = ps.getParameterMetaData();
+    assertThat(parameterMetaData.getParameterCount(), equalTo(1));
+
+    ps.setBytes(1, new byte[] {65, 0, 66});
+    final ResultSet resultSet = ps.executeQuery();
+    assertTrue(resultSet.next());
+    assertThat(resultSet.getBytes(1),
+        equalTo(new byte[] {(byte) 0xDE, 65, 0, 66}));
+    resultSet.close();
+    ps.close();
+    connection.close();
+  }
+
   /**
    * Factory that creates a service based on a local JDBC connection.
    */

@@ -161,7 +161,7 @@ public class LocalService implements Service {
         request.connectionId, request.statementId, null);
     final Meta.Frame frame =
         meta.fetch(h,
-            request.parameterValues,
+            TypedValue.values(request.parameterValues),
             request.offset,
             request.fetchMaxRowCount);
     return new FetchResponse(frame);

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.util.ByteString;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -190,6 +192,7 @@ public class ColumnMetaData {
     JAVA_SQL_TIMESTAMP(Timestamp.class),
     JAVA_SQL_DATE(java.sql.Date.class),
     JAVA_UTIL_DATE(java.util.Date.class),
+    BYTE_STRING(ByteString.class),
     STRING(String.class),
     OBJECT(Object.class);
 

@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.util.ByteString;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -102,7 +103,7 @@ public class JdbcMeta implements Meta {
     MAX_CAPACITY(CONN_CACHE_KEY_BASE + ".maxcapacity", "1000"),
 
     /** JDBC connection property for setting connection cache expiration duration. */
-    EXPIRY_DURATION(CONN_CACHE_KEY_BASE + ".expirydiration", "10"),
+    EXPIRY_DURATION(CONN_CACHE_KEY_BASE + ".expiryduration", "10"),
 
     /** JDBC connection property for setting connection cache expiration unit. */
     EXPIRY_UNIT(CONN_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
@@ -154,7 +155,7 @@ public class JdbcMeta implements Meta {
     private final String key;
     private final String defaultValue;
 
-    private StatementCacheSettings(String key, String defaultValue) {
+    StatementCacheSettings(String key, String defaultValue) {
       this.key = key;
       this.defaultValue = defaultValue;
     }
@@ -306,7 +307,7 @@ public class JdbcMeta implements Meta {
 
   /**
    * @param url a database url of the form
-   *  <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+   *  <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
    */
   public JdbcMeta(String url) throws SQLException {
     this(url, new Properties());
@@ -805,6 +806,9 @@ public class JdbcMeta implements Meta {
         if (parameterValues != null) {
           for (int i = 0; i < parameterValues.size(); i++) {
             Object o = parameterValues.get(i);
+            if (o instanceof ByteString) {
+              o = ((ByteString) o).getBytes();
+            }
             preparedStatement.setObject(i + 1, o);
           }
         }

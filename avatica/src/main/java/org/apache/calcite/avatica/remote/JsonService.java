@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,6 +69,12 @@ public abstract class JsonService implements Service {
       case LONG:
       case PRIMITIVE_LONG:
         column = column.setRep(ColumnMetaData.Rep.OBJECT);
+        ++changeCount;
+      }
+      switch (column.type.id) {
+      case Types.VARBINARY:
+      case Types.BINARY:
+        column = column.setRep(ColumnMetaData.Rep.STRING);
         ++changeCount;
       }
       columns.add(column);

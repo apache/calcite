@@ -438,6 +438,20 @@ public class SqlFunctionsTest {
     assertEquals(-1, byteString.indexOf(byteString1));
     assertEquals(1, byteString.indexOf(byteString3));
     assertEquals(-1, byteString3.indexOf(byteString));
+
+    thereAndBack(bytes);
+    thereAndBack(emptyByteString.getBytes());
+    thereAndBack(new byte[] {10, 0, 29, -80});
+  }
+
+  private void thereAndBack(byte[] bytes) {
+    final ByteString byteString = new ByteString(bytes);
+    final byte[] bytes2 = byteString.getBytes();
+    assertThat(bytes, equalTo(bytes2));
+
+    final String base64String = byteString.toBase64String();
+    final ByteString byteString1 = ByteString.ofBase64(base64String);
+    assertThat(byteString, equalTo(byteString1));
   }
 
   @Test public void testEasyLog10() {
