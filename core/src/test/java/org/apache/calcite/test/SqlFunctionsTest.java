@@ -32,6 +32,8 @@ import java.util.List;
 import static org.apache.calcite.avatica.util.DateTimeUtils.EPOCH_JULIAN;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.digitCount;
+import static org.apache.calcite.avatica.util.DateTimeUtils.floorDiv;
+import static org.apache.calcite.avatica.util.DateTimeUtils.floorMod;
 import static org.apache.calcite.avatica.util.DateTimeUtils.intervalDayTimeToString;
 import static org.apache.calcite.avatica.util.DateTimeUtils.intervalYearMonthToString;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
@@ -45,8 +47,6 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToJulian;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
-import static org.apache.calcite.runtime.SqlFunctions.floorDiv;
-import static org.apache.calcite.runtime.SqlFunctions.floorMod;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
@@ -441,7 +441,24 @@ public class SqlFunctionsTest {
 
     thereAndBack(bytes);
     thereAndBack(emptyByteString.getBytes());
-    thereAndBack(new byte[] {10, 0, 29, -80});
+    thereAndBack(new byte[]{10, 0, 29, -80});
+
+    assertThat(ByteString.of("ab12", 16).toString(16), equalTo("ab12"));
+    assertThat(ByteString.of("AB0001DdeAD3", 16).toString(16),
+        equalTo("ab0001ddead3"));
+    assertThat(ByteString.of("", 16), equalTo(emptyByteString));
+    try {
+      ByteString x = ByteString.of("ABg0", 16);
+      fail("expected error, got " + x);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), equalTo("invalid hex character: g"));
+    }
+    try {
+      ByteString x = ByteString.of("ABC", 16);
+      fail("expected error, got " + x);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), equalTo("hex string has odd length"));
+    }
   }
 
   private void thereAndBack(byte[] bytes) {

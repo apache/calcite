@@ -206,6 +206,7 @@ public class AvaticaParameter {
   }
 
   public void setDate(Object[] slots, int index, Date x, Calendar cal) {
+    setDate(slots, index, x); // TODO: use calendar
   }
 
   public void setDate(Object[] slots, int index, Date x) {

@@ -194,6 +194,10 @@ public class ColumnMetaData {
     JAVA_UTIL_DATE(java.util.Date.class),
     BYTE_STRING(ByteString.class),
     STRING(String.class),
+
+    /** Values are represented as some sub-class of {@link Number}.
+     * The JSON encoding does this. */
+    NUMBER(Number.class),
     OBJECT(Object.class);
 
     public final Class clazz;

@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -39,7 +40,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -469,12 +474,8 @@ public class RemoteDriverTest {
     connection.close();
   }
 
-  @Test public void testPrepareBindExecuteFetch2() throws Exception {
-    checkPrepareBindExecuteFetch2(ljs());
-  }
-
-  private void checkPrepareBindExecuteFetch2(Connection connection)
-      throws SQLException {
+  @Test public void testPrepareBindExecuteFetchVarbinary() throws Exception {
+    final Connection connection = ljs();
     final String sql = "select x'de' || ? as c from (values (1, 'a'))";
     final PreparedStatement ps =
         connection.prepareStatement(sql);
@@ -486,6 +487,54 @@ public class RemoteDriverTest {
     assertTrue(resultSet.next());
     assertThat(resultSet.getBytes(1),
         equalTo(new byte[] {(byte) 0xDE, 65, 0, 66}));
+    resultSet.close();
+    ps.close();
+    connection.close();
+  }
+
+  @Test public void testPrepareBindExecuteFetchDate() throws Exception {
+    final Connection connection = ljs();
+    final String sql = "select ? + interval '2' day as c from (values (1, 'a'))";
+    final PreparedStatement ps =
+        connection.prepareStatement(sql);
+    final ParameterMetaData parameterMetaData = ps.getParameterMetaData();
+    assertThat(parameterMetaData.getParameterCount(), equalTo(1));
+
+    Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    calendar.set(Calendar.YEAR, 2015);
+    calendar.set(Calendar.MONTH, 4);
+    calendar.set(Calendar.DAY_OF_MONTH, 8);
+    calendar.set(Calendar.HOUR_OF_DAY, 0);
+    calendar.set(Calendar.MINUTE, 0);
+    calendar.set(Calendar.SECOND, 0);
+    calendar.set(Calendar.MILLISECOND, 0);
+    final long time = calendar.getTime().getTime();
+    ResultSet resultSet;
+
+    ps.setDate(1, new java.sql.Date(time), calendar);
+    resultSet = ps.executeQuery();
+    assertTrue(resultSet.next());
+    assertThat(resultSet.getDate(1, calendar),
+        equalTo(new Date(time + TimeUnit.DAYS.toMillis(2))));
+    assertThat(resultSet.getTimestamp(1, calendar),
+        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
+
+    ps.setTimestamp(1, new Timestamp(time), calendar);
+    resultSet = ps.executeQuery();
+    assertTrue(resultSet.next());
+    assertThat(resultSet.getTimestamp(1, calendar),
+        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
+    assertThat(resultSet.getTimestamp(1, calendar),
+        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
+
+    ps.setObject(1, new java.util.Date(time));
+    resultSet = ps.executeQuery();
+    assertTrue(resultSet.next());
+    assertThat(resultSet.getDate(1, calendar),
+        equalTo(new Date(time + TimeUnit.DAYS.toMillis(2))));
+    assertThat(resultSet.getTimestamp(1, calendar),
+        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
+
     resultSet.close();
     ps.close();
     connection.close();

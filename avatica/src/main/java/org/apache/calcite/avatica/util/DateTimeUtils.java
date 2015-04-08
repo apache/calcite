@@ -790,6 +790,21 @@ public class DateTimeUtils {
         + (long) second * MILLIS_PER_SECOND;
   }
 
+  /** Divide, rounding towards negative infinity. */
+  public static long floorDiv(long x, long y) {
+    long r = x / y;
+    // if the signs are different and modulo not zero, round down
+    if ((x ^ y) < 0 && (r * y != x)) {
+      r--;
+    }
+    return r;
+  }
+
+  /** Modulo, always returning a non-negative result. */
+  public static long floorMod(long x, long y) {
+    return x - floorDiv(x, y) * y;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**

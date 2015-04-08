@@ -53,38 +53,43 @@ public abstract class JsonService implements Service {
    * be prepared to accept any numeric type. */
   private static Meta.Signature finagle(Meta.Signature signature) {
     final List<ColumnMetaData> columns = new ArrayList<>();
-    int changeCount = 0;
     for (ColumnMetaData column : signature.columns) {
-      switch (column.type.rep) {
-      case BYTE:
-      case PRIMITIVE_BYTE:
-      case DOUBLE:
-      case PRIMITIVE_DOUBLE:
-      case FLOAT:
-      case PRIMITIVE_FLOAT:
-      case INTEGER:
-      case PRIMITIVE_INT:
-      case SHORT:
-      case PRIMITIVE_SHORT:
-      case LONG:
-      case PRIMITIVE_LONG:
-        column = column.setRep(ColumnMetaData.Rep.OBJECT);
-        ++changeCount;
-      }
-      switch (column.type.id) {
-      case Types.VARBINARY:
-      case Types.BINARY:
-        column = column.setRep(ColumnMetaData.Rep.STRING);
-        ++changeCount;
-      }
-      columns.add(column);
+      columns.add(finagle(column));
     }
-    if (changeCount == 0) {
+    if (columns.equals(signature.columns)) {
       return signature;
     }
     return new Meta.Signature(columns, signature.sql,
         signature.parameters, signature.internalParameters,
         signature.cursorFactory);
+  }
+
+  private static ColumnMetaData finagle(ColumnMetaData column) {
+    switch (column.type.rep) {
+    case BYTE:
+    case PRIMITIVE_BYTE:
+    case DOUBLE:
+    case PRIMITIVE_DOUBLE:
+    case FLOAT:
+    case PRIMITIVE_FLOAT:
+    case INTEGER:
+    case PRIMITIVE_INT:
+    case SHORT:
+    case PRIMITIVE_SHORT:
+    case LONG:
+    case PRIMITIVE_LONG:
+      return column.setRep(ColumnMetaData.Rep.NUMBER);
+    }
+    switch (column.type.id) {
+    case Types.VARBINARY:
+    case Types.BINARY:
+      return column.setRep(ColumnMetaData.Rep.STRING);
+    case Types.DECIMAL:
+    case Types.NUMERIC:
+      return column.setRep(ColumnMetaData.Rep.NUMBER);
+    default:
+      return column;
+    }
   }
 
   private static PrepareResponse finagle(PrepareResponse response) {

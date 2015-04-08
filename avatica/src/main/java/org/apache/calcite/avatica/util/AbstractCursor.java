@@ -78,7 +78,7 @@ public abstract class AbstractCursor implements Cursor {
     // can convert to any type in the same family.
     Getter getter = createGetter(ordinal);
     switch (columnMetaData.type.rep) {
-    case OBJECT:
+    case NUMBER:
       switch (columnMetaData.type.id) {
       case Types.TINYINT:
       case Types.SMALLINT:
@@ -132,7 +132,7 @@ public abstract class AbstractCursor implements Cursor {
       switch (columnMetaData.type.rep) {
       case PRIMITIVE_INT:
       case INTEGER:
-      case OBJECT:
+      case NUMBER:
         return new DateFromNumberAccessor(getter, localCalendar);
       case JAVA_SQL_DATE:
         return new DateAccessor(getter, localCalendar);
@@ -143,6 +143,7 @@ public abstract class AbstractCursor implements Cursor {
       switch (columnMetaData.type.rep) {
       case PRIMITIVE_INT:
       case INTEGER:
+      case NUMBER:
         return new TimeFromNumberAccessor(getter, localCalendar);
       case JAVA_SQL_TIME:
         return new TimeAccessor(getter, localCalendar);
@@ -153,6 +154,7 @@ public abstract class AbstractCursor implements Cursor {
       switch (columnMetaData.type.rep) {
       case PRIMITIVE_LONG:
       case LONG:
+      case NUMBER:
         return new TimestampFromNumberAccessor(getter, localCalendar);
       case JAVA_SQL_TIMESTAMP:
         return new TimestampAccessor(getter, localCalendar);
@@ -881,6 +883,24 @@ public abstract class AbstractCursor implements Cursor {
       return longToTimestamp(v.longValue(), calendar);
     }
 
+    @Override public Date getDate(Calendar calendar) {
+      final Timestamp timestamp  = getTimestamp(calendar);
+      if (timestamp == null) {
+        return null;
+      }
+      return new Date(timestamp.getTime());
+    }
+
+    @Override public Time getTime(Calendar calendar) {
+      final Timestamp timestamp  = getTimestamp(calendar);
+      if (timestamp == null) {
+        return null;
+      }
+      return new Time(
+          DateTimeUtils.floorMod(timestamp.getTime(),
+              DateTimeUtils.MILLIS_PER_DAY));
+    }
+
     @Override public String getString() {
       final Number v = getNumber();
       if (v == null) {
@@ -987,16 +1007,34 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     @Override public Timestamp getTimestamp(Calendar calendar) {
-      Timestamp date  = (Timestamp) getObject();
-      if (date == null) {
+      Timestamp timestamp  = (Timestamp) getObject();
+      if (timestamp == null) {
         return null;
       }
       if (calendar != null) {
-        long v = date.getTime();
+        long v = timestamp.getTime();
         v -= calendar.getTimeZone().getOffset(v);
-        date = new Timestamp(v);
+        timestamp = new Timestamp(v);
       }
-      return date;
+      return timestamp;
+    }
+
+    @Override public Date getDate(Calendar calendar) {
+      final Timestamp timestamp  = getTimestamp(calendar);
+      if (timestamp == null) {
+        return null;
+      }
+      return new Date(timestamp.getTime());
+    }
+
+    @Override public Time getTime(Calendar calendar) {
+      final Timestamp timestamp  = getTimestamp(calendar);
+      if (timestamp == null) {
+        return null;
+      }
+      return new Time(
+          DateTimeUtils.floorMod(timestamp.getTime(),
+              DateTimeUtils.MILLIS_PER_DAY));
     }
 
     @Override public String getString() {
@@ -1037,6 +1075,24 @@ public abstract class AbstractCursor implements Cursor {
         v -= calendar.getTimeZone().getOffset(v);
       }
       return new Timestamp(v);
+    }
+
+    @Override public Date getDate(Calendar calendar) {
+      final Timestamp timestamp  = getTimestamp(calendar);
+      if (timestamp == null) {
+        return null;
+      }
+      return new Date(timestamp.getTime());
+    }
+
+    @Override public Time getTime(Calendar calendar) {
+      final Timestamp timestamp  = getTimestamp(calendar);
+      if (timestamp == null) {
+        return null;
+      }
+      return new Time(
+          DateTimeUtils.floorMod(timestamp.getTime(),
+              DateTimeUtils.MILLIS_PER_DAY));
     }
 
     @Override public String getString() {

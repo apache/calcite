@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.util;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -179,7 +181,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
         if (c == '1') {
           b |= 0x1;
         }
-        if (j % 8 == 0) {
+        if (j % 8 == 7) {
           bytes[j / 8] = b;
           b = 0;
         }
@@ -187,12 +189,15 @@ public class ByteString implements Comparable<ByteString>, Serializable {
       }
       break;
     case 16:
+      if (chars.length % 2 != 0) {
+        throw new IllegalArgumentException("hex string has odd length");
+      }
       bytes = new byte[chars.length / 2];
       for (char c : chars) {
         b <<= 4;
-        int i = c - '0';
+        byte i = decodeHex(c);
         b |= i & 0x0F;
-        if (j % 2 == 0) {
+        if (j % 2 == 1) {
           bytes[j / 2] = b;
           b = 0;
         }
@@ -203,6 +208,19 @@ public class ByteString implements Comparable<ByteString>, Serializable {
       throw new IllegalArgumentException("bad base " + base);
     }
     return bytes;
+  }
+
+  private static byte decodeHex(char c) {
+    if (c >= '0' && c <= '9') {
+      return (byte) (c - '0');
+    }
+    if (c >= 'a' && c <= 'f') {
+      return (byte) (c - 'a' + 10);
+    }
+    if (c >= 'A' && c <= 'F') {
+      return (byte) (c - 'A' + 10);
+    }
+    throw new IllegalArgumentException("invalid hex character: " + c);
   }
 
   /**
@@ -285,6 +303,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
   /**
    * Returns a copy of the byte array.
    */
+  @JsonValue
   public byte[] getBytes() {
     return bytes.clone();
   }

@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -81,6 +82,15 @@ public class TypedValue {
       return ((Number) value).doubleValue();
     case BYTE_STRING:
       return ByteString.ofBase64((String) value);
+    case JAVA_UTIL_DATE:
+      return new java.util.Date((Long) value);
+    case JAVA_SQL_DATE:
+      return new java.sql.Date((long) (Integer) value
+          * DateTimeUtils.MILLIS_PER_DAY);
+    case JAVA_SQL_TIME:
+      return new java.sql.Time((Integer) value);
+    case JAVA_SQL_TIMESTAMP:
+      return new java.sql.Timestamp((Long) value);
     default:
       throw new IllegalArgumentException("cannot convert " + value + " ("
           + value.getClass() + ") to " + rep);
@@ -92,6 +102,15 @@ public class TypedValue {
     switch (rep) {
     case BYTE_STRING:
       return ((ByteString) value).toBase64String();
+    case JAVA_UTIL_DATE:
+    case JAVA_SQL_TIMESTAMP:
+      return ((java.util.Date) value).getTime();
+    case JAVA_SQL_DATE:
+      return (int) DateTimeUtils.floorDiv(((java.sql.Date) value).getTime(),
+          DateTimeUtils.MILLIS_PER_DAY);
+    case JAVA_SQL_TIME:
+      return (int) DateTimeUtils.floorMod(((java.sql.Time) value).getTime(),
+          DateTimeUtils.MILLIS_PER_DAY);
     default:
       return value;
     }
