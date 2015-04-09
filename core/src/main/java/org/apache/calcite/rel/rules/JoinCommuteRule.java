@@ -41,7 +41,8 @@ import java.util.List;
  * Planner rule that permutes the inputs to a
  * {@link org.apache.calcite.rel.core.Join}.
  *
- * <p>Outer joins cannot be permuted.
+ * <p>Permutation of outer joins can be turned on/off by specifying the
+ * swapOuter flag in the constructor.
  *
  * <p>To preserve the order of columns in the output row, the rule adds a
  * {@link org.apache.calcite.rel.core.Project}.
@@ -49,24 +50,35 @@ import java.util.List;
 public class JoinCommuteRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The singleton. */
-  public static final JoinCommuteRule INSTANCE = new JoinCommuteRule();
+  /** Instance of the rule that only swaps inner joins. */
+  public static final JoinCommuteRule INSTANCE = new JoinCommuteRule(false);
+
+  /** Instance of the rule that swaps outer joins as well as inner joins. */
+  public static final JoinCommuteRule SWAP_OUTER = new JoinCommuteRule(true);
 
   private final ProjectFactory projectFactory;
+  private final boolean swapOuter;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a JoinCommuteRule.
    */
-  private JoinCommuteRule() {
-    this(LogicalJoin.class, RelFactories.DEFAULT_PROJECT_FACTORY);
+  private JoinCommuteRule(boolean swapOuter) {
+    this(LogicalJoin.class, RelFactories.DEFAULT_PROJECT_FACTORY, swapOuter);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public JoinCommuteRule(Class<? extends Join> clazz,
+      ProjectFactory projectFactory) {
+    this(clazz, projectFactory, false);
   }
 
   public JoinCommuteRule(Class<? extends Join> clazz,
-      ProjectFactory projectFactory) {
+      ProjectFactory projectFactory, boolean swapOuter) {
     super(operand(clazz, any()));
     this.projectFactory = projectFactory;
+    this.swapOuter = swapOuter;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -123,7 +135,7 @@ public class JoinCommuteRule extends RelOptRule {
       return;
     }
 
-    final RelNode swapped = swap(join);
+    final RelNode swapped = swap(join, this.swapOuter);
     if (swapped == null) {
       return;
     }

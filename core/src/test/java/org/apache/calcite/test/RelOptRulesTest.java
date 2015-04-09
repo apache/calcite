@@ -49,6 +49,7 @@ import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.JoinAddRedundantSemiJoinRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinExtractFilterRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
@@ -1500,6 +1501,15 @@ public class RelOptRulesTest extends RelOptTestBase {
                 + "group by e.empno,d.deptno");
   }
 
+  @Test public void testSwapOuterJoin() throws Exception {
+    final HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addRuleInstance(JoinCommuteRule.SWAP_OUTER)
+        .build();
+    checkPlanning(program,
+        "select 1 from sales.dept d left outer join sales.emp e"
+            + " on d.deptno = e.deptno");
+  }
 }
 
 // End RelOptRulesTest.java
