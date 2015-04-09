@@ -31,7 +31,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
@@ -67,31 +69,25 @@ public class AggregateProjectMergeRule extends RelOptRule {
   public static RelNode apply(Aggregate aggregate,
       Project project) {
     final List<Integer> newKeys = Lists.newArrayList();
+    final Map<Integer, Integer> map = new HashMap<>();
     for (int key : aggregate.getGroupSet()) {
       final RexNode rex = project.getProjects().get(key);
       if (rex instanceof RexInputRef) {
-        newKeys.add(((RexInputRef) rex).getIndex());
+        final int newKey = ((RexInputRef) rex).getIndex();
+        newKeys.add(newKey);
+        map.put(key, newKey);
       } else {
         // Cannot handle "GROUP BY expression"
         return null;
       }
     }
 
-    final ImmutableBitSet newGroupSet = ImmutableBitSet.of(newKeys);
-
+    final ImmutableBitSet newGroupSet = aggregate.getGroupSet().permute(map);
     ImmutableList<ImmutableBitSet> newGroupingSets = null;
     if (aggregate.indicator) {
-      ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder =
-              ImmutableList.builder();
-      for (ImmutableBitSet groupingSet: aggregate.getGroupSets()) {
-        final ImmutableBitSet.Builder newGroupingSet =
-                ImmutableBitSet.builder();
-        for (int c : groupingSet) {
-          newGroupingSet.set(newKeys.get(c));
-        }
-        newGroupingSetsBuilder.add(newGroupingSet.build());
-      }
-      newGroupingSets = newGroupingSetsBuilder.build();
+      newGroupingSets =
+          ImmutableBitSet.ORDERING.immutableSortedCopy(
+              ImmutableBitSet.permute(aggregate.getGroupSets(), map));
     }
 
     final ImmutableList.Builder<AggregateCall> aggCalls =
@@ -118,6 +114,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
     // Add a project if the group set is not in the same order or
     // contains duplicates.
     RelNode rel = newAggregate;
+    //noinspection EqualsBetweenInconvertibleTypes
     if (!newGroupSet.toList().equals(newKeys)) {
       final List<Integer> posList = Lists.newArrayList();
       for (int newKey : newKeys) {

@@ -34,7 +34,9 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
+import javax.annotation.Nonnull;
 
 /**
  * An immutable list of bits.
@@ -569,7 +571,7 @@ public class ImmutableBitSet
         return cardinality();
       }
 
-      @Override public Iterator<Integer> iterator() {
+      @Nonnull @Override public Iterator<Integer> iterator() {
         return ImmutableBitSet.this.iterator();
       }
     };
@@ -749,6 +751,27 @@ public class ImmutableBitSet
    * {@code ImmutableBitSet}. */
   public BitSet toBitSet() {
     return BitSets.of(this);
+  }
+
+  /** Permutes a bit set according to a given mapping. */
+  public ImmutableBitSet permute(Map<Integer, Integer> map) {
+    final Builder builder = builder();
+    for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
+      builder.set(map.get(i));
+    }
+    return builder.build();
+  }
+
+  /** Permutes a collection of bit sets according to a given mapping. */
+  public static Iterable<ImmutableBitSet> permute(
+      Iterable<ImmutableBitSet> bitSets,
+      final Map<Integer, Integer> map) {
+    return Iterables.transform(bitSets,
+        new Function<ImmutableBitSet, ImmutableBitSet>() {
+          public ImmutableBitSet apply(ImmutableBitSet bitSet) {
+            return bitSet.permute(map);
+          }
+        });
   }
 
   /**
