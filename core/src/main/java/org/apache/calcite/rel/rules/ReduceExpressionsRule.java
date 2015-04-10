@@ -160,7 +160,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             filter.getInput());
       } else if (newConditionExp instanceof RexLiteral
           || RexUtil.isNullLiteral(newConditionExp, true)) {
-        call.transformTo(call.builder().values(filter.getRowType()).build());
+        call.transformTo(createEmptyRelOrEquivalent(call, filter));
       } else if (reduced) {
         call.transformTo(call.builder().
             push(filter.getInput()).filter(expList.get(0)).build());
@@ -172,6 +172,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                   == SqlStdOperatorTable.NOT;
           if (reverse) {
             rexCall = (RexCall) rexCall.getOperands().get(0);
+
+
           }
           reduceNotNullableFilter(call, filter, rexCall, reverse);
         }
@@ -180,6 +182,26 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
       // New plan is absolutely better than old plan.
       call.getPlanner().setImportance(filter, 0.0);
+    }
+
+    /**
+     * For static schema systems, a filter that is always false or null can be
+     * replaced by a values operator that produces no rows, as the schema
+     * information can just be taken from the input Rel. In dynamic schema
+     * environments, the filter might have an unknown input type, in these cases
+     * they must define a system specific alternative to a Values operator, such
+     * as inserting a limit 0 instead of a filter on top of the original input.
+     *
+     * The default implementation of this method is for the static schema case
+     * which converts the input into an EmptyRel.
+     *
+     * @param input rel to replace, assumes caller has already determined
+     *              equivalence to Values operation for 0 records or a
+     *              false filter.
+     * @return equivalent but less expensive replacement rel
+     */
+    protected RelNode createEmptyRelOrEquivalent(RelOptRuleCall call, Filter input) {
+      return call.builder().values(input.getRowType()).build();
     }
 
     private void reduceNotNullableFilter(
@@ -212,7 +234,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           if (alwaysTrue) {
             call.transformTo(filter.getInput());
           } else {
-            call.transformTo(call.builder().values(filter.getRowType()).build());
+            call.transformTo(createEmptyRelOrEquivalent(call, filter));
           }
         }
       }
@@ -343,7 +365,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               || RexUtil.isNullLiteral(newConditionExp, true)) {
             // condition is always NULL or FALSE - replace calc
             // with empty
-            call.transformTo(call.builder().values(calc.getRowType()).build());
+            call.transformTo(createEmptyRelOrEquivalent(call, calc));
             return;
           } else {
             builder.addCondition(list.get(conditionIndex));
@@ -362,6 +384,26 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         // New plan is absolutely better than old plan.
         call.getPlanner().setImportance(calc, 0.0);
       }
+    }
+
+    /**
+     * For static schema systems, a filter that is always false or null can be
+     * replaced by a values operator that produces no rows, as the schema
+     * information can just be taken from the input Rel. In dynamic schema
+     * environments, the filter might have an unknown input type, in these cases
+     * they must define a system specific alternative to a Values operator, such
+     * as inserting a limit 0 instead of a filter on top of the original input.
+     *
+     * The default implementation of this method is for the static schema case
+     * which converts the input into an EmptyRel.
+     *
+     * @param input rel to replace, assumes caller has already determined
+     *              equivalence to Values operation for 0 records or a
+     *              false filter.
+     * @return equivalent but less expensive replacement rel
+     */
+    protected RelNode createEmptyRelOrEquivalent(RelOptRuleCall call, Calc input) {
+      return call.builder().values(input.getRowType()).build();
     }
   }
 
