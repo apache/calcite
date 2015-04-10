@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -25,6 +26,8 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.IntList;
@@ -55,6 +58,8 @@ public class SemiJoinRule extends RelOptRule {
     final Join join = call.rel(1);
     final RelNode left = call.rel(2);
     final Aggregate aggregate = call.rel(3);
+    final RelOptCluster cluster = join.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
     final ImmutableBitSet bits =
         RelOptUtil.InputFinder.bits(project.getProjects(), null);
     final ImmutableBitSet rightBits =
@@ -70,14 +75,23 @@ public class SemiJoinRule extends RelOptRule {
       // By the way, neither a super-set nor a sub-set would work.
       return;
     }
-    final List<Integer> newRightKeys = Lists.newArrayList();
+    if (!joinInfo.isEqui()) {
+      return;
+    }
+    final List<Integer> newRightKeyBuilder = Lists.newArrayList();
     final IntList aggregateKeys = aggregate.getGroupSet().toList();
     for (int key : joinInfo.rightKeys) {
-      newRightKeys.add(aggregateKeys.get(key));
+      newRightKeyBuilder.add(aggregateKeys.get(key));
     }
+    final ImmutableIntList newRightKeys =
+        ImmutableIntList.copyOf(newRightKeyBuilder);
+    final RelNode newRight = aggregate.getInput();
+    final RexNode newCondition =
+        RelOptUtil.createEquiJoinCondition(left, joinInfo.leftKeys, newRight,
+            newRightKeys, rexBuilder);
     final SemiJoin semiJoin =
-        SemiJoin.create(left, aggregate.getInput(), join.getCondition(),
-            joinInfo.leftKeys, ImmutableIntList.copyOf(newRightKeys));
+        SemiJoin.create(left, newRight, newCondition, joinInfo.leftKeys,
+            newRightKeys);
     final Project newProject =
         project.copy(project.getTraitSet(), semiJoin, project.getProjects(),
             project.getRowType());
