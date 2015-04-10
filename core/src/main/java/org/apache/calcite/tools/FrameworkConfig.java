@@ -18,6 +18,7 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
@@ -44,6 +45,11 @@ public interface FrameworkConfig {
    * root schema.  Returns null to only consult the root schema.
    */
   SchemaPlus getDefaultSchema();
+
+  /**
+   * Get the executor used to evaluate constant expressions.
+   */
+  RelOptPlanner.Executor getExecutor();
 
   /**
    * Returns a list of one or more programs used during the course of query
