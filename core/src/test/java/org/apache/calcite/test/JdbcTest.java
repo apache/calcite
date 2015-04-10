@@ -125,6 +125,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 import javax.sql.DataSource;
@@ -863,7 +864,7 @@ public class JdbcTest {
     java.sql.Driver driver = DriverManager.getDriver("jdbc:calcite:");
     final DriverPropertyInfo[] propertyInfo =
         driver.getPropertyInfo("jdbc:calcite:", new Properties());
-    final HashSet<String> names = new HashSet<String>();
+    final Set<String> names = new HashSet<>();
     for (DriverPropertyInfo info : propertyInfo) {
       names.add(info.name);
     }
@@ -1801,8 +1802,7 @@ public class JdbcTest {
   /** Returns a list of (query, expected) pairs. The expected result is
    * sometimes null. */
   private static List<Pair<String, String>> querify(String[] queries1) {
-    final List<Pair<String, String>> list =
-        new ArrayList<Pair<String, String>>();
+    final List<Pair<String, String>> list = new ArrayList<>();
     for (int i = 0; i < queries1.length; i++) {
       String query = queries1[i];
       String expected = null;
@@ -2477,11 +2477,12 @@ public class JdbcTest {
         .query("select empno, desc from sales.emps,\n"
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .explainContains("EnumerableAggregate(group=[{0, 1}])\n"
-            + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], EMPNO=[$t2], DESC=[$t1], $condition=[$t8])\n"
-            + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
-            + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
-            + "      EnumerableTableScan(table=[[SALES, EMPS]])\n")
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
+            + "  EnumerableAggregate(group=[{1, 2}])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], proj#0..3=[{exprs}], $condition=[$t8])\n"
+            + "      EnumerableJoin(condition=[true], joinType=[inner])\n"
+            + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
+            + "        EnumerableTableScan(table=[[SALES, EMPS]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
 
@@ -2525,9 +2526,8 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(s)
         .explainContains("EnumerableAggregate(group=[{}], m0=[COUNT($0)])\n"
-            + "  EnumerableAggregate(group=[{0}])\n"
-            + "    EnumerableCalc(expr#0..7=[{inputs}], unit_sales=[$t7])\n"
-            + "      EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
+            + "  EnumerableAggregate(group=[{7}])\n"
+            + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
         .returns("m0=6\n");
   }
 
@@ -2541,10 +2541,9 @@ public class JdbcTest {
         .query(s)
         .explainContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t0):INTEGER NOT NULL], u=[$t2], m0=[$t1])\n"
-            + "  EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
-            + "    EnumerableAggregate(group=[{0, 1}])\n"
-            + "      EnumerableCalc(expr#0..7=[{inputs}], unit_sales=[$t7], customer_id=[$t2])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
+            + "  EnumerableAggregate(group=[{1}], m0=[COUNT($0)])\n"
+            + "    EnumerableAggregate(group=[{2, 7}])\n"
+            + "      EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
         .returnsUnordered(
             "u=1; m0=523",
             "u=5; m0=1059",
@@ -2567,13 +2566,12 @@ public class JdbcTest {
         .query(s)
         .explainContains(""
             + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
-            + "  EnumerableAggregate(group=[{0, 1}])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], c0=[$t1], unit_sales=[$t3])\n"
-            + "      EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
-            + "        EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
-            + "          EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
-            + "        EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
-            + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
+            + "  EnumerableAggregate(group=[{1, 3}])\n"
+            + "    EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
+            + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
+            + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
+            + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
         .returns("c0=1997; m0=6\n");
   }
 
@@ -2610,10 +2608,10 @@ public class JdbcTest {
             + "            EnumerableTableScan(table=[[hr, emps]])")
         .explainContains(""
             + "EnumerableCalc(expr#0..4=[{inputs}], proj#0..3=[{exprs}])\n"
-            + "  EnumerableSemiJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "  EnumerableSemiJoin(condition=[=($4, $6)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..3=[{exprs}], $f4=[$t0])\n"
             + "      EnumerableTableScan(table=[[hr, depts]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], deptno=[$t1], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])")
         .returnsUnordered(
             "deptno=10; name=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]");
@@ -2919,12 +2917,11 @@ public class JdbcTest {
         .returns("C=25\n")
         .explainContains("JdbcToEnumerableConverter\n"
             + "  JdbcAggregate(group=[{}], C=[COUNT()])\n"
-            + "    JdbcProject(DUMMY=[0])\n"
-            + "      JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
-            + "        JdbcProject(store_id=[$0])\n"
-            + "          JdbcTableScan(table=[[foodmart, store]])\n"
-            + "        JdbcProject(store_id=[$0])\n"
-            + "          JdbcTableScan(table=[[foodmart, store]])\n");
+            + "    JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
+            + "      JdbcProject(store_id=[$0])\n"
+            + "        JdbcTableScan(table=[[foodmart, store]])\n"
+            + "      JdbcProject(store_id=[$0])\n"
+            + "        JdbcTableScan(table=[[foodmart, store]])\n");
   }
 
   /** Tests composite GROUP BY where one of the columns has NULL values. */
@@ -3136,8 +3133,8 @@ public class JdbcTest {
             + "where \"deptno\" < 0")
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=($t0, $t2)], expr#4=[null], expr#5=[CASE($t3, $t4, $t1)], expr#6=[/($t5, $t0)], expr#7=[CAST($t6):JavaType(class java.lang.Integer)], CS=[$t0], C=[$t0], S=[$t5], A=[$t7])\n"
-            + "  EnumerableAggregate(group=[{}], CS=[COUNT()], agg#1=[$SUM0($0)])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], deptno=[$t1], $condition=[$t6])\n"
+            + "  EnumerableAggregate(group=[{}], CS=[COUNT()], agg#1=[$SUM0($1)])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; C=0; S=null; A=null\n");
   }
@@ -3153,7 +3150,7 @@ public class JdbcTest {
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0=[{inputs}], CS=[$t0], CS2=[$t0])\n"
             + "  EnumerableAggregate(group=[{}], CS=[COUNT()])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], deptno=[$t1], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; CS2=0\n");
   }
@@ -4925,7 +4922,7 @@ public class JdbcTest {
   /** Tests saving query results into temporary tables, per
    * {@link org.apache.calcite.avatica.Handler.ResultSink}. */
   @Test public void testAutomaticTemporaryTable() throws Exception {
-    final List<Object> objects = new ArrayList<Object>();
+    final List<Object> objects = new ArrayList<>();
     CalciteAssert.that()
         .with(
             new CalciteAssert.ConnectionFactory() {
@@ -5876,9 +5873,8 @@ public class JdbcTest {
     case HSQLDB:
       assertThat(Util.toLinux(sqls[0]),
           equalTo("SELECT COUNT(*) AS \"C\"\n"
-              + "FROM (SELECT 0 AS \"DUMMY\"\n"
               + "FROM \"foodmart\".\"employee\"\n"
-              + "WHERE \"first_name\" = 'abcde' AND \"gender\" = 'F') AS \"t0\""));
+              + "WHERE \"first_name\" = 'abcde' AND \"gender\" = 'F'"));
       break;
     }
   }
@@ -5891,7 +5887,7 @@ public class JdbcTest {
     final SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
     // create schema "/a"
-    final Map<String, Schema> aSubSchemaMap = new HashMap<String, Schema>();
+    final Map<String, Schema> aSubSchemaMap = new HashMap<>();
     final SchemaPlus aSchema = rootSchema.add("a", new AbstractSchema() {
       @Override protected Map<String, Schema> getSubSchemaMap() {
         return aSubSchemaMap;
@@ -5933,7 +5929,7 @@ public class JdbcTest {
     }
 
     // create schema "/a2"
-    final Map<String, Schema> a2SubSchemaMap = new HashMap<String, Schema>();
+    final Map<String, Schema> a2SubSchemaMap = new HashMap<>();
     final boolean[] changed = {false};
     final SchemaPlus a2Schema = rootSchema.add("a", new AbstractSchema() {
       @Override protected Map<String, Schema> getSubSchemaMap() {
@@ -6437,8 +6433,7 @@ public class JdbcTest {
 
   /** Mock driver that a given {@link Handler}. */
   public static class HandlerDriver extends org.apache.calcite.jdbc.Driver {
-    private static final ThreadLocal<Handler> HANDLERS =
-        new ThreadLocal<Handler>();
+    private static final ThreadLocal<Handler> HANDLERS = new ThreadLocal<>();
 
     public HandlerDriver() {
     }

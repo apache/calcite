@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -55,7 +56,7 @@ public class PhysTypeImpl implements PhysType {
   private final JavaTypeFactory typeFactory;
   private final RelDataType rowType;
   private final Type javaRowClass;
-  private final List<Class> fieldClasses = new ArrayList<Class>();
+  private final List<Class> fieldClasses = new ArrayList<>();
   final JavaRowFormat format;
 
   /** Creates a PhysTypeImpl. */
@@ -171,12 +172,13 @@ public class PhysTypeImpl implements PhysType {
     final PhysType targetPhysType =
         project(fields, true, targetFormat);
     final List<Expression> expressions = Lists.newArrayList();
-    for (Integer field : fields) {
+    for (Ord<Integer> ord : Ord.zip(fields)) {
+      final Integer field = ord.e;
       if (usedFields.contains(field)) {
         expressions.add(fieldReference(parameter, field));
       } else {
         final Primitive primitive =
-            Primitive.of(targetPhysType.fieldClass(field));
+            Primitive.of(targetPhysType.fieldClass(ord.i));
         expressions.add(
             Expressions.constant(
                 primitive != null ? primitive.defaultValue : null));
@@ -213,7 +215,7 @@ public class PhysTypeImpl implements PhysType {
   }
 
   public List<Expression> accessors(Expression v1, List<Integer> argList) {
-    final List<Expression> expressions = new ArrayList<Expression>();
+    final List<Expression> expressions = new ArrayList<>();
     for (int field : argList) {
       expressions.add(
           Types.castIfNecessary(

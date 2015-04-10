@@ -153,7 +153,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     // will add an expression to the end, and we will create an extra
     // project.
     RelNode input = oldAggRel.getInput();
-    List<RexNode> inputExprs = new ArrayList<RexNode>();
+    final List<RexNode> inputExprs = new ArrayList<>();
     for (RelDataTypeField field : input.getRowType().getFieldList()) {
       inputExprs.add(
           rexBuilder.makeInputRef(
@@ -249,8 +249,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       // anything else:  preserve original call
       RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
       final int nGroups = oldAggRel.getGroupCount();
-      List<RelDataType> oldArgTypes = SqlTypeUtil
-          .projectTypes(oldAggRel.getRowType(), oldCall.getArgList());
+      List<RelDataType> oldArgTypes =
+          SqlTypeUtil.projectTypes(
+              oldAggRel.getInput().getRowType(), oldCall.getArgList());
       return rexBuilder.addAggCall(oldCall,
           nGroups,
           oldAggRel.indicator,

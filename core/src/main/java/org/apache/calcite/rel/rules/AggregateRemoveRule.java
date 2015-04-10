@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 
@@ -52,20 +53,29 @@ public class AggregateRemoveRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalAggregate distinct = call.rel(0);
-    RelNode child = call.rel(1);
-    if (!distinct.getAggCallList().isEmpty()
-        || !child.isKey(distinct.getGroupSet())) {
+    final LogicalAggregate aggregate = call.rel(0);
+    final RelNode input = call.rel(1);
+    if (!aggregate.getAggCallList().isEmpty()
+        || aggregate.indicator
+        || !input.isKey(aggregate.getGroupSet())) {
       return;
     }
     // Distinct is "GROUP BY c1, c2" (where c1, c2 are a set of columns on
     // which the input is unique, i.e. contain a key) and has no aggregate
     // functions. It can be removed.
-    child = call.getPlanner().register(child, distinct);
-    call.transformTo(
-        convert(
-            child,
-            distinct.getTraitSet()));
+    final RelNode newInput = convert(input, aggregate.getTraitSet());
+
+    // If aggregate was projecting a subset of columns, add a project for the
+    // same effect.
+    RelNode rel;
+    if (newInput.getRowType().getFieldCount()
+        > aggregate.getRowType().getFieldCount()) {
+      rel = RelOptUtil.createProject(newInput,
+          aggregate.getGroupSet().toList());
+    } else {
+      rel = newInput;
+    }
+    call.transformTo(rel);
   }
 }
 

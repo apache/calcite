@@ -114,8 +114,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
     // Add a project if the group set is not in the same order or
     // contains duplicates.
     RelNode rel = newAggregate;
-    //noinspection EqualsBetweenInconvertibleTypes
-    if (!newGroupSet.toList().equals(newKeys)) {
+    if (!newKeys.equals(newGroupSet.asList())) {
       final List<Integer> posList = Lists.newArrayList();
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
