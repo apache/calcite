@@ -318,6 +318,7 @@ public interface RelOptPlanner {
   /** Sets the object that can execute scalar expressions. */
   void setExecutor(Executor executor);
 
+  /** Returns the executor used to evaluate constant expressions. */
   Executor getExecutor();
 
   /** Called when a relational expression is copied to a similar expression. */
