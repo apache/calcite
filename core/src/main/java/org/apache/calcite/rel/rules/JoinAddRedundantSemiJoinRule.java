@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
@@ -68,10 +67,7 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule {
     }
 
     RelNode semiJoin =
-        new SemiJoin(
-            origJoinRel.getCluster(),
-            origJoinRel.getCluster().traitSetOf(Convention.NONE),
-            origJoinRel.getLeft(),
+        SemiJoin.create(origJoinRel.getLeft(),
             origJoinRel.getRight(),
             origJoinRel.getCondition(),
             joinInfo.leftKeys,

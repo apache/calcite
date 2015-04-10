@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -77,11 +76,8 @@ public class SemiJoinRule extends RelOptRule {
       newRightKeys.add(aggregateKeys.get(key));
     }
     final SemiJoin semiJoin =
-        new SemiJoin(join.getCluster(),
-            join.getCluster().traitSetOf(Convention.NONE),
-            left, aggregate.getInput(),
-            join.getCondition(), joinInfo.leftKeys,
-            ImmutableIntList.copyOf(newRightKeys));
+        SemiJoin.create(left, aggregate.getInput(), join.getCondition(),
+            joinInfo.leftKeys, ImmutableIntList.copyOf(newRightKeys));
     final Project newProject =
         project.copy(project.getTraitSet(), semiJoin, project.getProjects(),
             project.getRowType());

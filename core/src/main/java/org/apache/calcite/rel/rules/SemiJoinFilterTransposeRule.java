@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -59,10 +58,7 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
     LogicalFilter filter = call.rel(1);
 
     RelNode newSemiJoin =
-        new SemiJoin(
-            semiJoin.getCluster(),
-            semiJoin.getCluster().traitSetOf(Convention.NONE),
-            filter.getInput(),
+        SemiJoin.create(filter.getInput(),
             semiJoin.getRight(),
             semiJoin.getCondition(),
             semiJoin.getLeftKeys(),

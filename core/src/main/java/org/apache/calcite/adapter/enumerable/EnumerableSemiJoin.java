@@ -37,6 +37,9 @@ import org.apache.calcite.util.Util;
 /** Implementation of {@link org.apache.calcite.rel.core.SemiJoin} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
+  /** Creates an EnumerableSemiJoin.
+   *
+   * <p>Use {@link #create} unless you know what you're doing. */
   EnumerableSemiJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -47,6 +50,21 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
       ImmutableIntList rightKeys)
       throws InvalidRelException {
     super(cluster, traits, left, right, condition, leftKeys, rightKeys);
+  }
+
+  /** Creates an EnumerableSemiJoin. */
+  public static EnumerableSemiJoin create(RelNode left, RelNode right, RexNode condition,
+      ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
+    final RelOptCluster cluster = left.getCluster();
+    try {
+      return new EnumerableSemiJoin(cluster,
+          cluster.traitSetOf(EnumerableConvention.INSTANCE), left,
+          right, condition, leftKeys, rightKeys);
+    } catch (InvalidRelException e) {
+      // Semantic error not possible. Must be a bug. Convert to
+      // internal error.
+      throw new AssertionError(e);
+    }
   }
 
   @Override public SemiJoin copy(RelTraitSet traitSet, RexNode condition,

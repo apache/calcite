@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -44,6 +45,8 @@ public class SemiJoin extends EquiJoin {
   /**
    * Creates a SemiJoin.
    *
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
    * @param cluster   cluster that join belongs to
    * @param traitSet  Trait set
    * @param left      left join input
@@ -70,6 +73,14 @@ public class SemiJoin extends EquiJoin {
         rightKeys,
         JoinRelType.INNER,
         ImmutableSet.<String>of());
+  }
+
+  /** Creates a SemiJoin. */
+  public static SemiJoin create(RelNode left, RelNode right, RexNode condition,
+      ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
+    final RelOptCluster cluster = left.getCluster();
+    return new SemiJoin(cluster, cluster.traitSetOf(Convention.NONE), left,
+        right, condition, leftKeys, rightKeys);
   }
 
   //~ Methods ----------------------------------------------------------------

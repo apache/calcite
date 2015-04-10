@@ -243,7 +243,7 @@ public class RelFactories {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
       final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      return new SemiJoin(left.getCluster(), left.getTraitSet(), left, right,
+      return SemiJoin.create(left, right,
         condition, joinInfo.leftKeys, joinInfo.rightKeys);
     }
   }

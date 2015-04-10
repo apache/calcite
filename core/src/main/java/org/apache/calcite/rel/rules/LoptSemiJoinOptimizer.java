@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -108,7 +107,7 @@ public class LoptSemiJoinOptimizer {
    * @param multiJoin join factors being optimized
    */
   public void makePossibleSemiJoins(LoptMultiJoin multiJoin) {
-    possibleSemiJoins = new HashMap<Integer, Map<Integer, SemiJoin>>();
+    possibleSemiJoins = new HashMap<>();
 
     // semijoins can't be used with any type of outer join, including full
     if (multiJoin.getMultiJoinRel().isFullOuterJoin()) {
@@ -117,10 +116,8 @@ public class LoptSemiJoinOptimizer {
 
     int nJoinFactors = multiJoin.getNumJoinFactors();
     for (int factIdx = 0; factIdx < nJoinFactors; factIdx++) {
-      Map<Integer, List<RexNode>> dimFilters =
-          new HashMap<Integer, List<RexNode>>();
-      Map<Integer, SemiJoin> semiJoinMap =
-          new HashMap<Integer, SemiJoin>();
+      final Map<Integer, List<RexNode>> dimFilters = new HashMap<>();
+      final Map<Integer, SemiJoin> semiJoinMap = new HashMap<>();
 
       // loop over all filters and find equality filters that reference
       // this factor and one other factor
@@ -142,7 +139,7 @@ public class LoptSemiJoinOptimizer {
         // that dimension factor; otherwise, create a new entry
         List<RexNode> currDimFilters = dimFilters.get(dimIdx);
         if (currDimFilters == null) {
-          currDimFilters = new ArrayList<RexNode>();
+          currDimFilters = new ArrayList<>();
         }
         currDimFilters.add(joinFilter);
         dimFilters.put(dimIdx, currDimFilters);
@@ -267,7 +264,7 @@ public class LoptSemiJoinOptimizer {
 
     // make sure all the fact table keys originate from the same table
     // and are simple column references
-    List<Integer> actualLeftKeys = new ArrayList<Integer>();
+    final List<Integer> actualLeftKeys = new ArrayList<>();
     LcsTable factTable =
         validateKeys(
             factRel,
@@ -279,7 +276,7 @@ public class LoptSemiJoinOptimizer {
     }
 
     // find the best index
-    List<Integer> bestKeyOrder = new ArrayList<Integer>();
+    final List<Integer> bestKeyOrder = new ArrayList<>();
     LcsTableScan tmpFactRel =
         (LcsTableScan) factTable.toRel(
             RelOptUtil.getContext(factRel.getCluster()));
@@ -301,14 +298,14 @@ public class LoptSemiJoinOptimizer {
     // the condition; note that we don't save the actual keys here because
     // later when the semijoin is pushed past other RelNodes, the keys will
     // be converted
-    List<Integer> truncatedLeftKeys;
-    List<Integer> truncatedRightKeys;
+    final List<Integer> truncatedLeftKeys;
+    final List<Integer> truncatedRightKeys;
     if (actualLeftKeys.size() == bestKeyOrder.size()) {
       truncatedLeftKeys = leftKeys;
       truncatedRightKeys = rightKeys;
     } else {
-      truncatedLeftKeys = new ArrayList<Integer>();
-      truncatedRightKeys = new ArrayList<Integer>();
+      truncatedLeftKeys = new ArrayList<>();
+      truncatedRightKeys = new ArrayList<>();
       for (int key : bestKeyOrder) {
         truncatedLeftKeys.add(leftKeys.get(key));
         truncatedRightKeys.add(rightKeys.get(key));
@@ -319,16 +316,9 @@ public class LoptSemiJoinOptimizer {
               multiJoin.getNumFieldsInJoinFactor(factIdx),
               semiJoinCondition);
     }
-    SemiJoin semiJoin =
-        new SemiJoin(
-            factRel.getCluster(),
-            factRel.getCluster().traitSetOf(Convention.NONE),
-            factRel,
-            dimRel,
-            semiJoinCondition,
-            ImmutableIntList.copyOf(truncatedLeftKeys),
-            ImmutableIntList.copyOf(truncatedRightKeys));
-    return semiJoin;
+    return SemiJoin.create(factRel, dimRel, semiJoinCondition,
+        ImmutableIntList.copyOf(truncatedLeftKeys),
+        ImmutableIntList.copyOf(truncatedRightKeys));
   }
 
   /**
@@ -589,10 +579,7 @@ public class LoptSemiJoinOptimizer {
       if (bestDimIdx != -1) {
         SemiJoin semiJoin = possibleDimensions.get(bestDimIdx);
         SemiJoin chosenSemiJoin =
-            new SemiJoin(
-                factRel.getCluster(),
-                factRel.getCluster().traitSetOf(Convention.NONE),
-                factRel,
+            SemiJoin.create(factRel,
                 chosenSemiJoins[bestDimIdx],
                 semiJoin.getCondition(),
                 semiJoin.getLeftKeys(),

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -75,9 +74,9 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
     // convert the LHS semijoin keys to reference the child projection
     // expression; all projection expressions must be RexInputRefs,
     // otherwise, we wouldn't have created this semijoin
-    List<Integer> newLeftKeys = new ArrayList<Integer>();
-    List<Integer> leftKeys = semiJoin.getLeftKeys();
-    List<RexNode> projExprs = project.getProjects();
+    final List<Integer> newLeftKeys = new ArrayList<>();
+    final List<Integer> leftKeys = semiJoin.getLeftKeys();
+    final List<RexNode> projExprs = project.getProjects();
     for (int leftKey : leftKeys) {
       RexInputRef inputRef = (RexInputRef) projExprs.get(leftKey);
       newLeftKeys.add(inputRef.getIndex());
@@ -88,14 +87,8 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
     RexNode newCondition = adjustCondition(project, semiJoin);
 
     SemiJoin newSemiJoin =
-        new SemiJoin(
-            semiJoin.getCluster(),
-            semiJoin.getCluster().traitSetOf(Convention.NONE),
-            project.getInput(),
-            semiJoin.getRight(),
-            newCondition,
-            ImmutableIntList.copyOf(newLeftKeys),
-            semiJoin.getRightKeys());
+        SemiJoin.create(project.getInput(), semiJoin.getRight(), newCondition,
+            ImmutableIntList.copyOf(newLeftKeys), semiJoin.getRightKeys());
 
     // Create the new projection.  Note that the projection expressions
     // are the same as the original because they only reference the LHS
