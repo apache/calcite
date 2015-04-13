@@ -700,6 +700,17 @@ public class DateTimeUtils {
     }
   }
 
+  /** Resets to zero the "time" part of a timestamp. */
+  public static long resetTime(long timestamp) {
+    int date = (int) (timestamp / MILLIS_PER_DAY);
+    return (long) date * MILLIS_PER_DAY;
+  }
+
+  /** Resets to epoch (1970-01-01) the "date" part of a timestamp. */
+  public static long resetDate(long timestamp) {
+    return floorMod(timestamp, MILLIS_PER_DAY);
+  }
+
   public static long unixTimestampFloor(TimeUnitRange range, long timestamp) {
     int date = (int) (timestamp / MILLIS_PER_DAY);
     final int f = julianDateFloor(range, date + EPOCH_JULIAN, true);

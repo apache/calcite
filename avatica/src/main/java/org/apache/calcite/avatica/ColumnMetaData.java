@@ -246,7 +246,7 @@ public class ColumnMetaData {
     }
 
     public String columnClassName() {
-      return SqlType.valueOf(id).clazz.getName();
+      return SqlType.valueOf(id).boxedClass().getName();
     }
 
     public AvaticaType setRep(Rep rep) {

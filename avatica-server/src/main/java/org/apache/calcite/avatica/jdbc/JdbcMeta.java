@@ -20,7 +20,8 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
-import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.avatica.remote.TypedValue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,9 +31,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
@@ -41,12 +39,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
@@ -54,42 +50,11 @@ import java.util.concurrent.TimeUnit;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
-
   private static final Log LOG = LogFactory.getLog(JdbcMeta.class);
 
-  /**
-   * JDBC Types Mapped to Java Types
-   *
-   * @see <a href="https://docs.oracle.com/javase/1.5.0/docs/guide/jdbc/getstart/mapping.html#1051555">JDBC Types Mapped to Java Types</a>
-   */
-  protected static final Map<Integer, Type> SQL_TYPE_TO_JAVA_TYPE =
-      new HashMap<>();
-  static {
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.CHAR, String.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.VARCHAR, String.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.LONGNVARCHAR, String.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.NUMERIC, BigDecimal.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.DECIMAL, BigDecimal.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.BIT, Boolean.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.TINYINT, Byte.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.SMALLINT, Short.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.INTEGER, Integer.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.BIGINT, Long.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.REAL, Float.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.FLOAT, Double.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.DOUBLE, Double.TYPE);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.BINARY, byte[].class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.VARBINARY, byte[].class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.LONGVARBINARY, byte[].class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.DATE, java.sql.Date.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.TIME, java.sql.Time.class);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.TIMESTAMP, java.sql.Timestamp.class);
-    //put(Types.CLOB, Clob);
-    //put(Types.BLOB, Blob);
-    SQL_TYPE_TO_JAVA_TYPE.put(Types.ARRAY, Array.class);
-  }
-
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
+
+  final Calendar calendar = Calendar.getInstance();
 
   /** Configurable connection cache settings. */
   public enum ConnectionCacheSettings {
@@ -190,20 +155,8 @@ public class JdbcMeta implements Meta {
     }
     final List<ColumnMetaData> columns = new ArrayList<>();
     for (int i = 1; i <= metaData.getColumnCount(); i++) {
-      final Type javaType =
-          SQL_TYPE_TO_JAVA_TYPE.get(metaData.getColumnType(i));
-      final ColumnMetaData.Rep rep;
-      switch (metaData.getColumnType(i)) {
-      case Types.DATE:
-      case Types.TIME:
-        rep = ColumnMetaData.Rep.INTEGER;
-        break;
-      case Types.TIMESTAMP:
-        rep = ColumnMetaData.Rep.LONG;
-        break;
-      default:
-        rep = ColumnMetaData.Rep.of(javaType);
-      }
+      final SqlType sqlType = SqlType.valueOf(metaData.getColumnType(i));
+      final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(sqlType.internal);
       ColumnMetaData.AvaticaType t =
           ColumnMetaData.scalar(metaData.getColumnType(i),
               metaData.getColumnTypeName(i), rep);
@@ -624,7 +577,7 @@ public class JdbcMeta implements Meta {
   }
 
   public Iterable<Object> createIterable(StatementHandle handle,
-      Signature signature, List<Object> parameterValues, Frame firstFrame) {
+      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
     return null;
   }
 
@@ -788,7 +741,7 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public Frame fetch(StatementHandle h, List<Object> parameterValues,
+  public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
       int offset, int fetchMaxRowCount) {
     if (LOG.isTraceEnabled()) {
       LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:" + fetchMaxRowCount);
@@ -805,11 +758,8 @@ public class JdbcMeta implements Meta {
             (PreparedStatement) statementInfo.statement;
         if (parameterValues != null) {
           for (int i = 0; i < parameterValues.size(); i++) {
-            Object o = parameterValues.get(i);
-            if (o instanceof ByteString) {
-              o = ((ByteString) o).getBytes();
-            }
-            preparedStatement.setObject(i + 1, o);
+            TypedValue o = parameterValues.get(i);
+            preparedStatement.setObject(i + 1, o.toJdbc(calendar));
           }
         }
         if (preparedStatement.execute()) {
@@ -819,7 +769,8 @@ public class JdbcMeta implements Meta {
       if (statementInfo.resultSet == null) {
         return Frame.EMPTY;
       } else {
-        return JdbcResultSet.frame(statementInfo.resultSet, offset, fetchMaxRowCount);
+        return JdbcResultSet.frame(statementInfo.resultSet, offset,
+            fetchMaxRowCount, calendar);
       }
     } catch (SQLException e) {
       throw propagate(e);

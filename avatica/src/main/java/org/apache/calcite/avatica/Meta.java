@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.TypedValue;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -151,7 +153,7 @@ public interface Meta {
    * requires to be not null; derived classes may instead choose to execute the
    * relational expression in {@code signature}. */
   Iterable<Object> createIterable(StatementHandle handle, Signature signature,
-      List<Object> parameterValues, Frame firstFrame);
+      List<TypedValue> parameterValues, Frame firstFrame);
 
   /** Prepares a statement.
    *
@@ -191,7 +193,7 @@ public interface Meta {
    * no limit
    * @return Frame, or null if there are no more
    */
-  Frame fetch(StatementHandle h, List<Object> parameterValues, int offset,
+  Frame fetch(StatementHandle h, List<TypedValue> parameterValues, int offset,
       int fetchMaxRowCount);
 
   /** Called during the creation of a statement to allocate a new handle.

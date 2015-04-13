@@ -81,8 +81,9 @@ public class LocalService implements Service {
   private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         resultSet.connectionId, resultSet.statementId, null);
+    final List<TypedValue> parameterValues = Collections.emptyList();
     final Iterable<Object> iterable = meta.createIterable(h,
-        resultSet.signature, Collections.emptyList(), resultSet.firstFrame);
+        resultSet.signature, parameterValues, resultSet.firstFrame);
     final List<List<Object>> list = new ArrayList<>();
     return MetaImpl.collect(resultSet.signature.cursorFactory, iterable, list);
   }
@@ -161,7 +162,7 @@ public class LocalService implements Service {
         request.connectionId, request.statementId, null);
     final Meta.Frame frame =
         meta.fetch(h,
-            TypedValue.values(request.parameterValues),
+            request.parameterValues,
             request.offset,
             request.fetchMaxRowCount);
     return new FetchResponse(frame);

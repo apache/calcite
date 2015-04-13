@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.avatica.util;
 
-import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaSite;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 
@@ -666,7 +666,7 @@ public abstract class AbstractCursor implements Cursor {
       if (n == null) {
         return null;
       }
-      return AvaticaParameter.toBigDecimal(n)
+      return AvaticaSite.toBigDecimal(n)
           .setScale(scale, BigDecimal.ROUND_UNNECESSARY);
     }
 

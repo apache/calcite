@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.avatica.util.ArrayIteratorCursor;
 import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.avatica.util.IteratorCursor;
@@ -685,14 +686,14 @@ public abstract class MetaImpl implements Meta {
   }
 
   public Iterable<Object> createIterable(StatementHandle handle,
-      Signature signature, List<Object> parameterValues, Frame firstFrame) {
+      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
     if (firstFrame != null && firstFrame.done) {
       return firstFrame.rows;
     }
     return new FetchIterable(handle, firstFrame, parameterValues);
   }
 
-  public Frame fetch(StatementHandle h, List<Object> parameterValues,
+  public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
       int offset, int fetchMaxRowCount) {
     return null;
   }
@@ -760,10 +761,10 @@ public abstract class MetaImpl implements Meta {
   private class FetchIterable implements Iterable<Object> {
     private final StatementHandle handle;
     private final Frame firstFrame;
-    private final List<Object> parameterValues;
+    private final List<TypedValue> parameterValues;
 
     public FetchIterable(StatementHandle handle, Frame firstFrame,
-        List<Object> parameterValues) {
+        List<TypedValue> parameterValues) {
       this.handle = handle;
       this.firstFrame = firstFrame;
       this.parameterValues = parameterValues;
@@ -779,10 +780,10 @@ public abstract class MetaImpl implements Meta {
     private final StatementHandle handle;
     private Frame frame;
     private Iterator<Object> rows;
-    private List<Object> parameterValues;
+    private List<TypedValue> parameterValues;
 
     public FetchIterator(StatementHandle handle, Frame firstFrame,
-        List<Object> parameterValues) {
+        List<TypedValue> parameterValues) {
       this.handle = handle;
       this.parameterValues = parameterValues;
       if (firstFrame == null) {

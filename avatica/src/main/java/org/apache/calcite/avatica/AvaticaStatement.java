@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.TypedValue;
+
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -429,7 +430,7 @@ public abstract class AvaticaStatement
    *
    * @see org.apache.calcite.avatica.AvaticaConnection.Trojan#getParameterValues(AvaticaStatement)
    */
-  protected List<Object> getParameterValues() {
+  protected List<TypedValue> getParameterValues() {
     return Collections.emptyList();
   }
 
@@ -438,18 +439,14 @@ public abstract class AvaticaStatement
    * <p>If any of the parameters have not been bound, throws.
    * If parameters have been bound to null, the value in the list is null.
    */
-  protected List<Object> getBoundParameterValues() throws SQLException {
-    final List<Object> list = new ArrayList<>();
-    for (Object parameterValue : getParameterValues()) {
+  protected List<TypedValue> getBoundParameterValues() throws SQLException {
+    final List<TypedValue> parameterValues = getParameterValues();
+    for (Object parameterValue : parameterValues) {
       if (parameterValue == null) {
         throw new SQLException("unbound parameter");
       }
-      if (parameterValue == AvaticaParameter.DUMMY_VALUE) {
-        parameterValue = null;
-      }
-      list.add(parameterValue);
     }
-    return list;
+    return parameterValues;
   }
 }
 

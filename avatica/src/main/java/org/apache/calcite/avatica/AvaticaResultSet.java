@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.avatica.util.Cursor;
 
@@ -179,7 +180,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
    * @throws SQLException if execute fails for some reason.
    */
   protected AvaticaResultSet execute() throws SQLException {
-    final List<Object> parameterValues = statement.getBoundParameterValues();
+    final List<TypedValue> parameterValues = statement.getBoundParameterValues();
     final Iterable<Object> iterable1 =
         statement.connection.meta.createIterable(statement.handle, signature,
             parameterValues, firstFrame);
@@ -377,7 +378,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   public Object getObject(int columnIndex) throws SQLException {
     final Cursor.Accessor accessor = getAccessor(columnIndex);
     final ColumnMetaData metaData = columnMetaDataList.get(columnIndex - 1);
-    return AvaticaParameter.get(accessor, metaData.type.id, localCalendar);
+    return AvaticaSite.get(accessor, metaData.type.id, localCalendar);
   }
 
   public Object getObject(String columnLabel) throws SQLException {

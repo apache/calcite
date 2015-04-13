@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.TypedValue;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -48,7 +50,8 @@ public abstract class AvaticaPreparedStatement
     implements PreparedStatement, ParameterMetaData {
   private final Meta.Signature signature;
   private final ResultSetMetaData resultSetMetaData;
-  protected final Object[] slots;
+  private Calendar calendar;
+  protected final TypedValue[] slots;
 
   /**
    * Creates an AvaticaPreparedStatement.
@@ -70,13 +73,25 @@ public abstract class AvaticaPreparedStatement
     super(connection, h, resultSetType, resultSetConcurrency,
         resultSetHoldability);
     this.signature = signature;
-    this.slots = new Object[signature.parameters.size()];
+    this.slots = new TypedValue[signature.parameters.size()];
     this.resultSetMetaData =
         connection.factory.newResultSetMetaData(this, signature);
   }
 
-  @Override protected List<Object> getParameterValues() {
+  @Override protected List<TypedValue> getParameterValues() {
     return Arrays.asList(slots);
+  }
+
+  /** Returns a calendar in the connection's time zone, creating one the first
+   * time this method is called.
+   *
+   * <p>Uses the calendar to offset date-time values when calling methods such
+   * as {@link #setDate(int, Date)}. */
+  protected synchronized Calendar getCalendar() {
+    if (calendar == null) {
+      calendar = Calendar.getInstance(connection.getTimeZone());
+    }
+    return calendar;
   }
 
   // implement PreparedStatement
@@ -95,79 +110,66 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
-    getParameter(parameterIndex).setNull(slots, parameterIndex - 1, sqlType);
+    getSite(parameterIndex).setNull(sqlType);
   }
 
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-    getParameter(parameterIndex).setBoolean(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setBoolean(x);
   }
 
   public void setByte(int parameterIndex, byte x) throws SQLException {
-    getParameter(parameterIndex).setByte(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setByte(x);
   }
 
   public void setShort(int parameterIndex, short x) throws SQLException {
-    getParameter(parameterIndex).setShort(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setShort(x);
   }
 
   public void setInt(int parameterIndex, int x) throws SQLException {
-    getParameter(parameterIndex).setInt(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setInt(x);
   }
 
   public void setLong(int parameterIndex, long x) throws SQLException {
-    getParameter(parameterIndex).setLong(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setLong(x);
   }
 
   public void setFloat(int parameterIndex, float x) throws SQLException {
-    getParameter(parameterIndex).setFloat(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setFloat(x);
   }
 
   public void setDouble(int parameterIndex, double x) throws SQLException {
-    getParameter(parameterIndex).setDouble(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setDouble(x);
   }
 
   public void setBigDecimal(int parameterIndex, BigDecimal x)
       throws SQLException {
-    getParameter(parameterIndex).setBigDecimal(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setBigDecimal(x);
   }
 
   public void setString(int parameterIndex, String x) throws SQLException {
-    getParameter(parameterIndex).setString(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setString(x);
   }
 
   public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-    getParameter(parameterIndex).setBytes(slots, parameterIndex - 1, x);
-  }
-
-  public void setDate(int parameterIndex, Date x) throws SQLException {
-    getParameter(parameterIndex).setDate(slots, parameterIndex - 1, x);
-  }
-
-  public void setTime(int parameterIndex, Time x) throws SQLException {
-    getParameter(parameterIndex).setTime(slots, parameterIndex - 1, x);
-  }
-
-  public void setTimestamp(int parameterIndex, Timestamp x)
-      throws SQLException {
-    getParameter(parameterIndex).setTimestamp(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setBytes(x);
   }
 
   public void setAsciiStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setAsciiStream(slots, parameterIndex - 1, x, length);
+    getSite(parameterIndex)
+        .setAsciiStream(x, length);
   }
 
   public void setUnicodeStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setUnicodeStream(slots, parameterIndex - 1, x, length);
+    getSite(parameterIndex)
+        .setUnicodeStream(x, length);
   }
 
   public void setBinaryStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setBinaryStream(slots, parameterIndex - 1, x, length);
+    getSite(parameterIndex)
+        .setBinaryStream(x, length);
   }
 
   public void clearParameters() throws SQLException {
@@ -178,12 +180,12 @@ public abstract class AvaticaPreparedStatement
 
   public void setObject(int parameterIndex, Object x, int targetSqlType)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setObject(slots, parameterIndex - 1, x, targetSqlType);
+    getSite(parameterIndex)
+        .setObject(x, targetSqlType, getCalendar());
   }
 
   public void setObject(int parameterIndex, Object x) throws SQLException {
-    getParameter(parameterIndex).setObject(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setObject(x);
   }
 
   public boolean execute() throws SQLException {
@@ -199,60 +201,75 @@ public abstract class AvaticaPreparedStatement
 
   public void setCharacterStream(int parameterIndex, Reader reader, int length)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setCharacterStream(slots, parameterIndex - 1, reader, length);
+    getSite(parameterIndex)
+        .setCharacterStream(reader, length);
   }
 
   public void setRef(int parameterIndex, Ref x) throws SQLException {
-    getParameter(parameterIndex).setRef(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setRef(x);
   }
 
   public void setBlob(int parameterIndex, Blob x) throws SQLException {
-    getParameter(parameterIndex).setBlob(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setBlob(x);
   }
 
   public void setClob(int parameterIndex, Clob x) throws SQLException {
-    getParameter(parameterIndex).setClob(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setClob(x);
   }
 
   public void setArray(int parameterIndex, Array x) throws SQLException {
-    getParameter(parameterIndex).setArray(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setArray(x);
   }
 
   public ResultSetMetaData getMetaData() {
     return resultSetMetaData;
   }
 
-  public void setDate(int parameterIndex, Date x, Calendar cal)
+  public void setDate(int parameterIndex, Date x, Calendar calendar)
       throws SQLException {
-    getParameter(parameterIndex).setDate(slots, parameterIndex - 1, x, cal);
+    getSite(parameterIndex)
+        .setDate(x, calendar);
   }
 
-  public void setTime(int parameterIndex, Time x, Calendar cal)
-      throws SQLException {
-    getParameter(parameterIndex).setTime(slots, parameterIndex - 1, x, cal);
+  public void setDate(int parameterIndex, Date x) throws SQLException {
+    setDate(parameterIndex, x, getCalendar());
   }
 
-  public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal)
+  public void setTime(int parameterIndex, Time x, Calendar calendar)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setTimestamp(slots, parameterIndex - 1, x, cal);
+    getSite(parameterIndex)
+        .setTime(x, calendar);
+  }
+
+  public void setTime(int parameterIndex, Time x) throws SQLException {
+    setTime(parameterIndex, x, getCalendar());
+  }
+
+  public void setTimestamp(int parameterIndex, Timestamp x, Calendar calendar)
+      throws SQLException {
+    getSite(parameterIndex)
+        .setTimestamp(x, calendar);
+  }
+
+  public void setTimestamp(int parameterIndex, Timestamp x)
+      throws SQLException {
+    setTimestamp(parameterIndex, x, getCalendar());
   }
 
   public void setNull(int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    getParameter(parameterIndex)
-        .setNull(slots, parameterIndex - 1, sqlType, typeName);
+    getSite(parameterIndex)
+        .setNull(sqlType, typeName);
   }
 
   public void setURL(int parameterIndex, URL x) throws SQLException {
-    getParameter(parameterIndex).setURL(slots, parameterIndex - 1, x);
+    getSite(parameterIndex).setURL(x);
   }
 
   public void setObject(int parameterIndex, Object x, int targetSqlType,
       int scaleOrLength) throws SQLException {
-    getParameter(parameterIndex)
-        .setObject(slots, parameterIndex - 1, x, targetSqlType, scaleOrLength);
+    getSite(parameterIndex)
+        .setObject(x, targetSqlType, scaleOrLength);
   }
 
   // implement ParameterMetaData
@@ -266,6 +283,11 @@ public abstract class AvaticaPreparedStatement
           connection.helper.createException(
               "parameter ordinal " + param + " out of range"));
     }
+  }
+
+  protected AvaticaSite getSite(int param) throws SQLException {
+    final AvaticaParameter parameter = getParameter(param);
+    return new AvaticaSite(parameter, calendar, param - 1, slots);
   }
 
   public int getParameterCount() {

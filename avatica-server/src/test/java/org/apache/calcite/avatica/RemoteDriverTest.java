@@ -40,6 +40,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
@@ -352,27 +353,108 @@ public class RemoteDriverTest {
         Statement s2 = underTest.createStatement()) {
       assertTrue(s1.execute(query));
       assertTrue(s2.execute(query));
-      try (ResultSet rs1 = s1.getResultSet();
-          ResultSet rs2 = s2.getResultSet()) {
-        assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
-        int colCount = rs1.getMetaData().getColumnCount();
-        while (rs1.next() && rs2.next()) {
-          for (int i = 0; i < colCount; i++) {
-            Object o1 = rs1.getObject(i + 1);
-            Object o2 = rs2.getObject(i + 1);
-            if (o1 instanceof Integer && o2 instanceof Short) {
-              // Hsqldb returns Integer for short columns; we prefer Short
-              o1 = ((Number) o1).shortValue();
-            }
-            if (o1 instanceof Integer && o2 instanceof Byte) {
-              // Hsqldb returns Integer for tinyint columns; we prefer Byte
-              o1 = ((Number) o1).byteValue();
-            }
-            assertEquals(o1, o2);
+      assertResultSetsEqual(s1, s2);
+    }
+  }
+
+  private void assertResultSetsEqual(Statement s1, Statement s2)
+      throws SQLException {
+    final TimeZone moscowTz = TimeZone.getTimeZone("Europe/Moscow");
+    final Calendar moscowCalendar = Calendar.getInstance(moscowTz);
+    final TimeZone alaskaTz = TimeZone.getTimeZone("America/Anchorage");
+    final Calendar alaskaCalendar = Calendar.getInstance(alaskaTz);
+    try (ResultSet rs1 = s1.getResultSet();
+        ResultSet rs2 = s2.getResultSet()) {
+      assertEquals(rs1.getMetaData().getColumnCount(),
+          rs2.getMetaData().getColumnCount());
+      int colCount = rs1.getMetaData().getColumnCount();
+      while (rs1.next() && rs2.next()) {
+        for (int i = 0; i < colCount; i++) {
+          Object o1 = rs1.getObject(i + 1);
+          Object o2 = rs2.getObject(i + 1);
+          if (o1 instanceof Integer && o2 instanceof Short) {
+            // Hsqldb returns Integer for short columns; we prefer Short
+            o1 = ((Number) o1).shortValue();
           }
+          if (o1 instanceof Integer && o2 instanceof Byte) {
+            // Hsqldb returns Integer for tinyint columns; we prefer Byte
+            o1 = ((Number) o1).byteValue();
+          }
+          if (o1 instanceof Date) {
+            Date d1 = rs1.getDate(i + 1, moscowCalendar);
+            Date d2 = rs2.getDate(i + 1, moscowCalendar);
+            assertEquals(d1, d2);
+            d1 = rs1.getDate(i + 1, alaskaCalendar);
+            d2 = rs2.getDate(i + 1, alaskaCalendar);
+            assertEquals(d1, d2);
+            d1 = rs1.getDate(i + 1, null);
+            d2 = rs2.getDate(i + 1, null);
+            assertEquals(d1, d2);
+            d1 = rs1.getDate(i + 1);
+            d2 = rs2.getDate(i + 1);
+            assertEquals(d1, d2);
+          }
+          if (o1 instanceof Timestamp) {
+            Timestamp d1 = rs1.getTimestamp(i + 1, moscowCalendar);
+            Timestamp d2 = rs2.getTimestamp(i + 1, moscowCalendar);
+            assertEquals(d1, d2);
+            d1 = rs1.getTimestamp(i + 1, alaskaCalendar);
+            d2 = rs2.getTimestamp(i + 1, alaskaCalendar);
+            assertEquals(d1, d2);
+            d1 = rs1.getTimestamp(i + 1, null);
+            d2 = rs2.getTimestamp(i + 1, null);
+            assertEquals(d1, d2);
+            d1 = rs1.getTimestamp(i + 1);
+            d2 = rs2.getTimestamp(i + 1);
+            assertEquals(d1, d2);
+          }
+          assertEquals(o1, o2);
         }
-        assertEquals(rs1.next(), rs2.next());
       }
+      assertEquals(rs1.next(), rs2.next());
+    }
+  }
+
+  /** Callback to set parameters on each prepared statement before
+   * each is executed and the result sets compared. */
+  interface PreparedStatementFunction {
+    void apply(PreparedStatement s1, PreparedStatement s2)
+        throws SQLException;
+  }
+
+  @Test public void testSetParameter() throws Exception {
+    checkSetParameter("select ? from (values 1)",
+        new PreparedStatementFunction() {
+          public void apply(PreparedStatement s1, PreparedStatement s2)
+              throws SQLException {
+            final Date d = new Date(1234567890);
+            s1.setDate(1, d);
+            s2.setDate(1, d);
+          }
+        });
+    checkSetParameter("select ? from (values 1)",
+        new PreparedStatementFunction() {
+          public void apply(PreparedStatement s1, PreparedStatement s2)
+              throws SQLException {
+            final Timestamp ts = new Timestamp(123456789012L);
+            s1.setTimestamp(1, ts);
+            s2.setTimestamp(1, ts);
+          }
+        });
+  }
+
+  void checkSetParameter(String query, PreparedStatementFunction fn)
+      throws SQLException {
+    try (Connection cannon =
+             DriverManager.getConnection(CONNECTION_SPEC.url,
+                 CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+         Connection underTest = ljs();
+         PreparedStatement s1 = cannon.prepareStatement(query);
+         PreparedStatement s2 = underTest.prepareStatement(query)) {
+      fn.apply(s1, s2);
+      assertTrue(s1.execute());
+      assertTrue(s2.execute());
+      assertResultSetsEqual(s1, s2);
     }
   }
 
@@ -497,46 +579,75 @@ public class RemoteDriverTest {
   }
 
   @Test public void testPrepareBindExecuteFetchDate() throws Exception {
-    final Connection connection = ljs();
-    final String sql = "select ? + interval '2' day as c from (values (1, 'a'))";
-    final PreparedStatement ps =
-        connection.prepareStatement(sql);
-    final ParameterMetaData parameterMetaData = ps.getParameterMetaData();
-    assertThat(parameterMetaData.getParameterCount(), equalTo(1));
+    checkPrepareBindExecuteFetchDate(ljs());
+  }
 
-    Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-    calendar.set(Calendar.YEAR, 2015);
-    calendar.set(Calendar.MONTH, 4);
-    calendar.set(Calendar.DAY_OF_MONTH, 8);
-    calendar.set(Calendar.HOUR_OF_DAY, 0);
-    calendar.set(Calendar.MINUTE, 0);
-    calendar.set(Calendar.SECOND, 0);
-    calendar.set(Calendar.MILLISECOND, 0);
-    final long time = calendar.getTime().getTime();
+  @Test public void testPrepareBindExecuteFetchDate2() throws Exception {
+    try (Connection cannon =
+             DriverManager.getConnection(CONNECTION_SPEC.url,
+                 CONNECTION_SPEC.username, CONNECTION_SPEC.password)) {
+      checkPrepareBindExecuteFetchDate(cannon);
+    }
+  }
+
+  private void checkPrepareBindExecuteFetchDate(Connection connection) throws Exception {
+    final String sql0 =
+        "select cast(? as varchar(20)) as c\n"
+            + "from (values (1, 'a'))";
+    final String sql1 = "select ? + interval '2' day as c from (values (1, 'a'))";
+
+    final Date date = Date.valueOf("2015-04-08");
+    final long time = date.getTime();
+
+    PreparedStatement ps;
+    ParameterMetaData parameterMetaData;
     ResultSet resultSet;
 
-    ps.setDate(1, new java.sql.Date(time), calendar);
+    ps = connection.prepareStatement(sql0);
+    parameterMetaData = ps.getParameterMetaData();
+    assertThat(parameterMetaData.getParameterCount(), equalTo(1));
+    ps.setDate(1, date);
+    resultSet = ps.executeQuery();
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getString(1), is("2015-04-08"));
+
+    ps.setTimestamp(1, new Timestamp(time));
+    resultSet = ps.executeQuery();
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getString(1), is("2015-04-08 00:00:00.0"));
+
+    ps.setTime(1, new Time(time));
+    resultSet = ps.executeQuery();
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getString(1), is("00:00:00"));
+    ps.close();
+
+    ps = connection.prepareStatement(sql1);
+    parameterMetaData = ps.getParameterMetaData();
+    assertThat(parameterMetaData.getParameterCount(), equalTo(1));
+
+    ps.setDate(1, date);
     resultSet = ps.executeQuery();
     assertTrue(resultSet.next());
-    assertThat(resultSet.getDate(1, calendar),
+    assertThat(resultSet.getDate(1),
         equalTo(new Date(time + TimeUnit.DAYS.toMillis(2))));
-    assertThat(resultSet.getTimestamp(1, calendar),
+    assertThat(resultSet.getTimestamp(1),
         equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
 
-    ps.setTimestamp(1, new Timestamp(time), calendar);
+    ps.setTimestamp(1, new Timestamp(time));
     resultSet = ps.executeQuery();
     assertTrue(resultSet.next());
-    assertThat(resultSet.getTimestamp(1, calendar),
+    assertThat(resultSet.getTimestamp(1),
         equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
-    assertThat(resultSet.getTimestamp(1, calendar),
+    assertThat(resultSet.getTimestamp(1),
         equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
 
     ps.setObject(1, new java.util.Date(time));
     resultSet = ps.executeQuery();
     assertTrue(resultSet.next());
-    assertThat(resultSet.getDate(1, calendar),
+    assertThat(resultSet.getDate(1),
         equalTo(new Date(time + TimeUnit.DAYS.toMillis(2))));
-    assertThat(resultSet.getTimestamp(1, calendar),
+    assertThat(resultSet.getTimestamp(1),
         equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
 
     resultSet.close();

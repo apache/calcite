@@ -285,7 +285,7 @@ public class CalciteRemoteDriverTest {
       }
       int param = map.get(sqlType);
       Class clazz = entry.getKey();
-      for (Object sampleValue : values(sqlType.clazz)) {
+      for (Object sampleValue : values(sqlType.boxedClass())) {
         switch (sqlType) {
         case DATE:
         case TIME:

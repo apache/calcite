@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.TypedValue;
+
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -187,6 +189,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public int getTransactionIsolation() throws SQLException {
+    //noinspection MagicConstant
     return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getTransactionIsolation();
   }
 
@@ -517,7 +520,7 @@ public abstract class AvaticaConnection implements Connection {
     /** A means for anyone who has a trojan to call the protected method
      * {@link org.apache.calcite.avatica.AvaticaStatement#getParameterValues()}.
      */
-    public List<Object> getParameterValues(AvaticaStatement statement) {
+    public List<TypedValue> getParameterValues(AvaticaStatement statement) {
       return statement.getParameterValues();
     }
 

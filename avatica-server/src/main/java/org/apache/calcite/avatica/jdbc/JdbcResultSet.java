@@ -27,6 +27,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.avatica.Meta.MetaResultSet}
@@ -44,7 +45,8 @@ class JdbcResultSet extends Meta.MetaResultSet {
       ResultSet resultSet) {
     try {
       Meta.Signature sig = JdbcMeta.signature(resultSet.getMetaData());
-      final Meta.Frame firstFrame = frame(resultSet, 0, -1);
+      final Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      final Meta.Frame firstFrame = frame(resultSet, 0, -1, calendar);
       resultSet.close();
       return new JdbcResultSet(connectionId, statementId, true, sig,
           firstFrame);
@@ -56,7 +58,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
   /** Creates a frame containing a given number or unlimited number of rows
    * from a result set. */
   static Meta.Frame frame(ResultSet resultSet, int offset,
-      int fetchMaxRowCount) throws SQLException {
+      int fetchMaxRowCount, Calendar calendar) throws SQLException {
     final ResultSetMetaData metaData = resultSet.getMetaData();
     final int columnCount = metaData.getColumnCount();
     final int[] types = new int[columnCount];
@@ -72,15 +74,15 @@ class JdbcResultSet extends Meta.MetaResultSet {
       }
       Object[] columns = new Object[columnCount];
       for (int j = 0; j < columnCount; j++) {
-        columns[j] = getValue(resultSet, types[j], j);
+        columns[j] = getValue(resultSet, types[j], j, calendar);
       }
       rows.add(columns);
     }
     return new Meta.Frame(offset, done, rows);
   }
 
-  private static Object getValue(ResultSet resultSet, int type, int j)
-      throws SQLException {
+  private static Object getValue(ResultSet resultSet, int type, int j,
+      Calendar calendar) throws SQLException {
     switch (type) {
     case Types.BIGINT:
       final long aLong = resultSet.getLong(j + 1);
@@ -102,17 +104,17 @@ class JdbcResultSet extends Meta.MetaResultSet {
       final float aFloat = resultSet.getFloat(j + 1);
       return aFloat == 0D && resultSet.wasNull() ? null : aFloat;
     case Types.DATE:
-      final Date aDate = resultSet.getDate(j + 1);
+      final Date aDate = resultSet.getDate(j + 1, calendar);
       return aDate == null
           ? null
           : (int) (aDate.getTime() / DateTimeUtils.MILLIS_PER_DAY);
     case Types.TIME:
-      final Time aTime = resultSet.getTime(j + 1);
+      final Time aTime = resultSet.getTime(j + 1, calendar);
       return aTime == null
           ? null
           : (int) (aTime.getTime() % DateTimeUtils.MILLIS_PER_DAY);
     case Types.TIMESTAMP:
-      final Timestamp aTimestamp = resultSet.getTimestamp(j + 1);
+      final Timestamp aTimestamp = resultSet.getTimestamp(j + 1, calendar);
       return aTimestamp == null ? null : aTimestamp.getTime();
     default:
       return resultSet.getObject(j + 1);

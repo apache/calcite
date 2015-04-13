@@ -20,12 +20,13 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
-import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaSite;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Helper;
 import org.apache.calcite.avatica.InternalProperty;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.linq4j.BaseQueryable;
@@ -224,10 +225,10 @@ abstract class CalciteConnectionImpl
       CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
     Map<String, Object> map = Maps.newLinkedHashMap();
     AvaticaStatement statement = lookupStatement(handle);
-    final List<Object> parameterValues =
+    final List<TypedValue> parameterValues =
         TROJAN.getParameterValues(statement);
-    for (Ord<Object> o : Ord.zip(parameterValues)) {
-      map.put("?" + o.i, o.e);
+    for (Ord<TypedValue> o : Ord.zip(parameterValues)) {
+      map.put("?" + o.i, o.e.toLocal());
     }
     map.putAll(signature.internalParameters);
     final DataContext dataContext = createDataContext(map);
@@ -329,7 +330,7 @@ abstract class CalciteConnectionImpl
       for (Map.Entry<String, Object> entry : parameters.entrySet()) {
         Object e = entry.getValue();
         if (e == null) {
-          e = AvaticaParameter.DUMMY_VALUE;
+          e = AvaticaSite.DUMMY_VALUE;
         }
         builder.put(entry.getKey(), e);
       }
@@ -338,7 +339,7 @@ abstract class CalciteConnectionImpl
 
     public synchronized Object get(String name) {
       Object o = map.get(name);
-      if (o == AvaticaParameter.DUMMY_VALUE) {
+      if (o == AvaticaSite.DUMMY_VALUE) {
         return null;
       }
       if (o == null && Variable.SQL_ADVISOR.camelName.equals(name)) {

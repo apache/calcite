@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.util.ByteString;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
@@ -291,28 +293,29 @@ import java.util.Map;
  * -->
  */
 public enum SqlType {
-  BIT(Types.BIT, Boolean.class),
-  BOOLEAN(Types.BOOLEAN, Boolean.class),
-  TINYINT(Types.TINYINT, Byte.class),
-  SMALLINT(Types.SMALLINT, Short.class),
-  INTEGER(Types.INTEGER, Integer.class),
-  BIGINT(Types.BIGINT, Long.class),
-  NUMERIC(Types.NUMERIC, Object.class),
+  BIT(Types.BIT, boolean.class),
+  BOOLEAN(Types.BOOLEAN, boolean.class),
+  TINYINT(Types.TINYINT, byte.class),
+  SMALLINT(Types.SMALLINT, short.class),
+  INTEGER(Types.INTEGER, int.class),
+  BIGINT(Types.BIGINT, long.class),
+  NUMERIC(Types.NUMERIC, BigDecimal.class),
   DECIMAL(Types.DECIMAL, BigDecimal.class),
-  FLOAT(Types.FLOAT, Double.class),
-  REAL(Types.REAL, Float.class),
-  DOUBLE(Types.DOUBLE, Double.class),
-  DATE(Types.DATE, java.sql.Date.class),
-  TIME(Types.TIME, Time.class),
-  TIMESTAMP(Types.TIMESTAMP, Timestamp.class),
+  FLOAT(Types.FLOAT, double.class),
+  REAL(Types.REAL, float.class),
+  DOUBLE(Types.DOUBLE, double.class),
+  DATE(Types.DATE, java.sql.Date.class, int.class),
+  TIME(Types.TIME, Time.class, int.class),
+  TIMESTAMP(Types.TIMESTAMP, Timestamp.class, long.class),
   INTERVAL_YEAR_MONTH(Types.OTHER, Boolean.class),
   INTERVAL_DAY_TIME(Types.OTHER, Boolean.class),
   CHAR(Types.CHAR, String.class),
   VARCHAR(Types.VARCHAR, String.class),
   LONGVARCHAR(Types.LONGVARCHAR, String.class),
-  BINARY(Types.BINARY, byte[].class),
-  VARBINARY(Types.VARBINARY, byte[].class),
-  LONGVARBINARY(Types.LONGVARBINARY, byte[].class),
+  BINARY(Types.BINARY, byte[].class, ByteString.class, String.class),
+  VARBINARY(Types.VARBINARY, byte[].class, ByteString.class, String.class),
+  LONGVARBINARY(Types.LONGVARBINARY, byte[].class, ByteString.class,
+      String.class),
   NULL(Types.NULL, Void.class),
   ANY(Types.JAVA_OBJECT, Object.class),
   SYMBOL(Types.OTHER, Object.class),
@@ -323,7 +326,7 @@ public enum SqlType {
   SQLXML(Types.SQLXML, java.sql.SQLXML.class),
   MAP(Types.OTHER, Map.class),
   DISTINCT(Types.DISTINCT, Object.class),
-  STRUCT(Types.STRUCT, Object.class),
+  STRUCT(Types.STRUCT, Struct.class),
   REF(Types.REF, Ref.class),
   DATALINK(Types.DATALINK, URL.class),
   JAVA_OBJECT(Types.JAVA_OBJECT, Object.class),
@@ -340,7 +343,15 @@ public enum SqlType {
   /** Type id as appears in {@link java.sql.Types},
    * e.g. {@link java.sql.Types#INTEGER}. */
   public final int id;
+
+  /** Default Java type for this SQL type, as described in table B-1. */
   public final Class clazz;
+
+  /** Class used internally in Calcite to represent instances of this type. */
+  public final Class internal;
+
+  /** Class used to serialize values of this type as JSON. */
+  public final Class serial;
 
   private static final Map<Integer, SqlType> BY_ID = new HashMap<>();
   static {
@@ -349,9 +360,19 @@ public enum SqlType {
     }
   }
 
-  SqlType(int id, Class clazz) {
+  SqlType(int id, Class clazz, Class internal, Class serial) {
     this.id = id;
     this.clazz = clazz;
+    this.internal = internal;
+    this.serial = serial;
+  }
+
+  SqlType(int id, Class clazz, Class internal) {
+    this(id, clazz, internal, internal);
+  }
+
+  SqlType(int id, Class clazz) {
+    this(id, clazz, clazz, clazz);
   }
 
   public static SqlType valueOf(int type) {
@@ -360,6 +381,20 @@ public enum SqlType {
       throw new IllegalArgumentException("Unknown SQL type " + type);
     }
     return sqlType;
+  }
+
+  /** Returns the boxed type. */
+  public Class boxedClass() {
+    return box(clazz);
+  }
+
+  /** Returns the boxed class. For example, {@code box(int.class)}
+   * returns {@code java.lang.Integer}. */
+  private static Class box(Class clazz) {
+    if (clazz.isPrimitive()) {
+      return BOX.get(clazz);
+    }
+    return clazz;
   }
 
   /** Returns the entries in JDBC table B-5. */
@@ -375,10 +410,13 @@ public enum SqlType {
 
   public static final Map<Class, EnumSet<SqlType>> SET_LIST;
   public static final Map<Method, EnumSet<SqlType>> GET_LIST;
+  private static final Map<Class, Class> BOX;
 
   static {
     SET_LIST = new HashMap<>();
     GET_LIST = new HashMap<>();
+    BOX = new HashMap<>();
+
     EnumSet<SqlType> numericTypes = EnumSet.of(TINYINT, SMALLINT, INTEGER,
         BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN);
     Class[] numericClasses = {
@@ -447,8 +485,8 @@ public enum SqlType {
         concat(charTypes, binaryTypes, ncharTypes,
             EnumSet.of(CLOB, NCLOB, SQLXML)));
     GET_LIST.put(Method.GET_N_CHARACTER_STREAM,
-        concat(charTypes, binaryTypes, ncharTypes,
-            EnumSet.of(CLOB, NCLOB, SQLXML)));
+        concat(
+            charTypes, binaryTypes, ncharTypes, EnumSet.of(CLOB, NCLOB, SQLXML)));
     GET_LIST.put(Method.GET_CLOB, EnumSet.of(CLOB, NCLOB));
     GET_LIST.put(Method.GET_N_CLOB, EnumSet.of(CLOB, NCLOB));
     GET_LIST.put(Method.GET_BLOB, EnumSet.of(BLOB));
@@ -459,6 +497,15 @@ public enum SqlType {
     GET_LIST.put(Method.GET_OBJECT, EnumSet.allOf(SqlType.class));
     GET_LIST.put(Method.GET_ROW_ID, EnumSet.of(ROWID));
     GET_LIST.put(Method.GET_SQLXML, EnumSet.of(SQLXML));
+
+    BOX.put(boolean.class, Boolean.class);
+    BOX.put(byte.class, Byte.class);
+    BOX.put(char.class, Character.class);
+    BOX.put(short.class, Short.class);
+    BOX.put(int.class, Integer.class);
+    BOX.put(long.class, Long.class);
+    BOX.put(float.class, Float.class);
+    BOX.put(double.class, Double.class);
   }
 
   @SafeVarargs

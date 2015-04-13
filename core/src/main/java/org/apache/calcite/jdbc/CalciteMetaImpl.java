@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -457,7 +458,7 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public Iterable<Object> createIterable(StatementHandle handle,
-      Signature signature, List<Object> parameterValues, Frame firstFrame) {
+      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
     try {
       //noinspection unchecked
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
@@ -504,7 +505,7 @@ public class CalciteMetaImpl extends MetaImpl {
     // TODO: share code with prepare and createIterable
   }
 
-  @Override public Frame fetch(StatementHandle h, List<Object> parameterValues,
+  @Override public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
       int offset, int fetchMaxRowCount) {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
@@ -512,7 +513,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Iterator<Object> iterator;
     if (parameterValues != null) {
       final Iterable<Object> iterable =
-          createIterable(h, signature, Collections.emptyList(), null);
+          createIterable(h, signature, parameterValues, null);
       iterator = iterable.iterator();
       stmt.setResultSet(iterator);
     } else {
