@@ -471,8 +471,9 @@ public class CalciteMetaImpl extends MetaImpl {
     final StatementHandle h = createStatement(ch);
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement statement = calciteConnection.server.getStatement(h);
-    calciteConnection.parseQuery(sql, statement.createPrepareContext(),
-        maxRowCount);
+    h.signature =
+        calciteConnection.parseQuery(sql, statement.createPrepareContext(),
+            maxRowCount);
     return h;
   }
 
