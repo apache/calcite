@@ -194,7 +194,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void addBatch() throws SQLException {
-    throw new UnsupportedOperationException();
+    throw connection.helper.unsupported();
   }
 
   public void setCharacterStream(int parameterIndex, Reader reader, int length)

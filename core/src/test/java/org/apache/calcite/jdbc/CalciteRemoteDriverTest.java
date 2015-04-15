@@ -398,6 +398,16 @@ public class CalciteRemoteDriverTest {
 
   }
 
+  @Test(expected = SQLException.class)
+  public void testAvaticaConnectionException() throws Exception {
+    remoteConnection.isValid(0);
+  }
+
+  @Test(expected = SQLException.class)
+  public void testAvaticaStatementException() throws Exception {
+    remoteConnection.createStatement().getMoreResults();
+  }
+
   /** A bunch of sample values of various types. */
   private static final List<Object> SAMPLE_VALUES =
       ImmutableList.<Object>of(false, true,

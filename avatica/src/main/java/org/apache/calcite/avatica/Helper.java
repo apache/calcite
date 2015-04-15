@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.avatica;
 
+import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 
 /**
  * Utility methods, mainly concerning error-handling.
@@ -45,6 +47,14 @@ public class Helper {
 
   public SQLException toSQLException(SQLException exception) {
     return exception;
+  }
+
+  public SQLException unsupported() {
+    return new SQLFeatureNotSupportedException();
+  }
+
+  public SQLClientInfoException clientInfo() {
+    return new SQLClientInfoException();
   }
 }
 
