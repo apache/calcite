@@ -408,16 +408,29 @@ public class CalciteRemoteDriverTest {
     remoteConnection.createStatement().getMoreResults();
   }
 
-  @Test public void testRemotePreparedStatement() throws Exception {
+  @Test public void testRemoteExecute() throws Exception {
+    ResultSet resultSet =
+        remoteConnection.createStatement().executeQuery(
+            "select * from \"hr\".\"emps\"");
+    int count = 0;
+    while (resultSet.next()) {
+      ++count;
+    }
+    assertTrue(count > 0);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-661">[CALCITE-661]
+   * Remote fetch in Calcite JDBC driver</a>. */
+  @Test public void testRemotePrepareExecute() throws Exception {
     final PreparedStatement preparedStatement =
         remoteConnection.prepareStatement("select * from \"hr\".\"emps\"");
     ResultSet resultSet = preparedStatement.executeQuery();
     int count = 0;
     while (resultSet.next()) {
-      count += 1;
+      ++count;
     }
-    // TODO: implement remote fetch
-    //assertTrue(count > 0);
+    assertTrue(count > 0);
   }
 
   /** A bunch of sample values of various types. */

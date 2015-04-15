@@ -23,6 +23,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -57,6 +58,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -474,6 +476,7 @@ public class CalciteMetaImpl extends MetaImpl {
     h.signature =
         calciteConnection.parseQuery(sql, statement.createPrepareContext(),
             maxRowCount);
+    statement.setSignature(h.signature);
     return h;
   }
 
@@ -499,6 +502,28 @@ public class CalciteMetaImpl extends MetaImpl {
       throw new RuntimeException(e);
     }
     // TODO: share code with prepare and createIterable
+  }
+
+  @Override public Frame fetch(StatementHandle h, List<Object> parameterValues,
+      int offset, int fetchMaxRowCount) {
+    final CalciteConnectionImpl calciteConnection = getConnection();
+    CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
+    final Signature signature = stmt.getSignature();
+    final Iterator<Object> iterator;
+    if (parameterValues != null) {
+      final Iterable<Object> iterable =
+          createIterable(h, signature, Collections.emptyList(), null);
+      iterator = iterable.iterator();
+      stmt.setResultSet(iterator);
+    } else {
+      iterator = stmt.getResultSet();
+    }
+    final List<List<Object>> list = new ArrayList<>();
+    List<List<Object>> rows =
+        MetaImpl.collect(signature.cursorFactory,
+            LimitIterator.of(iterator, fetchMaxRowCount), list);
+    boolean done = fetchMaxRowCount == 0 || list.size() < fetchMaxRowCount;
+    return new Meta.Frame(offset, done, (List<Object>) (List) rows);
   }
 
   /** A trojan-horse method, subject to change without notice. */
@@ -569,6 +594,39 @@ public class CalciteMetaImpl extends MetaImpl {
               ((CalciteConnectionImpl) queryProvider).meta());
         }
       };
+    }
+  }
+
+  /** Iterator that returns at most {@code limit} rows from an underlying
+   * {@link Iterator}. */
+  private static class LimitIterator<E> implements Iterator<E> {
+    private final Iterator<E> iterator;
+    private final int limit;
+    int i = 0;
+
+    private LimitIterator(Iterator<E> iterator, int limit) {
+      this.iterator = iterator;
+      this.limit = limit;
+    }
+
+    static <E> Iterator<E> of(Iterator<E> iterator, int limit) {
+      if (limit <= 0) {
+        return iterator;
+      }
+      return new LimitIterator<>(iterator, limit);
+    }
+
+    public boolean hasNext() {
+      return iterator.hasNext() && i < limit;
+    }
+
+    public E next() {
+      ++i;
+      return iterator.next();
+    }
+
+    public void remove() {
+      throw new UnsupportedOperationException();
     }
   }
 }

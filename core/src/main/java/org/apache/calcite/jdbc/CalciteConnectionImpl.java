@@ -63,6 +63,7 @@ import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.sql.SQLException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -157,9 +158,6 @@ abstract class CalciteConnectionImpl
           parseQuery(sql, new ContextImpl(this), -1);
       return (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
           signature, resultSetType, resultSetConcurrency, resultSetHoldability);
-    } catch (RuntimeException e) {
-      throw Helper.INSTANCE.createException(
-          "Error while preparing statement [" + sql + "]", e);
     } catch (Exception e) {
       throw Helper.INSTANCE.createException(
           "Error while preparing statement [" + sql + "]", e);
@@ -196,11 +194,11 @@ abstract class CalciteConnectionImpl
 
   public <T> Queryable<T> createQuery(
       Expression expression, Class<T> rowType) {
-    return new CalciteQueryable<T>(this, rowType, expression);
+    return new CalciteQueryable<>(this, rowType, expression);
   }
 
   public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
-    return new CalciteQueryable<T>(this, rowType, expression);
+    return new CalciteQueryable<>(this, rowType, expression);
   }
 
   public <T> T execute(Expression expression, Type type) {
@@ -438,6 +436,8 @@ abstract class CalciteConnectionImpl
   static class CalciteServerStatementImpl
       implements CalciteServerStatement {
     private final CalciteConnectionImpl connection;
+    private Iterator<Object> iterator;
+    private Meta.Signature signature;
 
     public CalciteServerStatementImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
@@ -449,6 +449,22 @@ abstract class CalciteConnectionImpl
 
     public CalciteConnection getConnection() {
       return connection;
+    }
+
+    public void setSignature(Meta.Signature signature) {
+      this.signature = signature;
+    }
+
+    public Meta.Signature getSignature() {
+      return signature;
+    }
+
+    public Iterator<Object> getResultSet() {
+      return iterator;
+    }
+
+    public void setResultSet(Iterator<Object> iterator) {
+      this.iterator = iterator;
     }
   }
 }

@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.server;
 
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
+
+import java.util.Iterator;
 
 /**
  * Statement within a Calcite server.
@@ -28,6 +31,14 @@ public interface CalciteServerStatement {
 
   /** Returns the connection. */
   CalciteConnection getConnection();
+
+  void setSignature(Meta.Signature signature);
+
+  Meta.Signature getSignature();
+
+  Iterator<Object> getResultSet();
+
+  void setResultSet(Iterator<Object> resultSet);
 }
 
 // End CalciteServerStatement.java

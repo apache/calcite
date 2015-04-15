@@ -107,8 +107,17 @@ public abstract class MetaImpl implements Meta {
   }
 
   public static List<List<Object>> collect(CursorFactory cursorFactory,
-      Iterable<Object> iterable,
-      List<List<Object>> list) {
+      final Iterator<Object> iterator, List<List<Object>> list) {
+    final Iterable<Object> iterable = new Iterable<Object>() {
+      public Iterator<Object> iterator() {
+        return iterator;
+      }
+    };
+    return collect(cursorFactory, iterable, list);
+  }
+
+  public static List<List<Object>> collect(CursorFactory cursorFactory,
+      Iterable<Object> iterable, List<List<Object>> list) {
     switch (cursorFactory.style) {
     case OBJECT:
       for (Object o : iterable) {
