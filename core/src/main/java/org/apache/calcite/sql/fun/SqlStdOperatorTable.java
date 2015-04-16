@@ -152,17 +152,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** {@code CUBE} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */
   public static final SqlInternalOperator CUBE =
-      new SqlInternalOperator("CUBE", SqlKind.CUBE);
+      new SqlRollupOperator("CUBE", SqlKind.CUBE);
 
   /** {@code ROLLUP} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */
   public static final SqlInternalOperator ROLLUP =
-      new SqlInternalOperator("ROLLUP", SqlKind.ROLLUP);
+      new SqlRollupOperator("ROLLUP", SqlKind.ROLLUP);
 
   /** {@code GROUPING SETS} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */
   public static final SqlInternalOperator GROUPING_SETS =
-      new SqlInternalOperator("GROUPING_SETS", SqlKind.GROUPING_SETS);
+      new SqlRollupOperator("GROUPING SETS", SqlKind.GROUPING_SETS);
 
   /** {@code GROUPING} function. Occurs in similar places to an aggregate
    * function ({@code SELECT}, {@code HAVING} clause, etc. of an aggregate
@@ -178,10 +178,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlGroupingIdFunction GROUPING_ID =
       new SqlGroupingIdFunction();
 
-  /** {@code EXTEND} operator to add columns to a table's schema, as in
-   * {@code SELECT ... FROM emp EXTEND (horoscope VARCHAR(100))}. */
-  public static final SqlInternalOperator EXTEND =
-      new SqlInternalOperator("EXTEND", SqlKind.EXTEND);
+  /** {@code EXTEND} operator. */
+  public static final SqlInternalOperator EXTEND = new SqlExtendOperator();
 
   /**
    * String concatenation operator, '<code>||</code>'.

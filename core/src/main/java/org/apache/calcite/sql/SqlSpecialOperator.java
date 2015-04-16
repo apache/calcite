@@ -32,14 +32,14 @@ public class SqlSpecialOperator extends SqlOperator {
   public SqlSpecialOperator(
       String name,
       SqlKind kind) {
-    super(name, kind, 2, true, null, null, null);
+    this(name, kind, 2);
   }
 
   public SqlSpecialOperator(
       String name,
       SqlKind kind,
       int prec) {
-    super(name, kind, prec, true, null, null, null);
+    this(name, kind, prec, true, null, null, null);
   }
 
   public SqlSpecialOperator(

@@ -493,6 +493,16 @@ public abstract class SqlOperator {
   }
 
   /**
+   * Returns whether this operator should be surrounded by space when
+   * unparsed.
+   *
+   * @return whether this operator should be surrounded by space
+   */
+  boolean needsSpace() {
+    return true;
+  }
+
+  /**
    * Validates and determines coercibility and resulting collation name of
    * binary operator if needed.
    */

@@ -76,10 +76,6 @@ public class SqlInfixOperator extends SqlSpecialOperator {
       operand.e.unparse(writer, leftPrec, getLeftPrec());
     }
   }
-
-  boolean needsSpace() {
-    return true;
-  }
 }
 
 // End SqlInfixOperator.java

@@ -93,7 +93,7 @@ public class SqlWithItem extends SqlCall {
         withItem.columnList.unparse(writer, getLeftPrec(), getRightPrec());
       }
       writer.keyword("AS");
-      withItem.query.unparse(writer, getLeftPrec(), getRightPrec());
+      withItem.query.unparse(writer, 10, 10);
     }
 
     @Override public SqlCall createCall(SqlLiteral functionQualifier,

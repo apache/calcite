@@ -652,7 +652,7 @@ public enum SqlKind {
               SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
               LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
               NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-              WITH, WITH_ITEM));
+              VALUES, WITH, WITH_ITEM));
 
   /**
    * Category consisting of all DML operators.

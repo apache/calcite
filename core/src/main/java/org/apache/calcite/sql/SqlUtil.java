@@ -272,19 +272,18 @@ public abstract class SqlUtil {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    SqlBinaryOperator binop = (SqlBinaryOperator) operator;
     assert call.operandCount() == 2;
     final SqlWriter.Frame frame =
         writer.startList(
-            (binop instanceof SqlSetOperator)
+            (operator instanceof SqlSetOperator)
                 ? SqlWriter.FrameTypeEnum.SETOP
                 : SqlWriter.FrameTypeEnum.SIMPLE);
-    call.operand(0).unparse(writer, leftPrec, binop.getLeftPrec());
-    final boolean needsSpace = binop.needsSpace();
+    call.operand(0).unparse(writer, leftPrec, operator.getLeftPrec());
+    final boolean needsSpace = operator.needsSpace();
     writer.setNeedWhitespace(needsSpace);
-    writer.sep(binop.getName());
+    writer.sep(operator.getName());
     writer.setNeedWhitespace(needsSpace);
-    call.operand(1).unparse(writer, binop.getRightPrec(), rightPrec);
+    call.operand(1).unparse(writer, operator.getRightPrec(), rightPrec);
     writer.endList(frame);
   }
 

@@ -81,8 +81,7 @@ public class SqlBinaryOperator extends SqlOperator {
   }
 
   /**
-   * Returns whether this operator should be surrounded by space when
-   * unparsed.
+   * {@inheritDoc}
    *
    * <p>Returns true for most operators but false for the '.' operator;
    * consider
@@ -90,10 +89,8 @@ public class SqlBinaryOperator extends SqlOperator {
    * <blockquote>
    * <pre>x.y + 5 * 6</pre>
    * </blockquote>
-   *
-   * @return whether this operator should be surrounded by space
    */
-  boolean needsSpace() {
+  @Override boolean needsSpace() {
     return !getName().equals(".");
   }
 

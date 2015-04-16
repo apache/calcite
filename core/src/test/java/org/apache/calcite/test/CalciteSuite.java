@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.clone.ArrayTableTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
+import org.apache.calcite.plan.RelOptPlanReaderTest;
 import org.apache.calcite.plan.RelOptUtilTest;
 import org.apache.calcite.plan.RelWriterTest;
 import org.apache.calcite.plan.volcano.TraitPropagationTest;
@@ -28,6 +29,7 @@ import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
 import org.apache.calcite.sql.parser.SqlParserTest;
+import org.apache.calcite.sql.parser.SqlUnParserTest;
 import org.apache.calcite.sql.test.SqlAdvisorTest;
 import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
@@ -88,9 +90,11 @@ import org.junit.runners.Suite;
     EnumerablesTest.class,
     ExceptionMessageTest.class,
     InduceGroupingTypeTest.class,
+    RelOptPlanReaderTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
+    SqlUnParserTest.class,
     SqlPrettyWriterTest.class,
     SqlValidatorTest.class,
     SqlAdvisorTest.class,

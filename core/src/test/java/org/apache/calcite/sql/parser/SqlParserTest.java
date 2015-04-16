@@ -354,7 +354,7 @@ public class SqlParserTest {
 
     check(
         "values a between c and d and e and f between g and h",
-        "(VALUES (ROW((((`A` BETWEEN ASYMMETRIC `C` AND `D`) AND `E`) AND (`F` BETWEEN ASYMMETRIC `G` AND `H`)))))");
+        "VALUES (ROW((((`A` BETWEEN ASYMMETRIC `C` AND `D`) AND `E`) AND (`F` BETWEEN ASYMMETRIC `G` AND `H`))))");
 
     checkFails(
         "values a between b or c^",
@@ -371,17 +371,17 @@ public class SqlParserTest {
     // precedence of BETWEEN is higher than AND and OR, but lower than '+'
     check(
         "values a between b and c + 2 or d and e",
-        "(VALUES (ROW(((`A` BETWEEN ASYMMETRIC `B` AND (`C` + 2)) OR (`D` AND `E`)))))");
+        "VALUES (ROW(((`A` BETWEEN ASYMMETRIC `B` AND (`C` + 2)) OR (`D` AND `E`))))");
 
     // '=' and BETWEEN have same precedence, and are left-assoc
     check(
         "values x = a between b and c = d = e",
-        "(VALUES (ROW(((((`X` = `A`) BETWEEN ASYMMETRIC `B` AND `C`) = `D`) = `E`))))");
+        "VALUES (ROW(((((`X` = `A`) BETWEEN ASYMMETRIC `B` AND `C`) = `D`) = `E`)))");
 
     // AND doesn't match BETWEEN if it's between parentheses!
     check(
         "values a between b or (c and d) or e and f",
-        "(VALUES (ROW((`A` BETWEEN ASYMMETRIC ((`B` OR (`C` AND `D`)) OR `E`) AND `F`))))");
+        "VALUES (ROW((`A` BETWEEN ASYMMETRIC ((`B` OR (`C` AND `D`)) OR `E`) AND `F`)))");
   }
 
   @Test public void testOperateOnColumn() {
@@ -549,33 +549,33 @@ public class SqlParserTest {
 
     check(
         "values a and b like c",
-        "(VALUES (ROW((`A` AND (`B` LIKE `C`)))))");
+        "VALUES (ROW((`A` AND (`B` LIKE `C`))))");
 
     // LIKE has higher precedence than AND
     check(
         "values a and b like c escape d and e",
-        "(VALUES (ROW(((`A` AND (`B` LIKE `C` ESCAPE `D`)) AND `E`))))");
+        "VALUES (ROW(((`A` AND (`B` LIKE `C` ESCAPE `D`)) AND `E`)))");
 
     // LIKE has same precedence as '='; LIKE is right-assoc, '=' is left
     check(
         "values a = b like c = d",
-        "(VALUES (ROW(((`A` = `B`) LIKE (`C` = `D`)))))");
+        "VALUES (ROW(((`A` = `B`) LIKE (`C` = `D`))))");
 
     // Nested LIKE
     check(
         "values a like b like c escape d",
-        "(VALUES (ROW((`A` LIKE (`B` LIKE `C` ESCAPE `D`)))))");
+        "VALUES (ROW((`A` LIKE (`B` LIKE `C` ESCAPE `D`))))");
     check(
         "values a like b like c escape d and false",
-        "(VALUES (ROW(((`A` LIKE (`B` LIKE `C` ESCAPE `D`)) AND FALSE))))");
+        "VALUES (ROW(((`A` LIKE (`B` LIKE `C` ESCAPE `D`)) AND FALSE)))");
     check(
         "values a like b like c like d escape e escape f",
-        "(VALUES (ROW((`A` LIKE (`B` LIKE (`C` LIKE `D` ESCAPE `E`) ESCAPE `F`)))))");
+        "VALUES (ROW((`A` LIKE (`B` LIKE (`C` LIKE `D` ESCAPE `E`) ESCAPE `F`))))");
 
     // Mixed LIKE and SIMILAR TO
     check(
         "values a similar to b like c similar to d escape e escape f",
-        "(VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`)))))");
+        "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
     // FIXME should fail at "escape"
     checkFails(
@@ -585,12 +585,12 @@ public class SqlParserTest {
     // LIKE with +
     check(
         "values a like b + c escape d",
-        "(VALUES (ROW((`A` LIKE (`B` + `C`) ESCAPE `D`))))");
+        "VALUES (ROW((`A` LIKE (`B` + `C`) ESCAPE `D`)))");
 
     // LIKE with ||
     check(
         "values a like b || c escape d",
-        "(VALUES (ROW((`A` LIKE (`B` || `C`) ESCAPE `D`))))");
+        "VALUES (ROW((`A` LIKE (`B` || `C`) ESCAPE `D`)))");
 
     // ESCAPE with no expression
     // FIXME should fail at "escape"
@@ -627,14 +627,14 @@ public class SqlParserTest {
     // Mixed LIKE and SIMILAR TO
     check(
         "values a similar to b like c similar to d escape e escape f",
-        "(VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`)))))");
+        "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
     // SIMILAR TO with subquery
     check(
         "values a similar to (select * from t where a like b escape c) escape d",
-        "(VALUES (ROW((`A` SIMILAR TO (SELECT *\n"
+        "VALUES (ROW((`A` SIMILAR TO (SELECT *\n"
             + "FROM `T`\n"
-            + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`))))");
+            + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`)))");
   }
 
   @Test public void testFoo() {
@@ -791,7 +791,7 @@ public class SqlParserTest {
         + "group by grouping sets (deptno, (deptno, gender), ())")
         .ok("SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (GROUPING_SETS(`DEPTNO`, (ROW(`DEPTNO`, `GENDER`)),))");
+            + "GROUP BY GROUPING SETS(`DEPTNO`, (`DEPTNO`, `GENDER`), ())");
 
     // Grouping sets must have parentheses
     sql("select deptno from emp\n"
@@ -807,14 +807,14 @@ public class SqlParserTest {
         + "order by a")
         .ok("SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (GROUPING_SETS(`DEPTNO`, GROUPING_SETS(`E`, `D`),, CUBE(`X`, `Y`), ROLLUP(`P`, `Q`)))\n"
+            + "GROUP BY GROUPING SETS(`DEPTNO`, GROUPING SETS(`E`, `D`), (), CUBE(`X`, `Y`), ROLLUP(`P`, `Q`))\n"
             + "ORDER BY `A`");
 
     sql("select deptno from emp\n"
         + "group by grouping sets (())")
         .ok("SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (GROUPING_SETS())");
+            + "GROUP BY GROUPING SETS(())");
   }
 
   @Test public void testGroupByCube() {
@@ -822,7 +822,7 @@ public class SqlParserTest {
         + "group by cube ((a, b), (c, d))")
         .ok("SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (CUBE((ROW(`A`, `B`)), (ROW(`C`, `D`))))");
+            + "GROUP BY CUBE((`A`, `B`), (`C`, `D`))");
   }
 
   @Test public void testGroupByCube2() {
@@ -830,7 +830,7 @@ public class SqlParserTest {
         + "group by cube ((a, b), (c, d)) order by a")
         .ok("SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (CUBE((ROW(`A`, `B`)), (ROW(`C`, `D`))))\n"
+            + "GROUP BY CUBE((`A`, `B`), (`C`, `D`))\n"
             + "ORDER BY `A`");
     sql("select deptno from emp\n"
         + "group by cube (^)")
@@ -842,7 +842,7 @@ public class SqlParserTest {
         + "group by rollup (deptno, deptno + 1, gender)")
         .ok("SELECT `DEPTNO`\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (ROLLUP(`DEPTNO`, (`DEPTNO` + 1), `GENDER`))");
+            + "GROUP BY ROLLUP(`DEPTNO`, (`DEPTNO` + 1), `GENDER`)");
 
     // Nested rollup not ok
     sql("select deptno from emp\n"
@@ -855,7 +855,7 @@ public class SqlParserTest {
         + "group by grouping sets (deptno, (deptno, gender), ())")
         .ok("SELECT `DEPTNO`, (GROUPING(`DEPTNO`))\n"
             + "FROM `EMP`\n"
-            + "GROUP BY (GROUPING_SETS(`DEPTNO`, (ROW(`DEPTNO`, `GENDER`)),))");
+            + "GROUP BY GROUPING SETS(`DEPTNO`, (`DEPTNO`, `GENDER`), ())");
   }
 
   @Test public void testWith() {
@@ -864,8 +864,8 @@ public class SqlParserTest {
             + "select deptno from femaleEmps",
         "WITH `FEMALEEMPS` AS (SELECT *\n"
             + "FROM `EMPS`\n"
-            + "WHERE (`GENDER` = 'F')) SELECT `DEPTNO`\n"
-            + "FROM `FEMALEEMPS`");
+            + "WHERE (`GENDER` = 'F')) (SELECT `DEPTNO`\n"
+            + "FROM `FEMALEEMPS`)");
   }
 
   @Test public void testWith2() {
@@ -877,8 +877,8 @@ public class SqlParserTest {
             + "FROM `EMPS`\n"
             + "WHERE (`GENDER` = 'F')), `MARRIEDFEMALEEMPS` (`X`, `Y`) AS (SELECT *\n"
             + "FROM `FEMALEEMPS`\n"
-            + "WHERE (`MARITASTATUS` = 'M')) SELECT `DEPTNO`\n"
-            + "FROM `FEMALEEMPS`");
+            + "WHERE (`MARITASTATUS` = 'M')) (SELECT `DEPTNO`\n"
+            + "FROM `FEMALEEMPS`)");
   }
 
   @Test public void testWithFails() {
@@ -891,8 +891,8 @@ public class SqlParserTest {
     check(
         "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
             + "select c, i from v",
-        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')), (ROW(2, 'bb'))) SELECT `C`, `I`\n"
-            + "FROM `V`");
+        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')), (ROW(2, 'bb'))) (SELECT `C`, `I`\n"
+            + "FROM `V`)");
   }
 
   @Test public void testWithNestedFails() {
@@ -910,9 +910,9 @@ public class SqlParserTest {
             + "  with dept2 as (select * from dept)\n"
             + "  select 1 as one from empDept)",
         "WITH `EMP2` AS (SELECT *\n"
-            + "FROM `EMP`) WITH `DEPT2` AS (SELECT *\n"
-            + "FROM `DEPT`) SELECT 1 AS `ONE`\n"
-            + "FROM `EMPDEPT`");
+            + "FROM `EMP`) (WITH `DEPT2` AS (SELECT *\n"
+            + "FROM `DEPT`) (SELECT 1 AS `ONE`\n"
+            + "FROM `EMPDEPT`))");
   }
 
   @Test public void testWithUnion() {
@@ -1627,12 +1627,12 @@ public class SqlParserTest {
     // stuff inside comment
     check(
         "values ( /** 1, 2 + ** */ 3)",
-        "(VALUES (ROW(3)))");
+        "VALUES (ROW(3))");
 
     // comment in string is preserved
     check(
         "values ('a string with /* a comment */ in it')",
-        "(VALUES (ROW('a string with /* a comment */ in it')))");
+        "VALUES (ROW('a string with /* a comment */ in it'))");
 
     // SQL:2003, 5.2, syntax rule # 8 "There shall be no <separator>
     // separating the <minus sign>s of a <simple comment introducer>".
@@ -1640,12 +1640,12 @@ public class SqlParserTest {
     check(
         "values (- -1\n"
             + ")",
-        "(VALUES (ROW((- -1))))");
+        "VALUES (ROW((- -1)))");
 
     check(
         "values (--1+\n"
             + "2)",
-        "(VALUES (ROW(2)))");
+        "VALUES (ROW(2))");
 
     // end of multiline commment without start
     if (Bug.FRG73_FIXED) {
@@ -1692,29 +1692,29 @@ public class SqlParserTest {
     check(
         "values (1 + /* comment -- rest of line\n"
             + " rest of comment */ 2)",
-        "(VALUES (ROW((1 + 2))))");
+        "VALUES (ROW((1 + 2)))");
 
     // multiline comment inside singleline comment
     check(
         "values -- rest of line /* a comment */ \n"
             + "(1)",
-        "(VALUES (ROW(1)))");
+        "VALUES (ROW(1))");
 
     // non-terminated multiline comment inside singleline comment
     check(
         "values -- rest of line /* a comment  \n"
             + "(1)",
-        "(VALUES (ROW(1)))");
+        "VALUES (ROW(1))");
 
     // even if comment abuts the tokens at either end, it becomes a space
     check(
         "values ('abc'/* a comment*/'def')",
-        "(VALUES (ROW('abc'\n'def')))");
+        "VALUES (ROW('abc'\n'def'))");
 
     // comment which starts as soon as it has begun
     check(
         "values /**/ (1)",
-        "(VALUES (ROW(1)))");
+        "VALUES (ROW(1))");
   }
 
   // expressions
@@ -1939,11 +1939,11 @@ public class SqlParserTest {
   }
 
   @Test public void testValues() {
-    check("values(1,'two')", "(VALUES (ROW(1, 'two')))");
+    check("values(1,'two')", "VALUES (ROW(1, 'two'))");
   }
 
   @Test public void testValuesExplicitRow() {
-    check("values row(1,'two')", "(VALUES (ROW(1, 'two')))");
+    check("values row(1,'two')", "VALUES (ROW(1, 'two'))");
   }
 
   @Test public void testFromValues() {
@@ -1980,34 +1980,34 @@ public class SqlParserTest {
   @Test public void testTableExtend() {
     sql("select * from emp extend (x int, y varchar(10) not null)")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10)))");
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10))");
     sql("select * from emp extend (x int, y varchar(10) not null) where true")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10)))\n"
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10))\n"
             + "WHERE TRUE");
     // with table alias
     sql("select * from emp extend (x int, y varchar(10) not null) as t")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10))) AS `T`");
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10)) AS `T`");
     // as previous, without AS
     sql("select * from emp extend (x int, y varchar(10) not null) t")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10))) AS `T`");
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10)) AS `T`");
     // with table alias and column alias list
     sql("select * from emp extend (x int, y varchar(10) not null) as t(a, b)")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10))) AS `T` (`A`, `B`)");
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10)) AS `T` (`A`, `B`)");
     // as previous, without AS
     sql("select * from emp extend (x int, y varchar(10) not null) t(a, b)")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10))) AS `T` (`A`, `B`)");
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10)) AS `T` (`A`, `B`)");
     // omit EXTEND
     sql("select * from emp (x int, y varchar(10) not null) t(a, b)")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10))) AS `T` (`A`, `B`)");
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10)) AS `T` (`A`, `B`)");
     sql("select * from emp (x int, y varchar(10) not null) where x = y")
         .ok("SELECT *\n"
-            + "FROM (EXTEND(`EMP`, `X`, INTEGER, `Y`, VARCHAR(10)))\n"
+            + "FROM `EMP` EXTEND (`X` INTEGER, `Y` VARCHAR(10))\n"
             + "WHERE (`X` = `Y`)");
   }
 
@@ -2188,7 +2188,7 @@ public class SqlParserTest {
 
   @Test public void testUpdate() {
     sql("update emps set empno = empno + 1, sal = sal - 1 where empno=12")
-        .ok("UPDATE `EMPS` (`EMPNO`, `SAL`) SET `EMPNO` = (`EMPNO` + 1)\n"
+        .ok("UPDATE `EMPS` SET `EMPNO` = (`EMPNO` + 1)\n"
                 + ", `SAL` = (`SAL` - 1)\n"
                 + "WHERE (`EMPNO` = 12)");
   }
@@ -5655,8 +5655,8 @@ public class SqlParserTest {
         "values _UTF16'"
             + ConversionUtil.TEST_UNICODE_STRING + "'";
     String out1 =
-        "(VALUES (ROW(_UTF16'"
-            + ConversionUtil.TEST_UNICODE_STRING + "')))";
+        "VALUES (ROW(_UTF16'"
+            + ConversionUtil.TEST_UNICODE_STRING + "'))";
     check(in1, out1);
 
     // Without the U& prefix, escapes are left unprocessed
@@ -5664,8 +5664,8 @@ public class SqlParserTest {
         "values '"
             + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
     String out2 =
-        "(VALUES (ROW('"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
+        "VALUES (ROW('"
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'))";
     check(in2, out2);
 
     // Likewise, even with the U& prefix, if some other escape
@@ -5676,8 +5676,8 @@ public class SqlParserTest {
             + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL
             + "' UESCAPE '!'";
     String out3 =
-        "(VALUES (ROW(_UTF16'"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
+        "VALUES (ROW(_UTF16'"
+            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'))";
     check(in3, out3);
   }
 
@@ -5689,8 +5689,8 @@ public class SqlParserTest {
         "values U&'"
             + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
     String out =
-        "(VALUES (ROW(_UTF16'"
-            + ConversionUtil.TEST_UNICODE_STRING + "')))";
+        "VALUES (ROW(_UTF16'"
+            + ConversionUtil.TEST_UNICODE_STRING + "'))";
     check(in, out);
 
     // Verify that we can override with an explicit escape character
@@ -5915,15 +5915,22 @@ public class SqlParserTest {
 
       // Unparse with no dialect, always parenthesize.
       final String actual = sqlNode.toSqlString(null, true).getSql();
-      assertEquals(expected, actual);
+      assertEquals(expected, linux(actual));
 
-      // Unparse again in Eigenbase dialect (which we can parse), and
+      // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
           sqlNode.toSqlString(SqlDialect.CALCITE, false).getSql();
 
       // Parse and unparse again.
-      SqlNode sqlNode2 = parseStmtAndHandleEx(sql1);
+      SqlNode sqlNode2;
+      final Quoting q = quoting;
+      try {
+        quoting = Quoting.DOUBLE_QUOTE;
+        sqlNode2 = parseStmtAndHandleEx(sql1);
+      } finally {
+        quoting = q;
+      }
       final String sql2 =
           sqlNode2.toSqlString(SqlDialect.CALCITE, false).getSql();
 
@@ -5934,7 +5941,7 @@ public class SqlParserTest {
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
       final String actual2 = sqlNode2.toSqlString(null, true).getSql();
-      assertEquals(expected, actual2);
+      assertEquals(expected, linux(actual2));
     }
 
     public void checkExp(String sql, String expected) {
@@ -5942,15 +5949,22 @@ public class SqlParserTest {
 
       // Unparse with no dialect, always parenthesize.
       final String actual = sqlNode.toSqlString(null, true).getSql();
-      assertEquals(expected, actual);
+      assertEquals(expected, linux(actual));
 
-      // Unparse again in Eigenbase dialect (which we can parse), and
+      // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
           sqlNode.toSqlString(SqlDialect.CALCITE, false).getSql();
 
       // Parse and unparse again.
-      SqlNode sqlNode2 = parseExpressionAndHandleEx(sql1);
+      SqlNode sqlNode2;
+      final Quoting q = quoting;
+      try {
+        quoting = Quoting.DOUBLE_QUOTE;
+        sqlNode2 = parseExpressionAndHandleEx(sql1);
+      } finally {
+        quoting = q;
+      }
       final String sql2 =
           sqlNode2.toSqlString(SqlDialect.CALCITE, false).getSql();
 
@@ -5961,7 +5975,7 @@ public class SqlParserTest {
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
       final String actual2 = sqlNode2.toSqlString(null, true).getSql();
-      assertEquals(expected, actual2);
+      assertEquals(expected, linux(actual2));
     }
 
     public void checkFails(String sql, String expectedMsgPattern) {
@@ -5971,6 +5985,13 @@ public class SqlParserTest {
     public void checkExpFails(String sql, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
+  }
+
+  private String linux(String s) {
+    if (LINUXIFY.get()[0]) {
+      s = Util.toLinux(s);
+    }
+    return s;
   }
 
   /** Helper class for building fluent code such as

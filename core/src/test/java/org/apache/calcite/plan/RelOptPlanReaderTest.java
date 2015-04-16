@@ -44,8 +44,8 @@ public class RelOptPlanReaderTest {
 
     // in org.apache.calcite.adapter.jdbc.JdbcRules outer class
     assertThat(relJson.classToTypeName(JdbcRules.JdbcProject.class),
-        is("JdbcProjectRel"));
-    assertThat(relJson.typeNameToClass("JdbcProjectRel"),
+        is("JdbcProject"));
+    assertThat(relJson.typeNameToClass("JdbcProject"),
         equalTo((Class) JdbcRules.JdbcProject.class));
 
     try {

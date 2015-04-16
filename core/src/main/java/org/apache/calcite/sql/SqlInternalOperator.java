@@ -44,14 +44,14 @@ public class SqlInternalOperator extends SqlSpecialOperator {
   public SqlInternalOperator(
       String name,
       SqlKind kind) {
-    super(name, kind, 2, true, ReturnTypes.ARG0, null, OperandTypes.VARIADIC);
+    this(name, kind, 2);
   }
 
   public SqlInternalOperator(
       String name,
       SqlKind kind,
       int prec) {
-    super(name, kind, prec, true, ReturnTypes.ARG0, null, null);
+    this(name, kind, prec, true, ReturnTypes.ARG0, null, OperandTypes.VARIADIC);
   }
 
   public SqlInternalOperator(

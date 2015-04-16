@@ -162,9 +162,6 @@ public class SqlUpdate extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
-    if (targetColumnList != null) {
-      targetColumnList.unparse(writer, opLeft, opRight);
-    }
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);

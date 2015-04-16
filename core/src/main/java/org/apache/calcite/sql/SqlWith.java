@@ -99,7 +99,10 @@ public class SqlWith extends SqlCall {
         node.unparse(writer, 0, 0);
       }
       writer.endList(frame1);
-      with.body.unparse(writer, 0, 0);
+      final SqlWriter.Frame frame2 =
+          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+      with.body.unparse(writer, 100, 100);
+      writer.endList(frame2);
       writer.endList(frame);
     }
 
