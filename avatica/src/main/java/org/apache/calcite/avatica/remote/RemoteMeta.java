@@ -36,6 +36,7 @@ import java.util.Map;
 class RemoteMeta extends MetaImpl {
   final Service service;
   final Map<String, ConnectionPropertiesImpl> propsMap = new HashMap<>();
+  private final Map<Meta.DatabaseProperties, String> dbPropMap = new HashMap<>();
 
   public RemoteMeta(AvaticaConnection connection, Service service) {
     super(connection);
@@ -59,6 +60,19 @@ class RemoteMeta extends MetaImpl {
     }
     return MetaResultSet.create(response.connectionId, response.statementId,
         response.ownStatement, signature0, response.firstFrame);
+  }
+
+  @Override public String getDatabaseProperties(Meta.DatabaseProperties databaseProperty) {
+    String dbProp = dbPropMap.get(databaseProperty);
+    if (dbProp == null) {
+      final Meta.DatabaseProperty dbProps =
+          new Meta.DatabaseProperty(databaseProperty, null);
+      final Service.DatabasePropertyResponse response =
+        service.apply(new Service.DatabasePropertyRequest(dbProps));
+      dbPropMap.put(databaseProperty, response.dbProps.value);
+      dbProp = response.dbProps.value;
+    }
+    return dbProp;
   }
 
   @Override public StatementHandle createStatement(ConnectionHandle ch) {

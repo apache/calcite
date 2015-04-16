@@ -191,6 +191,13 @@ public class LocalService implements Service {
         meta.connectionSync(new Meta.ConnectionHandle(request.connectionId), request.connProps);
     return new ConnectionSyncResponse(connProps);
   }
+
+  public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
+    final Meta.DatabaseProperty dbProperty = new Meta.DatabaseProperty(
+        request.dbProps.databaseProperty,
+        meta.getDatabaseProperties(request.dbProps.databaseProperty));
+    return new DatabasePropertyResponse(dbProperty);
+  }
 }
 
 // End LocalService.java

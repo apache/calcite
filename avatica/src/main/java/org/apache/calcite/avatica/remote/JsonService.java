@@ -249,6 +249,14 @@ public abstract class JsonService implements Service {
       throw handle(e);
     }
   }
+
+  public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
+    try {
+      return decode(apply(encode(request)), DatabasePropertyResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
 }
 
 // End JsonService.java

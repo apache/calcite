@@ -40,15 +40,15 @@ import java.util.Objects;
  * that each provider must implement. This is not ideal.</p>
  */
 public interface Meta {
-  String getSqlKeywords();
 
-  String getNumericFunctions();
-
-  String getStringFunctions();
-
-  String getSystemFunctions();
-
-  String getTimeDateFunctions();
+  /**
+   * Return database static properties, deprecating single function call getNumericFunctions,
+   * getStringFunctions, getSystemFunctions, getSqlKeywords and getTimeDateFunctions
+   *
+   * @param DatabaseProperty to get
+   * @return CSV String of the supported function/keyword
+   */
+  String getDatabaseProperties(DatabaseProperties databaseProperty);
 
   MetaResultSet getTables(String catalog,
       Pat schemaPattern,
@@ -235,6 +235,36 @@ public interface Meta {
     @JsonCreator
     public static Pat of(@JsonProperty("s") String name) {
       return new Pat(name);
+    }
+  }
+
+  /** Database Properties Enum for Meta#{@link Meta#getDatabaseProperties(DatabaseProperties)}}
+   */
+  enum DatabaseProperties {
+    NUMERIC_FUNCTIONS,
+    STRING_FUNCTIONS,
+    SYSTEM_FUNCTIONS,
+    TIME_DATE_FUNCTIONS,
+    SQL_KEYWORDS;
+  }
+
+  /** POJO for Meta#{@link Meta#getDatabaseProperties(PropertyName)}}
+   *
+   * <p>Payload for {@link Service.DatabasePropertyRequest} and
+   * {@link Service.DatabasePropertyResponse}
+   *
+   * For {@link Service.Request}, the value is set to null
+   */
+  class DatabaseProperty {
+    public final DatabaseProperties databaseProperty;
+    public final String value;
+
+    @JsonCreator
+    public DatabaseProperty(
+      @JsonProperty("propertyName") DatabaseProperties dbProp,
+      @JsonProperty("value") String value) {
+      this.databaseProperty = dbProp;
+      this.value = value;
     }
   }
 
