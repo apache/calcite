@@ -61,6 +61,14 @@ class RemoteMeta extends MetaImpl {
         response.ownStatement, signature0, response.firstFrame);
   }
 
+  @Override public String getDatabaseProperties(Meta.PropertyName propName) {
+    final Meta.DatabaseProperty dbProps =
+        new Meta.DatabaseProperty(propName, null);
+    final Service.DatabasePropertyResponse response =
+      service.apply(new Service.DatabasePropertyRequest(dbProps));
+    return response.dbProps.value;
+  }
+
   @Override public StatementHandle createStatement(ConnectionHandle ch) {
     connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
     final Service.CreateStatementResponse response =

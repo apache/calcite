@@ -182,23 +182,23 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getSQLKeywords() throws SQLException {
-    return connection.meta.getSqlKeywords();
+    return connection.meta.getDatabaseProperties(Meta.PropertyName.SQL_KEYWORDS);
   }
 
   public String getNumericFunctions() throws SQLException {
-    return connection.meta.getNumericFunctions();
+    return connection.meta.getDatabaseProperties(Meta.PropertyName.NUMERIC_FUNCTIONS);
   }
 
   public String getStringFunctions() throws SQLException {
-    return connection.meta.getStringFunctions();
+    return connection.meta.getDatabaseProperties(Meta.PropertyName.STRING_FUNCTIONS);
   }
 
   public String getSystemFunctions() throws SQLException {
-    return connection.meta.getSystemFunctions();
+    return connection.meta.getDatabaseProperties(Meta.PropertyName.SYSTEM_FUNCTIONS);
   }
 
   public String getTimeDateFunctions() throws SQLException {
-    return connection.meta.getTimeDateFunctions();
+    return connection.meta.getDatabaseProperties(Meta.PropertyName.TIME_DATE_FUNCTIONS);
   }
 
   public String getSearchStringEscape() throws SQLException {

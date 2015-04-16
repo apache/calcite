@@ -39,14 +39,16 @@ import java.util.Objects;
  */
 public interface Meta {
   String getSqlKeywords();
-
+  @Deprecated
   String getNumericFunctions();
-
+  @Deprecated
   String getStringFunctions();
-
+  @Deprecated
   String getSystemFunctions();
-
+  @Deprecated
   String getTimeDateFunctions();
+
+  String getDatabaseProperties(PropertyName propertyName);
 
   MetaResultSet getTables(String catalog,
       Pat schemaPattern,
@@ -233,6 +235,36 @@ public interface Meta {
     @JsonCreator
     public static Pat of(@JsonProperty("s") String name) {
       return new Pat(name);
+    }
+  }
+
+  /** Database Properties Enum for Meta#{@link Meta#getDatabaseProperties(PropertyName)}}
+   */
+  enum PropertyName {
+    NUMERIC_FUNCTIONS,
+    STRING_FUNCTIONS,
+    SYSTEM_FUNCTIONS,
+    TIME_DATE_FUNCTIONS,
+    SQL_KEYWORDS;
+  }
+
+  /** POJO for Meta#{@link Meta#getDatabaseProperties(PropertyName)}}
+   *
+   * <p>Payload for {@link Service.DatabasePropertyRequest} and
+   * {@link Service.DatabasePropertyResponse}
+   *
+   * For {@link Service.Request}, the value is set to null
+   */
+  class DatabaseProperty {
+    public final PropertyName propertyName;
+    public final String value;
+
+    @JsonCreator
+    public DatabaseProperty(
+      @JsonProperty("propertyName") PropertyName propertyName,
+      @JsonProperty("value") String value) {
+      this.propertyName = propertyName;
+      this.value = value;
     }
   }
 

@@ -23,6 +23,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -43,13 +44,13 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -207,20 +208,29 @@ public class CalciteMetaImpl extends MetaImpl {
     return (CalciteConnectionImpl) connection;
   }
 
+  @Override public String getDatabaseProperties(Meta.PropertyName propertyName) {
+    for (DatabaseProperties p : DatabaseProperties.values()) {
+      if (p.propertyName() == propertyName) {
+        return p.defaultValue();
+      }
+    }
+    return "";
+  }
+
   public String getSqlKeywords() {
-    return SqlParser.create("").getMetadata().getJdbcKeywords();
+    return getDatabaseProperties(Meta.PropertyName.SQL_KEYWORDS);
   }
 
   public String getNumericFunctions() {
-    return SqlJdbcFunctionCall.getNumericFunctions();
+    return getDatabaseProperties(Meta.PropertyName.NUMERIC_FUNCTIONS);
   }
 
   public String getStringFunctions() {
-    return SqlJdbcFunctionCall.getStringFunctions();
+    return getDatabaseProperties(Meta.PropertyName.STRING_FUNCTIONS);
   }
 
   public String getSystemFunctions() {
-    return SqlJdbcFunctionCall.getSystemFunctions();
+    return getDatabaseProperties(Meta.PropertyName.SYSTEM_FUNCTIONS);
   }
 
   public String getTimeDateFunctions() {

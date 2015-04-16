@@ -394,32 +394,45 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public String getSqlKeywords() {
+  public String getDatabaseProperties(Meta.PropertyName propertyName) {
     try {
-      return connection.getMetaData().getSQLKeywords();
+      switch(propertyName) {
+      case NUMERIC_FUNCTIONS:
+        return connection.getMetaData().getNumericFunctions();
+      case SYSTEM_FUNCTIONS:
+        return connection.getMetaData().getSystemFunctions();
+      case TIME_DATE_FUNCTIONS:
+        return connection.getMetaData().getTimeDateFunctions();
+      case STRING_FUNCTIONS:
+        return connection.getMetaData().getStringFunctions();
+      case SQL_KEYWORDS:
+        return connection.getMetaData().getSQLKeywords();
+      default:
+        return "";
+      }
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public String getSqlKeywords() {
+    return getDatabaseProperties(Meta.PropertyName.SQL_KEYWORDS);
   }
 
   public String getNumericFunctions() {
-    try {
-      return connection.getMetaData().getNumericFunctions();
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
+    return getDatabaseProperties(Meta.PropertyName.NUMERIC_FUNCTIONS);
   }
 
   public String getStringFunctions() {
-    return null;
+    return getDatabaseProperties(Meta.PropertyName.STRING_FUNCTIONS);
   }
 
   public String getSystemFunctions() {
-    return null;
+    return getDatabaseProperties(Meta.PropertyName.SYSTEM_FUNCTIONS);
   }
 
   public String getTimeDateFunctions() {
-    return null;
+    return getDatabaseProperties(Meta.PropertyName.TIME_DATE_FUNCTIONS);
   }
 
   public MetaResultSet getTables(String catalog, Pat schemaPattern,
