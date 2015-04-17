@@ -376,6 +376,7 @@ public class RemoteDriverTest {
     }
   }
 
+  @Ignore("[CALCITE-687] Make RemoteDriverTest.testStatementLifecycle thread-safe")
   @Test public void testStatementLifecycle() throws Exception {
     try (AvaticaConnection connection = (AvaticaConnection) ljs()) {
       Map<Integer, AvaticaStatement> clientMap = connection.statementMap;
