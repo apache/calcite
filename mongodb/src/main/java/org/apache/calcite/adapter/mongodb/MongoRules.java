@@ -38,15 +38,19 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -124,6 +128,29 @@ public class MongoRules {
     private final JavaTypeFactory typeFactory;
     private final List<String> inFields;
 
+    private static final Map<SqlOperator, String> MONGO_OPERATORS =
+        new HashMap<SqlOperator, String>();
+
+    static {
+      // Arithmetic
+      MONGO_OPERATORS.put(SqlStdOperatorTable.DIVIDE, "$divide");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.MULTIPLY, "$multiply");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.MOD, "$mod");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.PLUS, "$add");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.MINUS, "$subtract");
+      // Boolean
+      MONGO_OPERATORS.put(SqlStdOperatorTable.AND, "$and");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.OR, "$or");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.NOT, "$not");
+      // Comparison
+      MONGO_OPERATORS.put(SqlStdOperatorTable.EQUALS, "$eq");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.NOT_EQUALS, "$ne");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.GREATER_THAN, "$gt");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, "$gte");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN, "$lt");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, "$lte");
+    }
+
     protected RexToMongoTranslator(JavaTypeFactory typeFactory,
         List<String> inFields) {
       super(true);
@@ -135,10 +162,10 @@ public class MongoRules {
       if (literal.getValue() == null) {
         return "null";
       }
-      return "{$ifNull: [null, "
+      return "{$literal: "
           + RexToLixTranslator.translateLiteral(literal, literal.getType(),
               typeFactory, RexImpTable.NullAs.NOT_POSSIBLE)
-          + "]}";
+          + "}";
     }
 
     @Override public String visitInputRef(RexInputRef inputRef) {
@@ -155,6 +182,10 @@ public class MongoRules {
       if (call.getKind() == SqlKind.CAST) {
         return strings.get(0);
       }
+      String stdOperator = MONGO_OPERATORS.get(call.getOperator());
+      if (stdOperator != null) {
+        return "{" + stdOperator + ": [" + Util.commaList(strings) + "]}";
+      }
       if (call.getOperator() == SqlStdOperatorTable.ITEM) {
         final RexNode op1 = call.operands.get(1);
         if (op1 instanceof RexLiteral
@@ -166,7 +197,34 @@ public class MongoRules {
           return strings.get(0) + "[" + strings.get(1) + "]";
         }
       }
-      return super.visitCall(call);
+      if (call.getOperator() == SqlStdOperatorTable.CASE) {
+        StringBuilder sb = new StringBuilder();
+        StringBuilder finish = new StringBuilder();
+        // case(a, b, c)  -> $cond:[a, b, c]
+        // case(a, b, c, d) -> $cond:[a, b, $cond:[c, d, null]]
+        // case(a, b, c, d, e) -> $cond:[a, b, $cond:[c, d, e]]
+        for (int i = 0; i < strings.size(); i += 2) {
+          sb.append("{$cond:[");
+          finish.append("]}");
+
+          sb.append(strings.get(i));
+          sb.append(',');
+          sb.append(strings.get(i + 1));
+          sb.append(',');
+          if (i == strings.size() - 3) {
+            sb.append(strings.get(i + 2));
+            break;
+          }
+          if (i == strings.size() - 2) {
+            sb.append("null");
+            break;
+          }
+        }
+        sb.append(finish);
+        return sb.toString();
+      }
+      throw new IllegalArgumentException("Translation of " + call.toString()
+          + " is not supported by MongoProject");
     }
 
     private String stripQuotes(String s) {

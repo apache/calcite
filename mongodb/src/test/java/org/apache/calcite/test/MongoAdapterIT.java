@@ -424,7 +424,6 @@ public class MongoAdapterIT {
                 "{$group: {_id: {}, 'EXPR$0': {$sum: 1}}}"));
   }
 
-  @Ignore("Returns 2 instead of 2*29353 == 58706")
   @Test public void testCountGroupByEmptyMultiplyBy2() {
     CalciteAssert.that()
         .enable(enabled())
@@ -433,7 +432,8 @@ public class MongoAdapterIT {
         .returns("EXPR$0=58706\n")
         .queryContains(
             mongoChecker(
-                "{$group: {_id: {}, 'EXPR$0': {$sum: 1}}}"));
+                "{$group: {_id: {}, _0: {$sum: 1}}}",
+                "{$project: {'EXPR$0': {$multiply: ['$_0', {$literal: 2}]}}}"));
   }
 
   @Test public void testGroupByOneColumnNotProjected() {
@@ -487,6 +487,41 @@ public class MongoAdapterIT {
                 "{$project: {STATE: '$_id', C: '$C'}}",
                 "{$project: {C: 1, STATE: 1}}",
                 "{$sort: {STATE: 1}}"));
+  }
+
+  @Test public void testGroupByAvg() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select state, avg(pop) as a from zips group by state order by state")
+        .limit(2)
+        .returns("STATE=AK; A=2793.3230769230768\n"
+            + "STATE=AL; A=7126.255731922399\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$group: {_id: '$STATE', A: {$avg: '$POP'}}}",
+                "{$project: {STATE: '$_id', A: '$A'}}",
+                "{$sort: {STATE: 1}}"));
+  }
+
+  @Test public void testGroupByAvgSumCount() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
+        .limit(2)
+        .returns("STATE=AK; A=2793.3230769230768; S=544698; C=195\n"
+            + "STATE=AL; A=7126.255731922399; S=4040587; C=567\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
+                "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
+                "{$sort: {STATE: 1}}",
+                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}"));
   }
 
   @Test public void testGroupByHaving() {
@@ -642,7 +677,7 @@ public class MongoAdapterIT {
             mongoChecker(
                 "{$project: {CITY: '$city', STATE: '$state'}}",
                 "{$sort: {STATE: 1, CITY: 1}}",
-                "{$project: {STATE: 1, CITY: 1, ZERO: {$ifNull: [null, 0]}}}"));
+                "{$project: {STATE: 1, CITY: 1, ZERO: {$literal: 0}}}"));
   }
 
   @Test public void testFilter() {
