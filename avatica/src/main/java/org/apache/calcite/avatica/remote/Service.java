@@ -42,6 +42,7 @@ public interface Service {
   CloseStatementResponse apply(CloseStatementRequest request);
   CloseConnectionResponse apply(CloseConnectionRequest request);
   ConnectionSyncResponse apply(ConnectionSyncRequest request);
+  DatabasePropertyResponse apply(DatabasePropertyRequest request);
 
   /** Factory that creates a {@code Service}. */
   interface Factory {
@@ -70,7 +71,8 @@ public interface Service {
           name = "closeStatement"),
       @JsonSubTypes.Type(value = CloseConnectionRequest.class,
           name = "closeConnection"),
-      @JsonSubTypes.Type(value = ConnectionSyncRequest.class, name = "connectionSync") })
+      @JsonSubTypes.Type(value = ConnectionSyncRequest.class, name = "connectionSync"),
+      @JsonSubTypes.Type(value = DatabasePropertyRequest.class, name = "databaseProperties") })
   abstract class Request {
     abstract Response accept(Service service);
   }
@@ -90,7 +92,8 @@ public interface Service {
           name = "closeStatement"),
       @JsonSubTypes.Type(value = CloseConnectionResponse.class,
           name = "closeConnection"),
-      @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync") })
+      @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync"),
+      @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties") })
   abstract class Response {
   }
 
@@ -98,6 +101,21 @@ public interface Service {
    * {@link org.apache.calcite.avatica.Meta#getCatalogs()}. */
   class CatalogsRequest extends Request {
     ResultSetResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Request for
+   * {@link org.apache.calcite.avatica.Meta#getDatabaseProperties()}. */
+  class DatabasePropertyRequest extends Request {
+    public final Meta.DatabaseProperty dbProps;
+
+    @JsonCreator
+    public DatabasePropertyRequest(@JsonProperty("dbProps") Meta.DatabaseProperty dbProps) {
+      this.dbProps = dbProps;
+    }
+
+    DatabasePropertyResponse accept(Service service) {
       return service.apply(this);
     }
   }
@@ -432,6 +450,17 @@ public interface Service {
     @JsonCreator
     public ConnectionSyncResponse(@JsonProperty("connProps") Meta.ConnectionProperties connProps) {
       this.connProps = connProps;
+    }
+  }
+
+  /** Response for
+   * {@link Meta#getDatabaseProperties(Meta.DatabaseProperty)}. */
+  class DatabasePropertyResponse extends Response {
+    public final Meta.DatabaseProperty dbProps;
+
+    @JsonCreator
+    public DatabasePropertyResponse(@JsonProperty("dbProps") Meta.DatabaseProperty dbProps) {
+      this.dbProps = dbProps;
     }
   }
 }

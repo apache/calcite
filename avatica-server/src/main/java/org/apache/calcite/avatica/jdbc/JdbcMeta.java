@@ -348,32 +348,25 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public String getSqlKeywords() {
+  public String getDatabaseProperties(Meta.DatabaseProperties propertyName) {
     try {
-      return connection.getMetaData().getSQLKeywords();
+      switch(propertyName) {
+      case NUMERIC_FUNCTIONS:
+        return connection.getMetaData().getNumericFunctions();
+      case SYSTEM_FUNCTIONS:
+        return connection.getMetaData().getSystemFunctions();
+      case TIME_DATE_FUNCTIONS:
+        return connection.getMetaData().getTimeDateFunctions();
+      case STRING_FUNCTIONS:
+        return connection.getMetaData().getStringFunctions();
+      case SQL_KEYWORDS:
+        return connection.getMetaData().getSQLKeywords();
+      default:
+        return "";
+      }
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public String getNumericFunctions() {
-    try {
-      return connection.getMetaData().getNumericFunctions();
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public String getStringFunctions() {
-    return null;
-  }
-
-  public String getSystemFunctions() {
-    return null;
-  }
-
-  public String getTimeDateFunctions() {
-    return null;
   }
 
   public MetaResultSet getTables(String catalog, Pat schemaPattern,

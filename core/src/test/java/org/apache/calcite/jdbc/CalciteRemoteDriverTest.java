@@ -194,6 +194,39 @@ public class CalciteRemoteDriverTest {
     assertThat(connection.isClosed(), is(true));
   }
 
+  @Test public void testMetaFunctionsLocal() throws Exception {
+    final Connection connection =
+        CalciteAssert.hr().connect();
+    assertThat(connection.isClosed(), is(false));
+    for (DatabaseProperties p : DatabaseProperties.values()) {
+      switch(p.databaseProperty()) {
+      case NUMERIC_FUNCTIONS:
+        assertThat(connection.getMetaData().getNumericFunctions(),
+          is(p.defaultValue()));
+        break;
+      case SYSTEM_FUNCTIONS:
+        assertThat(connection.getMetaData().getSystemFunctions(),
+          is(p.defaultValue()));
+        break;
+      case TIME_DATE_FUNCTIONS:
+        assertThat(connection.getMetaData().getTimeDateFunctions(),
+          is(p.defaultValue()));
+        break;
+      case SQL_KEYWORDS:
+        assertThat(connection.getMetaData().getSQLKeywords(),
+          is(p.defaultValue()));
+        break;
+      case STRING_FUNCTIONS:
+        assertThat(connection.getMetaData().getStringFunctions(),
+          is(p.defaultValue()));
+        break;
+      default:
+      }
+    }
+    connection.close();
+    assertThat(connection.isClosed(), is(true));
+  }
+
   @Test public void testRemoteCatalogs() throws Exception {
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_CATALOGS)

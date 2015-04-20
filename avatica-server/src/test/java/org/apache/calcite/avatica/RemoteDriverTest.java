@@ -105,6 +105,49 @@ public class RemoteDriverTest {
     connection.close();
   }
 
+  @Test public void testDatabaseProperties() throws Exception {
+    final Connection connection = ljs();
+    for (Meta.DatabaseProperties p : Meta.DatabaseProperties.values()) {
+      switch(p) {
+      case NUMERIC_FUNCTIONS:
+        assertEquals("Fail to get NUMERIC_FUNCTIONS",
+          "ABS,ACOS,ASIN,ATAN,ATAN2,BITAND,BITOR,BITXOR,"
+          + "CEILING,COS,COT,DEGREES,EXP,FLOOR,LOG,LOG10,MOD,"
+          + "PI,POWER,RADIANS,RAND,ROUND,ROUNDMAGIC,SIGN,SIN,"
+          + "SQRT,TAN,TRUNCATE",
+          connection.getMetaData().getNumericFunctions());
+        break;
+      case SYSTEM_FUNCTIONS:
+        assertEquals("Fail to get SYSTEM_FUNCTIONS",
+          "DATABASE,IFNULL,USER",
+          connection.getMetaData().getSystemFunctions());
+        break;
+      case TIME_DATE_FUNCTIONS:
+        assertEquals("Fail to get TIME_DATE_FUNCTIONS",
+          "CURDATE,CURTIME,DATEDIFF,DAYNAME,DAYOFMONTH,DAYOFWEEK,"
+          + "DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,"
+          + "SECONDS_SINCE_MIDNIGHT,TIMESTAMPADD,TIMESTAMPDIFF,"
+          + "TO_CHAR,WEEK,YEAR",
+          connection.getMetaData().getTimeDateFunctions());
+        break;
+      case SQL_KEYWORDS:
+        assertEquals("Fail to get SQL_KEYWORDS",
+          "", //No SQL keywords return for HSQLDB
+          connection.getMetaData().getSQLKeywords());
+        break;
+      case STRING_FUNCTIONS:
+        assertEquals("Fail to get STRING_FUNCTIONS",
+          "ASCII,CHAR,CONCAT,DIFFERENCE,HEXTORAW,INSERT,LCASE,"
+          + "LEFT,LENGTH,LOCATE,LTRIM,RAWTOHEX,REPEAT,REPLACE,"
+          + "RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTR,UCASE",
+          connection.getMetaData().getStringFunctions());
+        break;
+      default:
+      }
+    }
+    connection.close();
+  }
+
   @Test public void testTables() throws Exception {
     final Connection connection = mjs();
     final ResultSet resultSet =
