@@ -43,7 +43,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.server.CalciteServerStatement;
-import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -208,33 +207,8 @@ public class CalciteMetaImpl extends MetaImpl {
     return (CalciteConnectionImpl) connection;
   }
 
-  @Override public String getDatabaseProperties(Meta.PropertyName propertyName) {
-    for (DatabaseProperties p : DatabaseProperties.values()) {
-      if (p.propertyName() == propertyName) {
-        return p.defaultValue();
-      }
-    }
-    return "";
-  }
-
-  public String getSqlKeywords() {
-    return getDatabaseProperties(Meta.PropertyName.SQL_KEYWORDS);
-  }
-
-  public String getNumericFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.NUMERIC_FUNCTIONS);
-  }
-
-  public String getStringFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.STRING_FUNCTIONS);
-  }
-
-  public String getSystemFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.SYSTEM_FUNCTIONS);
-  }
-
-  public String getTimeDateFunctions() {
-    return SqlJdbcFunctionCall.getTimeDateFunctions();
+  @Override public String getDatabaseProperties(Meta.DatabaseProperties dbProp) {
+    return org.apache.calcite.jdbc.DatabaseProperties.getProperty(dbProp);
   }
 
   public MetaResultSet getTables(String catalog,

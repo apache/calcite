@@ -500,28 +500,8 @@ public abstract class MetaImpl implements Meta {
   public static class MetaSuperTable {
   }
 
-  public String getDatabaseProperties(Meta.PropertyName propName) {
+  public String getDatabaseProperties(Meta.DatabaseProperties propName) {
     return "";
-  }
-
-  public String getSqlKeywords() {
-    return getDatabaseProperties(PropertyName.SQL_KEYWORDS);
-  }
-
-  public String getNumericFunctions() {
-    return getDatabaseProperties(PropertyName.NUMERIC_FUNCTIONS);
-  }
-
-  public String getStringFunctions() {
-    return getDatabaseProperties(PropertyName.NUMERIC_FUNCTIONS);
-  }
-
-  public String getSystemFunctions() {
-    return getDatabaseProperties(PropertyName.SYSTEM_FUNCTIONS);
-  }
-
-  public String getTimeDateFunctions() {
-    return getDatabaseProperties(PropertyName.TIME_DATE_FUNCTIONS);
   }
 
   public MetaResultSet getTables(String catalog,

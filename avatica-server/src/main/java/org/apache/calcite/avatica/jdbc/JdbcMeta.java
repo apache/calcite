@@ -394,7 +394,7 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public String getDatabaseProperties(Meta.PropertyName propertyName) {
+  public String getDatabaseProperties(Meta.DatabaseProperties propertyName) {
     try {
       switch(propertyName) {
       case NUMERIC_FUNCTIONS:
@@ -413,26 +413,6 @@ public class JdbcMeta implements Meta {
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public String getSqlKeywords() {
-    return getDatabaseProperties(Meta.PropertyName.SQL_KEYWORDS);
-  }
-
-  public String getNumericFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.NUMERIC_FUNCTIONS);
-  }
-
-  public String getStringFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.STRING_FUNCTIONS);
-  }
-
-  public String getSystemFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.SYSTEM_FUNCTIONS);
-  }
-
-  public String getTimeDateFunctions() {
-    return getDatabaseProperties(Meta.PropertyName.TIME_DATE_FUNCTIONS);
   }
 
   public MetaResultSet getTables(String catalog, Pat schemaPattern,

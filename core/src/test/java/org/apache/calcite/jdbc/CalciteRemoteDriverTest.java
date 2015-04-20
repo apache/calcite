@@ -199,31 +199,26 @@ public class CalciteRemoteDriverTest {
         CalciteAssert.hr().connect();
     assertThat(connection.isClosed(), is(false));
     for (DatabaseProperties p : DatabaseProperties.values()) {
-      switch(p.propertyName()) {
+      switch(p.databaseProperty()) {
       case NUMERIC_FUNCTIONS:
-        assertEquals("Fail to get NUMERIC_FUNCTIONS",
-          p.defaultValue(),
-          connection.getMetaData().getNumericFunctions());
+        assertThat(connection.getMetaData().getNumericFunctions(),
+          is(p.defaultValue()));
         break;
       case SYSTEM_FUNCTIONS:
-        assertEquals("Fail to get SYSTEM_FUNCTIONS",
-          p.defaultValue(),
-          connection.getMetaData().getSystemFunctions());
+        assertThat(connection.getMetaData().getSystemFunctions(),
+          is(p.defaultValue()));
         break;
       case TIME_DATE_FUNCTIONS:
-        assertEquals("Fail to get TIME_DATE_FUNCTIONS",
-          p.defaultValue(),
-          connection.getMetaData().getTimeDateFunctions());
+        assertThat(connection.getMetaData().getTimeDateFunctions(),
+          is(p.defaultValue()));
         break;
       case SQL_KEYWORDS:
-        assertEquals("Fail to get SQL_KEYWORDS",
-          p.defaultValue(),
-          connection.getMetaData().getSQLKeywords());
+        assertThat(connection.getMetaData().getSQLKeywords(),
+          is(p.defaultValue()));
         break;
       case STRING_FUNCTIONS:
-        assertEquals("Fail to get STRING_FUNCTIONS",
-          p.defaultValue(),
-          connection.getMetaData().getStringFunctions());
+        assertThat(connection.getMetaData().getStringFunctions(),
+          is(p.defaultValue()));
         break;
       default:
       }

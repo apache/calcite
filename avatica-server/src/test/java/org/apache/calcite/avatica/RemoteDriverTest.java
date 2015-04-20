@@ -101,7 +101,7 @@ public class RemoteDriverTest {
 
   @Test public void testDatabaseProperties() throws Exception {
     final Connection connection = ljs();
-    for (Meta.PropertyName p : Meta.PropertyName.values()) {
+    for (Meta.DatabaseProperties p : Meta.DatabaseProperties.values()) {
       switch(p) {
       case NUMERIC_FUNCTIONS:
         assertEquals("Fail to get NUMERIC_FUNCTIONS",

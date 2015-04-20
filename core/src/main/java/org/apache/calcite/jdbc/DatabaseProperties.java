@@ -21,6 +21,10 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.parser.SqlParser;
 
+import java.util.HashMap;
+import java.util.Map;
+
+
 /**
  * Definition of a database static properties.
  * {@link Meta.PropertyName} enumerates current database properties,
@@ -28,31 +32,47 @@ import org.apache.calcite.sql.parser.SqlParser;
  * {@link AvaticaDatabaseMetaData}
  */
 public enum DatabaseProperties {
-  NUMERIC_FUNCTIONS(Meta.PropertyName.NUMERIC_FUNCTIONS,
+  NUMERIC_FUNCTIONS(Meta.DatabaseProperties.NUMERIC_FUNCTIONS,
     SqlJdbcFunctionCall.getNumericFunctions()),
-  STRING_FUNCTIONS(Meta.PropertyName.STRING_FUNCTIONS,
+  STRING_FUNCTIONS(Meta.DatabaseProperties.STRING_FUNCTIONS,
     SqlJdbcFunctionCall.getStringFunctions()),
-  SYSTEM_FUNCTIONS(Meta.PropertyName.SYSTEM_FUNCTIONS,
+  SYSTEM_FUNCTIONS(Meta.DatabaseProperties.SYSTEM_FUNCTIONS,
     SqlJdbcFunctionCall.getSystemFunctions()),
-  TIME_DATE_FUNCTIONS(Meta.PropertyName.TIME_DATE_FUNCTIONS,
+  TIME_DATE_FUNCTIONS(Meta.DatabaseProperties.TIME_DATE_FUNCTIONS,
     SqlJdbcFunctionCall.getTimeDateFunctions()),
-  SQL_KEYWORDS(Meta.PropertyName.SQL_KEYWORDS,
+  SQL_KEYWORDS(Meta.DatabaseProperties.SQL_KEYWORDS,
     SqlParser.create("").getMetadata().getJdbcKeywords());
 
-  private Meta.PropertyName propertyName;
+  private Meta.DatabaseProperties databaseProperty;
   private String defaultValue;
+  private static final Map<Meta.DatabaseProperties, DatabaseProperties> NAME_TO_PROPS;
 
-  DatabaseProperties(Meta.PropertyName name, String defaultValue) {
-    this.propertyName = name;
+  static {
+    NAME_TO_PROPS = new HashMap<Meta.DatabaseProperties, DatabaseProperties>();
+    for (DatabaseProperties p : DatabaseProperties.values()) {
+      NAME_TO_PROPS.put(p.databaseProperty, p);
+    }
+  }
+
+  DatabaseProperties(Meta.DatabaseProperties dbProp, String defaultValue) {
+    this.databaseProperty = dbProp;
     this.defaultValue = defaultValue;
   }
 
-  public Meta.PropertyName propertyName() {
-    return this.propertyName;
+  public Meta.DatabaseProperties databaseProperty() {
+    return this.databaseProperty;
   }
 
   public String defaultValue() {
     return this.defaultValue;
   }
 
+  public static String getProperty(Meta.DatabaseProperties dbProps) {
+    final DatabaseProperties dbProp = NAME_TO_PROPS.get(dbProps);
+    if (dbProp != null) {
+      return dbProp.defaultValue;
+    } else {
+      return "";
+    }
+  }
 }
