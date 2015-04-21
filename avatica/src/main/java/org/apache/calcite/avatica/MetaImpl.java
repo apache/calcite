@@ -510,8 +510,8 @@ public abstract class MetaImpl implements Meta {
   public static class MetaSuperTable {
   }
 
-  public String getDatabaseProperties(Meta.DatabaseProperties propName) {
-    return "";
+  public Map<DatabaseProperty, Object> getDatabaseProperties() {
+    return Collections.emptyMap();
   }
 
   public MetaResultSet getTables(String catalog,

@@ -17,11 +17,27 @@
 package org.apache.calcite.avatica;
 
 import java.util.AbstractList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Avatica utilities. */
 public class AvaticaUtils {
+  private static final Map<Class, Class> BOX;
+
   private AvaticaUtils() {}
+
+  static {
+    BOX = new HashMap<>();
+    BOX.put(boolean.class, Boolean.class);
+    BOX.put(byte.class, Byte.class);
+    BOX.put(char.class, Character.class);
+    BOX.put(short.class, Short.class);
+    BOX.put(int.class, Integer.class);
+    BOX.put(long.class, Long.class);
+    BOX.put(float.class, Float.class);
+    BOX.put(double.class, Double.class);
+  }
 
   /**
    * Does nothing with its argument. Call this method when you have a value
@@ -91,6 +107,15 @@ public class AvaticaUtils {
       buf.append(c);
     }
     return buf.toString();
+  }
+
+  /** Returns the boxed class. For example, {@code box(int.class)}
+   * returns {@code java.lang.Integer}. */
+  public static Class box(Class clazz) {
+    if (clazz.isPrimitive()) {
+      return BOX.get(clazz);
+    }
+    return clazz;
   }
 }
 

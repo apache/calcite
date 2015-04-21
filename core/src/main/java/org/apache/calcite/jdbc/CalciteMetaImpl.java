@@ -44,6 +44,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -209,8 +211,33 @@ public class CalciteMetaImpl extends MetaImpl {
     return (CalciteConnectionImpl) connection;
   }
 
-  @Override public String getDatabaseProperties(Meta.DatabaseProperties dbProp) {
-    return org.apache.calcite.jdbc.DatabaseProperties.getProperty(dbProp);
+  @Override public Map<DatabaseProperty, Object> getDatabaseProperties() {
+    final ImmutableMap.Builder<DatabaseProperty, Object> builder =
+        ImmutableMap.builder();
+    for (DatabaseProperty p : DatabaseProperty.values()) {
+      addProperty(builder, p);
+    }
+    return builder.build();
+  }
+
+  private ImmutableMap.Builder<DatabaseProperty, Object> addProperty(
+      ImmutableMap.Builder<DatabaseProperty, Object> builder,
+      DatabaseProperty p) {
+    switch (p) {
+    case GET_S_Q_L_KEYWORDS:
+      return builder.put(p,
+          SqlParser.create("").getMetadata().getJdbcKeywords());
+    case GET_NUMERIC_FUNCTIONS:
+      return builder.put(p, SqlJdbcFunctionCall.getNumericFunctions());
+    case GET_STRING_FUNCTIONS:
+      return builder.put(p, SqlJdbcFunctionCall.getStringFunctions());
+    case GET_SYSTEM_FUNCTIONS:
+      return builder.put(p, SqlJdbcFunctionCall.getSystemFunctions());
+    case GET_TIME_DATE_FUNCTIONS:
+      return builder.put(p, SqlJdbcFunctionCall.getTimeDateFunctions());
+    default:
+      return builder;
+    }
   }
 
   public MetaResultSet getTables(String catalog,

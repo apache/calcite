@@ -31,7 +31,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -42,7 +44,9 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
@@ -348,23 +352,24 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public String getDatabaseProperties(Meta.DatabaseProperties propertyName) {
+  public Map<DatabaseProperty, Object> getDatabaseProperties() {
     try {
-      switch(propertyName) {
-      case NUMERIC_FUNCTIONS:
-        return connection.getMetaData().getNumericFunctions();
-      case SYSTEM_FUNCTIONS:
-        return connection.getMetaData().getSystemFunctions();
-      case TIME_DATE_FUNCTIONS:
-        return connection.getMetaData().getTimeDateFunctions();
-      case STRING_FUNCTIONS:
-        return connection.getMetaData().getStringFunctions();
-      case SQL_KEYWORDS:
-        return connection.getMetaData().getSQLKeywords();
-      default:
-        return "";
+      final Map<DatabaseProperty, Object> map = new HashMap<>();
+      final DatabaseMetaData metaData = connection.getMetaData();
+      for (DatabaseProperty p : DatabaseProperty.values()) {
+        addProperty(map, metaData, p);
       }
+      return map;
     } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Object addProperty(Map<DatabaseProperty, Object> map,
+      DatabaseMetaData metaData, DatabaseProperty p) throws SQLException {
+    try {
+      return map.put(p, p.method.invoke(metaData));
+    } catch (IllegalAccessException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

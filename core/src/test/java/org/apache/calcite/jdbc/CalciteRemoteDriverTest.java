@@ -68,6 +68,7 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -198,27 +199,27 @@ public class CalciteRemoteDriverTest {
     final Connection connection =
         CalciteAssert.hr().connect();
     assertThat(connection.isClosed(), is(false));
-    for (DatabaseProperties p : DatabaseProperties.values()) {
-      switch(p.databaseProperty()) {
-      case NUMERIC_FUNCTIONS:
+    for (Meta.DatabaseProperty p : Meta.DatabaseProperty.values()) {
+      switch (p) {
+      case GET_NUMERIC_FUNCTIONS:
         assertThat(connection.getMetaData().getNumericFunctions(),
-          is(p.defaultValue()));
+            not(equalTo("")));
         break;
-      case SYSTEM_FUNCTIONS:
+      case GET_SYSTEM_FUNCTIONS:
         assertThat(connection.getMetaData().getSystemFunctions(),
-          is(p.defaultValue()));
+            CoreMatchers.notNullValue());
         break;
-      case TIME_DATE_FUNCTIONS:
+      case GET_TIME_DATE_FUNCTIONS:
         assertThat(connection.getMetaData().getTimeDateFunctions(),
-          is(p.defaultValue()));
+            not(equalTo("")));
         break;
-      case SQL_KEYWORDS:
+      case GET_S_Q_L_KEYWORDS:
         assertThat(connection.getMetaData().getSQLKeywords(),
-          is(p.defaultValue()));
+            not(equalTo("")));
         break;
-      case STRING_FUNCTIONS:
+      case GET_STRING_FUNCTIONS:
         assertThat(connection.getMetaData().getStringFunctions(),
-          is(p.defaultValue()));
+            not(equalTo("")));
         break;
       default:
       }

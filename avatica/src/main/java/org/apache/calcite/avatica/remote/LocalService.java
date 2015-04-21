@@ -193,10 +193,7 @@ public class LocalService implements Service {
   }
 
   public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
-    final Meta.DatabaseProperty dbProperty = new Meta.DatabaseProperty(
-        request.dbProps.databaseProperty,
-        meta.getDatabaseProperties(request.dbProps.databaseProperty));
-    return new DatabasePropertyResponse(dbProperty);
+    return new DatabasePropertyResponse(meta.getDatabaseProperties());
   }
 }
 

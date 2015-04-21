@@ -385,16 +385,7 @@ public enum SqlType {
 
   /** Returns the boxed type. */
   public Class boxedClass() {
-    return box(clazz);
-  }
-
-  /** Returns the boxed class. For example, {@code box(int.class)}
-   * returns {@code java.lang.Integer}. */
-  private static Class box(Class clazz) {
-    if (clazz.isPrimitive()) {
-      return BOX.get(clazz);
-    }
-    return clazz;
+    return AvaticaUtils.box(clazz);
   }
 
   /** Returns the entries in JDBC table B-5. */
@@ -410,12 +401,10 @@ public enum SqlType {
 
   public static final Map<Class, EnumSet<SqlType>> SET_LIST;
   public static final Map<Method, EnumSet<SqlType>> GET_LIST;
-  private static final Map<Class, Class> BOX;
 
   static {
     SET_LIST = new HashMap<>();
     GET_LIST = new HashMap<>();
-    BOX = new HashMap<>();
 
     EnumSet<SqlType> numericTypes = EnumSet.of(TINYINT, SMALLINT, INTEGER,
         BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN);
@@ -497,15 +486,6 @@ public enum SqlType {
     GET_LIST.put(Method.GET_OBJECT, EnumSet.allOf(SqlType.class));
     GET_LIST.put(Method.GET_ROW_ID, EnumSet.of(ROWID));
     GET_LIST.put(Method.GET_SQLXML, EnumSet.of(SQLXML));
-
-    BOX.put(boolean.class, Boolean.class);
-    BOX.put(byte.class, Byte.class);
-    BOX.put(char.class, Character.class);
-    BOX.put(short.class, Short.class);
-    BOX.put(int.class, Integer.class);
-    BOX.put(long.class, Long.class);
-    BOX.put(float.class, Float.class);
-    BOX.put(double.class, Double.class);
   }
 
   @SafeVarargs

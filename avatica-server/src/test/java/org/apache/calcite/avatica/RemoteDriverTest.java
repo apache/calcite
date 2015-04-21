@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
@@ -83,6 +84,21 @@ public class RemoteDriverTest {
     return DriverManager.getConnection("jdbc:avatica:remote:factory=" + QRJS);
   }
 
+  private Connection canon() throws SQLException {
+    return DriverManager.getConnection(CONNECTION_SPEC.url,
+        CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+  }
+
+  /** Executes a lambda for the canonical connection and the local
+   * connection. */
+  public void eachConnection(ConnectionFunction f) throws Exception {
+    for (int i = 0; i < 2; i++) {
+      try (Connection connection = i == 0 ? canon() : ljs()) {
+        f.apply(connection);
+      }
+    }
+  }
+
   @Before
   public void before() throws Exception {
     QuasiRemoteJdbcServiceFactory.initService();
@@ -111,40 +127,35 @@ public class RemoteDriverTest {
 
   @Test public void testDatabaseProperties() throws Exception {
     final Connection connection = ljs();
-    for (Meta.DatabaseProperties p : Meta.DatabaseProperties.values()) {
-      switch(p) {
-      case NUMERIC_FUNCTIONS:
-        assertEquals("Fail to get NUMERIC_FUNCTIONS",
-          "ABS,ACOS,ASIN,ATAN,ATAN2,BITAND,BITOR,BITXOR,"
-          + "CEILING,COS,COT,DEGREES,EXP,FLOOR,LOG,LOG10,MOD,"
-          + "PI,POWER,RADIANS,RAND,ROUND,ROUNDMAGIC,SIGN,SIN,"
-          + "SQRT,TAN,TRUNCATE",
-          connection.getMetaData().getNumericFunctions());
+    for (Meta.DatabaseProperty p : Meta.DatabaseProperty.values()) {
+      switch (p) {
+      case GET_NUMERIC_FUNCTIONS:
+        assertThat(connection.getMetaData().getNumericFunctions(),
+            equalTo("ABS,ACOS,ASIN,ATAN,ATAN2,BITAND,BITOR,BITXOR,"
+                + "CEILING,COS,COT,DEGREES,EXP,FLOOR,LOG,LOG10,MOD,"
+                + "PI,POWER,RADIANS,RAND,ROUND,ROUNDMAGIC,SIGN,SIN,"
+                + "SQRT,TAN,TRUNCATE"));
         break;
-      case SYSTEM_FUNCTIONS:
-        assertEquals("Fail to get SYSTEM_FUNCTIONS",
-          "DATABASE,IFNULL,USER",
-          connection.getMetaData().getSystemFunctions());
+      case GET_SYSTEM_FUNCTIONS:
+        assertThat(connection.getMetaData().getSystemFunctions(),
+            equalTo("DATABASE,IFNULL,USER"));
         break;
-      case TIME_DATE_FUNCTIONS:
-        assertEquals("Fail to get TIME_DATE_FUNCTIONS",
-          "CURDATE,CURTIME,DATEDIFF,DAYNAME,DAYOFMONTH,DAYOFWEEK,"
-          + "DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,"
-          + "SECONDS_SINCE_MIDNIGHT,TIMESTAMPADD,TIMESTAMPDIFF,"
-          + "TO_CHAR,WEEK,YEAR",
-          connection.getMetaData().getTimeDateFunctions());
+      case GET_TIME_DATE_FUNCTIONS:
+        assertThat(connection.getMetaData().getTimeDateFunctions(),
+            equalTo("CURDATE,CURTIME,DATEDIFF,DAYNAME,DAYOFMONTH,DAYOFWEEK,"
+                + "DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,"
+                + "SECONDS_SINCE_MIDNIGHT,TIMESTAMPADD,TIMESTAMPDIFF,"
+                + "TO_CHAR,WEEK,YEAR"));
         break;
-      case SQL_KEYWORDS:
-        assertEquals("Fail to get SQL_KEYWORDS",
-          "", //No SQL keywords return for HSQLDB
-          connection.getMetaData().getSQLKeywords());
+      case GET_S_Q_L_KEYWORDS:
+        assertThat(connection.getMetaData().getSQLKeywords(),
+            equalTo("")); // No SQL keywords return for HSQLDB
         break;
-      case STRING_FUNCTIONS:
-        assertEquals("Fail to get STRING_FUNCTIONS",
-          "ASCII,CHAR,CONCAT,DIFFERENCE,HEXTORAW,INSERT,LCASE,"
-          + "LEFT,LENGTH,LOCATE,LTRIM,RAWTOHEX,REPEAT,REPLACE,"
-          + "RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTR,UCASE",
-          connection.getMetaData().getStringFunctions());
+      case GET_STRING_FUNCTIONS:
+        assertThat(connection.getMetaData().getStringFunctions(),
+            equalTo("ASCII,CHAR,CONCAT,DIFFERENCE,HEXTORAW,INSERT,LCASE,"
+                + "LEFT,LENGTH,LOCATE,LTRIM,RAWTOHEX,REPEAT,REPLACE,"
+                + "RIGHT,RTRIM,SOUNDEX,SPACE,SUBSTR,UCASE"));
         break;
       default:
       }
@@ -395,9 +406,7 @@ public class RemoteDriverTest {
 
   @Test public void testTypeHandling() throws Exception {
     final String query = "select * from EMP";
-    try (Connection cannon =
-             DriverManager.getConnection(CONNECTION_SPEC.url,
-                 CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+    try (Connection cannon = canon();
         Connection underTest = ljs();
         Statement s1 = cannon.createStatement();
         Statement s2 = underTest.createStatement()) {
@@ -472,6 +481,11 @@ public class RemoteDriverTest {
         throws SQLException;
   }
 
+  /** Callback to execute some code against a connection. */
+  interface ConnectionFunction {
+    void apply(Connection c1) throws Exception;
+  }
+
   @Test public void testSetParameter() throws Exception {
     checkSetParameter("select ? from (values 1)",
         new PreparedStatementFunction() {
@@ -495,9 +509,7 @@ public class RemoteDriverTest {
 
   void checkSetParameter(String query, PreparedStatementFunction fn)
       throws SQLException {
-    try (Connection cannon =
-             DriverManager.getConnection(CONNECTION_SPEC.url,
-                 CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+    try (Connection cannon = canon();
          Connection underTest = ljs();
          PreparedStatement s1 = cannon.prepareStatement(query);
          PreparedStatement s2 = underTest.prepareStatement(query)) {
@@ -619,26 +631,23 @@ public class RemoteDriverTest {
     final ParameterMetaData parameterMetaData = ps.getParameterMetaData();
     assertThat(parameterMetaData.getParameterCount(), equalTo(1));
 
-    ps.setBytes(1, new byte[] {65, 0, 66});
+    ps.setBytes(1, new byte[]{65, 0, 66});
     final ResultSet resultSet = ps.executeQuery();
     assertTrue(resultSet.next());
     assertThat(resultSet.getBytes(1),
-        equalTo(new byte[] {(byte) 0xDE, 65, 0, 66}));
+        equalTo(new byte[]{(byte) 0xDE, 65, 0, 66}));
     resultSet.close();
     ps.close();
     connection.close();
   }
 
   @Test public void testPrepareBindExecuteFetchDate() throws Exception {
-    checkPrepareBindExecuteFetchDate(ljs());
-  }
-
-  @Test public void testPrepareBindExecuteFetchDate2() throws Exception {
-    try (Connection cannon =
-             DriverManager.getConnection(CONNECTION_SPEC.url,
-                 CONNECTION_SPEC.username, CONNECTION_SPEC.password)) {
-      checkPrepareBindExecuteFetchDate(cannon);
-    }
+    eachConnection(
+        new ConnectionFunction() {
+          public void apply(Connection c1) throws Exception {
+            checkPrepareBindExecuteFetchDate(c1);
+          }
+        });
   }
 
   private void checkPrepareBindExecuteFetchDate(Connection connection) throws Exception {
@@ -704,6 +713,27 @@ public class RemoteDriverTest {
     resultSet.close();
     ps.close();
     connection.close();
+  }
+
+  @Test public void testDatabaseProperty() throws Exception {
+    eachConnection(
+        new ConnectionFunction() {
+          public void apply(Connection c1) throws Exception {
+            checkDatabaseProperty(c1);
+          }
+        });
+  }
+
+  private void checkDatabaseProperty(Connection connection)
+      throws SQLException {
+    final DatabaseMetaData metaData = connection.getMetaData();
+    assertThat(metaData.getSQLKeywords(), equalTo(""));
+    assertThat(metaData.getStringFunctions(),
+        equalTo("ASCII,CHAR,CONCAT,DIFFERENCE,HEXTORAW,INSERT,LCASE,LEFT,"
+            + "LENGTH,LOCATE,LTRIM,RAWTOHEX,REPEAT,REPLACE,RIGHT,RTRIM,SOUNDEX,"
+            + "SPACE,SUBSTR,UCASE"));
+    assertThat(metaData.getDefaultTransactionIsolation(),
+        equalTo(Connection.TRANSACTION_READ_COMMITTED));
   }
 
   /**

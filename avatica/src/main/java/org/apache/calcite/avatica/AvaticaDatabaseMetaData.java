@@ -182,23 +182,28 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getSQLKeywords() throws SQLException {
-    return connection.meta.getDatabaseProperties(Meta.DatabaseProperties.SQL_KEYWORDS);
+    return Meta.DatabaseProperty.GET_S_Q_L_KEYWORDS
+        .getProp(connection.meta, String.class);
   }
 
   public String getNumericFunctions() throws SQLException {
-    return connection.meta.getDatabaseProperties(Meta.DatabaseProperties.NUMERIC_FUNCTIONS);
+    return Meta.DatabaseProperty.GET_NUMERIC_FUNCTIONS
+        .getProp(connection.meta, String.class);
   }
 
   public String getStringFunctions() throws SQLException {
-    return connection.meta.getDatabaseProperties(Meta.DatabaseProperties.STRING_FUNCTIONS);
+    return Meta.DatabaseProperty.GET_STRING_FUNCTIONS
+        .getProp(connection.meta, String.class);
   }
 
   public String getSystemFunctions() throws SQLException {
-    return connection.meta.getDatabaseProperties(Meta.DatabaseProperties.SYSTEM_FUNCTIONS);
+    return Meta.DatabaseProperty.GET_SYSTEM_FUNCTIONS
+        .getProp(connection.meta, String.class);
   }
 
   public String getTimeDateFunctions() throws SQLException {
-    return connection.meta.getDatabaseProperties(Meta.DatabaseProperties.TIME_DATE_FUNCTIONS);
+    return Meta.DatabaseProperty.GET_TIME_DATE_FUNCTIONS
+        .getProp(connection.meta, String.class);
   }
 
   public String getSearchStringEscape() throws SQLException {
@@ -523,7 +528,8 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() throws SQLException {
-    return Connection.TRANSACTION_NONE;
+    return Meta.DatabaseProperty.GET_DEFAULT_TRANSACTION_ISOLATION
+        .getProp(connection.meta, Integer.class);
   }
 
   public boolean supportsTransactions() throws SQLException {

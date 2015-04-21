@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * API for request-response calls to an Avatica server.
@@ -108,11 +109,8 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#getDatabaseProperties()}. */
   class DatabasePropertyRequest extends Request {
-    public final Meta.DatabaseProperty dbProps;
-
     @JsonCreator
-    public DatabasePropertyRequest(@JsonProperty("dbProps") Meta.DatabaseProperty dbProps) {
-      this.dbProps = dbProps;
+    public DatabasePropertyRequest() {
     }
 
     DatabasePropertyResponse accept(Service service) {
@@ -454,13 +452,13 @@ public interface Service {
   }
 
   /** Response for
-   * {@link Meta#getDatabaseProperties(Meta.DatabaseProperty)}. */
+   * {@link Meta#getDatabaseProperties()}. */
   class DatabasePropertyResponse extends Response {
-    public final Meta.DatabaseProperty dbProps;
+    public final Map<Meta.DatabaseProperty, Object> map;
 
     @JsonCreator
-    public DatabasePropertyResponse(@JsonProperty("dbProps") Meta.DatabaseProperty dbProps) {
-      this.dbProps = dbProps;
+    public DatabasePropertyResponse(@JsonProperty("map") Map<Meta.DatabaseProperty, Object> map) {
+      this.map = map;
     }
   }
 }

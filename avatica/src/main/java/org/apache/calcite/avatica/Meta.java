@@ -25,6 +25,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,13 +45,12 @@ import java.util.Objects;
 public interface Meta {
 
   /**
-   * Return database static properties, deprecating single function call getNumericFunctions,
-   * getStringFunctions, getSystemFunctions, getSqlKeywords and getTimeDateFunctions
+   * Returns a map of static database properties.
    *
-   * @param DatabaseProperty to get
-   * @return CSV String of the supported function/keyword
+   * <p>The provider can omit properties whose value is the same as the
+   * default.
    */
-  String getDatabaseProperties(DatabaseProperties databaseProperty);
+  Map<DatabaseProperty, Object> getDatabaseProperties();
 
   MetaResultSet getTables(String catalog,
       Pat schemaPattern,
@@ -238,33 +240,70 @@ public interface Meta {
     }
   }
 
-  /** Database Properties Enum for Meta#{@link Meta#getDatabaseProperties(DatabaseProperties)}}
-   */
-  enum DatabaseProperties {
-    NUMERIC_FUNCTIONS,
-    STRING_FUNCTIONS,
-    SYSTEM_FUNCTIONS,
-    TIME_DATE_FUNCTIONS,
-    SQL_KEYWORDS;
-  }
-
-  /** POJO for Meta#{@link Meta#getDatabaseProperties(PropertyName)}}
+  /** Database property.
    *
-   * <p>Payload for {@link Service.DatabasePropertyRequest} and
-   * {@link Service.DatabasePropertyResponse}
+   * <p>Values exist for methods, such as
+   * {@link DatabaseMetaData#getSQLKeywords()}, which always return the same
+   * value at all times and across connections.
    *
-   * For {@link Service.Request}, the value is set to null
+   * @see #getDatabaseProperties()
    */
-  class DatabaseProperty {
-    public final DatabaseProperties databaseProperty;
-    public final String value;
+  enum DatabaseProperty {
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getNumericFunctions()}. */
+    GET_NUMERIC_FUNCTIONS(""),
 
-    @JsonCreator
-    public DatabaseProperty(
-      @JsonProperty("propertyName") DatabaseProperties dbProp,
-      @JsonProperty("value") String value) {
-      this.databaseProperty = dbProp;
-      this.value = value;
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getStringFunctions()}. */
+    GET_STRING_FUNCTIONS(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getSystemFunctions()}. */
+    GET_SYSTEM_FUNCTIONS(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getTimeDateFunctions()}. */
+    GET_TIME_DATE_FUNCTIONS(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getSQLKeywords()}. */
+    GET_S_Q_L_KEYWORDS(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDefaultTransactionIsolation()}. */
+    GET_DEFAULT_TRANSACTION_ISOLATION(Connection.TRANSACTION_NONE);
+
+    public final Class<?> type;
+    public final Object defaultValue;
+    public final Method method;
+
+    <T> DatabaseProperty(T defaultValue) {
+      this.defaultValue = defaultValue;
+      final String methodName = AvaticaUtils.toCamelCase(name());
+      try {
+        this.method = DatabaseMetaData.class.getMethod(methodName);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
+      this.type = AvaticaUtils.box(method.getReturnType());
+      assert defaultValue == null || defaultValue.getClass() == type;
+    }
+
+    /** Returns a value of this property, using the default value if the map
+     * does not contain an explicit value. */
+    public <T> T getProp(Meta meta, Class<T> aClass) {
+      return getProp(meta.getDatabaseProperties(), aClass);
+    }
+
+    /** Returns a value of this property, using the default value if the map
+     * does not contain an explicit value. */
+    public <T> T getProp(Map<DatabaseProperty, Object> map, Class<T> aClass) {
+      assert aClass == type;
+      Object v = map.get(this);
+      if (v == null) {
+        v = defaultValue;
+      }
+      return aClass.cast(v);
     }
   }
 
