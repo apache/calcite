@@ -146,6 +146,11 @@ limitations under the License.
       <artifactId>postgresql</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>sqlline</groupId>
+      <artifactId>sqlline</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
