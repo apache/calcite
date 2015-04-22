@@ -240,7 +240,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
             typeFactory);
-    SqlParser parser = SqlParser.create(sql);
+    SqlParser parser = createParser(sql);
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
@@ -255,21 +255,34 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       return new ParseResult(this, validator, sql, sqlNode1,
           validator.getValidatedNodeType(sqlNode1));
     }
+    final Convention resultConvention =
+        ENABLE_BINDABLE ? BindableConvention.INSTANCE
+            : EnumerableConvention.INSTANCE;
+    final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
     final CalcitePreparingStmt preparingStmt =
-        new CalcitePreparingStmt(
-            context,
-            catalogReader,
-            typeFactory,
-            context.getRootSchema(),
-            null,
-            new HepPlanner(new HepProgramBuilder().build()),
-            ENABLE_BINDABLE ? BindableConvention.INSTANCE
-                : EnumerableConvention.INSTANCE);
+        new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
+            context.getRootSchema(), null, planner, resultConvention);
     final SqlToRelConverter converter =
         preparingStmt.getSqlToRelConverter(validator, catalogReader);
     final RelNode relNode = converter.convertQuery(sqlNode1, false, true);
     return new ConvertResult(this, validator, sql, sqlNode1,
         validator.getValidatedNodeType(sqlNode1), relNode);
+  }
+
+  /** Factory method for default SQL parser. */
+  protected SqlParser createParser(String sql) {
+    return createParser(sql, createParserConfig());
+  }
+
+  /** Factory method for SQL parser with a given configuration. */
+  protected SqlParser createParser(String sql,
+      SqlParser.ConfigBuilder parserConfig) {
+    return SqlParser.create(sql, parserConfig.build());
+  }
+
+  /** Factory method for SQL parser configuration. */
+  protected SqlParser.ConfigBuilder createParserConfig() {
+    return SqlParser.configBuilder();
   }
 
   /** Creates a collection of planner factories.
@@ -469,28 +482,23 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     } else {
       prefer = EnumerableRel.Prefer.CUSTOM;
     }
+    final Convention resultConvention =
+        ENABLE_BINDABLE ? BindableConvention.INSTANCE
+            : EnumerableConvention.INSTANCE;
     final CalcitePreparingStmt preparingStmt =
-        new CalcitePreparingStmt(
-            context,
-            catalogReader,
-            typeFactory,
-            context.getRootSchema(),
-            prefer,
-            planner,
-            ENABLE_BINDABLE ? BindableConvention.INSTANCE
-                : EnumerableConvention.INSTANCE);
+        new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
+            context.getRootSchema(), prefer, planner, resultConvention);
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
     if (sql != null) {
       assert queryable == null;
       final CalciteConnectionConfig config = context.config();
-      SqlParser parser = SqlParser.create(sql,
-          SqlParser.configBuilder()
+      SqlParser parser = createParser(sql,
+          createParserConfig()
               .setQuotedCasing(config.quotedCasing())
               .setUnquotedCasing(config.unquotedCasing())
-              .setQuoting(config.quoting())
-              .build());
+              .setQuoting(config.quoting()));
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();
@@ -691,7 +699,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               Util.skipLast(materialization.materializedTable.path()),
               context.getTypeFactory());
       final CalciteMaterializer materializer =
-          new CalciteMaterializer(context, catalogReader, schema, planner);
+          new CalciteMaterializer(this, context, catalogReader, schema, planner);
       materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
@@ -734,8 +742,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   /** Holds state for the process of preparing a SQL statement. */
   static class CalcitePreparingStmt extends Prepare
       implements RelOptTable.ViewExpander {
-    private final RelOptPlanner planner;
-    private final RexBuilder rexBuilder;
+    protected final RelOptPlanner planner;
+    protected final RexBuilder rexBuilder;
+    protected final CalcitePrepareImpl prepare;
     protected final CalciteSchema schema;
     protected final RelDataTypeFactory typeFactory;
     private final EnumerableRel.Prefer prefer;
@@ -744,7 +753,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private int expansionDepth;
     private SqlValidator sqlValidator;
 
-    public CalcitePreparingStmt(Context context,
+    public CalcitePreparingStmt(CalcitePrepareImpl prepare,
+        Context context,
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         CalciteSchema schema,
@@ -752,6 +762,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelOptPlanner planner,
         Convention resultConvention) {
       super(context, catalogReader, resultConvention);
+      this.prepare = prepare;
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
@@ -840,7 +851,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         List<String> schemaPath) {
       expansionDepth++;
 
-      SqlParser parser = SqlParser.create(queryString);
+      SqlParser parser = prepare.createParser(queryString);
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();

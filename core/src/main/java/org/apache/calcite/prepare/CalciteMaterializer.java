@@ -56,10 +56,12 @@ import java.util.List;
  * Context for populating a {@link Materialization}.
  */
 class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
-  public CalciteMaterializer(CalcitePrepare.Context context,
+  public CalciteMaterializer(CalcitePrepareImpl prepare,
+      CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
       RelOptPlanner planner) {
-    super(context, catalogReader, catalogReader.getTypeFactory(), schema,
+    super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
+        schema,
         EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE);
   }
 
