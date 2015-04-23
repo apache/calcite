@@ -25,7 +25,6 @@ import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -422,9 +421,7 @@ public class TraitPropagationTest {
       planner.addRule(r);
     }
 
-    final RelOptQuery query = new RelOptQuery(planner);
-    final RelOptCluster cluster = query.createCluster(
-        rexBuilder.getTypeFactory(), rexBuilder);
+    final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
     return action.apply(cluster, catalogReader,
         prepareContext.getRootSchema().plus());
   }

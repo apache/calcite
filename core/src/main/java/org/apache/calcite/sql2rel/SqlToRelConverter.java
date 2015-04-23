@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -257,7 +256,7 @@ public class SqlToRelConverter {
       RexBuilder rexBuilder,
       SqlRexConvertletTable convertletTable) {
     this(viewExpander, validator, catalogReader,
-        createCluster(rexBuilder, planner), convertletTable);
+        RelOptCluster.create(planner, rexBuilder), convertletTable);
   }
 
   /* Creates a converter. */
@@ -290,14 +289,6 @@ public class SqlToRelConverter {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  // helper for constructor
-  private static RelOptCluster createCluster(RexBuilder rexBuilder,
-      RelOptPlanner planner) {
-    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    RelOptQuery query = new RelOptQuery(planner);
-    return query.createCluster(typeFactory, rexBuilder);
-  }
 
   /**
    * @return the RelOptCluster in use.

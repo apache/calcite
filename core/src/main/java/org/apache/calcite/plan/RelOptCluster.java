@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.MetadataFactoryImpl;
@@ -23,6 +24,12 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+
+import com.google.common.base.Preconditions;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An environment for related relational expressions during the
@@ -32,8 +39,9 @@ public class RelOptCluster {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeFactory typeFactory;
-  private final RelOptQuery query;
   private final RelOptPlanner planner;
+  private final AtomicInteger nextCorrel;
+  private final Map<String, RelNode> mapCorrelToRel;
   private RexNode originalExpression;
   private final RexBuilder rexBuilder;
   private RelMetadataProvider metadataProvider;
@@ -45,16 +53,28 @@ public class RelOptCluster {
   /**
    * Creates a cluster.
    */
+  @Deprecated // to be removed before 2.0
   RelOptCluster(
       RelOptQuery query,
       RelOptPlanner planner,
       RelDataTypeFactory typeFactory,
       RexBuilder rexBuilder) {
-    assert planner != null;
-    assert typeFactory != null;
-    this.query = query;
-    this.planner = planner;
-    this.typeFactory = typeFactory;
+    this(planner, typeFactory, rexBuilder, query.nextCorrel,
+        query.mapCorrelToRel);
+  }
+
+  /**
+   * Creates a cluster.
+   *
+   * <p>For use only from {@link #create} and {@link RelOptQuery}.
+   */
+  RelOptCluster(RelOptPlanner planner, RelDataTypeFactory typeFactory,
+      RexBuilder rexBuilder, AtomicInteger nextCorrel,
+      Map<String, RelNode> mapCorrelToRel) {
+    this.nextCorrel = nextCorrel;
+    this.mapCorrelToRel = mapCorrelToRel;
+    this.planner = Preconditions.checkNotNull(planner);
+    this.typeFactory = Preconditions.checkNotNull(typeFactory);
     this.rexBuilder = rexBuilder;
     this.originalExpression = rexBuilder.makeLiteral("?");
 
@@ -65,16 +85,26 @@ public class RelOptCluster {
     assert emptyTraitSet.size() == planner.getRelTraitDefs().size();
   }
 
-  //~ Methods ----------------------------------------------------------------
-
-  public RelOptQuery getQuery() {
-    return query;
+  /** Creates a cluster. */
+  public static RelOptCluster create(RelOptPlanner planner,
+      RexBuilder rexBuilder) {
+    return new RelOptCluster(planner, rexBuilder.getTypeFactory(),
+        rexBuilder, new AtomicInteger(0), new HashMap<String, RelNode>());
   }
 
+  //~ Methods ----------------------------------------------------------------
+
+  @Deprecated // to be removed before 2.0
+  public RelOptQuery getQuery() {
+    return new RelOptQuery(planner, nextCorrel, mapCorrelToRel);
+  }
+
+  @Deprecated // to be removed before 2.0
   public RexNode getOriginalExpression() {
     return originalExpression;
   }
 
+  @Deprecated // to be removed before 2.0
   public void setOriginalExpression(RexNode originalExpression) {
     this.originalExpression = originalExpression;
   }
@@ -107,6 +137,14 @@ public class RelOptCluster {
 
   public MetadataFactory getMetadataFactory() {
     return metadataFactory;
+  }
+
+  /**
+   * Constructs a new id for a correlating variable. It is unique within the
+   * whole query.
+   */
+  public int createCorrel() {
+    return nextCorrel.getAndIncrement();
   }
 
   /** Returns the default trait set for this cluster. */

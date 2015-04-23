@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A <code>RelOptQuery</code> represents a set of
@@ -42,10 +43,10 @@ public class RelOptQuery {
    * Maps name of correlating variable (e.g. "$cor3") to the {@link RelNode}
    * which implements it.
    */
-  final Map<String, RelNode> mapCorrelToRel = new HashMap<String, RelNode>();
+  final Map<String, RelNode> mapCorrelToRel;
 
   private final RelOptPlanner planner;
-  private int nextCorrel = 0;
+  final AtomicInteger nextCorrel;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -54,19 +55,29 @@ public class RelOptQuery {
    *
    * @param planner Planner
    */
+  @Deprecated // to be removed before 2.0
   public RelOptQuery(RelOptPlanner planner) {
+    this(planner, new AtomicInteger(0), new HashMap<String, RelNode>());
+  }
+
+  /** For use by RelOptCluster only. */
+  RelOptQuery(RelOptPlanner planner, AtomicInteger nextCorrel,
+      Map<String, RelNode> mapCorrelToRel) {
     this.planner = planner;
+    this.nextCorrel = nextCorrel;
+    this.mapCorrelToRel = mapCorrelToRel;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Converts a correlating variable name into an ordinal, unqiue within the
+   * Converts a correlating variable name into an ordinal, unique within the
    * query.
    *
    * @param correlName Name of correlating variable
    * @return Correlating variable ordinal
    */
+  @Deprecated // to be removed before 2.0
   public static int getCorrelOrdinal(String correlName) {
     assert correlName.startsWith(CORREL_PREFIX);
     return Integer.parseInt(correlName.substring(CORREL_PREFIX.length()));
@@ -79,18 +90,23 @@ public class RelOptQuery {
    * @param rexBuilder  Expression builder
    * @return New cluster
    */
+  @Deprecated // to be removed before 2.0
   public RelOptCluster createCluster(
       RelDataTypeFactory typeFactory,
       RexBuilder rexBuilder) {
-    return new RelOptCluster(this, planner, typeFactory, rexBuilder);
+    return new RelOptCluster(planner, typeFactory, rexBuilder, nextCorrel,
+        mapCorrelToRel);
   }
 
   /**
    * Constructs a new name for a correlating variable. It is unique within the
    * whole query.
+   *
+   * @deprecated Use {@link RelOptCluster#createCorrel()}
    */
+  @Deprecated // to be removed before 2.0
   public String createCorrel() {
-    int n = nextCorrel++;
+    int n = nextCorrel.getAndIncrement();
     return CORREL_PREFIX + n;
   }
 

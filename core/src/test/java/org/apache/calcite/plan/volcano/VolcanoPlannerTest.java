@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -82,11 +81,9 @@ public class VolcanoPlannerTest {
   //~ Methods ----------------------------------------------------------------
 
   static RelOptCluster newCluster(VolcanoPlanner planner) {
-    RelOptQuery query = new RelOptQuery(planner);
-    RelDataTypeFactory typeFactory =
+    final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    return query.createCluster(
-        typeFactory,
+    return RelOptCluster.create(planner,
         new RexBuilder(typeFactory));
   }
 
@@ -152,7 +149,7 @@ public class VolcanoPlannerTest {
 
     planner.addRule(new PhysLeafRule());
     planner.addRule(new GoodSingleRule());
-    final List<String> buf = new ArrayList<String>();
+    final List<String> buf = new ArrayList<>();
     planner.addRule(new SubsetRule(buf));
 
     RelOptCluster cluster = newCluster(planner);
@@ -180,7 +177,7 @@ public class VolcanoPlannerTest {
   }
 
   private static <E extends Comparable> List<E> sort(List<E> list) {
-    final List<E> list2 = new ArrayList<E>(list);
+    final List<E> list2 = new ArrayList<>(list);
     Collections.sort(list2);
     return list2;
   }
@@ -825,7 +822,7 @@ public class VolcanoPlannerTest {
     private List<RelEvent> eventList;
 
     TestListener() {
-      eventList = new ArrayList<RelEvent>();
+      eventList = new ArrayList<>();
     }
 
     List<RelEvent> getEventList() {

@@ -20,7 +20,6 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelTraitDef;
@@ -183,8 +182,7 @@ public class PlannerImpl implements Planner {
     ensure(State.STATE_4_VALIDATED);
     assert validatedSqlNode != null;
     final RexBuilder rexBuilder = createRexBuilder();
-    final RelOptQuery query = new RelOptQuery(planner);
-    final RelOptCluster cluster = query.createCluster(typeFactory, rexBuilder);
+    final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(new ViewExpanderImpl(), validator,
             createCatalogReader(), cluster, convertletTable);
@@ -218,9 +216,7 @@ public class PlannerImpl implements Planner {
       final SqlNode validatedSqlNode = validator.validate(sqlNode);
 
       final RexBuilder rexBuilder = createRexBuilder();
-      final RelOptQuery query = new RelOptQuery(planner);
-      final RelOptCluster cluster =
-          query.createCluster(typeFactory, rexBuilder);
+      final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
       final SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(null, validator, catalogReader, cluster,
               convertletTable);

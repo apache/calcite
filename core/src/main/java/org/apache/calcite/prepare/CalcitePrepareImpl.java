@@ -56,7 +56,6 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -288,8 +287,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   /** Factory method for cluster. */
   protected RelOptCluster createCluster(RelOptPlanner planner,
       RexBuilder rexBuilder) {
-    final RelOptQuery query = new RelOptQuery(planner);
-    return query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
+    return RelOptCluster.create(planner, rexBuilder);
   }
 
   /** Creates a collection of planner factories.

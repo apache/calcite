@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptSchemaWithSampling;
 import org.apache.calcite.plan.RelOptTable;
@@ -506,9 +505,8 @@ public abstract class SqlToRelTestBase {
         final Prepare.CatalogReader catalogReader,
         final RelDataTypeFactory typeFactory) {
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-      final RelOptQuery query = new RelOptQuery(getPlanner());
       final RelOptCluster cluster =
-          query.createCluster(typeFactory, rexBuilder);
+          RelOptCluster.create(getPlanner(), rexBuilder);
       return new SqlToRelConverter(null, validator, catalogReader, cluster,
           StandardConvertletTable.INSTANCE);
     }

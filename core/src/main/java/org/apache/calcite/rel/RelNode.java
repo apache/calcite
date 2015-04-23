@@ -131,6 +131,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Sub-query
    */
+  @Deprecated // to be removed before 2.0
   RelOptQuery getQuery();
 
   /**
