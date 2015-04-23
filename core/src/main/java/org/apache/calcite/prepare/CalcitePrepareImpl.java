@@ -285,6 +285,13 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return SqlParser.configBuilder();
   }
 
+  /** Factory method for cluster. */
+  protected RelOptCluster createCluster(RelOptPlanner planner,
+      RexBuilder rexBuilder) {
+    final RelOptQuery query = new RelOptQuery(planner);
+    return query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
+  }
+
   /** Creates a collection of planner factories.
    *
    * <p>The collection must have at least one factory, and each factory must
@@ -732,9 +739,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         createPlanner(prepareContext,
             action.getConfig().getContext(),
             action.getConfig().getCostFactory());
-    final RelOptQuery query = new RelOptQuery(planner);
-    final RelOptCluster cluster =
-        query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
+    final RelOptCluster cluster = createCluster(planner, rexBuilder);
     return action.apply(cluster, catalogReader,
         prepareContext.getRootSchema().plus(), statement);
   }
@@ -780,10 +785,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       Class runtimeContextClass = Object.class;
       init(runtimeContextClass);
 
-      final RelOptQuery query = new RelOptQuery(planner);
-      final RelOptCluster cluster =
-          query.createCluster(
-              rexBuilder.getTypeFactory(), rexBuilder);
+      final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
 
       RelNode rootRel =
           new LixToRelTranslator(cluster, CalcitePreparingStmt.this)
@@ -822,9 +824,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     @Override protected SqlToRelConverter getSqlToRelConverter(
         SqlValidator validator,
         CatalogReader catalogReader) {
+      final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
       SqlToRelConverter sqlToRelConverter =
-          new SqlToRelConverter(
-              this, validator, catalogReader, planner, rexBuilder,
+          new SqlToRelConverter(this, validator, catalogReader, cluster,
               StandardConvertletTable.INSTANCE);
       sqlToRelConverter.setTrimUnusedFields(true);
       return sqlToRelConverter;

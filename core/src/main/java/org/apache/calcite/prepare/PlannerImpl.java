@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelTraitDef;
@@ -181,10 +182,12 @@ public class PlannerImpl implements Planner {
   public RelNode convert(SqlNode sql) throws RelConversionException {
     ensure(State.STATE_4_VALIDATED);
     assert validatedSqlNode != null;
+    final RexBuilder rexBuilder = createRexBuilder();
+    final RelOptQuery query = new RelOptQuery(planner);
+    final RelOptCluster cluster = query.createCluster(typeFactory, rexBuilder);
     final SqlToRelConverter sqlToRelConverter =
-        new SqlToRelConverter(
-            new ViewExpanderImpl(), validator, createCatalogReader(), planner,
-            createRexBuilder(), convertletTable);
+        new SqlToRelConverter(new ViewExpanderImpl(), validator,
+            createCatalogReader(), cluster, convertletTable);
     sqlToRelConverter.setTrimUnusedFields(false);
     sqlToRelConverter.enableTableAccessConversion(false);
     rel = sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
@@ -214,9 +217,13 @@ public class PlannerImpl implements Planner {
       validator.setIdentifierExpansion(true);
       final SqlNode validatedSqlNode = validator.validate(sqlNode);
 
-      final SqlToRelConverter sqlToRelConverter = new SqlToRelConverter(
-          null, validator, catalogReader, planner,
-          createRexBuilder(), convertletTable);
+      final RexBuilder rexBuilder = createRexBuilder();
+      final RelOptQuery query = new RelOptQuery(planner);
+      final RelOptCluster cluster =
+          query.createCluster(typeFactory, rexBuilder);
+      final SqlToRelConverter sqlToRelConverter =
+          new SqlToRelConverter(null, validator, catalogReader, cluster,
+              convertletTable);
       sqlToRelConverter.setTrimUnusedFields(false);
 
       return sqlToRelConverter.convertQuery(validatedSqlNode, true, false);

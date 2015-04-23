@@ -142,6 +142,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -247,12 +248,24 @@ public class SqlToRelConverter {
    * @param rexBuilder      Rex builder
    * @param convertletTable Expression converter
    */
+  @Deprecated // will be removed before 2.0
   public SqlToRelConverter(
       RelOptTable.ViewExpander viewExpander,
       SqlValidator validator,
       Prepare.CatalogReader catalogReader,
       RelOptPlanner planner,
       RexBuilder rexBuilder,
+      SqlRexConvertletTable convertletTable) {
+    this(viewExpander, validator, catalogReader,
+        createCluster(rexBuilder, planner), convertletTable);
+  }
+
+  /* Creates a converter. */
+  public SqlToRelConverter(
+      RelOptTable.ViewExpander viewExpander,
+      SqlValidator validator,
+      Prepare.CatalogReader catalogReader,
+      RelOptCluster cluster,
       SqlRexConvertletTable convertletTable) {
     this.viewExpander = viewExpander;
     this.opTab =
@@ -263,10 +276,9 @@ public class SqlToRelConverter {
     this.catalogReader = catalogReader;
     this.defaultValueFactory = new NullDefaultValueFactory();
     this.subqueryConverter = new NoOpSubqueryConverter();
-    this.rexBuilder = rexBuilder;
+    this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
-    RelOptQuery query = new RelOptQuery(planner);
-    this.cluster = query.createCluster(typeFactory, rexBuilder);
+    this.cluster = Preconditions.checkNotNull(cluster);
     this.shouldConvertTableAccess = true;
     this.exprConverter =
         new SqlNodeToRexConverterImpl(convertletTable);
@@ -278,6 +290,14 @@ public class SqlToRelConverter {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  // helper for constructor
+  private static RelOptCluster createCluster(RexBuilder rexBuilder,
+      RelOptPlanner planner) {
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    RelOptQuery query = new RelOptQuery(planner);
+    return query.createCluster(typeFactory, rexBuilder);
+  }
 
   /**
    * @return the RelOptCluster in use.
