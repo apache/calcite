@@ -67,6 +67,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -586,6 +587,30 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertTrue(result == null);
   }
 
+  /** Asserts that {@link RelMetadataQuery#getUniqueKeys(RelNode)}
+   * and {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
+   * return consistent results. */
+  private void assertUniqueConsistent(RelNode rel) {
+    Set<ImmutableBitSet> uniqueKeys = RelMetadataQuery.getUniqueKeys(rel);
+    final ImmutableBitSet allCols =
+        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
+    for (ImmutableBitSet key : allCols.powerSet()) {
+      Boolean result2 = RelMetadataQuery.areColumnsUnique(rel, key);
+      assertTrue(result2 == null || result2 == isUnique(uniqueKeys, key));
+    }
+  }
+
+  /** Returns whether {@code keys} is unique, that is, whether it or a superset
+   * is in {@code keySets}. */
+  private boolean isUnique(Set<ImmutableBitSet> uniqueKeys, ImmutableBitSet key) {
+    for (ImmutableBitSet uniqueKey : uniqueKeys) {
+      if (key.contains(uniqueKey)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-509">[CALCITE-509]
    * "RelMdColumnUniqueness uses ImmutableBitSet.Builder twice, gets
@@ -593,13 +618,47 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testJoinUniqueKeys() {
     RelNode rel = convertSql("select * from emp join dept using (deptno)");
     Set<ImmutableBitSet> result = RelMetadataQuery.getUniqueKeys(rel);
-    assertThat(result.toString(), equalTo("[]"));
-    final ImmutableBitSet allCols =
-        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
-    for (ImmutableBitSet integers : allCols.powerSet()) {
-      Boolean result2 = RelMetadataQuery.areColumnsUnique(rel, integers);
-      assertTrue(result2 == null || !result2);
-    }
+    assertThat(result.isEmpty(), is(true));
+    assertUniqueConsistent(rel);
+  }
+
+  @Test public void testGroupByEmptyUniqueKeys() {
+    RelNode rel = convertSql("select count(*) from emp");
+    Set<ImmutableBitSet> result = RelMetadataQuery.getUniqueKeys(rel);
+    assertThat(result,
+        CoreMatchers.<Set<ImmutableBitSet>>equalTo(
+            ImmutableSet.of(ImmutableBitSet.of())));
+    assertUniqueConsistent(rel);
+  }
+
+  @Test public void testGroupByEmptyHavingUniqueKeys() {
+    RelNode rel = convertSql("select count(*) from emp where 1 = 1");
+    Set<ImmutableBitSet> result = RelMetadataQuery.getUniqueKeys(rel);
+    assertThat(result,
+        CoreMatchers.<Set<ImmutableBitSet>>equalTo(
+            ImmutableSet.of(ImmutableBitSet.of())));
+    assertUniqueConsistent(rel);
+  }
+
+  @Test public void testGroupBy() {
+    RelNode rel = convertSql("select deptno, count(*), sum(sal) from emp\n"
+            + "group by deptno");
+    Set<ImmutableBitSet> result = RelMetadataQuery.getUniqueKeys(rel);
+    assertThat(result,
+        CoreMatchers.<Set<ImmutableBitSet>>equalTo(
+            ImmutableSet.of(ImmutableBitSet.of(0))));
+    assertUniqueConsistent(rel);
+  }
+
+  @Test public void testUnion() {
+    RelNode rel = convertSql("select deptno from emp\n"
+            + "union\n"
+            + "select deptno from dept");
+    Set<ImmutableBitSet> result = RelMetadataQuery.getUniqueKeys(rel);
+    assertThat(result,
+        CoreMatchers.<Set<ImmutableBitSet>>equalTo(
+            ImmutableSet.of(ImmutableBitSet.of(0))));
+    assertUniqueConsistent(rel);
   }
 
   @Test public void testCustomProvider() {

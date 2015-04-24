@@ -246,17 +246,8 @@ public class RelMdColumnUniqueness {
       ImmutableBitSet columns,
       boolean ignoreNulls) {
     // group by keys form a unique key
-    if (rel.getGroupCount() > 0) {
-      ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
-      return columns.contains(groupKey);
-    } else {
-      // interpret an empty set as asking whether the aggregation is full
-      // table (in which case it returns at most one row);
-      // TODO jvs 1-Sept-2008:  apply this convention consistently
-      // to other relational expressions, as well as to
-      // RelMetadataQuery.getUniqueKeys
-      return columns.isEmpty();
-    }
+    ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
+    return columns.contains(groupKey);
   }
 
   // Catch-all rule when none of the others apply.

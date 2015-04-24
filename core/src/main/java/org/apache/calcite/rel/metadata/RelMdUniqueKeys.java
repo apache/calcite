@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -207,6 +208,15 @@ public class RelMdUniqueKeys {
       boolean ignoreNulls) {
     // group by keys form a unique key
     return ImmutableSet.of(rel.getGroupSet());
+  }
+
+  public Set<ImmutableBitSet> getUniqueKeys(SetOp rel,
+      boolean ignoreNulls) {
+    if (!rel.all) {
+      return ImmutableSet.of(
+          ImmutableBitSet.range(rel.getRowType().getFieldCount()));
+    }
+    return ImmutableSet.of();
   }
 
   // Catch-all rule when none of the others apply.
