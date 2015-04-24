@@ -135,7 +135,7 @@ public abstract class AbstractCursor implements Cursor {
       case NUMBER:
         return new DateFromNumberAccessor(getter, localCalendar);
       case JAVA_SQL_DATE:
-        return new DateAccessor(getter, localCalendar);
+        return new DateAccessor(getter);
       default:
         throw new AssertionError("bad " + columnMetaData.type.rep);
       }
@@ -146,7 +146,7 @@ public abstract class AbstractCursor implements Cursor {
       case NUMBER:
         return new TimeFromNumberAccessor(getter, localCalendar);
       case JAVA_SQL_TIME:
-        return new TimeAccessor(getter, localCalendar);
+        return new TimeAccessor(getter);
       default:
         throw new AssertionError("bad " + columnMetaData.type.rep);
       }
@@ -157,7 +157,7 @@ public abstract class AbstractCursor implements Cursor {
       case NUMBER:
         return new TimestampFromNumberAccessor(getter, localCalendar);
       case JAVA_SQL_TIMESTAMP:
-        return new TimestampAccessor(getter, localCalendar);
+        return new TimestampAccessor(getter);
       case JAVA_UTIL_DATE:
         return new TimestampFromUtilDateAccessor(getter, localCalendar);
       default:
@@ -916,11 +916,8 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#DATE}.
    */
   private static class DateAccessor extends ObjectAccessor {
-    private final Calendar localCalendar;
-
-    public DateAccessor(Getter getter, Calendar localCalendar) {
+    public DateAccessor(Getter getter) {
       super(getter);
-      this.localCalendar = localCalendar;
     }
 
     @Override public Date getDate(Calendar calendar) {
@@ -958,11 +955,8 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#TIME}.
    */
   private static class TimeAccessor extends ObjectAccessor {
-    private final Calendar localCalendar;
-
-    public TimeAccessor(Getter getter, Calendar localCalendar) {
+    public TimeAccessor(Getter getter) {
       super(getter);
-      this.localCalendar = localCalendar;
     }
 
     @Override public Time getTime(Calendar calendar) {
@@ -999,11 +993,8 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#TIMESTAMP}.
    */
   private static class TimestampAccessor extends ObjectAccessor {
-    private final Calendar localCalendar;
-
-    public TimestampAccessor(Getter getter, Calendar localCalendar) {
+    public TimestampAccessor(Getter getter) {
       super(getter);
-      this.localCalendar = localCalendar;
     }
 
     @Override public Timestamp getTimestamp(Calendar calendar) {

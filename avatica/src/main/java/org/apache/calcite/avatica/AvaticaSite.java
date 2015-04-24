@@ -43,6 +43,12 @@ import java.util.Calendar;
  */
 public class AvaticaSite {
   final AvaticaParameter parameter;
+
+  /** Calendar is not thread-safe. But calendar is only used from within one
+   * thread, and we have to trust that clients are not modifying calendars
+   * that they pass to us in a method such as
+   * {@link java.sql.PreparedStatement#setTime(int, Time, Calendar)}, so we do
+   * not need to synchronize access. */
   final Calendar calendar;
   private final int index;
   final TypedValue[] slots;
@@ -53,6 +59,9 @@ public class AvaticaSite {
 
   public AvaticaSite(AvaticaParameter parameter, Calendar calendar, int index,
       TypedValue[] slots) {
+    assert calendar != null;
+    assert parameter != null;
+    assert slots != null;
     this.parameter = parameter;
     this.calendar = calendar;
     this.index = index;
@@ -189,7 +198,7 @@ public class AvaticaSite {
     slots[index] = wrap(ColumnMetaData.Rep.JAVA_SQL_DATE, x, calendar);
   }
 
-  public void setObject(Object x, int targetSqlType, Calendar calendar) {
+  public void setObject(Object x, int targetSqlType) {
     if (x == null || Types.NULL == targetSqlType) {
       setNull(targetSqlType);
       return;

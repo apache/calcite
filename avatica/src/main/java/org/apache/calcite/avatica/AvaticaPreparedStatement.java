@@ -86,7 +86,17 @@ public abstract class AvaticaPreparedStatement
    * time this method is called.
    *
    * <p>Uses the calendar to offset date-time values when calling methods such
-   * as {@link #setDate(int, Date)}. */
+   * as {@link #setDate(int, Date)}.
+   *
+   * <p>A note on thread-safety. This method does not strictly need to be
+   * {@code synchronized}, because JDBC does not promise thread safety if
+   * different threads are accessing the same statement, or even different
+   * objects within a particular connection.
+   *
+   * <p>The calendar returned is to be used only within this statement, and
+   * JDBC only allows access to a statement from within one thread, so
+   * therefore does not need to be synchronized when accessed.
+   */
   protected synchronized Calendar getCalendar() {
     if (calendar == null) {
       calendar = Calendar.getInstance(connection.getTimeZone());
@@ -156,20 +166,17 @@ public abstract class AvaticaPreparedStatement
 
   public void setAsciiStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
-    getSite(parameterIndex)
-        .setAsciiStream(x, length);
+    getSite(parameterIndex).setAsciiStream(x, length);
   }
 
   public void setUnicodeStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
-    getSite(parameterIndex)
-        .setUnicodeStream(x, length);
+    getSite(parameterIndex).setUnicodeStream(x, length);
   }
 
   public void setBinaryStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
-    getSite(parameterIndex)
-        .setBinaryStream(x, length);
+    getSite(parameterIndex).setBinaryStream(x, length);
   }
 
   public void clearParameters() throws SQLException {
@@ -180,8 +187,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setObject(int parameterIndex, Object x, int targetSqlType)
       throws SQLException {
-    getSite(parameterIndex)
-        .setObject(x, targetSqlType, getCalendar());
+    getSite(parameterIndex).setObject(x, targetSqlType);
   }
 
   public void setObject(int parameterIndex, Object x) throws SQLException {
@@ -201,8 +207,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setCharacterStream(int parameterIndex, Reader reader, int length)
       throws SQLException {
-    getSite(parameterIndex)
-        .setCharacterStream(reader, length);
+    getSite(parameterIndex).setCharacterStream(reader, length);
   }
 
   public void setRef(int parameterIndex, Ref x) throws SQLException {
@@ -227,8 +232,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setDate(int parameterIndex, Date x, Calendar calendar)
       throws SQLException {
-    getSite(parameterIndex)
-        .setDate(x, calendar);
+    getSite(parameterIndex).setDate(x, calendar);
   }
 
   public void setDate(int parameterIndex, Date x) throws SQLException {
@@ -237,8 +241,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setTime(int parameterIndex, Time x, Calendar calendar)
       throws SQLException {
-    getSite(parameterIndex)
-        .setTime(x, calendar);
+    getSite(parameterIndex).setTime(x, calendar);
   }
 
   public void setTime(int parameterIndex, Time x) throws SQLException {
@@ -247,8 +250,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar calendar)
       throws SQLException {
-    getSite(parameterIndex)
-        .setTimestamp(x, calendar);
+    getSite(parameterIndex).setTimestamp(x, calendar);
   }
 
   public void setTimestamp(int parameterIndex, Timestamp x)
@@ -258,8 +260,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setNull(int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    getSite(parameterIndex)
-        .setNull(sqlType, typeName);
+    getSite(parameterIndex).setNull(sqlType, typeName);
   }
 
   public void setURL(int parameterIndex, URL x) throws SQLException {
@@ -268,8 +269,7 @@ public abstract class AvaticaPreparedStatement
 
   public void setObject(int parameterIndex, Object x, int targetSqlType,
       int scaleOrLength) throws SQLException {
-    getSite(parameterIndex)
-        .setObject(x, targetSqlType, scaleOrLength);
+    getSite(parameterIndex).setObject(x, targetSqlType, scaleOrLength);
   }
 
   // implement ParameterMetaData
@@ -287,7 +287,7 @@ public abstract class AvaticaPreparedStatement
 
   protected AvaticaSite getSite(int param) throws SQLException {
     final AvaticaParameter parameter = getParameter(param);
-    return new AvaticaSite(parameter, calendar, param - 1, slots);
+    return new AvaticaSite(parameter, getCalendar(), param - 1, slots);
   }
 
   public int getParameterCount() {
