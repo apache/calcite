@@ -22,6 +22,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.test.SqlValidatorTestCase;
 
 import java.io.Closeable;
@@ -46,7 +47,7 @@ public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
   /**
    * Name of a virtual machine that can potentially implement an operator.
    */
-  public enum VmName {
+  enum VmName {
     FENNEL, JAVA, EXPAND
   }
 
@@ -267,6 +268,14 @@ public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
       String query,
       TypeChecker typeChecker,
       ResultChecker resultChecker);
+
+  /**
+   * Tests that the first column of a SQL query has a given monotonicity.
+   *
+   * @param expectedMonotonicity Expected monotonicity
+   * @param query                SQL query
+   */
+  void checkMonotonic(String query, SqlMonotonicity expectedMonotonicity);
 
   /**
    * Declares that this test is for a given operator. So we can check that all

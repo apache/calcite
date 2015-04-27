@@ -40,6 +40,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Pair;
@@ -60,8 +61,10 @@ import java.util.NoSuchElementException;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -447,6 +450,18 @@ public class SqlTesterImpl implements SqlTester {
     typeChecker.checkType(actualType);
   }
 
+  public void checkMonotonic(String query,
+      SqlMonotonicity expectedMonotonicity) {
+    SqlValidator validator = getValidator();
+    SqlNode n = parseAndValidate(validator, query);
+    final RelDataType rowType = validator.getValidatedNodeType(n);
+    final SqlValidatorNamespace selectNamespace = validator.getNamespace(n);
+    final String field0 = rowType.getFieldList().get(0).getName();
+    final SqlMonotonicity monotonicity =
+        selectNamespace.getMonotonicity(field0);
+    assertThat(monotonicity, equalTo(expectedMonotonicity));
+  }
+
   public void checkRewrite(
       SqlValidator validator,
       String query,
@@ -529,7 +544,7 @@ public class SqlTesterImpl implements SqlTester {
     } catch (SqlParseException e) {
       throw new RuntimeException(e);
     }
-    final Collection<SqlNode> literalSet = new LinkedHashSet<SqlNode>();
+    final Collection<SqlNode> literalSet = new LinkedHashSet<>();
     x.accept(
         new SqlShuttle() {
           private final List<SqlOperator> ops =
@@ -569,7 +584,7 @@ public class SqlTesterImpl implements SqlTester {
                 == SqlTypeName.NULL;
           }
         });
-    final List<SqlNode> nodes = new ArrayList<SqlNode>(literalSet);
+    final List<SqlNode> nodes = new ArrayList<>(literalSet);
     Collections.sort(
         nodes,
         new Comparator<SqlNode>() {
@@ -586,8 +601,7 @@ public class SqlTesterImpl implements SqlTester {
           }
         });
     String sql2 = sql;
-    final List<Pair<String, String>> values =
-        new ArrayList<Pair<String, String>>();
+    final List<Pair<String, String>> values = new ArrayList<>();
     int p = 0;
     for (SqlNode literal : nodes) {
       final SqlParserPos pos = literal.getParserPosition();

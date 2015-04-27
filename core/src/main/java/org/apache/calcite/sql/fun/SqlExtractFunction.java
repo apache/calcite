@@ -19,10 +19,13 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
 /**
@@ -63,6 +66,17 @@ public class SqlExtractFunction extends SqlFunction {
     writer.sep("FROM");
     call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(frame);
+  }
+
+  @Override public SqlMonotonicity getMonotonicity(SqlCall call,
+      SqlValidatorScope scope) {
+    final SqlIntervalQualifier o = call.operand(0);
+    switch (o.timeUnitRange) {
+    case YEAR:
+      return scope.getMonotonicity(call.operand(1)).unstrict();
+    default:
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
   }
 }
 
