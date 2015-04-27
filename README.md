@@ -37,15 +37,14 @@ public static class HrSchema {
   public final Department[] depts = ...;
 }
 
-Class.forName("net.hydromatic.optiq.jdbc.Driver");
+Class.forName("org.apache.calcite.jdbc.Driver");
 Properties info = new Properties();
 info.setProperty("lex", "JAVA");
 Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-OptiqConnection optiqConnection =
-    connection.unwrap(OptiqConnection.class);
-ReflectiveSchema.create(optiqConnection,
-    optiqConnection.getRootSchema(), "hr", new HrSchema());
-Statement statement = optiqConnection.createStatement();
+CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+ReflectiveSchema.create(calciteConnection,
+calciteConnection.getRootSchema(), "hr", new HrSchema());
+Statement statement = calciteConnection.createStatement();
 ResultSet resultSet = statement.executeQuery(
     "select d.deptno, min(e.empid)\n"
     + "from hr.emps as e\n"
@@ -72,8 +71,8 @@ library. But Calcite can also process data in other data formats, such
 as JDBC. In the first example, replace
 
 ```java
-ReflectiveSchema.create(optiqConnection,
-    optiqConnection.getRootSchema(), "hr", new HrSchema());
+ReflectiveSchema.create(calciteConnection,
+calciteConnection.getRootSchema(), "hr", new HrSchema());
 ```
 
 with
@@ -81,10 +80,11 @@ with
 ```java
 Class.forName("com.mysql.jdbc.Driver");
 BasicDataSource dataSource = new BasicDataSource();
-dataSource.setUrl("jdbc:mysql://localhost");
-dataSource.setUsername("sa");
-dataSource.setPassword("");
-JdbcSchema.create(optiqConnection, dataSource, rootSchema, "hr", "");
+dataSource.setUrl("jdbc:mysql://127.0.0.1:3306/");
+dataSource.setUsername("username");
+dataSource.setPassword("password");
+final String CATALOG = null;
+JdbcSchema.create(calciteConnection.getRootSchema(), "name", dataSource, CATALOG, "hr");
 ```
 
 and Calcite will execute the same query in JDBC. To the application, the
