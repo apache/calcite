@@ -6151,6 +6151,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select sum(empno) from emp order by sum(empno)");
   }
 
+  @Test public void testAggregateFilter() {
+    sql("select sum(empno) filter (where deptno < 10) as s from emp")
+        .type("RecordType(INTEGER S) NOT NULL");
+  }
+
+  @Test public void testAggregateFilterNotBoolean() {
+    sql("select sum(empno) filter (where ^deptno + 10^) from emp")
+        .fails("FILTER clause must be a condition");
+  }
+
+  @Test public void testAggregateFilterInHaving() {
+    sql("select sum(empno) as s from emp\n"
+        + "group by deptno\n"
+        + "having sum(empno) filter (where deptno < 20) > 10")
+        .ok();
+  }
+
+  @Test public void testAggregateFilterContainsAggregate() {
+    sql("select sum(empno) filter (where ^count(*) < 10^) from emp")
+        .fails("FILTER must not contain aggregate expression");
+  }
+
   @Test public void testCorrelatingVariables() {
     // reference to unqualified correlating column
     check("select * from emp where exists (\n"

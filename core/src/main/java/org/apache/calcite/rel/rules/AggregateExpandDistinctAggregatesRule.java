@@ -37,6 +37,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -92,27 +93,22 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     // Find all of the agg expressions. We use a LinkedHashSet to ensure
     // determinism.
     int nonDistinctCount = 0;
-    Set<List<Integer>> argListSets = new LinkedHashSet<List<Integer>>();
+    final Set<Pair<List<Integer>, Integer>> argLists = new LinkedHashSet<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (!aggCall.isDistinct()) {
         ++nonDistinctCount;
         continue;
       }
-      ArrayList<Integer> argList = new ArrayList<Integer>();
-      for (Integer arg : aggCall.getArgList()) {
-        argList.add(arg);
-      }
-      argListSets.add(argList);
+      argLists.add(Pair.of(aggCall.getArgList(), aggCall.filterArg));
     }
-    Util.permAssert(argListSets.size() > 0, "containsDistinctCall lied");
+    Util.permAssert(argLists.size() > 0, "containsDistinctCall lied");
 
     // If all of the agg expressions are distinct and have the same
     // arguments then we can use a more efficient form.
-    if ((nonDistinctCount == 0) && (argListSets.size() == 1)) {
-      RelNode converted =
-          convertMonopole(
-              aggregate,
-              argListSets.iterator().next());
+    if (nonDistinctCount == 0 && argLists.size() == 1) {
+      final Pair<List<Integer>, Integer> pair =
+          Iterables.getOnlyElement(argLists);
+      RelNode converted = convertMonopole(aggregate, pair.left, pair.right);
       call.transformTo(converted);
       return;
     }
@@ -121,7 +117,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     // Initially, the expressions point to the input field.
     final List<RelDataTypeField> aggFields =
         aggregate.getRowType().getFieldList();
-    final List<RexInputRef> refs = new ArrayList<RexInputRef>();
+    final List<RexInputRef> refs = new ArrayList<>();
     final List<String> fieldNames = aggregate.getRowType().getFieldNames();
     final ImmutableBitSet groupSet = aggregate.getGroupSet();
     final int groupAndIndicatorCount =
@@ -131,7 +127,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     }
 
     // Aggregate the original relation, including any non-distinct aggregates.
-    List<AggregateCall> newAggCallList = new ArrayList<AggregateCall>();
+    final List<AggregateCall> newAggCallList = new ArrayList<>();
     int i = -1;
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       ++i;
@@ -160,8 +156,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // For each set of operands, find and rewrite all calls which have that
     // set of operands.
-    for (List<Integer> argList : argListSets) {
-      rel = doRewrite(aggregate, rel, argList, refs);
+    for (Pair<List<Integer>, Integer> argList : argLists) {
+      rel = doRewrite(aggregate, rel, argList.left, argList.right, refs);
     }
 
     rel = RelOptUtil.createProject(rel, refs, fieldNames);
@@ -174,9 +170,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
    * distinct aggregate function (or perhaps several over the same arguments)
    * and no non-distinct aggregate functions.
    */
-  private RelNode convertMonopole(
-      Aggregate aggregate,
-      List<Integer> argList) {
+  private RelNode convertMonopole(Aggregate aggregate, List<Integer> argList,
+      int filterArg) {
     // For example,
     //    SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal)
     //    FROM emp
@@ -192,9 +187,9 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // Project the columns of the GROUP BY plus the arguments
     // to the agg function.
-    Map<Integer, Integer> sourceOf = new HashMap<Integer, Integer>();
+    final Map<Integer, Integer> sourceOf = new HashMap<>();
     final Aggregate distinct =
-        createSelectDistinct(aggregate, argList, sourceOf);
+        createSelectDistinct(aggregate, argList, filterArg, sourceOf);
 
     // Create an aggregate on top, with the new aggregate list.
     final List<AggregateCall> newAggCalls =
@@ -220,16 +215,13 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
    *                  first distinct aggregate in a query with no non-distinct
    *                  aggregates)
    * @param argList   Arguments to the distinct aggregate function
+   * @param filterArg Argument that filters input to aggregate function, or -1
    * @param refs      Array of expressions which will be the projected by the
    *                  result of this rule. Those relating to this arg list will
-   *                  be modified
-   * @return Relational expression
+   *                  be modified  @return Relational expression
    */
-  private RelNode doRewrite(
-      Aggregate aggregate,
-      RelNode left,
-      List<Integer> argList,
-      List<RexInputRef> refs) {
+  private RelNode doRewrite(Aggregate aggregate, RelNode left,
+      List<Integer> argList, int filterArg, List<RexInputRef> refs) {
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     final List<RelDataTypeField> leftFields;
     if (left == null) {
@@ -281,9 +273,9 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // Project the columns of the GROUP BY plus the arguments
     // to the agg function.
-    Map<Integer, Integer> sourceOf = new HashMap<Integer, Integer>();
+    final Map<Integer, Integer> sourceOf = new HashMap<>();
     final Aggregate distinct =
-        createSelectDistinct(aggregate, argList, sourceOf);
+        createSelectDistinct(aggregate, argList, filterArg, sourceOf);
 
     // Now compute the aggregate functions on top of the distinct dataset.
     // Each distinct agg becomes a non-distinct call to the corresponding
@@ -291,7 +283,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     //   "COUNT(DISTINCT e.sal)"
     // becomes
     //   "COUNT(distinct_e.sal)".
-    List<AggregateCall> aggCallList = new ArrayList<AggregateCall>();
+    final List<AggregateCall> aggCallList = new ArrayList<>();
     final List<AggregateCall> aggCalls = aggregate.getAggCallList();
 
     final int groupAndIndicatorCount =
@@ -313,18 +305,16 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
       // Re-map arguments.
       final int argCount = aggCall.getArgList().size();
-      final List<Integer> newArgs = new ArrayList<Integer>(argCount);
+      final List<Integer> newArgs = new ArrayList<>(argCount);
       for (int j = 0; j < argCount; j++) {
         final Integer arg = aggCall.getArgList().get(j);
         newArgs.add(sourceOf.get(arg));
       }
+      final int newFilterArg =
+          aggCall.filterArg >= 0 ? sourceOf.get(aggCall.filterArg) : -1;
       final AggregateCall newAggCall =
-          new AggregateCall(
-              aggCall.getAggregation(),
-              false,
-              newArgs,
-              aggCall.getType(),
-              aggCall.getName());
+          AggregateCall.create(aggCall.getAggregation(), false, newArgs,
+              newFilterArg, aggCall.getType(), aggCall.getName());
       assert refs.get(i) == null;
       if (left == null) {
         refs.set(i,
@@ -385,7 +375,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       final AggregateCall aggCall = newAggCalls.get(i);
 
       // Ignore agg calls which are not distinct or have the wrong set
-      // arguments. If we're rewriting aggs whose args are {sal}, we will
+      // arguments. If we're rewriting aggregates whose args are {sal}, we will
       // rewrite COUNT(DISTINCT sal) and SUM(DISTINCT sal) but ignore
       // COUNT(DISTINCT gender) or SUM(sal).
       if (!aggCall.isDistinct()) {
@@ -397,18 +387,14 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
       // Re-map arguments.
       final int argCount = aggCall.getArgList().size();
-      final List<Integer> newArgs = new ArrayList<Integer>(argCount);
+      final List<Integer> newArgs = new ArrayList<>(argCount);
       for (int j = 0; j < argCount; j++) {
         final Integer arg = aggCall.getArgList().get(j);
         newArgs.add(sourceOf.get(arg));
       }
       final AggregateCall newAggCall =
-          new AggregateCall(
-              aggCall.getAggregation(),
-              false,
-              newArgs,
-              aggCall.getType(),
-              aggCall.getName());
+          AggregateCall.create(aggCall.getAggregation(), false, newArgs, -1,
+              aggCall.getType(), aggCall.getName());
       newAggCalls.set(i, newAggCall);
     }
   }
@@ -427,7 +413,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
    * from t group by f0</pre>
    * </blockquote>
    *
-   * and the arglist
+   * and the argument list
    *
    * <blockquote>{2}</blockquote>
    *
@@ -444,17 +430,15 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
    *
    * @param aggregate Aggregate relational expression
    * @param argList   Ordinals of columns to make distinct
+   * @param filterArg Ordinal of column to filter on, or -1
    * @param sourceOf  Out parameter, is populated with a map of where each
    *                  output field came from
    * @return Aggregate relational expression which projects the required
    * columns
    */
-  private static Aggregate createSelectDistinct(
-      Aggregate aggregate,
-      List<Integer> argList,
-      Map<Integer, Integer> sourceOf) {
-    final List<Pair<RexNode, String>> projects =
-        new ArrayList<Pair<RexNode, String>>();
+  private static Aggregate createSelectDistinct(Aggregate aggregate,
+      List<Integer> argList, int filterArg, Map<Integer, Integer> sourceOf) {
+    final List<Pair<RexNode, String>> projects = new ArrayList<>();
     final RelNode child = aggregate.getInput();
     final List<RelDataTypeField> childFields =
         child.getRowType().getFieldList();
@@ -463,6 +447,29 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       projects.add(RexInputRef.of2(i, childFields));
     }
     for (Integer arg : argList) {
+      if (filterArg >= 0) {
+        // Implement
+        //   agg(DISTINCT arg) FILTER $f
+        // by generating
+        //   SELECT DISTINCT ... CASE WHEN $f THEN arg ELSE NULL END AS arg
+        // and then applying
+        //   agg(arg)
+        // as usual.
+        //
+        // It works except for (rare) agg functions that need to see null
+        // values.
+        final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+        final RexInputRef filterRef = RexInputRef.of(filterArg, childFields);
+        final Pair<RexNode, String> argRef = RexInputRef.of2(arg, childFields);
+        RexNode condition =
+            rexBuilder.makeCall(SqlStdOperatorTable.CASE, filterRef,
+                argRef.left,
+                rexBuilder.ensureType(argRef.left.getType(),
+                    rexBuilder.constantNull(), true));
+        sourceOf.put(arg, projects.size());
+        projects.add(Pair.of(condition, "i$" + argRef.right));
+        continue;
+      }
       if (sourceOf.get(arg) != null) {
         continue;
       }

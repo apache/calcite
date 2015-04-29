@@ -562,9 +562,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       for (int oldPos : oldAggArgs) {
         aggArgs.add(combinedMap.get(oldPos));
       }
+      final int filterArg = oldAggCall.filterArg < 0 ? oldAggCall.filterArg
+          : combinedMap.get(oldAggCall.filterArg);
 
       newAggCalls.add(
-          oldAggCall.adaptTo(newProjectRel, aggArgs,
+          oldAggCall.adaptTo(newProjectRel, aggArgs, filterArg,
               oldGroupKeyCount, newGroupKeyCount));
 
       // The old to new output position mapping will be the same as that
@@ -2297,23 +2299,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
       k = -1;
       for (AggregateCall aggCall : aggCalls) {
         ++k;
-        final List<Integer> aggArgs = aggCall.getArgList();
-        final List<Integer> newAggArgs;
+        final List<Integer> argList;
 
         if (isCountStar.contains(k)) {
           // this is a count(*), transform it to count(nullIndicator)
           // the null indicator is located at the end
-          newAggArgs = Collections.singletonList(nullIndicatorPos);
+          argList = Collections.singletonList(nullIndicatorPos);
         } else {
-          newAggArgs = Lists.newArrayList();
+          argList = Lists.newArrayList();
 
-          for (Integer aggArg : aggArgs) {
-            newAggArgs.add(aggArg + groupCount);
+          for (Integer aggArg : aggCall.getArgList()) {
+            argList.add(aggArg + groupCount);
           }
         }
 
+        int filterArg = aggCall.filterArg < 0 ? aggCall.filterArg
+            : aggCall.filterArg + groupCount;
         newAggCalls.add(
-            aggCall.adaptTo(joinOutputProjRel, newAggArgs,
+            aggCall.adaptTo(joinOutputProjRel, argList, filterArg,
                 aggRel.getGroupCount(), groupCount));
       }
 

@@ -70,6 +70,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -97,6 +98,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -678,6 +680,22 @@ public class JdbcRules {
         throws InvalidRelException {
       super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
+      for (AggregateCall aggCall : aggCalls) {
+        if (!canImplement(aggCall.getAggregation())) {
+          throw new InvalidRelException("cannot implement aggregate function "
+              + aggCall.getAggregation());
+        }
+      }
+    }
+
+    /** Returns whether this JDBC data source can implement a given aggregate
+     * function. */
+    private boolean canImplement(SqlAggFunction aggregation) {
+      return Arrays.asList(SqlStdOperatorTable.COUNT,
+          SqlStdOperatorTable.SUM,
+          SqlStdOperatorTable.SUM0,
+          SqlStdOperatorTable.MIN,
+          SqlStdOperatorTable.MAX).contains(aggregation);
     }
 
     @Override public JdbcAggregate copy(RelTraitSet traitSet, RelNode input,

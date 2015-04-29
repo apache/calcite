@@ -38,6 +38,12 @@ public interface AggAddContext extends AggResultContext {
   List<RexNode> rexArguments();
 
   /**
+   * Returns {@link org.apache.calcite.rex.RexNode} representation of the
+   * filter, or null.
+   */
+  RexNode rexFilterArgument();
+
+  /**
    * Returns Linq4j form of arguments.
    * The resulting value is equivalent to
    * {@code rowTranslator().translateList(rexArguments())}.

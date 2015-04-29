@@ -2409,4 +2409,16 @@ LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggFilter">
+        <Resource name="sql">
+            <![CDATA[select deptno, sum(sal * 2) filter (where empno < 10), count(*) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
+  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[<($0, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -136,8 +136,8 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           new ArrayList<AggregateCall>();
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         newAggCalls.add(
-            aggCall.adaptTo(input, aggCall.getArgList(), groupCount,
-                newGroupCount));
+            aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
+                groupCount, newGroupCount));
       }
       newAggregate =
           LogicalAggregate.create(input, false,
@@ -176,8 +176,11 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           final Integer arg = aggCall.getArgList().get(j);
           args.add(mapping.getTarget(arg));
         }
+        final int filterArg = aggCall.filterArg < 0 ? aggCall.filterArg
+            : mapping.getTarget(aggCall.filterArg);
         newAggCalls.add(
-            aggCall.adaptTo(project, args, groupCount, newGroupCount));
+            aggCall.adaptTo(project, args, filterArg, groupCount,
+                newGroupCount));
       }
 
       // Aggregate on projection.

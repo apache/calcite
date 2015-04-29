@@ -281,10 +281,10 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             avgInputType.isNullable() || nGroups == 0);
     SqlAggFunction sumAgg = new SqlSumAggFunction(sumType);
     AggregateCall sumCall =
-        new AggregateCall(
-            sumAgg,
+        AggregateCall.create(sumAgg,
             oldCall.isDistinct(),
             oldCall.getArgList(),
+            oldCall.filterArg,
             sumType,
             null);
     AggregateCall countCall =
@@ -292,6 +292,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.getArgList(),
+            oldCall.filterArg,
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
             null,
@@ -338,17 +339,14 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         typeFactory.createTypeWithNullability(
             argType, argType.isNullable());
     final AggregateCall sumZeroCall =
-        new AggregateCall(
-            SqlStdOperatorTable.SUM0,
-            oldCall.isDistinct(),
-            oldCall.getArgList(),
-            sumType,
-            null);
+        AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
+            oldCall.getArgList(), oldCall.filterArg, sumType, null);
     final AggregateCall countCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.getArgList(),
+            oldCall.filterArg,
             oldAggRel.getGroupCount(),
             oldAggRel,
             null,
@@ -425,10 +423,11 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             argType,
             true);
     final AggregateCall sumArgSquaredAggCall =
-        new AggregateCall(
+        AggregateCall.create(
             new SqlSumAggFunction(sumType),
             oldCall.isDistinct(),
             ImmutableIntList.of(argSquaredOrdinal),
+            oldCall.filterArg,
             sumType,
             null);
     final RexNode sumArgSquared =
@@ -440,10 +439,11 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             ImmutableList.of(argType));
 
     final AggregateCall sumArgAggCall =
-        new AggregateCall(
+        AggregateCall.create(
             new SqlSumAggFunction(sumType),
             oldCall.isDistinct(),
             ImmutableIntList.of(argOrdinal),
+            oldCall.filterArg,
             sumType,
             null);
     final RexNode sumArg =
@@ -463,6 +463,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.getArgList(),
+            oldCall.filterArg,
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
             null,

@@ -144,6 +144,10 @@ class AggChecker extends SqlBasicVisitor<Void> {
       // BY deptno'
       return null;
     }
+    if (call.getKind() == SqlKind.FILTER) {
+      call.operand(0).accept(this);
+      return null;
+    }
     if (isGroupExpr(call)) {
       // This call matches an expression in the GROUP BY clause.
       return null;

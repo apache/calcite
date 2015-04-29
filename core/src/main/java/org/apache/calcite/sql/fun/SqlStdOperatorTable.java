@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlFilterOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlFunctionalOperator;
@@ -148,6 +149,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * with an alias.
    */
   public static final SqlAsOperator AS = new SqlAsOperator();
+
+  /** <code>FILTER</code> operator filters which rows are included in an
+   *  aggregate function. */
+  public static final SqlFilterOperator FILTER = new SqlFilterOperator();
 
   /** {@code CUBE} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */

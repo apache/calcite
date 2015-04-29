@@ -694,19 +694,10 @@ public abstract class RelOptUtil {
     final List<AggregateCall> aggCalls = new ArrayList<>();
 
     for (int i = 0; i < aggCallCnt; i++) {
-      RelDataType returnType =
-          SqlStdOperatorTable.SINGLE_VALUE.inferReturnType(
-              cluster.getRexBuilder().getTypeFactory(),
-              ImmutableList.of(
-                  rel.getRowType().getFieldList().get(i).getType()));
-
       aggCalls.add(
-          new AggregateCall(
-              SqlStdOperatorTable.SINGLE_VALUE,
-              false,
-              ImmutableList.of(i),
-              returnType,
-              null));
+          AggregateCall.create(
+              SqlStdOperatorTable.SINGLE_VALUE, false, ImmutableList.of(i), -1,
+              0, rel, null, null));
     }
 
     return LogicalAggregate.create(rel, false,

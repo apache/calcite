@@ -350,6 +350,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "group by deptno").ok();
   }
 
+  @Test public void testAggFilter() {
+    sql("select deptno, sum(sal * 2) filter (where empno < 10), count(*) "
+        + "from emp "
+        + "group by deptno").ok();
+  }
+
   @Test public void testSelectDistinct() {
     sql("select distinct sal + 5 from emp").ok();
   }

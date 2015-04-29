@@ -187,6 +187,11 @@ public enum SqlKind {
   OVER,
 
   /**
+   * FILTER operator
+   */
+  FILTER,
+
+  /**
    * Window specification
    */
   WINDOW,

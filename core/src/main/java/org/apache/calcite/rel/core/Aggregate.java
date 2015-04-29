@@ -137,6 +137,9 @@ public abstract class Aggregate extends SingleRel {
     assert groupSet.length() <= child.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, true);
+      assert aggCall.filterArg < 0
+          || child.getRowType().getFieldList().get(aggCall.filterArg).getType()
+              .getSqlTypeName() == SqlTypeName.BOOLEAN;
     }
   }
 

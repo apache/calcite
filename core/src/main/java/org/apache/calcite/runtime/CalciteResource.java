@@ -273,6 +273,9 @@ public interface CalciteResource {
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
 
+  @BaseMessage("FILTER must not contain aggregate expression")
+  ExInst<SqlValidatorException> aggregateInFilterIllegal();
+
   @BaseMessage("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT")
   ExInst<SqlValidatorException> aggregateIllegalInOrderBy();
 
@@ -284,6 +287,9 @@ public interface CalciteResource {
 
   @BaseMessage("OVER must be applied to aggregate function")
   ExInst<SqlValidatorException> overNonAggregate();
+
+  @BaseMessage("FILTER must be applied to aggregate function")
+  ExInst<SqlValidatorException> filterNonAggregate();
 
   @BaseMessage("Cannot override window attribute")
   ExInst<SqlValidatorException> cannotOverrideWindowAttribute();

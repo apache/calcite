@@ -626,9 +626,7 @@ public abstract class Mappings {
             int target = mapping.getTargetOpt(source);
             return target < 0 ? null : target + offset;
           }
-        },
-        mapping.getSourceCount(),
-        targetCount);
+        }, mapping.getSourceCount(), targetCount);
   }
 
   /**
@@ -711,6 +709,12 @@ public abstract class Mappings {
         throw new UnsupportedOperationException("remove");
       }
     };
+  }
+
+  /** Applies a mapping to an optional integer, returning an optional
+   * result. */
+  public static int apply(TargetMapping mapping, int i) {
+    return i < 0 ? i : mapping.getTarget(i);
   }
 
   //~ Inner Interfaces -------------------------------------------------------

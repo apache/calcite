@@ -464,8 +464,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final RelNode newFilter = filterFactory.createFilter(newInput,
-        newConditionExpr);
+    final RelNode newFilter = filterFactory.createFilter(
+        newInput, newConditionExpr);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -514,8 +514,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelCollation newCollation =
         sort.getTraitSet().canonize(RexUtil.apply(inputMapping, collation));
     final RelTraitSet newTraitSet = sort.getTraitSet().replace(newCollation);
-    final RelNode newSort = sortFactory.createSort(newTraitSet, newInput,
-        newCollation, sort.offset, sort.fetch);
+    final RelNode newSort = sortFactory.createSort(
+        newTraitSet, newInput, newCollation, sort.offset, sort.fetch);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -764,6 +764,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       for (int i : aggCall.getArgList()) {
         inputFieldsUsed.set(i);
       }
+      if (aggCall.filterArg >= 0) {
+        inputFieldsUsed.set(aggCall.filterArg);
+      }
     }
 
     // Create input with trimmed columns.
@@ -830,13 +833,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Now create new agg calls, and populate mapping for them.
-    final List<AggregateCall> newAggCallList =
-        new ArrayList<AggregateCall>();
+    final List<AggregateCall> newAggCallList = new ArrayList<>();
     j = groupCount + indicatorCount;
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (fieldsUsed.get(j)) {
         AggregateCall newAggCall =
-            aggCall.copy(Mappings.apply2(inputMapping, aggCall.getArgList()));
+            aggCall.copy(Mappings.apply2(inputMapping, aggCall.getArgList()),
+                Mappings.apply(inputMapping, aggCall.filterArg));
         if (newAggCall.equals(aggCall)) {
           newAggCall = aggCall; // immutable -> canonize to save space
         }

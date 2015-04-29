@@ -74,7 +74,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     }
     trackNullsPerRow = !(info instanceof WinAggContext) || hasNullableArgs;
 
-    List<Type> res = new ArrayList<Type>(subState.size() + 1);
+    List<Type> res = new ArrayList<>(subState.size() + 1);
     res.addAll(subState);
     res.add(boolean.class); // has not nulls
     return res;
@@ -111,10 +111,16 @@ public abstract class StrictAggImplementor implements AggImplementor {
   }
 
   public final void implementAdd(AggContext info, final AggAddContext add) {
-    List<RexNode> args = add.rexArguments();
-    RexToLixTranslator translator = add.rowTranslator();
-    List<Expression> conditions =
-      translator.translateList(args, RexImpTable.NullAs.IS_NOT_NULL);
+    final List<RexNode> args = add.rexArguments();
+    final RexToLixTranslator translator = add.rowTranslator();
+    final List<Expression> conditions = new ArrayList<>();
+    conditions.addAll(
+        translator.translateList(args, RexImpTable.NullAs.IS_NOT_NULL));
+    if (add.rexFilterArgument() != null) {
+      conditions.add(
+          translator.translate(add.rexFilterArgument(),
+              RexImpTable.NullAs.FALSE));
+    }
     Expression condition = Expressions.foldAnd(conditions);
     if (Expressions.constant(false).equals(condition)) {
       return;
@@ -137,7 +143,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
       return;
     }
 
-    final Map<RexNode, Boolean> nullables = new HashMap<RexNode, Boolean>();
+    final Map<RexNode, Boolean> nullables = new HashMap<>();
     for (RexNode arg : args) {
       if (translator.isNullable(arg)) {
         nullables.put(arg, false);

@@ -477,6 +477,20 @@ Not implemented:
 
 ### Aggregate functions
 
+Syntax:
+
+```SQL
+aggregateCall:
+        agg( [ DISTINCT ] value [, value]* ) [ FILTER ( WHERE condition ) ]
+    |   agg(*) [ FILTER ( WHERE condition ) ]
+```
+
+If `FILTER` is present, the aggregate function only considers rows for which
+*condition* evaluates to TRUE.
+
+If `DISTINCT` is present, duplicate argument values are eliminated before being
+passed to the aggregate function.
+
 | Operator syntax                    | Description
 | ---------------------------------- | -----------
 | COUNT( [ DISTINCT ] value [, value]* ) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)

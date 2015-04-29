@@ -2590,6 +2590,31 @@ public class JdbcTest {
         .returns("c0=1997; m0=85452\n");
   }
 
+  @Test public void testAggregateFilter() {
+    final String s = "select \"the_month\",\n"
+        + " count(*) as \"c\",\n"
+        + " count(*) filter (where \"day_of_month\" > 20) as \"c2\"\n"
+        + "from \"time_by_day\" as \"time_by_day\"\n"
+        + "where \"time_by_day\".\"the_year\" = 1997\n"
+        + "group by \"time_by_day\".\"the_month\"\n"
+        + "order by \"time_by_day\".\"the_month\"";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query(s)
+        .returns("the_month=April; c=30; c2=10\n"
+                + "the_month=August; c=31; c2=11\n"
+                + "the_month=December; c=31; c2=11\n"
+                + "the_month=February; c=28; c2=8\n"
+                + "the_month=January; c=31; c2=11\n"
+                + "the_month=July; c=31; c2=11\n"
+                + "the_month=June; c=30; c2=10\n"
+                + "the_month=March; c=31; c2=11\n"
+                + "the_month=May; c=31; c2=11\n"
+                + "the_month=November; c=30; c2=10\n"
+                + "the_month=October; c=31; c2=11\n"
+                + "the_month=September; c=30; c2=10\n");
+  }
+
   /** Tests a simple IN query implemented as a semi-join. */
   @Test public void testSimpleIn() {
     CalciteAssert.hr()
@@ -5225,6 +5250,52 @@ public class JdbcTest {
         + "   ]\n"
         + "}")
         .withDefaultSchema("adhoc");
+  }
+
+  /** Tests user-defined aggregate function with FILTER.
+   *
+   * <p>Also tests that we do not try to push ADAF to JDBC source. */
+  @Test public void testUserDefinedAggregateFunctionWithFilter() throws Exception {
+    final String sum = MyStaticSumFunction.class.getName();
+    final String sum2 = MySumFunction.class.getName();
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + SCOTT_SCHEMA
+        + ",\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM',\n"
+        + "           className: '" + sum + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum2 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .withDefaultSchema("adhoc");
+    with.query("select deptno, \"adhoc\".my_sum(deptno) as p\n"
+            + "from scott.emp\n"
+            + "group by deptno\n")
+        .returns(
+            "DEPTNO=20; P=100\n"
+                + "DEPTNO=10; P=30\n"
+                + "DEPTNO=30; P=180\n");
+
+    with.query("select deptno,\n"
+            + "  \"adhoc\".my_sum(deptno) filter (where job = 'CLERK') as c,\n"
+            + "  \"adhoc\".my_sum(deptno) filter (where job = 'XXX') as x\n"
+            + "from scott.emp\n"
+            + "group by deptno\n")
+        .returns(
+            "DEPTNO=20; C=40; X=0\n"
+                + "DEPTNO=10; C=10; X=0\n"
+                + "DEPTNO=30; C=30; X=0\n");
   }
 
   /** Tests resolution of functions using schema paths. */

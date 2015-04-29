@@ -553,4 +553,126 @@ from emp group by cube(deptno, gender);
 
 !ok
 
+!use scott
+
+# Aggregate FILTER
+select deptno,
+  sum(sal) filter (where job = 'CLERK') c_sal,
+  sum(sal) filter (where job = 'CLERK' and deptno > 10) c10_sal,
+  max(sal) filter (where job = 'CLERK') as max_c,
+  min(sal) filter (where job = 'CLERK') as min_c,
+  max(sal) filter (where job = 'CLERK')
+    - min(sal) filter (where job = 'CLERK') as range_c,
+  max(sal) filter (where job = 'SALESMAN')
+    - min(sal) filter (where job = 'SALESMAN') as range_m
+from "scott".emp
+group by deptno;
++--------+---------+---------+---------+---------+---------+---------+
+| DEPTNO | C_SAL   | C10_SAL | MAX_C   | MIN_C   | RANGE_C | RANGE_M |
++--------+---------+---------+---------+---------+---------+---------+
+|     10 | 1300.00 |         | 1300.00 | 1300.00 |    0.00 |         |
+|     20 | 1900.00 | 1900.00 | 1100.00 |  800.00 |  300.00 |         |
+|     30 |  950.00 |  950.00 |  950.00 |  950.00 |    0.00 |  350.00 |
++--------+---------+---------+---------+---------+---------+---------+
+(3 rows)
+
+!ok
+
+# Aggregate FILTER on condition in GROUP BY
+select deptno,
+  sum(sal) filter (where deptno = 10) sal_10
+from "scott".emp
+group by deptno;
++--------+---------+
+| DEPTNO | SAL_10  |
++--------+---------+
+|     10 | 8750.00 |
+|     20 |         |
+|     30 |         |
++--------+---------+
+(3 rows)
+
+!ok
+
+# Aggregate FILTER with HAVING
+select deptno
+from "scott".emp
+group by deptno
+having sum(sal) filter (where job = 'CLERK') > 1000;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
++--------+
+(2 rows)
+
+!ok
+
+# Aggregate FILTER with ORDER BY
+select deptno
+from "scott".emp
+group by deptno
+order by sum(sal) filter (where job = 'CLERK');
++--------+
+| DEPTNO |
++--------+
+|     30 |
+|     10 |
+|     20 |
++--------+
+(3 rows)
+
+!ok
+
+# Aggregate FILTER with JOIN
+select dept.deptno,
+  sum(sal) filter (where 1 < 2) as s,
+  sum(sal) as s1,
+  count(*) filter (where emp.ename < dept.dname) as c
+from "scott".emp
+join "scott".dept using (deptno)
+group by dept.deptno;
++--------+----------+----------+---+
+| DEPTNO | S        | S1       | C |
++--------+----------+----------+---+
+|     10 |  8750.00 |  8750.00 | 0 |
+|     20 | 10875.00 | 10875.00 | 3 |
+|     30 |  9400.00 |  9400.00 | 4 |
++--------+----------+----------+---+
+(3 rows)
+
+!ok
+
+# Aggregate FILTER with DISTINCT
+select deptno,
+ count(distinct job) as cdj
+from "scott".emp
+group by deptno;
++--------+-----+
+| DEPTNO | CDJ |
++--------+-----+
+|     10 |   3 |
+|     20 |   3 |
+|     30 |   3 |
++--------+-----+
+(3 rows)
+
+!ok
+
+select deptno,
+ count(distinct job) filter (where job <> 'SALESMAN') as cdj
+from "scott".emp
+group by deptno;
++--------+-----+
+| DEPTNO | CDJ |
++--------+-----+
+|     10 |   3 |
+|     20 |   3 |
+|     30 |   2 |
++--------+-----+
+(3 rows)
+
+!ok
+
 # End agg.oq
