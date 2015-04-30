@@ -1284,8 +1284,7 @@ public class SqlToRelConverter {
         SqlNode selectExpr = selectList.get(0);
         if (selectExpr instanceof SqlCall) {
           SqlCall selectExprCall = (SqlCall) selectExpr;
-          if (selectExprCall.getOperator()
-              instanceof SqlAggFunction) {
+          if (Util.isOutputScalar(selectExprCall)) {
             return plan;
           }
         }
