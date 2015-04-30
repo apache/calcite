@@ -94,6 +94,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSampleSpec;
@@ -102,6 +103,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
@@ -1284,11 +1286,30 @@ public class SqlToRelConverter {
         SqlNode selectExpr = selectList.get(0);
         if (selectExpr instanceof SqlCall) {
           SqlCall selectExprCall = (SqlCall) selectExpr;
-          if (selectExprCall.getOperator()
-              instanceof SqlAggFunction) {
+          if (Util.isSingleValue(selectExprCall)) {
             return plan;
           }
         }
+
+        // If there is a limit with 0 or 1,
+        // it is ensured to produce a single value
+        if (select.getFetch() != null
+            && select.getFetch() instanceof SqlNumericLiteral) {
+          SqlNumericLiteral limitNum = (SqlNumericLiteral) select.getFetch();
+          if (((BigDecimal) limitNum.getValue()).intValue() < 2) {
+            return plan;
+          }
+        }
+      }
+    } else if (query instanceof SqlCall) {
+      // If the query is (values ...),
+      // it is necessary to look into the operands to determine
+      // whether SingleValueAgg is necessary
+      SqlCall exprCall = (SqlCall) query;
+      if (exprCall.getOperator()
+          instanceof SqlValuesOperator
+              && Util.isSingleValue(exprCall)) {
+        return plan;
       }
     }
 
