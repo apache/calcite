@@ -2421,4 +2421,58 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSubqueryAggreFunctionFollowedBySimpleOperation">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (select min(deptno) * 2 + 10 from EMP]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[+(*($0, 2), 10)])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSubqueryValues">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (values 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalValues(tuples=[[{ 10 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSubqueryLimitOne">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (select deptno
+from EMP order by deptno limit 1)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
