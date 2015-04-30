@@ -1137,6 +1137,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
+   * SqlSingleValueAggFunction is created when it may not be needed</a>.
+   */
+  @Test public void testNoSingleValueFunction() {
+    sql("select deptno\n"
+        + "from EMP\n"
+        + "where deptno > (select min(deptno) * 2 + 10 from EMP)")
+        .convertsTo("${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)

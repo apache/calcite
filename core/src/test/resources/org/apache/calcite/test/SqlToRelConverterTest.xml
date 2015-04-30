@@ -2409,4 +2409,26 @@ LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
 ]]>
         </Resource>
     </TestCase>
+
+
+
+    <TestCase name="testNoSingleValueFunction">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (select min(deptno) * 2 + 10 from EMP]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[+(*($0, 2), 10)])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

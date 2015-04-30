@@ -19,6 +19,10 @@ package org.apache.calcite.util;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -131,6 +135,30 @@ public class Util {
               });
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Does nothing with its argument. Returns whether the output for
+   * an expression is scalar or not
+   *
+   * @param call      the expression to evaluate
+   * @return Whether the output for an expression is scalar or not
+   */
+  public static boolean isOutputScalar(SqlCall call) {
+    if (call.getOperator()
+        instanceof SqlAggFunction) {
+      return true;
+    } else {
+      for (SqlNode operand : call.getOperandList()) {
+        if (!(operand instanceof SqlLiteral)
+            && (!(operand instanceof SqlCall)
+                && !isOutputScalar((SqlCall) operand))) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+  }
 
   /**
    * Does nothing with its argument. Call this method when you have a value
