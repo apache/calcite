@@ -2475,4 +2475,18 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testIdenticalExpressionInSubquery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno in (1, 2) or deptno in (1, 2)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[OR(=($7, 1), =($7, 2), =($7, 1), =($7, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
