@@ -1180,6 +1180,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-710">[CALCITE-710]
+   * When look up subqueries, perform the same logic as the way when ones were registered</a>.
+   */
+  @Test public void testIdenticalExpressionInSubquery() {
+    sql("select deptno\n"
+        + "from EMP\n"
+        + "where deptno in (1, 2) or deptno in (1, 2)")
+        .convertsTo("${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)
