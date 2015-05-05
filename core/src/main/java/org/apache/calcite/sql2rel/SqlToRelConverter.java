@@ -2553,6 +2553,12 @@ public class SqlToRelConverter {
       }
     }
 
+    // The aggregate functions in having clause are also needed
+    // to be added to aggList to replace subqueries
+    if (having != null && validator.isAggregate(having)) {
+      aggList.add(having);
+    }
+
     // first replace the subqueries inside the aggregates
     // because they will provide input rows to the aggregates.
     replaceSubqueries(bb, aggList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);

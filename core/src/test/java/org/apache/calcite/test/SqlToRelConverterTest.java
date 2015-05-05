@@ -1182,12 +1182,45 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-710">[CALCITE-710]
-   * When look up subqueries, perform the same logic as the way when ones were registered</a>.
+   * When look up subqueries, perform the same logic as the way when ones were
+   * registered</a>.
    */
   @Test public void testIdenticalExpressionInSubquery() {
     sql("select deptno\n"
         + "from EMP\n"
         + "where deptno in (1, 2) or deptno in (1, 2)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
+   * Scan HAVING clause for sub-queries and IN-lists</a> relating to IN.
+   */
+  @Test public void testHavingAggrFunctionIn() {
+    sql("select deptno \n"
+        + "from emp \n"
+        + "group by deptno \n"
+        + "having sum(case when deptno in (1, 2) then 0 else 1 end) + \n"
+        + "sum(case when deptno in (3, 4) then 0 else 1 end) > 10")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
+   * Scan HAVING clause for sub-queries and IN-lists</a>, with a sub-query in
+   * the HAVING clause.
+   */
+  @Test public void testHavingInSubqueryWithAggrFunction() {
+    sql("select sal \n"
+        + "from emp \n"
+        + "group by sal \n"
+        + "having sal in \n"
+            + "(select deptno \n"
+            + "from dept \n"
+            + "group by deptno \n"
+            + "having sum(deptno) > 0)")
         .convertsTo("${plan}");
   }
 
