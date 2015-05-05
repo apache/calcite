@@ -48,7 +48,7 @@ import java.util.List;
 public abstract class AvaticaPreparedStatement
     extends AvaticaStatement
     implements PreparedStatement, ParameterMetaData {
-  private final Meta.Signature signature;
+  private Meta.Signature signature;
   private final ResultSetMetaData resultSetMetaData;
   private Calendar calendar;
   protected final TypedValue[] slots;
