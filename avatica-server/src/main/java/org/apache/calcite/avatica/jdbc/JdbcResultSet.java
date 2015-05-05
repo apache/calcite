@@ -43,10 +43,16 @@ class JdbcResultSet extends Meta.MetaResultSet {
   /** Creates a result set. */
   public static JdbcResultSet create(String connectionId, int statementId,
       ResultSet resultSet) {
+    return create(connectionId, statementId, resultSet, -1);
+  }
+
+  /** Creates a result set with maxRowCount. */
+  public static JdbcResultSet create(String connectionId, int statementId,
+      ResultSet resultSet, int maxRowCount) {
     try {
       Meta.Signature sig = JdbcMeta.signature(resultSet.getMetaData());
       final Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
-      final Meta.Frame firstFrame = frame(resultSet, 0, -1, calendar);
+      final Meta.Frame firstFrame = frame(resultSet, 0, maxRowCount, calendar);
       resultSet.close();
       return new JdbcResultSet(connectionId, statementId, true, sig,
           firstFrame);

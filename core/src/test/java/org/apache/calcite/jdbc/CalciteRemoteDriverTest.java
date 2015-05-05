@@ -469,6 +469,18 @@ public class CalciteRemoteDriverTest {
     assertTrue(count > 0);
   }
 
+  @Test public void testRemoteExecuteMaxRow() throws Exception {
+    Statement statement = remoteConnection.createStatement();
+    statement.setMaxRows(2);
+    ResultSet resultSet = statement.executeQuery(
+            "select * from \"hr\".\"emps\"");
+    int count = 0;
+    while (resultSet.next()) {
+      ++count;
+    }
+    assertThat(count, equalTo(2));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-661">[CALCITE-661]
    * Remote fetch in Calcite JDBC driver</a>. */
