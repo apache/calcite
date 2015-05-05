@@ -713,11 +713,14 @@ public class JdbcMeta implements Meta {
       int maxRowCount, PrepareCallback callback) {
     try {
       final Connection connection = getConnection(ch.id);
-      final PreparedStatement statement = connection.prepareStatement(sql);
+      final Statement statement = connection.createStatement();
       final int id = System.identityHashCode(statement);
       final StatementInfo info = new StatementInfo(statement);
       statementCache.put(id, info); // TODO: must we retain a statement in all cases?
-      boolean ret = statement.execute();
+      if (maxRowCount >= 0) {
+        statement.setMaxRows(maxRowCount);
+      }
+      boolean ret = statement.execute(sql);
       info.resultSet = statement.getResultSet();
       assert ret || info.resultSet == null;
       final List<MetaResultSet> resultSets = new ArrayList<>();
