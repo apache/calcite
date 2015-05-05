@@ -2489,4 +2489,50 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testHavingAggrFunctionIn">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from emp
+group by deptno
+having sum(case when deptno in (1, 2) then 0 else 1 end) +
+sum(case when deptno in (3, 4) then 0 else 1 end) > 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[>(+($1, $2), 10)])
+    LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[SUM($2)])
+      LogicalProject(DEPTNO=[$7], $f1=[CASE(OR(=($7, 1), =($7, 2)), 0, 1)], $f2=[CASE(OR(=($7, 3), =($7, 4)), 0, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHavingInSubqueryWithAggrFunction">
+        <Resource name="sql">
+            <![CDATA[select sal
+from emp
+group by sal
+having sal in
+(select deptno
+from dept
+group by deptno
+having sum(deptno) > 0)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject($f0=[$0], $f1=[$0])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($1, 0)])
+          LogicalAggregate(group=[{0}], agg#0=[SUM($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

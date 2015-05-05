@@ -1192,6 +1192,39 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
+   * The aggregate functions in having clause are also needed
+   * to be added to aggList to replace subqueries </a>.
+   */
+  @Test public void testHavingAggrFunctionIn() {
+    sql("select deptno \n"
+        + "from emp \n"
+        + "group by deptno \n"
+        + "having sum(case when deptno in (1, 2) then 0 else 1 end) + \n"
+        + "sum(case when deptno in (3, 4) then 0 else 1 end) > 10")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
+   * The aggregate functions in having clause are also needed
+   * to be added to aggList to replace subqueries </a>.
+   */
+  @Test public void testHavingInSubqueryWithAggrFunction() {
+    sql("select sal \n"
+        + "from emp \n"
+        + "group by sal \n"
+        + "having sal in \n"
+            + "(select deptno \n"
+            + "from dept \n"
+            + "group by deptno \n"
+            + "having sum(deptno) > 0)")
+        .convertsTo("${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)
