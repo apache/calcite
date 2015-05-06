@@ -44,8 +44,7 @@ public abstract class Static {
 
   /** Resources. */
   public static final CalciteResource RESOURCE =
-      Resources.create("org.apache.calcite.runtime.CalciteResource",
-          CalciteResource.class);
+      Resources.create(CalciteResource.class);
 }
 
 // End Static.java

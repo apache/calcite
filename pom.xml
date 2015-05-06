@@ -442,7 +442,7 @@ limitations under the License.
         <plugin>
           <groupId>net.hydromatic</groupId>
           <artifactId>hydromatic-resource-maven-plugin</artifactId>
-          <version>0.4</version>
+          <version>0.5.1</version>
         </plugin>
         <plugin>
           <groupId>net.ju-n.maven.plugins</groupId>
