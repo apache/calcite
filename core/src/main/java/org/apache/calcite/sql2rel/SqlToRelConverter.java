@@ -2553,6 +2553,16 @@ public class SqlToRelConverter {
       }
     }
 
+    // The aggregate functions in having clause are also needed
+    // to be added to aggList to replace subqueries
+    if (having != null) {
+      AggFunctionsFinder aggsFinder = new AggFunctionsFinder();
+      having.accept(aggsFinder);
+      for (SqlNode aggFunction : aggsFinder.getAggFunctions()) {
+        aggList.add(aggFunction);
+      }
+    }
+
     // first replace the subqueries inside the aggregates
     // because they will provide input rows to the aggregates.
     replaceSubqueries(bb, aggList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
@@ -4923,6 +4933,41 @@ public class SqlToRelConverter {
     private SubQuery(SqlNode node, RelOptUtil.Logic logic) {
       this.node = node;
       this.logic = logic;
+    }
+  }
+
+  /**
+   * Visitor which looks for all the aggregate functions inside a tree of
+   * {@link SqlNode} objects.
+   */
+  private static final class AggFunctionsFinder extends SqlBasicVisitor<Void> {
+    //~ Instance fields --------------------------------------------------------
+    private List<SqlNode> aggFunctions = new ArrayList<SqlNode>();
+
+    /**
+     * Finds an aggregate.
+     *
+     * @return retrieve the list of found aggregate functions
+     */
+    public List<SqlNode> getAggFunctions() {
+      return new ArrayList<SqlNode>(aggFunctions);
+    }
+
+    @Override
+    public Void visit(SqlCall call) {
+      if (call.getOperator().isAggregator()) {
+        aggFunctions.add(call);
+        return null;
+      }
+
+      // If there is a subquery in HAVING-CLAUSE,
+      // those aggregate functions being present in that subquery are not
+      // needed to be counted
+      if (call instanceof SqlSelect) {
+        return null;
+      }
+
+      return call.getOperator().acceptCall(this, call);
     }
   }
 }
