@@ -131,7 +131,7 @@ select deptno, deptno not in (select deptno from emp where deptno is null) from 
 
 # RHS has only NOT NULL keys
 select * from dept where deptno not in (select deptno from emp where deptno is not null);
- DEPTNO | DNAME      
+ DEPTNO | DNAME
 --------+-------------
      40 | Empty      
 (1 row)
@@ -161,7 +161,7 @@ select deptno, deptno not in (select deptno from emp where deptno is not null) f
 # RHS has no rows
 # Even 'NULL NOT IN ...' is TRUE.
 select * from dept where deptno not in (select deptno from emp where false);
- DEPTNO | DNAME      
+ DEPTNO | DNAME
 --------+-------------
      10 | Sales      
      20 | Marketing  
@@ -195,7 +195,7 @@ select deptno, deptno not in (select deptno from emp where false) from dept;
 select * from dept
 where deptno in (select deptno from emp where gender = 'F')
 or deptno in (select deptno from emp where gender = 'M');
- DEPTNO | DNAME      
+ DEPTNO | DNAME
 --------+-------------
      30 | Engineering
      10 | Sales      
@@ -208,7 +208,7 @@ or deptno in (select deptno from emp where gender = 'M');
 select * from dept
 where deptno in (select deptno from emp where gender = 'F')
 or exists (select 99, 101 from emp where gender = 'X');
- DEPTNO | DNAME      
+ DEPTNO | DNAME
 --------+-------------
      30 | Engineering
      10 | Sales      
