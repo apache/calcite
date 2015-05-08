@@ -346,6 +346,7 @@ public interface SqlValidator {
    * @param selectNode Expression in SELECT clause
    * @return whether expression is an aggregate function
    */
+  @Deprecated // to be removed before 2.0
   boolean isAggregate(SqlNode selectNode);
 
   /**

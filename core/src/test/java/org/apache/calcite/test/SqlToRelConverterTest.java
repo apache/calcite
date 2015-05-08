@@ -1225,6 +1225,34 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-716">[CALCITE-716]
+   * Scalar sub-query and aggregate function in SELECT or HAVING clause gives
+   * AssertionError</a>; variant involving HAVING clause.
+   */
+  @Test public void testAggregateAndScalarSubQueryInHaving() {
+    sql("select deptno\n"
+            + "from emp\n"
+            + "group by deptno\n"
+            + "having max(emp.empno) > (SELECT min(emp.empno) FROM emp)\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-716">[CALCITE-716]
+   * Scalar sub-query and aggregate function in SELECT or HAVING clause gives
+   * AssertionError</a>; variant involving SELECT clause.
+   */
+  @Test public void testAggregateAndScalarSubQueryInSelect() {
+    sql("select deptno,\n"
+            + "  max(emp.empno) > (SELECT min(emp.empno) FROM emp) as b\n"
+            + "from emp\n"
+            + "group by deptno\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)

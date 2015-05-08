@@ -230,4 +230,49 @@ where (gender, deptno) in (select gender, 10 from emp where gender = 'F');
 
 !ok
 
+!use scott
+
+# [CALCITE-694] Scan HAVING clause for sub-queries and IN-lists
+SELECT count(*) AS c
+FROM "scott".emp
+GROUP BY emp.deptno
+HAVING sum(case when emp.empno in (7369, 7839, 7902) then emp.sal else 0 end)
+     BETWEEN 5000.0 AND 10000.0;
+ C
+---
+ 3
+(1 row)
+
+!ok
+
+# [CALCITE-716] Scalar sub-query and aggregate function in SELECT or HAVING
+# clause gives AssertionError
+SELECT emp.deptno
+FROM "scott".emp
+GROUP BY emp.deptno
+HAVING max(emp.empno) > (SELECT min(emp.empno) FROM "scott".emp);
+ DEPTNO
+--------
+     10
+     20
+     30
+(3 rows)
+
+!ok
+
+# [CALCITE-716] Scalar sub-query and aggregate function in SELECT or HAVING
+# clause gives AssertionError
+SELECT emp.deptno,
+  max(emp.empno) > (SELECT min(emp.empno) FROM "scott".emp) as bbbb
+FROM "scott".emp
+GROUP BY emp.deptno;
+ DEPTNO | BBBB
+--------+------
+     10 | true
+     20 | true
+     30 | true
+(3 rows)
+
+!ok
+
 # End subquery.oq

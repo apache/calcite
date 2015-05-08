@@ -2535,4 +2535,47 @@ LogicalProject(SAL=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateAndScalarSubQueryInHaving">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from emp
+group by deptno
+having max(emp.empno) > (SELECT min(emp.empno) FROM emp)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[>($1, $2)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalAggregate(group=[{0}], agg#0=[MAX($1)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateAndScalarSubQueryInSelect">
+        <Resource name="sql">
+            <![CDATA[select deptno,
+  max(emp.empno) > (SELECT min(emp.empno) FROM emp) as b
+from emp
+group by deptno
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], B=[>($1, $2)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalAggregate(group=[{0}], agg#0=[MAX($1)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -2545,23 +2545,16 @@ public class SqlToRelConverter {
       SqlNodeList groupList,
       SqlNode having,
       List<SqlNode> orderExprList) {
-    SqlNodeList aggList = new SqlNodeList(SqlParserPos.ZERO);
-
-    for (SqlNode selectNode : selectList) {
-      if (validator.isAggregate(selectNode)) {
-        aggList.add(selectNode);
-      }
-    }
-
-    // The aggregate functions in having clause are also needed
-    // to be added to aggList to replace subqueries
-    if (having != null && validator.isAggregate(having)) {
-      aggList.add(having);
+    // Find aggregate functions in SELECT and HAVING clause
+    final AggregateFinder aggregateFinder = new AggregateFinder();
+    selectList.accept(aggregateFinder);
+    if (having != null) {
+      having.accept(aggregateFinder);
     }
 
     // first replace the subqueries inside the aggregates
     // because they will provide input rows to the aggregates.
-    replaceSubqueries(bb, aggList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubqueries(bb, aggregateFinder.list, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // If group-by clause is missing, pretend that it has zero elements.
     if (groupList == null) {
@@ -4929,6 +4922,28 @@ public class SqlToRelConverter {
     private SubQuery(SqlNode node, RelOptUtil.Logic logic) {
       this.node = node;
       this.logic = logic;
+    }
+  }
+
+  /**
+   * Visitor that collects all aggregate functions in a {@link SqlNode} tree.
+   */
+  private static class AggregateFinder extends SqlBasicVisitor<Void> {
+    final SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+
+    @Override public Void visit(SqlCall call) {
+      if (call.getOperator().isAggregator()) {
+        list.add(call);
+        return null;
+      }
+
+      // Don't traverse into sub-queries, even if they contain aggregate
+      // functions.
+      if (call instanceof SqlSelect) {
+        return null;
+      }
+
+      return call.getOperator().acceptCall(this, call);
     }
   }
 }
