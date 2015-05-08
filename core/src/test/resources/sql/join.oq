@@ -174,4 +174,38 @@ group by cube(emp.deptno, dept.deptno);
 
 !ok
 
+# [CALCITE-688] splitCondition does not behave correctly
+# when one side of the condition references columns from
+# different inputs
+select distinct emp1.deptno, emp3.ename
+from "scott".emp emp1 join "scott".emp emp2 on (emp1.deptno = emp2.deptno)
+join "scott".emp emp3 on (emp1.deptno + emp2.deptno = emp3.deptno + 10);
++--------+--------+
+| DEPTNO | ENAME  |
++--------+--------+
+|     10 | CLARK  |
+|     10 | KING   |
+|     10 | MILLER |
+|     20 | ALLEN  |
+|     20 | BLAKE  |
+|     20 | JAMES  |
+|     20 | MARTIN |
+|     20 | TURNER |
+|     20 | WARD   |
++--------+--------+
+(9 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], DEPTNO0=[$t1], ENAME=[$t0])
+  EnumerableAggregate(group=[{1, 16}])
+    EnumerableJoin(condition=[=($8, $25)], joinType=[inner])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[+($t7, $t8)], proj#0..7=[{exprs}], $f8=[$t9])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..15=[{inputs}], expr#16=[+($t7, $t15)], expr#17=[CAST($t16):INTEGER], proj#0..15=[{exprs}], $f16=[$t17])
+        EnumerableJoin(condition=[=($7, $15)], joinType=[inner])
+          EnumerableTableScan(table=[[scott, EMP]])
+          EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End join.oq

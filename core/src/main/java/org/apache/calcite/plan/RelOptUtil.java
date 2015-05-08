@@ -967,21 +967,20 @@ public abstract class RelOptUtil {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
 
-    int[] firstFieldInputs = new int[inputs.size()];
+    final ImmutableBitSet[] inputsRange = new ImmutableBitSet[inputs.size()];
     int totalFieldCount = 0;
     for (int i = 0; i < inputs.size(); i++) {
-      firstFieldInputs[i] = totalFieldCount + sysFieldCount;
-      totalFieldCount += sysFieldCount
-              + inputs.get(i).getRowType().getFieldCount();
+      final int firstField = totalFieldCount + sysFieldCount;
+      totalFieldCount = firstField + inputs.get(i).getRowType().getFieldCount();
+      inputsRange[i] = ImmutableBitSet.range(firstField, totalFieldCount);
     }
 
     // adjustment array
     int[] adjustments = new int[totalFieldCount];
     for (int i = 0; i < inputs.size(); i++) {
-      int limit = i == inputs.size() - 1
-              ? totalFieldCount : firstFieldInputs[i + 1];
-      for (int j = firstFieldInputs[i]; j < limit; j++) {
-        adjustments[j] = -firstFieldInputs[i];
+      final int adjustment = inputsRange[i].nextSetBit(0);
+      for (int j = adjustment; j < inputsRange[i].length(); j++) {
+        adjustments[j] = -adjustment;
       }
     }
 
@@ -1030,11 +1029,8 @@ public abstract class RelOptUtil {
 
         boolean foundBothInputs = false;
         for (int i = 0; i < inputs.size() && !foundBothInputs; i++) {
-          final int lowerLimit = firstFieldInputs[i];
-          final int upperLimit = i == inputs.size() - 1
-                  ? totalFieldCount : firstFieldInputs[i + 1];
-          if (projRefs0.nextSetBit(lowerLimit) < upperLimit
-                  && projRefs0.nextSetBit(lowerLimit) != -1) {
+          if (projRefs0.intersects(inputsRange[i])
+                  && projRefs0.union(inputsRange[i]).equals(inputsRange[i])) {
             if (leftKey == null) {
               leftKey = op0;
               leftInput = i;
@@ -1046,8 +1042,8 @@ public abstract class RelOptUtil {
               reverse = true;
               foundBothInputs = true;
             }
-          } else if (projRefs1.nextSetBit(lowerLimit) < upperLimit
-                  && projRefs1.nextSetBit(lowerLimit) != -1) {
+          } else if (projRefs1.intersects(inputsRange[i])
+                  && projRefs1.union(inputsRange[i]).equals(inputsRange[i])) {
             if (leftKey == null) {
               leftKey = op1;
               leftInput = i;
@@ -1124,9 +1120,8 @@ public abstract class RelOptUtil {
 
         boolean foundInput = false;
         for (int i = 0; i < inputs.size() && !foundInput; i++) {
-          final int lowerLimit = firstFieldInputs[i];
-          final int upperLimit = i == inputs.size() - 1
-                  ? totalFieldCount : firstFieldInputs[i + 1];
+          final int lowerLimit = inputsRange[i].nextSetBit(0);
+          final int upperLimit = inputsRange[i].length();
           if (projRefs.nextSetBit(lowerLimit) < upperLimit) {
             leftInput = i;
             leftFields = inputs.get(leftInput).getRowType().getFieldList();
