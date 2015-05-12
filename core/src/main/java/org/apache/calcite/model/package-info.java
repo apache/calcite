@@ -31,8 +31,7 @@
  * interfaces and including a custom schema in the model.</p>
  *
  * <p>There are several examples of schemas in the
- * <a href="https://github.com/julianhyde/blog/master/optiq-csv/TUTORIAL.md">optiq-csv
- * tutorial</a>.
+ * <a href="https://github.com/apache/incubator-calcite/blob/master/doc/tutorial.md">tutorial</a>.
  */
 @PackageMarker
 package org.apache.calcite.model;

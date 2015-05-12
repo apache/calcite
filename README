@@ -2,14 +2,14 @@ Apache Calcite release 1.2.0 (incubating)
 
 This is a source or binary distribution of Apache Calcite.
 
-Changes since the previous release are described in the doc/HISTORY.md
+Changes since the previous release are described in the doc/history.md
 file.
 
 The LICENSE and NOTICE files contain license information.
 
 If this is a source distribution, you can find instructions how to
 build the release in the "Building from a source release" section in
-doc/HOWTO.md.
+doc/howto.md.
 
 README.md contains examples of running Calcite.
 

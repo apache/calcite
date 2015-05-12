@@ -34,7 +34,7 @@ $ cd calcite-1.2.0-incubating
 $ mvn install
 ```
 
-[Running tests](HOWTO.md#running-tests) describes how to run more or fewer
+[Running tests](howto.md#running-tests) describes how to run more or fewer
 tests.
 
 ## Building from git
@@ -52,7 +52,7 @@ $ cd incubator-calcite
 $ mvn install
 ```
 
-[Running tests](HOWTO.md#running-tests) describes how to run more or fewer
+[Running tests](howto.md#running-tests) describes how to run more or fewer
 tests.
 
 ## Running tests
@@ -73,7 +73,7 @@ environment, as follows.
   suite requires a JDBC data source populated with the foodmart data
   set.
    * `hsqldb`, the default, uses an in-memory hsqldb database.
-   * all others access test virtual machine (see [integration tests](HOWTO.md#Running-integration-tests) below)
+   * all others access test virtual machine (see [integration tests](howto.md#running-integration-tests) below)
      `mysql` and `postgresql` might be somewhat faster than hsqldb, but you need to populate it (i.e. provision a VM).
 * `-Dcalcite.debug` prints extra debugging information to stdout.
 * `-Dcalcite.test.slow` enables tests that take longer to execute. For
@@ -227,7 +227,7 @@ planning process so detailed that it might fill up your hard drive.
 
 ## CSV adapter
 
-See the <a href="TUTORIAL.md">tutorial</a>.
+See the <a href="tutorial.md">tutorial</a>.
 
 ## MongoDB adapter
 
@@ -398,7 +398,7 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.8).
-* Check that `README`, `README.md` and `HOWTO.md` have the correct version number.
+* Check that `README`, `README.md` and `doc/howto.md` have the correct version number.
 * Make sure build and tests succeed, including with
   -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow=true,
   -Dcalcite.test.mongodb=true, -Dcalcite.test.splunk=true.
@@ -589,7 +589,7 @@ I have created a build for Apache Calcite X.Y.Z-incubating, release candidate N.
 
 Thanks to everyone who has contributed to this release.
 <Further details about release.> You can read the release notes here:
-https://github.com/apache/incubator-calcite/blob/XXXX/doc/HISTORY.md
+https://github.com/apache/incubator-calcite/blob/XXXX/doc/history.md
 
 The commit to be voted upon:
 http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN

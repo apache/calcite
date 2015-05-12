@@ -41,7 +41,7 @@ several important concepts:
 
 ## Download and build
 
-You need Java (1.6 or higher; 1.7 preferred), git and maven (3.0.4 or later).
+You need Java (1.7 or higher; 1.8 preferred), git and maven (3.2.1 or later).
 
 ```bash
 $ git clone https://github.com/apache/incubator-calcite.git

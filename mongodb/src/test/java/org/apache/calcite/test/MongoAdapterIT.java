@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
  * Tests for the {@code org.apache.calcite.adapter.mongodb} package.
  *
  * <p>Before calling this test, you need to populate MongoDB with the "zips"
- * data set (as described in HOWTO.md)
+ * data set (as described in howto.md)
  * and "foodmart" data set, as follows:</p>
  *
  * <blockquote><code>
