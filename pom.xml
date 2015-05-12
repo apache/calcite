@@ -594,8 +594,6 @@ limitations under the License.
             <artifactId>apache-rat-plugin</artifactId>
             <configuration>
               <excludes>
-                <exclude>*.md</exclude>
-                <exclude>doc/*.md</exclude>
                 <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
                 <exclude>**/src/test/resources/**/*.csv</exclude>
                 <exclude>**/src/test/resources/bug/archers.json</exclude>
