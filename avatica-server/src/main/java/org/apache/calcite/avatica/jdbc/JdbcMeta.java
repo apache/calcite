@@ -717,7 +717,7 @@ public class JdbcMeta implements Meta {
       final int id = System.identityHashCode(statement);
       final StatementInfo info = new StatementInfo(statement);
       statementCache.put(id, info); // TODO: must we retain a statement in all cases?
-      if (maxRowCount >= 0) {
+      if (maxRowCount > 0) {
         statement.setMaxRows(maxRowCount);
       }
       boolean ret = statement.execute(sql);
