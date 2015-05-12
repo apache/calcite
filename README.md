@@ -213,6 +213,7 @@ For more details, see the <a href="doc/reference.md">Reference guide</a>.
 * <a href="doc/howto.md">HOWTO</a>
 * <a href="doc/model.md">JSON model</a>
 * <a href="doc/reference.md">Reference guide</a>
+* <a href="doc/lattice.md">Lattices</a>
 * <a href="doc/stream.md">Streaming SQL</a>
 * <a href="doc/avatica.md">Avatica JDBC framework</a>
 * <a href="doc/history.md">Release notes and history</a>

@@ -362,6 +362,8 @@ just 'count(*)':
 [ { name: 'count' } ]
 ```
 
+See also: <a href="lattice.md">Lattices</a>.
+
 ### Tile
 
 Occurs within `root.schemas.lattices.tiles`.
