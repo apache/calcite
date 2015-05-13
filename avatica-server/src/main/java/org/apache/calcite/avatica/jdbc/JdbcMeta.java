@@ -729,7 +729,7 @@ public class JdbcMeta implements Meta {
         resultSets.add(
             MetaResultSet.count(ch.id, id, statement.getUpdateCount()));
       } else {
-        resultSets.add(JdbcResultSet.create(ch.id, id, info.resultSet));
+        resultSets.add(JdbcResultSet.create(ch.id, id, info.resultSet, maxRowCount));
       }
       if (LOG.isTraceEnabled()) {
         StatementHandle h = new StatementHandle(ch.id, id, null);
