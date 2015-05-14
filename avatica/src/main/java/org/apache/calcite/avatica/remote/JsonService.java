@@ -186,6 +186,14 @@ public abstract class JsonService implements Service {
     }
   }
 
+  public ResultSetResponse apply(TypeInfoRequest request) {
+    try {
+      return decode(apply(encode(request)), ResultSetResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
   public ResultSetResponse apply(ColumnsRequest request) {
     try {
       return decode(apply(encode(request)), ResultSetResponse.class);

@@ -325,6 +325,8 @@ public abstract class MetaImpl implements Meta {
     }
   }
 
+  /** Metadata describing a TypeInfo. */
+
   /** Metadata describing a table. */
   public static class MetaTable implements Named {
     public final String tableCat;
@@ -471,7 +473,63 @@ public abstract class MetaImpl implements Meta {
   }
 
   /** Metadata describing type info. */
-  public static class MetaTypeInfo {
+  public static class MetaTypeInfo implements Named {
+    public final String typeName;
+    public final int dataType;
+    public final int precision;
+    public final String literalPrefix;
+    public final String literalSuffix;
+    //TODO: Add create parameter for type on DDL
+    public final String createParams = null;
+    public final int nullable;
+    public final boolean caseSensitive;
+    public final int searchable;
+    public final boolean unsignedAttribute;
+    public final boolean fixedPrecScale;
+    public final boolean autoIncrement;
+    public final String localTypeName;
+    public final int minimumScale;
+    public final int maximumScale;
+    public final int sqlDataType = 0;
+    public final int sqlDatetimeSub = 0;
+    public final Integer numPrecRadix; //nullable int
+
+    public MetaTypeInfo(
+        String typeName,
+        int dataType,
+        int precision,
+        String literalPrefix,
+        String literalSuffix,
+        int nullable,
+        boolean caseSensitive,
+        int searchable,
+        boolean unsignedAttribute,
+        boolean fixedPrecScale,
+        boolean autoIncrement,
+        int minimumScale,
+        int maximumScale,
+        int numPrecRadix) {
+      this.typeName = typeName;
+      this.dataType = dataType;
+      this.precision = precision;
+      this.literalPrefix = literalPrefix;
+      this.literalSuffix = literalSuffix;
+      this.nullable = nullable;
+      this.caseSensitive = caseSensitive;
+      this.searchable = searchable;
+      this.unsignedAttribute = unsignedAttribute;
+      this.fixedPrecScale = fixedPrecScale;
+      this.autoIncrement = autoIncrement;
+      this.localTypeName = typeName;
+      // Make min to be 0 instead of -1
+      this.minimumScale = minimumScale == -1 ? 0 : minimumScale;
+      this.maximumScale = maximumScale == -1 ? 0 : maximumScale;
+      this.numPrecRadix = numPrecRadix == 0 ? null : numPrecRadix;
+    }
+
+    public String getName() {
+      return typeName;
+    }
   }
 
   /** Metadata describing index info. */

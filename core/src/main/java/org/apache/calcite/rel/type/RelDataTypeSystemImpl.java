@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /** Default implementation of
@@ -45,23 +46,41 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   public int getDefaultPrecision(SqlTypeName typeName) {
+    //Following BasicSqlType precision as the default
     switch (typeName) {
     case CHAR:
     case BINARY:
     case VARCHAR:
     case VARBINARY:
       return 1;
-    case TIME:
-      return 0;
-    case TIMESTAMP:
-      // TODO jvs 26-July-2004:  should be 6 for microseconds,
-      // but we can't support that yet
-      return 0;
     case DECIMAL:
       return getMaxNumericPrecision();
     case INTERVAL_DAY_TIME:
     case INTERVAL_YEAR_MONTH:
       return SqlTypeName.DEFAULT_INTERVAL_START_PRECISION;
+    case BOOLEAN:
+      return 1;
+    case TINYINT:
+      return 3;
+    case SMALLINT:
+      return 5;
+    case INTEGER:
+      return 10;
+    case BIGINT:
+      return 19;
+    case REAL:
+      return 7;
+    case FLOAT:
+    case DOUBLE:
+      return 15;
+    case TIME:
+    case DATE:
+      return 0; // SQL99 part 2 section 6.1 syntax rule 30
+    case TIMESTAMP:
+      // farrago supports only 0 (see
+      // SqlTypeName.getDefaultPrecision), but it should be 6
+      // (microseconds) per SQL99 part 2 section 6.1 syntax rule 30.
+      return 0;
     default:
       return -1;
     }
@@ -84,7 +103,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_YEAR_MONTH:
       return SqlTypeName.MAX_INTERVAL_START_PRECISION;
     default:
-      return -1;
+      return getDefaultPrecision(typeName);
     }
   }
 
@@ -94,6 +113,53 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   public int getMaxNumericPrecision() {
     return 19;
+  }
+
+  public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
+    switch(typeName) {
+    case VARBINARY:
+    case VARCHAR:
+    case CHAR:
+      return "'";
+    case BINARY:
+      return isPrefix ? "x'" : "'";
+    case TIMESTAMP:
+      return isPrefix ? "TIMESTAMP '" : "'";
+    case INTERVAL_DAY_TIME:
+      return isPrefix ? "INTERVAL '" : "' DAY";
+    case INTERVAL_YEAR_MONTH:
+      return isPrefix ? "INTERVAL '" : "' YEAR TO MONTH";
+    case TIME:
+      return isPrefix ? "TIME '" : "'";
+    case DATE:
+      return isPrefix ? "DATE '" : "'";
+    case ARRAY:
+      return isPrefix ? "(" : ")";
+    default:
+      return null;
+    }
+  }
+
+  public boolean isCaseSensitive(SqlTypeName typeName) {
+    switch(typeName) {
+    case CHAR:
+    case VARCHAR:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public boolean isAutoincrement(SqlTypeName typeName) {
+    return false;
+  }
+
+  public int getNumTypeRadix(SqlTypeName typeName) {
+    if (typeName.getFamily() == SqlTypeFamily.NUMERIC
+      && getDefaultPrecision(typeName) != -1) {
+      return 10;
+    }
+    return 0;
   }
 }
 

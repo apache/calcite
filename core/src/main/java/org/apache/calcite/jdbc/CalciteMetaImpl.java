@@ -38,6 +38,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -46,13 +47,13 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -277,6 +278,29 @@ public class CalciteMetaImpl extends MetaImpl {
         "REF_GENERATION");
   }
 
+  public MetaResultSet getTypeInfo() {
+    return createResultSet(allTypeInfo(),
+        MetaTypeInfo.class,
+        "TYPE_NAME",
+        "DATA_TYPE",
+        "PRECISION",
+        "LITERAL_PREFIX",
+        "LITERAL_SUFFIX",
+        "CREATE_PARAMS",
+        "NULLABLE",
+        "CASE_SENSITIVE",
+        "SEARCHABLE",
+        "UNSIGNED_ATTRIBUTE",
+        "FIXED_PREC_SCALE",
+        "AUTO_INCREMENT",
+        "LOCAL_TYPE_NAME",
+        "MINIMUM_SCALE",
+        "MAXIMUM_SCALE",
+        "SQL_DATA_TYPE",
+        "SQL_DATETIME_SUB",
+        "NUM_PREC_RADIX");
+  }
+
   public MetaResultSet getColumns(String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
@@ -409,6 +433,38 @@ public class CalciteMetaImpl extends MetaImpl {
                 return matcher.apply(v1.getName());
               }
             });
+  }
+
+  private ImmutableList<MetaTypeInfo> getAllDefaultType() {
+    final ImmutableList.Builder<MetaTypeInfo> allTypeList =
+        new ImmutableList.Builder<>();
+    final CalciteConnectionImpl conn = (CalciteConnectionImpl) connection;
+    final RelDataTypeSystem typeSystem = conn.typeFactory.getTypeSystem();
+    for (SqlTypeName sqlTypeName : SqlTypeName.values()) {
+      allTypeList.add(
+          new MetaTypeInfo(sqlTypeName.getName(),
+              sqlTypeName.getJdbcOrdinal(),
+              typeSystem.getMaxPrecision(sqlTypeName),
+              typeSystem.getLiteral(sqlTypeName, true),
+              typeSystem.getLiteral(sqlTypeName, false),
+              // All types are nullable
+              DatabaseMetaData.typeNullable,
+              typeSystem.isCaseSensitive(sqlTypeName),
+              // Making all type searchable; we may want to
+              // be specific and declare under SqlTypeName
+              DatabaseMetaData.typeSearchable,
+              false,
+              false,
+              typeSystem.isAutoincrement(sqlTypeName),
+              sqlTypeName.getMinScale(),
+              typeSystem.getMaxScale(sqlTypeName),
+              typeSystem.getNumTypeRadix(sqlTypeName)));
+    }
+    return allTypeList.build();
+  }
+
+  protected Enumerable<MetaTypeInfo> allTypeInfo() {
+    return Linq4j.asEnumerable(getAllDefaultType());
   }
 
   public Enumerable<MetaColumn> columns(final MetaTable table_) {

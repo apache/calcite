@@ -122,6 +122,16 @@ public class CalciteRemoteDriverTest {
           }
         }
       };
+  private static final Function<Connection, ResultSet> GET_TYPEINFO =
+      new Function<Connection, ResultSet>() {
+        public ResultSet apply(Connection input) {
+          try {
+            return input.getMetaData().getTypeInfo();
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      };
   private static final Function<Connection, ResultSet> GET_TABLE_TYPES =
       new Function<Connection, ResultSet>() {
         public ResultSet apply(Connection input) {
@@ -247,6 +257,12 @@ public class CalciteRemoteDriverTest {
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_COLUMNS)
         .returns(CalciteAssert.checkResultContains("COLUMN_NAME=EMPNO"));
+  }
+
+  @Test public void testRemoteTypeInfo() throws Exception {
+    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
+        .metaData(GET_TYPEINFO)
+        .returns(CalciteAssert.checkResultCount(30));
   }
 
   @Test public void testRemoteTableTypes() throws Exception {

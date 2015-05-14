@@ -133,42 +133,7 @@ public class BasicSqlType extends AbstractSqlType {
   // implement RelDataType
   public int getPrecision() {
     if (precision == PRECISION_NOT_SPECIFIED) {
-      switch (typeName) {
-      case BOOLEAN:
-        return 1;
-      case TINYINT:
-        return 3;
-      case SMALLINT:
-        return 5;
-      case INTEGER:
-        return 10;
-      case BIGINT:
-        return 19;
-      case DECIMAL:
-        return RelDataTypeSystem.DEFAULT.getMaxNumericPrecision(); // FIXME
-      case REAL:
-        return 7;
-      case FLOAT:
-      case DOUBLE:
-        return 15;
-      case TIME:
-        return 0; // SQL99 part 2 section 6.1 syntax rule 30
-      case TIMESTAMP:
-
-        // farrago supports only 0 (see
-        // SqlTypeName.getDefaultPrecision), but it should be 6
-        // (microseconds) per SQL99 part 2 section 6.1 syntax rule 30.
-        return 0;
-      case DATE:
-        return 0;
-      case CHAR:
-      case VARCHAR:
-      case BINARY:
-      case VARBINARY:
-        return 1; // SQL2003 part 2 section 6.1 syntax rule 5
-      default:
-        // fall through
-      }
+      return typeSystem.getDefaultPrecision(typeName);
     }
     return precision;
   }
@@ -213,7 +178,8 @@ public class BasicSqlType extends AbstractSqlType {
     // since (for instance) TIME is equivalent to TIME(0).
     if (withDetail) {
       // -1 means there is no default value for precision
-      if (typeSystem.getDefaultPrecision(typeName) > -1) {
+      if (typeName.allowsPrec()
+        && typeSystem.getDefaultPrecision(typeName) > -1) {
         printPrecision = true;
       }
       if (typeName.getDefaultScale() > -1) {
