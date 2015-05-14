@@ -527,7 +527,12 @@ public class JdbcMeta implements Meta {
   }
 
   public MetaResultSet getTypeInfo() {
-    return null;
+    try {
+      return JdbcResultSet.create(DEFAULT_CONN_ID, -1,
+          connection.getMetaData().getTypeInfo());
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public MetaResultSet getIndexInfo(String catalog, String schema, String table,

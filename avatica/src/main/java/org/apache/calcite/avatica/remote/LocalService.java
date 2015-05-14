@@ -113,6 +113,11 @@ public class LocalService implements Service {
     return toResponse(resultSet);
   }
 
+  public ResultSetResponse apply(TypeInfoRequest request) {
+    final Meta.MetaResultSet resultSet = meta.getTypeInfo();
+    return toResponse(resultSet);
+  }
+
   public ResultSetResponse apply(ColumnsRequest request) {
     final Meta.MetaResultSet resultSet =
         meta.getColumns(request.catalog,

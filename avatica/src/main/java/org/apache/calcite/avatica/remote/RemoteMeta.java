@@ -142,6 +142,12 @@ class RemoteMeta extends MetaImpl {
     return toResultSet(MetaTableType.class, response);
   }
 
+  @Override public MetaResultSet getTypeInfo() {
+    final Service.ResultSetResponse response =
+        service.apply(new Service.TypeInfoRequest());
+    return toResultSet(MetaTypeInfo.class, response);
+  }
+
   @Override public MetaResultSet getColumns(String catalog, Pat schemaPattern,
       Pat tableNamePattern, Pat columnNamePattern) {
     final Service.ResultSetResponse response =
