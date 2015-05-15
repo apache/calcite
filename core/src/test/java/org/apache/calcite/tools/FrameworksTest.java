@@ -185,7 +185,7 @@ public class FrameworksTest {
     String expandedStr =
         "SELECT `emps`.`empid`, `emps`.`deptno`, `emps`.`name`, `emps`.`salary`, `emps`.`commission`\n"
             + "FROM `hr`.`emps` AS `emps`";
-    assertThat(valStr, equalTo(expandedStr));
+    assertThat(Util.toLinux(valStr), equalTo(expandedStr));
   }
 
   /** Dummy type system, similar to Hive's, accessed via an INSTANCE member. */

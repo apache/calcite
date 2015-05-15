@@ -109,7 +109,7 @@ public class FoodmartTest {
     if (!CalciteAssert.ENABLE_SLOW && idList == null) {
       // Avoid loading the query set in a regular test suite run. It burns too
       // much memory.
-      return ImmutableList.of(new Object[] {-1});
+      return ImmutableList.of();
     }
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     final List<Object[]> list = new ArrayList<Object[]>();

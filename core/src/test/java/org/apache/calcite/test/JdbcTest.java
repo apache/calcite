@@ -278,7 +278,7 @@ public class JdbcTest {
                         + "insert into \"adhoc\".V\n"
                         + "values ('Fred', 56, 123.4)");
                 assertThat(resultSet.next(), is(true));
-                assertThat(resultSet.getString(1),
+                assertThat(Util.toLinux(resultSet.getString(1)),
                     is(
                         "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], operation=[INSERT], updateColumnList=[[]], flattened=[false])\n"
                         + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):JavaType(int) NOT NULL], expr#4=[10], expr#5=[CAST($t0):JavaType(class java.lang.String)], expr#6=[CAST($t2):JavaType(float) NOT NULL], expr#7=[null], empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], commission=[$t7])\n"
