@@ -805,18 +805,18 @@ select distinct gender, sum(deptno) as s from emp group by gender;
 (2 rows)
 
 !ok
-# The following queries should give error. Uncomment when
-#   [QUIDEM-1] Add '!error' command
-# is fixed.
-#select distinct gender, deptno from emp group by gender;
-#Expression 'DEPTNO' is not being grouped
-#!error
-#select distinct gender, deptno from emp group by gender, ename;
-#Expression 'DEPTNO' is not being grouped
-#!error
-#select distinct gender, deptno, sum(deptno) as s from emp group by gender;
-#Expression 'DEPTNO' is not being grouped
-#!error
+
+select distinct gender, deptno from emp group by gender;
+Expression 'DEPTNO' is not being grouped
+!error
+
+select distinct gender, deptno from emp group by gender, ename;
+Expression 'DEPTNO' is not being grouped
+!error
+
+select distinct gender, deptno, sum(deptno) as s from emp group by gender;
+Expression 'DEPTNO' is not being grouped
+!error
 
 !use scott
 

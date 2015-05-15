@@ -72,7 +72,7 @@ public abstract class SqlAggFunction extends SqlFunction {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
-    validator.validateAggregateParams(call, scope);
+    validator.validateAggregateParams(call, null, scope);
   }
 }
 

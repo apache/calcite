@@ -30,6 +30,8 @@ import java.util.List;
  *
  * <p>NOTE: The current API is inefficient and experimental. It will change
  * without notice.</p>
+ *
+ * @see ModifiableView
  */
 public interface ModifiableTable extends QueryableTable {
   /** Returns the modifiable collection.

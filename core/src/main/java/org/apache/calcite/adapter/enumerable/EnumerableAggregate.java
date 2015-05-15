@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.enumerable.impl.AggAddContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.AggResultContextImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -177,12 +178,9 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     final int groupCount = getGroupCount();
     final int indicatorCount = getIndicatorCount();
 
-    final List<AggImpState> aggs =
-        new ArrayList<AggImpState>(aggCalls.size());
-
-    for (int i = 0; i < aggCalls.size(); i++) {
-      AggregateCall call = aggCalls.get(i);
-      aggs.add(new AggImpState(i, call, false));
+    final List<AggImpState> aggs = new ArrayList<>(aggCalls.size());
+    for (Ord<AggregateCall> call : Ord.zip(aggCalls)) {
+      aggs.add(new AggImpState(call.i, call.e, false));
     }
 
     // Function0<Object[]> accumulatorInitializer =
@@ -191,11 +189,10 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     //             return new Object[] {0, 0};
     //         }
     //     };
-    final List<Expression> initExpressions =
-        new ArrayList<Expression>();
+    final List<Expression> initExpressions = new ArrayList<>();
     final BlockBuilder initBlock = new BlockBuilder();
 
-    final List<Type> aggStateTypes = new ArrayList<Type>();
+    final List<Type> aggStateTypes = new ArrayList<>();
     for (final AggImpState agg : aggs) {
       agg.context =
           new AggContext() {
@@ -230,8 +227,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
 
       aggStateTypes.addAll(state);
 
-      final List<Expression> decls =
-          new ArrayList<Expression>(state.size());
+      final List<Expression> decls = new ArrayList<>(state.size());
       for (int i = 0; i < state.size(); i++) {
         String aggName = "a" + agg.aggIdx;
         if (CalcitePrepareImpl.DEBUG) {
@@ -281,9 +277,8 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     for (int i = 0, stateOffset = 0; i < aggs.size(); i++) {
       final AggImpState agg = aggs.get(i);
 
-      int stateSize = agg.state.size();
-      List<Expression> accumulator =
-          new ArrayList<Expression>(stateSize);
+      final int stateSize = agg.state.size();
+      final List<Expression> accumulator = new ArrayList<>(stateSize);
       for (int j = 0; j < stateSize; j++) {
         accumulator.add(accPhysType.fieldReference(acc_, j + stateOffset));
       }
@@ -296,12 +291,18 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
             public List<RexNode> rexArguments() {
               List<RelDataTypeField> inputTypes =
                   inputPhysType.getRowType().getFieldList();
-              List<RexNode> args = new ArrayList<RexNode>();
-              for (Integer index : agg.call.getArgList()) {
-                args.add(
-                    new RexInputRef(index, inputTypes.get(index).getType()));
+              List<RexNode> args = new ArrayList<>();
+              for (int index : agg.call.getArgList()) {
+                args.add(RexInputRef.of(index, inputTypes));
               }
               return args;
+            }
+
+            public RexNode rexFilterArgument() {
+              return agg.call.filterArg < 0
+                  ? null
+                  : RexInputRef.of(agg.call.filterArg,
+                      inputPhysType.getRowType());
             }
 
             public RexToLixTranslator rowTranslator() {

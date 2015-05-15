@@ -19,6 +19,7 @@ package org.apache.calcite.prepare;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
@@ -32,9 +33,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ModifiableTable;
+import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
@@ -43,6 +48,7 @@ import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -50,7 +56,9 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
@@ -99,6 +107,15 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   }
 
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
+      Table table, Path path) {
+    final SchemaPlus schemaPlus = MySchemaPlus.create(path);
+    Function<Class, Expression> expressionFunction =
+        getClassExpressionFunction(schemaPlus, Util.last(path).left, table);
+    return new RelOptTableImpl(schema, rowType, Pair.left(path), table,
+        expressionFunction, table.getStatistic().getRowCount());
+  }
+
+  public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
       final CalciteSchema.TableEntry tableEntry, Double rowCount) {
     final Table table = tableEntry.getTable();
     Function<Class, Expression> expressionFunction =
@@ -108,13 +125,18 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   }
 
   private static Function<Class, Expression> getClassExpressionFunction(
-      final CalciteSchema.TableEntry tableEntry, final Table table) {
+      CalciteSchema.TableEntry tableEntry, Table table) {
+    return getClassExpressionFunction(tableEntry.schema.plus(), tableEntry.name,
+        table);
+  }
+
+  private static Function<Class, Expression> getClassExpressionFunction(
+      final SchemaPlus schema, final String tableName, final Table table) {
     if (table instanceof QueryableTable) {
       final QueryableTable queryableTable = (QueryableTable) table;
       return new Function<Class, Expression>() {
         public Expression apply(Class clazz) {
-          return queryableTable.getExpression(tableEntry.schema.plus(),
-              tableEntry.name, clazz);
+          return queryableTable.getExpression(schema, tableName, clazz);
         }
       };
     } else if (table instanceof ScannableTable
@@ -122,14 +144,12 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
         || table instanceof ProjectableFilterableTable) {
       return new Function<Class, Expression>() {
         public Expression apply(Class clazz) {
-          return Schemas.tableExpression(tableEntry.schema.plus(),
-              Object[].class,
-              tableEntry.name,
+          return Schemas.tableExpression(schema, Object[].class, tableName,
               table.getClass());
         }
       };
     } else if (table instanceof StreamableTable) {
-      return getClassExpressionFunction(tableEntry,
+      return getClassExpressionFunction(schema, tableName,
           ((StreamableTable) table).stream());
     } else {
       return new Function<Class, Expression>() {
@@ -145,7 +165,8 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       RelDataType rowType,
       Table table) {
     assert table instanceof TranslatableTable
-        || table instanceof ScannableTable;
+        || table instanceof ScannableTable
+        || table instanceof ModifiableTable;
     return new RelOptTableImpl(schema, rowType, ImmutableList.<String>of(),
         table, null, null);
   }
@@ -298,6 +319,115 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
 
   public SqlAccessType getAllowedAccess() {
     return SqlAccessType.ALL;
+  }
+
+  /** Im0plementation of {@link SchemaPlus} that wraps a regular schema and knows
+   * its name and parent.
+   *
+   * <p>It is read-only, and functionality is limited in other ways, it but
+   * allows table expressions to be genenerated. */
+  private static class MySchemaPlus implements SchemaPlus {
+    private final SchemaPlus parent;
+    private final String name;
+    private final Schema schema;
+
+    public MySchemaPlus(SchemaPlus parent, String name, Schema schema) {
+      this.parent = parent;
+      this.name = name;
+      this.schema = schema;
+    }
+
+    public static MySchemaPlus create(Path path) {
+      final Pair<String, Schema> pair = Util.last(path);
+      final SchemaPlus parent;
+      if (path.size() == 1) {
+        parent = null;
+      } else {
+        parent = create(path.parent());
+      }
+      return new MySchemaPlus(parent, pair.left, pair.right);
+    }
+
+    @Override public SchemaPlus getParentSchema() {
+      return parent;
+    }
+
+    @Override public String getName() {
+      return name;
+    }
+
+    @Override public SchemaPlus getSubSchema(String name) {
+      final Schema subSchema = schema.getSubSchema(name);
+      return subSchema == null ? null : new MySchemaPlus(this, name, subSchema);
+    }
+
+    @Override public SchemaPlus add(String name, Schema schema) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public void add(String name, Table table) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public void add(String name,
+        org.apache.calcite.schema.Function function) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public void add(String name, Lattice lattice) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public boolean isMutable() {
+      return schema.isMutable();
+    }
+
+    @Override public <T> T unwrap(Class<T> clazz) {
+      return null;
+    }
+
+    @Override public void setPath(ImmutableList<ImmutableList<String>> path) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public void setCacheEnabled(boolean cache) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public boolean isCacheEnabled() {
+      return false;
+    }
+
+    @Override public Table getTable(String name) {
+      return schema.getTable(name);
+    }
+
+    @Override public Set<String> getTableNames() {
+      return schema.getTableNames();
+    }
+
+    @Override public Collection<org.apache.calcite.schema.Function>
+    getFunctions(String name) {
+      return schema.getFunctions(name);
+    }
+
+    @Override public Set<String> getFunctionNames() {
+      return schema.getFunctionNames();
+    }
+
+    @Override public Set<String> getSubSchemaNames() {
+      return schema.getSubSchemaNames();
+    }
+
+    @Override public Expression getExpression(SchemaPlus parentSchema,
+        String name) {
+      return schema.getExpression(parentSchema, name);
+    }
+
+    @Override public boolean contentsHaveChangedSince(long lastCheck,
+        long now) {
+      return schema.contentsHaveChangedSince(lastCheck, now);
+    }
   }
 }
 

@@ -137,8 +137,9 @@ public class AggregateFilterTransposeRule extends RelOptRule {
           return;
         }
         topAggCallList.add(
-            new AggregateCall(rollup, aggregateCall.isDistinct(),
-                ImmutableList.of(i++), aggregateCall.type, aggregateCall.name));
+            AggregateCall.create(rollup, aggregateCall.isDistinct(),
+                ImmutableList.of(i++), -1, aggregateCall.type,
+                aggregateCall.name));
       }
       final Aggregate topAggregate =
           aggregate.copy(aggregate.getTraitSet(), newFilter,

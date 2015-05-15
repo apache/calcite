@@ -350,6 +350,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "group by deptno").ok();
   }
 
+  @Test public void testAggFilter() {
+    sql("select deptno, sum(sal * 2) filter (where empno < 10), count(*) "
+        + "from emp "
+        + "group by deptno").ok();
+  }
+
   @Test public void testSelectDistinct() {
     sql("select distinct sal + 5 from emp").ok();
   }
@@ -1133,6 +1139,132 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END),\n"
         + " min(empno) from EMP\n"
         + "group by (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END)")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testInsert() {
+    sql("insert into emp (deptno, empno, ename) values (10, 150, 'Fred')")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testSelectView() {
+    // translated condition: deptno = 20 and sal > 1000 and empno > 100
+    sql("select * from emp_20 where empno > 100")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testInsertView() {
+    sql("insert into emp_20 (empno, ename) values (150, 'Fred')")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
+   * SqlSingleValueAggFunction is created when it may not be needed</a>.
+   */
+  @Test public void testSubqueryAggreFunctionFollowedBySimpleOperation() {
+    sql("select deptno\n"
+        + "from EMP\n"
+        + "where deptno > (select min(deptno) * 2 + 10 from EMP)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
+   * SqlSingleValueAggFunction is created when it may not be needed</a>.
+   */
+  @Test public void testSubqueryValues() {
+    sql("select deptno\n"
+        + "from EMP\n"
+        + "where deptno > (values 10)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
+   * SqlSingleValueAggFunction is created when it may not be needed</a>.
+   */
+  @Test public void testSubqueryLimitOne() {
+    sql("select deptno\n"
+        + "from EMP\n"
+        + "where deptno > (select deptno \n"
+        + "from EMP order by deptno limit 1)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-710">[CALCITE-710]
+   * When look up subqueries, perform the same logic as the way when ones were
+   * registered</a>.
+   */
+  @Test public void testIdenticalExpressionInSubquery() {
+    sql("select deptno\n"
+        + "from EMP\n"
+        + "where deptno in (1, 2) or deptno in (1, 2)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
+   * Scan HAVING clause for sub-queries and IN-lists</a> relating to IN.
+   */
+  @Test public void testHavingAggrFunctionIn() {
+    sql("select deptno \n"
+        + "from emp \n"
+        + "group by deptno \n"
+        + "having sum(case when deptno in (1, 2) then 0 else 1 end) + \n"
+        + "sum(case when deptno in (3, 4) then 0 else 1 end) > 10")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
+   * Scan HAVING clause for sub-queries and IN-lists</a>, with a sub-query in
+   * the HAVING clause.
+   */
+  @Test public void testHavingInSubqueryWithAggrFunction() {
+    sql("select sal \n"
+        + "from emp \n"
+        + "group by sal \n"
+        + "having sal in \n"
+            + "(select deptno \n"
+            + "from dept \n"
+            + "group by deptno \n"
+            + "having sum(deptno) > 0)")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-716">[CALCITE-716]
+   * Scalar sub-query and aggregate function in SELECT or HAVING clause gives
+   * AssertionError</a>; variant involving HAVING clause.
+   */
+  @Test public void testAggregateAndScalarSubQueryInHaving() {
+    sql("select deptno\n"
+            + "from emp\n"
+            + "group by deptno\n"
+            + "having max(emp.empno) > (SELECT min(emp.empno) FROM emp)\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-716">[CALCITE-716]
+   * Scalar sub-query and aggregate function in SELECT or HAVING clause gives
+   * AssertionError</a>; variant involving SELECT clause.
+   */
+  @Test public void testAggregateAndScalarSubQueryInSelect() {
+    sql("select deptno,\n"
+            + "  max(emp.empno) > (SELECT min(emp.empno) FROM emp) as b\n"
+            + "from emp\n"
+            + "group by deptno\n")
         .convertsTo("${plan}");
   }
 

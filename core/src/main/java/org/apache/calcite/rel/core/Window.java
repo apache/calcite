@@ -313,12 +313,9 @@ public abstract class Window extends SingleRel {
 
         public AggregateCall get(int index) {
           final RexWinAggCall aggCall = aggCalls.get(index);
-          return new AggregateCall(
-              (SqlAggFunction) aggCall.getOperator(),
-              false,
-              getProjectOrdinals(aggCall.getOperands()),
-              aggCall.getType(),
-              fieldNames.get(aggCall.ordinal));
+          return AggregateCall.create((SqlAggFunction) aggCall.getOperator(),
+              false, getProjectOrdinals(aggCall.getOperands()), -1,
+              aggCall.getType(), fieldNames.get(aggCall.ordinal));
         }
       };
     }

@@ -34,6 +34,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.IntegerFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 
@@ -43,6 +44,7 @@ import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1658,6 +1660,37 @@ public class Linq4jTest {
 
   @Test public void testExample() {
     Linq4jExample.main(new String[0]);
+  }
+
+  /** We use BigDecimal to represent literals of float and double using
+   * BigDecimal, because we want an exact representation. */
+  @Test public void testApproxConstant() {
+    ConstantExpression c;
+    c = Expressions.constant(new BigDecimal("3.1"), float.class);
+    assertThat(Expressions.toString(c), equalTo("3.1F"));
+    c = Expressions.constant(new BigDecimal("-5.156"), float.class);
+    assertThat(Expressions.toString(c), equalTo("-5.156F"));
+    c = Expressions.constant(new BigDecimal("-51.6"), Float.class);
+    assertThat(Expressions.toString(c), equalTo("Float.valueOf(-51.6F)"));
+    c = Expressions.constant(new BigDecimal(Float.MAX_VALUE), Float.class);
+    assertThat(Expressions.toString(c),
+        equalTo("Float.valueOf(Float.intBitsToFloat(2139095039))"));
+    c = Expressions.constant(new BigDecimal(Float.MIN_VALUE), Float.class);
+    assertThat(Expressions.toString(c),
+        equalTo("Float.valueOf(Float.intBitsToFloat(1))"));
+
+    c = Expressions.constant(new BigDecimal("3.1"), double.class);
+    assertThat(Expressions.toString(c), equalTo("3.1D"));
+    c = Expressions.constant(new BigDecimal("-5.156"), double.class);
+    assertThat(Expressions.toString(c), equalTo("-5.156D"));
+    c = Expressions.constant(new BigDecimal("-51.6"), Double.class);
+    assertThat(Expressions.toString(c), equalTo("Double.valueOf(-51.6D)"));
+    c = Expressions.constant(new BigDecimal(Double.MAX_VALUE), Double.class);
+    assertThat(Expressions.toString(c),
+        equalTo("Double.valueOf(Double.longBitsToDouble(9218868437227405311L))"));
+    c = Expressions.constant(new BigDecimal(Double.MIN_VALUE), Double.class);
+    assertThat(Expressions.toString(c),
+        equalTo("Double.valueOf(Double.longBitsToDouble(1L))"));
   }
 
   /** Employee. */

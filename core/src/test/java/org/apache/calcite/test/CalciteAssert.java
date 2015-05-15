@@ -698,7 +698,7 @@ public class CalciteAssert {
                   + "    ('Grace', 60, 'F'),\n"
                   + "    ('Wilma', cast(null as integer), 'F'))\n"
                   + "  as t(ename, deptno, gender)",
-              ImmutableList.<String>of()));
+              ImmutableList.<String>of(), null));
       post.add("DEPT",
           ViewTable.viewMacro(post,
               "select * from (values\n"
@@ -706,7 +706,7 @@ public class CalciteAssert {
                   + "    (20, 'Marketing'),\n"
                   + "    (30, 'Engineering'),\n"
                   + "    (40, 'Empty')) as t(deptno, dname)",
-              ImmutableList.<String>of()));
+              ImmutableList.<String>of(), null));
       post.add("EMPS",
           ViewTable.viewMacro(post,
               "select * from (values\n"
@@ -716,7 +716,7 @@ public class CalciteAssert {
                   + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07'),\n"
                   + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
                   + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
-              ImmutableList.<String>of()));
+              ImmutableList.<String>of(), null));
       return post;
     default:
       throw new AssertionError("unknown schema " + schema);

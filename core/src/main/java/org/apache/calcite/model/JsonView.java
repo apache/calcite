@@ -31,6 +31,20 @@ public class JsonView extends JsonTable {
    * to current schema. */
   public List<String> path;
 
+  /** Whether this view should allow INSERT requests.
+   *
+   * <p>The values have the following meanings:
+   * <ul>
+   * <li>If true, Calcite throws an error when validating the schema if the
+   *     view is not modifiable.
+   * <li>If null, Calcite deduces whether the view is modifiable.
+   * <li>If false, Calcite will not allow inserts.
+   * </ul>
+   *
+   * <p>The default value is {@code null}.
+   */
+  public Boolean modifiable;
+
   public void accept(ModelHandler handler) {
     handler.visit(this);
   }

@@ -314,96 +314,86 @@ public class SqlValidatorTestCase {
     }
 
     if (null == expectedMsgPattern) {
-      if (null != actualException) {
-        actualException.printStackTrace();
-        fail(
-            "Validator threw unexpected exception"
-            + "; query [" + sap.sql
-            + "]; exception [" + actualMessage
-            + "]; class [" + actualException.getClass()
-            + "]; pos [line " + actualLine
-            + " col " + actualColumn
-            + " thru line " + actualLine
-            + " col " + actualColumn + "]");
+      actualException.printStackTrace();
+      fail("Validator threw unexpected exception"
+          + "; query [" + sap.sql
+          + "]; exception [" + actualMessage
+          + "]; class [" + actualException.getClass()
+          + "]; pos [line " + actualLine
+          + " col " + actualColumn
+          + " thru line " + actualLine
+          + " col " + actualColumn + "]");
+    }
+
+    String sqlWithCarets;
+    if (actualColumn <= 0
+        || actualLine <= 0
+        || actualEndColumn <= 0
+        || actualEndLine <= 0) {
+      if (sap.pos != null) {
+        AssertionError e =
+            new AssertionError("Expected error to have position,"
+                + " but actual error did not: "
+                + " actual pos [line " + actualLine
+                + " col " + actualColumn
+                + " thru line " + actualEndLine + " col "
+                + actualEndColumn + "]");
+        e.initCause(actualException);
+        throw e;
       }
+      sqlWithCarets = sap.sql;
     } else {
-      if (null == actualException) {
-        fail(
-            "Expected validator to throw "
-            + "exception, but it did not; query [" + sap.sql
-            + "]; expected [" + expectedMsgPattern + "]");
-      } else {
-        String sqlWithCarets;
-        if ((actualColumn <= 0)
-            || (actualLine <= 0)
-            || (actualEndColumn <= 0)
-            || (actualEndLine <= 0)) {
-          if (sap.pos != null) {
-            AssertionError e =
-                new AssertionError("Expected error to have position,"
-                    + " but actual error did not: "
-                    + " actual pos [line " + actualLine
-                    + " col " + actualColumn
-                    + " thru line " + actualEndLine + " col "
-                    + actualEndColumn + "]");
-            e.initCause(actualException);
-            throw e;
-          }
-          sqlWithCarets = sap.sql;
-        } else {
-          sqlWithCarets =
-              SqlParserUtil.addCarets(
-                  sap.sql,
-                  actualLine,
-                  actualColumn,
-                  actualEndLine,
-                  actualEndColumn + 1);
-          if (sap.pos == null) {
-            throw new AssertionError(
-                "Actual error had a position, but expected error"
-                + " did not. Add error position carets to sql:\n"
-                + sqlWithCarets);
-          }
-        }
-        if (actualMessage != null) {
-          actualMessage = Util.toLinux(actualMessage);
-        }
-        if ((actualMessage == null)
-            || !actualMessage.matches(expectedMsgPattern)) {
-          actualException.printStackTrace();
-          final String actualJavaRegexp =
-              (actualMessage == null) ? "null"
-                  : TestUtil.quoteForJava(
-                      TestUtil.quotePattern(actualMessage));
-          fail("Validator threw different "
-              + "exception than expected; query [" + sap.sql
-              + "];\n"
-              + " expected pattern [" + expectedMsgPattern
-              + "];\n"
-              + " actual [" + actualMessage
-              + "];\n"
-              + " actual as java regexp [" + actualJavaRegexp
-              + "]; pos [" + actualLine
-              + " col " + actualColumn
-              + " thru line " + actualEndLine
-              + " col " + actualEndColumn
-              + "]; sql [" + sqlWithCarets + "]");
-        } else if (
-            (sap.pos != null)
-                && ((actualLine != sap.pos.getLineNum())
-                || (actualColumn != sap.pos.getColumnNum())
-                || (actualEndLine != sap.pos.getEndLineNum())
-                || (actualEndColumn != sap.pos.getEndColumnNum()))) {
-          fail(
-              "Validator threw expected "
-              + "exception [" + actualMessage
-              + "];\nbut at pos [line " + actualLine
-              + " col " + actualColumn
-              + " thru line " + actualEndLine
-              + " col " + actualEndColumn
-              + "];\nsql [" + sqlWithCarets + "]");
-        }
+      sqlWithCarets =
+          SqlParserUtil.addCarets(
+              sap.sql,
+              actualLine,
+              actualColumn,
+              actualEndLine,
+              actualEndColumn + 1);
+      if (sap.pos == null) {
+        throw new AssertionError("Actual error had a position, but expected "
+            + "error did not. Add error position carets to sql:\n"
+            + sqlWithCarets);
       }
+    }
+
+    if (actualMessage != null) {
+      actualMessage = Util.toLinux(actualMessage);
+    }
+
+    if (actualMessage == null
+        || !actualMessage.matches(expectedMsgPattern)) {
+      actualException.printStackTrace();
+      final String actualJavaRegexp =
+          (actualMessage == null)
+              ? "null"
+              : TestUtil.quoteForJava(
+                  TestUtil.quotePattern(actualMessage));
+      fail("Validator threw different "
+          + "exception than expected; query [" + sap.sql
+          + "];\n"
+          + " expected pattern [" + expectedMsgPattern
+          + "];\n"
+          + " actual [" + actualMessage
+          + "];\n"
+          + " actual as java regexp [" + actualJavaRegexp
+          + "]; pos [" + actualLine
+          + " col " + actualColumn
+          + " thru line " + actualEndLine
+          + " col " + actualEndColumn
+          + "]; sql [" + sqlWithCarets + "]");
+    } else if (sap.pos != null
+        && (actualLine != sap.pos.getLineNum()
+            || actualColumn != sap.pos.getColumnNum()
+            || actualEndLine != sap.pos.getEndLineNum()
+            || actualEndColumn != sap.pos.getEndColumnNum())) {
+      fail("Validator threw expected "
+          + "exception [" + actualMessage
+          + "];\nbut at pos [line " + actualLine
+          + " col " + actualColumn
+          + " thru line " + actualEndLine
+          + " col " + actualEndColumn
+          + "];\nsql [" + sqlWithCarets + "]");
     }
   }
 
@@ -563,6 +553,11 @@ public class SqlValidatorTestCase {
 
     public Sql type(String expectedType) {
       tester.checkResultType(sql, expectedType);
+      return this;
+    }
+
+    public Sql monotonic(SqlMonotonicity expectedMonotonicity) {
+      tester.checkMonotonic(sql, expectedMonotonicity);
       return this;
     }
   }

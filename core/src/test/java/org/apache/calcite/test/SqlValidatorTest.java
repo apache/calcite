@@ -27,6 +27,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
@@ -6150,6 +6151,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select sum(empno) from emp order by sum(empno)");
   }
 
+  @Test public void testAggregateFilter() {
+    sql("select sum(empno) filter (where deptno < 10) as s from emp")
+        .type("RecordType(INTEGER S) NOT NULL");
+  }
+
+  @Test public void testAggregateFilterNotBoolean() {
+    sql("select sum(empno) filter (where ^deptno + 10^) from emp")
+        .fails("FILTER clause must be a condition");
+  }
+
+  @Test public void testAggregateFilterInHaving() {
+    sql("select sum(empno) as s from emp\n"
+        + "group by deptno\n"
+        + "having sum(empno) filter (where deptno < 20) > 10")
+        .ok();
+  }
+
+  @Test public void testAggregateFilterContainsAggregate() {
+    sql("select sum(empno) filter (where ^count(*) < 10^) from emp")
+        .fails("FILTER must not contain aggregate expression");
+  }
+
   @Test public void testCorrelatingVariables() {
     // reference to unqualified correlating column
     check("select * from emp where exists (\n"
@@ -7056,6 +7079,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester1.checkQuery("select empNo from (select Empno from emP)");
   }
 
+  @Test public void testInsert() {
+    tester.checkQuery("insert into emp (empno, deptno) values (1, 1)");
+    tester.checkQuery("insert into emp (empno, deptno)\n"
+        + "select 1, 1 from (values 'a')");
+  }
+
   @Test public void testStream() {
     sql("select stream * from orders").ok();
     sql("select stream * from ^emp^")
@@ -7116,6 +7145,91 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "having ^count(*) > 3^")
         .fails(STR_AGG_REQUIRES_MONO);
+  }
+
+  /** Tests that various expressions are monotonic. */
+  @Test public void testMonotonic() {
+    sql("select stream floor(rowtime to hour) from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream ceil(rowtime to minute) from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream extract(minute from rowtime) from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+    sql("select stream (rowtime - timestamp '1970-01-01 00:00:00') hour from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream\n"
+        + "cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer)\n"
+        + "from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream\n"
+        + "cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer) / 15\n"
+        + "from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream\n"
+        + "mod(cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer), 15)\n"
+        + "from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+
+    // constant
+    sql("select stream 1 - 2 from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select stream 1 + 2 from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
+
+    // extract(YEAR) is monotonic, extract(other time unit) is not
+    sql("select stream extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream extract(month from rowtime) from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+
+    // <monotonic> - constant
+    sql("select stream extract(year from rowtime) - 3 from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream extract(year from rowtime) * 5 from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream extract(year from rowtime) * -5 from orders")
+        .monotonic(SqlMonotonicity.DECREASING);
+
+    // <monotonic> / constant
+    sql("select stream extract(year from rowtime) / -5 from orders")
+        .monotonic(SqlMonotonicity.DECREASING);
+    sql("select stream extract(year from rowtime) / 5 from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream extract(year from rowtime) / 0 from orders")
+        .monotonic(SqlMonotonicity.CONSTANT); // +inf is constant!
+
+    // constant / <monotonic> is not monotonic (we don't know whether sign of
+    // expression ever changes)
+    sql("select stream 5 / extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+
+    // <monotonic> * constant
+    sql("select stream extract(year from rowtime) * -5 from orders")
+        .monotonic(SqlMonotonicity.DECREASING);
+    sql("select stream extract(year from rowtime) * 5 from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream extract(year from rowtime) * 0 from orders")
+        .monotonic(SqlMonotonicity.CONSTANT); // 0 is constant!
+
+    // constant * <monotonic>
+    sql("select stream -5 * extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.DECREASING);
+    sql("select stream 5 * extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
+    sql("select stream 0 * extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
+
+    // <monotonic> - <monotonic>
+    sql("select stream\n"
+        + "extract(year from rowtime) - extract(year from rowtime)\n"
+        + "from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+
+    // <monotonic> + <monotonic>
+    sql("select stream\n"
+        + "extract(year from rowtime) + extract(year from rowtime)\n"
+        + "from orders")
+        .monotonic(SqlMonotonicity.INCREASING);
   }
 
   @Test public void testStreamUnionAll() {

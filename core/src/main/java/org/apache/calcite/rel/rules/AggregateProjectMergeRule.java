@@ -103,7 +103,17 @@ public class AggregateProjectMergeRule extends RelOptRule {
           return null;
         }
       }
-      aggCalls.add(aggregateCall.copy(newArgs.build()));
+      final int newFilterArg;
+      if (aggregateCall.filterArg >= 0) {
+        final RexNode rex = project.getProjects().get(aggregateCall.filterArg);
+        if (!(rex instanceof RexInputRef)) {
+          return null;
+        }
+        newFilterArg = ((RexInputRef) rex).getIndex();
+      } else {
+        newFilterArg = -1;
+      }
+      aggCalls.add(aggregateCall.copy(newArgs.build(), newFilterArg));
     }
 
     final Aggregate newAggregate =

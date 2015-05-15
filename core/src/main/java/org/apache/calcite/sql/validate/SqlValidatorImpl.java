@@ -3947,18 +3947,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     call.validate(this, scope);
   }
 
-  public void validateAggregateParams(
-      SqlCall aggFunction,
+  public void validateAggregateParams(SqlCall aggCall, SqlNode filter,
       SqlValidatorScope scope) {
     // For agg(expr), expr cannot itself contain aggregate function
     // invocations.  For example, SUM(2*MAX(x)) is illegal; when
     // we see it, we'll report the error for the SUM (not the MAX).
     // For more than one level of nesting, the error which results
     // depends on the traversal order for validation.
-    for (SqlNode param : aggFunction.getOperandList()) {
-      final SqlNode agg = aggOrOverFinder.findAgg(param);
+    for (SqlNode param : aggCall.getOperandList()) {
       if (aggOrOverFinder.findAgg(param) != null) {
-        throw newValidationError(aggFunction, RESOURCE.nestedAggIllegal());
+        throw newValidationError(aggCall, RESOURCE.nestedAggIllegal());
+      }
+    }
+    if (filter != null) {
+      if (aggOrOverFinder.findAgg(filter) != null) {
+        throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
       }
     }
   }

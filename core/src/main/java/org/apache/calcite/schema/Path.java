@@ -14,37 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util;
+package org.apache.calcite.schema;
 
-import org.apache.calcite.runtime.CalciteResource;
+import org.apache.calcite.util.Pair;
 
-import org.apache.calcite.runtime.Resources;
+import java.util.List;
+import java.util.RandomAccess;
 
 /**
- * Definitions of objects to be statically imported.
+ * Path from a root schema to a particular object (schema, table, function).
  *
- * <h3>Note to developers</h3>
- *
- * <p>Please give careful consideration before including an object in this
- * class. Pros:
+ * <p>Examples:
  * <ul>
- * <li>Code that uses these objects will be terser.
- * </ul>
- *
- * <p>Cons:</p>
- * <ul>
- * <li>Namespace pollution,
- * <li>code that is difficult to understand (a general problem with static
- * imports),
- * <li>potential cyclic initialization.
+ *   <li>The root schema has a single element [(root, "")].
+ *   <li>A direct child "foo" of the root schema has a two elements
+ *   [(root, ""), (child, "foo")].
  * </ul>
  */
-public abstract class Static {
-  private Static() {}
-
-  /** Resources. */
-  public static final CalciteResource RESOURCE =
-      Resources.create(CalciteResource.class);
+public interface Path extends List<Pair<String, Schema>>, RandomAccess {
+  Path parent();
 }
 
-// End Static.java
+// End Path.java

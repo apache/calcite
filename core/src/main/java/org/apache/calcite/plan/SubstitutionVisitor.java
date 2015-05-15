@@ -1166,7 +1166,8 @@ public class SubstitutionVisitor {
     return Lists.transform(aggCallList,
         new Function<AggregateCall, AggregateCall>() {
           public AggregateCall apply(AggregateCall call) {
-            return call.copy(Mappings.apply2(mapping, call.getArgList()));
+            return call.copy(Mappings.apply2(mapping, call.getArgList()),
+                Mappings.apply(mapping, call.filterArg));
           }
         });
   }
@@ -1214,9 +1215,9 @@ public class SubstitutionVisitor {
           return null;
         }
         aggregateCalls.add(
-            new AggregateCall(getRollup(aggregateCall.getAggregation()),
+            AggregateCall.create(getRollup(aggregateCall.getAggregation()),
                 aggregateCall.isDistinct(),
-                ImmutableList.of(target.groupSet.cardinality() + i),
+                ImmutableList.of(target.groupSet.cardinality() + i), -1,
                 aggregateCall.type, aggregateCall.name));
       }
       result = MutableAggregate.of(target, false, groupSet.build(), null,

@@ -282,10 +282,12 @@ public interface SqlValidator {
   /**
    * Validates parameters for aggregate function.
    *
-   * @param aggFunction function containing COLUMN_LIST parameter
+   * @param aggCall     Function containing COLUMN_LIST parameter
+   * @param filter      Filter, or null
    * @param scope       Syntactic scope
    */
-  void validateAggregateParams(SqlCall aggFunction, SqlValidatorScope scope);
+  void validateAggregateParams(SqlCall aggCall, SqlNode filter,
+      SqlValidatorScope scope);
 
   /**
    * Validates a COLUMN_LIST parameter
@@ -344,6 +346,7 @@ public interface SqlValidator {
    * @param selectNode Expression in SELECT clause
    * @return whether expression is an aggregate function
    */
+  @Deprecated // to be removed before 2.0
   boolean isAggregate(SqlNode selectNode);
 
   /**

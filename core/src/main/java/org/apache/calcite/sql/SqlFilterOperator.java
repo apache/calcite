@@ -16,45 +16,50 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * An operator describing a window function specification.
+ * An operator that applies a filter before rows are included in an aggregate
+ * function.
  *
  * <p>Operands are as follows:</p>
  *
  * <ul>
- * <li>0: name of window function ({@link org.apache.calcite.sql.SqlCall})</li>
- *
- * <li>1: window name ({@link org.apache.calcite.sql.SqlLiteral}) or
- * window in-line specification ({@link SqlWindow})</li>
- *
+ * <li>0: a call to an aggregate function ({@link SqlCall})
+ * <li>1: predicate
  * </ul>
  */
-public class SqlOverOperator extends SqlBinaryOperator {
+public class SqlFilterOperator extends SqlBinaryOperator {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlOverOperator() {
-    super(
-        "OVER",
-        SqlKind.OVER,
-        20,
-        true,
-        ReturnTypes.ARG0_FORCE_NULLABLE,
-        null,
-        OperandTypes.ANY_ANY);
+  public SqlFilterOperator() {
+    super("FILTER", SqlKind.FILTER, 2, true, ReturnTypes.ARG0_FORCE_NULLABLE,
+        null, OperandTypes.ANY_ANY);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    assert call.operandCount() == 2;
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+    call.operand(0).unparse(writer, leftPrec, getLeftPrec());
+    writer.sep(getName());
+    writer.sep("(");
+    writer.sep("WHERE");
+    call.operand(1).unparse(writer, getRightPrec(), rightPrec);
+    writer.sep(")");
+    writer.endList(frame);
+  }
 
   public void validateCall(
       SqlCall call,
@@ -65,10 +70,17 @@ public class SqlOverOperator extends SqlBinaryOperator {
     assert call.operandCount() == 2;
     SqlCall aggCall = call.operand(0);
     if (!aggCall.getOperator().isAggregator()) {
-      throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
+      throw validator.newValidationError(aggCall,
+          RESOURCE.filterNonAggregate());
     }
-    validator.validateWindow(call.operand(1), scope, aggCall);
-    validator.validateAggregateParams(aggCall, null, scope);
+    final SqlNode condition = call.operand(1);
+    validator.validateAggregateParams(aggCall, condition, scope);
+
+    final RelDataType type = validator.deriveType(scope, condition);
+    if (!SqlTypeUtil.inBooleanFamily(type)) {
+      throw validator.newValidationError(condition,
+          RESOURCE.condMustBeBoolean("FILTER"));
+    }
   }
 
   public RelDataType deriveType(
@@ -79,10 +91,6 @@ public class SqlOverOperator extends SqlBinaryOperator {
     validateOperands(validator, scope, call);
 
     // Assume the first operand is an aggregate call and derive its type.
-    // When we are sure the window is not empty, pass that information to the
-    // aggregate's operator return type inference as groupCount=1
-    // Otherwise pass groupCount=0 so the agg operator understands the window
-    // can be empty
     SqlNode agg = call.operand(0);
 
     if (!(agg instanceof SqlCall)) {
@@ -90,15 +98,14 @@ public class SqlOverOperator extends SqlBinaryOperator {
           + " should be SqlCall, got " + agg.getClass() + ": " + agg);
     }
 
-    SqlNode window = call.operand(1);
-    SqlWindow w = validator.resolveWindow(window, scope, false);
-
-    final int groupCount = w.isAlwaysNonEmpty() ? 1 : 0;
     final SqlCall aggCall = (SqlCall) agg;
 
+    // Pretend that group-count is 0. This tells the aggregate function that it
+    // might be invoked with 0 rows in a group. Most aggregate functions will
+    // return NULL in this case.
     SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
       @Override public int getGroupCount() {
-        return groupCount;
+        return 0;
       }
     };
 
@@ -109,34 +116,6 @@ public class SqlOverOperator extends SqlBinaryOperator {
     validator.setValidatedNodeType(agg, ret);
     return ret;
   }
-
-  /**
-   * Accepts a {@link SqlVisitor}, and tells it to visit each child.
-   *
-   * @param visitor Visitor
-   */
-  public <R> void acceptCall(
-      SqlVisitor<R> visitor,
-      SqlCall call,
-      boolean onlyExpressions,
-      SqlBasicVisitor.ArgHandler<R> argHandler) {
-    if (onlyExpressions) {
-      for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
-        // if the second param is an Identifier then it's supposed to
-        // be a name from a window clause and isn't part of the
-        // group by check
-        if (operand == null) {
-          continue;
-        }
-        if (operand.i == 1 && operand.e instanceof SqlIdentifier) {
-          continue;
-        }
-        argHandler.visitChild(visitor, call, operand.i, operand.e);
-      }
-    } else {
-      super.acceptCall(visitor, call, onlyExpressions, argHandler);
-    }
-  }
 }
 
-// End SqlOverOperator.java
+// End SqlFilterOperator.java

@@ -19,6 +19,12 @@ package org.apache.calcite.util;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlValuesOperator;
+import org.apache.calcite.sql.fun.SqlRowOperator;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -131,6 +137,47 @@ public class Util {
               });
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Does nothing with its argument. Returns whether it is ensured that
+   * the call produces a single value
+   *
+   * @param call      the expression to evaluate
+   * @return Whether it is ensured that the call produces a single value
+   */
+  public static boolean isSingleValue(SqlCall call) {
+    if (call.getOperator() instanceof SqlAggFunction) {
+      return true;
+    } else if (call.getOperator() instanceof SqlValuesOperator
+        || call.getOperator() instanceof SqlRowOperator) {
+      List<SqlNode> operands = call.getOperandList();
+      if (operands.size() == 1) {
+        SqlNode operand = operands.get(0);
+        if (operand instanceof SqlLiteral) {
+          return true;
+        } else if (operand instanceof SqlCall) {
+          return isSingleValue((SqlCall) operand);
+        }
+      }
+
+      return false;
+    } else {
+      boolean isScalar = true;
+      for (SqlNode operand : call.getOperandList()) {
+        if (operand instanceof SqlLiteral) {
+          continue;
+        }
+
+        if (!(operand instanceof SqlCall)
+            || !Util.isSingleValue((SqlCall) operand)) {
+          isScalar = false;
+          break;
+        }
+      }
+
+      return isScalar;
+    }
+  }
 
   /**
    * Does nothing with its argument. Call this method when you have a value

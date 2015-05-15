@@ -1,3 +1,19 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 # Apache Calcite release history
 
 For a full list of releases, see
@@ -848,7 +864,7 @@ New features
 * Fix return type inference for aggregate calls. If the `GROUP BY` clause is
   empty, `SUM` may return null.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-37">CALCITE-37</a>]
-  Document JSON model file format (as <a href="MODEL.md">MODEL.md</a>).
+  Document JSON model file format (as <a href="model.md">model.md</a>).
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-238">CALCITE-238</a>]
   Add adapter that generates TPC-H data
 * Improve exception message in `AvaticaConnection`; add
@@ -1291,7 +1307,7 @@ Other
   materializations and end-user queries are canonized in terms of star tables.
   Matching (not done yet) will then be a matter of looking for sort, groupBy,
   project. It is not yet possible to define a star in an Optiq model file.
-* Add section to <a href="HOWTO.md">HOWTO</a> on implementing adapters.
+* Add section to <a href="howto.md">HOWTO</a> on implementing adapters.
 * Fix data type conversions when creating a clone table in memory.
 * Fix how strings are escaped in JsonBuilder.
 * Test suite now depends on an embedded hsqldb database, so you can run
@@ -1322,8 +1338,8 @@ Other
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.4.15">0.4.15</a> / 2013-10-14
 
 * Lots of good stuff that this margin is too small to contain. See
-  <a href="REFERENCE.md">SQL language reference</a> and
-  <a href="MODEL.md">JSON model reference</a>.
+  <a href="reference.md">SQL language reference</a> and
+  <a href="model.md">JSON model reference</a>.
 
 # Optiq-csv release history
 

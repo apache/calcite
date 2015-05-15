@@ -200,7 +200,7 @@ limitations under the License.
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>quidem</artifactId>
-        <version>0.3</version>
+        <version>0.4</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
@@ -442,7 +442,7 @@ limitations under the License.
         <plugin>
           <groupId>net.hydromatic</groupId>
           <artifactId>hydromatic-resource-maven-plugin</artifactId>
-          <version>0.4</version>
+          <version>0.5.1</version>
         </plugin>
         <plugin>
           <groupId>net.ju-n.maven.plugins</groupId>
@@ -594,8 +594,6 @@ limitations under the License.
             <artifactId>apache-rat-plugin</artifactId>
             <configuration>
               <excludes>
-                <exclude>*.md</exclude>
-                <exclude>doc/*.md</exclude>
                 <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
                 <exclude>**/src/test/resources/**/*.csv</exclude>
                 <exclude>**/src/test/resources/bug/archers.json</exclude>

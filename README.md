@@ -1,3 +1,19 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 [![Build Status](https://travis-ci.org/julianhyde/incubator-calcite.svg?branch=master)](https://travis-ci.org/julianhyde/incubator-calcite)
 
 # Apache Calcite
@@ -9,9 +25,9 @@ It was formerly called Optiq.
 ## Getting Calcite
 
 To run Apache Calcite, you can either
-[download and build from github](doc/HOWTO.md#building-from-git),
+[download and build from github](doc/howto.md#building-from-git),
 or [download a release](http://www.apache.org/dyn/closer.cgi/incubator/calcite)
-then [build the source code](doc/HOWTO.md#building-from-a-source-distribution).
+then [build the source code](doc/howto.md#building-from-a-source-distribution).
 
 Pre-built jars are in
 [the Apache maven repository](https://repository.apache.org/content/repositories/releases)
@@ -148,10 +164,10 @@ The subproject under example/csv provides a CSV adapter, which is fully function
 but is also simple enough to serve as a good template if you are writing
 your own adapter.
 
-See the <a href="https://github.com/apache/incubator-calcite/blob/master/doc/TUTORIAL.md">csv tutorial</a>
-for information on using csv adapter and writing other adapters.
+See the <a href="https://github.com/apache/incubator-calcite/blob/master/doc/tutorial.md">CSV tutorial</a>
+for information on using the CSV adapter and writing other adapters.
 
-See the <a href="doc/HOWTO.md">HOWTO</a> for more information about using other
+See the <a href="doc/howto.md">HOWTO</a> for more information about using other
 adapters, and about using Calcite in general.
 
 ## Status
@@ -165,7 +181,7 @@ The following features are complete.
 * <a href="https://github.com/julianhyde/linq4j">Linq4j</a> front-end
 * SQL features: SELECT, FROM (including JOIN syntax), WHERE, GROUP BY (and aggregate functions including COUNT(DISTINCT ...)), HAVING, ORDER BY (including NULLS FIRST/LAST), set operations (UNION, INTERSECT, MINUS), sub-queries (including correlated sub-queries), windowed aggregates, LIMIT (syntax as <a href="http://www.postgresql.org/docs/8.4/static/sql-select.html#SQL-LIMIT">Postgres</a>)
 
-For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
+For more details, see the <a href="doc/reference.md">Reference guide</a>.
 
 ### Drivers
 
@@ -194,11 +210,13 @@ For more details, see the <a href="doc/REFERENCE.md">Reference guide</a>.
   (<a href="http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/">archive</a>,
   <a href="mailto:dev-subscribe@calcite.incubator.apache.org">subscribe</a>)
 * Twitter: <a href="https://twitter.com/ApacheCalcite">@ApacheCalcite</a>
-* <a href="doc/HOWTO.md">HOWTO</a>
-* <a href="doc/MODEL.md">JSON model</a>
-* <a href="doc/REFERENCE.md">Reference guide</a>
-* <a href="doc/STREAM.md">Streaming SQL</a>
-* <a href="doc/HISTORY.md">Release notes and history</a>
+* <a href="doc/howto.md">HOWTO</a>
+* <a href="doc/model.md">JSON model</a>
+* <a href="doc/reference.md">Reference guide</a>
+* <a href="doc/lattice.md">Lattices</a>
+* <a href="doc/stream.md">Streaming SQL</a>
+* <a href="doc/avatica.md">Avatica JDBC framework</a>
+* <a href="doc/history.md">Release notes and history</a>
 
 ### Pre-Apache resources
 

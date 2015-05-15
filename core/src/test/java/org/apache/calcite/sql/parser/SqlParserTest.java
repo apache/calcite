@@ -719,6 +719,17 @@ public class SqlParserTest {
     checkExp("ln(power(2,2))", "LN(POWER(2, 2))");
   }
 
+  @Test public void testAggregateFilter() {
+    sql("select sum(sal) filter (where gender = 'F') as femaleSal,\n"
+        + " sum(sal) filter (where true) allSal,\n"
+        + " count(distinct deptno) filter (where (deptno < 40))\n"
+        + "from emp")
+        .ok("SELECT (SUM(`SAL`) FILTER (WHERE (`GENDER` = 'F'))) AS `FEMALESAL`,"
+                + " (SUM(`SAL`) FILTER (WHERE TRUE)) AS `ALLSAL`,"
+                + " (COUNT(DISTINCT `DEPTNO`) FILTER (WHERE (`DEPTNO` < 40)))\n"
+                + "FROM `EMP`");
+  }
+
   @Test public void testGroup() {
     check(
         "select deptno, min(foo) as x from emp group by deptno, gender",

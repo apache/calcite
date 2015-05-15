@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -43,6 +44,7 @@ public class AggregateCall {
   // We considered using ImmutableIntList but we would not save much memory:
   // since all values are small, ImmutableList uses cached Integer values.
   private final ImmutableList<Integer> argList;
+  public final int filterArg;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -55,29 +57,56 @@ public class AggregateCall {
    * @param type        Result type
    * @param name        Name (may be null)
    */
+  @Deprecated // to be removed before 2.0
   public AggregateCall(
       SqlAggFunction aggFunction,
       boolean distinct,
       List<Integer> argList,
       RelDataType type,
       String name) {
-    this.type = type;
-    this.name = name;
-    assert aggFunction != null;
-    assert argList != null;
-    assert type != null;
-    this.aggFunction = aggFunction;
+    this(aggFunction, distinct, argList, -1, type, name);
+  }
 
+  /**
+   * Creates an AggregateCall.
+   *
+   * @param aggFunction Aggregate function
+   * @param distinct    Whether distinct
+   * @param argList     List of ordinals of arguments
+   * @param filterArg   Ordinal of filter argument, or -1
+   * @param type        Result type
+   * @param name        Name (may be null)
+   */
+  private AggregateCall(
+      SqlAggFunction aggFunction,
+      boolean distinct,
+      List<Integer> argList,
+      int filterArg,
+      RelDataType type,
+      String name) {
+    this.type = Preconditions.checkNotNull(type);
+    this.name = name;
+    this.aggFunction = Preconditions.checkNotNull(aggFunction);
     this.argList = ImmutableList.copyOf(argList);
+    this.filterArg = filterArg;
     this.distinct = distinct;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /** Creates an AggregateCall, inferring its type if {@code type} is null. */
+  @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, List<Integer> argList, int groupCount, RelNode input,
       RelDataType type, String name) {
+    return create(aggFunction, distinct, argList, -1, groupCount, input, type,
+        name);
+  }
+
+  /** Creates an AggregateCall, inferring its type if {@code type} is null. */
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, List<Integer> argList, int filterArg, int groupCount,
+      RelNode input, RelDataType type, String name) {
     if (type == null) {
       final RelDataTypeFactory typeFactory =
           input.getCluster().getTypeFactory();
@@ -88,7 +117,15 @@ public class AggregateCall {
               groupCount);
       type = aggFunction.inferReturnType(callBinding);
     }
-    return new AggregateCall(aggFunction, distinct, argList, type, name);
+    return create(aggFunction, distinct, argList, filterArg, type, name);
+  }
+
+  /** Creates an AggregateCall. */
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, List<Integer> argList, int filterArg, RelDataType type,
+      String name) {
+    return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
+        name);
   }
 
   /**
@@ -146,7 +183,8 @@ public class AggregateCall {
    */
   public AggregateCall rename(String name) {
     // no need to copy argList - already immutable
-    return new AggregateCall(aggFunction, distinct, argList, type, name);
+    return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
+        name);
   }
 
   public String toString() {
@@ -164,22 +202,25 @@ public class AggregateCall {
       buf.append(arg);
     }
     buf.append(")");
+    if (filterArg >= 0) {
+      buf.append(" FILTER $");
+      buf.append(filterArg);
+    }
     return buf.toString();
   }
 
-  // override Object
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (!(o instanceof AggregateCall)) {
       return false;
     }
     AggregateCall other = (AggregateCall) o;
     return aggFunction.equals(other.aggFunction)
         && (distinct == other.distinct)
-        && argList.equals(other.argList);
+        && argList.equals(other.argList)
+        && filterArg == other.filterArg;
   }
 
-  // override Object
-  public int hashCode() {
+  @Override public int hashCode() {
     return aggFunction.hashCode() + argList.hashCode();
   }
 
@@ -193,10 +234,9 @@ public class AggregateCall {
     final RelDataType rowType = aggregateRelBase.getInput().getRowType();
 
     return new Aggregate.AggCallBinding(
-        aggregateRelBase.getCluster().getTypeFactory(),
-        (SqlAggFunction) aggFunction,
+        aggregateRelBase.getCluster().getTypeFactory(), aggFunction,
         SqlTypeUtil.projectTypes(rowType, argList),
-        aggregateRelBase.getGroupCount());
+        filterArg >= 0 ? 0 : aggregateRelBase.getGroupCount());
   }
 
   /**
@@ -205,8 +245,14 @@ public class AggregateCall {
    * @param args Arguments
    * @return AggregateCall that suits new inputs and GROUP BY columns
    */
+  public AggregateCall copy(List<Integer> args, int filterArg) {
+    return new AggregateCall(aggFunction, distinct, args, filterArg, type,
+        name);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> args) {
-    return new AggregateCall(aggFunction, distinct, args, type, name);
+    return copy(args, filterArg);
   }
 
   /**
@@ -214,26 +260,31 @@ public class AggregateCall {
    * and/or number of columns in GROUP BY.
    *
    * @param input relation that will be used as a child of aggregate
-   * @param aggArgs argument indices of the new call in the input
+   * @param argList argument indices of the new call in the input
+   * @param filterArg Index of the filter, or -1
    * @param oldGroupKeyCount number of columns in GROUP BY of old aggregate
    * @param newGroupKeyCount number of columns in GROUP BY of new aggregate
    * @return AggregateCall that suits new inputs and GROUP BY columns
    */
-  public AggregateCall adaptTo(RelNode input, List<Integer> aggArgs,
-      int oldGroupKeyCount, int newGroupKeyCount) {
-    final SqlAggFunction sqlAgg = (SqlAggFunction) aggFunction;
+  public AggregateCall adaptTo(RelNode input, List<Integer> argList,
+      int filterArg, int oldGroupKeyCount, int newGroupKeyCount) {
     // The return type of aggregate call need to be recomputed.
     // Since it might depend on the number of columns in GROUP BY.
     final RelDataType newType =
-        oldGroupKeyCount == newGroupKeyCount ? type : null;
-    return create(sqlAgg, distinct, aggArgs, newGroupKeyCount, input, newType,
-        getName());
+        oldGroupKeyCount == newGroupKeyCount
+            && argList.equals(this.argList)
+            && filterArg == this.filterArg
+            ? type
+            : null;
+    return create(aggFunction, distinct, argList, filterArg, newGroupKeyCount,
+        input, newType, getName());
   }
 
   /** Creates a copy of this aggregate call, applying a mapping to its
    * arguments. */
   public AggregateCall transform(Mappings.TargetMapping mapping) {
-    return copy(Mappings.permute(argList, mapping));
+    return copy(Mappings.permute(argList, mapping),
+        Mappings.apply(mapping, filterArg));
   }
 }
 

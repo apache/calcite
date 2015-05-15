@@ -828,6 +828,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             public List<RexNode> rexArguments() {
               return rexArguments.apply(agg);
             }
+
+            public RexNode rexFilterArgument() {
+              return null; // REVIEW
+            }
           };
       agg.implementor.implementAdd(agg.context, addContext);
     }

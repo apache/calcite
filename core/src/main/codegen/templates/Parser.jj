@@ -4101,8 +4101,9 @@ SqlNode NamedFunctionCall() :
     List<SqlNode> args;
     SqlParserPos pos;
     SqlParserPos starPos;
+    SqlParserPos filterPos = null;
+    SqlNode filter = null;
     SqlParserPos overPos = null;
-    boolean over = false;
     SqlCall function = null;
     SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
     SqlNode e = null;
@@ -4138,10 +4139,17 @@ SqlNode NamedFunctionCall() :
                 args.remove(0);
             }
         )
-        [ <OVER>
+        [
+            <FILTER> { filterPos = getPos(); }
+            <LPAREN>
+            <WHERE>
+            filter = Expression(ExprContext.ACCEPT_SUBQUERY)
+            <RPAREN>  { filterPos = filterPos.plus(getPos()); }
+        ]
+        [
+            <OVER>
             {
                 overPos = getPos();
-                over = true;
                 pos = pos.plus(overPos);
             }
             (
@@ -4154,17 +4162,20 @@ SqlNode NamedFunctionCall() :
                 qualifiedName, pos, funcType, quantifier,
                 SqlParserUtil.toNodeArray(args));
 
-            if (over) {
-                if (id != null) {
-                    return SqlStdOperatorTable.OVER.createCall(
-                        overPos, new SqlNode[] {function, id});
-                } else {
-                    return SqlStdOperatorTable.OVER.createCall(
-                        overPos, new SqlNode[] { function, e });
-                }
-            } else {
-                return function;
+            if (filter != null) {
+                function = SqlStdOperatorTable.FILTER.createCall(filterPos,
+                    function, filter);
             }
+            if (overPos != null) {
+                if (id != null) {
+                    function = SqlStdOperatorTable.OVER.createCall(overPos,
+                        function, id);
+                } else {
+                    function = SqlStdOperatorTable.OVER.createCall(overPos,
+                        function, e);
+                }
+            }
+            return function;
         }
     )
 }

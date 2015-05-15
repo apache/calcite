@@ -2409,4 +2409,213 @@ LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggFilter">
+        <Resource name="sql">
+            <![CDATA[select deptno, sum(sal * 2) filter (where empno < 10), count(*) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
+  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[<($0, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSubqueryAggreFunctionFollowedBySimpleOperation">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (select min(deptno) * 2 + 10 from EMP]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[+(*($0, 2), 10)])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSubqueryValues">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (values 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalValues(tuples=[[{ 10 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSubqueryLimitOne">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno > (select deptno
+from EMP order by deptno limit 1)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, $9)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testIdenticalExpressionInSubquery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP
+where deptno in (1, 2) or deptno in (1, 2)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[OR(=($7, 1), =($7, 2), =($7, 1), =($7, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHavingAggrFunctionIn">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from emp
+group by deptno
+having sum(case when deptno in (1, 2) then 0 else 1 end) +
+sum(case when deptno in (3, 4) then 0 else 1 end) > 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[>(+($1, $2), 10)])
+    LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[SUM($2)])
+      LogicalProject(DEPTNO=[$7], $f1=[CASE(OR(=($7, 1), =($7, 2)), 0, 1)], $f2=[CASE(OR(=($7, 3), =($7, 4)), 0, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHavingInSubqueryWithAggrFunction">
+        <Resource name="sql">
+            <![CDATA[select sal
+from emp
+group by sal
+having sal in
+(select deptno
+from dept
+group by deptno
+having sum(deptno) > 0)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject($f0=[$0], $f1=[$0])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($1, 0)])
+          LogicalAggregate(group=[{0}], agg#0=[SUM($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateAndScalarSubQueryInHaving">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from emp
+group by deptno
+having max(emp.empno) > (SELECT min(emp.empno) FROM emp)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[>($1, $2)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalAggregate(group=[{0}], agg#0=[MAX($1)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateAndScalarSubQueryInSelect">
+        <Resource name="sql">
+            <![CDATA[select deptno,
+  max(emp.empno) > (SELECT min(emp.empno) FROM emp) as b
+from emp
+group by deptno
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], B=[>($1, $2)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalAggregate(group=[{0}], agg#0=[MAX($1)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsert">
+        <Resource name="sql">
+            <![CDATA[insert into emp (deptno, empno, ename) values (10, 150, 'Fred')]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+  LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[$0], SLACKER=[null])
+    LogicalValues(tuples=[[{ 10, 150, 'Fred' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelectView">
+        <Resource name="sql">
+            <![CDATA[select * from emp_20 where empno > 100]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$7])
+  LogicalFilter(condition=[>($0, 100)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+      LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertView">
+        <Resource name="sql">
+            <![CDATA[insert into emp_20 (empno, ename) values (150, 'Fred')]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[CAST($2):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], MGR=[$3], HIREDATE=[CAST($4):TIMESTAMP(0) NOT NULL], SAL=[CAST($5):INTEGER NOT NULL], COMM=[CAST($6):INTEGER NOT NULL], DEPTNO=[20], SLACKER=[CAST($7):BOOLEAN NOT NULL])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], SLACKER=[null])
+        LogicalValues(tuples=[[{ 150, 'Fred' }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

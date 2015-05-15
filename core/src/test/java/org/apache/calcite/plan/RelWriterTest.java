@@ -139,11 +139,12 @@ public class RelWriterTest {
                     LogicalAggregate.create(filter, false,
                         ImmutableBitSet.of(0), null,
                         ImmutableList.of(
-                            new AggregateCall(SqlStdOperatorTable.COUNT,
-                                true, ImmutableList.of(1), bigIntType, "c"),
-                            new AggregateCall(SqlStdOperatorTable.COUNT,
-                                false, ImmutableList.<Integer>of(), bigIntType,
-                                "d")));
+                            AggregateCall.create(SqlStdOperatorTable.COUNT,
+                                true, ImmutableList.of(1), -1, bigIntType,
+                                "c"),
+                            AggregateCall.create(SqlStdOperatorTable.COUNT,
+                                false, ImmutableList.<Integer>of(), -1,
+                                bigIntType, "d")));
                 aggregate.explain(writer);
                 return writer.asString();
               }
