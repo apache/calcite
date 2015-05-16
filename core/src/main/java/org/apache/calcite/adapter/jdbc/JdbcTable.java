@@ -19,12 +19,12 @@ package org.apache.calcite.adapter.jdbc;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -108,16 +108,19 @@ class JdbcTable extends AbstractQueryableTable
     return protoRowType.apply(typeFactory);
   }
 
-  private List<Pair<Primitive, Integer>> fieldClasses(
+  private List<Pair<ColumnMetaData.Rep, Integer>> fieldClasses(
       final JavaTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
     return Lists.transform(rowType.getFieldList(),
-        new Function<RelDataTypeField, Pair<Primitive, Integer>>() {
-          public Pair<Primitive, Integer> apply(RelDataTypeField field) {
-            RelDataType type = field.getType();
-            Class clazz = (Class) typeFactory.getJavaClass(type);
-            return Pair.of(Util.first(Primitive.of(clazz), Primitive.OTHER),
-                type.getSqlTypeName().getJdbcOrdinal());
+        new Function<RelDataTypeField, Pair<ColumnMetaData.Rep, Integer>>() {
+          public Pair<ColumnMetaData.Rep, Integer>
+          apply(RelDataTypeField field) {
+            final RelDataType type = field.getType();
+            final Class clazz = (Class) typeFactory.getJavaClass(type);
+            final ColumnMetaData.Rep rep =
+                Util.first(ColumnMetaData.Rep.of(clazz),
+                    ColumnMetaData.Rep.OBJECT);
+            return Pair.of(rep, type.getSqlTypeName().getJdbcOrdinal());
           }
         });
   }

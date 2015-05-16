@@ -656,8 +656,8 @@ public class JdbcTest {
   /** Table macro that takes a MAP as a parameter.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-588">CALCITE-588</a>,
-   * "Allow TableMacro to consume Maps and Collections". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-588">[CALCITE-588]
+   * Allow TableMacro to consume Maps and Collections</a>. */
   @Test public void testTableMacroMap()
       throws SQLException, ClassNotFoundException {
     Connection connection =
@@ -1686,8 +1686,8 @@ public class JdbcTest {
   /** Tests 3-way AND.
    *
    * <p>With
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-127">[CALCITE-127],
-   * "EnumerableCalcRel can't support 3+ AND conditions"</a>, the last condition
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-127">[CALCITE-127]
+   * EnumerableCalcRel can't support 3+ AND conditions</a>, the last condition
    * is ignored and rows with deptno=10 are wrongly returned.</p>
    */
   @Test public void testAnd3() {
@@ -1723,8 +1723,8 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">CALCITE-281</a>,
-   * "SQL type of EXTRACT is BIGINT but it is implemented as int". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-281]
+   * SQL type of EXTRACT is BIGINT but it is implemented as int</a>. */
   @Test public void testExtract() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
@@ -1757,8 +1757,8 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-387">CALCITE-387</a>,
-   * "CompileException when cast TRUE to nullable boolean". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-387">[CALCITE-387]
+   * CompileException when cast TRUE to nullable boolean</a>. */
   @Test public void testTrue() {
     final CalciteAssert.AssertThat that = CalciteAssert.that();
     that.query("select case when deptno = 10 then null else true end as x\n"
@@ -1800,8 +1800,8 @@ public class JdbcTest {
   /** A join that has both equi and non-equi conditions.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-371">CALCITE-371</a>,
-   * "Cannot implement JOIN whose ON clause contains mixed equi and theta". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-371">[CALCITE-371]
+   * Cannot implement JOIN whose ON clause contains mixed equi and theta</a>. */
   @Test public void testEquiThetaJoin() {
     CalciteAssert.hr()
         .query("select e.\"empid\", d.\"name\", e.\"name\"\n"
@@ -1835,8 +1835,8 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-35">CALCITE-35</a>,
-   * "Support parenthesized sub-clause in JOIN". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-35">[CALCITE-35]
+   * Support parenthesized sub-clause in JOIN</a>. */
   @Ignore
   @Test public void testJoinJoin() {
     CalciteAssert.that()
@@ -2255,8 +2255,8 @@ public class JdbcTest {
    * plan.
    *
    * <p>Test case for (not yet fixed)
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-92">CALCITE-92</a>,
-   * "Project should be optimized away, not converted to EnumerableCalcRel".</p>
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-92">[CALCITE-92]
+   * Project should be optimized away, not converted to EnumerableCalcRel</a>.
    */
   @Ignore
   @Test public void testNoCalcBetweenJoins() throws IOException {
@@ -2368,8 +2368,8 @@ public class JdbcTest {
   }
 
   /** Test case for (not yet fixed)
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-99">CALCITE-99</a>,
-   * "Recognize semi-join that has high selectivity and push it down". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-99">[CALCITE-99]
+   * Recognize semi-join that has high selectivity and push it down</a>. */
   @Ignore
   @Test public void testExplainJoin4() throws IOException {
     withFoodMartQuery(5217)
@@ -2926,7 +2926,8 @@ public class JdbcTest {
   }
 
   /** Tests sorting by an expression not in the '*' select clause. Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-176">CALCITE-176</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-176">[CALCITE-176]
+   * ORDER BY expression doesn't work with SELECT *</a>. */
   @Test public void testOrderStarByExpr() {
     CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
@@ -3084,9 +3085,9 @@ public class JdbcTest {
   }
 
   /** Limit implemented using {@link Queryable#take}. Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-96">CALCITE-96</a>,
-   * "LIMIT against a table in a clone schema causes
-   * UnsupportedOperationException". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-96">[CALCITE-96]
+   * LIMIT against a table in a clone schema causes
+   * UnsupportedOperationException</a>. */
   @Test public void testLimitOnQueryableTable() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -3097,8 +3098,8 @@ public class JdbcTest {
   }
 
   /** Limit implemented using {@link Queryable#take}. Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-70">CALCITE-70</a>,
-   * "Joins seem to be very expensive in memory". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-70">[CALCITE-70]
+   * Joins seem to be very expensive in memory</a>. */
   @Test public void testSelfJoinCount() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
@@ -3228,9 +3229,9 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-403">CALCITE-403</a>,
-   * "Enumerable gives NullPointerException with NOT on nullable
-   * expression". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-403">[CALCITE-403]
+   * Enumerable gives NullPointerException with NOT on nullable
+   * expression</a>. */
   @Test public void testHavingNot() throws IOException {
     withFoodMartQuery(6597).runs();
   }
@@ -4088,8 +4089,8 @@ public class JdbcTest {
   /** Tests windowed aggregation with no ORDER BY clause.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-285">CALCITE-285</a>,
-   * "Window functions throw exception without ORDER BY".
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-285">[CALCITE-285]
+   * Window functions throw exception without ORDER BY</a>.
    *
    * <p>Note:</p>
    *
@@ -4376,8 +4377,8 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-313">CALCITE-313</a>,
-   * "Query decorrelation fails". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-313">[CALCITE-313]
+   * Query decorrelation fails</a>. */
   @Test public void testJoinInCorrelatedSubquery() {
     CalciteAssert.hr()
         .query("select *\n"
@@ -4806,8 +4807,8 @@ public class JdbcTest {
    * allow Jackson's comments extension.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-160">CALCITE-160</a>,
-   * "Allow comments in schema definitions".</p> */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-160">[CALCITE-160]
+   * Allow comments in schema definitions</a>. */
   @Test public void testModelWithComment() {
     final String model =
         FOODMART_MODEL.replace("schemas:", "/* comment */ schemas:");
@@ -5146,8 +5147,9 @@ public class JdbcTest {
               public Object apply(CalciteConnection a0) {
                 try {
                   a0.createStatement()
-                      .executeQuery("select * from \"hr\".\"emps\" "
-                          + "where \"deptno\" = 10");
+                      .executeQuery(
+                          "select * from \"hr\".\"emps\" "
+                              + "where \"deptno\" = 10");
                   assertEquals(1, objects.size());
                   return null;
                 } catch (SQLException e) {
@@ -6051,8 +6053,8 @@ public class JdbcTest {
   /** Tests case-insensitive resolution of sub-query columns.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-555">[CALCITE-555],
-   * "Case-insensitive matching of sub-query columns fails"</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-555">[CALCITE-555]
+   * Case-insensitive matching of sub-query columns fails</a>. */
   @Test public void testLexCaseInsensitiveSubQueryField() {
     CalciteAssert.that()
         .with(Lex.MYSQL)
@@ -6372,6 +6374,45 @@ public class JdbcTest {
     rs.close();
     calciteConnection.close();
 
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-730">[CALCITE-730]
+   * ClassCastException in table from CloneSchema</a>. */
+  @Test public void testNullableNumericColumnInCloneSchema() {
+    CalciteAssert.model("{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'SCOTT_CLONE',\n"
+            + "  schemas: [ {\n"
+            + "    name: 'SCOTT_CLONE',\n"
+            + "    type: 'custom',\n"
+            + "    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',\n"
+            + "    operand: {\n"
+            + "      jdbcDriver: '" + JdbcTest.SCOTT.driver + "',\n"
+            + "      jdbcUser: '" + JdbcTest.SCOTT.username + "',\n"
+            + "      jdbcPassword: '" + JdbcTest.SCOTT.password + "',\n"
+            + "      jdbcUrl: '" + JdbcTest.SCOTT.url + "',\n"
+            + "      jdbcSchema: 'SCOTT'\n"
+            + "   } } ]\n"
+            + "}")
+        .query("select * from emp")
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet input) {
+                final StringBuilder buf = new StringBuilder();
+                try {
+                  final int columnCount = input.getMetaData().getColumnCount();
+                  while (input.next()) {
+                    for (int i = 0; i < columnCount; i++) {
+                      buf.append(input.getObject(i + 1));
+                    }
+                  }
+                  return null;
+                } catch (SQLException e) {
+                  throw Throwables.propagate(e);
+                }
+              }
+            });
   }
 
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".

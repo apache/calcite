@@ -25,7 +25,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.lang.reflect.Type;
 import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -220,6 +222,55 @@ public class ColumnMetaData {
       //noinspection SuspiciousMethodCalls
       final Rep rep = VALUE_MAP.get(clazz);
       return rep != null ? rep : OBJECT;
+    }
+
+    /** Returns the value of a column of this type from a result set. */
+    public Object jdbcGet(ResultSet resultSet, int i) throws SQLException {
+      switch (this) {
+      case PRIMITIVE_BOOLEAN:
+        return resultSet.getBoolean(i);
+      case PRIMITIVE_BYTE:
+        return resultSet.getByte(i);
+      case PRIMITIVE_SHORT:
+        return resultSet.getShort(i);
+      case PRIMITIVE_INT:
+        return resultSet.getInt(i);
+      case PRIMITIVE_LONG:
+        return resultSet.getLong(i);
+      case PRIMITIVE_FLOAT:
+        return resultSet.getFloat(i);
+      case PRIMITIVE_DOUBLE:
+        return resultSet.getDouble(i);
+      case BOOLEAN:
+        final boolean aBoolean = resultSet.getBoolean(i);
+        return resultSet.wasNull() ? null : aBoolean;
+      case BYTE:
+        final byte aByte = resultSet.getByte(i);
+        return resultSet.wasNull() ? null : aByte;
+      case SHORT:
+        final short aShort = resultSet.getShort(i);
+        return resultSet.wasNull() ? null : aShort;
+      case INTEGER:
+        final int anInt = resultSet.getInt(i);
+        return resultSet.wasNull() ? null : anInt;
+      case LONG:
+        final long aLong = resultSet.getLong(i);
+        return resultSet.wasNull() ? null : aLong;
+      case FLOAT:
+        final float aFloat = resultSet.getFloat(i);
+        return resultSet.wasNull() ? null : aFloat;
+      case DOUBLE:
+        final double aDouble = resultSet.getDouble(i);
+        return resultSet.wasNull() ? null : aDouble;
+      case JAVA_SQL_DATE:
+        return resultSet.getDate(i);
+      case JAVA_SQL_TIME:
+        return resultSet.getTime(i);
+      case JAVA_SQL_TIMESTAMP:
+        return resultSet.getTimestamp(i);
+      default:
+        return resultSet.getObject(i);
+      }
     }
   }
 

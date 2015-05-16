@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.IntList;
@@ -110,26 +110,26 @@ final class JdbcUtils {
   public static class ObjectArrayRowBuilder implements Function0<Object[]> {
     private final ResultSet resultSet;
     private final int columnCount;
-    private final Primitive[] primitives;
+    private final ColumnMetaData.Rep[] reps;
     private final int[] types;
 
-    public ObjectArrayRowBuilder(
-        ResultSet resultSet, Primitive[] primitives, int[] types)
+    public ObjectArrayRowBuilder(ResultSet resultSet, ColumnMetaData.Rep[] reps,
+        int[] types)
         throws SQLException {
       this.resultSet = resultSet;
-      this.primitives = primitives;
+      this.reps = reps;
       this.types = types;
       this.columnCount = resultSet.getMetaData().getColumnCount();
     }
 
     public static Function1<ResultSet, Function0<Object[]>> factory(
-        final List<Pair<Primitive, Integer>> list) {
+        final List<Pair<ColumnMetaData.Rep, Integer>> list) {
       return new Function1<ResultSet, Function0<Object[]>>() {
         public Function0<Object[]> apply(ResultSet resultSet) {
           try {
             return new ObjectArrayRowBuilder(
                 resultSet,
-                Pair.left(list).toArray(new Primitive[list.size()]),
+                Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
                 IntList.toArray(Pair.right(list)));
           } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -167,7 +167,7 @@ final class JdbcUtils {
       case Types.DATE:
         return shift(resultSet.getDate(i + 1));
       }
-      return primitives[i].jdbcGet(resultSet, i + 1);
+      return reps[i].jdbcGet(resultSet, i + 1);
     }
 
     private static Timestamp shift(Timestamp v) {
