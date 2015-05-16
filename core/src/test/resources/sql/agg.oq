@@ -675,4 +675,20 @@ group by deptno;
 
 !ok
 
+# Multiple distinct count
+select deptno,
+ count(distinct job) as j, count(distinct mgr) as m
+from "scott".emp
+group by deptno;
++--------+---+---+
+| DEPTNO | J | M |
++--------+---+---+
+|     10 | 3 | 2 |
+|     20 | 3 | 4 |
+|     30 | 3 | 2 |
++--------+---+---+
+(3 rows)
+
+!ok
+
 # End agg.oq

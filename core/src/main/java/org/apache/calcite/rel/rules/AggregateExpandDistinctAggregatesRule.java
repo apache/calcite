@@ -328,10 +328,23 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       aggCallList.add(newAggCall);
     }
 
+    final Map<Integer, Integer> map = new HashMap<>();
+    for (Integer key : aggregate.getGroupSet()) {
+      map.put(key, map.size());
+    }
+    final ImmutableBitSet newGroupSet = aggregate.getGroupSet().permute(map);
+    assert newGroupSet
+        .equals(ImmutableBitSet.range(aggregate.getGroupSet().cardinality()));
+    ImmutableList<ImmutableBitSet> newGroupingSets = null;
+    if (aggregate.indicator) {
+      newGroupingSets =
+          ImmutableBitSet.ORDERING.immutableSortedCopy(
+              ImmutableBitSet.permute(aggregate.getGroupSets(), map));
+    }
+
     Aggregate distinctAgg =
         aggregate.copy(aggregate.getTraitSet(), distinct, aggregate.indicator,
-            ImmutableBitSet.range(aggregate.getGroupSet().cardinality()),
-            aggregate.getGroupSets(), aggCallList);
+            newGroupSet, newGroupingSets, aggCallList);
 
     // If there's no left child yet, no need to create the join
     if (left == null) {
