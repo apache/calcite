@@ -4607,6 +4607,11 @@ public class JdbcTest {
                   .with(CalciteAssert.Config.SCOTT)
                   .connect();
             }
+            if (name.equals("jdbc_scott")) {
+              return CalciteAssert.that()
+                  .with(CalciteAssert.Config.JDBC_SCOTT)
+                  .connect();
+            }
             if (name.equals("post")) {
               return CalciteAssert.that()
                   .with(CalciteAssert.Config.REGULAR)

@@ -639,8 +639,8 @@ public class CalciteAssert {
       cs = DatabaseInstance.HSQLDB.scott;
       dataSource = JdbcSchema.dataSource(cs.url, cs.driver, cs.username,
           cs.password);
-      return rootSchema.add("jdbc_scott",
-          JdbcSchema.create(rootSchema, "jdbc_scott", dataSource, null, null));
+      return rootSchema.add("JDBC_SCOTT",
+          JdbcSchema.create(rootSchema, "JDBC_SCOTT", dataSource, null, null));
     case JDBC_FOODMART:
       cs = DB.foodmart;
       dataSource =
@@ -784,6 +784,8 @@ public class CalciteAssert {
         return with(SchemaSpec.CLONE_FOODMART);
       case JDBC_FOODMART_WITH_LATTICE:
         return with(SchemaSpec.JDBC_FOODMART_WITH_LATTICE);
+      case JDBC_SCOTT:
+        return with(SchemaSpec.JDBC_SCOTT);
       case SCOTT:
         return with(SchemaSpec.SCOTT);
       default:
@@ -1405,6 +1407,12 @@ public class CalciteAssert {
      * {@link org.apache.calcite.linq4j.Enumerable#where(org.apache.calcite.linq4j.function.Predicate1)}.
      */
     JDBC_FOODMART,
+
+    /**
+     * Configuration that creates a connection to hsqldb containing the
+     * Scott schema via the JDBC adapter.
+     */
+    JDBC_SCOTT,
 
     /** Configuration that contains an in-memory clone of the FoodMart
      * database. */

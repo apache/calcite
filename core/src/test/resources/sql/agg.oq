@@ -691,4 +691,31 @@ group by deptno;
 
 !ok
 
+# [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
+!use jdbc_scott
+select deptno, job, count(*) as c
+from jdbc_scott.emp
+group by rollup (deptno, job)
+order by 1, 2;
++--------+-----------+----+
+| DEPTNO | JOB       | C  |
++--------+-----------+----+
+|     10 | CLERK     |  1 |
+|     10 | MANAGER   |  1 |
+|     10 | PRESIDENT |  1 |
+|     10 |           |  3 |
+|     20 | ANALYST   |  2 |
+|     20 | CLERK     |  2 |
+|     20 | MANAGER   |  1 |
+|     20 |           |  5 |
+|     30 | CLERK     |  1 |
+|     30 | MANAGER   |  1 |
+|     30 | SALESMAN  |  4 |
+|     30 |           |  6 |
+|        |           | 14 |
++--------+-----------+----+
+(13 rows)
+
+!ok
+
 # End agg.oq

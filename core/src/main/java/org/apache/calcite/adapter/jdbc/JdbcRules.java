@@ -199,7 +199,7 @@ public class JdbcRules {
 
     @Override public RelNode convert(RelNode rel) {
       LogicalJoin join = (LogicalJoin) rel;
-      List<RelNode> newInputs = new ArrayList<RelNode>();
+      final List<RelNode> newInputs = new ArrayList<>();
       for (RelNode input : join.getInputs()) {
         if (!(input.getConvention() == getOutTrait())) {
           input =
@@ -509,7 +509,7 @@ public class JdbcRules {
                   JdbcImplementor.Clause.WHERE)
               : x.builder(this, JdbcImplementor.Clause.FROM);
       if (!isStar(program)) {
-        final List<SqlNode> selectList = new ArrayList<SqlNode>();
+        final List<SqlNode> selectList = new ArrayList<>();
         for (RexLocalRef ref : program.getProjectList()) {
           SqlNode sqlExpr = builder.context.toSql(program, ref);
           addSelect(selectList, sqlExpr, getRowType());
@@ -586,7 +586,7 @@ public class JdbcRules {
       }
       final JdbcImplementor.Builder builder =
           x.builder(this, JdbcImplementor.Clause.SELECT);
-      final List<SqlNode> selectList = new ArrayList<SqlNode>();
+      final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : exps) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
         addSelect(selectList, sqlExpr, getRowType());
@@ -654,6 +654,11 @@ public class JdbcRules {
 
     public RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
+      if (agg.getGroupSets().size() != 1) {
+        // GROUPING SETS not supported; see
+        // [CALCITE-734] Push GROUPING SETS to underlying SQL via JDBC adapter
+        return null;
+      }
       final RelTraitSet traitSet =
           agg.getTraitSet().replace(out);
       try {
@@ -680,6 +685,8 @@ public class JdbcRules {
         throws InvalidRelException {
       super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
+      assert this.groupSets.size() == 1 : "Grouping sets not supported";
+      assert !this.indicator;
       for (AggregateCall aggCall : aggCalls) {
         if (!canImplement(aggCall.getAggregation())) {
           throw new InvalidRelException("cannot implement aggregate function "
@@ -717,7 +724,7 @@ public class JdbcRules {
       final JdbcImplementor.Builder builder =
           x.builder(this, JdbcImplementor.Clause.GROUP_BY);
       List<SqlNode> groupByList = Expressions.list();
-      final List<SqlNode> selectList = new ArrayList<SqlNode>();
+      final List<SqlNode> selectList = new ArrayList<>();
       for (int group : groupSet) {
         final SqlNode field = builder.context.field(group);
         addSelect(selectList, field, getRowType());
@@ -1047,9 +1054,9 @@ public class JdbcRules {
       final JdbcImplementor.Context context =
           implementor.new AliasContext(
               Collections.<Pair<String, RelDataType>>emptyList(), false);
-      final List<SqlSelect> selects = new ArrayList<SqlSelect>();
+      final List<SqlSelect> selects = new ArrayList<>();
       for (List<RexLiteral> tuple : tuples) {
-        final List<SqlNode> selectList = new ArrayList<SqlNode>();
+        final List<SqlNode> selectList = new ArrayList<>();
         for (Pair<RexLiteral, String> literal : Pair.zip(tuple, fields)) {
           selectList.add(
               SqlStdOperatorTable.AS.createCall(
