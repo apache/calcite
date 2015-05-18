@@ -332,14 +332,24 @@ public class JdbcAdapterTest {
     calciteConnection.close();
   }
 
-  @Test(expected = RuntimeException.class)
-  public void testSubQueryWithSingleValue() {
-    String sql = "SELECT \"full_name\" FROM \"employee\" WHERE "
-        + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")";
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL).query(sql)
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-259">[CALCITE-259]
+   * Using sub-queries in CASE statement against JDBC tables generates invalid
+   * Oracle SQL</a>. */
+  @Test public void testSubQueryWithSingleValue() {
+    final String expected;
+    switch (CalciteAssert.DB) {
+    case MYSQL:
+      expected = "Subquery returns more than 1 row";
+      break;
+    default:
+      expected = "more than one value in agg SINGLE_VALUE";
+    }
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        .query("SELECT \"full_name\" FROM \"employee\" WHERE "
+                + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")")
         .explainContains("SINGLE_VALUE")
-        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL)
-        .runs();
+        .throws_(expected);
   }
 }
 
