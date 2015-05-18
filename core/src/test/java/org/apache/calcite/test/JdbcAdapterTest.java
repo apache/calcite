@@ -331,6 +331,16 @@ public class JdbcAdapterTest {
     rs.close();
     calciteConnection.close();
   }
+
+  @Test(expected = RuntimeException.class)
+  public void testSubQueryWithSingleValue() {
+    String sql = "SELECT \"full_name\" FROM \"employee\" WHERE "
+        + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")";
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL).query(sql)
+        .explainContains("SINGLE_VALUE")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL)
+        .runs();
+  }
 }
 
 // End JdbcAdapterTest.java

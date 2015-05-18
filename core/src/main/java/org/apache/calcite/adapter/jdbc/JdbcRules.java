@@ -71,6 +71,7 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -84,6 +85,8 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
@@ -684,11 +687,14 @@ public class JdbcRules {
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
       super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
+      Convention convention = getConvention();
+      assert convention instanceof JdbcConvention;
       assert getConvention() instanceof JdbcConvention;
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
       assert !this.indicator;
       for (AggregateCall aggCall : aggCalls) {
-        if (!canImplement(aggCall.getAggregation())) {
+        if (!canImplement(aggCall.getAggregation(),
+            ((JdbcConvention) convention).dialect)) {
           throw new InvalidRelException("cannot implement aggregate function "
               + aggCall.getAggregation());
         }
@@ -697,12 +703,23 @@ public class JdbcRules {
 
     /** Returns whether this JDBC data source can implement a given aggregate
      * function. */
-    private boolean canImplement(SqlAggFunction aggregation) {
-      return Arrays.asList(SqlStdOperatorTable.COUNT,
-          SqlStdOperatorTable.SUM,
-          SqlStdOperatorTable.SUM0,
-          SqlStdOperatorTable.MIN,
-          SqlStdOperatorTable.MAX).contains(aggregation);
+    private boolean canImplement(SqlAggFunction aggregation,
+        SqlDialect sqlDialect) {
+      List<SqlAggFunction> stdAggFuncs = new ArrayList<SqlAggFunction>();
+      stdAggFuncs.add(SqlStdOperatorTable.COUNT);
+      stdAggFuncs.add(SqlStdOperatorTable.SUM);
+      stdAggFuncs.add(SqlStdOperatorTable.SUM0);
+      stdAggFuncs.add(SqlStdOperatorTable.MIN);
+      stdAggFuncs.add(SqlStdOperatorTable.MAX);
+
+      switch(sqlDialect.getDatabaseProduct()) {
+      case MYSQL:
+        stdAggFuncs.add(SqlStdOperatorTable.SINGLE_VALUE);
+        break;
+      default:
+        break;
+      }
+      return stdAggFuncs.contains(aggregation);
     }
 
     @Override public JdbcAggregate copy(RelTraitSet traitSet, RelNode input,
@@ -731,7 +748,13 @@ public class JdbcRules {
         groupByList.add(field);
       }
       for (AggregateCall aggCall : aggCalls) {
-        addSelect(selectList, builder.context.toSql(aggCall), getRowType());
+        SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
+        if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
+          aggCallSqlNode =
+              rewriteSingleValueExpr(aggCallSqlNode,
+                  builder.result().node, implementor.dialect);
+        }
+        addSelect(selectList, aggCallSqlNode, getRowType());
       }
       builder.setSelect(new SqlNodeList(selectList, POS));
       if (!groupByList.isEmpty() || aggCalls.isEmpty()) {
@@ -740,6 +763,66 @@ public class JdbcRules {
         builder.setGroupBy(new SqlNodeList(groupByList, POS));
       }
       return builder.result();
+    }
+
+    /** Rewrite SINGLE_VALUE into expression based on database variants
+     *  E.g. HSQLDB, MYSQL, ORACLE, etc
+     */
+    private SqlNode rewriteSingleValueExpr(SqlNode aggCall,
+        SqlNode resultNode, SqlDialect sqlDialect) {
+
+      SqlNode aggregatee = ((SqlBasicCall) aggCall).operand(0);
+      SqlNode caseOperand = null;
+      SqlNode elseExpr = null;
+      SqlNode countAggregatee = SqlStdOperatorTable
+          .COUNT.createCall(POS, Arrays.asList(aggregatee));
+      SqlNode asterisk = new SqlIdentifier(Arrays.asList("*"), POS);
+      SqlNode derivedTable = null;
+
+      switch(sqlDialect.getDatabaseProduct()) {
+      case MYSQL:
+        caseOperand = countAggregatee;
+
+        SqlNode nullValue = SqlLiteral.createNull(POS);
+        SqlSelect selectNull = new SqlSelect(
+            POS, SqlNodeList.EMPTY,
+            new SqlNodeList(Arrays.asList(nullValue), POS), null, null,
+            null, null, SqlNodeList.EMPTY, null, null, null);
+
+        SqlCall unionAll = SqlStdOperatorTable.UNION_ALL
+            .createCall(POS, selectNull, selectNull);
+
+        SqlIdentifier derivedTableAlias = new SqlIdentifier("tbl", POS);
+        derivedTable =
+            SqlStdOperatorTable.AS.createCall(POS, Arrays.asList(
+                new SqlNodeList(Arrays.asList(unionAll), POS),
+                derivedTableAlias));
+
+        elseExpr = new SqlSelect(
+            POS, SqlNodeList.EMPTY,
+            new SqlNodeList(Arrays.asList(asterisk), POS), derivedTable, null,
+            null, null, SqlNodeList.EMPTY, null, null, null);
+        break;
+      default:
+        LOGGER.fine("SINGLE_VALUE rewrite not supported for "
+            + sqlDialect.getDatabaseProduct());
+        return aggCall;
+      }
+
+      SqlNodeList whenList = new SqlNodeList(Arrays.asList(
+          SqlLiteral.createExactNumeric("0", POS),
+          SqlLiteral.createExactNumeric("1", POS)), POS);
+
+      SqlNodeList thenList = new SqlNodeList(Arrays.asList(
+          SqlLiteral.createNull(POS),
+          aggregatee), POS);
+
+      SqlNode caseExpr =
+          new SqlCase(POS, caseOperand, whenList, thenList, elseExpr);
+
+      LOGGER.fine("SINGLE_VALUE rewritten into [" + caseExpr + "]");
+
+      return caseExpr;
     }
   }
 
