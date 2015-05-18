@@ -555,6 +555,41 @@ from emp group by cube(deptno, gender);
 
 !use scott
 
+# [KYLIN-751] Max on negative double values is not working
+# [CALCITE-735] Primitive.DOUBLE.min should be large and negative
+select max(v) as x, min(v) as n
+from (values cast(-86.4 as double), cast(-100 as double)) as t(v);
++-------+--------+
+| X     | N      |
++-------+--------+
+| -86.4 | -100.0 |
++-------+--------+
+(1 row)
+
+!ok
+
+select max(v) as x, min(v) as n
+from (values cast(-86.4 as double), cast(-100 as double), cast(2 as double)) as t(v);
++-----+--------+
+| X   | N      |
++-----+--------+
+| 2.0 | -100.0 |
++-----+--------+
+(1 row)
+
+!ok
+
+select max(v) as x, min(v) as n
+from (values cast(-86.4 as float), cast(-100 as float)) as t(v);
++-------+--------+
+| X     | N      |
++-------+--------+
+| -86.4 | -100.0 |
++-------+--------+
+(1 row)
+
+!ok
+
 # Aggregate FILTER
 select deptno,
   sum(sal) filter (where job = 'CLERK') c_sal,

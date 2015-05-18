@@ -36,18 +36,23 @@ import java.util.Map;
  * (e.g. {@link Integer}).</p>
  */
 public enum Primitive {
-  BOOLEAN(Boolean.TYPE, Boolean.class, 1, false, false, true),
-  BYTE(Byte.TYPE, Byte.class, 2, (byte) 0, Byte.MIN_VALUE, Byte.MAX_VALUE),
+  BOOLEAN(Boolean.TYPE, Boolean.class, 1, false, false, null, null, true, -1),
+  BYTE(Byte.TYPE, Byte.class, 2, (byte) 0, Byte.MIN_VALUE, null, null,
+      Byte.MAX_VALUE, Byte.SIZE),
   CHAR(Character.TYPE, Character.class, 2, (char) 0, Character.MIN_VALUE,
-      Character.MAX_VALUE),
-  SHORT(Short.TYPE, Short.class, 2, (short) 0, Short.MIN_VALUE,
-      Short.MAX_VALUE),
-  INT(Integer.TYPE, Integer.class, 2, 0, Integer.MIN_VALUE, Integer.MAX_VALUE),
-  LONG(Long.TYPE, Long.class, 2, 0L, Long.MIN_VALUE, Long.MAX_VALUE),
-  FLOAT(Float.TYPE, Float.class, 3, 0F, Float.MIN_VALUE, Float.MAX_VALUE),
-  DOUBLE(Double.TYPE, Double.class, 3, 0D, Double.MIN_VALUE, Double.MAX_VALUE),
-  VOID(Void.TYPE, Void.class, 4, null, null, null),
-  OTHER(null, null, 5, null, null, null);
+      null, null, Character.MAX_VALUE, Character.SIZE),
+  SHORT(Short.TYPE, Short.class, 2, (short) 0, Short.MIN_VALUE, null, null,
+      Short.MAX_VALUE, Short.SIZE),
+  INT(Integer.TYPE, Integer.class, 2, 0, Integer.MIN_VALUE, null, null,
+      Integer.MAX_VALUE, Integer.SIZE),
+  LONG(Long.TYPE, Long.class, 2, 0L, Long.MIN_VALUE, null, null,
+      Long.MAX_VALUE, Long.SIZE),
+  FLOAT(Float.TYPE, Float.class, 3, 0F, -Float.MAX_VALUE, -Float.MIN_VALUE,
+      Float.MIN_VALUE, Float.MAX_VALUE, Float.SIZE),
+  DOUBLE(Double.TYPE, Double.class, 3, 0D, -Double.MAX_VALUE, -Double.MIN_VALUE,
+      Double.MIN_VALUE, Double.MAX_VALUE, Double.SIZE),
+  VOID(Void.TYPE, Void.class, 4, null, null, null, null, null, -1),
+  OTHER(null, null, 5, null, null, null, null, null, -1);
 
   public final Class primitiveClass;
   public final Class boxClass;
@@ -62,13 +67,23 @@ public enum Primitive {
   /** The minimum value of this primitive class. */
   public final Object min;
 
+  /** The largest value that is less than zero. Null if not applicable for this
+   * type. */
+  public final Object maxNegative;
+
+  /** The smallest value that is greater than zero. Null if not applicable for
+   * this type. */
+  public final Object minPositive;
+
   /** The maximum value of this primitive class. */
   public final Object max;
 
-  private static final Map<Class, Primitive> PRIMITIVE_MAP =
-      new HashMap<Class, Primitive>();
-  private static final Map<Class, Primitive> BOX_MAP =
-      new HashMap<Class, Primitive>();
+  /** The size of a value of this type, in bits. Null if not applicable for this
+   * type. */
+  public final int size;
+
+  private static final Map<Class, Primitive> PRIMITIVE_MAP = new HashMap<>();
+  private static final Map<Class, Primitive> BOX_MAP = new HashMap<>();
 
   static {
     Primitive[] values = Primitive.values();
@@ -83,7 +98,8 @@ public enum Primitive {
   }
 
   Primitive(Class primitiveClass, Class boxClass, int family,
-      Object defaultValue, Object min, Object max) {
+      Object defaultValue, Object min, Object maxNegative, Object minPositive,
+      Object max, int size) {
     this.primitiveClass = primitiveClass;
     this.family = family;
     this.primitiveName =
@@ -91,7 +107,10 @@ public enum Primitive {
     this.boxClass = boxClass;
     this.defaultValue = defaultValue;
     this.min = min;
+    this.maxNegative = maxNegative;
+    this.minPositive = minPositive;
     this.max = max;
+    this.size = size;
   }
 
   /**
