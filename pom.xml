@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.3.0-incubating</version>
+  <version>1.4.0-incubating-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -61,7 +61,7 @@ limitations under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</developerConnection>
     <url>https://github.com/apache/incubator-calcite</url>
-    <tag>calcite-1.3.0-incubating</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <modules>
@@ -88,34 +88,34 @@ limitations under the License.
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica</artifactId>
-        <version>1.3.0-incubating</version>
+        <version>1.4.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica</artifactId>
-        <version>1.3.0-incubating</version>
+        <version>1.4.0-incubating-SNAPSHOT</version>
         <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica-server</artifactId>
-        <version>1.3.0-incubating</version>
+        <version>1.4.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
-        <version>1.3.0-incubating</version>
+        <version>1.4.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
         <type>test-jar</type>
-        <version>1.3.0-incubating</version>
+        <version>1.4.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-linq4j</artifactId>
-        <version>1.3.0-incubating</version>
+        <version>1.4.0-incubating-SNAPSHOT</version>
       </dependency>
 
       <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
