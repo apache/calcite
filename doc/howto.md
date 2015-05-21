@@ -29,8 +29,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 ```bash
-$ tar xvfz calcite-1.2.0-incubating-source.tar.gz
-$ cd calcite-1.2.0-incubating
+$ tar xvfz calcite-1.3.0-incubating-source.tar.gz
+$ cd calcite-1.3.0-incubating
 $ mvn install
 ```
 
@@ -417,6 +417,7 @@ Create a release branch named after the release, e.g. `branch-1.1`, and push it 
 ```bash
 $ git checkout -b branch-X.Y
 $ git push -u origin branch-X.Y
+```
 
 We will use the branch for the entire the release process. Meanwhile,
 we do not allow commits to the master branch. After the release is

@@ -19,6 +19,118 @@ limitations under the License.
 For a full list of releases, see
 <a href="https://github.com/apache/incubator-calcite/releases">github</a>.
 
+## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.3.0-incubating">1.3.0-incubating</a> / 2015-05-21
+
+Mainly bug-fixes, but this release adds support for
+<a href="https://issues.apache.org/jira/browse/CALCITE-505">modifiable views</a>
+and
+<a href="https://issues.apache.org/jira/browse/CALCITE-704">filtered aggregate functions</a>
+and various improvements to Avatica.
+
+New features
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-505">CALCITE-505</a>]
+  Support modifiable view
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-704">CALCITE-704</a>]
+  `FILTER` clause for aggregate functions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-522">CALCITE-522</a>]
+  In remote JDBC driver, transmit static database properties as a map
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-661">CALCITE-661</a>]
+  Remote fetch in Calcite JDBC driver
+* Support Date, Time, Timestamp parameters
+
+API changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-722">CALCITE-722</a>]
+  Rename markdown files to lower-case
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-697">CALCITE-697</a>]
+  Obsolete class `RelOptQuery`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-693">CALCITE-693</a>]
+  Allow clients to control creation of `RelOptCluster`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-691">CALCITE-691</a>]
+  Allow projects to supply alternate SQL parser
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-675">CALCITE-675</a>]
+  Enable `AggregateProjectMergeRule` in standard rule set
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-679">CALCITE-679</a>]
+  Factory method for `SemiJoin`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-674">CALCITE-674</a>]
+  Add a `SWAP_OUTER` static instance to `JoinCommuteRule` (Maryann Xue)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-735">CALCITE-735</a>]
+  `Primitive.DOUBLE.min` should be large and negative
+
+Bug-fixes and internal changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-688">CALCITE-688</a>]
+  `splitCondition` does not behave correctly when one side of the condition
+  references columns from different inputs
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-259">CALCITE-259</a>]
+  Using sub-queries in `CASE` statement against JDBC tables generates invalid
+  Oracle SQL (Yeong Wei)
+* In sample code in README.md, rename optiq to calcite (Ethan)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-720">CALCITE-720</a>]
+  `VolcanoPlanner.ambitious` comment doc is inconsistent (Santiago M. Mola)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-729">CALCITE-729</a>]
+  `IndexOutOfBoundsException` in `ROLLUP` query on JDBC data source
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-733">CALCITE-733</a>]
+  Multiple distinct-`COUNT` query gives wrong results
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-730">CALCITE-730</a>]
+  `ClassCastException` in table from `CloneSchema`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-728">CALCITE-728</a>]
+  Test suite hangs on Windows
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-723">CALCITE-723</a>]
+  Document lattices
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-515">CALCITE-515</a>]
+  Add Apache headers to markdown files
+* Upgrade quidem
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-716">CALCITE-716</a>]
+  Scalar sub-query and aggregate function in `SELECT` or `HAVING` clause gives
+  `AssertionError`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-694">CALCITE-694</a>]
+  Scan `HAVING` clause for sub-queries and `IN`-lists (Hsuan-Yi Chu)
+* Upgrade hydromatic-resource-maven-plugin
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-710">CALCITE-710</a>]
+  Identical conditions in the `WHERE` clause cause `AssertionError` (Sean
+  Hsuan-Yi Chu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-695">CALCITE-695</a>]
+  Do not add `SINGLE_VALUE` aggregate function to a sub-query that will never
+  return more than one row (Hsuan-Yi Chu)
+* Add tests for scalar sub-queries, including test cases for
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-709">CALCITE-709</a>]
+  Errors with `LIMIT` inside scalar sub-query
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-702">CALCITE-702</a>]
+  Add validator test for monotonic expressions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-699">CALCITE-699</a>]
+  In Avatica, synchronize access to Calendar
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-700">CALCITE-700</a>]
+  Pass time zone into tests
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-698">CALCITE-698</a>]
+  For `GROUP BY ()`, `areColumnsUnique()` should return true for any key
+* Disable tests that fail under JDK 1.7 due to
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-687">CALCITE-687</a>]
+* Add "getting started" to HOWTO
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-692">CALCITE-692</a>]
+  Add back sqlline as a dependency
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-677">CALCITE-677</a>]
+  `RemoteDriverTest.testTypeHandling` fails east of Greenwich
+* Disable test for
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-687">CALCITE-687</a>]
+  Make `RemoteDriverTest.testStatementLifecycle` thread-safe
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-686">CALCITE-686</a>]
+  `SqlNode.unparse` produces invalid SQL
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-507">CALCITE-507</a>]
+  Update HOWTO.md with running integration tests
+* Add H2 integration test
+* Add PostgreSQL integration test
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-590">CALCITE-590</a>]
+  Update MongoDB test suite to calcite-test-dataset
+* Add `CalciteAssert.assertArrayEqual` for more user-friendly asserts
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-585">CALCITE-585</a>]
+  Avatica JDBC methods should throw `SQLFeatureNotSupportedException` (Ng Jiunn
+  Jye)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-671">CALCITE-671</a>]
+  `ByteString` does not deserialize properly as a `FetchRequest` parameter value
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-676">CALCITE-676</a>]
+  `AssertionError` in `GROUPING SETS` query
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-678">CALCITE-678</a>]
+  `SemiJoinRule` mixes up fields when `Aggregate.groupSet` is not field #0
+
 ## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.2.0-incubating">1.2.0-incubating</a> / 2015-04-07
 
 A short release, less than a month after 1.1.
