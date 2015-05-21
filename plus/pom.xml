@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.3.0-incubating-SNAPSHOT</version>
+    <version>1.3.0-incubating</version>
   </parent>
 
   <artifactId>calcite-plus</artifactId>
   <packaging>jar</packaging>
-  <version>1.3.0-incubating-SNAPSHOT</version>
+  <version>1.3.0-incubating</version>
   <name>Calcite Plus</name>
   <description>Miscellaneous extras for Calcite</description>
 
