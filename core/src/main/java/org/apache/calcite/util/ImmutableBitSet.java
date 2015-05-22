@@ -317,7 +317,9 @@ public class ImmutableBitSet
       b.append(i);
       for (i = nextSetBit(i + 1); i >= 0; i = nextSetBit(i + 1)) {
         int endOfRun = nextClearBit(i);
-        do { b.append(", ").append(i); }
+        do {
+          b.append(", ").append(i);
+        }
         while (++i < endOfRun);
       }
     }
@@ -742,9 +744,21 @@ public class ImmutableBitSet
     return union(ImmutableBitSet.of(i));
   }
 
+  /** Returns a bit set the same as this but with a given bit set if condition
+   * is true. */
+  public ImmutableBitSet setIf(int bit, boolean condition) {
+    return condition ? set(bit) : this;
+  }
+
   /** Returns a bit set the same as this but with a given bit cleared. */
   public ImmutableBitSet clear(int i) {
     return except(ImmutableBitSet.of(i));
+  }
+
+  /** Returns a bit set the same as this but with a given bit cleared if
+   * condition is true. */
+  public ImmutableBitSet clearIf(int i, boolean condition) {
+    return condition ? except(ImmutableBitSet.of(i)) : this;
   }
 
   /** Returns a {@link BitSet} that has the same contents as this

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -25,13 +26,18 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -40,12 +46,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Planner rule that expands distinct aggregates
@@ -68,18 +76,39 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
   /** The default instance of the rule; operates only on logical expressions. */
   public static final AggregateExpandDistinctAggregatesRule INSTANCE =
-      new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class,
+      new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, true,
           RelFactories.DEFAULT_JOIN_FACTORY);
 
-  private final RelFactories.JoinFactory joinFactory;
+  /** Instance of the rule that operates only on logical expressions and
+   * generates a join. */
+  public static final AggregateExpandDistinctAggregatesRule JOIN =
+      new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, false,
+          RelFactories.DEFAULT_JOIN_FACTORY);
+  public static final BigDecimal TWO = BigDecimal.valueOf(2L);
+
+  public final boolean useGroupingSets;
+  public final RelFactories.JoinFactory joinFactory;
+  public final RelFactories.AggregateFactory aggregateFactory =
+      RelFactories.DEFAULT_AGGREGATE_FACTORY;
+  public final RelFactories.ProjectFactory projectFactory =
+      RelFactories.DEFAULT_PROJECT_FACTORY;
 
   //~ Constructors -----------------------------------------------------------
 
   public AggregateExpandDistinctAggregatesRule(
       Class<? extends LogicalAggregate> clazz,
+      boolean useGroupingSets,
       RelFactories.JoinFactory joinFactory) {
     super(operand(clazz, any()));
+    this.useGroupingSets = useGroupingSets;
     this.joinFactory = joinFactory;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public AggregateExpandDistinctAggregatesRule(
+      Class<? extends LogicalAggregate> clazz,
+      RelFactories.JoinFactory joinFactory) {
+    this(clazz, false, joinFactory);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -110,6 +139,11 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
           Iterables.getOnlyElement(argLists);
       RelNode converted = convertMonopole(aggregate, pair.left, pair.right);
       call.transformTo(converted);
+      return;
+    }
+
+    if (useGroupingSets) {
+      rewriteUsingGroupingSets(call, aggregate, argLists);
       return;
     }
 
@@ -149,9 +183,9 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     if (newAggCallList.isEmpty()) {
       rel = null;
     } else {
-      rel =
-          LogicalAggregate.create(aggregate.getInput(), aggregate.indicator,
-              groupSet, aggregate.getGroupSets(), newAggCallList);
+      rel = aggregateFactory.createAggregate(aggregate.getInput(),
+          aggregate.indicator,
+          groupSet, aggregate.getGroupSets(), newAggCallList);
     }
 
     // For each set of operands, find and rewrite all calls which have that
@@ -163,6 +197,172 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     rel = RelOptUtil.createProject(rel, refs, fieldNames);
 
     call.transformTo(rel);
+  }
+
+  private void rewriteUsingGroupingSets(RelOptRuleCall ruleCall,
+      Aggregate aggregate, Set<Pair<List<Integer>, Integer>> argLists) {
+    final Set<ImmutableBitSet> groupSetTreeSet =
+        new TreeSet<>(ImmutableBitSet.ORDERING);
+    groupSetTreeSet.add(aggregate.getGroupSet());
+    for (Pair<List<Integer>, Integer> argList : argLists) {
+      groupSetTreeSet.add(
+          ImmutableBitSet.of(argList.left)
+              .setIf(argList.right, argList.right >= 0)
+              .union(aggregate.getGroupSet()));
+    }
+
+    final ImmutableList<ImmutableBitSet> groupSets =
+        ImmutableList.copyOf(groupSetTreeSet);
+    final ImmutableBitSet fullGroupSet = ImmutableBitSet.union(groupSets);
+
+    final List<AggregateCall> distinctAggCalls = new ArrayList<>();
+    for (Pair<AggregateCall, String> call : aggregate.getNamedAggCalls()) {
+      if (!call.left.isDistinct()) {
+        distinctAggCalls.add(call.left.rename(call.right));
+      }
+    }
+
+    final RelNode distinct =
+        aggregateFactory.createAggregate(aggregate.getInput(),
+            groupSets.size() > 1, fullGroupSet, groupSets, distinctAggCalls);
+    final int groupCount = fullGroupSet.cardinality();
+    final int indicatorCount = groupSets.size() > 1 ? groupCount : 0;
+
+    final RelOptCluster cluster = aggregate.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+    final RelDataType booleanType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
+    final List<Pair<RexNode, String>> predicates = new ArrayList<>();
+    final Map<ImmutableBitSet, Integer> filters = new HashMap<>();
+    /** Function to register an filter for a group set. */
+    class Registrar {
+      RexNode group = null;
+      int register(ImmutableBitSet groupSet) {
+        if (group == null) {
+          group = makeGroup(groupCount - 1);
+        }
+        final RexNode node =
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, group,
+                rexBuilder.makeExactLiteral(
+                    toNumber(remap(fullGroupSet, groupSet))));
+        predicates.add(Pair.of(node, toString(groupSet)));
+        return groupCount + indicatorCount + distinctAggCalls.size()
+            + predicates.size() - 1;
+      }
+
+      private RexNode makeGroup(int i) {
+        final RexInputRef ref =
+            rexBuilder.makeInputRef(booleanType, groupCount + i);
+        final RexNode kase =
+            rexBuilder.makeCall(SqlStdOperatorTable.CASE, ref,
+                rexBuilder.makeExactLiteral(BigDecimal.ZERO),
+                rexBuilder.makeExactLiteral(TWO.pow(i)));
+        if (i == 0) {
+          return kase;
+        } else {
+          return rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+              makeGroup(i - 1), kase);
+        }
+      }
+
+      private BigDecimal toNumber(ImmutableBitSet bitSet) {
+        BigDecimal n = BigDecimal.ZERO;
+        for (int key : bitSet) {
+          n = n.add(TWO.pow(key));
+        }
+        return n;
+      }
+
+      private String toString(ImmutableBitSet bitSet) {
+        final StringBuilder buf = new StringBuilder("$i");
+        for (int key : bitSet) {
+          buf.append(key).append('_');
+        }
+        return buf.substring(0, buf.length() - 1);
+      }
+    }
+    final Registrar registrar = new Registrar();
+    for (ImmutableBitSet groupSet : groupSets) {
+      filters.put(groupSet, registrar.register(groupSet));
+    }
+
+    RelNode r = distinct;
+    if (!predicates.isEmpty()) {
+      List<Pair<RexNode, String>> nodes = new ArrayList<>();
+      for (RelDataTypeField f : r.getRowType().getFieldList()) {
+        final RexNode node = rexBuilder.makeInputRef(f.getType(), f.getIndex());
+        nodes.add(Pair.of(node, f.getName()));
+      }
+      nodes.addAll(predicates);
+      r = RelOptUtil.createProject(r, nodes, false);
+    }
+
+    int x = groupCount + indicatorCount;
+    final List<AggregateCall> newCalls = new ArrayList<>();
+    for (AggregateCall call : aggregate.getAggCallList()) {
+      final int newFilterArg;
+      final List<Integer> newArgList;
+      final SqlAggFunction aggregation;
+      if (!call.isDistinct()) {
+        aggregation = SqlStdOperatorTable.MIN;
+        newArgList = ImmutableIntList.of(x++);
+        newFilterArg = filters.get(aggregate.getGroupSet());
+      } else {
+        aggregation = call.getAggregation();
+        newArgList = remap(fullGroupSet, call.getArgList());
+        newFilterArg =
+            filters.get(
+                ImmutableBitSet.of(call.getArgList())
+                    .setIf(call.filterArg, call.filterArg >= 0)
+                    .union(aggregate.getGroupSet()));
+      }
+      final AggregateCall newCall =
+          AggregateCall.create(aggregation, false, newArgList, newFilterArg,
+              aggregate.getGroupCount(), distinct, null, call.name);
+      newCalls.add(newCall);
+    }
+
+    final RelNode newAggregate =
+        aggregateFactory.createAggregate(r, aggregate.indicator,
+            remap(fullGroupSet, aggregate.getGroupSet()),
+            remap(fullGroupSet, aggregate.getGroupSets()), newCalls);
+    ruleCall.transformTo(
+        RelOptUtil.createCastRel(newAggregate, aggregate.getRowType(), true,
+            projectFactory));
+  }
+
+  private static ImmutableBitSet remap(ImmutableBitSet groupSet,
+      ImmutableBitSet bitSet) {
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (Integer bit : bitSet) {
+      builder.set(remap(groupSet, bit));
+    }
+    return builder.build();
+  }
+
+  private static ImmutableList<ImmutableBitSet> remap(ImmutableBitSet groupSet,
+      Iterable<ImmutableBitSet> bitSets) {
+    final ImmutableList.Builder<ImmutableBitSet> builder =
+        ImmutableList.builder();
+    for (ImmutableBitSet bitSet : bitSets) {
+      builder.add(remap(groupSet, bitSet));
+    }
+    return builder.build();
+  }
+
+  private static List<Integer> remap(ImmutableBitSet groupSet,
+      List<Integer> argList) {
+    ImmutableIntList list = ImmutableIntList.of();
+    for (int arg : argList) {
+      list = list.add(remap(groupSet, arg));
+    }
+    return list;
+  }
+
+  private static int remap(ImmutableBitSet groupSet, int arg) {
+    return arg < 0 ? -1 : groupSet.indexOf(arg);
   }
 
   /**

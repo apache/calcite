@@ -221,6 +221,16 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return -1;
   }
 
+  /** Returns a copy of this list with one element added. */
+  public ImmutableIntList add(int element) {
+    if (ints.length == 0) {
+      return of(element);
+    }
+    final int[] newInts = Arrays.copyOf(this.ints, ints.length + 1);
+    newInts[ints.length] = element;
+    return new ImmutableIntList(newInts);
+  }
+
   /** Returns a list that contains the values lower to upper - 1.
    *
    * <p>For example, {@code range(1, 3)} contains [1, 2]. */

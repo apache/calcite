@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -194,6 +195,17 @@ public abstract class Aggregate extends SingleRel {
    */
   public List<AggregateCall> getAggCallList() {
     return aggCalls;
+  }
+
+  /**
+   * Returns a list of calls to aggregate functions together with their output
+   * field names.
+   *
+   * @return list of calls to aggregate functions and their output field names
+   */
+  public List<Pair<AggregateCall, String>> getNamedAggCalls() {
+    final int offset = getGroupCount() + getIndicatorCount();
+    return Pair.zip(aggCalls, Util.skip(getRowType().getFieldNames(), offset));
   }
 
   /**
@@ -422,6 +434,7 @@ public abstract class Aggregate extends SingleRel {
   public static class AggCallBinding extends SqlOperatorBinding {
     private final List<RelDataType> operands;
     private final int groupCount;
+    private final boolean filter;
 
     /**
      * Creates an AggCallBinding
@@ -430,15 +443,15 @@ public abstract class Aggregate extends SingleRel {
      * @param aggFunction  Aggregate function
      * @param operands     Data types of operands
      * @param groupCount   Number of columns in the GROUP BY clause
+     * @param filter       Whether the aggregate function has a FILTER clause
      */
-    public AggCallBinding(
-        RelDataTypeFactory typeFactory,
-        SqlAggFunction aggFunction,
-        List<RelDataType> operands,
-        int groupCount) {
+    public AggCallBinding(RelDataTypeFactory typeFactory,
+        SqlAggFunction aggFunction, List<RelDataType> operands, int groupCount,
+        boolean filter) {
       super(typeFactory, aggFunction);
       this.operands = operands;
       this.groupCount = groupCount;
+      this.filter = filter;
       assert operands != null
           : "operands of aggregate call should not be null";
       assert groupCount >= 0
@@ -448,6 +461,10 @@ public abstract class Aggregate extends SingleRel {
 
     @Override public int getGroupCount() {
       return groupCount;
+    }
+
+    @Override public boolean hasFilter() {
+      return filter;
     }
 
     public int getOperandCount() {

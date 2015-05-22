@@ -726,6 +726,40 @@ group by deptno;
 
 !ok
 
+# Multiple distinct count and non-distinct aggregates
+select deptno,
+ count(distinct job) as dj,
+ count(job) as j,
+ count(distinct mgr) as m,
+ sum(sal) as s
+from "scott".emp
+group by deptno;
++--------+----+---+---+----------+
+| DEPTNO | DJ | J | M | S        |
++--------+----+---+---+----------+
+|     10 |  3 | 3 | 2 |  8750.00 |
+|     20 |  3 | 5 | 4 | 10875.00 |
+|     30 |  3 | 6 | 2 |  9400.00 |
++--------+----+---+---+----------+
+(3 rows)
+
+!ok
+
+# Multiple distinct count and non-distinct aggregates, no GROUP BY
+select count(distinct job) as dj,
+ count(job) as j,
+ count(distinct mgr) as m,
+ sum(sal) as s
+from "scott".emp;
++----+----+---+----------+
+| DJ | J  | M | S        |
++----+----+---+----------+
+|  5 | 14 | 6 | 29025.00 |
++----+----+---+----------+
+(1 row)
+
+!ok
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c

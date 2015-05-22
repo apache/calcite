@@ -68,6 +68,13 @@ public abstract class SqlOperatorBinding {
   }
 
   /**
+   * Returns whether the operator is an aggregate function with a filter.
+   */
+  public boolean hasFilter() {
+    return false;
+  }
+
+  /**
    * @return bound operator
    */
   public SqlOperator getOperator() {

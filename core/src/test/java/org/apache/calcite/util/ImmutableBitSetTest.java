@@ -428,18 +428,23 @@ public class ImmutableBitSetTest {
 
   @Test public void testSet() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
-    assertThat(bitSet.set(30),
-        equalTo(ImmutableBitSet.of(29, 4, 1969, 30)));
-    assertThat(bitSet.set(29),
-        equalTo(bitSet));
+    final ImmutableBitSet bitSet2 = ImmutableBitSet.of(29, 4, 1969, 30);
+    assertThat(bitSet.set(30), equalTo(bitSet2));
+    assertThat(bitSet.set(30).set(30), equalTo(bitSet2));
+    assertThat(bitSet.set(29), equalTo(bitSet));
+    assertThat(bitSet.setIf(30, false), equalTo(bitSet));
+    assertThat(bitSet.setIf(30, true), equalTo(bitSet2));
   }
 
   @Test public void testClear() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
-    assertThat(bitSet.clear(29),
-        equalTo(ImmutableBitSet.of(4, 1969)));
+    final ImmutableBitSet bitSet2 = ImmutableBitSet.of(4, 1969);
+    assertThat(bitSet.clear(29), equalTo(bitSet2));
+    assertThat(bitSet.clear(29).clear(29), equalTo(bitSet2));
     assertThat(bitSet.clear(29).clear(4).clear(29).clear(1969),
         equalTo(ImmutableBitSet.of()));
+    assertThat(bitSet.clearIf(29, false), equalTo(bitSet));
+    assertThat(bitSet.clearIf(29, true), equalTo(bitSet2));
   }
 }
 

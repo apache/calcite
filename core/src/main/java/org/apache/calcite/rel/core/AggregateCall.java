@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -114,7 +115,7 @@ public class AggregateCall {
           SqlTypeUtil.projectTypes(input.getRowType(), argList);
       final Aggregate.AggCallBinding callBinding =
           new Aggregate.AggCallBinding(typeFactory, aggFunction, types,
-              groupCount);
+              groupCount, filterArg >= 0);
       type = aggFunction.inferReturnType(callBinding);
     }
     return create(aggFunction, distinct, argList, filterArg, type, name);
@@ -182,7 +183,9 @@ public class AggregateCall {
    * @param name New name (may be null)
    */
   public AggregateCall rename(String name) {
-    // no need to copy argList - already immutable
+    if (Objects.equal(this.name, name)) {
+      return this;
+    }
     return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
         name);
   }
@@ -236,7 +239,7 @@ public class AggregateCall {
     return new Aggregate.AggCallBinding(
         aggregateRelBase.getCluster().getTypeFactory(), aggFunction,
         SqlTypeUtil.projectTypes(rowType, argList),
-        filterArg >= 0 ? 0 : aggregateRelBase.getGroupCount());
+        aggregateRelBase.getGroupCount(), filterArg >= 0);
   }
 
   /**

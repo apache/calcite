@@ -130,7 +130,7 @@ public abstract class ReturnTypes {
         @Override public RelDataType
         inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataType type = super.inferReturnType(opBinding);
-          if (opBinding.getGroupCount() == 0) {
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
             return opBinding.getTypeFactory()
                 .createTypeWithNullability(type, true);
           } else {

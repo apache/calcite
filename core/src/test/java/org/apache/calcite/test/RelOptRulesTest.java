@@ -427,6 +427,75 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " from sales.emp group by deptno");
   }
 
+  /** Tests implementing multiple distinct count the old way, using a join. */
+  @Test public void testDistinctCountMultipleViaJoin() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct ename), count(distinct job, ename),\n"
+            + "  count(distinct deptno, job), sum(sal)\n"
+            + " from sales.emp group by deptno");
+  }
+
+  /** Tests implementing multiple distinct count the new way, using GROUPING
+   *  SETS. */
+  @Test public void testDistinctCountMultiple() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct ename), count(distinct job)\n"
+            + " from sales.emp group by deptno");
+  }
+
+  @Test public void testDistinctCountMultipleNoGroup() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select count(distinct ename), count(distinct job)\n"
+            + " from sales.emp");
+  }
+
+  @Test public void testDistinctCountMixedJoin() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct ename), count(distinct job, ename),\n"
+            + "  count(distinct deptno, job), sum(sal)\n"
+            + " from sales.emp group by deptno");
+  }
+
+  @Test public void testDistinctCountMixed() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct deptno, job) as cddj, sum(sal) as s\n"
+            + " from sales.emp group by deptno");
+  }
+
+  @Test public void testDistinctCountMixed2() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select deptno, count(distinct ename) as cde,\n"
+            + "  count(distinct job, ename) as cdje,\n"
+            + "  count(distinct deptno, job) as cddj,\n"
+            + "  sum(sal) as s\n"
+            + " from sales.emp group by deptno");
+  }
+
   @Test public void testDistinctCountGroupingSets1() {
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
