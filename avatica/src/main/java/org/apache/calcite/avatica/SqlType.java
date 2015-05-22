@@ -513,8 +513,8 @@ public enum SqlType {
    *
    * <p>The JDBC standard describes the mapping in table <a href="#B6">B-6</a>.
    */
-  public static boolean canGet(Method aClass, SqlType sqlType) {
-    final EnumSet<SqlType> sqlTypes = GET_LIST.get(aClass);
+  public static boolean canGet(Method method, SqlType sqlType) {
+    final EnumSet<SqlType> sqlTypes = GET_LIST.get(method);
     return sqlTypes != null && sqlTypes.contains(sqlType);
   }
 

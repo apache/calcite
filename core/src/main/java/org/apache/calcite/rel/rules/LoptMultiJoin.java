@@ -623,6 +623,7 @@ public class LoptMultiJoin {
    * @param joinTree join tree to be examined
    * @param childFactors bitmap to be set
    */
+  @Deprecated // to be removed before 2.0
   public void getChildFactors(LoptJoinTree joinTree,
       ImmutableBitSet.Builder childFactors) {
     for (int child : joinTree.getTreeOrder()) {

@@ -190,8 +190,8 @@ public class LoptJoinTree {
 
   /** Binary tree node that has two children. */
   protected static class Node extends BinaryTree {
-    private BinaryTree left;
-    private BinaryTree right;
+    private final BinaryTree left;
+    private final BinaryTree right;
 
     public Node(BinaryTree left, BinaryTree right, LoptJoinTree parent) {
       super(parent);

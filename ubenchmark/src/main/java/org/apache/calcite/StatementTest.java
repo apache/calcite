@@ -197,9 +197,7 @@ public class StatementTest {
     }
   }
 
-  // Disable checkstyle, so it doesn't complain about fields like "customer_id".
-  //CHECKSTYLE: OFF
-
+  /** Pojo schema containing "emps" and "depts" tables. */
   public static class HrSchema {
     @Override public String toString() {
       return "HrSchema";
@@ -218,6 +216,7 @@ public class StatementTest {
     };
   }
 
+  /** Employee record. */
   public static class Employee {
     public final int empid;
     public final int deptno;
@@ -240,6 +239,7 @@ public class StatementTest {
     }
   }
 
+  /** Department record. */
   public static class Department {
     public final int deptno;
     public final String name;

@@ -1450,7 +1450,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The internal "$SCALAR_QUERY" operator returns a scalar value from a
-   * record type. It asusmes the record type only has one field, and returns
+   * record type. It assumes the record type only has one field, and returns
    * that field as the output.
    */
   public static final SqlInternalOperator SCALAR_QUERY =

@@ -28,11 +28,12 @@ import java.util.List;
  *
  * <p>Schema structure is as follows:</p>
  *
+ * <!-- CHECKSTYLE: OFF -->
  * <pre>{@code Root}
  *   {@link JsonSchema} (in collection {@link JsonRoot#schemas schemas})
  *     {@link JsonTable} (in collection {@link JsonMapSchema#tables tables})
- *       {@link JsonColumn} (in collection {@link JsonTable#columns columns}
- *       {@link JsonStream} (in field {@link JsonTable#stream stream}
+ *       {@link JsonColumn} (in collection {@link JsonTable#columns columns})
+ *       {@link JsonStream} (in field {@link JsonTable#stream stream})
  *     {@link JsonView}
  *     {@link JsonFunction} (in collection {@link JsonMapSchema#functions functions})
  *     {@link JsonLattice} (in collection {@link JsonSchema#lattices lattices})
@@ -41,6 +42,7 @@ import java.util.List;
  *         {@link JsonMeasure} (in collection {@link JsonTile#measures measures})
  *     {@link JsonMaterialization} (in collection {@link JsonSchema#materializations materializations})
  * </pre>
+ * <!-- CHECKSTYLE: ON -->
  */
 public class JsonRoot {
   public String version;
