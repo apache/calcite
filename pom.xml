@@ -210,7 +210,7 @@ limitations under the License.
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>tpcds</artifactId>
-        <version>0.3</version>
+        <version>0.4</version>
       </dependency>
       <dependency>
         <groupId>net.sf.opencsv</groupId>
