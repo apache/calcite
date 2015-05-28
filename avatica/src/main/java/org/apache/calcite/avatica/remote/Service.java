@@ -38,6 +38,7 @@ public interface Service {
   ResultSetResponse apply(TypeInfoRequest request);
   ResultSetResponse apply(ColumnsRequest request);
   PrepareResponse apply(PrepareRequest request);
+  ExecuteResponse apply(ExecuteRequest request);
   ExecuteResponse apply(PrepareAndExecuteRequest request);
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
@@ -63,6 +64,7 @@ public interface Service {
       @JsonSubTypes.Type(value = TableTypesRequest.class, name = "getTableTypes"),
       @JsonSubTypes.Type(value = TypeInfoRequest.class, name = "getTypeInfo"),
       @JsonSubTypes.Type(value = ColumnsRequest.class, name = "getColumns"),
+      @JsonSubTypes.Type(value = ExecuteRequest.class, name = "execute"),
       @JsonSubTypes.Type(value = PrepareRequest.class, name = "prepare"),
       @JsonSubTypes.Type(value = PrepareAndExecuteRequest.class,
           name = "prepareAndExecute"),
@@ -265,6 +267,28 @@ public interface Service {
     }
   }
 
+  /** Request for
+   * {@link org.apache.calcite.avatica.Meta#execute(Meta.StatementHandle, List<TypedValue> , int)}. */
+  class ExecuteRequest extends Request {
+    public final Meta.StatementHandle statementHandle;
+    public final List<TypedValue> parameterValues;
+    public final int maxRowCount;
+
+    @JsonCreator
+    public ExecuteRequest(
+        @JsonProperty("statementHandle") Meta.StatementHandle statementHandle,
+        @JsonProperty("parameterValues") List<TypedValue> parameterValues,
+        @JsonProperty("maxRowCount") int maxRowCount) {
+      this.statementHandle = statementHandle;
+      this.parameterValues = parameterValues;
+      this.maxRowCount = maxRowCount;
+    }
+
+    @Override ExecuteResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
   /** Response to a
    * {@link org.apache.calcite.avatica.remote.Service.PrepareAndExecuteRequest}. */
   class ExecuteResponse extends Response {
@@ -320,20 +344,15 @@ public interface Service {
     /** Maximum number of rows to be returned in the frame. Negative means no
      * limit. */
     public final int fetchMaxRowCount;
-    /** A list of parameter values, if statement is to be executed; otherwise
-     * null. */
-    public final List<TypedValue> parameterValues;
 
     @JsonCreator
     public FetchRequest(
         @JsonProperty("connectionId") String connectionId,
         @JsonProperty("statementId") int statementId,
-        @JsonProperty("parameterValues") List<TypedValue> parameterValues,
         @JsonProperty("offset") int offset,
         @JsonProperty("fetchMaxRowCount") int fetchMaxRowCount) {
       this.connectionId = connectionId;
       this.statementId = statementId;
-      this.parameterValues = parameterValues;
       this.offset = offset;
       this.fetchMaxRowCount = fetchMaxRowCount;
     }

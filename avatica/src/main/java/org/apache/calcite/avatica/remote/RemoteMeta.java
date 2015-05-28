@@ -56,7 +56,8 @@ class RemoteMeta extends MetaImpl {
               ? Collections.<ColumnMetaData>emptyList()
               : fieldMetaData(clazz).columns;
       signature0 = Signature.create(columns,
-          "?", Collections.<AvaticaParameter>emptyList(), CursorFactory.ARRAY);
+          "?", Collections.<AvaticaParameter>emptyList(), CursorFactory.ARRAY,
+          Meta.StatementType.SELECT);
     }
     return MetaResultSet.create(response.connectionId, response.statementId,
         response.ownStatement, signature0, response.firstFrame);
@@ -194,13 +195,26 @@ class RemoteMeta extends MetaImpl {
     }
   }
 
-  @Override public Frame fetch(StatementHandle h,
-      List<TypedValue> parameterValues, int offset, int fetchMaxRowCount) {
+  @Override public Frame fetch(StatementHandle h, int offset,
+      int fetchMaxRowCount) {
     final Service.FetchResponse response =
         service.apply(
-            new Service.FetchRequest(h.connectionId, h.id, parameterValues,
+            new Service.FetchRequest(h.connectionId, h.id,
                 offset, fetchMaxRowCount));
     return response.frame;
+  }
+
+  @Override public ExecuteResult execute(StatementHandle h,
+      List<TypedValue> parameterValues, int maxRowCount) {
+    final Service.ExecuteResponse response = service.apply(
+        new Service.ExecuteRequest(h, parameterValues, maxRowCount));
+
+    List<MetaResultSet> metaResultSets = new ArrayList<>();
+    for (Service.ResultSetResponse result : response.results) {
+      metaResultSets.add(toResultSet(null, result));
+    }
+
+    return new ExecuteResult(metaResultSets);
   }
 }
 

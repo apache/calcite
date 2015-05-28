@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Helper;
 import org.apache.calcite.avatica.InternalProperty;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -157,8 +158,13 @@ abstract class CalciteConnectionImpl
     try {
       Meta.Signature signature =
           parseQuery(sql, new ContextImpl(this), -1);
-      return (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
+      final CalcitePreparedStatement calcitePreparedStatement;
+      calcitePreparedStatement =
+        (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
           signature, resultSetType, resultSetConcurrency, resultSetHoldability);
+      server.addStatement(this, calcitePreparedStatement.handle);
+      server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
+      return calcitePreparedStatement;
     } catch (Exception e) {
       throw Helper.INSTANCE.createException(
           "Error while preparing statement [" + sql + "]", e);
@@ -227,6 +233,11 @@ abstract class CalciteConnectionImpl
     AvaticaStatement statement = lookupStatement(handle);
     final List<TypedValue> parameterValues =
         TROJAN.getParameterValues(statement);
+
+    if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
+      throw new SQLException("exception while executing query: unbound parameter");
+    }
+
     for (Ord<TypedValue> o : Ord.zip(parameterValues)) {
       map.put("?" + o.i, o.e.toLocal());
     }
