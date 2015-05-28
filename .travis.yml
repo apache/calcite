@@ -23,8 +23,10 @@ jdk:
 branches:
   only:
     - master
+    - new-master
     - javadoc
     - /^branch-.*$/
+    - /^[0-9]+-.*$/
 script:
   mvn -Dsurefire.useFile=false test site
 git:
