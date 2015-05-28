@@ -1,0 +1,58 @@
+- name: Alan Gates
+  apacheId: gates
+  githubId: alanfgates
+  role: Mentor
+- name: Aman Sinha
+  apacheId: amansinha
+  githubId: amansinha100
+  role: Committer
+- name: Ashutosh Chauhan
+  apacheId: hashutosh
+  githubId: ashutoshc
+  role: Champion
+- name: Chris Wensel
+  apacheId: cwensel
+  githubId: cwensel
+  role: PMC
+- name: James R. Taylor
+  apacheId: jamestaylor
+  githubId: JamesRTaylor
+  role: PMC
+- name: Jacques Nadeau
+  apacheId: jacques
+  githubId: jacques-n
+  role: PMC
+- name: Jesús Camacho Rodríguez
+  apacheId: jcamacho
+  githubId: jcamachor
+  role: Committer
+- name: Jinfeng Ni
+  apacheId: jni
+  githubId: jinfengni
+  role: Committer
+- name: John Pullokkaran
+  apacheId: jpullokk
+  githubId: jpullokkaran
+  role: Committer
+- name: Julian Hyde
+  apacheId: jhyde
+  githubId: julianhyde
+  role: PMC
+  homepage: http://people.apache.org/~jhyde
+- name: Nick Dimiduk
+  apacheId: ndimiduk
+  githubId: ndimiduk
+  role: Committer
+- name: Steven Noels
+  apacheId: stevenn
+  githubId: stevenn
+  role: Mentor
+- name: Ted Dunning
+  apacheId: tdunning
+  githubId: tdunning
+  role: Mentor
+  avatar: https://www.mapr.com/sites/default/files/otherpageimages/ted-circle-80.png
+- name: Vladimir Sitnikov
+  apacheId: vladimirsitnikov
+  githubId: vlsi
+  role: PMC

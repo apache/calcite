@@ -1,3 +1,8 @@
+---
+layout: docs
+title: JSON models
+permalink: /docs/model.html
+---
 <!--
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -14,19 +19,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Calcite JSON model reference
+Calcite models can be represented as JSON files.
+This page describes the structure of those files.
+
+Models can also be built programmatically using the `Schema` SPI.
 
 ## Elements
 
 ### Root
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'mongo',
   schemas: [ Schema... ]
 }
-```
+{% endhighlight %}
 
 `version` (required string) must have value `1.0`.
 
@@ -40,18 +48,19 @@ become the default schema for connections to Calcite that use this model.
 
 Occurs within `root.schemas`.
 
-```json
+{% highlight json %}
 {
   name: 'foodmart',
   path: ['lib'],
   cache: true,
   materializations: [ Materialization... ]
 }
-```
+{% endhighlight %}
 
 `name` (required string) is the name of the schema.
 
 `type` (optional string, default `map`) indicates sub-type. Values are:
+
 * `map` for <a href="#map-schema">Map Schema</a>
 * `custom` for <a href="#custom-schema">Custom Schema</a>
 * `jdbc` for <a href="#jdbc-schema">JDBC Schema</a>
@@ -61,9 +70,9 @@ resolve functions used in this schema. If specified it must be a list,
 and each element of the list must be either a string or a list of
 strings. For example,
 
-```json
+{% highlight json %}
   path: [ ['usr', 'lib'], 'lib' ]
-```
+{% endhighlight %}
 
 declares a path with two elements: the schema '/usr/lib' and the
 schema '/lib'. Most schemas are at the top level, so you can use a
@@ -98,14 +107,14 @@ immediately, and are never flushed.
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 
-```json
+{% highlight json %}
 {
   name: 'foodmart',
   type: 'map',
   tables: [ Table... ],
   functions: [ Function... ]
 }
-```
+{% endhighlight %}
 
 `name`, `type`, `path`, `cache`, `materializations` inherited from
 <a href="#schema">Schema</a>.
@@ -120,7 +129,7 @@ defines the functions in this schema.
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 
-```json
+{% highlight json %}
 {
   name: 'mongo',
   type: 'custom',
@@ -130,7 +139,7 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
     database: 'test'
   }
 }
-```
+{% endhighlight %}
 
 `name`, `type`, `path`, `cache`, `materializations` inherited from
 <a href="#schema">Schema</a>.
@@ -146,7 +155,7 @@ factory.
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 
-```json
+{% highlight json %}
 {
   name: 'foodmart',
   type: 'jdbc',
@@ -157,7 +166,7 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
   jdbcCatalog: TODO,
   jdbcSchema: TODO
 }
-```
+{% endhighlight %}
 
 `name`, `type`, `path`, `cache`, `materializations` inherited from
 <a href="#schema">Schema</a>.
@@ -182,13 +191,13 @@ data source.
 
 Occurs within `root.schemas.materializations`.
 
-```json
+{% highlight json %}
 {
   view: 'V',
   table: 'T',
   sql: 'select deptno, count(*) as c, sum(sal) as s from emp group by deptno'
 }
-```
+{% endhighlight %}
 
 `view` (optional string) TODO
 
@@ -201,16 +210,17 @@ Occurs within `root.schemas.materializations`.
 
 Occurs within `root.schemas.tables`.
 
-```json
+{% highlight json %}
 {
   name: 'sales_fact',
   columns: [ Column... ]
 }
-```
+{% endhighlight %}
 
 `name` (required string) is the name of this table. Must be unique within the schema.
 
 `type` (optional string, default `custom`) indicates sub-type. Values are:
+
 * `custom` for <a href="#custom-table">Custom Table</a>
 * `view` for <a href="#view">View</a>
 
@@ -220,14 +230,14 @@ Occurs within `root.schemas.tables`.
 
 Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 
-```json
+{% highlight json %}
 {
   name: 'female_emps',
   type: 'view',
   sql: "select * from emps where gender = 'F'",
   modifiable: true
 }
-```
+{% endhighlight %}
 
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
 
@@ -242,6 +252,7 @@ If null or not specified, Calcite deduces whether the view is modifiable.
 
 A view is modifiable if contains only SELECT, FROM, WHERE (no JOIN, aggregation
 or sub-queries) and every column:
+
 * is specified once in the SELECT clause; or
 * occurs in the WHERE clause with a `column = literal` predicate; or
 * is nullable.
@@ -252,6 +263,7 @@ column is hidden, mandatory (NOT NULL), and has a constant value for a
 particular view.
 
 Errors regarding modifiable views:
+
 * If a view is marked `modifiable: true` and is not modifiable, Calcite throws
   an error while reading the schema.
 * If you submit an INSERT, UPDATE or UPSERT command to a non-modifiable view,
@@ -264,7 +276,7 @@ Errors regarding modifiable views:
 
 Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 
-```json
+{% highlight json %}
 {
   name: 'female_emps',
   type: 'custom',
@@ -273,7 +285,7 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
     todo: 'TODO'
   }
 }
-```
+{% endhighlight %}
 
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
 
@@ -288,11 +300,11 @@ factory.
 
 Occurs within `root.schemas.tables.columns`.
 
-```json
+{% highlight json %}
 {
   name: 'empno'
 }
-```
+{% endhighlight %}
 
 `name` (required string) is the name of this column.
 
@@ -300,14 +312,14 @@ Occurs within `root.schemas.tables.columns`.
 
 Occurs within `root.schemas.functions`.
 
-```json
+{% highlight json %}
 {
   name: 'MY_PLUS',
   className: 'com.example.functions.MyPlusFunction',
   methodName: 'apply',
   path: []
 }
-```
+{% endhighlight %}
 
 `name` (required string) is the name of this function.
 
@@ -323,7 +335,7 @@ function.
 
 Occurs within `root.schemas.lattices`.
 
-```json
+{% highlight json %}
 {
   name: 'star',
   sql: [
@@ -352,7 +364,7 @@ Occurs within `root.schemas.lattices`.
     } ]
   } ]
 }
-```
+{% endhighlight %}
 
 `name` (required string) is the name of this lattice.
 
@@ -382,9 +394,9 @@ Any tile defined in `tiles` can still define its own measures, including
 measures not on this list. If not specified, the default list of measures is
 just 'count(*)':
 
-```json
+{% highlight json %}
 [ { name: 'count' } ]
-```
+{% endhighlight %}
 
 See also: <a href="lattice.md">Lattices</a>.
 
@@ -392,7 +404,7 @@ See also: <a href="lattice.md">Lattices</a>.
 
 Occurs within `root.schemas.lattices.tiles`.
 
-```json
+{% highlight json %}
 {
   dimensions: [ 'the_year', ['t', 'quarter'] ],
   measures: [ {
@@ -405,7 +417,7 @@ Occurs within `root.schemas.lattices.tiles`.
     agg: 'count'
   } ]
 }
-```
+{% endhighlight %}
 
 `dimensions` is a list of dimensions (columns from the star), like a `GROUP BY`
 clause. Each element is either a string (the unique label of the column within
@@ -420,12 +432,12 @@ lattice's default measure list.
 Occurs within `root.schemas.lattices.defaultMeasures`
 and `root.schemas.lattices.tiles.measures`.
 
-```json
+{% highlight json %}
 {
   agg: 'sum',
   args: [ 'unit_sales' ]
 }
-```
+{% endhighlight %}
 
 `agg` is the name of an aggregate function (usually 'count', 'sum', 'min',
 'max').

@@ -1,0 +1,25 @@
+- title: Overview
+  docs:
+  - index
+  - tutorial
+  - algebra
+
+- title: Advanced
+  docs:
+  - adapter
+  - avatica
+  - stream
+  - lattice
+
+- title: Reference
+  docs:
+  - reference
+  - model
+  - howto
+
+- title: Meta
+  docs:
+  - downloads
+  - history
+  - contributing
+  - api

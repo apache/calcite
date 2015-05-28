@@ -1,0 +1,45 @@
+<article>
+  <h2>
+    <a href="{{ post.url }}">
+      {{ post.title }}
+    </a>
+  </h2>
+  <span class="post-category">
+    <span class="label">
+      {{ post.categories | array_to_sentence_string }}
+    </span>
+  </span>
+  <div class="post-meta">
+    <span class="post-date">
+      {{ post.date | date_to_string }}
+    </span>
+    {% capture homepage %}http://people.apache.org/~{{ post.author }}{% endcapture %}
+    {% capture avatar %}http://people.apache.org/~{{ post.author }}/{{ post.author }}.jpg{% endcapture %}
+    {% for c in site.data.contributors %}
+      {% if c.apacheId == post.author %}
+        {% if c.homepage %}
+          {% assign homepage = c.homepage %}
+        {% else %}
+          {% capture homepage %}http://github.com/{{ c.githubId }}{% endcapture %}
+        {% endif %}
+        {% if c.avatar %}
+          {% assign avatar = c.avatar %}
+        {% else %}
+          {% capture avatar %}http://github.com/{{ c.githubId }}.png{% endcapture %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+    <a href="{{ homepage }}" class="post-author">
+      <img src="{{ avatar }}"
+           class="avatar" alt="{{ post.author }} avatar"
+           width="24" height="24">
+      {{ post.author }}
+    </a>
+  </div>
+  <div class="post-content">
+    {{ post.content }}
+    {% if post.categories contains 'release' %}
+    <p>See the <a href="/docs/history.html#{{ post.tag }}">release notes</a>.</p>
+    {% endif %}
+  </div>
+</article>

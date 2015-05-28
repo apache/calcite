@@ -1,0 +1,12 @@
+markdown: kramdown
+permalink: /news/:year/:month/:day/:title/
+excerpt_separator: ""
+
+repository: https://github.com/apache/incubator-calcite
+destination: target
+exclude: [README.md,Gemfile*]
+keep_files: [".git", ".svn", "apidocs"]
+
+collections:
+  docs:
+    output: true

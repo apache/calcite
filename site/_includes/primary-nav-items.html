@@ -1,0 +1,20 @@
+<ul>
+  <li class="{% if page.overview %}current{% endif %}">
+    <a href="/">Home</a>
+  </li>
+  <li class="{% if page.url contains '/docs/' %}current{% endif %}">
+    <a href="/docs/">Documentation</a>
+  </li>
+  <li class="{% if page.url contains '/talks/' %}current{% endif %}">
+    <a href="/talks/">Talks</a>
+  </li>
+  <li class="{% if page.url contains '/news/' %}current{% endif %}">
+    <a href="/news/">News</a>
+  </li>
+  <li class="{% if page.url contains '/help/' %}current{% endif %}">
+    <a href="/help/">Help</a>
+  </li>
+  <li class="{% if page.url contains '/develop/' %}current{% endif %}">
+    <a href="/develop/">Develop</a>
+  </li>
+</ul>

@@ -1,3 +1,8 @@
+---
+layout: docs
+title: Streaming
+permalink: /docs/stream.html
+---
 <!--
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -14,9 +19,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Calcite SQL extensions for streaming
 
-## Introduction
+Calcite has extended SQL and relational algebra in order to support
+streaming queries.
 
 Streams are collections to records that flow continuously, and forever.
 Unlike tables, they are not typically stored on disk, but flow over the
@@ -32,6 +37,7 @@ to take advantage of available resources and algorithms.
 
 Calcite's SQL is an extension to standard SQL, not another 'SQL-like' language.
 The distinction is important, for several reasons:
+
 * Streaming SQL is easy to learn for anyone who knows regular SQL.
 * The semantics are clear, because we aim to produce the same results on a
   stream as if the same data were in a table.
@@ -39,9 +45,13 @@ The distinction is important, for several reasons:
   a stream, which is basically an in-memory table).
 * Lots of existing tools can generate standard SQL.
 
+If you don't use the `STREAM` keyword, you are back in regular
+standard SQL.
+
 ## An example schema
 
 Our streaming SQL examples use the following schema:
+
 * `Orders (rowtime, productId, orderId, units)` - a stream and a table
 * `Products (rowtime, productId, name)` - a table
 * `Shipments (rowtime, orderId)` - a stream
@@ -50,7 +60,7 @@ Our streaming SQL examples use the following schema:
 
 Let's start with the simplest streaming query:
 
-```sql
+{% highlight sql %}
 SELECT STREAM *
 FROM Orders;
 
@@ -64,7 +74,7 @@ FROM Orders;
  11:04:00 |        10 |      10 |     1
  11:09:30 |        40 |      11 |    12
  11:24:11 |        10 |      12 |     4
-```
+{% endhighlight %}
 
 This query reads all columns and rows from the `Orders` stream.
 Like any streaming query, it never terminates. It outputs a record whenever
@@ -75,7 +85,7 @@ Type `Control-C` to terminate the query.
 The `STREAM` keyword is the main extension in streaming SQL. It tells the
 system that you are interested in incoming orders, not existing ones. The query
 
-```sql
+{% highlight sql %}
 SELECT *
 FROM Orders;
 
@@ -87,7 +97,7 @@ FROM Orders;
  09:27:44 |        30 |       4 |     2
 
 4 records returned.
-```
+{% endhighlight %}
 
 is also valid, but will print out all existing orders and then terminate. We
 call it a *relational* query, as opposed to *streaming*. It has traditional
@@ -97,19 +107,19 @@ SQL semantics.
 a streaming query on a table, or a relational query on a stream, Calcite gives
 an error:
 
-```sql
+{% highlight sql %}
 > SELECT * FROM Shipments;
 ERROR: Cannot convert stream 'SHIPMENTS' to a table
 
 > SELECT STREAM * FROM Products;
 ERROR: Cannot convert table 'PRODUCTS' to a stream
-```
+{% endhighlight %}
 
 # Filtering rows
 
 Just as in regular SQL, you use a `WHERE` clause to filter rows:
 
-```sql
+{% highlight sql %}
 SELECT STREAM *
 FROM Orders
 WHERE units > 3;
@@ -121,14 +131,14 @@ WHERE units > 3;
  11:02:00 |        10 |       9 |     6
  11:09:30 |        40 |      11 |    12
  11:24:11 |        10 |      12 |     4
-```
+{% endhighlight %}
 
 # Projecting expressions
 
 Use expressions in the `SELECT` clause to choose which columns to return or
 compute expressions:
 
-```sql
+{% highlight sql %}
 SELECT STREAM rowtime,
   'An order for ' || units || ' '
     || CASE units WHEN 1 THEN 'unit' ELSE 'units' END
@@ -145,7 +155,7 @@ FROM Orders;
  11:04:00 | An order by 1 unit of product #10
  11:09:30 | An order for 12 units of product #40
  11:24:11 | An order by 4 units of product #10
-```
+{% endhighlight %}
 
 We recommend that you always include the `rowtime` column in the `SELECT`
 clause. Having a sorted timestamp in each stream and streaming query makes it
@@ -155,6 +165,7 @@ possible to do advanced calculations later, such as `GROUP BY` and `JOIN`.
 
 There are several ways to compute aggregate functions on streams. The
 differences are:
+
 * How many rows come out for each row in?
 * Does each incoming value appear in one total, or more?
 * What defines the "window", the set of rows that contribute to a given output row?
@@ -163,7 +174,7 @@ differences are:
 First we'll look a *tumbling window*, which is defined by a streaming
 `GROUP BY`. Here is an example:
 
-```sql
+{% highlight sql %}
 SELECT STREAM FLOOR(rowtime TO HOUR) AS rowtime,
   productId,
   COUNT(*) AS c,
@@ -178,7 +189,7 @@ GROUP BY FLOOR(rowtime TO HOUR), productId;
  10:00:00 |        20 |       1 |     7
  11:00:00 |        10 |       3 |    11
  11:00:00 |        40 |       1 |    12
-```
+{% endhighlight %}
 
 The result is a stream. At 11 o'clock, Calcite emits a sub-total for every
 `productId` that had an order since 10 o'clock. At 12 o'clock, it will emit
@@ -195,14 +206,14 @@ A column or expression that is increasing or decreasing is said to be
 *monotonic*. Without a monotonic expression in the `GROUP BY` clause, Calcite is
 not able to make progress, and it will not allow the query:
 
-```sql
+{% highlight sql %}
 > SELECT STREAM productId,
 >   COUNT(*) AS c,
 >   SUM(units) AS units
 > FROM Orders
 > GROUP BY productId;
 ERROR: Streaming aggregation requires at least one monotonic expression in GROUP BY clause
-```
+{% endhighlight %}
 
 Monotonic columns need to be declared in the schema. The monotonicity is
 enforced when records enter the stream and assumed by queries that read from
@@ -214,7 +225,7 @@ that stream. We recommend that you give each stream a timestamp column called
 As in standard SQL, you can apply a `HAVING` clause to filter rows emitted by
 a streaming `GROUP BY`:
 
-```sql
+{% highlight sql %}
 SELECT STREAM FLOOR(rowtime TO HOUR) AS rowtime,
   productId
 FROM Orders
@@ -226,14 +237,14 @@ HAVING COUNT(*) > 2 OR SUM(units) > 10;
  10:00:00 |        30
  11:00:00 |        10
  11:00:00 |        40
-```
+{% endhighlight %}
 
 # Sub-queries, views and SQL's closure property
 
 The previous `HAVING` query can be expressed using a `WHERE` clause on a
 sub-query:
 
-```sql
+{% highlight sql %}
 SELECT STREAM rowtime, productId
 FROM (
   SELECT FLOOR(rowtime TO HOUR) AS rowtime,
@@ -249,7 +260,7 @@ WHERE c > 2 OR su > 10;
  10:00:00 |        30
  11:00:00 |        10
  11:00:00 |        40
-```
+{% endhighlight %}
 
 `HAVING` was introduced in the early days of SQL, when a way was needed to
 perform a filter *after* aggregation. (Recall that `WHERE` filters rows before
@@ -262,7 +273,7 @@ The *closure property* of SQL is extremely powerful. Not only does it render
 `HAVING` obsolete (or, at least, reduce it to syntactic sugar), it makes views
 possible:
 
-```sql
+{% highlight sql %}
 CREATE VIEW HourlyOrderTotals (rowtime, productId, c, su) AS
   SELECT FLOOR(rowtime TO HOUR),
     productId,
@@ -280,11 +291,12 @@ WHERE c > 2 OR su > 10;
  10:00:00 |        30
  11:00:00 |        10
  11:00:00 |        40
-```
+{% endhighlight %}
 
 Sub-queries in the `FROM` clause are sometimes referred to as "inline views",
-but really, nested queries are more fundamental. Views are just a convenient
-way to carve your SQL into manageable chunks.
+but really, they are more fundamental than views. Views are just a convenient
+way to carve your SQL into manageable chunks by giving the pieces names and
+storing them in the metadata repository.
 
 Many people find that nested queries and views are even more useful on streams
 than they are on relations. Streaming queries are pipelines of
@@ -294,7 +306,7 @@ Nested queries and views help to express and manage those pipelines.
 And, by the way, a `WITH` clause can accomplish the same as a sub-query or
 a view:
 
-```sql
+{% highlight sql %}
 WITH HourlyOrderTotals (rowtime, productId, c, su) AS (
   SELECT FLOOR(rowtime TO HOUR),
     productId,
@@ -311,7 +323,7 @@ WHERE c > 2 OR su > 10;
  10:00:00 |        30
  11:00:00 |        10
  11:00:00 |        40
-```
+{% endhighlight %}
 
 ## Converting between streams and relations
 
@@ -323,7 +335,7 @@ However, it is a relation that can be converted into a stream.
 
 You can use it in both relational and streaming queries:
 
-```sql
+{% highlight sql %}
 # A relation; will query the historic Orders table.
 # Returns the largest number of product #10 ever sold in one hour.
 SELECT max(su)
@@ -335,7 +347,7 @@ WHERE productId = 10;
 SELECT STREAM rowtime
 FROM HourlyOrderTotals
 WHERE productId = 10;
-```
+{% endhighlight %}
 
 This approach is not limited to views and sub-queries.
 Following the approach set out in CQL [<a href="#ref1">1</a>], every query
@@ -363,7 +375,7 @@ But suppose we want to emit, every hour, the number of each product ordered over
 the past three hours. To do this, we use `SELECT ... OVER` and a sliding window
 to combine multiple tumbling windows.
 
-```sql
+{% highlight sql %}
 SELECT STREAM rowtime,
   productId,
   SUM(su) OVER w AS su,
@@ -373,7 +385,7 @@ WINDOW w AS (
   ORDER BY rowtime
   PARTITION BY productId
   RANGE INTERVAL '2' HOUR PRECEDING)
-```
+{% endhighlight %}
 
 This query uses the `HourlyOrderTotals` view defined previously.
 The 2 hour interval combines the totals timestamped 09:00:00, 10:00:00 and
@@ -416,7 +428,7 @@ The syntax looks like regular SQL, but Calcite must be sure that it can deliver
 timely results. It therefore requires a monotonic expression on the leading edge
 of your `ORDER BY` key.
 
-```sql
+{% highlight sql %}
 SELECT STREAM FLOOR(rowtime TO hour) AS rowtime, productId, orderId, units
 FROM Orders
 ORDER BY FLOOR(rowtime TO hour) ASC, units DESC;
@@ -431,13 +443,13 @@ ORDER BY FLOOR(rowtime TO hour) ASC, units DESC;
  11:00:00 |        10 |       9 |     6
  11:00:00 |        10 |      12 |     4
  11:00:00 |        10 |      10 |     1
-```
+{% endhighlight %}
 
 Most queries will return results in the order that they were inserted,
 because the engine is using streaming algorithms, but you should not rely on it.
 For example, consider this:
 
-```sql
+{% highlight sql %}
 SELECT STREAM *
 FROM Orders
 WHERE productId = 10
@@ -454,7 +466,7 @@ WHERE productId = 30;
  11:02:00 |        10 |       9 |     6
  11:04:00 |        10 |      10 |     1
  11:24:11 |        10 |      12 |     4
-```
+{% endhighlight %}
 
 The rows with `productId` = 30 are apparently out of order, probably because
 the `Orders` stream was partitioned on `productId` and the partitioned streams
@@ -462,7 +474,7 @@ sent their data at different times.
 
 If you require a particular ordering, add an explicit `ORDER BY`:
 
-```sql
+{% highlight sql %}
 SELECT STREAM *
 FROM Orders
 WHERE productId = 10
@@ -480,7 +492,7 @@ ORDER BY rowtime;
  11:02:00 |        10 |       9 |     6
  11:04:00 |        10 |      10 |     1
  11:24:11 |        10 |      12 |     4
-```
+{% endhighlight %}
 
 Calcite will probably implement the `UNION ALL` by merging using `rowtime`,
 which is only slightly less efficient.
@@ -496,11 +508,11 @@ The `VALUES` clause creates an inline table with a given set of rows.
 Streaming is disallowed. The set of rows never changes, and therefore a stream
 would never return any rows.
 
-```sql
+{% highlight sql %}
 > SELECT STREAM * FROM (VALUES (1, 'abc'));
 
 ERROR: Cannot stream VALUES
-```
+{% endhighlight %}
 
 ## Sliding windows
 
@@ -511,13 +523,13 @@ on a window of many rows.
 
 Let's look at an example.
 
-```sql
+{% highlight sql %}
 SELECT STREAM rowtime,
   productId,
   units,
   SUM(units) OVER (ORDER BY rowtime RANGE INTERVAL '1' HOUR PRECEDING) unitsLastHour
 FROM Orders;
-```
+{% endhighlight %}
 
 The feature packs a lot of power with little effort. You can have multiple
 functions in the `SELECT` clause, based on multiple window specifications.
@@ -525,7 +537,7 @@ functions in the `SELECT` clause, based on multiple window specifications.
 The following example returns orders whose average order size over the last
 10 minutes is greater than the average order size for the last week.
 
-```sql
+{% highlight sql %}
 SELECT STREAM *
 FROM (
   SELECT STREAM rowtime,
@@ -538,7 +550,7 @@ FROM (
     ORDER BY rowtime
     PARTITION BY productId))
 WHERE m10 > d7;
-```
+{% endhighlight %}
 
 For conciseness, here we use a syntax where you partially define a window
 using a `WINDOW` clause and then refine the window in each `OVER` clause.
@@ -551,6 +563,7 @@ with FIFO queues. But you can access those tables without introducing a join
 into the query.
 
 Some other features of the windowed aggregation syntax:
+
 * You can define windows based on row count.
 * The window can reference rows that have not yet arrived.
   (The stream will wait until they have arrived).
@@ -563,13 +576,13 @@ sliding window, but resets totals on a fixed time period, like a
 tumbling window? Such a pattern is called a *cascading window*. Here
 is an example:
 
-```sql
+{% highlight sql %}
 SELECT STREAM rowtime,
   productId,
   units,
   SUM(units) OVER (PARTITION BY FLOOR(rowtime TO HOUR)) AS unitsSinceTopOfHour
 FROM Orders;
-```
+{% endhighlight %}
 
 It looks similar to a sliding window query, but the monotonic
 expression occurs within the `PARTITION BY` clause of the window. As
@@ -615,7 +628,7 @@ such as Samza SQL [<a href="#ref3">3</a>].
 * Windowed aggregation
 * Punctuation
 * Stream-to-table join
-** Stream-to-table join where table is changing
+  * Stream-to-table join where table is changing
 * Stream-to-stream join
 * Relational queries on streams (e.g. "pie chart" query)
 * Diagrams for various window types

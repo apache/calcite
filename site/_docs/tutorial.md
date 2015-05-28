@@ -1,3 +1,8 @@
+---
+layout: docs
+title: Tutorial
+permalink: /docs/tutorial.html
+---
 <!--
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -14,10 +19,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# CSV Adapter Tutorial
+
+{% assign sourceRoot = "http://github.com/apache/incubator-calcite/blob/master" %}
+
+This is a step-by-step tutorial that shows how to build and connect to
+Calcite. It uses a simple adapter that makes a directory of CSV files
+appear to be a schema containing tables. Calcite does the rest, and
+provides a full SQL interface.
 
 Calcite-example-CSV is a fully functional adapter for
-<a href="https://github.com/apache/incubator-calcite">Calcite</a> that reads
+Calcite that reads
 text files in
 <a href="http://en.wikipedia.org/wiki/Comma-separated_values">CSV
 (comma-separated values)</a> format. It is remarkable that a couple of
@@ -27,6 +38,7 @@ capability.
 CSV also serves as a template for building adapters to other
 data formats. Even though there are not many lines of code, it covers
 several important concepts:
+
 * user-defined schema using SchemaFactory and Schema interfaces;
 * declaring schemas in a model JSON file;
 * declaring views in a model JSON file;
@@ -43,12 +55,12 @@ several important concepts:
 
 You need Java (1.7 or higher; 1.8 preferred), git and maven (3.2.1 or later).
 
-```bash
+{% highlight bash %}
 $ git clone https://github.com/apache/incubator-calcite.git
 $ cd incubator-calcite
 $ mvn install -DskipTests -Dcheckstyle.skip=true
 $ cd example/csv
-```
+{% endhighlight %}
 
 ## First queries
 
@@ -56,16 +68,16 @@ Now let's connect to Calcite using
 <a href="https://github.com/julianhyde/sqlline">sqlline</a>, a SQL shell
 that is included in this project.
 
-```bash
+{% highlight bash %}
 $ ./sqlline
 sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
-```
+{% endhighlight %}
 
 (If you are running Windows, the command is `sqlline.bat`.)
 
 Execute a metadata query:
 
-```bash
+{% highlight bash %}
 sqlline> !tables
 +------------+--------------+-------------+---------------+----------+------+
 | TABLE_CAT  | TABLE_SCHEM  | TABLE_NAME  |  TABLE_TYPE   | REMARKS  | TYPE |
@@ -76,7 +88,7 @@ sqlline> !tables
 | null       | metadata     | COLUMNS     | SYSTEM_TABLE  | null     | null |
 | null       | metadata     | TABLES      | SYSTEM_TABLE  | null     | null |
 +------------+--------------+-------------+---------------+----------+------+
-```
+{% endhighlight %}
 
 (JDBC experts, note: sqlline's <code>!tables</code> command is just executing
 <a href="http://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
@@ -96,7 +108,7 @@ the <code>EMPS</code> and <code>DEPTS</code> tables are based on the
 Let's execute some queries on those tables, to show that Calcite is providing
 a full implementation of SQL. First, a table scan:
 
-```bash
+{% highlight bash %}
 sqlline> SELECT * FROM emps;
 +--------+--------+---------+---------+----------------+--------+-------+---+
 | EMPNO  |  NAME  | DEPTNO  | GENDER  |      CITY      | EMPID  |  AGE  | S |
@@ -107,11 +119,11 @@ sqlline> SELECT * FROM emps;
 | 120    | Wilma  | 20      | F       |                | 1      | 5     | n |
 | 130    | Alice  | 40      | F       | Vancouver      | 2      | null  | f |
 +--------+--------+---------+---------+----------------+--------+-------+---+
-```
+{% endhighlight %}
 
 Now JOIN and GROUP BY:
 
-```bash
+{% highlight bash %}
 sqlline> SELECT d.name, COUNT(*)
 . . . .> FROM emps AS e JOIN depts AS d ON e.deptno = d.deptno
 . . . .> GROUP BY d.name;
@@ -121,19 +133,19 @@ sqlline> SELECT d.name, COUNT(*)
 | Sales      | 1       |
 | Marketing  | 2       |
 +------------+---------+
-```
+{% endhighlight %}
 
 Last, the VALUES operator generates a single row, and is a convenient
 way to test expressions and SQL built-in functions:
 
-```bash
+{% highlight bash %}
 sqlline> VALUES CHAR_LENGTH('Hello, ' || 'world!');
 +---------+
 | EXPR$0  |
 +---------+
 | 13      |
 +---------+
-```
+{% endhighlight %}
 
 Calcite has many other SQL features. We don't have time to cover them
 here. Write some more queries to experiment.
@@ -157,7 +169,7 @@ executed. Now let's look at those steps in more detail.
 On the JDBC connect string we gave the path of a model in JSON
 format. Here is the model:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'SALES',
@@ -172,18 +184,18 @@ format. Here is the model:
     }
   ]
 }
-```
+{% endhighlight %}
 
 The model defines a single schema called 'SALES'. The schema is
 powered by a plugin class,
-<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchemaFactory.java">org.apache.calcite.adapter.csv.CsvSchemaFactory</a>,
+<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchemaFactory.java">org.apache.calcite.adapter.csv.CsvSchemaFactory</a>,
 which is part of the
 calcite-example-csv project and implements the Calcite interface
-<a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/SchemaFactory.html">SchemaFactory</a>.
+<a href="/apidocs/org/apache/calcite/schema/SchemaFactory.html">SchemaFactory</a>.
 Its <code>create</code> method instantiates a
 schema, passing in the <code>directory</code> argument from the model file:
 
-```java
+{% highlight java %}
 public Schema create(SchemaPlus parentSchema, String name,
     Map<String, Object> operand) {
   String directory = (String) operand.get("directory");
@@ -198,27 +210,27 @@ public Schema create(SchemaPlus parentSchema, String name,
       new File(directory),
       flavor);
 }
-```
+{% endhighlight %}
 
 Driven by the model, the schema factory instantiates a single schema
 called 'SALES'.  The schema is an instance of
-<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchema.java">org.apache.calcite.adapter.csv.CsvSchema</a>
-and implements the Calcite interface <a
-href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/Schema.html">Schema</a>.
+<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchema.java">org.apache.calcite.adapter.csv.CsvSchema</a>
+and implements the Calcite interface
+<a href="/calcite/apidocs/org/apache/calcite/schema/Schema.html">Schema</a>.
 
 A schema's job is to produce a list of tables. (It can also list sub-schemas and
 table-functions, but these are advanced features and calcite-example-csv does
 not support them.) The tables implement Calcite's
-<a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/Table.html">Table</a>
+<a href="/apidocs/org/apache/calcite/schema/Table.html">Table</a>
 interface. <code>CsvSchema</code> produces tables that are instances of
-<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTable.java">CsvTable</a>
+<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTable.java">CsvTable</a>
 and its sub-classes.
 
 Here is the relevant code from <code>CsvSchema</code>, overriding the
-<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
+<code><a href="/apidocs/org/apache/calcite/schema/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
 method in the <code>AbstractSchema</code> base class.
 
-```java
+{% highlight java %}
 protected Map<String, Table> getTableMap() {
   // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
   // ".json.gz".
@@ -264,7 +276,7 @@ private Table createTable(File file) {
     throw new AssertionError("Unknown flavor " + flavor);
   }
 }
-```
+{% endhighlight %}
 
 The schema scans the directory and finds all files whose name ends
 with ".csv" and creates tables for them. In this case, the directory
@@ -292,7 +304,7 @@ clause that are not used in the final result.
 
 Here is a schema that defines a view:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'SALES',
@@ -314,7 +326,7 @@ Here is a schema that defines a view:
     }
   ]
 }
-```
+{% endhighlight %}
 
 The line <code>type: 'view'</code> tags <code>FEMALE_EMPS</code> as a view,
 as opposed to a regular table or a custom table.
@@ -325,27 +337,27 @@ JSON doesn't make it easy to author long strings, so Calcite supports an
 alternative syntax. If your view has a long SQL statement, you can instead
 supply a list of lines rather than a single string:
 
-```json
-        {
-          name: 'FEMALE_EMPS',
-          type: 'view',
-          sql: [
-            'SELECT * FROM emps',
-            'WHERE gender = \'F\''
-          ]
-        }
-```
+{% highlight json %}
+{
+  name: 'FEMALE_EMPS',
+  type: 'view',
+  sql: [
+    'SELECT * FROM emps',
+    'WHERE gender = \'F\''
+  ]
+}
+{% endhighlight %}
 
 Now we have defined a view, we can use it in queries just as if it were a table:
 
-```sql
+{% highlight sql %}
 sqlline> SELECT e.name, d.name FROM female_emps AS e JOIN depts AS d on e.deptno = d.deptno;
 +--------+------------+
 |  NAME  |    NAME    |
 +--------+------------+
 | Wilma  | Marketing  |
 +--------+------------+
-```
+{% endhighlight %}
 
 ## Custom tables
 
@@ -354,7 +366,7 @@ They don't need to live in a custom schema.
 
 There is an example in <code>model-with-custom-table.json</code>:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'CUSTOM_TABLE',
@@ -375,11 +387,11 @@ There is an example in <code>model-with-custom-table.json</code>:
     }
   ]
 }
-```
+{% endhighlight %}
 
 We can query the table in the usual way:
 
-```sql
+{% highlight sql %}
 sqlline> !connect jdbc:calcite:model=target/test-classes/model-with-custom-table.json admin admin
 sqlline> SELECT empno, name FROM custom_table.emps;
 +--------+--------+
@@ -391,16 +403,16 @@ sqlline> SELECT empno, name FROM custom_table.emps;
 | 120    | Wilma  |
 | 130    | Alice  |
 +--------+--------+
-```
+{% endhighlight %}
 
 The schema is a regular one, and contains a custom table powered by
-<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableFactory.java">org.apache.calcite.adapter.csv.CsvTableFactory</a>,
+<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableFactory.java">org.apache.calcite.adapter.csv.CsvTableFactory</a>,
 which implements the Calcite interface
-<a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/TableFactory.html">TableFactory</a>.
+<a href="/apidocs/org/apache/calcite/schema/TableFactory.html">TableFactory</a>.
 Its <code>create</code> method instantiates a <code>CsvScannableTable</code>,
 passing in the <code>file</code> argument from the model file:
 
-```java
+{% highlight java %}
 public CsvTable create(SchemaPlus schema, String name,
     Map<String, Object> map, RelDataType rowType) {
   String fileName = (String) map.get("file");
@@ -409,7 +421,7 @@ public CsvTable create(SchemaPlus schema, String name,
       rowType != null ? RelDataTypeImpl.proto(rowType) : null;
   return new CsvScannableTable(file, protoRowType);
 }
-```
+{% endhighlight %}
 
 Implementing a custom table is often a simpler alternative to implementing
 a custom schema. Both approaches might end up creating a similar implementation
@@ -426,7 +438,7 @@ more control (say, providing different parameters for each table).
 
 Models can include comments using `/* ... */` and `//` syntax:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   /* Multi-line
@@ -437,7 +449,7 @@ Models can include comments using `/* ... */` and `//` syntax:
     ..
   ]
 }
-```
+{% endhighlight %}
 
 (Comments are not standard JSON, but are a harmless extension.)
 
@@ -462,7 +474,7 @@ To see this in action, let's use a planner rule to access
 a subset of columns from a CSV file. Let's run the same query against two very
 similar schemas:
 
-```sql
+{% highlight sql %}
 sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
@@ -479,33 +491,33 @@ sqlline> explain plan for select name from emps;
 | EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
 |   CsvTableScan(table=[[SALES, EMPS]])               |
 +-----------------------------------------------------+
-```
+{% endhighlight %}
 
 What causes the difference in plan? Let's follow the trail of evidence. In the
 <code>smart.json</code> model file, there is just one extra line:
 
-```json
+{% highlight json %}
 flavor: "translatable"
-```
+{% endhighlight %}
 
 This causes a <code>CsvSchema</code> to be created with
 <code>flavor = TRANSLATABLE</code>,
 and its <code>createTable</code> method creates instances of
-<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTranslatableTable.java">CsvTranslatableTable</a>
+<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTranslatableTable.java">CsvTranslatableTable</a>
 rather than a <code>CsvScannableTable</code>.
 
 <code>CsvTranslatableTable</code> implements the
-<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/schema/TranslatableTable.html#toRel()">TranslatableTable.toRel()</a></code>
+<code><a href="/apidocs/org/apache/calcite/schema/TranslatableTable.html#toRel()">TranslatableTable.toRel()</a></code>
 method to create
-<a href="../example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java">CsvTableScan</a>.
+<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java">CsvTableScan</a>.
 Table scans are the leaves of a query operator tree.
 The usual implementation is
-<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/adapter/enumerable/EnumerableTableScan.html">EnumerableTableScan</a></code>,
+<code><a href="/apidocs/org/apache/calcite/adapter/enumerable/EnumerableTableScan.html">EnumerableTableScan</a></code>,
 but we have created a distinctive sub-type that will cause rules to fire.
 
 Here is the rule in its entirety:
 
-```java
+{% highlight java %}
 public class CsvProjectTableScanRule extends RelOptRule {
   public static final CsvProjectTableScanRule INSTANCE =
       new CsvProjectTableScanRule();
@@ -547,13 +559,13 @@ public class CsvProjectTableScanRule extends RelOptRule {
     return fields;
   }
 }
-```
+{% endhighlight %}
 
 The constructor declares the pattern of relational expressions that will cause
 the rule to fire.
 
 The <code>onMatch</code> method generates a new relational expression and calls
-<code><a href="http://www.hydromatic.net/calcite/apidocs/org/apache/calcite/plan/RelOptRuleCall.html#transformTo(org.apache.calcite.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
+<code><a href="/apidocs/org/apache/calcite/plan/RelOptRuleCall.html#transformTo(org.apache.calcite.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
 to indicate that the rule has fired successfully.
 
 ## The query optimization process
@@ -597,7 +609,7 @@ The JDBC adapter maps a schema in a JDBC data source as a Calcite schema.
 
 For example, this schema reads from a MySQL "foodmart" database:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'FOODMART',
@@ -615,7 +627,7 @@ For example, this schema reads from a MySQL "foodmart" database:
     }
   ]
 }
-```
+{% endhighlight %}
 
 (The FoodMart database will be familiar to those of you who have used
 the Mondrian OLAP engine, because it is Mondrian's main test data
@@ -643,7 +655,7 @@ those in-memory tables, effectively a cache of the database.
 For example, the following model reads tables from a MySQL
 "foodmart" database:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'FOODMART_CLONE',
@@ -661,13 +673,13 @@ For example, the following model reads tables from a MySQL
     }
   ]
 }
-```
+{% endhighlight %}
 
 Another technique is to build a clone schema on top of an existing
 schema. You use the <code>source</code> property to reference a schema
 defined earlier in the model, like this:
 
-```json
+{% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'FOODMART_CLONE',
@@ -693,7 +705,7 @@ defined earlier in the model, like this:
     }
   ]
 }
-```
+{% endhighlight %}
 
 You can use this approach to create a clone schema on any type of
 schema, not just JDBC.
@@ -746,8 +758,3 @@ relational operators?
 ### Table functions
 
 (To be written.)
-
-## Further resources
-
-* <a href="http://calcite.incubator.apache.org">Apache Calcite</a> home
-  page

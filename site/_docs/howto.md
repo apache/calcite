@@ -1,3 +1,9 @@
+---
+layout: docs
+title: HOWTO
+permalink: /docs/howto.html
+---
+
 <!--
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -14,7 +20,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Calcite HOWTO
+{% assign sourceRoot = "http://github.com/apache/incubator-calcite/blob/master" %}
 
 Here's some miscellaneous documentation about using Calcite and its various
 adapters.
@@ -28,13 +34,13 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
-```bash
+{% highlight bash %}
 $ tar xvfz calcite-1.3.0-incubating-source.tar.gz
 $ cd calcite-1.3.0-incubating
 $ mvn install
-```
+{% endhighlight %}
 
-[Running tests](howto.md#running-tests) describes how to run more or fewer
+[Running tests](#running-tests) describes how to run more or fewer
 tests.
 
 ## Building from git
@@ -46,13 +52,13 @@ Create a local copy of the github repository,
 `cd` to its root directory,
 then build using maven:
 
-```bash
+{% highlight bash %}
 $ git clone git://github.com/apache/incubator-calcite.git
 $ cd incubator-calcite
 $ mvn install
-```
+{% endhighlight %}
 
-[Running tests](howto.md#running-tests) describes how to run more or fewer
+[Running tests](#running-tests) describes how to run more or fewer
 tests.
 
 ## Running tests
@@ -60,10 +66,11 @@ tests.
 The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
-```bash
-$ mvn clean # Note: mvn clean install does not work, use mvn clean && mvn install
+{% highlight bash %}
+# Note: "mvn clean install" does not work; use "mvn clean" then "mvn install"
+$ mvn clean 
 $ mvn -DskipTests install
-```
+{% endhighlight %}
 
 There are other options that control which tests are run, and in what
 environment, as follows.
@@ -73,8 +80,10 @@ environment, as follows.
   suite requires a JDBC data source populated with the foodmart data
   set.
    * `hsqldb`, the default, uses an in-memory hsqldb database.
-   * all others access test virtual machine (see [integration tests](howto.md#running-integration-tests) below)
-     `mysql` and `postgresql` might be somewhat faster than hsqldb, but you need to populate it (i.e. provision a VM).
+   * All others access a test virtual machine
+     (see [integration tests](#running-integration-tests) below).
+     `mysql` and `postgresql` might be somewhat faster than hsqldb, but you need
+     to populate it (i.e. provision a VM).
 * `-Dcalcite.debug` prints extra debugging information to stdout.
 * `-Dcalcite.test.slow` enables tests that take longer to execute. For
   example, there are tests that create virtual TPC-H and TPC-DS schemas
@@ -98,19 +107,21 @@ Note: you can use [calcite-test-dataset](https://github.com/vlsi/calcite-test-da
 
 1) Clone https://github.com/vlsi/calcite-test-dataset.git at the same level as calcite repository.
 For instance:
-```bash
+
+{% highlight bash %}
 code
   +-- calcite
   +-- calcite-test-dataset
-```
+{% endhighlight %}
 
 Note: integration tests search for ../calcite-test-dataset or ../../calcite-test-dataset.
  You can specify full path via calcite.test.dataset system property.
 
 2) Build and start the VM:
-```bash
+
+{% highlight bash %}
 cd calcite-test-dataset && mvn install
-```
+{% endhighlight %}
 
 ### VM management
 
@@ -122,12 +133,14 @@ The connection strings for different databases are listed in [calcite-test-datas
 Note: test VM should be started before you launch integration tests. Calcite itself does not start/stop the VM.
 
 Command line:
+
 * Executing regular unit tests (does not require external data): no change. `mvn test` or `mvn install`.
 * Executing all tests, for all the DBs: `mvn verify -Pit`. `it` stands for "integration-test". `mvn install -Pit` works as well.
 * Executing just tests for external DBs, excluding unit tests: `mvn -Dtest=foo -DfailIfNoTests=false -Pit verify`
 * Executing just MongoDB tests: `cd mongo; mvn verify -Pit`
 
 From within IDE:
+
 * Executing regular unit tests: no change.
 * Executing MongoDB tests: run `MongoAdapterIT.java` as usual (no additional properties are required)
 * Executing MySQL tests: run `JdbcTest` and `JdbcAdapterTest` with setting `-Dcalcite.test.db=mysql`
@@ -157,9 +170,7 @@ install` succeeds. (Run extra tests if your change warrants it.)
 Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
 
-```
-[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
-```
+`[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal`
 
 If your change had multiple commits, use `git rebase -i master` to
 combine them into a single commit, and to bring your code up to date
@@ -196,29 +207,25 @@ or just by answering questions on the list.
 
 To enable tracing, add the following flags to the java command line:
 
-```
--Dcalcite.debug=true -Djava.util.logging.config.file=core/src/test/resources/logging.properties
-```
+`-Dcalcite.debug=true -Djava.util.logging.config.file=core/src/test/resources/logging.properties`
 
 The first flag causes Calcite to print the Java code it generates
 (to execute queries) to stdout. It is especially useful if you are debugging
 mysterious problems like this:
 
-```
-Exception in thread "main" java.lang.ClassCastException: Integer cannot be cast to Long
-  at Baz$1$1.current(Unknown Source)
-```
+`Exception in thread "main" java.lang.ClassCastException: Integer cannot be cast to Long
+  at Baz$1$1.current(Unknown Source)`
 
 The second flag specifies a config file for
 the <a href="http://docs.oracle.com/javase/7/docs/api/java/util/logging/package-summary.html">java.util.logging</a>
 framework. Put the following into core/src/test/resources/logging.properties:
 
-```properties
+{% highlight properties %}
 handlers= java.util.logging.ConsoleHandler
 .level= INFO
 org.apache.calcite.plan.RelOptPlanner.level=FINER
 java.util.logging.ConsoleHandler.level=ALL
-```
+{% endhighlight %}
 
 The line `org.apache.calcite.plan.RelOptPlanner.level=FINER` tells the planner to produce
 fairly verbose output. You can modify the file to enable other loggers, or to change levels.
@@ -227,7 +234,7 @@ planning process so detailed that it might fill up your hard drive.
 
 ## CSV adapter
 
-See the <a href="tutorial.md">tutorial</a>.
+See the [tutorial](/docs/tutorial.html).
 
 ## MongoDB adapter
 
@@ -238,16 +245,16 @@ Note: you can use MongoDB from integration test virtual machine above.
 
 Import MongoDB's zipcode data set into MongoDB:
 
-```bash
+{% highlight bash %}
 $ curl -o /tmp/zips.json http://media.mongodb.org/zips.json
 $ mongoimport --db test --collection zips --file /tmp/zips.json
 Tue Jun  4 16:24:14.190 check 9 29470
 Tue Jun  4 16:24:14.469 imported 29470 objects
-```
+{% endhighlight %}
 
 Log into MongoDB to check it's there:
 
-```bash
+{% highlight bash %}
 $ mongo
 MongoDB shell version: 2.4.3
 connecting to: test
@@ -257,12 +264,13 @@ connecting to: test
 { "city" : "ADGER", "loc" : [ -87.167455, 33.434277 ], "pop" : 3205, "state" : "AL", "_id" : "35006" }
 > exit
 bye
-```
+{% endhighlight %}
 
 Connect using the
-<a href="https://github.com/apache/incubator-calcite/blob/master/mongodb/src/test/resources/mongo-zips-model.json">mongo-zips-model.json</a>
+[mongo-zips-model.json]({{ sourceRoot }}/mongodb/src/test/resources/mongo-zips-model.json)
 Calcite model:
-```bash
+
+{% highlight bash %}
 $ ./sqlline
 sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
 Connecting to jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json
@@ -290,7 +298,7 @@ sqlline> select count(*) from zips;
 sqlline> !quit
 Closing: org.apache.calcite.jdbc.FactoryJdbc41$CalciteConnectionJdbc41
 $
-```
+{% endhighlight %}
 
 ## Splunk adapter
 
@@ -306,7 +314,7 @@ queries. It is also necessary if you intend to run the test suite, using
 
 New adapters can be created by implementing `CalcitePrepare.Context`:
 
-```java
+{% highlight java %}
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteRootSchema;
@@ -324,7 +332,7 @@ public class AdapterContext implements CalcitePrepare.Context {
     return rootSchema;
   }
 }
-```
+{% endhighlight %}
 
 ### Testing adapter in Java
 
@@ -336,7 +344,7 @@ provides access to the underlying enumerable and methods for
 enumeration. The enumerable itself can naturally be some adapter
 specific implementation.
 
-```java
+{% highlight java %}
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.junit.Test;
@@ -353,7 +361,7 @@ public class AdapterContextTest {
     // etc.
   }
 }
-```
+{% endhighlight %}
 
 ### JavaTypeFactory
 
@@ -361,14 +369,15 @@ When Calcite compares types (instances of `RelDataType`), it requires them to be
 object. If there are two distinct type instances that refer to the
 same Java type, Calcite may fail to recognize that they match.  It is
 recommended to:
+
 * Use a single instance of `JavaTypeFactory` within the calcite context;
 * Store the types so that the same object is always returned for the same type.
 
 ## Set up PGP signing keys (for Calcite committers)
 
-Follow instructions at http://www.apache.org/dev/release-signing to
-create a key pair. (On Mac OS X, I did `brew install gpg` and `gpg
---gen-key`.)
+Follow instructions [here](http://www.apache.org/dev/release-signing) to
+create a key pair. (On Mac OS X, I did `brew install gpg` and
+`gpg --gen-key`.)
 
 Add your public key to the `KEYS` file by following instructions in
 the `KEYS` file.
@@ -376,11 +385,12 @@ the `KEYS` file.
 ## Making a snapshot (for Calcite committers)
 
 Before you start:
+
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.8).
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
-```bash
+{% highlight bash %}
 # Set passphrase variable without putting it into shell history
 read -s GPG_PASSPHRASE
 
@@ -389,13 +399,14 @@ git clean -xn
 mvn clean
 
 mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} install
-```
+{% endhighlight %}
 
 When the dry-run has succeeded, change `install` to `deploy`.
 
 ## Making a release (for Calcite committers)
 
 Before you start:
+
 * Set up signing keys as described above.
 * Make sure you are using JDK 1.7 (not 1.8).
 * Check that `README`, `README.md` and `doc/howto.md` have the correct version number.
@@ -415,10 +426,10 @@ Before you start:
 
 Create a release branch named after the release, e.g. `branch-1.1`, and push it to Apache.
 
-```bash
+{% highlight bash %}
 $ git checkout -b branch-X.Y
 $ git push -u origin branch-X.Y
-```
+{% endhighlight %}
 
 We will use the branch for the entire the release process. Meanwhile,
 we do not allow commits to the master branch. After the release is
@@ -435,7 +446,7 @@ that the release process will complete as expected.
 If any of the steps fail, clean up (see below), fix the problem, and
 start again from the top.
 
-```bash
+{% highlight bash %}
 # Set passphrase variable without putting it into shell history
 read -s GPG_PASSPHRASE
 
@@ -445,9 +456,10 @@ mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers.
 mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
-```
+{% endhighlight %}
 
 Check the artifacts:
+
 * In the `target` directory should be these 8 files, among others:
   * apache-calcite-X.Y.Z-incubating-src.tar.gz
   * apache-calcite-X.Y.Z-incubating-src.tar.gz.asc
@@ -472,20 +484,21 @@ Check the artifacts:
   `NOTICE` and `git.properties`
 * In each .jar, check that `org-apache-calcite-jdbc.properties` is
   present and does not contain un-substituted `${...}` variables
-* Check PGP, per https://httpd.apache.org/dev/verification.html
+* Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
 
 Now, remove the `-DdryRun` flag and run the release for real.
 
-```bash
+{% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
 mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
-```
+{% endhighlight %}
 
 Verify the staged artifacts in the Nexus repository:
-* Go to https://repository.apache.org/
+
+* Go to [https://repository.apache.org/](https://repository.apache.org/) and login
 * Under `Build Promotion`, click `Staging Repositories`
 * In the `Staging Repositories` tab there should be a line with profile `org.apache.calcite`
 * Navigate through the artifact tree and make sure the .jar, .pom, .asc files are present
@@ -497,7 +510,7 @@ Verify the staged artifacts in the Nexus repository:
 Upload the artifacts via subversion to a staging area,
 https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN:
 
-```bash
+{% highlight bash %}
 # Create a subversion workspace, if you haven't already
 mkdir -p ~/dist/dev
 pushd ~/dist/dev
@@ -513,11 +526,11 @@ mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-incubating-rcN
 cd ~/dist/dev/calcite
 svn add apache-calcite-X.Y.Z-incubating-rcN
 svn ci
-```
+{% endhighlight %}
 
 ## Cleaning up after a failed release attempt (for Calcite committers)
 
-```
+{% highlight bash %}
 # Make sure that the tag you are about to generate does not already
 # exist (due to a failed release attempt)
 git tag
@@ -533,11 +546,11 @@ mvn release:clean
 # original git commit
 git status
 git reset --hard HEAD
-```
+{% endhighlight %}
 
 ## Validate a release
 
-```bash
+{% highlight bash %}
 # Check that the signing key (e.g. 2AD3FAE3) is pushed
 gpg --recv-keys key
 
@@ -575,13 +588,13 @@ function checkHash() {
   done
 }
 checkHash apache-calcite-X.Y.Z-incubating-rcN
-```
+{% endhighlight %}
 
 ## Get approval for a release via Apache voting process (for Calcite committers)
 
 Release vote on dev list
 
-```
+{% highlight text %}
 To: dev@calcite.incubator.apache.org
 Subject: [VOTE] Release apache-calcite-X.Y.Z-incubating (release candidate N)
 
@@ -591,7 +604,7 @@ I have created a build for Apache Calcite X.Y.Z-incubating, release candidate N.
 
 Thanks to everyone who has contributed to this release.
 <Further details about release.> You can read the release notes here:
-https://github.com/apache/incubator-calcite/blob/XXXX/doc/history.md
+https://github.com/apache/incubator-calcite/blob/XXXX/site/_docs/history.md
 
 The commit to be voted upon:
 http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
@@ -628,11 +641,11 @@ Here is my vote:
 +1 (binding)
 
 Julian
-```
+{% endhighlight %}
 
 After vote finishes, send out the result:
 
-```
+{% highlight text %}
 Subject: [RESULT] [VOTE] Release apache-calcite-X.Y.Z-incubating (release candidate N)
 To: dev@calcite.incubator.apache.org
 
@@ -656,7 +669,7 @@ I'll now start a vote on the general list. Those of you in the IPMC,
 please recast your vote on the new thread.
 
 Julian
-```
+{% endhighlight %}
 
 Use the [Apache URL shortener](http://s.apache.org) to generate
 shortened URLs for the vote proposal and result emails. Examples:
@@ -665,7 +678,7 @@ shortened URLs for the vote proposal and result emails. Examples:
 
 Propose a vote on the incubator list.
 
-```
+{% highlight text %}
 To: general@incubator.apache.org
 Subject: [VOTE] Release Apache Calcite X.Y.Z (incubating)
 
@@ -713,11 +726,11 @@ is reached.
 [ ] -1 Do not release this package because...
 
 Julian Hyde, on behalf of Apache Calcite PPMC
-```
+{% endhighlight %}
 
 After vote finishes, send out the result:
 
-```
+{% highlight text %}
 To: general@incubator.apache.org
 Subject: [RESULT] [VOTE] Release Apache Calcite X.Y.Z (incubating)
 
@@ -730,7 +743,7 @@ thread to discuss.
 Thanks everyone. We’ll now roll the release out to the mirrors.
 
 Julian
-```
+{% endhighlight %}
 
 ## Publishing a release (for Calcite committers)
 
@@ -744,14 +757,15 @@ with a change comment
 (fill in release number and date appropriately).
 
 Promote the staged nexus artifacts.
-* Go to https://repository.apache.org/
+
+* Go to [https://repository.apache.org/](https://repository.apache.org/) and login
 * Under "Build Promotion" click "Staging Repositories"
 * In the line with "orgapachecalcite-xxxx", check the box
 * Press "Release" button
 
 Check the artifacts into svn.
 
-```bash
+{% highlight bash %}
 # Get the release candidate.
 mkdir -p ~/dist/dev
 cd ~/dist/dev
@@ -767,37 +781,30 @@ svn add apache-calcite-X.Y.Z-incubating
 
 # Check in.
 svn ci
-```
+{% endhighlight %}
 
 Svnpubsub will publish to
 https://dist.apache.org/repos/dist/release/incubator/calcite and propagate to
 http://www.apache.org/dyn/closer.cgi/incubator/calcite within 24 hours.
 
+If there are now more than 2 releases, clear out the oldest ones:
+
+{% highlight bash %}
+cd ~/dist/release/calcite
+svn rm apache-calcite-X.Y.Z-incubating
+svn ci
+{% endhighlight %}
+
+The old releases will remain available in the
+[release archive](http://archive.apache.org/dist/incubator/calcite/).
+
+Add a release note by copying
+[site/_posts/2015-03-13-release-1.1.0-incubating.md]({{ sourceRoot }}/site/_posts/2015-03-13-release-1.1.0-incubating.md),
+[publish the site](#publish-the-web-site),
+and check that it appears in the contents in [news](http://localhost:4000/news/).
+
 ## Publishing the web site (for Calcite committers)
+{: #publish-the-web-site}
 
-Get the code:
-
-```bash
-$ svn co https://svn.apache.org/repos/asf/incubator/calcite/site calcite-site
-```
-
-(Note: `https:`, not `http:`.)
-
-Build the site:
-
-```bash
-$ cd calcite-site
-$ ./build.sh
-```
-
-It will prompt you to install jekyll, redcarpet and pygments, if you
-do not have them installed. It will also check out the git source code
-repo, so that it can generate javadoc.
-
-Check in:
-
-```bash
-svn ci -m"Commit message" file...
-```
-
-The site will automatically be deployed as http://calcite.incubator.apache.org.
+See instructions in
+[site/README.md]({{ sourceRoot }}/site/README.md).
