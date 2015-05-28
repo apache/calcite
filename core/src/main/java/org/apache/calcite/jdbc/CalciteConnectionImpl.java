@@ -157,8 +157,13 @@ abstract class CalciteConnectionImpl
     try {
       Meta.Signature signature =
           parseQuery(sql, new ContextImpl(this), -1);
-      return (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
+      final CalcitePreparedStatement calcitePreparedStatement;
+      calcitePreparedStatement =
+        (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
           signature, resultSetType, resultSetConcurrency, resultSetHoldability);
+      server.addStatement(this, calcitePreparedStatement.handle);
+      server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
+      return calcitePreparedStatement;
     } catch (Exception e) {
       throw Helper.INSTANCE.createException(
           "Error while preparing statement [" + sql + "]", e);

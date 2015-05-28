@@ -195,7 +195,7 @@ public class CalciteMetaImpl extends MetaImpl {
       final CalcitePrepare.CalciteSignature<Object> signature =
           new CalcitePrepare.CalciteSignature<Object>("",
               ImmutableList.<AvaticaParameter>of(), internalParameters, null,
-              columns, cursorFactory, -1, null) {
+              columns, cursorFactory, -1, null, Meta.StatementType.SELECT) {
             @Override public Enumerable<Object> enumerable(
                 DataContext dataContext) {
               return Linq4j.asEnumerable(firstFrame.rows);
@@ -572,15 +572,16 @@ public class CalciteMetaImpl extends MetaImpl {
     // TODO: share code with prepare and createIterable
   }
 
-  @Override public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
+  @Override public Frame fetch(StatementHandle h,
       int offset, int fetchMaxRowCount) {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
     final Signature signature = stmt.getSignature();
     final Iterator<Object> iterator;
-    if (parameterValues != null) {
+    final boolean hasIterator = (stmt.getResultSet() == null) ? false : true;
+    if (!hasIterator) {
       final Iterable<Object> iterable =
-          createIterable(h, signature, parameterValues, null);
+          createIterable(h, signature, null, null);
       iterator = iterable.iterator();
       stmt.setResultSet(iterator);
     } else {
@@ -592,6 +593,38 @@ public class CalciteMetaImpl extends MetaImpl {
             LimitIterator.of(iterator, fetchMaxRowCount), list);
     boolean done = fetchMaxRowCount == 0 || list.size() < fetchMaxRowCount;
     return new Meta.Frame(offset, done, (List<Object>) (List) rows);
+  }
+
+  @Override public ExecuteResult execute(StatementHandle h,
+      List<TypedValue> parameterValues, int maxRowCount) {
+    final CalciteConnectionImpl calciteConnection = getConnection();
+    CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
+    final Signature signature = stmt.getSignature();
+    final Iterator<Object> iterator;
+
+    final Iterable<Object> iterable =
+        createIterable(h, signature, parameterValues, null);
+    iterator = iterable.iterator();
+    stmt.setResultSet(iterator);
+
+    MetaResultSet metaResultSet;
+    if (signature.statementType.canUpdate()) {
+      metaResultSet = MetaResultSet.count(h.connectionId, h.id,
+          ((Number) iterator.next()).intValue());
+    } else {
+      final List<List<Object>> list = new ArrayList<>();
+      List<List<Object>> rows =
+          MetaImpl.collect(signature.cursorFactory,
+              LimitIterator.of(iterator, maxRowCount), list);
+      final boolean done = maxRowCount == 0 || list.size() < maxRowCount;
+      final Meta.Frame frame =
+          new Meta.Frame(0, done, (List<Object>) (List) rows);
+
+      metaResultSet =
+          MetaResultSet.create(h.connectionId, h.id, false, signature, frame);
+    }
+
+    return new ExecuteResult(ImmutableList.of(metaResultSet));
   }
 
   /** A trojan-horse method, subject to change without notice. */
