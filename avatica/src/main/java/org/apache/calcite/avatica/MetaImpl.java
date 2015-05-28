@@ -252,7 +252,7 @@ public abstract class MetaImpl implements Meta {
       final AvaticaStatement statement = connection.createStatement();
       final Signature signature =
           new Signature(columns, "", Collections.<AvaticaParameter>emptyList(),
-              internalParameters, cursorFactory);
+              internalParameters, cursorFactory, Meta.StatementType.SELECT);
       return MetaResultSet.create(connection.id, statement.getId(), true,
           signature, firstFrame);
     } catch (SQLException e) {
@@ -736,8 +736,7 @@ public abstract class MetaImpl implements Meta {
     return new FetchIterable(handle, firstFrame, parameterValues);
   }
 
-  public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
-      long offset, int fetchMaxRowCount) {
+  public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) {
     return null;
   }
 
@@ -865,7 +864,7 @@ public abstract class MetaImpl implements Meta {
           rows = null;
           break;
         }
-        frame = fetch(handle, parameterValues, frame.offset, 100);
+        frame = fetch(handle, frame.offset, 100);
         parameterValues = null; // don't execute next time
         if (frame == null) {
           rows = null;
@@ -876,6 +875,20 @@ public abstract class MetaImpl implements Meta {
         rows = frame.rows.iterator();
       }
     }
+  }
+
+  /**
+   * Iterate through parameterValues to find null elements
+   */
+  public static boolean checkParameterValueHasNull(List<TypedValue> parameterValues) {
+    boolean hasNull = false;
+    for (TypedValue x : parameterValues) {
+      if (x == null) {
+        hasNull = true;
+        break;
+      }
+    }
+    return hasNull;
   }
 }
 

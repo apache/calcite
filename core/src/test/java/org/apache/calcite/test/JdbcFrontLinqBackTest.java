@@ -35,13 +35,21 @@ import org.junit.Test;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 
 import static org.apache.calcite.test.CalciteAssert.hr;
 import static org.apache.calcite.test.CalciteAssert.that;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for a JDBC front-end (with some quite complex SQL) and Linq4j back-end
@@ -208,6 +216,7 @@ public class JdbcFrontLinqBackTest {
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
   }
 
+  @Ignore
   @Test public void testInsert() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
@@ -231,28 +240,59 @@ public class JdbcFrontLinqBackTest {
             "name=Sebastian; C=2");
   }
 
+  /**
+   * Creates the post processor routine to be applied against Connection Object
+   * Table schema is based on JdbcTest#Employee (refer to JdbcFrontLinqBackTest#mutable)
+   * @param initialData records to be presented in table
+   * @return CalciteAssert.ConnectionPostProcessor
+   */
+  private static CalciteAssert.ConnectionPostProcessor makePostProcessor(
+    final List<JdbcTest.Employee> initialData) {
+    return new CalciteAssert.ConnectionPostProcessor() {
+      public Connection apply(final Connection connection)
+          throws SQLException {
+        CalciteConnection calciteConnection =
+            connection.unwrap(CalciteConnection.class);
+        SchemaPlus rootSchema =
+            calciteConnection.getRootSchema();
+        SchemaPlus mapSchema =
+            rootSchema.add("foo", new AbstractSchema());
+        final String tableName = "bar";
+        final JdbcTest.AbstractModifiableTable table =
+            mutable(tableName, initialData);
+        mapSchema.add(tableName, table);
+        return calciteConnection;
+      }
+    };
+  }
+
+  /**
+   * Method to be shared with RemoteDriverTest.java
+   * @param initialData record to be presented in table
+   * @return java.sql.Connection
+   * @throws Exception
+   */
+  public static Connection makeConnection(
+        final List<JdbcTest.Employee> initialData) throws Exception {
+    Properties info = new Properties();
+    Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
+    connection = makePostProcessor(initialData).apply(connection);
+    return connection;
+  }
+
+  /**
+   * Make connection with an empty modifiable table with JdbcTest#Employee schema
+   */
+  public static Connection makeConnection() throws Exception {
+    return makeConnection(new ArrayList<JdbcTest.Employee>());
+  }
+
   private CalciteAssert.AssertThat mutable(
       final List<JdbcTest.Employee> employees) {
     employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
     return that()
         .with(CalciteAssert.Config.REGULAR)
-        .with(
-            new CalciteAssert.ConnectionPostProcessor() {
-              public Connection apply(final Connection connection)
-                  throws SQLException {
-                CalciteConnection calciteConnection =
-                    connection.unwrap(CalciteConnection.class);
-                SchemaPlus rootSchema =
-                    calciteConnection.getRootSchema();
-                SchemaPlus mapSchema =
-                    rootSchema.add("foo", new AbstractSchema());
-                final String tableName = "bar";
-                final JdbcTest.AbstractModifiableTable table =
-                    mutable(tableName, employees);
-                mapSchema.add(tableName, table);
-                return calciteConnection;
-              }
-            });
+        .with(makePostProcessor(employees));
   }
 
   static JdbcTest.AbstractModifiableTable mutable(String tableName,
@@ -291,6 +331,7 @@ public class JdbcFrontLinqBackTest {
     };
   }
 
+  @Ignore
   @Test public void testInsert2() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
@@ -305,6 +346,47 @@ public class JdbcFrontLinqBackTest {
         .returns("ROWCOUNT=1\n");
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=6\n");
+  }
+
+  /**
+   * Local Statement insert
+   */
+  @Test public void testInsert3() throws Exception {
+    Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
+    String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
+
+    Statement statement = connection.createStatement();
+    boolean status = statement.execute(sql);
+    assertFalse(status);
+    ResultSet resultSet = statement.getResultSet();
+    assertTrue(resultSet == null);
+    int updateCount = statement.getUpdateCount();
+    assertTrue(updateCount == 1);
+  }
+
+  /**
+   * Local PreparedStatement insert WITHOUT bind variables
+   */
+  @Test public void testPreparedStatementInsert() throws Exception {
+    Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
+    assertFalse(connection.isClosed());
+
+    String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
+    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+    assertFalse(preparedStatement.isClosed());
+
+    boolean status = preparedStatement.execute();
+    assertFalse(status);
+    ResultSet resultSet = preparedStatement.getResultSet();
+    assertTrue(resultSet == null);
+    int updateCount = preparedStatement.getUpdateCount();
+    assertTrue(updateCount == 1);
+  }
+
+  /**
+   * Local PreparedStatement insert WITH bind variables
+   */
+  @Test public void testPreparedStatementInsert2() throws Exception {
   }
 
   /** Some of the rows have the wrong number of columns. */

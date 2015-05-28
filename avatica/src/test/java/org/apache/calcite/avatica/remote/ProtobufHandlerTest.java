@@ -74,7 +74,7 @@ public class ProtobufHandlerTest {
     Requests.FetchRequest protoRequest = Requests.FetchRequest.newBuilder()
         .setConnectionId(connectionId).setStatementId(statementId)
         .setOffset(offset).setFetchMaxRowCount(fetchMaxRowCount)
-        .addAllParameterValues(values).build();
+        .build();
     byte[] serializedRequest = protoRequest.toByteArray();
 
     FetchRequest request = new FetchRequest().deserialize(protoRequest);

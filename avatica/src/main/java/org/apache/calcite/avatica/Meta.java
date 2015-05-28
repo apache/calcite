@@ -222,15 +222,17 @@ public interface Meta {
    * <p>The default implementation always returns null.
    *
    * @param h Statement handle
-   * @param parameterValues A list of parameter values, if statement is to be
-   *                        executed; otherwise null
    * @param offset Zero-based offset of first row in the requested frame
    * @param fetchMaxRowCount Maximum number of rows to return; negative means
    * no limit
    * @return Frame, or null if there are no more
    */
-  Frame fetch(StatementHandle h, List<TypedValue> parameterValues, long offset,
-      int fetchMaxRowCount);
+  Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount);
+
+  /**
+   * Executes a PreparedStatement */
+  ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
+      long maxRowCount);
 
   /** Called during the creation of a statement to allocate a new handle.
    *
@@ -613,17 +615,21 @@ public interface Meta {
     public final transient Map<String, Object> internalParameters;
     public final CursorFactory cursorFactory;
 
+    public final Meta.StatementType statementType;
+
     /** Creates a Signature. */
     public Signature(List<ColumnMetaData> columns,
         String sql,
         List<AvaticaParameter> parameters,
         Map<String, Object> internalParameters,
-        CursorFactory cursorFactory) {
+        CursorFactory cursorFactory,
+        Meta.StatementType statementType) {
       this.columns = columns;
       this.sql = sql;
       this.parameters = parameters;
       this.internalParameters = internalParameters;
       this.cursorFactory = cursorFactory;
+      this.statementType = statementType;
     }
 
     /** Used by Jackson to create a Signature by de-serializing JSON. */
@@ -632,23 +638,26 @@ public interface Meta {
         @JsonProperty("columns") List<ColumnMetaData> columns,
         @JsonProperty("sql") String sql,
         @JsonProperty("parameters") List<AvaticaParameter> parameters,
-        @JsonProperty("cursorFactory") CursorFactory cursorFactory) {
+        @JsonProperty("cursorFactory") CursorFactory cursorFactory,
+        @JsonProperty("statementType") Meta.StatementType statementType) {
       return new Signature(columns, sql, parameters,
-          Collections.<String, Object>emptyMap(), cursorFactory);
+          Collections.<String, Object>emptyMap(), cursorFactory, statementType);
     }
 
     /** Returns a copy of this Signature, substituting given CursorFactory. */
     public Signature setCursorFactory(CursorFactory cursorFactory) {
       return new Signature(columns, sql, parameters, internalParameters,
-          cursorFactory);
+            cursorFactory, statementType);
     }
 
     /** Creates a copy of this Signature with null lists and maps converted to
      * empty. */
     public Signature sanitize() {
-      if (columns == null || parameters == null || internalParameters == null) {
+      if (columns == null || parameters == null || internalParameters == null
+          || statementType == null) {
         return new Signature(sanitize(columns), sql, sanitize(parameters),
-            sanitize(internalParameters), cursorFactory);
+            sanitize(internalParameters), cursorFactory,
+            Meta.StatementType.SELECT);
       }
       return this;
     }
@@ -710,8 +719,12 @@ public interface Meta {
             Common.Signature.CURSOR_FACTORY_FIELD_NUMBER)) {
         cursorFactory = CursorFactory.fromProto(protoSignature.getCursorFactory());
       }
+      //TODO: Handle Exception ???
+      Meta.StatementType statementType = null;
+      statementType = Meta.StatementType.valueOf(
+          protoSignature.getStatementType().toString());
 
-      return Signature.create(metadata, sql, parameters, cursorFactory);
+      return Signature.create(metadata, sql, parameters, cursorFactory, statementType);
     }
 
     @Override public int hashCode() {
@@ -1177,6 +1190,24 @@ public interface Meta {
     void assign(Signature signature, Frame firstFrame, long updateCount)
         throws SQLException;
     void execute() throws SQLException;
+  }
+
+  /**
+   * Facilitate the Type of Statement during statment prepare */
+  enum StatementType {
+    SELECT, INSERT, UPDATE, DELETE, UPSERT, MERGE, OTHER_DML, IS_DML,
+    CREATE, DROP, ALTER, OTHER_DDL, CALL;
+
+    public boolean canUpdate() {
+      switch(this) {
+      case INSERT:
+        return true;
+      case IS_DML:
+        return true;
+      default:
+        return false;
+      }
+    }
   }
 }
 

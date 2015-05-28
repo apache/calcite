@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.Meta.MetaResultSet;
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import java.sql.Array;
@@ -408,6 +409,9 @@ public abstract class AvaticaConnection implements Connection {
   protected ResultSet executeQueryInternal(AvaticaStatement statement,
       Meta.Signature signature, Meta.Frame firstFrame) throws SQLException {
     // Close the previous open result set, if there is one.
+    Meta.Frame frame = firstFrame;
+    Meta.Signature signature2 = signature;
+
     synchronized (statement) {
       if (statement.openResultSet != null) {
         final AvaticaResultSet rs = statement.openResultSet;
@@ -420,19 +424,70 @@ public abstract class AvaticaConnection implements Connection {
         }
       }
 
+      try {
+        if (statement.isWrapperFor(AvaticaPreparedStatement.class)) {
+          final AvaticaPreparedStatement pstmt = (AvaticaPreparedStatement) statement;
+          final Meta.ExecuteResult executeResult =
+              meta.execute(pstmt.handle, pstmt.getParameterValues(),
+                  statement.getFetchSize());
+          final MetaResultSet metaResultSet = executeResult.resultSets.get(0);
+          frame = metaResultSet.firstFrame;
+          statement.updateCount = metaResultSet.updateCount;
+          signature2 = executeResult.resultSets.get(0).signature;
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+        throw helper.createException(e.getMessage(), e);
+      }
+
       final TimeZone timeZone = getTimeZone();
-      statement.openResultSet =
-          factory.newResultSet(statement, signature, timeZone, firstFrame);
+      if (frame == null && signature2 == null && statement.updateCount != -1) {
+        statement.openResultSet = null;
+      } else {
+        statement.openResultSet =
+            factory.newResultSet(statement, signature2, timeZone, frame);
+      }
     }
     // Release the monitor before executing, to give another thread the
     // opportunity to call cancel.
     try {
-      statement.openResultSet.execute();
+      if (statement.openResultSet != null) {
+        statement.openResultSet.execute();
+        isUpdateCapable(statement);
+      }
     } catch (Exception e) {
       throw helper.createException(
           "exception while executing query: " + e.getMessage(), e);
     }
     return statement.openResultSet;
+  }
+
+  /** Evaluates {@link AvaticaStatement} for statementType. If statementType
+   * is update capable and Statement updateCount is still -1 then proceed to
+   * get updateCount value from statment's resultSet. Handles "ROWCOUNT" object
+   * as Number or List
+   * @param statement
+   * @throws SQLException
+   */
+  private void isUpdateCapable(final AvaticaStatement statement)
+      throws SQLException {
+    Meta.Signature signature = statement.getSignature();
+    if (signature == null || signature.statementType == null) {
+      return;
+    }
+    if (signature.statementType.canUpdate() && statement.updateCount == -1) {
+      statement.openResultSet.next();
+      Object obj = statement.openResultSet.getObject("ROWCOUNT");
+      if (obj instanceof Number) {
+        statement.updateCount = ((Number) obj).intValue();
+      } else if (obj instanceof List) {
+        statement.updateCount =
+            ((Number) ((List<Object>) obj).get(0)).intValue();
+      } else {
+        throw helper.createException("Not a valid return result.");
+      }
+      statement.openResultSet = null;
+    }
   }
 
   protected Meta.ExecuteResult prepareAndExecuteInternal(
@@ -459,6 +514,8 @@ public abstract class AvaticaConnection implements Connection {
 
           public void assign(Meta.Signature signature, Meta.Frame firstFrame,
               long updateCount) throws SQLException {
+            statement.setSignature(signature);
+
             if (updateCount != -1) {
               statement.updateCount = updateCount;
             } else {
@@ -471,6 +528,7 @@ public abstract class AvaticaConnection implements Connection {
           public void execute() throws SQLException {
             if (statement.openResultSet != null) {
               statement.openResultSet.execute();
+              isUpdateCapable(statement);
             }
           }
         };

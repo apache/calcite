@@ -47,6 +47,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
@@ -57,6 +59,7 @@ import static org.junit.Assert.assertTrue;
 /** Tests covering {@link RemoteMeta}. */
 @RunWith(Parameterized.class)
 public class RemoteMetaTest {
+  private static final Random RANDOM = new Random();
   private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
 
   // Keep a reference to the servers we start to clean them up after
@@ -258,6 +261,21 @@ public class RemoteMetaTest {
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
+  }
+
+  @Test public void testRemoteStatementInsert() throws Exception {
+    System.out.println(url);
+    AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+    Statement statement = conn.createStatement();
+    int status = statement.executeUpdate(
+        "create table if not exists "
+        + "TEST_TABLE2 (id int not null, msg varchar(255) not null)");
+    assertEquals(status, 0);
+
+    statement = conn.createStatement();
+    status = statement.executeUpdate("insert into TEST_TABLE2 values ("
+        + "'" + RANDOM.nextInt(Integer.MAX_VALUE) + "', '" + UUID.randomUUID() + "')");
+    assertEquals(status, 1);
   }
 }
 
