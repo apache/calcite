@@ -24,6 +24,7 @@ import org.apache.calcite.avatica.proto.Requests.ColumnsRequest;
 import org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest;
 import org.apache.calcite.avatica.proto.Requests.CreateStatementRequest;
 import org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest;
+import org.apache.calcite.avatica.proto.Requests.ExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.FetchRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareRequest;
@@ -96,6 +97,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new RequestTranslator(TableTypesRequest.PARSER, new Service.TableTypesRequest()));
     reqParsers.put(TypeInfoRequest.class.getName(),
         new RequestTranslator(TypeInfoRequest.PARSER, new Service.TypeInfoRequest()));
+    reqParsers.put(ExecuteRequest.class.getName(),
+        new RequestTranslator(ExecuteRequest.PARSER, new Service.ExecuteRequest()));
 
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 

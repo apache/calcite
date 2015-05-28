@@ -44,6 +44,23 @@ message Signature {
   string sql = 2;
   repeated AvaticaParameter parameters = 3;
   CursorFactory cursor_factory = 4;
+  StatementType statementType = 5;
+}
+
+// Has to be consistent with Meta.StatementType
+enum StatementType {
+  SELECT = 0;
+  INSERT = 1;
+  UPDATE = 2;
+  DELETE = 3;
+  UPSERT = 4;
+  MERGE = 5;
+  OTHER_DML = 6;
+  CREATE = 7;
+  DROP = 8;
+  ALTER = 9;
+  OTHER_DDL = 10;
+  CALL = 11;
 }
 
 message ColumnMetaData {

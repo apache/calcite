@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.avatica.test;
 
+import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.Meta.CursorFactory;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.JsonService;
 import org.apache.calcite.avatica.remote.LocalJsonService;
@@ -26,15 +30,21 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests JSON encoding/decoding in the remote service.
  */
 public class JsonHandlerTest {
+
+  private static final Random RANDOM = new Random();
 
   /**
    * Implementation of {@link org.apache.calcite.avatica.remote.Service}
@@ -96,12 +106,17 @@ public class JsonHandlerTest {
     @Override public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
       return null;
     }
-  }
 
+    @Override public ExecuteResponse apply(ExecuteRequest request) {
+      return null;
+    }
+  }
 
   /**
    * Instrumented subclass of {@link org.apache.calcite.avatica.test.JsonHandlerTest.NoopService}
-   * that checks the parameter values passed to the "fetch" request.
+   * that checks the parameter values passed to the "execute" request.
+   *
+   * <p>Note: parameter values for "fetch" request deprecated.
    */
   public static class ParameterValuesCheckingService extends NoopService {
 
@@ -111,30 +126,42 @@ public class JsonHandlerTest {
       expectedParameterValues = epv;
     }
 
-    @Override public FetchResponse apply(FetchRequest request) {
-      assertEquals(expectedParameterValues.size(), request.parameterValues.size());
-      for (int i = 0; i < expectedParameterValues.size(); i++) {
-        assertEquals(expectedParameterValues.get(i).type, request.parameterValues.get(i).type);
-        assertEquals(expectedParameterValues.get(i).value, request.parameterValues.get(i).value);
-      }
-      expectedParameterValues.clear();
-      return null;
+    @Override public ExecuteResponse apply(ExecuteRequest request) {
+      expectedParameterValues.addAll(request.parameterValues);
+
+      final Meta.Signature signature =
+          new Meta.Signature(Collections.<ColumnMetaData>emptyList(),
+              "SELECT 1 FROM VALUE()",
+              Collections.<AvaticaParameter>emptyList(),
+              Collections.<String, Object>emptyMap(),
+              CursorFactory.LIST, Meta.StatementType.SELECT);
+
+      final Service.ResultSetResponse resultSetResponse =
+          new Service.ResultSetResponse(UUID.randomUUID().toString(),
+              RANDOM.nextInt(), false, signature, Meta.Frame.EMPTY, -1L);
+
+      return new Service.ExecuteResponse(
+          Collections.singletonList(resultSetResponse));
     }
   }
 
-  @Test public void testFetchRequestWithNumberParameter() {
+  @Test public void testExecuteRequestWithNumberParameter() {
     final List<TypedValue> expectedParameterValues = new ArrayList<>();
     final Service service = new ParameterValuesCheckingService(expectedParameterValues);
     final JsonService jsonService = new LocalJsonService(service);
     final JsonHandler jsonHandler = new JsonHandler(jsonService);
 
-    expectedParameterValues.add(TypedValue.create("NUMBER", new BigDecimal("333.333")));
-    jsonHandler.apply("{'request':'fetch','parameterValues':[{'type':'NUMBER','value':333.333}]}");
-    assertTrue(expectedParameterValues.isEmpty());
+    final List<TypedValue> parameterValues = Arrays.asList(
+        TypedValue.create("NUMBER", new BigDecimal("123")),
+        TypedValue.create("STRING", "calcite"));
 
-    expectedParameterValues.add(TypedValue.create("NUMBER", new BigDecimal("333")));
-    jsonHandler.apply("{'request':'fetch','parameterValues':[{'type':'NUMBER','value':333}]}");
-    assertTrue(expectedParameterValues.isEmpty());
+    jsonHandler.apply(
+        "{'request':'execute',"
+        + "'parameterValues':[{'type':'NUMBER','value':123},"
+        + "{'type':'STRING','value':'calcite'}]}");
+    assertThat(expectedParameterValues.size(), is(2));
+    assertThat(expectedParameterValues.get(0), is(parameterValues.get(0)));
+    assertThat(expectedParameterValues.get(1), is(parameterValues.get(1)));
   }
 }
 

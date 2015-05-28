@@ -175,7 +175,7 @@ public class ProtobufTranslationImplTest<T> {
     List<TypedValue> paramValues =
         Arrays.asList(TypedValue.create(Rep.BOOLEAN.name(), Boolean.TRUE),
             TypedValue.create(Rep.STRING.name(), "string"));
-    FetchRequest fetchRequest = new FetchRequest("connectionId", Integer.MAX_VALUE, paramValues,
+    FetchRequest fetchRequest = new FetchRequest("connectionId", Integer.MAX_VALUE,
         Long.MAX_VALUE, Integer.MAX_VALUE);
     requests.add(fetchRequest);
 
@@ -231,7 +231,8 @@ public class ProtobufTranslationImplTest<T> {
     rows.add(new Object[] {"str_value", 50});
 
     // Create the signature and frame using the metadata and values
-    Signature signature = Signature.create(columns, "sql", params, cursorFactory);
+    Signature signature = Signature.create(columns, "sql", params, cursorFactory,
+        Meta.StatementType.SELECT);
     Frame frame = Frame.create(Integer.MAX_VALUE, true, rows);
 
     // And then create a ResultSetResponse

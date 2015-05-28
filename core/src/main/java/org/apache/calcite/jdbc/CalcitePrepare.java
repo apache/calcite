@@ -297,7 +297,25 @@ public interface CalcitePrepare {
         List<ColumnMetaData> columns, Meta.CursorFactory cursorFactory,
         List<RelCollation> collationList, long maxRowCount,
         Bindable<T> bindable) {
-      super(columns, sql, parameterList, internalParameters, cursorFactory);
+      super(columns, sql, parameterList, internalParameters, cursorFactory, null);
+      this.rowType = rowType;
+      this.collationList = collationList;
+      this.maxRowCount = maxRowCount;
+      this.bindable = bindable;
+    }
+
+    public CalciteSignature(String sql,
+        List<AvaticaParameter> parameterList,
+        Map<String, Object> internalParameters,
+        RelDataType rowType,
+        List<ColumnMetaData> columns,
+        Meta.CursorFactory cursorFactory,
+        List<RelCollation> collationList,
+        long maxRowCount,
+        Bindable<T> bindable,
+        Meta.StatementType statementType) {
+      super(columns, sql, parameterList, internalParameters, cursorFactory,
+          statementType);
       this.rowType = rowType;
       this.collationList = collationList;
       this.maxRowCount = maxRowCount;
