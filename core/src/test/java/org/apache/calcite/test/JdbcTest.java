@@ -1049,40 +1049,48 @@ public class JdbcTest {
     assertEquals("Calcite JDBC Driver", metaData.getDriverName());
 
     final String driverVersion = metaData.getDriverVersion();
-    final int driverMajorVersion = metaData.getDriverMajorVersion();
-    final int driverMinorVersion = metaData.getDriverMinorVersion();
-    assertEquals(1, driverMajorVersion);
-    assertTrue(driverMinorVersion >= 0 && driverMinorVersion < 10);
+    final int driverMajor = metaData.getDriverMajorVersion();
+    final int driverMinor = metaData.getDriverMinorVersion();
+    assertEquals(1, driverMajor);
+    assertTrue(driverMinor >= 0 && driverMinor < 10);
 
     assertEquals("Calcite", metaData.getDatabaseProductName());
-    final String databaseProductVersion =
+    final String databaseVersion =
         metaData.getDatabaseProductVersion();
-    final int databaseMajorVersion = metaData.getDatabaseMajorVersion();
-    assertEquals(driverMajorVersion, databaseMajorVersion);
-    final int databaseMinorVersion = metaData.getDatabaseMinorVersion();
-    assertEquals(driverMinorVersion, databaseMinorVersion);
+    final int databaseMajor = metaData.getDatabaseMajorVersion();
+    assertEquals(driverMajor, databaseMajor);
+    final int databaseMinor = metaData.getDatabaseMinorVersion();
+    assertEquals(driverMinor, databaseMinor);
 
     // Check how version is composed of major and minor version. Note that
     // version is stored in pom.xml; major and minor version are
     // stored in org-apache-calcite-jdbc.properties, but derived from
     // version.major and version.minor in pom.xml.
-    assertTrue(driverVersion.startsWith(driverMajorVersion + "."));
-    String[] split = driverVersion.split("\\.");
-    assertTrue(split.length >= 2);
-    String majorMinor = driverMajorVersion + "." + driverMinorVersion;
-    assertTrue(driverVersion.equals(majorMinor)
-        || driverVersion.startsWith(majorMinor + ".")
-        || driverVersion.startsWith(majorMinor + "-"));
+    //
+    // We are more permissive for snapshots.
+    // For instance, we allow 1.4.0-SNAPSHOT to match {major=1, minor=3}.
+    // Previously, this test would break the first build after a release.
+    assertTrue(driverVersion.startsWith(driverMajor + "."));
+    assertTrue(driverVersion.split("\\.").length >= 2);
+    assertTrue(driverVersion.equals(mm(driverMajor, driverMinor))
+        || driverVersion.startsWith(mm(driverMajor, driverMinor) + ".")
+        || driverVersion.startsWith(mm(driverMajor, driverMinor) + "-")
+        || driverVersion.endsWith("-SNAPSHOT")
+            && driverVersion.startsWith(mm(driverMajor, driverMinor + 1)));
 
-    assertTrue(databaseProductVersion.startsWith("1."));
-    split = databaseProductVersion.split("\\.");
-    assertTrue(split.length >= 2);
-    majorMinor = databaseMajorVersion + "." + databaseMinorVersion;
-    assertTrue(databaseProductVersion.equals(majorMinor)
-        || databaseProductVersion.startsWith(majorMinor + ".")
-        || databaseProductVersion.startsWith(majorMinor + "-"));
+    assertTrue(databaseVersion.startsWith("1."));
+    assertTrue(databaseVersion.split("\\.").length >= 2);
+    assertTrue(databaseVersion.equals(mm(databaseMajor, databaseMinor))
+        || databaseVersion.startsWith(mm(databaseMajor, databaseMinor) + ".")
+        || databaseVersion.startsWith(mm(databaseMajor, databaseMinor) + "-")
+        || databaseVersion.endsWith("-SNAPSHOT")
+            && databaseVersion.startsWith(mm(driverMajor, driverMinor + 1)));
 
     connection.close();
+  }
+
+  private String mm(int majorVersion, int minorVersion) {
+    return majorVersion + "." + minorVersion;
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
