@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
@@ -1622,14 +1623,12 @@ public abstract class RelOptUtil {
     case INSERT:
       return typeFactory.createStructType(
           ImmutableList.of(
-              Pair.of(
-                  "ROWCOUNT",
+              Pair.of(AvaticaConnection.ROWCOUNT_COLUMN_NAME,
                   typeFactory.createSqlType(SqlTypeName.BIGINT))));
     case EXPLAIN:
       return typeFactory.createStructType(
           ImmutableList.of(
-              Pair.of(
-                  "PLAN",
+              Pair.of(AvaticaConnection.PLAN_COLUMN_NAME,
                   typeFactory.createSqlType(
                       SqlTypeName.VARCHAR,
                       RelDataType.PRECISION_NOT_SPECIFIED))));

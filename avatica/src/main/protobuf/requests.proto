@@ -86,8 +86,6 @@ message FetchRequest {
   uint32 statement_id = 2;
   uint64 offset = 3;
   uint32 fetch_max_row_count = 4; // Maximum number of rows to be returned in the frame. Negative means no limit.
-  repeated TypedValue parameter_values = 5; // List of parameter values if statement is to be executed. Else, none.
-  bool has_parameter_values = 6; // Having an empty list of param values is distinct from a null param list
 }
 
 // Request for Meta#createStatement(Meta.ConnectionHandle)
@@ -110,4 +108,13 @@ message ConnectionSyncRequest {
   string connection_id = 1;
   ConnectionProperties conn_props = 2;
 }
+
+// Request for Meta#execute(Meta.ConnectionHandle, list, long)
+message ExecuteRequest {
+  StatementHandle statementHandle = 1;
+  repeated TypedValue parameter_values = 2;
+  uint64 max_row_count = 3;
+  bool has_parameter_values = 4;
+}
+
 

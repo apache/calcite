@@ -86,6 +86,10 @@ public abstract class ProtobufService extends AbstractService {
     return (DatabasePropertyResponse) _apply(request);
   }
 
+  @Override public ExecuteResponse apply(ExecuteRequest request) {
+    return (ExecuteResponse) _apply(request);
+  }
+
   /**
    * Determines whether the given message has the field, denoted by the provided number, set.
    *

@@ -61,7 +61,7 @@ public class MockProtobufService extends ProtobufService {
                 Arrays.<ColumnMetaData>asList(
                     MetaImpl.columnMetaData("C1", 0, Integer.class),
                     MetaImpl.columnMetaData("C2", 1, String.class)),
-                null, null, Meta.CursorFactory.ARRAY),
+                null, null, Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
             Meta.Frame.create(0, true,
                 Arrays.<Object>asList(new Object[] {1, "a"},
                     new Object[] {null, "b"}, new Object[] {3, "c"})), -1));
@@ -76,7 +76,7 @@ public class MockProtobufService extends ProtobufService {
                     MetaImpl.columnMetaData("C1", 0, Integer.class),
                     MetaImpl.columnMetaData("C2", 1, String.class)),
                 null, Collections.<AvaticaParameter>emptyList(),
-                Meta.CursorFactory.ARRAY),
+                Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
             null, -1));
 
     MAPPING = Collections.unmodifiableMap(mappings);
