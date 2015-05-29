@@ -241,18 +241,21 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(org.apache.calcite.avatica.Meta.ConnectionHandle, String, int, org.apache.calcite.avatica.Meta.PrepareCallback)}. */
+   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(Meta.StatementHandle, String, int, Meta.PrepareCallback)}. */
   class PrepareAndExecuteRequest extends Request {
     public final String connectionId;
     public final String sql;
     public final int maxRowCount;
+    public final int statementId;
 
     @JsonCreator
     public PrepareAndExecuteRequest(
         @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId,
         @JsonProperty("sql") String sql,
         @JsonProperty("maxRowCount") int maxRowCount) {
       this.connectionId = connectionId;
+      this.statementId = statementId;
       this.sql = sql;
       this.maxRowCount = maxRowCount;
     }

@@ -474,7 +474,7 @@ public abstract class AvaticaConnection implements Connection {
             }
           }
         };
-    return meta.prepareAndExecute(handle, sql, maxRowCount, callback);
+    return meta.prepareAndExecute(statement.handle, sql, maxRowCount, callback);
   }
 
   protected ResultSet createResultSet(Meta.MetaResultSet metaResultSet)

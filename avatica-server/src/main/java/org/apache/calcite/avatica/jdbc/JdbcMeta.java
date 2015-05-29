@@ -714,16 +714,20 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public ExecuteResult prepareAndExecute(ConnectionHandle ch, String sql,
+  public ExecuteResult prepareAndExecute(StatementHandle h, String sql,
       int maxRowCount, PrepareCallback callback) {
     try {
-      final Connection connection = getConnection(ch.id);
-      final Statement statement = connection.createStatement();
-      final int id = System.identityHashCode(statement);
-      final StatementInfo info = new StatementInfo(statement);
-      statementCache.put(id, info); // TODO: must we retain a statement in all cases?
+      final StatementInfo info = statementCache.getIfPresent(h.id);
+      if (info == null) {
+        throw new RuntimeException("Statement not found, potentially expired. "
+            + h);
+      }
+      final Statement statement = info.statement;
+      // Special handling of maxRowCount as JDBC 0 is unlimited, our meta 0 row
       if (maxRowCount > 0) {
         statement.setMaxRows(maxRowCount);
+      } else if (maxRowCount < 0) {
+        statement.setMaxRows(0);
       }
       boolean ret = statement.execute(sql);
       info.resultSet = statement.getResultSet();
@@ -732,12 +736,14 @@ public class JdbcMeta implements Meta {
       if (info.resultSet == null) {
         // Create a special result set that just carries update count
         resultSets.add(
-            MetaResultSet.count(ch.id, id, statement.getUpdateCount()));
+            MetaResultSet.count(h.connectionId, h.id,
+                statement.getUpdateCount()));
       } else {
-        resultSets.add(JdbcResultSet.create(ch.id, id, info.resultSet, maxRowCount));
+        resultSets.add(
+            JdbcResultSet.create(h.connectionId, h.id, info.resultSet,
+                maxRowCount));
       }
       if (LOG.isTraceEnabled()) {
-        StatementHandle h = new StatementHandle(ch.id, id, null);
         LOG.trace("prepAndExec statement " + h);
       }
       // TODO: review client to ensure statementId is updated when appropriate
@@ -750,26 +756,26 @@ public class JdbcMeta implements Meta {
   public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
       int offset, int fetchMaxRowCount) {
     if (LOG.isTraceEnabled()) {
-      LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:" + fetchMaxRowCount);
+      LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:"
+          + fetchMaxRowCount);
     }
     try {
       final StatementInfo statementInfo = Objects.requireNonNull(
           statementCache.getIfPresent(h.id),
           "Statement not found, potentially expired. " + h);
       if (statementInfo.resultSet == null || parameterValues != null) {
-        if (statementInfo.resultSet != null) {
-          statementInfo.resultSet.close();
-        }
-        final PreparedStatement preparedStatement =
-            (PreparedStatement) statementInfo.statement;
-        if (parameterValues != null) {
-          for (int i = 0; i < parameterValues.size(); i++) {
-            TypedValue o = parameterValues.get(i);
-            preparedStatement.setObject(i + 1, o.toJdbc(calendar));
+        if (statementInfo.statement instanceof PreparedStatement) {
+          final PreparedStatement preparedStatement =
+              (PreparedStatement) statementInfo.statement;
+          if (parameterValues != null) {
+            for (int i = 0; i < parameterValues.size(); i++) {
+              TypedValue o = parameterValues.get(i);
+              preparedStatement.setObject(i + 1, o.toJdbc(calendar));
+            }
           }
-        }
-        if (preparedStatement.execute()) {
-          statementInfo.resultSet = preparedStatement.getResultSet();
+          if (preparedStatement.execute()) {
+            statementInfo.resultSet = preparedStatement.getResultSet();
+          }
         }
       }
       if (statementInfo.resultSet == null) {

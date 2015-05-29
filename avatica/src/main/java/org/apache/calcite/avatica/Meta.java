@@ -168,15 +168,15 @@ public interface Meta {
 
   /** Prepares and executes a statement.
    *
-   * @param ch Connection handle
+   * @param h Statement handle
    * @param sql SQL query
    * @param maxRowCount Negative for no limit (different meaning than JDBC)
    * @param callback Callback to lock, clear and assign cursor
    *
    * @return Result containing statement ID, and if a query, a result set and
-   * first frame of data
+   *     first frame of data
    */
-  ExecuteResult prepareAndExecute(ConnectionHandle ch, String sql,
+  ExecuteResult prepareAndExecute(StatementHandle h, String sql,
       int maxRowCount, PrepareCallback callback);
 
   /** Returns a frame of rows.

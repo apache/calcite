@@ -285,6 +285,47 @@ public class RemoteDriverTest {
     checkStatementExecute(ljs(), false);
   }
 
+  @Test public void testStatementExecuteFetch() throws Exception {
+    // Creating a > 100 rows queries to enable fetch request
+    String sql = "select * from emp cross join emp";
+    checkExecuteFetch(ljs(), sql, false, 1);
+    // PreparedStatement needed an extra fetch, as the execute will
+    // trigger the 1st fetch. Where statement execute will execute direct
+    // with results back.
+    checkExecuteFetch(ljs(), sql, true, 2);
+  }
+
+  private void checkExecuteFetch(Connection conn, String sql, boolean isPrepare,
+    int fetchCountMatch) throws SQLException {
+    final Statement exeStatement;
+    final ResultSet results;
+    LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
+    if (isPrepare) {
+      PreparedStatement statement = conn.prepareStatement(sql);
+      exeStatement = statement;
+      results = statement.executeQuery();
+    } else {
+      Statement statement = conn.createStatement();
+      exeStatement = statement;
+      results = statement.executeQuery(sql);
+    }
+    int count = 0;
+    int fetchCount = 0;
+    while (results.next()) {
+      count++;
+    }
+    results.close();
+    exeStatement.close();
+    List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
+    for (String[] pair : x) {
+      if (pair[0].contains("\"request\":\"fetch")) {
+        fetchCount++;
+      }
+    }
+    assertEquals(count, 196);
+    assertEquals(fetchCount, fetchCountMatch);
+  }
+
   @Test public void testStatementExecuteLocalMaxRow() throws Exception {
     checkStatementExecute(ljs(), false, 2);
   }
