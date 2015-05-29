@@ -36,7 +36,7 @@ public abstract class AvaticaStatement
     implements Statement {
   public final AvaticaConnection connection;
   /** Statement id; unique within connection. */
-  public final Meta.StatementHandle handle;
+  public Meta.StatementHandle handle;
   protected boolean closed;
 
   /**
