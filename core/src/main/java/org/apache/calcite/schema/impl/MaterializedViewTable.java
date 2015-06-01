@@ -104,12 +104,9 @@ public class MaterializedViewTable extends ViewTable {
     private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
         List<String> viewSchemaPath, String suggestedTableName) {
       super(schema, viewSql, viewSchemaPath);
-      MaterializationService.TableFactory tableFactory =
-          new MaterializationService.DefaultTableFactory(schema, suggestedTableName,
-              viewSql, schemaPath);
       this.key = Preconditions.checkNotNull(
           MaterializationService.instance().defineMaterialization(
-              schema, null, viewSql, schemaPath, tableFactory, true));
+              schema, null, viewSql, schemaPath, suggestedTableName, true));
     }
 
     @Override public TranslatableTable apply(List<Object> arguments) {

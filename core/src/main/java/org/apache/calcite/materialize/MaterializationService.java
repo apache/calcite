@@ -93,6 +93,17 @@ public class MaterializationService {
 
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final CalciteSchema schema,
+                                                  TileKey tileKey, String viewSql,
+                                                  List<String> viewSchemaPath,
+                                                  final String suggestedTableName, boolean create) {
+    TableFactory tableFactory =
+        new MaterializationService.DefaultTableFactory(schema, suggestedTableName,
+            viewSql, viewSchemaPath);
+    return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath, tableFactory, create);
+  }
+
+  /** Defines a new materialization. Returns its key. */
+  public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
       final TableFactory tableFactory, boolean create) {
     final MaterializationActor.QueryKey queryKey =
