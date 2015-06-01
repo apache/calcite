@@ -300,6 +300,23 @@ public class CalciteSchema {
     }
   }
 
+  /** Returns a TableEntry for a table with the given name. */
+  public TableEntry getTableEntry(String tableName,
+                                            boolean caseSensitive) {
+    if (caseSensitive) {
+      // Check explicit tables, case-sensitive.
+      return tableMap.get(tableName);
+    } else {
+      // Check explicit tables, case-insensitive.
+      //noinspection LoopStatementThatDoesntLoop
+      for (Map.Entry<String, TableEntry> entry
+          : find(tableMap, tableName).entrySet()) {
+        return entry.getValue();
+      }
+      return null;
+    }
+  }
+
   public String getName() {
     return name;
   }
