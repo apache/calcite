@@ -547,6 +547,80 @@ public class LatticeTest {
     // TODO
   }
 
+  @Test public void testTwoLattices() {
+    final String sales_lattice = "{\n"
+        + "  name: 'star',\n"
+        + "  sql: [\n"
+        + "    'select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"',\n"
+        + "    'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
+        + "    'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
+        + "    'join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"'\n"
+        + "  ],\n"
+        + "  auto: false,\n"
+        + "  algorithm: true,\n"
+        + "  algorithmMaxMillis: 10000,\n"
+        + "  rowCountEstimate: 86837,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "   measures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'unit_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_sales'\n"
+        + "    }, {\n"
+        + "      agg: 'count'\n"
+        + "    } ]\n"
+        + "  } ]\n"
+        + "}\n";
+
+    final String inventory_lattice = "{\n"
+        + "  name: 'warehouse',\n"
+        + "  sql: [\n"
+        + "  'select 1 from \"foodmart\".\"inventory_fact_1997\" as \"s\"',\n"
+        + "  'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
+        + "  'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
+        + "  'join \"foodmart\".\"warehouse\" as \"w\" using (\"warehouse_id\")'\n"
+        + "  ],\n"
+        + "  auto: false,\n"
+        + "  algorithm: true,\n"
+        + "  algorithmMaxMillis: 10000,\n"
+        + "  rowCountEstimate: 86837,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', 'warehouse_name'],\n"
+        + "    measures: [ {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'store_invoice'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'supply_time'\n"
+        + "    }, {\n"
+        + "      agg: 'sum',\n"
+        + "      args: 'warehouse_cost'\n"
+        + "    } ]\n"
+        + "  } ]\n"
+        + "}\n";
+    final AtomicInteger counter = new AtomicInteger();
+    modelWithLattices(sales_lattice, inventory_lattice)
+        .query("select s.\"unit_sales\", p.\"brand_name\"\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
+        .enableMaterializations(true)
+        .substitutionMatches(
+            CalciteAssert.checkRel(
+                "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
+                    + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
+                    + "    LogicalTableScan(table=[[adhoc, star]])\n",
+                counter));
+    assertThat(counter.intValue(), equalTo(1));
+  }
+
   private CalciteAssert.AssertThat foodmartModel(String... extras) {
     return modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
