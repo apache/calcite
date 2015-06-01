@@ -163,6 +163,12 @@ public class MaterializationService {
   public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact) {
+    return defineTile(lattice, groupSet, measureList, schema, create, exact, null);
+  }
+
+  public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+        ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
+        CalciteSchema schema, boolean create, boolean exact, TableFactory tableFactory) {
     MaterializationKey materializationKey;
     final TileKey tileKey =
         new TileKey(lattice, groupSet, ImmutableList.copyOf(measureList));
@@ -251,10 +257,12 @@ public class MaterializationService {
         new TileKey(lattice, groupSet, ImmutableList.copyOf(measureSet));
 
     final String sql = lattice.sql(groupSet, newTileKey.measures);
-    TableFactory tableFactory = new DefaultTableFactory(schema, "m" + groupSet,
+
+    TableFactory defaultTableFactory = new DefaultTableFactory(schema, "m" + groupSet,
         sql, schema.path(null));
     materializationKey =
-        defineMaterialization(schema, newTileKey, sql, schema.path(null), tableFactory, true);
+        defineMaterialization(schema, newTileKey, sql, schema.path(null),
+            tableFactory != null ? tableFactory : defaultTableFactory, true);
     if (materializationKey != null) {
       final CalciteSchema.TableEntry tableEntry =
           checkValid(materializationKey);
