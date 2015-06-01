@@ -750,11 +750,13 @@ Julian
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
 
-In JIRA, search for all issues resolved in this release,
+In JIRA, search for
+[all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.3.0-incubating%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
 and do a bulk update changing their status to "Closed",
 with a change comment
 "Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
 (fill in release number and date appropriately).
+Uncheck "Send mail for this update".
 
 Promote the staged nexus artifacts.
 
