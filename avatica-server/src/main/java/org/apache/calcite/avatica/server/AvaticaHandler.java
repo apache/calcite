@@ -48,7 +48,9 @@ public class AvaticaHandler extends AbstractHandler {
     response.setContentType("text/html;charset=utf-8");
     response.setStatus(HttpServletResponse.SC_OK);
     if (request.getMethod().equals("POST")) {
-      final String jsonRequest = request.getHeader("request");
+      final String jsonRequest =
+          new String(request.getHeader("request").getBytes("ISO-8859-1"),
+              "UTF-8");
       if (LOG.isTraceEnabled()) {
         LOG.trace("request: " + jsonRequest);
       }
