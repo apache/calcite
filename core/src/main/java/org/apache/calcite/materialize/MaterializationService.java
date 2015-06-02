@@ -97,8 +97,7 @@ public class MaterializationService {
                                                   List<String> viewSchemaPath,
                                                   final String suggestedTableName, boolean create) {
     TableFactory tableFactory =
-        new MaterializationService.DefaultTableFactory(schema, suggestedTableName,
-            viewSql, viewSchemaPath);
+        new MaterializationService.DefaultTableFactory(suggestedTableName);
     return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath, tableFactory, create);
   }
 
@@ -123,10 +122,10 @@ public class MaterializationService {
     RelDataType rowType = null;
     CalciteSchema.TableEntry tableEntry = null;
     if (materializedTable == null) {
-      Pair<RelDataType, Table> matPair = tableFactory.createTable();
+      Pair<RelDataType, Table> matPair = tableFactory.createTable(schema, viewSql, viewSchemaPath);
       rowType = matPair.left;
       materializedTable = matPair.right;
-      final String tableName = tableFactory.getTableName();
+      final String tableName = tableFactory.getTableName(schema);
       tableEntry = schema.add(tableName, materializedTable,
           ImmutableList.of(viewSql));
       Hook.CREATE_MATERIALIZATION.run(tableName);
@@ -174,7 +173,8 @@ public class MaterializationService {
   public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact) {
-    return defineTile(lattice, groupSet, measureList, schema, create, exact, null);
+    TableFactory defaultTableFactory = new DefaultTableFactory("m" + groupSet);
+    return defineTile(lattice, groupSet, measureList, schema, create, exact, defaultTableFactory);
   }
 
   public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
@@ -269,11 +269,9 @@ public class MaterializationService {
 
     final String sql = lattice.sql(groupSet, newTileKey.measures);
 
-    TableFactory defaultTableFactory = new DefaultTableFactory(schema, "m" + groupSet,
-        sql, schema.path(null));
     materializationKey =
         defineMaterialization(schema, newTileKey, sql, schema.path(null),
-            tableFactory != null ? tableFactory : defaultTableFactory, true);
+            tableFactory, true);
     if (materializationKey != null) {
       final CalciteSchema.TableEntry tableEntry =
           checkValid(materializationKey);
@@ -350,8 +348,10 @@ public class MaterializationService {
    * a materialized view.
    */
   public interface TableFactory {
-    Pair<RelDataType, Table> createTable();
-    String getTableName();
+    Pair<RelDataType, Table> createTable(final CalciteSchema schema,
+                                         final String viewSql,
+                                         final List<String> viewSchemaPath);
+    String getTableName(CalciteSchema schema);
   }
 
   /**
@@ -359,22 +359,15 @@ public class MaterializationService {
    * Creates a table using CloneSchema.
    */
   public static class DefaultTableFactory implements TableFactory {
-    final CalciteSchema schema;
     final String tableName;
-    final String viewSql;
-    final List<String> viewSchemaPath;
 
-    public DefaultTableFactory(final CalciteSchema schema,
-                               final String tableName,
-                               final String viewSql,
-                               final List<String> viewSchemaPath) {
-      this.schema = schema;
+    public DefaultTableFactory(final String tableName) {
       this.tableName = tableName;
-      this.viewSql = viewSql;
-      this.viewSchemaPath = viewSchemaPath;
     }
 
-    public Pair<RelDataType, Table> createTable() {
+    public Pair<RelDataType, Table> createTable(final CalciteSchema schema,
+                                                final String viewSql,
+                                                final List<String> viewSchemaPath) {
       final CalciteConnection connection =
           CalciteMetaImpl.connect(schema.root(), null);
       final ImmutableMap<CalciteConnectionProperty, String> map =
@@ -419,7 +412,7 @@ public class MaterializationService {
       return Pair.of(rowType, table);
     }
 
-    public String getTableName() {
+    public String getTableName(CalciteSchema schema) {
       return Schemas.uniqueTableName(schema, Util.first(tableName, "m"));
     }
   }
