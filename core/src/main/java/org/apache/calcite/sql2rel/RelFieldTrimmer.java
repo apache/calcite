@@ -19,7 +19,6 @@ package org.apache.calcite.sql2rel;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -234,7 +233,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
     final RelDataType rowType = input.getRowType();
     List<RelDataTypeField> fieldList = rowType.getFieldList();
-    final List<RexNode> exprList = new ArrayList<RexNode>();
+    final List<RexNode> exprList = new ArrayList<>();
     final List<String> nameList = rowType.getFieldNames();
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     assert trimResult.right.getSourceCount() == fieldList.size();
@@ -331,7 +330,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Which fields are required from the input?
     final Set<RelDataTypeField> inputExtraFields =
-        new LinkedHashSet<RelDataTypeField>(extraFields);
+        new LinkedHashSet<>(extraFields);
     RelOptUtil.InputFinder inputFinder =
         new RelOptUtil.InputFinder(inputExtraFields);
     for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
@@ -436,7 +435,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // We use the fields used by the consumer, plus any fields used in the
     // filter.
     final Set<RelDataTypeField> inputExtraFields =
-        new LinkedHashSet<RelDataTypeField>(extraFields);
+        new LinkedHashSet<>(extraFields);
     RelOptUtil.InputFinder inputFinder =
         new RelOptUtil.InputFinder(inputExtraFields);
     inputFinder.inputBitSet.addAll(fieldsUsed);
@@ -513,9 +512,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final RelCollation newCollation =
         sort.getTraitSet().canonize(RexUtil.apply(inputMapping, collation));
-    final RelTraitSet newTraitSet = sort.getTraitSet().replace(newCollation);
-    final RelNode newSort = sortFactory.createSort(
-        newTraitSet, newInput, newCollation, sort.offset, sort.fetch);
+    final RelNode newSort =
+        sortFactory.createSort(newInput, newCollation, sort.offset, sort.fetch);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -539,7 +537,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Add in fields used in the condition.
     final Set<RelDataTypeField> combinedInputExtraFields =
-        new LinkedHashSet<RelDataTypeField>(extraFields);
+        new LinkedHashSet<>(extraFields);
     RelOptUtil.InputFinder inputFinder =
         new RelOptUtil.InputFinder(combinedInputExtraFields);
     inputFinder.inputBitSet.addAll(fieldsUsed);
@@ -563,9 +561,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     int offset = systemFieldCount;
     int changeCount = 0;
     int newFieldCount = newSystemFieldCount;
-    List<RelNode> newInputs = new ArrayList<RelNode>(2);
-    List<Mapping> inputMappings = new ArrayList<Mapping>();
-    List<Integer> inputExtraFieldCounts = new ArrayList<Integer>();
+    final List<RelNode> newInputs = new ArrayList<>(2);
+    final List<Mapping> inputMappings = new ArrayList<>();
+    final List<Integer> inputExtraFieldCounts = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       final RelDataType inputRowType = input.getRowType();
       final int inputFieldCount = inputRowType.getFieldCount();
@@ -688,7 +686,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
 
     // Create input with trimmed columns.
-    final List<RelNode> newInputs = new ArrayList<RelNode>();
+    final List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : setOp.getInputs()) {
       TrimResult trimResult =
           trimChild(setOp, input, fieldsUsed, extraFields);
@@ -914,7 +912,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = tabFun.getRowType();
     final int fieldCount = rowType.getFieldCount();
-    List<RelNode> newInputs = new ArrayList<RelNode>();
+    final List<RelNode> newInputs = new ArrayList<>();
 
     for (RelNode input : tabFun.getInputs()) {
       final int inputFieldCount = input.getRowType().getFieldCount();

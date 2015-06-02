@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.examples.RelBuilderExample;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
@@ -1375,6 +1376,10 @@ public class UtilTest {
     assertThat(map.size(), equalTo(values.size()));
     assertThat(map.get("X"), is((String) null));
     assertThat(map.get("Y"), equalTo("y"));
+  }
+
+  @Test public void testRelBuilderExample() {
+    new RelBuilderExample(false).runAllExamples();
   }
 }
 

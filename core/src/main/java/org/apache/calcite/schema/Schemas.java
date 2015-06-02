@@ -514,6 +514,15 @@ public final class Schemas {
     return new PathImpl(build);
   }
 
+  /** Returns the path to get to a schema from its root. */
+  public static Path path(SchemaPlus schema) {
+    List<Pair<String, Schema>> list = new ArrayList<>();
+    for (SchemaPlus s = schema; s != null; s = s.getParentSchema()) {
+      list.add(Pair.<String, Schema>of(s.getName(), s));
+    }
+    return new PathImpl(ImmutableList.copyOf(Lists.reverse(list)));
+  }
+
   /** Dummy data context that has no variables. */
   private static class DummyDataContext implements DataContext {
     private final CalciteConnection connection;
@@ -572,11 +581,27 @@ public final class Schemas {
       return pairs.size();
     }
 
-    @Override public Path parent() {
+    public Path parent() {
       if (pairs.isEmpty()) {
         throw new IllegalArgumentException("at root");
       }
       return new PathImpl(pairs.subList(0, pairs.size() - 1));
+    }
+
+    public List<String> names() {
+      return new AbstractList<String>() {
+        public String get(int index) {
+          return pairs.get(index + 1).left;
+        }
+
+        public int size() {
+          return pairs.size() - 1;
+        }
+      };
+    }
+
+    public List<Schema> schemas() {
+      return Pair.right(pairs);
     }
   }
 }

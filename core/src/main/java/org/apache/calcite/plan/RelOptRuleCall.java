@@ -17,6 +17,8 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
@@ -116,6 +118,7 @@ public abstract class RelOptRuleCall {
    * @return matched relational expressions
    * @deprecated Use {@link #getRelList()} or {@link #rel(int)}
    */
+  @Deprecated // to be removed before 2.0
   public RelNode[] getRels() {
     return rels;
   }
@@ -151,7 +154,7 @@ public abstract class RelOptRuleCall {
    * {@link org.apache.calcite.plan.RelOptRuleOperandChildPolicy#ANY},
    * the children will have their
    * own operands and therefore be easily available in the array returned by
-   * the {@link #getRels} method, so this method returns null.
+   * the {@link #getRelList()} method, so this method returns null.
    *
    * <p>This method is for
    * {@link org.apache.calcite.plan.RelOptRuleOperandChildPolicy#ANY},
@@ -208,6 +211,13 @@ public abstract class RelOptRuleCall {
    */
   public final void transformTo(RelNode rel) {
     transformTo(rel, ImmutableMap.<RelNode, RelNode>of());
+  }
+
+  /** Creates a {@link org.apache.calcite.tools.RelBuilder} to be used by
+   * code within the call. The {@code protoBuilder} argument contains policies
+   * such as what implementation of {@link Filter} to create. */
+  public RelBuilder builder(RelBuilder.ProtoRelBuilder protoBuilder) {
+    return protoBuilder.create(rel(0).getCluster(), null);
   }
 }
 

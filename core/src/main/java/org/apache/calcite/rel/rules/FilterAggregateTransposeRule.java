@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -26,6 +27,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -46,33 +48,40 @@ public class FilterAggregateTransposeRule extends RelOptRule {
    *
    * <p>It matches any kind of agg. or filter */
   public static final FilterAggregateTransposeRule INSTANCE =
-      new FilterAggregateTransposeRule(Filter.class,
-          RelFactories.DEFAULT_FILTER_FACTORY,
+      new FilterAggregateTransposeRule(Filter.class, RelFactories.DEFAULT_PROTO,
           Aggregate.class);
 
-  private final RelFactories.FilterFactory filterFactory;
+  private final RelBuilder.ProtoRelBuilder protoBuilder;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushFilterPastAggRule.
+   * Creates a FilterAggregateTransposeRule.
    *
    * <p>If {@code filterFactory} is null, creates the same kind of filter as
    * matched in the rule. Similarly {@code aggregateFactory}.</p>
    */
   public FilterAggregateTransposeRule(
       Class<? extends Filter> filterClass,
-      RelFactories.FilterFactory filterFactory,
+      RelBuilder.ProtoRelBuilder protoBuilder,
       Class<? extends Aggregate> aggregateClass) {
     super(
         operand(filterClass,
             operand(aggregateClass, any())));
-    this.filterFactory = filterFactory;
+    this.protoBuilder = protoBuilder;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public FilterAggregateTransposeRule(
+      Class<? extends Filter> filterClass,
+      RelFactories.FilterFactory filterFactory,
+      Class<? extends Aggregate> aggregateClass) {
+    this(filterClass, RelBuilder.proto(Contexts.of(filterFactory)),
+        aggregateClass);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     final Filter filterRel = call.rel(0);
     final Aggregate aggRel = call.rel(1);
@@ -112,13 +121,14 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       }
     }
 
-    RelNode rel = RelOptUtil.createFilter(aggRel.getInput(), pushedConditions,
-        filterFactory);
+    final RelBuilder builder = call.builder(protoBuilder);
+    RelNode rel =
+        builder.push(aggRel.getInput()).filter(pushedConditions).build();
     if (rel == aggRel.getInput(0)) {
       return;
     }
     rel = aggRel.copy(aggRel.getTraitSet(), ImmutableList.of(rel));
-    rel = RelOptUtil.createFilter(rel, remainingConditions, filterFactory);
+    rel = builder.push(rel).filter(remainingConditions).build();
     call.transformTo(rel);
   }
 }

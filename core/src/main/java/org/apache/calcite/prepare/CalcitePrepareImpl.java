@@ -862,10 +862,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final CalcitePrepare.Context prepareContext =
         statement.createPrepareContext();
     final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
+    final CalciteSchema schema =
+        action.getConfig().getDefaultSchema() != null
+            ? CalciteSchema.from(action.getConfig().getDefaultSchema())
+            : prepareContext.getRootSchema();
     CalciteCatalogReader catalogReader =
-        new CalciteCatalogReader(prepareContext.getRootSchema(),
+        new CalciteCatalogReader(schema.root(),
             prepareContext.config().caseSensitive(),
-            prepareContext.getDefaultSchemaPath(),
+            schema.path(null),
             typeFactory);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelOptPlanner planner =

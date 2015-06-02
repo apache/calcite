@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,7 +57,16 @@ public class Contexts {
     return new WrapContext(o);
   }
 
-  /** Returns a context that wraps an object.
+  /** Returns a context that wraps an array of objects. */
+  public static Context of(Object... os) {
+    final List<Context> contexts = new ArrayList<>();
+    for (Object o : os) {
+      contexts.add(of(o));
+    }
+    return chain(contexts);
+  }
+
+  /** Returns a context that wraps a list of contexts.
    *
    * <p>A call to {@code unwrap(C)} will return the first object that is an
    * instance of {@code C}.
@@ -65,6 +75,10 @@ public class Contexts {
    * object. Thus this method can be used to chain contexts.
    */
   public static Context chain(Context... contexts) {
+    return chain(ImmutableList.copyOf(contexts));
+  }
+
+  private static Context chain(Iterable<? extends Context> contexts) {
     // Flatten any chain contexts in the list, and remove duplicates
     final List<Context> list = Lists.newArrayList();
     for (Context context : contexts) {
@@ -82,12 +96,15 @@ public class Contexts {
 
   /** Recursively populates a list of contexts. */
   private static void build(List<Context> list, Context context) {
+    if (context == EMPTY_CONTEXT || list.contains(context)) {
+      return;
+    }
     if (context instanceof ChainContext) {
       ChainContext chainContext = (ChainContext) context;
       for (Context child : chainContext.contexts) {
         build(list, child);
       }
-    } else if (!list.contains(context)) {
+    } else {
       list.add(context);
     }
   }

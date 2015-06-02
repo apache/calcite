@@ -101,12 +101,14 @@ public class Frameworks {
    * @return Return value from action
    */
   public static <R> R withPlanner(final PlannerAction<R> action, //
-      FrameworkConfig config) {
+      final FrameworkConfig config) {
     return withPrepare(
         new Frameworks.PrepareAction<R>(config) {
           public R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
               SchemaPlus rootSchema, CalciteServerStatement statement) {
-            return action.apply(cluster, relOptSchema, rootSchema);
+            final CalciteSchema schema =
+                CalciteSchema.from(config.getDefaultSchema());
+            return action.apply(cluster, relOptSchema, schema.root().plus());
           }
         });
   }

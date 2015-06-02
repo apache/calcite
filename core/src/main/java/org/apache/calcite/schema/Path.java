@@ -32,7 +32,14 @@ import java.util.RandomAccess;
  * </ul>
  */
 public interface Path extends List<Pair<String, Schema>>, RandomAccess {
+  /** Returns the parent path, or null if the path is empty. */
   Path parent();
+
+  /** Returns the names of this path, not including the name of the root. */
+  List<String> names();
+
+  /** Returns the schemas of this path. */
+  List<Schema> schemas();
 }
 
 // End Path.java

@@ -29,7 +29,7 @@ The page describes the SQL dialect recognized by Calcite's default SQL parser.
 SQL grammar in [BNF](http://en.wikipedia.org/wiki/Backus%E2%80%93Naur_Form)-like
 form.
 
-{% highlight SQL %}
+{% highlight sql %}
 statement:
       setStatement
   |   explain
@@ -228,7 +228,7 @@ name will have been converted to upper case also.
 
 Where:
 
-{% highlight SQL %}
+{% highlight sql %}
 timeUnit:
   YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
 {% endhighlight %}
@@ -514,7 +514,7 @@ Not implemented:
 
 Syntax:
 
-{% highlight SQL %}
+{% highlight sql %}
 aggregateCall:
         agg( [ DISTINCT ] value [, value]* ) [ FILTER ( WHERE condition ) ]
     |   agg(*) [ FILTER ( WHERE condition ) ]

@@ -34,6 +34,14 @@ public class Stacks {
   }
 
   /**
+   * Returns the {@code n}th most recently added element in the stack.
+   * Throws if the stack is empty.
+   */
+  public static <T> T peek(int n, List<T> stack) {
+    return stack.get(stack.size() - n - 1);
+  }
+
+  /**
    * Adds an element to the stack.
    */
   public static <T> void push(List<T> stack, T element) {
@@ -47,6 +55,15 @@ public class Stacks {
   public static <T> void pop(List<T> stack, T element) {
     assert stack.get(stack.size() - 1) == element;
     stack.remove(stack.size() - 1);
+  }
+
+  /**
+   * Removes an element from the stack and returns it.
+   *
+   * <p>Throws if the stack is empty.
+   */
+  public static <T> T pop(List<T> stack) {
+    return stack.remove(stack.size() - 1);
   }
 }
 

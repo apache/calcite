@@ -17,6 +17,9 @@
 
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
@@ -27,10 +30,15 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -63,6 +71,27 @@ public class RelFactories {
   public static final SetOpFactory DEFAULT_SET_OP_FACTORY =
       new SetOpFactoryImpl();
 
+  public static final ValuesFactory DEFAULT_VALUES_FACTORY =
+      new ValuesFactoryImpl();
+
+  public static final TableScanFactory DEFAULT_TABLE_SCAN_FACTORY =
+      new TableScanFactoryImpl();
+
+  /** Creates a {@link RelBuilder} that will create logical relational
+   * expressions for everything.
+   */
+  public static final RelBuilder.ProtoRelBuilder DEFAULT_PROTO =
+      RelBuilder.proto(
+          Contexts.of(DEFAULT_PROJECT_FACTORY,
+              DEFAULT_FILTER_FACTORY,
+              DEFAULT_JOIN_FACTORY,
+              DEFAULT_SEMI_JOIN_FACTORY,
+              DEFAULT_SORT_FACTORY,
+              DEFAULT_AGGREGATE_FACTORY,
+              DEFAULT_SET_OP_FACTORY,
+              DEFAULT_VALUES_FACTORY,
+              DEFAULT_TABLE_SCAN_FACTORY));
+
   private RelFactories() {
   }
 
@@ -73,7 +102,7 @@ public class RelFactories {
    */
   public interface ProjectFactory {
     /** Creates a project. */
-    RelNode createProject(RelNode child, List<? extends RexNode> childExprs,
+    RelNode createProject(RelNode input, List<? extends RexNode> childExprs,
         List<String> fieldNames);
   }
 
@@ -82,9 +111,9 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
-    public RelNode createProject(RelNode child,
+    public RelNode createProject(RelNode input,
         List<? extends RexNode> childExprs, List<String> fieldNames) {
-      return RelOptUtil.createProject(child, childExprs, fieldNames);
+      return RelOptUtil.createProject(input, childExprs, fieldNames);
     }
   }
 
@@ -94,7 +123,11 @@ public class RelFactories {
    */
   public interface SortFactory {
     /** Creates a sort. */
-    RelNode createSort(RelTraitSet traits, RelNode child,
+    RelNode createSort(RelNode input, RelCollation collation, RexNode offset,
+        RexNode fetch);
+
+    @Deprecated // to be removed before 2.0
+    RelNode createSort(RelTraitSet traits, RelNode input,
         RelCollation collation, RexNode offset, RexNode fetch);
   }
 
@@ -103,9 +136,15 @@ public class RelFactories {
    * returns a vanilla {@link Sort}.
    */
   private static class SortFactoryImpl implements SortFactory {
-    public RelNode createSort(RelTraitSet traits, RelNode child,
+    public RelNode createSort(RelNode input, RelCollation collation,
+        RexNode offset, RexNode fetch) {
+      return LogicalSort.create(input, collation, offset, fetch);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public RelNode createSort(RelTraitSet traits, RelNode input,
         RelCollation collation, RexNode offset, RexNode fetch) {
-      return LogicalSort.create(child, collation, offset, fetch);
+      return createSort(input, collation, offset, fetch);
     }
   }
 
@@ -146,7 +185,7 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode child, boolean indicator,
+    RelNode createAggregate(RelNode input, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls);
   }
@@ -156,10 +195,10 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    public RelNode createAggregate(RelNode child, boolean indicator,
+    public RelNode createAggregate(RelNode input, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return LogicalAggregate.create(child, indicator,
+      return LogicalAggregate.create(input, indicator,
           groupSet, groupSets, aggCalls);
     }
   }
@@ -170,7 +209,7 @@ public class RelFactories {
    */
   public interface FilterFactory {
     /** Creates a filter. */
-    RelNode createFilter(RelNode child, RexNode condition);
+    RelNode createFilter(RelNode input, RexNode condition);
   }
 
   /**
@@ -178,8 +217,8 @@ public class RelFactories {
    * returns a vanilla {@link LogicalFilter}.
    */
   private static class FilterFactoryImpl implements FilterFactory {
-    public RelNode createFilter(RelNode child, RexNode condition) {
-      return LogicalFilter.create(child, condition);
+    public RelNode createFilter(RelNode input, RexNode condition) {
+      return LogicalFilter.create(input, condition);
     }
   }
 
@@ -245,6 +284,51 @@ public class RelFactories {
       final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
       return SemiJoin.create(left, right,
         condition, joinInfo.leftKeys, joinInfo.rightKeys);
+    }
+  }
+
+  /**
+   * Can create a {@link Values} of the appropriate type for a rule's calling
+   * convention.
+   */
+  public interface ValuesFactory {
+    /**
+     * Creates a Values.
+     */
+    RelNode createValues(RelOptCluster cluster, RelDataType rowType,
+        List<ImmutableList<RexLiteral>> tuples);
+  }
+
+  /**
+   * Implementation of {@link ValuesFactory} that returns a
+   * {@link LogicalValues}.
+   */
+  private static class ValuesFactoryImpl implements ValuesFactory {
+    public RelNode createValues(RelOptCluster cluster, RelDataType rowType,
+        List<ImmutableList<RexLiteral>> tuples) {
+      return LogicalValues.create(cluster, rowType,
+          ImmutableList.copyOf(tuples));
+    }
+  }
+
+  /**
+   * Can create a {@link TableScan} of the appropriate type for a rule's calling
+   * convention.
+   */
+  public interface TableScanFactory {
+    /**
+     * Creates a {@link TableScan}.
+     */
+    RelNode createScan(RelOptCluster cluster, RelOptTable table);
+  }
+
+  /**
+   * Implementation of {@link TableScanFactory} that returns a
+   * {@link LogicalTableScan}.
+   */
+  private static class TableScanFactoryImpl implements TableScanFactory {
+    public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
+      return LogicalTableScan.create(cluster, table);
     }
   }
 }
