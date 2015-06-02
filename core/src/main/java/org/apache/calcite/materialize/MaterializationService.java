@@ -122,13 +122,9 @@ public class MaterializationService {
     RelDataType rowType = null;
     CalciteSchema.TableEntry tableEntry = null;
     if (materializedTable == null) {
-      Pair<RelDataType, Table> matPair = tableFactory.createTable(schema, viewSql, viewSchemaPath);
-      rowType = matPair.left;
-      materializedTable = matPair.right;
-      final String tableName = tableFactory.getTableName(schema);
-      tableEntry = schema.add(tableName, materializedTable,
-          ImmutableList.of(viewSql));
-      Hook.CREATE_MATERIALIZATION.run(tableName);
+      tableEntry = tableFactory.createTable(schema, viewSql, viewSchemaPath);
+      materializedTable = tableEntry.getTable();
+      rowType = materializedTable.getRowType(connection.getTypeFactory());
     } else {
       tableEntry = schema.getTableEntry(pair.left, connection.config().caseSensitive());
     }
@@ -348,7 +344,7 @@ public class MaterializationService {
    * a materialized view.
    */
   public interface TableFactory {
-    Pair<RelDataType, Table> createTable(final CalciteSchema schema,
+    CalciteSchema.TableEntry createTable(final CalciteSchema schema,
                                          final String viewSql,
                                          final List<String> viewSchemaPath);
     String getTableName(CalciteSchema schema);
@@ -365,7 +361,7 @@ public class MaterializationService {
       this.tableName = tableName;
     }
 
-    public Pair<RelDataType, Table> createTable(final CalciteSchema schema,
+    public CalciteSchema.TableEntry createTable(final CalciteSchema schema,
                                                 final String viewSql,
                                                 final List<String> viewSchemaPath) {
       final CalciteConnection connection =
@@ -375,7 +371,6 @@ public class MaterializationService {
               "false");
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
-      RelDataType rowType = calciteSignature.rowType;
       Table table = CloneSchema.createCloneTable(connection.getTypeFactory(),
           RelDataTypeImpl.proto(calciteSignature.rowType),
           Lists.transform(calciteSignature.columns,
@@ -409,7 +404,12 @@ public class MaterializationService {
               return calciteSignature.enumerable(dataContext).iterator();
             }
           });
-      return Pair.of(rowType, table);
+
+      final String tableName = this.getTableName(schema);
+      CalciteSchema.TableEntry tableEntry = schema.add(tableName, table,
+          ImmutableList.of(viewSql));
+      Hook.CREATE_MATERIALIZATION.run(tableName);
+      return tableEntry;
     }
 
     public String getTableName(CalciteSchema schema) {
