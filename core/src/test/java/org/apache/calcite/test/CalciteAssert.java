@@ -277,7 +277,7 @@ public class CalciteAssert {
     };
   }
 
-  static Function<ResultSet, Void> checkResultCount(final int expected) {
+  public static Function<ResultSet, Void> checkResultCount(final int expected) {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {

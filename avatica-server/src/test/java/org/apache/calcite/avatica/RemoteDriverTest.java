@@ -177,6 +177,23 @@ public class RemoteDriverTest {
     connection.close();
   }
 
+  @Test public void testTypeInfo() throws Exception {
+    final Connection connection = ljs();
+    final ResultSet resultSet =
+        connection.getMetaData().getTypeInfo();
+    assertTrue(resultSet.next());
+    final ResultSetMetaData metaData = resultSet.getMetaData();
+    assertTrue(metaData.getColumnCount() >= 18);
+    assertEquals("TYPE_NAME", metaData.getColumnName(1));
+    assertEquals("DATA_TYPE", metaData.getColumnName(2));
+    assertEquals("PRECISION", metaData.getColumnName(3));
+    assertEquals("SQL_DATA_TYPE", metaData.getColumnName(16));
+    assertEquals("SQL_DATETIME_SUB", metaData.getColumnName(17));
+    assertEquals("NUM_PREC_RADIX", metaData.getColumnName(18));
+    resultSet.close();
+    connection.close();
+  }
+
   @Ignore
   @Test public void testNoFactory() throws Exception {
     final Connection connection =

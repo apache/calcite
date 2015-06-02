@@ -35,6 +35,7 @@ public interface Service {
   ResultSetResponse apply(SchemasRequest request);
   ResultSetResponse apply(TablesRequest request);
   ResultSetResponse apply(TableTypesRequest request);
+  ResultSetResponse apply(TypeInfoRequest request);
   ResultSetResponse apply(ColumnsRequest request);
   PrepareResponse apply(PrepareRequest request);
   ExecuteResponse apply(PrepareAndExecuteRequest request);
@@ -59,8 +60,8 @@ public interface Service {
       @JsonSubTypes.Type(value = CatalogsRequest.class, name = "getCatalogs"),
       @JsonSubTypes.Type(value = SchemasRequest.class, name = "getSchemas"),
       @JsonSubTypes.Type(value = TablesRequest.class, name = "getTables"),
-      @JsonSubTypes.Type(value = TableTypesRequest.class,
-          name = "getTableTypes"),
+      @JsonSubTypes.Type(value = TableTypesRequest.class, name = "getTableTypes"),
+      @JsonSubTypes.Type(value = TypeInfoRequest.class, name = "getTypeInfo"),
       @JsonSubTypes.Type(value = ColumnsRequest.class, name = "getColumns"),
       @JsonSubTypes.Type(value = PrepareRequest.class, name = "prepare"),
       @JsonSubTypes.Type(value = PrepareAndExecuteRequest.class,
@@ -190,6 +191,14 @@ public interface Service {
     }
 
     ResultSetResponse accept(Service service) {
+      return service.apply(this);
+    }
+  }
+
+  /** Request for
+   * {@link Meta#getTypeInfo()}. */
+  class TypeInfoRequest extends Request {
+    @Override ResultSetResponse accept(Service service) {
       return service.apply(this);
     }
   }

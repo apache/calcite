@@ -55,6 +55,18 @@ public interface RelDataTypeSystem {
 
   /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
   int getMaxNumericPrecision();
+
+  /** Returns the LITERAL string for the type, either PREFIX/SUFFIX. */
+  String getLiteral(SqlTypeName typeName, boolean isPrefix);
+
+  /** Returns if the type is case sensitive true or not (false) */
+  boolean isCaseSensitive(SqlTypeName typeName);
+
+  /** Returns if the type can be auto increment true or not (false) */
+  boolean isAutoincrement(SqlTypeName typeName);
+
+  /** Returns the numeric type Radix, 2 or 10. 0 represent not applicable*/
+  int getNumTypeRadix(SqlTypeName typeName);
 }
 
 // End RelDataTypeSystem.java
