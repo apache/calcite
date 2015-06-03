@@ -43,7 +43,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -588,7 +590,12 @@ public class RemoteDriverTest {
     if (JDK17) {
       return;
     }
+    LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
     checkPrepareBindExecuteFetch(ljs());
+    List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
+    for (String[] pair : x) {
+      System.out.println(pair[0] + "=" + pair[1]);
+    }
   }
 
   private void checkPrepareBindExecuteFetch(Connection connection)
@@ -781,7 +788,7 @@ public class RemoteDriverTest {
         final JdbcMeta jdbcMeta = new JdbcMeta(CONNECTION_SPEC.url,
             CONNECTION_SPEC.username, CONNECTION_SPEC.password);
         final LocalService localService = new LocalService(jdbcMeta);
-        service = new LocalJsonService(localService);
+        service = new LoggingLocalJsonService(localService);
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -844,6 +851,61 @@ public class RemoteDriverTest {
       jdbcMetaConnectionCacheF.setAccessible(true);
       //noinspection unchecked
       return (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
+    }
+  }
+
+  /** Extension to {@link LocalJsonService} that writes requests and responses
+   * into a thread-local. */
+  private static class LoggingLocalJsonService extends LocalJsonService {
+    private static final ThreadLocal<RequestLogger> THREAD_LOG =
+        new ThreadLocal<RequestLogger>() {
+          @Override protected RequestLogger initialValue() {
+            return new RequestLogger();
+          }
+        };
+
+    public LoggingLocalJsonService(LocalService localService) {
+      super(localService);
+    }
+
+    @Override public String apply(String request) {
+      final RequestLogger logger = THREAD_LOG.get();
+      logger.requestStart(request);
+      final String response = super.apply(request);
+      logger.requestEnd(request, response);
+      return response;
+    }
+  }
+
+  /** Logs request and response strings if enabled. */
+  private static class RequestLogger {
+    final List<String[]> requestResponses = new ArrayList<>();
+    boolean enabled;
+
+    void enableAndClear() {
+      enabled = true;
+      requestResponses.clear();
+    }
+
+    void requestStart(String request) {
+      if (enabled) {
+        requestResponses.add(new String[]{request, null});
+      }
+    }
+
+    void requestEnd(String request, String response) {
+      if (enabled) {
+        String[] last = requestResponses.get(requestResponses.size() - 1);
+        if (!request.equals(last[0])) {
+          throw new AssertionError();
+        }
+        last[1] = response;
+      }
+    }
+
+    List<String[]> getAndDisable() {
+      enabled = false;
+      return new ArrayList<>(requestResponses);
     }
   }
 
