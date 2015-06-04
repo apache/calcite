@@ -376,7 +376,7 @@ public class CalciteMetaImpl extends MetaImpl {
             new Function1<String, MetaTable>() {
               public MetaTable apply(String name) {
                 final Table table =
-                    schema.calciteSchema.getTable(name, true).getValue();
+                    schema.calciteSchema.getTable(name, true).getTable();
                 return new CalciteMetaTable(table,
                     schema.tableCatalog,
                     schema.tableSchem,

@@ -117,16 +117,11 @@ public class MaterializationService {
 
     final CalciteConnection connection =
         CalciteMetaImpl.connect(schema.root(), null);
-    final Pair<String, Table> pair = schema.getTableBySql(viewSql);
-    Table materializedTable = pair == null ? null : pair.right;
+    CalciteSchema.TableEntry tableEntry = schema.getTableBySql(viewSql);
     RelDataType rowType = null;
-    CalciteSchema.TableEntry tableEntry = null;
-    if (materializedTable == null) {
+    if (tableEntry == null) {
       tableEntry = tableFactory.createTable(schema, viewSql, viewSchemaPath);
-      materializedTable = tableEntry.getTable();
-      rowType = materializedTable.getRowType(connection.getTypeFactory());
-    } else {
-      tableEntry = schema.getTableEntry(pair.left, connection.config().caseSensitive());
+      rowType = tableEntry.getTable().getRowType(connection.getTypeFactory());
     }
 
     if (rowType == null) {
@@ -265,6 +260,7 @@ public class MaterializationService {
 
     final String sql = lattice.sql(groupSet, newTileKey.measures);
 
+    System.out.println(sql);
     materializationKey =
         defineMaterialization(schema, newTileKey, sql, schema.path(null),
             tableFactory, true);
