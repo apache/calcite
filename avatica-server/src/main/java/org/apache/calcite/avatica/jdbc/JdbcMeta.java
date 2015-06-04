@@ -712,9 +712,11 @@ public class JdbcMeta implements Meta {
   public ExecuteResult prepareAndExecute(StatementHandle statementHandle, String sql,
       int maxRowCount, PrepareCallback callback) {
     try {
-      final StatementInfo statementInfo = Objects.requireNonNull(
-          statementCache.getIfPresent(statementHandle.id),
-          "Statement not found, potentially expired. " + statementHandle);
+      final StatementInfo statementInfo = statementCache.getIfPresent(statementHandle.id);
+      if (statementInfo == null) {
+        throw new RuntimeException("Statement not found, potentially expired. "
+          + statementHandle);
+      }
       final Statement statement = statementInfo.statement;
       // Special handling of maxRowCount as JDBC 0 is unlimited, our meta 0 row
       if (maxRowCount > 0 || maxRowCount == -1) {
