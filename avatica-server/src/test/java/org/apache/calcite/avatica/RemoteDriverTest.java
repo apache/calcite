@@ -43,7 +43,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -283,11 +285,66 @@ public class RemoteDriverTest {
     checkStatementExecute(ljs(), false);
   }
 
+  @Test public void testStatementExecuteFetch() throws Exception {
+    // Creating a > 100 rows queries to enable fetch request
+    String sql = "select * from emp cross join emp";
+    checkExecuteFetch(ljs(), sql, false, 1);
+    // PreparedStatement needed an extra fetch, as the execute will
+    // trigger the 1st fetch. Where statement execute will execute direct
+    // with results back.
+    checkExecuteFetch(ljs(), sql, true, 2);
+  }
+
+  private void checkExecuteFetch(Connection conn, String sql, boolean isPrepare,
+    int fetchCountMatch) throws SQLException {
+    final Statement exeStatement;
+    final ResultSet results;
+    LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
+    if (isPrepare) {
+      PreparedStatement statement = conn.prepareStatement(sql);
+      exeStatement = statement;
+      results = statement.executeQuery();
+    } else {
+      Statement statement = conn.createStatement();
+      exeStatement = statement;
+      results = statement.executeQuery(sql);
+    }
+    int count = 0;
+    int fetchCount = 0;
+    while (results.next()) {
+      count++;
+    }
+    results.close();
+    exeStatement.close();
+    List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
+    for (String[] pair : x) {
+      if (pair[0].contains("\"request\":\"fetch")) {
+        fetchCount++;
+      }
+    }
+    assertEquals(count, 196);
+    assertEquals(fetchCount, fetchCountMatch);
+  }
+
+  @Test public void testStatementExecuteLocalMaxRow() throws Exception {
+    checkStatementExecute(ljs(), false, 2);
+  }
+
+  @Ignore("CALCITE-719: Refactor PreparedStatement to support setMaxRows")
+  @Test public void testStatementPrepareExecuteLocalMaxRow() throws Exception {
+    checkStatementExecute(ljs(), true, 2);
+  }
+
   @Test public void testPrepareExecuteLocal() throws Exception {
     checkStatementExecute(ljs(), true);
   }
 
-  private void checkStatementExecute(Connection connection, boolean prepare) throws SQLException {
+  private void checkStatementExecute(Connection connection,
+      boolean prepare) throws SQLException {
+    checkStatementExecute(connection, prepare, 0);
+  }
+  private void checkStatementExecute(Connection connection,
+      boolean prepare, int maxRowCount) throws SQLException {
     final String sql = "select * from (\n"
         + "  values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)";
     final Statement statement;
@@ -296,11 +353,13 @@ public class RemoteDriverTest {
     if (prepare) {
       final PreparedStatement ps = connection.prepareStatement(sql);
       statement = ps;
+      ps.setMaxRows(maxRowCount);
       parameterMetaData = ps.getParameterMetaData();
       assertTrue(ps.execute());
       resultSet = ps.getResultSet();
     } else {
       statement = connection.createStatement();
+      statement.setMaxRows(maxRowCount);
       parameterMetaData = null;
       assertTrue(statement.execute(sql));
       resultSet = statement.getResultSet();
@@ -312,9 +371,9 @@ public class RemoteDriverTest {
     assertEquals(2, metaData.getColumnCount());
     assertEquals("C1", metaData.getColumnName(1));
     assertEquals("C2", metaData.getColumnName(2));
-    assertTrue(resultSet.next());
-    assertTrue(resultSet.next());
-    assertTrue(resultSet.next());
+    for (int i = 0; i < maxRowCount || (maxRowCount == 0 && i < 3); i++) {
+      assertTrue(resultSet.next());
+    }
     assertFalse(resultSet.next());
     resultSet.close();
     statement.close();
@@ -585,10 +644,16 @@ public class RemoteDriverTest {
   }
 
   @Test public void testPrepareBindExecuteFetch() throws Exception {
-    if (JDK17) {
-      return;
-    }
+//    if (JDK17) {
+//      return;
+//    }
+    LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
     checkPrepareBindExecuteFetch(ljs());
+    List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
+    for (String[] pair : x) {
+      System.out.println(pair[0] + "=" + pair[1]);
+    }
+
   }
 
   private void checkPrepareBindExecuteFetch(Connection connection)
@@ -781,7 +846,7 @@ public class RemoteDriverTest {
         final JdbcMeta jdbcMeta = new JdbcMeta(CONNECTION_SPEC.url,
             CONNECTION_SPEC.username, CONNECTION_SPEC.password);
         final LocalService localService = new LocalService(jdbcMeta);
-        service = new LocalJsonService(localService);
+        service = new LoggingLocalJsonService(localService);
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -844,6 +909,63 @@ public class RemoteDriverTest {
       jdbcMetaConnectionCacheF.setAccessible(true);
       //noinspection unchecked
       return (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
+    }
+  }
+
+  /** Extension to {@link LocalJsonService} that writes requests and responses
+   * into a thread-local. */
+  private static class LoggingLocalJsonService extends LocalJsonService {
+    private static final ThreadLocal<RequestLogger> THREAD_LOG =
+        new ThreadLocal<RequestLogger>() {
+          @Override
+          protected RequestLogger initialValue() {
+            return new RequestLogger();
+          }
+        };
+
+    public LoggingLocalJsonService(LocalService localService) {
+      super(localService);
+    }
+
+    @Override
+    public String apply(String request) {
+      final RequestLogger logger = THREAD_LOG.get();
+      logger.requestStart(request);
+      final String response = super.apply(request);
+      logger.requestEnd(request, response);
+      return response;
+    }
+  }
+
+  /** Logs request and response strings if enabled. */
+  private static class RequestLogger {
+    final List<String[]> requestResponses = new ArrayList<>();
+    boolean enabled;
+
+    void enableAndClear() {
+      enabled = true;
+      requestResponses.clear();
+    }
+
+    void requestStart(String request) {
+      if (enabled) {
+        requestResponses.add(new String[]{request, null});
+      }
+    }
+
+    void requestEnd(String request, String response) {
+      if (enabled) {
+        String[] last = requestResponses.get(requestResponses.size() - 1);
+        if (!request.equals(last[0])) {
+          throw new AssertionError();
+        }
+        last[1] = response;
+      }
+    }
+
+    List<String[]> getAndDisable() {
+      enabled = false;
+      return new ArrayList<>(requestResponses);
     }
   }
 

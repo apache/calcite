@@ -246,13 +246,16 @@ public interface Service {
     public final String connectionId;
     public final String sql;
     public final int maxRowCount;
+    public final int statementId;
 
     @JsonCreator
     public PrepareAndExecuteRequest(
         @JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId,
         @JsonProperty("sql") String sql,
         @JsonProperty("maxRowCount") int maxRowCount) {
       this.connectionId = connectionId;
+      this.statementId = statementId;
       this.sql = sql;
       this.maxRowCount = maxRowCount;
     }

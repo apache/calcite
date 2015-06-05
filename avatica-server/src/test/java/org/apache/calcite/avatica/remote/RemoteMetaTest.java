@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.RemoteDriverTest;
@@ -31,8 +32,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -90,12 +93,39 @@ public class RemoteMetaTest {
     return (Meta) f.get(conn);
   }
 
+  private static Meta.ExecuteResult prepareAndExecuteInternal(AvaticaConnection conn,
+    final AvaticaStatement statement, String sql, int maxRowCount) throws Exception {
+    Method m = AvaticaConnection.class.getDeclaredMethod("prepareAndExecuteInternal",
+      AvaticaStatement.class, String.class, int.class);
+    m.setAccessible(true);
+    return (Meta.ExecuteResult) m.invoke(conn, statement, sql, new Integer(maxRowCount));
+  }
+
   private static Connection getConnection(JdbcMeta m, String id) throws Exception {
     Field f = JdbcMeta.class.getDeclaredField("connectionCache");
     f.setAccessible(true);
     //noinspection unchecked
     Cache<String, Connection> connectionCache = (Cache<String, Connection>) f.get(m);
     return connectionCache.getIfPresent(id);
+  }
+
+  @Test public void testRemoteExecuteMaxRowCount() throws Exception {
+    try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
+      final AvaticaStatement statement = conn.createStatement();
+      prepareAndExecuteInternal(conn, statement,
+        "select * from (values ('a', 1), ('b', 2))", 0);
+      ResultSet rs = statement.getResultSet();
+      int count = 0;
+      while (rs.next()) {
+        count++;
+      }
+      assertEquals("Check maxRowCount=0 and ResultSets is 0 row", count, 0);
+      assertEquals("Check result set meta is still there",
+        rs.getMetaData().getColumnCount(), 2);
+      rs.close();
+      statement.close();
+      conn.close();
+    }
   }
 
   @Test public void testRemoteConnectionProperties() throws Exception {

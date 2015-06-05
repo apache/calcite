@@ -165,15 +165,18 @@ class RemoteMeta extends MetaImpl {
     return response.statement;
   }
 
-  @Override public ExecuteResult prepareAndExecute(ConnectionHandle ch,
+  @Override public ExecuteResult prepareAndExecute(StatementHandle statementHandle,
       String sql, int maxRowCount, PrepareCallback callback) {
-    connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
+    // sync connection state if necessary
+    connectionSync(new ConnectionHandle(statementHandle.connectionId),
+      new ConnectionPropertiesImpl());
     final Service.ExecuteResponse response;
     try {
       synchronized (callback.getMonitor()) {
         callback.clear();
         response = service.apply(
-            new Service.PrepareAndExecuteRequest(ch.id, sql, maxRowCount));
+            new Service.PrepareAndExecuteRequest(statementHandle.connectionId,
+              statementHandle.id, sql, maxRowCount));
         if (response.results.size() > 0) {
           final Service.ResultSetResponse result = response.results.get(0);
           callback.assign(result.signature, result.firstFrame,
