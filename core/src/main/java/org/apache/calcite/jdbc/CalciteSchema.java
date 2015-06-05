@@ -138,6 +138,11 @@ public class CalciteSchema {
     return rootSchema;
   }
 
+  /** Creates a TableEntryImpl with no SQLs. */
+  private TableEntryImpl tableEntry(String name, Table table) {
+    return new TableEntryImpl(this, name, table, ImmutableList.<String>of());
+  }
+
   /** Defines a table within this schema. */
   public TableEntry add(String tableName, Table table) {
     return add(tableName, table, ImmutableList.<String>of());
@@ -273,7 +278,7 @@ public class CalciteSchema {
       if (implicitTableCache.get(now).contains(tableName)) {
         final Table table = schema.getTable(tableName);
         if (table != null) {
-          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
+          return tableEntry(tableName, table);
         }
       }
       return null;
@@ -292,7 +297,7 @@ public class CalciteSchema {
       if (tableName2 != null) {
         final Table table = schema.getTable(tableName2);
         if (table != null) {
-          return new TableEntryImpl(this, tableName2, table, ImmutableList.<String>of());
+          return tableEntry(tableName2, table);
         }
       }
       return null;
@@ -454,14 +459,14 @@ public class CalciteSchema {
         if (function instanceof TableMacro) {
           assert function.getParameters().isEmpty();
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
+          return tableEntry(tableName, table);
         }
       }
       for (Function function : schema.getFunctions(tableName)) {
         if (function instanceof TableMacro
             && function.getParameters().isEmpty()) {
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
+          return tableEntry(tableName, table);
         }
       }
     } else {
@@ -471,7 +476,7 @@ public class CalciteSchema {
         if (function instanceof TableMacro) {
           assert function.getParameters().isEmpty();
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
+          return tableEntry(tableName, table);
         }
       }
       final NavigableSet<String> set =
@@ -482,7 +487,7 @@ public class CalciteSchema {
               && function.getParameters().isEmpty()) {
             final Table table =
                 ((TableMacro) function).apply(ImmutableList.of());
-            return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
+            return tableEntry(tableName, table);
           }
         }
       }
