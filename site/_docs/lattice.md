@@ -4,6 +4,7 @@ title: Lattices
 permalink: /docs/lattice.html
 ---
 <!--
+{% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
 this work for additional information regarding copyright ownership.
@@ -18,7 +19,9 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+{% endcomment %}
 -->
+
 A lattice is a framework for creating and populating materialized views,
 and for recognizing that a materialized view can be used to solve a
 particular query.

@@ -5,6 +5,7 @@ date: "2015-04-24 19:03:07 -0800"
 author: jhyde
 categories: [team]
 ---
+<!--
 {% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -21,6 +22,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
+-->
 
 The Calcite project management committee today added five new
 committers for their work on Calcite. Welcome all!

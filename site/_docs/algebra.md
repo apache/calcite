@@ -3,6 +3,7 @@ layout: docs
 title: Algebra
 permalink: /docs/algebra.html
 ---
+<!--
 {% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
@@ -19,6 +20,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
+-->
 
 Relational algebra is at the heart of Calcite. Every query is
 represented as a tree of relational operators. You can translate from

@@ -4,6 +4,7 @@ title: Tutorial
 permalink: /docs/tutorial.html
 ---
 <!--
+{% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
 this work for additional information regarding copyright ownership.
@@ -18,6 +19,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+{% endcomment %}
 -->
 
 {% assign sourceRoot = "http://github.com/apache/incubator-calcite/blob/master" %}
