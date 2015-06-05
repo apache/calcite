@@ -218,11 +218,18 @@ public class PlannerImpl implements Planner {
       final RexBuilder rexBuilder = createRexBuilder();
       final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
       final SqlToRelConverter sqlToRelConverter =
-          new SqlToRelConverter(null, validator, catalogReader, cluster,
-              convertletTable);
-      sqlToRelConverter.setTrimUnusedFields(false);
+          new SqlToRelConverter(new ViewExpanderImpl(), validator,
+              catalogReader, cluster, convertletTable);
 
-      return sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
+      sqlToRelConverter.setTrimUnusedFields(false);
+      sqlToRelConverter.enableTableAccessConversion(false);
+
+      RelNode rel =
+          sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
+      rel = sqlToRelConverter.flattenTypes(rel, true);
+      rel = RelDecorrelator.decorrelateQuery(rel);
+
+      return rel;
     }
   }
 
