@@ -1563,12 +1563,13 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushFilterWithRank() throws Exception {
     HepProgram program = new HepProgramBuilder().addRuleInstance(
         FilterProjectTransposeRule.INSTANCE).build();
-    checkPlanning(program, "select e1.ename, r\n"
+    final String sql = "select e1.ename, r\n"
         + "from (\n"
         + "  select ename, "
         + "  rank() over(partition by  deptno order by sal) as r "
         + "  from emp) e1\n"
-        + "where r < 2");
+        + "where r < 2";
+    checkPlanning(program, sql);
   }
 
   @Test public void testPushFilterWithRankExpr() throws Exception {
@@ -1587,14 +1588,13 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    checkPlanning(tester, preProgram,
-        new HepPlanner(program),
-        "select e.empno,d.deptno \n"
-                + "from (select * from sales.emp where empno = 10) as e "
-                + "join sales.dept as d on e.empno = d.deptno "
-                + "group by e.empno,d.deptno");
+    final String sql = "select e.empno,d.deptno \n"
+        + "from (select * from sales.emp where empno = 10) as e "
+        + "join sales.dept as d on e.empno = d.deptno "
+        + "group by e.empno,d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testPushAggregateThroughJoin2() throws Exception {
@@ -1602,15 +1602,14 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    checkPlanning(tester, preProgram,
-        new HepPlanner(program),
-        "select e.empno,d.deptno \n"
-                + "from (select * from sales.emp where empno = 10) as e "
-                + "join sales.dept as d on e.empno = d.deptno "
-                + "and e.deptno + e.empno = d.deptno + 5 "
-                + "group by e.empno,d.deptno");
+    final String sql = "select e.empno,d.deptno \n"
+        + "from (select * from sales.emp where empno = 10) as e "
+        + "join sales.dept as d on e.empno = d.deptno "
+        + "and e.deptno + e.empno = d.deptno + 5 "
+        + "group by e.empno,d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testPushAggregateThroughJoin3() throws Exception {
@@ -1618,29 +1617,77 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    checkPlanning(tester, preProgram,
-        new HepPlanner(program),
-        "select e.empno,d.deptno \n"
-                + "from (select * from sales.emp where empno = 10) as e "
-                + "join sales.dept as d on e.empno < d.deptno "
-                + "group by e.empno,d.deptno");
+    final String sql = "select e.empno,d.deptno \n"
+        + "from (select * from sales.emp where empno = 10) as e "
+        + "join sales.dept as d on e.empno < d.deptno "
+        + "group by e.empno,d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  @Test public void testPushAggregateThroughJoin4() throws Exception {
+  /** SUM is the easiest aggregate function to split. */
+  @Test public void testPushAggregateSumThroughJoin() throws Exception {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateJoinTransposeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    checkPlanning(tester, preProgram,
-        new HepPlanner(program),
-        "select e.empno,sum(sal) \n"
-                + "from (select * from sales.emp where empno = 10) as e "
-                + "join sales.dept as d on e.empno = d.deptno "
-                + "group by e.empno,d.deptno");
+    final String sql = "select e.empno,sum(sal) \n"
+        + "from (select * from sales.emp where empno = 10) as e "
+        + "join sales.dept as d on e.empno = d.deptno "
+        + "group by e.empno,d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Push a variety of aggregate functions. */
+  @Test public void testPushAggregateFunctionsThroughJoin() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.empno,\n"
+        + "  min(sal) as min_sal, min(e.deptno) as min_deptno,\n"
+        + "  sum(sal) + 1 as sum_sal_plus, max(sal) as max_sal,\n"
+        + "  sum(sal) as sum_sal_2, count(sal) as count_sal\n"
+        + "from sales.emp as e\n"
+        + "join sales.dept as d on e.empno = d.deptno\n"
+        + "group by e.empno,d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Push a aggregate functions into a relation that is unique on the join
+   * key. */
+  @Test public void testPushAggregateThroughJoinDistinct() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select d.deptno,\n"
+        + "  sum(sal) as sum_sal, count(*) as c\n"
+        + "from sales.emp as e\n"
+        + "join (select distinct deptno from sales.dept) as d\n"
+        + "  on e.empno = d.deptno\n"
+        + "group by d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Push count(*) through join, no GROUP BY. */
+  @Test public void testPushAggregateSumNoGroup() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql =
+        "select count(*) from sales.emp join sales.dept using (deptno)";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testSwapOuterJoin() throws Exception {

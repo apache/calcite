@@ -153,12 +153,8 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     // will add an expression to the end, and we will create an extra
     // project.
     RelNode input = oldAggRel.getInput();
-    final List<RexNode> inputExprs = new ArrayList<>();
-    for (RelDataTypeField field : input.getRowType().getFieldList()) {
-      inputExprs.add(
-          rexBuilder.makeInputRef(
-              field.getType(), inputExprs.size()));
-    }
+    final List<RexNode> inputExprs =
+        new ArrayList<>(rexBuilder.identityProjects(input.getRowType()));
 
     // create new agg function calls and rest of project list together
     for (AggregateCall oldCall : oldCalls) {

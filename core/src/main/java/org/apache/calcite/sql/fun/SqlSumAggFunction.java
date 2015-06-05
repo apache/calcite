@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
@@ -35,6 +36,7 @@ import java.util.List;
  * is the same type.
  */
 public class SqlSumAggFunction extends SqlAggFunction {
+
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataType type;
@@ -64,6 +66,13 @@ public class SqlSumAggFunction extends SqlAggFunction {
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
+  }
+
+  @Override public <T> T unwrap(Class<T> clazz) {
+    if (clazz == SqlSplittableAggFunction.class) {
+      return clazz.cast(SqlSplittableAggFunction.SumSplitter.INSTANCE);
+    }
+    return super.unwrap(clazz);
   }
 }
 

@@ -69,7 +69,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1070,16 +1069,10 @@ public class SubstitutionVisitor {
   }
 
   public static MutableAggregate permute(MutableAggregate aggregate,
-      MutableRel input, final Mapping mapping) {
+      MutableRel input, Mapping mapping) {
     ImmutableBitSet groupSet = Mappings.apply(mapping, aggregate.getGroupSet());
     ImmutableList<ImmutableBitSet> groupSets =
-        ImmutableList.copyOf(
-            Iterables.transform(aggregate.getGroupSets(),
-                new Function<ImmutableBitSet, ImmutableBitSet>() {
-                  public ImmutableBitSet apply(ImmutableBitSet input1) {
-                    return Mappings.apply(mapping, input1);
-                  }
-                }));
+        Mappings.apply2(mapping, aggregate.getGroupSets());
     List<AggregateCall> aggregateCalls =
         apply(mapping, aggregate.getAggCallList());
     return MutableAggregate.of(input, aggregate.indicator, groupSet, groupSets,

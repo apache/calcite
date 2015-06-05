@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Correlate;
@@ -34,6 +36,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.base.Predicate;
 
 import java.util.List;
 
@@ -258,6 +262,68 @@ public class RelMdColumnUniqueness {
     // no information available
     return null;
   }
+
+  public Boolean areColumnsUnique(
+      boolean dummy, // prevent method from being used
+      HepRelVertex rel,
+      ImmutableBitSet columns,
+      boolean ignoreNulls) {
+    return RelMetadataQuery.areColumnsUnique(
+        rel.getCurrentRel(),
+        columns,
+        ignoreNulls);
+  }
+
+  public Boolean areColumnsUnique(
+      boolean dummy, // prevent method from being used
+      RelSubset rel,
+      ImmutableBitSet columns,
+      boolean ignoreNulls) {
+    int nullCount = 0;
+    for (RelNode rel2 : rel.getRels()) {
+      if (rel2 instanceof Aggregate || simplyProjects(rel2, columns)) {
+        final Boolean unique =
+            RelMetadataQuery.areColumnsUnique(rel2, columns, ignoreNulls);
+        if (unique != null) {
+          if (unique) {
+            return true;
+          }
+        } else {
+          ++nullCount;
+        }
+      }
+    }
+    return nullCount == 0 ? false : null;
+  }
+
+  private boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
+    if (!(rel instanceof Project)) {
+      return false;
+    }
+    Project project = (Project) rel;
+    final List<RexNode> projects = project.getProjects();
+    for (int column : columns) {
+      if (column >= projects.size()) {
+        return false;
+      }
+      if (!(projects.get(column) instanceof RexInputRef)) {
+        return false;
+      }
+      final RexInputRef ref = (RexInputRef) projects.get(column);
+      if (ref.getIndex() != column) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Aggregate and Calc are "safe" children of a RelSubset to delve into. */
+  private static final Predicate<RelNode> SAFE_REL =
+      new Predicate<RelNode>() {
+        public boolean apply(RelNode r) {
+          return r instanceof Aggregate || r instanceof Project;
+        }
+      };
 }
 
 // End RelMdColumnUniqueness.java

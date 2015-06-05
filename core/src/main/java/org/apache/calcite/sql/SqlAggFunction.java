@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -26,7 +27,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
  * Abstract base class for the definition of an aggregate function: an operator
  * which aggregates sets of values into a result.
  */
-public abstract class SqlAggFunction extends SqlFunction {
+public abstract class SqlAggFunction extends SqlFunction implements Context {
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a built-in SqlAggFunction. */
@@ -56,6 +57,10 @@ public abstract class SqlAggFunction extends SqlFunction {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public <T> T unwrap(Class<T> clazz) {
+    return clazz.isInstance(this) ? clazz.cast(this) : null;
+  }
 
   @Override public boolean isAggregator() {
     return true;

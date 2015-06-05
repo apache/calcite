@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Objects;
@@ -286,8 +287,8 @@ public class AggregateCall {
   /** Creates a copy of this aggregate call, applying a mapping to its
    * arguments. */
   public AggregateCall transform(Mappings.TargetMapping mapping) {
-    return copy(Mappings.permute(argList, mapping),
-        Mappings.apply(mapping, filterArg));
+    return copy(Mappings.apply2((Mapping) mapping, argList),
+        filterArg < 0 ? -1 : Mappings.apply(mapping, filterArg));
   }
 }
 

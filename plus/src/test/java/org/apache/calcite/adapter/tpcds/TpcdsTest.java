@@ -16,11 +16,21 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
@@ -141,6 +151,10 @@ public class TpcdsTest {
                 + "                EnumerableTableAccessRel(table=[[TPCDS, CATALOG_SALES]]): rowcount = 1441548.0, cumulative cost = {1441548.0 rows, 1441549.0 cpu, 0.0 io}\n"));
   }
 
+  @Test public void testQuery27() {
+    checkQuery(27).runs();
+  }
+
   @Test public void testQuery58() {
     checkQuery(58).explainContains("PLAN").runs();
   }
@@ -188,6 +202,95 @@ public class TpcdsTest {
     }
     return with()
         .query(sql.replaceAll("tpcds\\.", "tpcds_01."));
+  }
+
+  public Frameworks.ConfigBuilder config() throws Exception {
+    final Holder<SchemaPlus> root = Holder.of(null);
+    CalciteAssert.model(TPCDS_MODEL)
+        .doWithConnection(
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection input) {
+                root.set(input.getRootSchema().getSubSchema("TPCDS"));
+                return null;
+              }
+            });
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(root.get())
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
+  }
+
+  /**
+   * Builder query 27 using {@link RelBuilder}.
+   *
+   * <blockquote><pre>
+   *   select  i_item_id,
+   *         s_state, grouping(s_state) g_state,
+   *         avg(ss_quantity) agg1,
+   *         avg(ss_list_price) agg2,
+   *         avg(ss_coupon_amt) agg3,
+   *         avg(ss_sales_price) agg4
+   * from store_sales, customer_demographics, date_dim, store, item
+   * where ss_sold_date_sk = d_date_sk and
+   *        ss_item_sk = i_item_sk and
+   *        ss_store_sk = s_store_sk and
+   *        ss_cdemo_sk = cd_demo_sk and
+   *        cd_gender = 'dist(gender, 1, 1)' and
+   *        cd_marital_status = 'dist(marital_status, 1, 1)' and
+   *        cd_education_status = 'dist(education, 1, 1)' and
+   *        d_year = 1998 and
+   *        s_state in ('distmember(fips_county,[STATENUMBER.1], 3)',
+   *              'distmember(fips_county,[STATENUMBER.2], 3)',
+   *              'distmember(fips_county,[STATENUMBER.3], 3)',
+   *              'distmember(fips_county,[STATENUMBER.4], 3)',
+   *              'distmember(fips_county,[STATENUMBER.5], 3)',
+   *              'distmember(fips_county,[STATENUMBER.6], 3)')
+   *  group by rollup (i_item_id, s_state)
+   *  order by i_item_id
+   *          ,s_state
+   *  LIMIT 100
+   * </pre></blockquote>
+   */
+  @Test public void testQuery27Builder() throws Exception {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("STORE_SALES")
+            .scan("CUSTOMER_DEMOGRAPHICS")
+            .scan("DATE_DIM")
+            .scan("STORE")
+            .scan("ITEM")
+            .join(JoinRelType.INNER)
+            .join(JoinRelType.INNER)
+            .join(JoinRelType.INNER)
+            .join(JoinRelType.INNER)
+            .filter(
+                builder.equals(builder.field("SS_SOLD_DATE_SK"), builder.field("D_DATE_SK")),
+                builder.equals(builder.field("SS_ITEM_SK"), builder.field("I_ITEM_SK")),
+                builder.equals(builder.field("SS_STORE_SK"), builder.field("S_STORE_SK")),
+                builder.equals(builder.field("SS_CDEMO_SK"), builder.field("CD_DEMO_SK")),
+                builder.equals(builder.field("CD_GENDER"), builder.literal("M")),
+                builder.equals(builder.field("CD_MARITAL_STATUS"), builder.literal("S")),
+                builder.equals(builder.field("CD_EDUCATION_STATUS"),
+                    builder.literal("HIGH SCHOOL")),
+                builder.equals(builder.field("D_YEAR"), builder.literal(1998)),
+                builder.call(SqlStdOperatorTable.IN,
+                    builder.field("S_STATE"),
+                    builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                        builder.literal("CA"),
+                        builder.literal("OR"),
+                        builder.literal("WA"),
+                        builder.literal("TX"),
+                        builder.literal("OK"),
+                        builder.literal("MD"))))
+            .aggregate(builder.groupKey("I_ITEM_ID", "S_STATE"),
+                builder.avg(false, "AGG1", builder.field("SS_QUANTITY")),
+                builder.avg(false, "AGG2", builder.field("SS_LIST_PRICE")),
+                builder.avg(false, "AGG3", builder.field("SS_COUPON_AMT")),
+                builder.avg(false, "AGG4", builder.field("SS_SALES_PRICE")))
+            .sortLimit(0, 100, builder.field("I_ITEM_ID"), builder.field("S_STATE"))
+            .build();
+    System.out.println(RelOptUtil.toString(root));
   }
 }
 

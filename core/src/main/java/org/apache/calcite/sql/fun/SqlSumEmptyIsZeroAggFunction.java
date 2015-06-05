@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -58,6 +59,13 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.ANY), true);
+  }
+
+  @Override public <T> T unwrap(Class<T> clazz) {
+    if (clazz == SqlSplittableAggFunction.class) {
+      return clazz.cast(SqlSplittableAggFunction.SumSplitter.INSTANCE);
+    }
+    return super.unwrap(clazz);
   }
 }
 

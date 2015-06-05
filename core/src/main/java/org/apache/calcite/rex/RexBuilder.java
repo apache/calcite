@@ -119,7 +119,7 @@ public class RexBuilder {
 
   /** Creates a list of {@link org.apache.calcite.rex.RexInputRef} expressions,
    * projecting the fields of a given record type. */
-  public List<RexInputRef> identityProjects(final RelDataType rowType) {
+  public List<? extends RexNode> identityProjects(final RelDataType rowType) {
     return Lists.transform(rowType.getFieldList(), TO_INPUT_REF);
   }
 
@@ -533,28 +533,23 @@ public class RexBuilder {
   }
 
   private RexNode makeCastExactToBoolean(RelDataType toType, RexNode exp) {
-    return makeCall(
-        toType,
+    return makeCall(toType,
         SqlStdOperatorTable.NOT_EQUALS,
         ImmutableList.of(exp, makeZeroLiteral(exp.getType())));
   }
 
   private RexNode makeCastBooleanToExact(RelDataType toType, RexNode exp) {
-    final RexNode casted = makeCall(
-        SqlStdOperatorTable.CASE,
+    final RexNode casted = makeCall(SqlStdOperatorTable.CASE,
         exp,
         makeExactLiteral(BigDecimal.ONE, toType),
         makeZeroLiteral(toType));
     if (!exp.getType().isNullable()) {
       return casted;
     }
-    return makeCall(
-        toType,
+    return makeCall(toType,
         SqlStdOperatorTable.CASE,
-        ImmutableList.<RexNode>of(
-            makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp),
-            casted,
-            makeNullLiteral(toType.getSqlTypeName())));
+        ImmutableList.of(makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp),
+            casted, makeNullLiteral(toType.getSqlTypeName())));
   }
 
   private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
@@ -605,14 +600,12 @@ public class RexBuilder {
     BigDecimal multiplier = BigDecimal.valueOf(endUnit.multiplier)
         .divide(BigDecimal.TEN.pow(scale));
     RelDataType decimalType =
-        getTypeFactory().createSqlType(
-            SqlTypeName.DECIMAL,
+        getTypeFactory().createSqlType(SqlTypeName.DECIMAL,
             scale + intervalType.getPrecision(),
             scale);
     RexNode value = decodeIntervalOrDecimal(ensureType(decimalType, exp, true));
     if (multiplier.longValue() != 1) {
-      value = makeCall(
-          SqlStdOperatorTable.MULTIPLY,
+      value = makeCall(SqlStdOperatorTable.MULTIPLY,
           value, makeExactLiteral(multiplier));
     }
     return encodeIntervalOrDecimal(value, toType, false);
@@ -639,8 +632,7 @@ public class RexBuilder {
       RelDataType type,
       boolean checkOverflow) {
     RelDataType bigintType =
-        typeFactory.createSqlType(
-            SqlTypeName.BIGINT);
+        typeFactory.createSqlType(SqlTypeName.BIGINT);
     RexNode cast = ensureType(bigintType, value, true);
     return makeReinterpretCast(type, cast, makeLiteral(checkOverflow));
   }
@@ -771,6 +763,8 @@ public class RexBuilder {
    * @param input Input relational expression
    * @param i    Ordinal of field
    * @return Reference to field
+   *
+   * @see #identityProjects(RelDataType)
    */
   public RexInputRef makeInputRef(RelNode input, int i) {
     return makeInputRef(input.getRowType().getFieldList().get(i).getType(), i);
