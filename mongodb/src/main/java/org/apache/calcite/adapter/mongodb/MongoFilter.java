@@ -116,20 +116,48 @@ public class MongoFilter extends Filter implements MongoRel {
       Map<String, Object> map = builder.map();
       for (Map.Entry<String, RexLiteral> entry : eqMap.entrySet()) {
         multimap.removeAll(entry.getKey());
-        map.put(entry.getKey(), literalToString(entry.getValue()));
+        map.put(entry.getKey(), literalValue(entry.getValue()));
       }
       for (Map.Entry<String, Collection<Pair<String, RexLiteral>>> entry
           : multimap.asMap().entrySet()) {
         Map<String, Object> map2 = builder.map();
         for (Pair<String, RexLiteral> s : entry.getValue()) {
-          map2.put(s.left, literalToString(s.right));
+          addPredicate(map2, s.left, literalValue(s.right));
         }
         map.put(entry.getKey(), map2);
       }
       return map;
     }
 
-    private static Object literalToString(RexLiteral literal) {
+    private void addPredicate(Map<String, Object> map, String op, Object v) {
+      if (map.containsKey(op) && stronger(op, map.get(op), v)) {
+        return;
+      }
+      map.put(op, v);
+    }
+
+    /** Returns whether {@code v0} is a stronger value for operator {@code key}
+     * than {@code v1}.
+     *
+     * <p>For example, {@code stronger("$lt", 100, 200)} returns true, because
+     * "&lt; 100" is a more powerful condition than "&lt; 200".
+     */
+    private boolean stronger(String key, Object v0, Object v1) {
+      if (key.equals("$lt") || key.equals("$lte")) {
+        if (v0 instanceof Number && v1 instanceof Number) {
+          return ((Number) v0).doubleValue() < ((Number) v1).doubleValue();
+        }
+        if (v0 instanceof String && v1 instanceof String) {
+          return v0.toString().compareTo(v1.toString()) < 0;
+        }
+      }
+      if (key.equals("$gt") || key.equals("$gte")) {
+        return stronger("$lt", v1, v0);
+      }
+      return false;
+    }
+
+    private static Object literalValue(RexLiteral literal) {
       return literal.getValue2();
     }
 

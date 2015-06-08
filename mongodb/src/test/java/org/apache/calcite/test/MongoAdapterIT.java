@@ -716,6 +716,42 @@ public class MongoAdapterIT {
             + "STATE=WV; CITY=ATHENS\n");
   }
 
+  /** MongoDB's predicates are handed (they can only accept literals on the
+   * right-hand size) so it's worth testing that we handle them right both
+   * ways around.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-740">[CALCITE-740]
+   * Redundant WHERE clause causes wrong result in MongoDB adapter</a>. */
+  @Test public void testFilterPair() {
+    final int gt9k = 8125;
+    final int lt9k = 21227;
+    final int gt8k = 8707;
+    final int lt8k = 20645;
+    checkPredicate(gt9k, "where pop > 8000 and pop > 9000");
+    checkPredicate(gt9k, "where pop > 9000");
+    checkPredicate(lt9k, "where pop < 9000");
+    checkPredicate(gt8k, "where pop > 8000");
+    checkPredicate(lt8k, "where pop < 8000");
+    checkPredicate(gt9k, "where pop > 9000 and pop > 8000");
+    checkPredicate(gt8k, "where pop > 9000 or pop > 8000");
+    checkPredicate(gt8k, "where pop > 8000 or pop > 9000");
+    checkPredicate(lt8k, "where pop < 8000 and pop < 9000");
+  }
+
+  private void checkPredicate(int expected, String q) {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select count(*) as c from zips\n" + q)
+        .returns("C=" + expected + "\n");
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select * from zips\n" + q)
+        .returnsCount(expected);
+  }
+
   @Ignore
   @Test public void testFoodmartQueries() {
     final List<Pair<String, String>> queries = JdbcTest.getFoodmartQueries();
