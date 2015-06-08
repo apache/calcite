@@ -7309,6 +7309,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     //   12345678901234567890123456789012345678901234567890123456789012345
     //        check("SELECT count(0) FROM emp GROUP BY ()");
   }
+
+  // Calcite-754
+  @Test public void testPartionByColumnInJoinAlias() {
+    sql("select sum(1) over(partition by t1.ename) \n"
+        + "from emp t1, emp t2")
+        .ok();
+  }
+
+  // Calcite-754
+  @Test public void testPartionByColumnInJoin() {
+    sql("select sum(1) over(partition by emp.ename) \n"
+        + "from emp, dept")
+        .ok();
+  }
 }
 
 // End SqlValidatorTest.java
