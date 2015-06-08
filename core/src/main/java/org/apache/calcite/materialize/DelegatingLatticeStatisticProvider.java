@@ -14,24 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.test;
-
-import org.apache.calcite.avatica.RemoteDriverTest;
-
-import org.junit.runner.RunWith;
-
-import org.junit.runners.Suite;
+package org.apache.calcite.materialize;
 
 /**
- * Avatica test suite.
+ * Implementation of {@link LatticeStatisticProvider} that delegates
+ * to an underlying provider.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    AvaticaUtilsTest.class,
-    ConnectStringParserTest.class,
-    RemoteDriverTest.class
-})
-public class AvaticaSuite {
+public class DelegatingLatticeStatisticProvider
+    implements LatticeStatisticProvider {
+  protected final LatticeStatisticProvider provider;
+
+  /** Creates a DelegatingLatticeStatisticProvider.
+   *
+   * @param provider Provider to which to delegate otherwise unhandled requests
+   */
+  protected DelegatingLatticeStatisticProvider(
+      LatticeStatisticProvider provider) {
+    this.provider = provider;
+  }
+
+  public int cardinality(Lattice lattice, Lattice.Column column) {
+    return provider.cardinality(lattice, column);
+  }
 }
 
-// End AvaticaSuite.java
+// End DelegatingLatticeStatisticProvider.java

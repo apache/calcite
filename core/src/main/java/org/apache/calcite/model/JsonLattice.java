@@ -55,6 +55,19 @@ public class JsonLattice {
    * <p>If null, Calcite will a query to find the real value. */
   public Double rowCountEstimate;
 
+  /** Name of a class that provides estimates of the number of distinct values
+   * in each column.
+   *
+   * <p>The class must implement the
+   * {@link org.apache.calcite.materialize.LatticeStatisticProvider} interface.
+   *
+   * <p>Or, you can use a class name plus a static field, for example
+   * "org.apache.calcite.materialize.Lattices#CACHING_SQL_STATISTIC_PROVIDER".
+   *
+   * <p>If not set, Calcite will generate and execute a SQL query to find the
+   * real value, and cache the results. */
+  public String statisticProvider;
+
   /** List of materialized aggregates to create up front. */
   public final List<JsonTile> tiles = Lists.newArrayList();
 

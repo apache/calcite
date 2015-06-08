@@ -21,6 +21,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
 -->
+{% assign apiRoot = "/apidocs" %}
 
 Calcite models can be represented as JSON files.
 This page describes the structure of those files.
@@ -148,7 +149,8 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 <a href="#schema">Schema</a>.
 
 `factory` (required string) is the name of the factory class for this
-schema. Must implement interface `org.apache.calcite.schema.SchemaFactory`
+schema. Must implement interface
+[org.apache.calcite.schema.SchemaFactory]({{ apiRoot }}/org/apache/calcite/schema/SchemaFactory.html)
 and have a public default constructor.
 
 `operand` (optional map) contains attributes to be passed to the
@@ -293,7 +295,8 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
 
 `factory` (required string) is the name of the factory class for this
-table. Must implement interface `org.apache.calcite.schema.TableFactory`
+table. Must implement interface
+[org.apache.calcite.schema.TableFactory]({{ apiRoot }}/org/apache/calcite/schema/TableFactory.html)
 and have a public default constructor.
 
 `operand` (optional map) contains attributes to be passed to the
@@ -400,6 +403,16 @@ just 'count(*)':
 {% highlight json %}
 [ { name: 'count' } ]
 {% endhighlight %}
+
+`statisticProvider` (optional name of a class that implements 
+[org.apache.calcite.materialize.LatticeStatisticProvider]({{ apiRoot }}/org/apache/calcite/materialize/LatticeStatisticProvider.html))
+is provides estimates of the number of distinct values * in each column.
+
+You can use a class name, or a class plus a static field, for example
+`org.apache.calcite.materialize.Lattices#CACHING_SQL_STATISTIC_PROVIDER`.
+
+If not set, Calcite will generate and execute a SQL query to find the real
+value, and cache the results.
 
 See also: <a href="lattice.md">Lattices</a>.
 

@@ -14,24 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.test;
-
-import org.apache.calcite.avatica.RemoteDriverTest;
-
-import org.junit.runner.RunWith;
-
-import org.junit.runners.Suite;
+package org.apache.calcite.materialize;
 
 /**
- * Avatica test suite.
+ * Estimates row counts for a lattice and its attributes.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    AvaticaUtilsTest.class,
-    ConnectStringParserTest.class,
-    RemoteDriverTest.class
-})
-public class AvaticaSuite {
+public interface LatticeStatisticProvider {
+  /** Returns an estimate of the number of distinct values in a column. */
+  int cardinality(Lattice lattice, Lattice.Column column);
 }
 
-// End AvaticaSuite.java
+// End LatticeStatisticProvider.java

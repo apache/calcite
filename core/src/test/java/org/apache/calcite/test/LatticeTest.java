@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.materialize.Lattices;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -309,10 +310,25 @@ public class LatticeTest {
    * tiles.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-428">CALCITE-428,
-   * "Use optimization algorithm to suggest which tiles of a lattice to
-   * materialize"</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-428">[CALCITE-428]
+   * Use optimization algorithm to suggest which tiles of a lattice to
+   * materialize</a>. */
   @Test public void testTileAlgorithm() {
+    checkTileAlgorithm(FoodMartLatticeStatisticProvider.class.getCanonicalName(),
+        "EnumerableAggregate(group=[{2, 3}])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31}]])");
+  }
+
+  @Test public void testTileAlgorithm2() {
+    // Different explain than above, but note that it still selects columns
+    // (27, 31).
+    checkTileAlgorithm(Lattices.class.getCanonicalName() + "#CACHED_SQL",
+        "EnumerableAggregate(group=[{0, 1}])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{27, 31, 32, 36, 37}]");
+  }
+
+  private void checkTileAlgorithm(String statisticProvider,
+      String expectedExplain) {
     MaterializationService.setThreadLocal();
     MaterializationService.instance().clear();
     foodmartModel(
@@ -329,6 +345,9 @@ public class LatticeTest {
         + "    }, {\n"
         + "      agg: 'count'\n"
         + "  } ],\n"
+        + "  statisticProvider: '"
+        + statisticProvider
+        + "',\n"
         + "  tiles: [ {\n"
         + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
         + "    measures: [ ]\n"
@@ -337,8 +356,7 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
-        .explainContains("EnumerableAggregate(group=[{2, 3}])\n"
-            + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31}]])")
+        .explainContains(expectedExplain)
         .returnsUnordered("the_year=1997; quarter=Q1",
             "the_year=1997; quarter=Q2",
             "the_year=1997; quarter=Q3",

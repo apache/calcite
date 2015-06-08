@@ -14,24 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.test;
-
-import org.apache.calcite.avatica.RemoteDriverTest;
-
-import org.junit.runner.RunWith;
-
-import org.junit.runners.Suite;
+package org.apache.calcite.materialize;
 
 /**
- * Avatica test suite.
+ * Utilities for {@link Lattice}, {@link LatticeStatisticProvider}.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    AvaticaUtilsTest.class,
-    ConnectStringParserTest.class,
-    RemoteDriverTest.class
-})
-public class AvaticaSuite {
+public class Lattices {
+  private Lattices() {}
+
+  /** Statistics provider that uses SQL. */
+  public static final LatticeStatisticProvider SQL =
+      SqlLatticeStatisticProvider.INSTANCE;
+
+  /** Statistics provider that uses SQL then stores the results in a cache. */
+  public static final LatticeStatisticProvider CACHED_SQL =
+      cache(SqlLatticeStatisticProvider.INSTANCE);
+
+  /** Wraps a statistic provider in a cache. */
+  public static LatticeStatisticProvider cache(
+      LatticeStatisticProvider provider) {
+    return new CachingLatticeStatisticProvider(provider);
+  }
 }
 
-// End AvaticaSuite.java
+// End Lattices.java

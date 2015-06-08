@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteRootSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -55,7 +57,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
@@ -85,6 +86,7 @@ public class Lattice {
         }
       };
 
+  public final CalciteRootSchema rootSchema;
   public final ImmutableList<Node> nodes;
   public final ImmutableList<Column> columns;
   public final boolean auto;
@@ -94,6 +96,7 @@ public class Lattice {
   public final ImmutableList<Measure> defaultMeasures;
   public final ImmutableList<Tile> tiles;
   public final ImmutableList<String> uniqueColumnNames;
+  public final LatticeStatisticProvider statisticProvider;
 
   private final Function<Integer, Column> toColumnFunction =
       new Function<Integer, Column>() {
@@ -109,15 +112,18 @@ public class Lattice {
         }
       };
 
-  private Lattice(ImmutableList<Node> nodes, boolean auto, boolean algorithm,
-      long algorithmMaxMillis,
-      Double rowCountEstimate, ImmutableList<Column> columns,
-      ImmutableList<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
+  private Lattice(CalciteRootSchema rootSchema, ImmutableList<Node> nodes,
+      boolean auto, boolean algorithm, long algorithmMaxMillis,
+      LatticeStatisticProvider statisticProvider, Double rowCountEstimate,
+      ImmutableList<Column> columns, ImmutableList<Measure> defaultMeasures,
+      ImmutableList<Tile> tiles) {
+    this.rootSchema = rootSchema;
     this.nodes = Preconditions.checkNotNull(nodes);
     this.columns = Preconditions.checkNotNull(columns);
     this.auto = auto;
     this.algorithm = algorithm;
     this.algorithmMaxMillis = algorithmMaxMillis;
+    this.statisticProvider = Preconditions.checkNotNull(statisticProvider);
     this.defaultMeasures = Preconditions.checkNotNull(defaultMeasures);
     this.tiles = Preconditions.checkNotNull(tiles);
 
@@ -328,6 +334,14 @@ public class Lattice {
     return buf.toString();
   }
 
+  /** Returns a SQL query that counts the number of distinct values of the
+   * attributes given in {@code groupSet}. */
+  public String countSql(ImmutableBitSet groupSet) {
+    return "select count(*) as c from ("
+        + sql(groupSet, ImmutableList.<Measure>of())
+        + ")";
+  }
+
   private static void use(List<Node> usedNodes, Node node) {
     if (!usedNodes.contains(node)) {
       if (node.parent != null) {
@@ -376,7 +390,7 @@ public class Lattice {
     // distributed attribute with N1 * ... * Nm distinct values.
     BigInteger n = BigInteger.ONE;
     for (Column column : columns) {
-      final int cardinality = cardinality(column);
+      final int cardinality = statisticProvider.cardinality(this, column);
       if (cardinality > 1) {
         n = n.multiply(BigInteger.valueOf(cardinality));
       }
@@ -392,53 +406,6 @@ public class Lattice {
     // Cap at fact-row-count, because numerical artifacts can cause it
     // to go a few % over.
     return Math.min(v, f);
-  }
-
-  public static final Map<String, Integer> CARDINALITY_MAP =
-      ImmutableMap.<String, Integer>builder()
-          .put("brand_name", 111)
-          .put("cases_per_pallet", 10)
-          .put("customer_id", 5581)
-          .put("day_of_month", 30)
-          .put("fiscal_period", 0)
-          .put("gross_weight", 376)
-          .put("low_fat", 2)
-          .put("month_of_year", 12)
-          .put("net_weight", 332)
-          .put("product_category", 45)
-          .put("product_class_id", 102)
-          .put("product_department", 22)
-          .put("product_family", 3)
-          .put("product_id", 1559)
-          .put("product_name", 1559)
-          .put("product_subcategory", 102)
-          .put("promotion_id", 149)
-          .put("quarter", 4)
-          .put("recyclable_package", 2)
-          .put("shelf_depth", 488)
-          .put("shelf_height", 524)
-          .put("shelf_width", 534)
-          .put("SKU", 1559)
-          .put("SRP", 315)
-          .put("store_cost", 10777)
-          .put("store_id", 13)
-          .put("store_sales", 1049)
-          .put("the_date", 323)
-          .put("the_day", 7)
-          .put("the_month", 12)
-          .put("the_year", 1)
-          .put("time_id", 323)
-          .put("units_per_case", 36)
-          .put("unit_sales", 6)
-          .put("week_of_year", 52)
-          .build();
-
-  private int cardinality(Column column) {
-    final Integer integer = CARDINALITY_MAP.get(column.alias);
-    if (integer != null && integer > 0) {
-      return integer;
-    }
-    return column.alias.length();
   }
 
   /** Source relation of a lattice.
@@ -601,12 +568,15 @@ public class Lattice {
         ImmutableList.builder();
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();
+    private final CalciteRootSchema rootSchema;
     private boolean algorithm = false;
     private long algorithmMaxMillis = -1;
     private boolean auto = true;
     private Double rowCountEstimate;
+    private String statisticProvider;
 
     public Builder(CalciteSchema schema, String sql) {
+      this.rootSchema = schema.root();
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
@@ -710,11 +680,24 @@ public class Lattice {
       return this;
     }
 
+    /** Sets the "statisticProvider" attribute.
+     *
+     * <p>If not set, the lattice will use {@link Lattices#CACHED_SQL}. */
+    public Builder statisticProvider(String statisticProvider) {
+      this.statisticProvider = statisticProvider;
+      return this;
+    }
+
     /** Builds a lattice. */
     public Lattice build() {
-      return new Lattice(ImmutableList.copyOf(nodes), auto, algorithm,
-          algorithmMaxMillis, rowCountEstimate, columns,
-          defaultMeasureListBuilder.build(), tileListBuilder.build());
+      LatticeStatisticProvider statisticProvider =
+          this.statisticProvider != null
+              ? AvaticaUtils.instantiatePlugin(LatticeStatisticProvider.class,
+                  this.statisticProvider)
+              : Lattices.CACHED_SQL;
+      return new Lattice(rootSchema, ImmutableList.copyOf(nodes), auto,
+          algorithm, algorithmMaxMillis, statisticProvider, rowCountEstimate,
+          columns, defaultMeasureListBuilder.build(), tileListBuilder.build());
     }
 
     /** Resolves the arguments of a

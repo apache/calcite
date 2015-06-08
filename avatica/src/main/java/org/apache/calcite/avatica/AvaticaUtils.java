@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import java.lang.reflect.Field;
 import java.util.AbstractList;
 import java.util.HashMap;
 import java.util.List;
@@ -116,6 +117,53 @@ public class AvaticaUtils {
       return BOX.get(clazz);
     }
     return clazz;
+  }
+
+  /** Creates an instance of a plugin class. First looks for a static
+   * member called INSTANCE, then calls a public default constructor.
+   *
+   * <p>If className contains a "#" instead looks for a static field.
+   *
+   * @param pluginClass Class (or interface) to instantiate
+   * @param className Name of implementing class
+   * @param <T> Class
+   * @return Plugin instance
+   */
+  public static <T> T instantiatePlugin(Class<T> pluginClass,
+      String className) {
+    try {
+      // Given a static field, say "com.example.MyClass#FOO_INSTANCE", return
+      // the value of that static field.
+      if (className.contains("#")) {
+        try {
+          int i = className.indexOf('#');
+          String left = className.substring(0, i);
+          String right = className.substring(i + 1);
+          //noinspection unchecked
+          final Class<T> clazz = (Class) Class.forName(left);
+          final Field field;
+          field = clazz.getField(right);
+          return pluginClass.cast(field.get(null));
+        } catch (NoSuchFieldException e) {
+          // ignore
+        }
+      }
+      //noinspection unchecked
+      final Class<T> clazz = (Class) Class.forName(className);
+      assert pluginClass.isAssignableFrom(clazz);
+      try {
+        // We assume that if there is an INSTANCE field it is static and
+        // has the right type.
+        final Field field = clazz.getField("INSTANCE");
+        return pluginClass.cast(field.get(null));
+      } catch (NoSuchFieldException e) {
+        // ignore
+      }
+      return clazz.newInstance();
+    } catch (Exception e) {
+      throw new RuntimeException("Property '" + className
+          + "' not valid for plugin type " + pluginClass.getName(), e);
+    }
   }
 }
 

@@ -18,7 +18,6 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.Service;
 
-import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -217,24 +216,7 @@ public class ConnectionConfigImpl implements ConnectionConfig {
           throw new RuntimeException("Required property '"
               + connectionProperty.camelName() + "' not specified");
         }
-        // First look for a C.INSTANCE field, then do new C().
-        try {
-          //noinspection unchecked
-          final Class<T> clazz = (Class) Class.forName(s);
-          assert pluginClass.isAssignableFrom(clazz);
-          try {
-            // We assume that if there is an INSTANCE field it is static and
-            // has the right type.
-            final Field field = clazz.getField("INSTANCE");
-            return pluginClass.cast(field.get(null));
-          } catch (NoSuchFieldException e) {
-            // ignore
-          }
-          return clazz.newInstance();
-        } catch (Exception e) {
-          throw new RuntimeException("Property '" + s
-              + "' not valid for plugin type " + pluginClass.getName(), e);
-        }
+        return AvaticaUtils.instantiatePlugin(pluginClass, s);
       }
     };
   }

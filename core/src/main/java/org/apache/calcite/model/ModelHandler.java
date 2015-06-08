@@ -291,6 +291,9 @@ public class ModelHandler {
       if (jsonLattice.rowCountEstimate != null) {
         latticeBuilder.rowCountEstimate(jsonLattice.rowCountEstimate);
       }
+      if (jsonLattice.statisticProvider != null) {
+        latticeBuilder.statisticProvider(jsonLattice.statisticProvider);
+      }
       populateLattice(jsonLattice, latticeBuilder);
       schema.add(jsonLattice.name, latticeBuilder.build());
     } catch (Exception e) {
