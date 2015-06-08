@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.mongodb;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.Primitive;
 
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -122,13 +123,23 @@ class MongoEnumerator implements Enumerator<Object> {
   }
 
   private static Object convert(Object o, Class clazz) {
-    if (o == null || clazz.isInstance(o)) {
+    if (o == null) {
+      return null;
+    }
+    Primitive primitive = Primitive.of(clazz);
+    if (primitive != null) {
+      clazz = primitive.boxClass;
+    } else {
+      primitive = Primitive.ofBox(clazz);
+    }
+    if (clazz.isInstance(o)) {
       return o;
     }
-    if (clazz == int.class || clazz == Integer.class) {
-      if (o instanceof Date) {
-        return (int) (((Date) o).getTime() / DateTimeUtils.MILLIS_PER_DAY);
-      }
+    if (o instanceof Date && primitive != null) {
+      o = ((Date) o).getTime() / DateTimeUtils.MILLIS_PER_DAY;
+    }
+    if (o instanceof Number && primitive != null) {
+      return primitive.number((Number) o);
     }
     return o;
   }

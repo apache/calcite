@@ -22,9 +22,11 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -496,8 +498,8 @@ public class MongoAdapterIT {
         .query(
             "select state, avg(pop) as a from zips group by state order by state")
         .limit(2)
-        .returns("STATE=AK; A=2793.3230769230768\n"
-            + "STATE=AL; A=7126.255731922399\n")
+        .returns("STATE=AK; A=2793\n"
+            + "STATE=AL; A=7126\n")
         .queryContains(
             mongoChecker(
                 "{$project: {POP: '$pop', STATE: '$state'}}",
@@ -513,8 +515,8 @@ public class MongoAdapterIT {
         .query(
             "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
         .limit(2)
-        .returns("STATE=AK; A=2793.3230769230768; S=544698; C=195\n"
-            + "STATE=AL; A=7126.255731922399; S=4040587; C=567\n")
+        .returns("STATE=AK; A=2793; S=544698; C=195\n"
+            + "STATE=AL; A=7126; S=4040587; C=567\n")
         .queryContains(
             mongoChecker(
                 "{$project: {POP: '$pop', STATE: '$state'}}",
@@ -773,6 +775,28 @@ public class MongoAdapterIT {
             + "}")
         .query("select cast(_MAP['date'] as DATE) from \"datatypes\"")
         .returnsUnordered("EXPR$0=2012-09-05");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-665">[CALCITE-665]
+   * ClassCastException in MongoDB adapter</a>. */
+  @Test public void testCountViaInt() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select count(*) from zips")
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet input) {
+                try {
+                  assertThat(input.next(), CoreMatchers.is(true));
+                  assertThat(input.getInt(1), CoreMatchers.is(29353));
+                  return null;
+                } catch (SQLException e) {
+                  throw Throwables.propagate(e);
+                }
+              }
+            });
   }
 }
 
