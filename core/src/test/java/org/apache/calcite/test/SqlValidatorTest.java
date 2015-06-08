@@ -4259,6 +4259,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'HIREDATE' not found in any table");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-754">[CALCITE-754]
+   * Validator error when resolving OVER clause of JOIN query</a>. */
+  @Ignore
+  @Test public void testPartitionByColumnInJoinAlias() {
+    sql("select sum(1) over(partition by t1.ename) \n"
+            + "from emp t1, emp t2")
+        .ok();
+    sql("select sum(1) over(partition by emp.ename) \n"
+            + "from emp, dept")
+        .ok();
+    sql("select sum(1) over(partition by ^deptno^) \n"
+            + "from emp, dept")
+        .fails("Column 'DEPTNO' is ambiguous");
+  }
+
   @Test public void testWindowNegative() {
     // Do not fail when window has negative size. Allow
     final String negSize = null;
