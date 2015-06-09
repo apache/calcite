@@ -46,9 +46,11 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.math.IntMath;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Relational operator that eliminates
@@ -322,27 +324,55 @@ public abstract class Aggregate extends SingleRel {
     assert groupList.size() == groupSet.cardinality();
     final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
     final List<RelDataTypeField> fieldList = inputRowType.getFieldList();
+    final Set<String> containedNames = Sets.newHashSet();
     for (int groupKey : groupList) {
-      builder.add(fieldList.get(groupKey));
+      final RelDataTypeField field = fieldList.get(groupKey);
+      containedNames.add(field.getName());
+      builder.add(field);
     }
     if (indicator) {
       for (int groupKey : groupList) {
         final RelDataType booleanType =
             typeFactory.createTypeWithNullability(
                 typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
-        builder.add("i$" + fieldList.get(groupKey).getName(), booleanType);
+        final String base = "i$" + fieldList.get(groupKey).getName();
+        String name = base;
+        int i = 0;
+        while (containedNames.contains(name)) {
+          name = base + "_" + i++;
+        }
+        containedNames.add(name);
+        builder.add(name, booleanType);
       }
     }
     for (Ord<AggregateCall> aggCall : Ord.zip(aggCalls)) {
-      String name;
+      final String base;
       if (aggCall.e.name != null) {
-        name = aggCall.e.name;
+        base = aggCall.e.name;
       } else {
-        name = "$f" + (groupList.size() + aggCall.i);
+        base = "$f" + (groupList.size() + aggCall.i);
       }
+      String name = base;
+      int i = 0;
+      while (containedNames.contains(name)) {
+        name = base + "_" + i++;
+      }
+      containedNames.add(name);
       builder.add(name, aggCall.e.type);
     }
     return builder.build();
+  }
+
+  public boolean isValid(boolean fail) {
+    if (!super.isValid(fail)) {
+      assert !fail;
+      return false;
+    }
+    if (!Util.isDistinct(getRowType().getFieldNames())) {
+      assert !fail : getRowType();
+      return false;
+    }
+    return true;
   }
 
   /**

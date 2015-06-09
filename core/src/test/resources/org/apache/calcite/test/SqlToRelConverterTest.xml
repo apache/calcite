@@ -2316,6 +2316,19 @@ LogicalAggregate(group=[{0}])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggNoDuplicateColumnNames">
+        <Resource name="sql">
+            <![CDATA[SELECT empno, EXPR$2, COUNT(empno) FROM (SELECT empno, deptno AS EXPR$2
+FROM emp) GROUP BY empno, EXPR$2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+  LogicalProject(EMPNO=[$0], EXPR$2=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggCaseSubquery">
         <Resource name="sql">
             <![CDATA[SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp]]>
