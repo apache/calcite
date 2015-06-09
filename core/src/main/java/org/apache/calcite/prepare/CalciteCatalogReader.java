@@ -49,7 +49,6 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Collections2;
@@ -114,13 +113,13 @@ public class CalciteCatalogReader implements Prepare.CatalogReader,
       return null;
     }
     final String name = Util.last(names);
-    Pair<String, Table> pair = schema.getTable(name, caseSensitive);
-    if (pair == null) {
-      pair = schema.getTableBasedOnNullaryFunction(name, caseSensitive);
+    CalciteSchema.TableEntry entry = schema.getTable(name, caseSensitive);
+    if (entry == null) {
+      entry = schema.getTableBasedOnNullaryFunction(name, caseSensitive);
     }
-    if (pair != null) {
-      final Table table = pair.getValue();
-      final String name2 = pair.getKey();
+    if (entry != null) {
+      final Table table = entry.getTable();
+      final String name2 = entry.name;
       return RelOptTableImpl.create(this, table.getRowType(typeFactory),
           schema.add(name2, table), null);
     }

@@ -26,7 +26,6 @@ import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.util.Compatible;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -251,30 +250,30 @@ public class CalciteSchema {
   }
 
   /** Returns a table that materializes the given SQL statement. */
-  public final Pair<String, Table> getTableBySql(String sql) {
+  public final TableEntry getTableBySql(String sql) {
     for (TableEntry tableEntry : tableMap.values()) {
       if (tableEntry.sqls.contains(sql)) {
-        return Pair.of(tableEntry.name, tableEntry.getTable());
+        return tableEntry;
       }
     }
     return null;
   }
 
   /** Returns a table with the given name. Does not look for views. */
-  public final Pair<String, Table> getTable(String tableName,
+  public final TableEntry getTable(String tableName,
       boolean caseSensitive) {
     if (caseSensitive) {
       // Check explicit tables, case-sensitive.
       final TableEntry entry = tableMap.get(tableName);
       if (entry != null) {
-        return Pair.of(tableName, entry.getTable());
+        return entry;
       }
       // Check implicit tables, case-sensitive.
       final long now = System.currentTimeMillis();
       if (implicitTableCache.get(now).contains(tableName)) {
         final Table table = schema.getTable(tableName);
         if (table != null) {
-          return Pair.of(tableName, table);
+          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
         }
       }
       return null;
@@ -283,7 +282,7 @@ public class CalciteSchema {
       //noinspection LoopStatementThatDoesntLoop
       for (Map.Entry<String, TableEntry> entry
           : find(tableMap, tableName).entrySet()) {
-        return Pair.of(entry.getKey(), entry.getValue().getTable());
+        return entry.getValue();
       }
       // Check implicit tables, case-insensitive.
       final long now = System.currentTimeMillis();
@@ -293,7 +292,7 @@ public class CalciteSchema {
       if (tableName2 != null) {
         final Table table = schema.getTable(tableName2);
         if (table != null) {
-          return Pair.of(tableName2, table);
+          return new TableEntryImpl(this, tableName2, table, ImmutableList.<String>of());
         }
       }
       return null;
@@ -446,7 +445,7 @@ public class CalciteSchema {
 
   /** Returns a tables derived from explicit and implicit functions
    * that take zero parameters. */
-  public Pair<String, Table> getTableBasedOnNullaryFunction(String tableName,
+  public TableEntry getTableBasedOnNullaryFunction(String tableName,
       boolean caseSensitive) {
     if (caseSensitive) {
       final FunctionEntry functionEntry = nullaryFunctionMap.get(tableName);
@@ -455,14 +454,14 @@ public class CalciteSchema {
         if (function instanceof TableMacro) {
           assert function.getParameters().isEmpty();
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return Pair.of(tableName, table);
+          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
         }
       }
       for (Function function : schema.getFunctions(tableName)) {
         if (function instanceof TableMacro
             && function.getParameters().isEmpty()) {
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return Pair.of(tableName, table);
+          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
         }
       }
     } else {
@@ -472,7 +471,7 @@ public class CalciteSchema {
         if (function instanceof TableMacro) {
           assert function.getParameters().isEmpty();
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return Pair.of(entry.getKey(), table);
+          return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
         }
       }
       final NavigableSet<String> set =
@@ -483,7 +482,7 @@ public class CalciteSchema {
               && function.getParameters().isEmpty()) {
             final Table table =
                 ((TableMacro) function).apply(ImmutableList.of());
-            return Pair.of(s, table);
+            return new TableEntryImpl(this, tableName, table, ImmutableList.<String>of());
           }
         }
       }
@@ -604,8 +603,8 @@ public class CalciteSchema {
     }
 
     public Table getTable(String name) {
-      final Pair<String, Table> pair = CalciteSchema.this.getTable(name, true);
-      return pair == null ? null : pair.getValue();
+      final TableEntry entry = CalciteSchema.this.getTable(name, true);
+      return entry == null ? null : entry.getTable();
     }
 
     public NavigableSet<String> getTableNames() {
