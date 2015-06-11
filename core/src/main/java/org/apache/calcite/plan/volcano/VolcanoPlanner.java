@@ -106,6 +106,8 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import plan.MaterializedViewSubstitutionVisitor;
+
 import static org.apache.calcite.util.Stacks.peek;
 import static org.apache.calcite.util.Stacks.pop;
 import static org.apache.calcite.util.Stacks.push;
@@ -365,6 +367,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // query. If that is possible, register the remnant query as equivalent
     // to the root.
     //
+
+    // This call modifies originalRoot. Doesn't look like originalRoot should be mutable though.
+    // Need to check.
     RelNode sub = substitute(originalRoot, materialization);
     if (sub != null) {
       // TODO: try to substitute other materializations in the remnant.
@@ -407,8 +412,18 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     hepPlanner.setRoot(root);
     root = hepPlanner.findBestExp();
 
-    return new SubstitutionVisitor(target, root)
-        .go(materialization.tableRel);
+    RelNode newRoot = new SubstitutionVisitor(target, root)
+            .go(materialization.tableRel);
+
+    if (newRoot != null) {
+      root = newRoot;
+    }
+
+    RelNode newRoot2 = new MaterializedViewSubstitutionVisitor(target, root)
+            .go(materialization.tableRel);
+
+    return (newRoot2 == null) ? newRoot : newRoot2;
+
   }
 
   private void useApplicableMaterializations() {
