@@ -473,9 +473,18 @@ public final class Schemas {
     }
   }
 
+  /** Returns a sub-schema of a given schema obtained by following a sequence
+   * of names.
+   *
+   * <p>The result is null if the initial schema is null or any sub-schema does
+   * not exist.
+   */
   public static CalciteSchema subSchema(CalciteSchema schema,
-        List<String> names) {
+      Iterable<String> names) {
     for (String string : names) {
+      if (schema == null) {
+        return null;
+      }
       schema = schema.getSubSchema(string, false);
     }
     return schema;

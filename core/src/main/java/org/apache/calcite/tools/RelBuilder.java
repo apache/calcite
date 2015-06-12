@@ -864,14 +864,15 @@ public class RelBuilder {
     }
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
-    if (extraNodes.size() > inputRowType.getFieldCount()) {
+    final boolean addedFields = extraNodes.size() > originalExtraNodes.size();
+    if (addedFields) {
       project(extraNodes);
     }
     final RelNode sort =
         sortFactory.createSort(build(), RelCollations.of(fieldCollations),
             offsetNode, fetchNode);
     push(sort);
-    if (extraNodes.size() > inputRowType.getFieldCount()) {
+    if (addedFields) {
       project(originalExtraNodes);
     }
     return this;
