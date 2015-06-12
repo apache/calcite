@@ -3430,10 +3430,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         SqlTypeName.INTERVAL_YEAR_MONTH.getMinPrecision() == 1);
     assertTrue(
         SqlTypeName.INTERVAL_DAY_TIME.getMinPrecision() == 1);
-    assertTrue(
-        SqlTypeName.INTERVAL_YEAR_MONTH.getMaxPrecision() == 10);
-    assertTrue(
-        SqlTypeName.INTERVAL_DAY_TIME.getMaxPrecision() == 10);
+    final RelDataTypeSystem defTypeSystem = RelDataTypeSystem.DEFAULT;
+    assertEquals(10,
+        defTypeSystem.getMaxPrecision(SqlTypeName.INTERVAL_YEAR_MONTH));
+    assertEquals(10,
+        defTypeSystem.getMaxPrecision(SqlTypeName.INTERVAL_DAY_TIME));
     assertEquals(2,
         typeSystem.getDefaultPrecision(SqlTypeName.INTERVAL_YEAR_MONTH));
     assertEquals(2,

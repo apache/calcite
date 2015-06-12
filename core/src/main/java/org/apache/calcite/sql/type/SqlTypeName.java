@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Util;
@@ -296,18 +295,6 @@ public enum SqlTypeName {
         .addAll(list0)
         .addAll(list1)
         .build();
-  }
-
-  /**
-   * Returns the default precision for this type if supported, otherwise -1 if
-   * precision is either unsupported or must be specified explicitly.
-   *
-   * @deprecated Use
-   * {@link org.apache.calcite.rel.type.RelDataTypeSystem#getDefaultPrecision(SqlTypeName)};
-   * will be removed after calcite-0.9.1.
-   */
-  public int getDefaultPrecision() {
-    return RelDataTypeSystem.DEFAULT.getDefaultPrecision(this);
   }
 
   /**
@@ -673,35 +660,6 @@ public enum SqlTypeName {
     default:
       throw Util.unexpected(this);
     }
-  }
-
-  /**
-   * Returns the maximum precision (or length) allowed for this type, or -1 if
-   * precision/length are not applicable for this type.
-   *
-   * @return Maximum allowed precision
-   *
-   * @deprecated Use
-   * {@link org.apache.calcite.rel.type.RelDataTypeSystem#getMaxScale(SqlTypeName)};
-   * will be removed after calcite-0.9.1.
-   */
-  public int getMaxPrecision() {
-    return RelDataTypeSystem.DEFAULT.getMaxPrecision(this);
-  }
-
-  /**
-   * Returns the maximum scale (or fractional second precision in the case of
-   * intervals) allowed for this type, or -1 if precision/length are not
-   * applicable for this type.
-   *
-   * @return Maximum allowed scale
-   *
-   * @deprecated Use
-   * {@link org.apache.calcite.rel.type.RelDataTypeSystem#getMaxScale(SqlTypeName)};
-   * will be removed after calcite-0.9.1.
-   */
-  public int getMaxScale() {
-    return RelDataTypeSystem.DEFAULT.getMaxScale(this);
   }
 
   /**
