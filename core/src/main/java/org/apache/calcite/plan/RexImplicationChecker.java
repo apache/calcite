@@ -187,14 +187,14 @@ public class RexImplicationChecker {
     for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator,
             RexNode>> entry: secondUsgMap.entrySet()) {
       final InputRefUsage<SqlOperator, RexNode> secondUsage = entry.getValue();
-      if (secondUsage.usageCount > 1
-              || secondUsage.usageList.size() != 1) {
+      if (secondUsage.getUsageCount() > 1
+              || secondUsage.getUsageList().size() != 1) {
         return false;
       }
 
       final InputRefUsage<SqlOperator, RexNode> firstUsage = firstUsgMap.get(entry.getKey());
       if (firstUsage == null
-              || firstUsage.usageList.size() != 1) {
+              || firstUsage.getUsageList().size() != 1) {
         return false;
       }
 
@@ -218,6 +218,15 @@ public class RexImplicationChecker {
           return false;
         }
         break;
+      case EQUALS:
+        if (!(fkind == SqlKind.EQUALS)) {
+          return false;
+        }
+        break;
+      case NOT_EQUALS:
+        if (! (fkind == SqlKind.EQUALS )) {
+          return false;
+        }
       default:
         return false;
       }
@@ -262,6 +271,7 @@ public class RexImplicationChecker {
       case LESS_THAN:
       case LESS_THAN_OR_EQUAL:
       case EQUALS:
+      case NOT_EQUALS:
         updateUsage(call);
         break;
       default:
@@ -281,8 +291,13 @@ public class RexImplicationChecker {
 
       if (first.isA(SqlKind.LITERAL)
               && second.isA(SqlKind.INPUT_REF)) {
-        updateUsage(call.getOperator(), (RexInputRef) second, first);
+        updateUsage(reverse(call.getOperator()), (RexInputRef) second, first);
       }
+    }
+
+    private SqlOperator reverse(SqlOperator op) {
+      return RelOptUtil.op(
+              RelOptUtil.reverse(op.getKind()), op);
     }
 
     private static RexNode removeCast(RexNode inputRef) {
@@ -321,9 +336,9 @@ public class RexImplicationChecker {
    */
 
   private static class InputRefUsage<T1, T2> {
-    final List<Pair<T1, T2>> usageList =
+    private final List<Pair<T1, T2>> usageList =
             new ArrayList<Pair<T1, T2>>();
-    int usageCount = 0;
+    private int usageCount = 0;
 
     public InputRefUsage() {}
 
@@ -334,7 +349,6 @@ public class RexImplicationChecker {
     public void incrUsage() {
       usageCount++;
     }
-
 
     public List<Pair<T1, T2>> getUsageList() {
       return usageList;

@@ -1199,7 +1199,7 @@ public abstract class RelOptUtil {
         false);
   }
 
-  private static SqlKind reverse(SqlKind kind) {
+  public static SqlKind reverse(SqlKind kind) {
     switch (kind) {
     case GREATER_THAN:
       return SqlKind.LESS_THAN;
@@ -1214,7 +1214,7 @@ public abstract class RelOptUtil {
     }
   }
 
-  private static SqlOperator op(SqlKind kind, SqlOperator operator) {
+  public static SqlOperator op(SqlKind kind, SqlOperator operator) {
     switch (kind) {
     case EQUALS:
       return SqlStdOperatorTable.EQUALS;
