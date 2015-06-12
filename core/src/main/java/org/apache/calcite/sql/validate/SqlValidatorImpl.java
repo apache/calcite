@@ -3033,7 +3033,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       switch (modality) {
       case STREAM:
         SqlNodeList groupList = select.getGroup();
-        if (groupList == null || !containsMonotonic(scope, groupList)) {
+        if (groupList == null
+            || !SqlValidatorUtil.containsMonotonic(scope, groupList)) {
           if (fail) {
             throw newValidationError(aggregateNode,
                 Static.RESOURCE.streamMustGroupByMonotonic());
@@ -3085,21 +3086,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     default:
       return false;
     }
-  }
-
-  private static boolean containsMonotonic(SelectScope scope,
-      SqlNodeList nodes) {
-    for (SqlNode node : nodes) {
-      final SqlMonotonicity monotonicity = scope.getMonotonicity(node);
-      switch (monotonicity) {
-      case CONSTANT:
-      case NOT_MONOTONIC:
-        break;
-      default:
-        return true;
-      }
-    }
-    return false;
   }
 
   protected void validateWindowClause(SqlSelect select) {

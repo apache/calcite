@@ -3483,6 +3483,7 @@ public class SqlToRelConverter {
     for (int i = 0; i < joinList.size(); i++) {
       Object o = joinList.get(i);
       if (o instanceof List) {
+        @SuppressWarnings("unchecked")
         List<SqlNode> projectList = (List<SqlNode>) o;
         final List<RexNode> selectList = new ArrayList<>();
         final List<String> fieldNameList = new ArrayList<>();

@@ -105,6 +105,7 @@ public abstract class SqlNode implements Cloneable {
     return getKind().belongsTo(category);
   }
 
+  @Deprecated // to be removed before 2.0
   public static SqlNode[] cloneArray(SqlNode[] nodes) {
     SqlNode[] clones = nodes.clone();
     for (int i = 0; i < clones.length; i++) {
@@ -279,11 +280,13 @@ public abstract class SqlNode implements Cloneable {
 
   /**
    * Returns whether expression is always ascending, descending or constant.
-   * This property is useful because it allows to safely aggregte infinite
+   * This property is useful because it allows to safely aggregate infinite
    * streams of values.
    *
    * <p>The default implementation returns
    * {@link SqlMonotonicity#NOT_MONOTONIC}.
+   *
+   * @param scope Scope
    */
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.NOT_MONOTONIC;

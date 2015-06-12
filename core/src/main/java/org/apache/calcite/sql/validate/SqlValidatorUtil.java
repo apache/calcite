@@ -571,6 +571,45 @@ public class SqlValidatorUtil {
     return ImmutableList.copyOf(flattenedBitSets);
   }
 
+  /**
+   * Returns whether there are any input columns that are sorted.
+   *
+   * <p>If so, it can be the default ORDER BY clause for a WINDOW specification.
+   * (This is an extension to the SQL standard for streaming.)
+   */
+  public static boolean containsMonotonic(SqlValidatorScope scope) {
+    for (SqlValidatorNamespace ns : children(scope)) {
+      ns = ns.resolve();
+      for (String field : ns.getRowType().getFieldNames()) {
+        if (!ns.getMonotonicity(field).mayRepeat()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private static List<SqlValidatorNamespace> children(SqlValidatorScope scope) {
+    return scope instanceof ListScope
+        ? ((ListScope) scope).getChildren()
+        : ImmutableList.<SqlValidatorNamespace>of();
+  }
+
+  /**
+   * Returns whether any of the given expressions are sorted.
+   *
+   * <p>If so, it can be the default ORDER BY clause for a WINDOW specification.
+   * (This is an extension to the SQL standard for streaming.)
+   */
+  static boolean containsMonotonic(SelectScope scope, SqlNodeList nodes) {
+    for (SqlNode node : nodes) {
+      if (!scope.getMonotonicity(node).mayRepeat()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**

@@ -4262,7 +4262,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-754">[CALCITE-754]
    * Validator error when resolving OVER clause of JOIN query</a>. */
-  @Ignore
   @Test public void testPartitionByColumnInJoinAlias() {
     sql("select sum(1) over(partition by t1.ename) \n"
             + "from emp t1, emp t2")

@@ -39,7 +39,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableSet;
+
 import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -74,56 +75,25 @@ public class SqlCastFunction extends SqlFunction {
    * List all casts that do not preserve monotonicity.
    */
   private Set<TypeFamilyCast> createNonMonotonicPreservingCasts() {
-    Set<TypeFamilyCast> result = new HashSet<TypeFamilyCast>();
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.EXACT_NUMERIC,
-            SqlTypeFamily.CHARACTER));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.NUMERIC,
-            SqlTypeFamily.CHARACTER));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.APPROXIMATE_NUMERIC,
-            SqlTypeFamily.CHARACTER));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.DATETIME_INTERVAL,
-            SqlTypeFamily.CHARACTER));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.EXACT_NUMERIC));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.NUMERIC));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.APPROXIMATE_NUMERIC));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.DATETIME_INTERVAL));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.DATETIME,
-            SqlTypeFamily.TIME));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.TIMESTAMP,
-            SqlTypeFamily.TIME));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.TIME,
-            SqlTypeFamily.DATETIME));
-    result.add(
-        new TypeFamilyCast(
-            SqlTypeFamily.TIME,
-            SqlTypeFamily.TIMESTAMP));
-    return result;
+    ImmutableSet.Builder<TypeFamilyCast> builder = ImmutableSet.builder();
+    add(builder, SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.CHARACTER);
+    add(builder, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
+    add(builder, SqlTypeFamily.APPROXIMATE_NUMERIC, SqlTypeFamily.CHARACTER);
+    add(builder, SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.CHARACTER);
+    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.EXACT_NUMERIC);
+    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC);
+    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.APPROXIMATE_NUMERIC);
+    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL);
+    add(builder, SqlTypeFamily.DATETIME, SqlTypeFamily.TIME);
+    add(builder, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIME);
+    add(builder, SqlTypeFamily.TIME, SqlTypeFamily.DATETIME);
+    add(builder, SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP);
+    return builder.build();
+  }
+
+  private void add(ImmutableSet.Builder<TypeFamilyCast> result,
+      SqlTypeFamily from, SqlTypeFamily to) {
+    result.add(new TypeFamilyCast(from, to));
   }
 
   private boolean isMonotonicPreservingCast(
