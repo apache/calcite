@@ -247,7 +247,13 @@ public abstract class FilterJoinRule extends RelOptRule {
     newJoinRel = RelOptUtil.createCastRel(newJoinRel, join.getRowType(),
         false, projectFactory);
 
-    // create a LogicalFilter on top of the join if needed
+    // Push expression in join condition into Project below Join.
+    if (newJoinRel instanceof Join) {
+      newJoinRel = RelOptUtil.pushDownJoinConditions(
+          (Join) newJoinRel);
+    }
+
+    // create a FilterRel on top of the join if needed
     RelNode newRel =
         RelOptUtil.createFilter(newJoinRel,
             RexUtil.fixUp(rexBuilder, aboveFilters, newJoinRel.getRowType()),

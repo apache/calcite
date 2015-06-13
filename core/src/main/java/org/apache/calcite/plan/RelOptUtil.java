@@ -2950,6 +2950,242 @@ public abstract class RelOptUtil {
     }
   }
 
+  /**
+   * Pushes down expressions in "equal" join condition. For example, given
+   * "emp JOIN dept ON emp.deptno + 1 = dept.deptno", adds a project above
+   * "emp" that computes the expression
+   * "emp.deptno + 1". The resulting join condition is a simple combination
+   * of AND, equals, and input fields, plus the remaining non-equal conditions.
+   *
+   * @param originalJoin : join whose condition is to be pushed down.
+   */
+  public static RelNode pushDownJoinConditions(Join originalJoin) {
+    final RelOptCluster cluster = originalJoin.getCluster();
+    RexNode joinCond = originalJoin.getCondition();
+    final JoinRelType joinType = originalJoin.getJoinType();
+    RelNode leftRel = originalJoin.getLeft();
+    RelNode rightRel = originalJoin.getRight();
+
+    final List<RexNode> extraLeftExprs = new ArrayList<RexNode>();
+    final List<RexNode> extraRightExprs = new ArrayList<RexNode>();
+    final int leftCount = leftRel.getRowType().getFieldCount();
+    final int rightCount = rightRel.getRowType().getFieldCount();
+
+    if (!containsGet(joinCond)) {
+      joinCond = pushDownEqualJoinConditions(
+          joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
+    }
+    if (!extraLeftExprs.isEmpty()) {
+      final List<RelDataTypeField> fields =
+          leftRel.getRowType().getFieldList();
+      leftRel = RelOptUtil.createProject(
+          leftRel,
+          new AbstractList<Pair<RexNode, String>>() {
+            @Override
+            public int size() {
+              return leftCount + extraLeftExprs.size();
+            }
+
+            @Override
+            public Pair<RexNode, String> get(int index) {
+              if (index < leftCount) {
+                RelDataTypeField field = fields.get(index);
+                return Pair.<RexNode, String>of(
+                    new RexInputRef(index, field.getType()),
+                    field.getName());
+              } else {
+                return Pair.<RexNode, String>of(
+                    extraLeftExprs.get(index - leftCount), null);
+              }
+            }
+          },
+          true);
+    }
+    if (!extraRightExprs.isEmpty()) {
+      final List<RelDataTypeField> fields =
+          rightRel.getRowType().getFieldList();
+      final int newLeftCount = leftCount + extraLeftExprs.size();
+      rightRel = RelOptUtil.createProject(
+          rightRel,
+          new AbstractList<Pair<RexNode, String>>() {
+            @Override
+            public int size() {
+              return rightCount + extraRightExprs.size();
+            }
+
+            @Override
+            public Pair<RexNode, String> get(int index) {
+              if (index < rightCount) {
+                RelDataTypeField field = fields.get(index);
+                return Pair.<RexNode, String>of(
+                    new RexInputRef(index, field.getType()),
+                    field.getName());
+              } else {
+                return Pair.of(
+                    RexUtil.shift(
+                        extraRightExprs.get(index - rightCount),
+                        -newLeftCount),
+                    null);
+              }
+            }
+          },
+          true);
+    }
+
+    RelNode join = originalJoin.copy(originalJoin.getTraitSet(),
+        joinCond, leftRel, rightRel, joinType, originalJoin.isSemiJoinDone());
+
+    if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
+      Mappings.TargetMapping mapping =
+          Mappings.createShiftMapping(
+              leftCount + extraLeftExprs.size()
+                  + rightCount + extraRightExprs.size(),
+              0, 0, leftCount,
+              leftCount, leftCount + extraLeftExprs.size(), rightCount);
+      return RelOptUtil.createProject(join, mapping);
+    }
+    return join;
+  }
+
+  /**
+   * Factory method that creates a join.
+   * A subclass can override to use a different kind of join.
+   *
+   * @param left             Left input
+   * @param right            Right input
+   * @param condition        Join condition
+   * @param joinType         Join type
+   * @param variablesStopped Set of names of variables which are set by the
+   *                         LHS and used by the RHS and are not available to
+   *                         nodes above this LogicalJoin in the tree
+   * @return A relational expression representing a join
+   */
+  public static RelNode createJoin(
+      RelNode left,
+      RelNode right,
+      RexNode condition,
+      JoinRelType joinType,
+      Set<String> variablesStopped) {
+    return LogicalJoin.create(left, right, condition, joinType,
+        variablesStopped);
+  }
+
+  private static boolean containsGet(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (call.getOperator() == RexBuilder.GET_OPERATOR) {
+                throw Util.FoundOne.NULL;
+              }
+              return super.visitCall(call);
+            }
+          });
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
+  /**
+   * Pushes down parts of a join condition. For example, given
+   * "emp JOIN dept ON emp.deptno + 1 = dept.deptno", adds a project above
+   * "emp" that computes the expression
+   * "emp.deptno + 1". The resulting join condition is a simple combination
+   * of AND, equals, and input fields.
+   */
+  private static RexNode pushDownEqualJoinConditions(
+      RexNode node,
+      int leftCount,
+      int rightCount,
+      List<RexNode> extraLeftExprs,
+      List<RexNode> extraRightExprs) {
+    switch (node.getKind()) {
+    case AND:
+    case EQUALS:
+      RexCall call = (RexCall) node;
+      List<RexNode> list = new ArrayList<RexNode>();
+      List<RexNode> operands = Lists.newArrayList(call.getOperands());
+      for (int i = 0; i < operands.size(); i++) {
+        RexNode operand = operands.get(i);
+        final int left2 = leftCount + extraLeftExprs.size();
+        final int right2 = rightCount + extraRightExprs.size();
+        final RexNode e =
+            pushDownEqualJoinConditions(
+                operand,
+                leftCount,
+                rightCount,
+                extraLeftExprs,
+                extraRightExprs);
+        final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
+        final int left3 = leftCount + extraLeftExprs.size();
+        final int right3 = rightCount + extraRightExprs.size();
+        fix(remainingOperands, left2, left3);
+        //fix(remainingOperands, left3 + right2, left3 + right3);
+        fix(list, left2, left3);
+        //fix(list, left3 + right2, left3 + right3);
+        list.add(e);
+      }
+      if (!list.equals(call.getOperands())) {
+        return call.clone(call.getType(), list);
+      }
+      return call;
+    case OR:
+    case INPUT_REF:
+    case LITERAL:
+      return node;
+    default:
+      ImmutableBitSet bits = RelOptUtil.InputFinder.bits(node);
+      final int mid = leftCount + extraLeftExprs.size();
+      switch (Side.of(bits, mid)) {
+      case LEFT:
+        fix(extraRightExprs, mid, mid + 1);
+        extraLeftExprs.add(node);
+        return new RexInputRef(mid, node.getType());
+      case RIGHT:
+        final int index2 = mid + rightCount + extraRightExprs.size();
+        extraRightExprs.add(node);
+        return new RexInputRef(index2, node.getType());
+      case BOTH:
+      case EMPTY:
+      default:
+        return node;
+      }
+    }
+  }
+
+  private static void fix(List<RexNode> operands, int before, int after) {
+    if (before == after) {
+      return;
+    }
+    for (int i = 0; i < operands.size(); i++) {
+      RexNode node = operands.get(i);
+      operands.set(i, RexUtil.shift(node, before, after - before));
+    }
+  }
+
+  /**
+   * Categorizes whether a bit set contains bits left and right of a
+   * line.
+   */
+  enum Side {
+    LEFT, RIGHT, BOTH, EMPTY;
+
+    static Side of(ImmutableBitSet bitSet, int middle) {
+      final int firstBit = bitSet.nextSetBit(0);
+      if (firstBit < 0) {
+        return EMPTY;
+      }
+      if (firstBit >= middle) {
+        return RIGHT;
+      }
+      if (bitSet.nextSetBit(middle) < 0) {
+        return LEFT;
+      }
+      return BOTH;
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** Visitor that finds all variables used but not stopped in an expression. */

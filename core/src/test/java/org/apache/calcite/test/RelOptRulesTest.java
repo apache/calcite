@@ -1579,6 +1579,14 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select 1 from sales.dept d left outer join sales.emp e"
             + " on d.deptno = e.deptno");
   }
+
+
+  @Test public void testPushJoinCondDownToProject() {
+    checkPlanning(FilterJoinRule.FILTER_ON_JOIN,
+        "select d.deptno, e.deptno from sales.dept d, sales.emp e"
+            + " where d.deptno + 10 = e.deptno * 2");
+  }
+
 }
 
 // End RelOptRulesTest.java
