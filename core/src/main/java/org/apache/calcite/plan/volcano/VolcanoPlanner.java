@@ -449,6 +449,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         Graphs.makeImmutable(usesGraph);
     final Set<RelOptTable> queryTables = findTables(originalRoot);
     for (RelOptMaterialization materialization : materializations) {
+      if (materialization.starTable != null) {
+        // Materialization is a tile in a lattice. We will deal with it shortly.
+        continue;
+      }
       if (materialization.table != null) {
         if (usesTable(materialization.table, queryTables, frozenGraph)) {
           useMaterialization(materialization);
