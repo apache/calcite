@@ -723,6 +723,71 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select p1 is not distinct from p0 from (values (2, cast(null as integer))) as t(p0, p1)");
   }
 
+  // see HIVE-9645
+  @Test public void testReduceConstantsNullEqualsOne() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select count(1) from emp where cast(null as integer) = 1");
+  }
+
+  // see HIVE-9644
+  @Test public void testReduceConstantsCaseEquals() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    // Equivalent to 'deptno = 10'
+    checkPlanning(program,
+        "select count(1) from emp\n"
+            + "where case deptno\n"
+            + "  when 20 then 2\n"
+            + "  when 10 then 1\n"
+            + "  else 3 end = 1");
+  }
+
+  @Test public void testReduceConstantsCaseEquals2() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    // Equivalent to 'case when deptno = 20 then false
+    //                     when deptno = 10 then true
+    //                     else null end'
+    checkPlanning(program,
+        "select count(1) from emp\n"
+            + "where case deptno\n"
+            + "  when 20 then 2\n"
+            + "  when 10 then 1\n"
+            + "  else cast(null as integer) end = 1");
+  }
+
+  @Test public void testReduceConstantsCaseEquals3() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    // Equivalent to 'deptno = 30 or deptno = 10'
+    checkPlanning(program,
+        "select count(1) from emp\n"
+            + "where case deptno\n"
+            + "  when 30 then 1\n"
+            + "  when 20 then 2\n"
+            + "  when 10 then 1\n"
+            + "  when 30 then 111\n"
+            + "  else 0 end = 1");
+  }
+
   @Test public void testReduceConstantsEliminatesFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)

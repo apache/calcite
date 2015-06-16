@@ -117,6 +117,8 @@ public class RexCall extends RexNode {
     switch (getKind()) {
     case IS_NOT_NULL:
       return !operands.get(0).getType().isNullable();
+    case CAST:
+      return operands.get(0).isAlwaysTrue();
     default:
       return false;
     }
@@ -126,6 +128,8 @@ public class RexCall extends RexNode {
     switch (getKind()) {
     case IS_NULL:
       return !operands.get(0).getType().isNullable();
+    case CAST:
+      return operands.get(0).isAlwaysFalse();
     default:
       return false;
     }

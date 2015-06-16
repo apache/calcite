@@ -540,7 +540,7 @@ LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[3], EXPR$1=[+($0, 7)], EXPR$2=[+(11, $0)], EXPR$3=[null], EXPR$4=[CAST(2):INTEGER], EXPR$5=[ROW(15)])
-  LogicalFilter(condition=[AND(=($0, 15), =($0, 15), =($0, CAST(2):INTEGER))])
+  LogicalFilter(condition=[AND(=($0, 15), =($0, CAST(2):INTEGER))])
     LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
       LogicalJoin(condition=[=($0, $11)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -829,7 +829,7 @@ LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL(
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
+LogicalProject(EXPR$0=[CASE(IS NULL($1), IS NULL($0), CAST(=($1, $0)):BOOLEAN NOT NULL)])
   LogicalProject(EXPR$0=[2], EXPR$1=[null])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -3653,6 +3653,103 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$9])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[*($7, 2)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsNullEqualsOne">
+        <Resource name="sql">
+            <![CDATA[select count(1) from emp where cast(null as integer) = 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[=(null, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsCaseEquals">
+        <Resource name="sql">
+            <![CDATA[select count(1) from emp
+where case deptno
+  when 20 then 2
+  when 10 then 1
+  else 3 end = 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[=(CASE(=($7, 20), 2, =($7, 10), 1, 3), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsCaseEquals2">
+        <Resource name="sql">
+            <![CDATA[select count(1) from emp
+where case deptno
+  when 20 then 2
+  when 10 then 1
+  else cast(null as integer) end = 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[=(CASE(=($7, 20), 2, =($7, 10), 1, null), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[CASE(=($7, 20), CAST(false):BOOLEAN, =($7, 10), CAST(true):BOOLEAN, null)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsCaseEquals3">
+        <Resource name="sql">
+            <![CDATA[select count(1) from emp
+where case deptno
+  when 30 then 1
+  when 20 then 2
+  when 10 then 1
+  when 30 then 111
+  else 0 end = 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[=(CASE(=($7, 30), 1, =($7, 20), 2, =($7, 10), 1, =($7, 30), 111, 0), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[OR(=($7, 30), =($7, 10))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

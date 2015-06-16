@@ -47,7 +47,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
@@ -79,12 +78,15 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static org.apache.calcite.rex.RexUtil.andNot;
+import static org.apache.calcite.rex.RexUtil.removeAll;
+import static org.apache.calcite.rex.RexUtil.simplify;
 
 /**
  * Substitutes part of a tree of relational expressions with another tree.
@@ -152,7 +154,7 @@ public class SubstitutionVisitor {
           AggregateOnProjectToAggregateUnifyRule.INSTANCE);
 
   private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
-      new HashMap<Pair<Class, Class>, List<UnifyRule>>();
+      new HashMap<>();
 
   private final RelOptCluster cluster;
   private final Holder query;
@@ -168,8 +170,7 @@ public class SubstitutionVisitor {
    */
   final List<MutableRel> queryLeaves;
 
-  final Map<MutableRel, MutableRel> replacementMap =
-      new HashMap<MutableRel, MutableRel>();
+  final Map<MutableRel, MutableRel> replacementMap = new HashMap<>();
 
   final Multimap<MutableRel, MutableRel> equivalents =
       LinkedHashMultimap.create();
@@ -184,7 +185,7 @@ public class SubstitutionVisitor {
     this.query = Holder.of(toMutable(query_));
     this.target = toMutable(target_);
     final Set<MutableRel> parents = Sets.newIdentityHashSet();
-    final List<MutableRel> allNodes = new ArrayList<MutableRel>();
+    final List<MutableRel> allNodes = new ArrayList<>();
     final MutableRelVisitor visitor =
         new MutableRelVisitor() {
           public void visit(MutableRel node) {
@@ -332,45 +333,7 @@ public class SubstitutionVisitor {
       }
     }
     return RexUtil.composeConjunction(rexBuilder,
-        Lists.transform(targets, not(rexBuilder)), false);
-  }
-
-  /** Returns a function that applies NOT to its argument. */
-  public static Function<RexNode, RexNode> not(final RexBuilder rexBuilder) {
-    return new Function<RexNode, RexNode>() {
-      public RexNode apply(RexNode input) {
-        return input.isAlwaysTrue()
-            ? rexBuilder.makeLiteral(false)
-            : input.isAlwaysFalse()
-            ? rexBuilder.makeLiteral(true)
-            : input.getKind() == SqlKind.NOT
-            ? ((RexCall) input).operands.get(0)
-            : rexBuilder.makeCall(SqlStdOperatorTable.NOT, input);
-      }
-    };
-  }
-
-  /** Removes all expressions from a list that are equivalent to a given
-   * expression. Returns whether any were removed. */
-  private static boolean removeAll(List<RexNode> targets, RexNode e) {
-    int count = 0;
-    Iterator<RexNode> iterator = targets.iterator();
-    while (iterator.hasNext()) {
-      RexNode next = iterator.next();
-      if (equivalent(next, e)) {
-        ++count;
-        iterator.remove();
-      }
-    }
-    return count > 0;
-  }
-
-  /** Returns whether two expressions are equivalent. */
-  private static boolean equivalent(RexNode e1, RexNode e2) {
-    // TODO: make broader;
-    // 1. 'x = y' should be equivalent to 'y = x'.
-    // 2. 'c2 and c1' should be equivalent to 'c1 and c2'.
-    return e1 == e2 || e1.toString().equals(e2.toString());
+        Lists.transform(targets, RexUtil.notFn(rexBuilder)), false);
   }
 
   /**
@@ -385,8 +348,8 @@ public class SubstitutionVisitor {
     //  e: x = 1 AND y = 2 AND z = 3 AND NOT (x = 1 AND y = 2)
     //  disjunctions: {x = 1, y = 2, z = 3}
     //  notDisjunctions: {x = 1 AND y = 2}
-    final List<RexNode> disjunctions = new ArrayList<RexNode>();
-    final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
+    final List<RexNode> disjunctions = new ArrayList<>();
+    final List<RexNode> notDisjunctions = new ArrayList<>();
     RelOptUtil.decomposeConjunction(e, disjunctions, notDisjunctions);
 
     // If there is a single FALSE or NOT TRUE, the whole expression is
@@ -422,78 +385,6 @@ public class SubstitutionVisitor {
       }
     }
     return true;
-  }
-
-  /**
-   * Simplifies a boolean expression.
-   *
-   * <p>In particular:</p>
-   * <ul>
-   * <li>{@code simplify(x = 1 AND y = 2 AND NOT x = 1)}
-   * returns {@code y = 2}</li>
-   * <li>{@code simplify(x = 1 AND FALSE)}
-   * returns {@code FALSE}</li>
-   * </ul>
-   */
-  public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
-    final List<RexNode> disjunctions = RelOptUtil.conjunctions(e);
-    final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
-    for (int i = 0; i < disjunctions.size(); i++) {
-      final RexNode disjunction = disjunctions.get(i);
-      final SqlKind kind = disjunction.getKind();
-      switch (kind) {
-      case NOT:
-        notDisjunctions.add(
-            ((RexCall) disjunction).getOperands().get(0));
-        disjunctions.remove(i);
-        --i;
-        break;
-      case LITERAL:
-        if (!RexLiteral.booleanValue(disjunction)) {
-          return disjunction; // false
-        } else {
-          disjunctions.remove(i);
-          --i;
-        }
-      }
-    }
-    if (disjunctions.isEmpty() && notDisjunctions.isEmpty()) {
-      return rexBuilder.makeLiteral(true);
-    }
-    // If one of the not-disjunctions is a disjunction that is wholly
-    // contained in the disjunctions list, the expression is not
-    // satisfiable.
-    //
-    // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
-    // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
-    // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
-    for (RexNode notDisjunction : notDisjunctions) {
-      final List<RexNode> disjunctions2 =
-          RelOptUtil.conjunctions(notDisjunction);
-      if (disjunctions.containsAll(disjunctions2)) {
-        return rexBuilder.makeLiteral(false);
-      }
-    }
-    // Add the NOT disjunctions back in.
-    for (RexNode notDisjunction : notDisjunctions) {
-      disjunctions.add(
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.NOT,
-              notDisjunction));
-    }
-    return RexUtil.composeConjunction(rexBuilder, disjunctions, false);
-  }
-
-  /**
-   * Creates the expression {@code e1 AND NOT e2}.
-   */
-  static RexNode andNot(RexBuilder rexBuilder, RexNode e1, RexNode e2) {
-    return rexBuilder.makeCall(
-        SqlStdOperatorTable.AND,
-        e1,
-        rexBuilder.makeCall(
-            SqlStdOperatorTable.NOT,
-            e2));
   }
 
   public RelNode go0(RelNode replacement_) {
@@ -1011,7 +902,7 @@ public class SubstitutionVisitor {
             + "input: " + input + "\n"
             + "project: " + shuttle + "\n");
       }
-      final List<RexNode> exprList = new ArrayList<RexNode>();
+      final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = input.cluster.getRexBuilder();
       final List<RexNode> projects = Pair.left(namedProjects);
       for (RexNode expr : projects) {
@@ -1035,7 +926,7 @@ public class SubstitutionVisitor {
             + "input: " + input + "\n"
             + "project: " + project + "\n");
       }
-      final List<RexNode> exprList = new ArrayList<RexNode>();
+      final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = model.cluster.getRexBuilder();
       for (RelDataTypeField field : model.getRowType().getFieldList()) {
         exprList.add(rexBuilder.makeZeroLiteral(field.getType()));
@@ -1298,7 +1189,7 @@ public class SubstitutionVisitor {
   /** Builds a shuttle that stores a list of expressions, and can map incoming
    * expressions to references to them. */
   private static RexShuttle getRexShuttle(MutableProject target) {
-    final Map<String, Integer> map = new HashMap<String, Integer>();
+    final Map<String, Integer> map = new HashMap<>();
     for (RexNode e : target.getProjects()) {
       map.put(e.toString(), map.size());
     }
@@ -1879,35 +1770,17 @@ public class SubstitutionVisitor {
      */
     protected JoinRelType joinType;
 
-    //~ Constructors -----------------------------------------------------------
-
-    /**
-     * Creates a Join.
-     *
-     * @param cluster          Cluster
-     * @param traits           Traits
-     * @param left             Left input
-     * @param right            Right input
-     * @param condition        Join condition
-     * @param joinType         Join type
-     * @param variablesStopped Set of names of variables which are set by the
-     *                         LHS and used by the RHS and are not available to
-     *                         nodes above this LogicalJoin in the tree
-     */
     private MutableJoin(
-        RelOptCluster cluster,
         RelDataType rowType,
         MutableRel left,
         MutableRel right,
         RexNode condition,
         JoinRelType joinType,
         Set<String> variablesStopped) {
-      super(MutableRelType.JOIN, cluster, rowType, left, right);
-      this.condition = condition;
+      super(MutableRelType.JOIN, left.cluster, rowType, left, right);
+      this.condition = Preconditions.checkNotNull(condition);
       this.variablesStopped = ImmutableSet.copyOf(variablesStopped);
-      assert joinType != null;
-      assert condition != null;
-      this.joinType = joinType;
+      this.joinType = Preconditions.checkNotNull(joinType);
     }
 
     public RexNode getCondition() {
@@ -1922,19 +1795,21 @@ public class SubstitutionVisitor {
       return variablesStopped;
     }
 
-    static MutableJoin of(RelOptCluster cluster, MutableRel left, MutableRel right,
-        RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
+    static MutableJoin of(RelOptCluster cluster, MutableRel left,
+        MutableRel right, RexNode condition, JoinRelType joinType,
+        Set<String> variablesStopped) {
       List<RelDataTypeField> fieldList = Collections.emptyList();
       RelDataType rowType =
           Join.deriveJoinRowType(left.getRowType(), right.getRowType(),
               joinType, cluster.getTypeFactory(), null, fieldList);
-      return new MutableJoin(cluster, rowType, left, right,
-          condition, joinType, variablesStopped);
+      return new MutableJoin(rowType, left, right, condition, joinType,
+          variablesStopped);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
-      return buf.append("Join(left: ").append(left).append(", right:")
-          .append(right).append(")");
+      return buf.append("Join(left: ").append(left)
+          .append(", right:").append(right)
+          .append(")");
     }
   }
 
@@ -1963,7 +1838,7 @@ public class SubstitutionVisitor {
     }
 
     private static List<MutableRel> descendants(MutableRel query) {
-      final List<MutableRel> list = new ArrayList<MutableRel>();
+      final List<MutableRel> list = new ArrayList<>();
       descendantsRecurse(list, query);
       return list;
     }
@@ -2231,8 +2106,7 @@ public class SubstitutionVisitor {
       final LogicalFilter filter = call.rel(0);
       final LogicalProject project = call.rel(1);
 
-      final List<RexNode> newProjects =
-          new ArrayList<RexNode>(project.getProjects());
+      final List<RexNode> newProjects = new ArrayList<>(project.getProjects());
       newProjects.add(filter.getCondition());
 
       final RelOptCluster cluster = filter.getCluster();

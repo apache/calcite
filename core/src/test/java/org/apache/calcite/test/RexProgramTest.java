@@ -89,6 +89,11 @@ public class RexProgramTest {
         equalTo(expected));
   }
 
+  private void checkSimplify(RexNode node, String expected) {
+    assertThat(RexUtil.simplify(rexBuilder, node).toString(),
+        equalTo(expected));
+  }
+
   /** Returns the number of nodes (including leaves) in a Rex tree. */
   private static int nodeCount(RexNode node) {
     int n = 1;
@@ -122,6 +127,10 @@ public class RexProgramTest {
     // Does not flatten nested ORs. We want test input to contain nested ORs.
     return rexBuilder.makeCall(SqlStdOperatorTable.OR,
         ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode case_(RexNode... nodes) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.CASE, nodes);
   }
 
   private RexNode eq(RexNode n1, RexNode n2) {
@@ -632,6 +641,82 @@ public class RexProgramTest {
                         and(eRef,
                             or(fRef,
                                and(gRef, or(trueLiteral, falseLiteral)))))))));
+  }
+
+  @Test public void testSimplify() {
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", booleanType)
+        .add("b", booleanType)
+        .add("c", booleanType)
+        .add("d", booleanType)
+        .add("e", booleanType)
+        .add("f", booleanType)
+        .add("g", booleanType)
+        .add("h", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
+    final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
+    final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexLiteral true_ = rexBuilder.makeLiteral(true);
+    final RexLiteral false_ = rexBuilder.makeLiteral(false);
+
+    // and: remove duplicates
+    checkSimplify(and(aRef, bRef, aRef), "AND(?0.a, ?0.b)");
+
+    // and: remove true
+    checkSimplify(and(aRef, bRef, true_),
+        "AND(?0.a, ?0.b)");
+
+    // and: false falsifies
+    checkSimplify(and(aRef, bRef, false_),
+        "false");
+
+    // or: remove duplicates
+    checkSimplify(or(aRef, bRef, aRef), "OR(?0.a, ?0.b)");
+
+    // or: remove false
+    checkSimplify(or(aRef, bRef, false_),
+        "OR(?0.a, ?0.b)");
+
+    // or: true makes everything true
+    checkSimplify(or(aRef, bRef, true_), "true");
+
+    // case: remove false branches
+    checkSimplify(case_(eq(bRef, cRef), dRef, false_, aRef, eRef),
+        "CASE(=(?0.b, ?0.c), ?0.d, ?0.e)");
+
+    // case: true branches become the last branch
+    checkSimplify(
+        case_(eq(bRef, cRef), dRef, true_, aRef, eq(cRef, dRef), eRef, cRef),
+        "CASE(=(?0.b, ?0.c), ?0.d, ?0.a)");
+
+    // case: singleton
+    checkSimplify(case_(true_, aRef, eq(cRef, dRef), eRef, cRef), "?0.a");
+
+    // case: form an AND of branches that return true
+    checkSimplify(
+        case_(aRef, true_, bRef, false_, cRef, false_, dRef, true_, false_),
+        "OR(?0.a, AND(?0.d, NOT(?0.b), NOT(?0.c)))");
+
+    checkSimplify(
+        case_(aRef, true_, bRef, false_, cRef, false_, dRef, true_, eRef,
+            false_, true_),
+        "OR(?0.a, AND(?0.d, NOT(?0.b), NOT(?0.c)), AND(NOT(?0.b), NOT(?0.c), NOT(?0.e)))");
+
+    // is null, applied to not-null value
+    checkSimplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, aRef),
+        "false");
+
+    // is not null, applied to not-null value
+    checkSimplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, aRef),
+        "true");
   }
 }
 

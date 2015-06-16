@@ -52,6 +52,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
@@ -60,6 +61,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -332,6 +334,17 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       RelOptPredicateList predicates) {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
+    // Replace predicates on CASE to CASE on predicates.
+    for (int i = 0; i < expList.size(); i++) {
+      RexNode exp = expList.get(i);
+      if (exp instanceof RexCall) {
+        RexNode exp2 = pushPredicateIntoCase((RexCall) exp);
+        if (exp2 != exp) {
+          expList.set(i, exp2);
+        }
+      }
+    }
+
     // Find reducible expressions.
     final List<RexNode> constExps = Lists.newArrayList();
     List<Boolean> addCasts = Lists.newArrayList();
@@ -466,6 +479,45 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     return ImmutableMap.copyOf(builder);
   }
 
+  private static RexCall pushPredicateIntoCase(RexCall call) {
+    if (call.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      return call;
+    }
+    int caseOrdinal = -1;
+    final List<RexNode> operands = call.getOperands();
+    for (int i = 0; i < operands.size(); i++) {
+      RexNode operand = operands.get(i);
+      switch (operand.getKind()) {
+      case CASE:
+        caseOrdinal = i;
+      }
+    }
+    if (caseOrdinal < 0) {
+      return call;
+    }
+    // Convert
+    //   f(CASE WHEN p1 THEN v1 ... END, arg)
+    // to
+    //   CASE WHEN p1 THEN f(v1, arg) ... END
+    final RexCall case_ = (RexCall) operands.get(caseOrdinal);
+    final List<RexNode> nodes = new ArrayList<>();
+    for (int i = 0; i < case_.getOperands().size(); i++) {
+      RexNode node = case_.getOperands().get(i);
+      if (!RexUtil.isCasePredicate(case_, i)) {
+        node = substitute(call, caseOrdinal, node);
+      }
+      nodes.add(node);
+    }
+    return case_.clone(call.getType(), nodes);
+  }
+
+  /** Converts op(arg0, ..., argOrdinal, ..., argN) to op(arg0,..., node, ..., argN). */
+  private static RexNode substitute(RexCall call, int ordinal, RexNode node) {
+    final List<RexNode> newOperands = Lists.newArrayList(call.getOperands());
+    newOperands.set(ordinal, node);
+    return call.clone(call.getType(), newOperands);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -499,8 +551,12 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     @Override public RexNode visitCall(RexCall call) {
       RexNode node = visit(call);
-      if (node == null) {
-        return super.visitCall(call);
+      if (node != null) {
+        return node;
+      }
+      node = super.visitCall(call);
+      if (node != call) {
+        node = RexUtil.simplify(rexBuilder, node);
       }
       return node;
     }

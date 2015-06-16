@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.base.Function;
@@ -287,7 +288,7 @@ public class MaterializationTest {
 
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
-   * {@link org.apache.calcite.plan.SubstitutionVisitor#simplify}. */
+   * {@link RexUtil#simplify}. */
   @Test public void testSatisfiable() {
     // TRUE may be satisfiable
     checkSatisfiable(rexBuilder.makeLiteral(true), "true");
@@ -441,13 +442,13 @@ public class MaterializationTest {
 
   private void checkNotSatisfiable(RexNode e) {
     assertFalse(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = SubstitutionVisitor.simplify(rexBuilder, e);
+    final RexNode simple = RexUtil.simplify(rexBuilder, e);
     assertFalse(RexLiteral.booleanValue(simple));
   }
 
   private void checkSatisfiable(RexNode e, String s) {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = SubstitutionVisitor.simplify(rexBuilder, e);
+    final RexNode simple = RexUtil.simplify(rexBuilder, e);
     assertEquals(s, simple.toString());
   }
 
