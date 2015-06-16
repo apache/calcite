@@ -43,12 +43,72 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for lattices.
  */
 public class LatticeTest {
+  private static final String SALES_LATTICE = "{\n"
+      + "  name: 'star',\n"
+      + "  sql: [\n"
+      + "    'select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"',\n"
+      + "    'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
+      + "    'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
+      + "    'join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"'\n"
+      + "  ],\n"
+      + "  auto: false,\n"
+      + "  algorithm: true,\n"
+      + "  algorithmMaxMillis: 10000,\n"
+      + "  rowCountEstimate: 86837,\n"
+      + "  defaultMeasures: [ {\n"
+      + "    agg: 'count'\n"
+      + "  } ],\n"
+      + "  tiles: [ {\n"
+      + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+      + "   measures: [ {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'unit_sales'\n"
+      + "    }, {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'store_sales'\n"
+      + "    }, {\n"
+      + "      agg: 'count'\n"
+      + "    } ]\n"
+      + "  } ]\n"
+      + "}\n";
+
+  private static final String INVENTORY_LATTICE = "{\n"
+      + "  name: 'warehouse',\n"
+      + "  sql: [\n"
+      + "  'select 1 from \"foodmart\".\"inventory_fact_1997\" as \"s\"',\n"
+      + "  'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
+      + "  'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
+      + "  'join \"foodmart\".\"warehouse\" as \"w\" using (\"warehouse_id\")'\n"
+      + "  ],\n"
+      + "  auto: false,\n"
+      + "  algorithm: true,\n"
+      + "  algorithmMaxMillis: 10000,\n"
+      + "  rowCountEstimate: 4070,\n"
+      + "  defaultMeasures: [ {\n"
+      + "    agg: 'count'\n"
+      + "  } ],\n"
+      + "  tiles: [ {\n"
+      + "    dimensions: [ 'the_year', 'warehouse_name'],\n"
+      + "    measures: [ {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'store_invoice'\n"
+      + "    }, {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'supply_time'\n"
+      + "    }, {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'warehouse_cost'\n"
+      + "    } ]\n"
+      + "  } ]\n"
+      + "}\n";
+
   private CalciteAssert.AssertThat modelWithLattice(String name, String sql,
       String... extras) {
     final StringBuilder buf = new StringBuilder("{ name: '")
@@ -548,66 +608,8 @@ public class LatticeTest {
   }
 
   @Test public void testTwoLattices() {
-    final String sales_lattice = "{\n"
-        + "  name: 'star',\n"
-        + "  sql: [\n"
-        + "    'select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"',\n"
-        + "    'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
-        + "    'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
-        + "    'join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"'\n"
-        + "  ],\n"
-        + "  auto: false,\n"
-        + "  algorithm: true,\n"
-        + "  algorithmMaxMillis: 10000,\n"
-        + "  rowCountEstimate: 86837,\n"
-        + "  defaultMeasures: [ {\n"
-        + "    agg: 'count'\n"
-        + "  } ],\n"
-        + "  tiles: [ {\n"
-        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
-        + "   measures: [ {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'unit_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'store_sales'\n"
-        + "    }, {\n"
-        + "      agg: 'count'\n"
-        + "    } ]\n"
-        + "  } ]\n"
-        + "}\n";
-
-    final String inventory_lattice = "{\n"
-        + "  name: 'warehouse',\n"
-        + "  sql: [\n"
-        + "  'select 1 from \"foodmart\".\"inventory_fact_1997\" as \"s\"',\n"
-        + "  'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
-        + "  'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
-        + "  'join \"foodmart\".\"warehouse\" as \"w\" using (\"warehouse_id\")'\n"
-        + "  ],\n"
-        + "  auto: false,\n"
-        + "  algorithm: true,\n"
-        + "  algorithmMaxMillis: 10000,\n"
-        + "  rowCountEstimate: 86837,\n"
-        + "  defaultMeasures: [ {\n"
-        + "    agg: 'count'\n"
-        + "  } ],\n"
-        + "  tiles: [ {\n"
-        + "    dimensions: [ 'the_year', 'warehouse_name'],\n"
-        + "    measures: [ {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'store_invoice'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'supply_time'\n"
-        + "    }, {\n"
-        + "      agg: 'sum',\n"
-        + "      args: 'warehouse_cost'\n"
-        + "    } ]\n"
-        + "  } ]\n"
-        + "}\n";
     final AtomicInteger counter = new AtomicInteger();
-    modelWithLattices(sales_lattice, inventory_lattice)
+    modelWithLattices(SALES_LATTICE, INVENTORY_LATTICE)
         .query("select s.\"unit_sales\", p.\"brand_name\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
@@ -619,6 +621,20 @@ public class LatticeTest {
                     + "    LogicalTableScan(table=[[adhoc, star]])\n",
                 counter));
     assertThat(counter.intValue(), equalTo(1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-760">[CALCITE-760]
+   * Aggregate recommender blows up if row count estimate is too high</a>. */
+  @Ignore
+  @Test public void testLatticeWithBadRowCountEstimate() {
+    final String lattice =
+        INVENTORY_LATTICE.replace("rowCountEstimate: 4070,",
+            "rowCountEstimate: 4074070,");
+    assertFalse(lattice.equals(INVENTORY_LATTICE));
+    modelWithLattices(lattice)
+        .query("values 1\n")
+        .returns("EXPR$0=1\n");
   }
 
   private CalciteAssert.AssertThat foodmartModel(String... extras) {
