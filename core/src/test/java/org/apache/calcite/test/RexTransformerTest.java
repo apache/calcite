@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTransformer;
@@ -30,6 +31,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.LinkedList;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -316,6 +320,26 @@ public class RexTransformerTest {
         Boolean.TRUE,
         and,
         "AND(AND(AND(IS NOT NULL($0), IS NOT NULL($1)), =($0, $1)), AND(IS NOT NULL($2), >(false, $2)))");
+  }
+
+  @Test public void testEnsureTypeIgnoreNullability() {
+    RelDataType nonNullIntType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+
+    // Nullable integer type
+    RelDataType intType = typeFactory.createTypeWithNullability(nonNullIntType, true);
+
+    // Non nullable RexNode with integer return type
+    RexNode sumZeroFunction = rexBuilder.makeCall(nonNullIntType, SqlStdOperatorTable.SUM0, new LinkedList<RexNode>());
+
+    /* Pass nullable integer type, RexNode with non nullable integer type to ensureType()
+     * along with 'false' flag to ignore nullability. Since both the types are the same
+     * we expect to get the same RexNode back from ensureType() function. This isn't
+     * the case instead we seem to be adding a cast on top of the RexNode.
+     */
+    RexNode ensuredTypeSumZeroFunction = (rexBuilder.ensureType(intType, sumZeroFunction, false));
+
+    assertEquals(sumZeroFunction, ensuredTypeSumZeroFunction);
+
   }
 }
 
