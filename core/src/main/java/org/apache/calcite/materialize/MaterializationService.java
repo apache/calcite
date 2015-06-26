@@ -116,7 +116,10 @@ public class MaterializationService {
 
     final CalciteConnection connection =
         CalciteMetaImpl.connect(schema.root(), null);
-    CalciteSchema.TableEntry tableEntry = schema.getTableBySql(viewSql);
+    CalciteSchema.TableEntry tableEntry = schema.getTable(suggestedTableName, true);
+    if (tableEntry == null) {
+      tableEntry = schema.getTableBySql(viewSql);
+    }
     RelDataType rowType = null;
     if (tableEntry == null) {
       Table table = tableFactory.createTable(schema, viewSql, viewSchemaPath);
