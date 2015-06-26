@@ -62,8 +62,7 @@ import static org.apache.calcite.util.Stacks.push;
  */
 public class ModelHandler {
   private final CalciteConnection connection;
-  private final List<Pair<String, SchemaPlus>> schemaStack =
-      new ArrayList<Pair<String, SchemaPlus>>();
+  private final List<Pair<String, SchemaPlus>> schemaStack = new ArrayList<>();
   private final String modelUri;
   Lattice.Builder latticeBuilder;
   Lattice.TileBuilder tileBuilder;

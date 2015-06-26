@@ -19,14 +19,22 @@ package org.apache.calcite.model;
 /**
  * Information about whether a table allows streaming.
  *
+ * <p>Occurs within {@link JsonTable#stream}.
+ *
  * @see org.apache.calcite.model.JsonRoot Description of schema elements
  * @see org.apache.calcite.model.JsonTable#stream
  */
 public class JsonStream {
-  /** Whether the table allows streaming. */
+  /** Whether the table allows streaming.
+   *
+   * <p>Optional; default true.
+   */
   public boolean stream = true;
 
-  /** Whether the history of the table is available. */
+  /** Whether the history of the table is available.
+   *
+   * <p>Optional; default false.
+   */
   public boolean history = false;
 }
 

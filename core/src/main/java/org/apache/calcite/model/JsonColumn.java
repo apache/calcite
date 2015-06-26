@@ -19,9 +19,15 @@ package org.apache.calcite.model;
 /**
  * JSON object representing a column.
  *
+ * <p>Occurs within {@link JsonTable#columns}.
+ *
  * @see JsonRoot Description of JSON schema elements
  */
 public class JsonColumn {
+  /** Column name.
+   *
+   * Required, and must be unique within the table.
+   */
   public String name;
 }
 

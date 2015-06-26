@@ -16,8 +16,7 @@
  */
 package org.apache.calcite.model;
 
-import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,14 +26,21 @@ import java.util.List;
  * drawn from the lattice) and measures (aggregate functions applied to
  * lattice columns).
  *
+ * <p>Occurs within {@link JsonLattice#tiles}.
+ *
  * @see JsonRoot Description of schema elements
  */
 public class JsonTile {
-  /** List of grouping columns that define this tile.
+  /** List of dimensions that define this tile.
    *
-   * <p>Elements are either strings (column names unique within the lattice)
-   * or string lists (pairs of table alias and column name). */
-  public final List dimensions = Lists.newArrayList();
+   * <p>Each dimension is a column from the lattice. The list of dimensions
+   * defines the level of aggregation, like a {@code GROUP BY} clause.
+   *
+   * <p>Required, but may be empty. Each element is either a string
+   * (the unique label of the column within the lattice)
+   * or a string list (a pair consisting of a table alias and a column name).
+   */
+  public final List dimensions = new ArrayList();
 
   /** List of measures in this tile.
    *

@@ -26,7 +26,13 @@ package org.apache.calcite.model;
  * @see JsonRoot Description of schema elements
  */
 public class JsonMeasure {
+  /** The name of an aggregate function.
+   *
+   * <p>Required. Usually {@code count}, {@code sum},
+   * {@code min}, {@code max}.
+   */
   public String agg;
+
   /** Arguments to the measure.
    *
    * <p>Valid values are:

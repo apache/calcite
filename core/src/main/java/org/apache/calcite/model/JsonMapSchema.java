@@ -22,11 +22,23 @@ import java.util.List;
 /**
  * JSON object representing a schema whose tables are explicitly specified.
  *
+ * <p>Like the base class {@link JsonSchema},
+ * occurs within {@link JsonRoot#schemas}.
+ *
  * @see JsonRoot Description of JSON schema elements
  */
 public class JsonMapSchema extends JsonSchema {
-  public final List<JsonTable> tables = new ArrayList<JsonTable>();
-  public final List<JsonFunction> functions = new ArrayList<JsonFunction>();
+  /** Tables in this schema.
+   *
+   * <p>The list may be empty.
+   */
+  public final List<JsonTable> tables = new ArrayList<>();
+
+  /** Functions in this schema.
+   *
+   * <p>The list may be empty.
+   */
+  public final List<JsonFunction> functions = new ArrayList<>();
 
   @Override public void accept(ModelHandler handler) {
     handler.visit(this);

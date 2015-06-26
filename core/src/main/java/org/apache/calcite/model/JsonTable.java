@@ -18,12 +18,14 @@ package org.apache.calcite.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Table schema element.
+ *
+ * <p>Occurs within {@link JsonMapSchema#tables}.
  *
  * @see JsonRoot Description of schema elements
  */
@@ -35,8 +37,18 @@ import java.util.List;
     @JsonSubTypes.Type(value = JsonCustomTable.class, name = "custom"),
     @JsonSubTypes.Type(value = JsonView.class, name = "view") })
 public abstract class JsonTable {
+  /** Name of this table.
+   *
+   * <p>Required. Must be unique within the schema.
+   */
   public String name;
-  public final List<JsonColumn> columns = Lists.newArrayList();
+
+  /** Definition of the columns of this table.
+   *
+   * <p>Required for some kinds of type,
+   * optional for others (such as {@link JsonView}).
+   */
+  public final List<JsonColumn> columns = new ArrayList<>();
 
   /** Information about whether the table can be streamed, and if so, whether
    * the history of the table is also available. */

@@ -18,12 +18,14 @@ package org.apache.calcite.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Schema schema element.
+ *
+ * <p>Occurs within {@link JsonRoot#schemas}.
  *
  * @see JsonRoot Description of schema elements
  */
@@ -36,16 +38,37 @@ import java.util.List;
     @JsonSubTypes.Type(value = JsonJdbcSchema.class, name = "jdbc"),
     @JsonSubTypes.Type(value = JsonCustomSchema.class, name = "custom") })
 public abstract class JsonSchema {
+  /** Name of the schema.
+   *
+   * <p>Required.
+   *
+   * @see JsonRoot#defaultSchema
+   */
   public String name;
 
-  /** SQL-path. May be null, or a list, each element of which is a string or a
-   * string-list. */
+  /** SQL path that is used to resolve functions used in this schema.
+   *
+   * <p>May be null, or a list, each element of which is a string or a
+   * string-list.
+   *
+   * <p>For example,
+   *
+   * <blockquote><pre>path: [ ['usr', 'lib'], 'lib' ]</pre></blockquote>
+   *
+   * <p>declares a path with two elements: the schema ‘/usr/lib’ and the schema
+   * ‘/lib’. Most schemas are at the top level, and for these you can use a
+   * string.
+   */
   public List<Object> path;
 
-  public final List<JsonMaterialization> materializations =
-      Lists.newArrayList();
+  /**
+   * List of tables in this schema that are materializations of queries.
+   *
+   * <p>The list may be empty.
+   */
+  public final List<JsonMaterialization> materializations = new ArrayList<>();
 
-  public final List<JsonLattice> lattices = Lists.newArrayList();
+  public final List<JsonLattice> lattices = new ArrayList<>();
 
   /** Whether to cache metadata (tables, functions and sub-schemas) generated
    * by this schema. Default value is {@code true}.

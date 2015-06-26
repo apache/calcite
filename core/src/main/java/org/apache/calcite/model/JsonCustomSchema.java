@@ -21,15 +21,24 @@ import java.util.Map;
 /**
  * JSON schema element that represents a custom schema.
  *
+ * <p>Like the base class {@link JsonSchema},
+ * occurs within {@link JsonRoot#schemas}.
+ *
  * @see org.apache.calcite.model.JsonRoot Description of schema elements
  */
 public class JsonCustomSchema extends JsonMapSchema {
-  /** Name of the factory class for this schema. Must implement interface
+  /** Name of the factory class for this schema.
+   *
+   * <p>Required. Must implement interface
    * {@link org.apache.calcite.schema.SchemaFactory} and have a public default
-   * constructor. */
+   * constructor.
+   */
   public String factory;
 
-  /** Operand. May be a JSON object (represented as Map) or null. */
+  /** Contains attributes to be passed to the factory.
+   *
+   * <p>May be a JSON object (represented as Map) or null.
+   */
   public Map<String, Object> operand;
 
   public void accept(ModelHandler handler) {

@@ -19,11 +19,19 @@ package org.apache.calcite.model;
 /**
  * Element that describes how a table is a materialization of a query.
  *
+ * <p>Occurs within {@link JsonSchema#materializations}.
+ *
  * @see JsonRoot Description of schema elements
  */
 public class JsonMaterialization {
   public String view;
   public String table;
+
+  /** SQL query that defines the materialization.
+   *
+   * <p>Must be a string or a list of strings (which are concatenated into a
+   * multi-line SQL string, separated by newlines).
+   */
   public Object sql;
 
   public void accept(ModelHandler handler) {

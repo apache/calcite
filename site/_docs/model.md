@@ -79,7 +79,7 @@ strings. For example,
 {% endhighlight %}
 
 declares a path with two elements: the schema '/usr/lib' and the
-schema '/lib'. Most schemas are at the top level, so you can use a
+schema '/lib'. Most schemas are at the top level, and for these you can use a
 string.
 
 `materializations` (optional list of
@@ -176,7 +176,7 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 `name`, `type`, `path`, `cache`, `materializations` inherited from
 <a href="#schema">Schema</a>.
 
-`jdbcDriver` (optional string) is the name of the JDBC driver class. It not
+`jdbcDriver` (optional string) is the name of the JDBC driver class. If not
 specified, uses whichever class the JDBC DriverManager chooses.
 
 `jdbcUrl` (optional string) is the JDBC connect string, for example
@@ -229,7 +229,8 @@ Occurs within `root.schemas.tables`.
 * `custom` for <a href="#custom-table">Custom Table</a>
 * `view` for <a href="#view">View</a>
 
-`columns` (optional list of <a href="#column">Column</a> elements)
+`columns` (list of <a href="#column">Column</a> elements, required for
+some kinds of table, optional for others such as View)
 
 ### View
 
@@ -302,6 +303,24 @@ and have a public default constructor.
 `operand` (optional map) contains attributes to be passed to the
 factory.
 
+### Stream
+
+Information about whether a table allows streaming.
+
+Occurs within `root.schemas.tables.stream`.
+
+{% highlight json %}
+{
+  stream: true,
+  history: false
+}
+{% endhighlight %}
+
+`stream` (optional; default true) is whether the table allows streaming.
+
+`history` (optional; default false) is whether the history of the stream is
+available.
+
 ### Column
 
 Occurs within `root.schemas.tables.columns`.
@@ -334,6 +353,18 @@ function.
 
 `methodName` (optional string) is the name of the method that implements this
 function.
+
+If `methodName` is specified, the method must exist (case-sensitive) and Calcite
+will create a scalar function. The method may be static or non-static, but
+if non-static, the class must have a public constructor with no parameters.
+
+If `methodName` is "*", Calcite creates a function for every method
+in the class.
+
+If `methodName` is not specified, Calcite looks for a method called "eval", and
+if found, creates a a table macro or scalar function.
+It also looks for methods "init", "add", "merge", "result", and
+if found, creates an aggregate function.
 
 `path` (optional list of string) is the path for resolving this function.
 
@@ -389,7 +420,7 @@ maximum number of milliseconds for which to run the algorithm. After this point,
 takes the best result the algorithm has come up with so far.
 
 `rowCountEstimate` (optional double, default 1000.0) estimated number of rows in
-the star
+the lattice
 
 `tiles` (optional list of <a href="#tile">Tile</a> elements) is a list of
 materialized aggregates to create up front.
@@ -435,9 +466,12 @@ Occurs within `root.schemas.lattices.tiles`.
 }
 {% endhighlight %}
 
-`dimensions` is a list of dimensions (columns from the star), like a `GROUP BY`
-clause. Each element is either a string (the unique label of the column within
-the star) or a string list (a column name qualified by a table name).
+`dimensions` (list of strings or string lists, required, but may be empty)
+defines the dimensionality of this tile.
+Each dimension is a column from the lattice, like a `GROUP BY` clause.
+Each element can be either a string
+(the unique label of the column within the lattice)
+or a string list (a pair consisting of a table alias and a column name).
 
 `measures` (optional list of <a href="#measure">Measure</a> elements) is a list
 of aggregate functions applied to arguments. If not specified, uses the
@@ -458,6 +492,21 @@ and `root.schemas.lattices.tiles.measures`.
 `agg` is the name of an aggregate function (usually 'count', 'sum', 'min',
 'max').
 
-`args` (optional) is a column label (string), or list of zero or more columns.
-If a list, each element is either a string (the unique label of the column
-within the star) or a string list (a column name qualified by a table name).
+`args` (optional) is a column label (string), or list of zero or more column
+labels
+
+Valid values are:
+
+* Not specified: no arguments
+* null: no arguments
+* Empty list: no arguments
+* String: single argument, the name of a lattice column
+* List: multiple arguments, each a column label
+
+Unlike lattice dimensions, measures can not be specified in qualified
+format, {@code ["table", "column"]}. When you define a lattice, make sure
+that each column you intend to use as a measure has a unique label within
+the lattice (using "{@code AS label}" if necessary), and use that label
+when you want to pass the column as a measure argument.
+
+<!-- End model.md -->

@@ -19,14 +19,47 @@ package org.apache.calcite.model;
 /**
  * JSON object representing a schema that maps to a JDBC database.
  *
+ * <p>Like the base class {@link JsonSchema},
+ * occurs within {@link JsonRoot#schemas}.
+ *
  * @see JsonRoot Description of JSON schema elements
  */
 public class JsonJdbcSchema extends JsonSchema {
+  /** The name of the JDBC driver class.
+   *
+   * <p>Optional. If not specified, uses whichever class the JDBC
+   * {@link java.sql.DriverManager} chooses.
+   */
   public String jdbcDriver;
+
+  /** JDBC connect string, for example “jdbc:mysql://localhost/foodmart”.
+   *
+   * <p>Optional.
+   */
   public String jdbcUrl;
+
+  /** JDBC user name.
+   *
+   * <p>Optional.
+   */
   public String jdbcUser;
+
+  /** JDBC connect string, for example “jdbc:mysql://localhost/foodmart”.
+   *
+   * <p>Optional.
+   */
   public String jdbcPassword;
+
+  /** Name of the initial catalog in the JDBC data source.
+   *
+   * <p>Optional.
+   */
   public String jdbcCatalog;
+
+  /** Name of the initial schema in the JDBC data source.
+   *
+   * <p>Optional.
+   */
   public String jdbcSchema;
 
   @Override public void accept(ModelHandler handler) {

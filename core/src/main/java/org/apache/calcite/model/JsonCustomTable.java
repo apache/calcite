@@ -21,15 +21,24 @@ import java.util.Map;
 /**
  * Custom table schema element.
  *
+ * <p>Like base class {@link JsonTable},
+ * occurs within {@link JsonMapSchema#tables}.
+ *
  * @see JsonRoot Description of schema elements
  */
 public class JsonCustomTable extends JsonTable {
-  /** Name of the factory class for this table. Must implement interface
+  /** Name of the factory class for this table.
+   *
+   * <p>Required. Must implement interface
    * {@link org.apache.calcite.schema.TableFactory} and have a public default
-   * constructor. */
+   * constructor.
+   */
   public String factory;
 
-  /** Operand. May be a JSON object (represented as Map) or null. */
+  /** Contains attributes to be passed to the factory.
+   *
+   * <p>May be a JSON object (represented as Map) or null.
+   */
   public Map<String, Object> operand;
 
   public void accept(ModelHandler handler) {

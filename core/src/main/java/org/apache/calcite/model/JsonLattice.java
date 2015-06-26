@@ -16,8 +16,7 @@
  */
 package org.apache.calcite.model;
 
-import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -25,29 +24,48 @@ import java.util.List;
  * recognizing, and recommending materialized views at various levels of
  * aggregation.
  *
+ * <p>Occurs within {@link JsonSchema#lattices}.
+ *
  * @see JsonRoot Description of schema elements
  */
 public class JsonLattice {
+  /** The name of this lattice.
+   *
+   * <p>Required.
+   */
   public String name;
 
   /** SQL query that defines the lattice.
    *
-   * <p>Must be a string or a list of strings (which are concatenated separated
-   * by newlines).
+   * <p>Must be a string or a list of strings (which are concatenated into a
+   * multi-line SQL string, separated by newlines).
+   *
+   * <p>The structure of the SQL statement, and in particular the order of
+   * items in the FROM clause, defines the fact table, dimension tables, and
+   * join paths for this lattice.
    */
   public Object sql;
 
-  /** Whether to create in-memory materialized aggregates on demand.
+  /** Whether to materialize tiles on demand as queries are executed.
    *
-   * <p>Default is true. */
+   * <p>Optional; default is true.
+   */
   public boolean auto = true;
 
-  /** Whether to use an algorithm to suggest aggregates.
+  /** Whether to use an optimization algorithm to suggest and populate an
+   * initial set of tiles.
    *
-   * <p>Default is false. */
+   * <p>Optional; default is false.
+   */
   public boolean algorithm = false;
 
-  /** Maximum time to run the algorithm. Default is -1, meaning no timeout. */
+  /** Maximum time (in milliseconds) to run the algorithm.
+   *
+   * <p>Optional; default is -1, meaning no timeout.
+   *
+   * <p>When the timeout is reached, Calcite uses the best result that has
+   * been obtained so far.
+   */
   public long algorithmMaxMillis = -1;
 
   /** Estimated number of rows.
@@ -69,13 +87,14 @@ public class JsonLattice {
   public String statisticProvider;
 
   /** List of materialized aggregates to create up front. */
-  public final List<JsonTile> tiles = Lists.newArrayList();
+  public final List<JsonTile> tiles = new ArrayList<>();
 
   /** List of measures that a tile should have by default.
    *
    * <p>A tile can define its own measures, including measures not in this list.
    *
-   * <p>The default list is just count. */
+   * <p>Optional. The default list is just "count(*)".
+   */
   public List<JsonMeasure> defaultMeasures;
 
   public void accept(ModelHandler handler) {
