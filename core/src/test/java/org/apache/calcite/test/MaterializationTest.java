@@ -272,6 +272,20 @@ public class MaterializationTest {
   }
 
   @Ignore
+  @Test public void testOrderByQueryOnProjectView() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\" from \"emps\"",
+        "select \"empid\" from \"emps\" order by \"deptno\"");
+  }
+
+  @Ignore
+  @Test public void testOrderByQueryOnOrderByView() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\" from \"emps\" order by \"deptno\"",
+        "select \"empid\" from \"emps\" order by \"deptno\"");
+  }
+
+  @Ignore
   @Test public void testDifferentColumnNames() {}
 
   @Ignore
