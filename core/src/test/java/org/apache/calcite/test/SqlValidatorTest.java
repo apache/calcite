@@ -3986,6 +3986,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
   }
 
+  @Test public void testInvalidWindowFunctionWithGroupBy() {
+    sql("select max(^empno^) over () from emp\n"
+        + "group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+
+    sql("select max(deptno) over (partition by ^empno^) from emp\n"
+        + "group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+
+    sql("select rank() over (order by ^empno^) from emp\n"
+        + "group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+  }
+
   @Test public void testInlineWinDef() {
     // the <window specification> used by windowed agg functions is
     // fully defined in SQL 03 Std. section 7.1 <window clause>
