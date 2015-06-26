@@ -1277,6 +1277,61 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * window aggregate and ranking functions with grouped aggregates</a>.
+   */
+  @Test public void testWindowAggWithGroupBy() {
+    sql("select min(deptno), rank() over (order by empno),\n"
+            + "max(empno) over (partition by deptno)\n"
+            + "from emp group by deptno, empno\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * variant involving joins</a>.
+   */
+  @Test public void testWindowAggWithGroupByAndJoin() {
+    sql("select min(d.deptno), rank() over (order by e.empno),\n"
+            + " max(e.empno) over (partition by e.deptno)\n"
+            + "from emp e, dept d\n"
+            + "where e.deptno = d.deptno\n"
+            + "group by d.deptno, e.empno, e.deptno\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * variant involving HAVING clause</a>.
+   */
+  @Test public void testWindowAggWithGroupByAndHaving() {
+    sql("select min(deptno), rank() over (order by empno),\n"
+            + "max(empno) over (partition by deptno)\n"
+            + "from emp group by deptno, empno\n"
+            + "having empno < 10 and min(deptno) < 20\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * variant involving join with subquery that contains window function and
+   * GROUP BY</a>.
+   */
+  @Test public void testWindowAggInSubqueryJoin() {
+    sql("select T.x, T.y, T.z, emp.empno from (select min(deptno) as x,\n"
+            + "   rank() over (order by empno) as y,\n"
+            + "   max(empno) over (partition by deptno) as z\n"
+            + "   from emp group by deptno, empno) as T\n"
+            + " inner join emp on T.x = emp.deptno\n"
+            + " and T.y = emp.empno\n")
+        .convertsTo("${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)
