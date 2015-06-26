@@ -4366,6 +4366,10 @@ public class SqlToRelConverter {
         // for now do not detect aggregates in subqueries.
         return null;
       }
+      // ignore window aggregates and ranking functions (associated with OVER operator)
+      if (call.getOperator().getKind() == SqlKind.OVER) {
+        return null;
+      }
       if (call.getOperator().isAggregator()) {
         translateAgg(call, null, call);
         return null;
@@ -4805,6 +4809,10 @@ public class SqlToRelConverter {
     final SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
 
     @Override public Void visit(SqlCall call) {
+      // ignore window aggregates and ranking functions (associated with OVER operator)
+      if (call.getOperator().getKind() == SqlKind.OVER) {
+        return null;
+      }
       if (call.getOperator().isAggregator()) {
         list.add(call);
         return null;

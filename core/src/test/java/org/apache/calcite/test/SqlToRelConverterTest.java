@@ -1277,6 +1277,65 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * </a>; window aggregate and ranking functions with grouped aggregates
+   */
+  @Test public void testWindowAggWithGroupBy() {
+    check(
+        "select min(deptno), rank() over (order by empno), \n"
+            + "max(empno) over (partition by deptno) \n"
+            + "from emp group by deptno, empno\n",
+        "${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * </a>; variant involving joins
+   */
+  @Test public void testWindowAggWithGroupByAndJoin() {
+    check(
+        "select min(d.deptno), rank() over (order by e.empno), \n"
+            + " max(e.empno) over (partition by e.deptno) \n"
+            + "from emp e, dept d \n"
+            + "where e.deptno = d.deptno \n"
+            + "group by d.deptno, e.empno, e.deptno \n",
+        "${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * </a>; variant involving HAVING clause
+   */
+  @Test public void testWindowAggWithGroupByAndHaving() {
+    check(
+        "select min(deptno), rank() over (order by empno), \n"
+            + "max(empno) over (partition by deptno) \n"
+            + "from emp group by deptno, empno\n"
+            + "having empno < 10 and min(deptno) < 20 \n",
+        "${plan}");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
+   * </a>; variant involving join with subquery that contains window
+   * function and group-by
+   */
+  @Test public void testWindowAggInSubqueryJoin() {
+    check(
+        "select T.x, T.y, T.z, emp.empno from (select min(deptno) as x, \n"
+        + "   rank() over (order by empno) as y, \n"
+        + "   max(empno) over (partition by deptno) as z \n"
+        + "   from emp group by deptno, empno) as T \n"
+        + " inner join emp on T.x = emp.deptno \n"
+        + " and T.y = emp.empno \n",
+        "${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)
