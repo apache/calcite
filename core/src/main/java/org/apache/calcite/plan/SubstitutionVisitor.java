@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -240,6 +241,11 @@ public class SubstitutionVisitor {
       final MutableRel right = toMutable(join.getRight());
       return MutableJoin.of(join.getCluster(), left, right,
           join.getCondition(), join.getJoinType(), join.getVariablesStopped());
+    }
+    if (rel instanceof Sort) {
+      final Sort sort = (Sort) rel;
+      final MutableRel input = toMutable(sort.getInput());
+      return MutableSort.of(input, sort.getCollation(), sort.offset, sort.fetch);
     }
     throw new RuntimeException("cannot translate " + rel + " to MutableRel");
   }
