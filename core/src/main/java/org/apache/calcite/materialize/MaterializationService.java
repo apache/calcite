@@ -95,15 +95,16 @@ public class MaterializationService {
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      final String suggestedTableName, boolean create) {
+      final String suggestedTableName, boolean create, boolean existing) {
     return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath,
-        suggestedTableName, tableFactory, create);
+        suggestedTableName, tableFactory, create, existing);
   }
 
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      String suggestedTableName, TableFactory tableFactory, boolean create) {
+      String suggestedTableName, TableFactory tableFactory, boolean create,
+      boolean existing) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
     final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
@@ -116,7 +117,15 @@ public class MaterializationService {
 
     final CalciteConnection connection =
         CalciteMetaImpl.connect(schema.root(), null);
-    CalciteSchema.TableEntry tableEntry = schema.getTableBySql(viewSql);
+    CalciteSchema.TableEntry tableEntry;
+    if (existing) {
+      tableEntry = schema.getTable(suggestedTableName, true);
+    } else {
+      tableEntry = null;
+    }
+    if (tableEntry == null) {
+      tableEntry = schema.getTableBySql(viewSql);
+    }
     RelDataType rowType = null;
     if (tableEntry == null) {
       Table table = tableFactory.createTable(schema, viewSql, viewSchemaPath);
@@ -265,7 +274,7 @@ public class MaterializationService {
     final String sql = lattice.sql(groupSet, newTileKey.measures);
     materializationKey =
         defineMaterialization(schema, newTileKey, sql, schema.path(null),
-            suggestedTableName, tableFactory, true);
+            suggestedTableName, tableFactory, true, false);
     if (materializationKey != null) {
       final CalciteSchema.TableEntry tableEntry =
           checkValid(materializationKey);

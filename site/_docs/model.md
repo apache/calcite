@@ -204,9 +204,12 @@ Occurs within `root.schemas.materializations`.
 }
 {% endhighlight %}
 
-`view` (optional string) TODO
+`view` (optional string) is the name of the view; null means that the table
+already exists and is populated with the correct data.
 
-`table` (optional string) TODO
+`table` (required string) is the name of the table that materializes the data in
+the query. If `view` is not null, the table might not exist, and if it does not,
+Calcite will create and populate an in-memory table.
 
 `sql` (optional string, or list of strings that will be concatenated as a
  multi-line string) is the SQL definition of the materialization.

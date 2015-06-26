@@ -405,7 +405,7 @@ public class CalciteAssert {
 
   private static String typeString(ResultSetMetaData metaData)
       throws SQLException {
-    final List<String> list = new ArrayList<String>();
+    final List<String> list = new ArrayList<>();
     for (int i = 0; i < metaData.getColumnCount(); i++) {
       list.add(
           metaData.getColumnName(i + 1)
@@ -452,13 +452,7 @@ public class CalciteAssert {
           exceptionChecker.apply(null);
           return;
         }
-      } catch (Exception e) {
-        if (exceptionChecker != null) {
-          exceptionChecker.apply(e);
-          return;
-        }
-        throw e;
-      } catch (Error e) {
+      } catch (Exception | Error e) {
         if (exceptionChecker != null) {
           exceptionChecker.apply(e);
           return;
@@ -471,12 +465,10 @@ public class CalciteAssert {
       resultSet.close();
       statement.close();
       connection.close();
-    } catch (Error e) {
+    } catch (Error | RuntimeException e) {
       // We ignore extended message for non-runtime exception, however
       // it does not matter much since it is better to have AssertionError
       // at the very top level of the exception stack.
-      throw e;
-    } catch (RuntimeException e) {
       throw e;
     } catch (Throwable e) {
       throw new RuntimeException(message, e);
@@ -840,21 +832,32 @@ public class CalciteAssert {
 
     /** Adds materializations to the schema. */
     public final AssertThat withMaterializations(String model,
-        String... materializations) {
-      assert materializations.length % 2 == 0;
+        final String... materializations) {
+      return withMaterializations(model,
+          new Function<JsonBuilder, List<Object>>() {
+            public List<Object> apply(JsonBuilder builder) {
+              assert materializations.length % 2 == 0;
+              final List<Object> list = builder.list();
+              for (int i = 0; i < materializations.length; i++) {
+                String table = materializations[i++];
+                final Map<String, Object> map = builder.map();
+                map.put("table", table);
+                map.put("view", table + "v");
+                String sql = materializations[i];
+                final String sql2 = sql.replaceAll("`", "\"");
+                map.put("sql", sql2);
+                list.add(map);
+              }
+              return list;
+            }
+          });
+    }
+
+    /** Adds materializations to the schema. */
+    public final AssertThat withMaterializations(String model,
+        Function<JsonBuilder, List<Object>> materializations) {
       final JsonBuilder builder = new JsonBuilder();
-      final List<Object> list = builder.list();
-      for (int i = 0; i < materializations.length; i++) {
-        String table = materializations[i++];
-        final Map<String, Object> map = builder.map();
-        map.put("table", table);
-        map.put("view", table + "v");
-        String sql = materializations[i];
-        final String sql2 = sql
-            .replaceAll("`", "\"");
-        map.put("sql", sql2);
-        list.add(map);
-      }
+      final List<Object> list = materializations.apply(builder);
       final String buf =
           "materializations: " + builder.toJsonString(list);
       final String model2;
@@ -908,13 +911,10 @@ public class CalciteAssert {
      * and executes a callback. */
     public <T> AssertThat doWithConnection(Function<CalciteConnection, T> fn)
         throws Exception {
-      Connection connection = connectionFactory.createConnection();
-      try {
+      try (Connection connection = connectionFactory.createConnection()) {
         T t = fn.apply((CalciteConnection) connection);
         Util.discard(t);
         return AssertThat.this;
-      } finally {
-        connection.close();
       }
     }
 

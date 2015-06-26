@@ -28,14 +28,18 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.JsonBuilder;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -52,6 +56,10 @@ public class MaterializationTest {
   private static final Function<ResultSet, Void> CONTAINS_M0 =
       CalciteAssert.checkResultContains(
           "EnumerableTableScan(table=[[hr, m0]])");
+
+  private static final Function<ResultSet, Void> CONTAINS_LOCATIONS =
+      CalciteAssert.checkResultContains(
+          "EnumerableTableScan(table=[[hr, locations]])");
 
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -748,6 +756,37 @@ public class MaterializationTest {
             + "from (select * from \"emps\" where \"empid\" < 300)\n"
             + "join \"depts\" using (\"deptno\")";
     checkMaterialize("select * from \"emps\" where \"empid\" < 500", q);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-761">[CALCITE-761]
+   * Pre-populated materializations</a>. */
+  @Test public void testPrePopulated() {
+    String q = "select \"deptno\" from \"emps\"";
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(
+              JdbcTest.HR_MODEL,
+              new Function<JsonBuilder, List<Object>>() {
+                public List<Object> apply(JsonBuilder builder) {
+                  final Map<String, Object> map = builder.map();
+                  map.put("table", "locations");
+                  String sql = "select `deptno` as `empid`, '' as `name`\n"
+                       + "from `emps`";
+                  final String sql2 = sql.replaceAll("`", "\"");
+                  map.put("sql", sql2);
+                  return ImmutableList.<Object>of(map);
+                }
+              })
+          .query(q)
+          .enableMaterializations(true)
+          .explainMatches("", CONTAINS_LOCATIONS)
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
   }
 }
 

@@ -75,11 +75,10 @@ public class MaterializedViewTable extends ViewTable {
 
   /** Table macro that returns a materialized view. */
   public static MaterializedViewTableMacro create(final CalciteSchema schema,
-      final String viewSql,
-      final List<String> viewSchemaPath,
-      final String tableName) {
+      final String viewSql, final List<String> viewSchemaPath,
+      final String suggestedTableName, boolean existing) {
     return new MaterializedViewTableMacro(schema, viewSql, viewSchemaPath,
-        tableName);
+        suggestedTableName, existing);
   }
 
   @Override public RelNode toRel(RelOptTable.ToRelContext context,
@@ -102,11 +101,13 @@ public class MaterializedViewTable extends ViewTable {
     private final MaterializationKey key;
 
     private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath, String suggestedTableName) {
+        List<String> viewSchemaPath, String suggestedTableName,
+        boolean existing) {
       super(schema, viewSql, viewSchemaPath, Boolean.TRUE);
       this.key = Preconditions.checkNotNull(
           MaterializationService.instance().defineMaterialization(
-              schema, null, viewSql, schemaPath, suggestedTableName, true));
+              schema, null, viewSql, schemaPath, suggestedTableName, true,
+              existing));
     }
 
     @Override public TranslatableTable apply(List<Object> arguments) {
