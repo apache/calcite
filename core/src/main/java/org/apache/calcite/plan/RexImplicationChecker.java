@@ -224,7 +224,7 @@ public class RexImplicationChecker {
         }
         break;
       case NOT_EQUALS:
-        if (! (fkind == SqlKind.EQUALS )) {
+        if (!(fkind == SqlKind.EQUALS)) {
           return false;
         }
       default:

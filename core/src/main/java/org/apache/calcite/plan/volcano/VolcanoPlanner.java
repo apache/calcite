@@ -415,16 +415,20 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     RelNode newRoot = new SubstitutionVisitor(target, root)
             .go(materialization.tableRel);
 
-    if (newRoot != null) {
-      root = newRoot;
+    if (newRoot == null) {
+      return mvSubstitute(root, materialization, target);
+    } else {
+      RelNode newRoot2 = mvSubstitute(newRoot, materialization, target);
+      return (newRoot2 == null) ? newRoot : newRoot2;
     }
-
-    RelNode newRoot2 = new MaterializedViewSubstitutionVisitor(target, root)
-            .go(materialization.tableRel);
-
-    return (newRoot2 == null) ? newRoot : newRoot2;
-
   }
+
+  private RelNode mvSubstitute(RelNode root, RelOptMaterialization materialization,
+                               RelNode target) {
+    return new MaterializedViewSubstitutionVisitor(target, root)
+              .go(materialization.tableRel);
+  }
+
 
   private void useApplicableMaterializations() {
     // Avoid using materializations while populating materializations!

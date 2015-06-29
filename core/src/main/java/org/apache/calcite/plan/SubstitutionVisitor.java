@@ -144,17 +144,9 @@ public class SubstitutionVisitor {
   private static final Equivalence<List<?>> PAIRWISE_STRING_EQUIVALENCE =
       (Equivalence) STRING_EQUIVALENCE.pairwise();
 
-  protected static List<UnifyRule> unifyRules =
-      ImmutableList.<UnifyRule>of(
-//          TrivialRule.INSTANCE,
-          ProjectToProjectUnifyRule.INSTANCE,
-          FilterToProjectUnifyRule.INSTANCE,
-//          ProjectToFilterUnifyRule.INSTANCE,
-          FilterToFilterUnifyRule.INSTANCE,
-          AggregateToAggregateUnifyRule.INSTANCE,
-          AggregateOnProjectToAggregateUnifyRule.INSTANCE);
+  protected static List<UnifyRule> unifyRules;
 
-  private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
+  protected static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
       new HashMap<>();
 
   private final RelOptCluster cluster;
@@ -208,6 +200,24 @@ public class SubstitutionVisitor {
     visitor.go(query);
     allNodes.removeAll(parents);
     queryLeaves = ImmutableList.copyOf(allNodes);
+    initUnifyRules();
+    initRuleMap();
+  }
+
+  public void initUnifyRules() {
+    unifyRules =
+            ImmutableList.<UnifyRule>of(
+//          TrivialRule.INSTANCE,
+                    ProjectToProjectUnifyRule.INSTANCE,
+                    FilterToProjectUnifyRule.INSTANCE,
+//          ProjectToFilterUnifyRule.INSTANCE,
+                    FilterToFilterUnifyRule.INSTANCE,
+                    AggregateToAggregateUnifyRule.INSTANCE,
+                    AggregateOnProjectToAggregateUnifyRule.INSTANCE);
+  }
+
+  public void initRuleMap() {
+    this.RULE_MAP.clear();
   }
 
   public MutableRel[] getSlots() {
@@ -1195,7 +1205,7 @@ public class SubstitutionVisitor {
 
   /** Builds a shuttle that stores a list of expressions, and can map incoming
    * expressions to references to them. */
-  private static RexShuttle getRexShuttle(MutableProject target) {
+  protected static RexShuttle getRexShuttle(MutableProject target) {
     final Map<String, Integer> map = new HashMap<>();
     for (RexNode e : target.getProjects()) {
       map.put(e.toString(), map.size());

@@ -228,6 +228,14 @@ public class MaterializationTest {
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
+   * query. */
+  @Test public void testFilterQueryOnFilterView4() {
+    checkMaterialize(
+            "select * where \"deptno\" = 10",
+            "select \"name\" from \"emps\" where \"deptno\" = 30");
+  }
+
   /** Aggregation query at same level of aggregation as aggregation
    * materialization. */
   @Test public void testAggregate() {
