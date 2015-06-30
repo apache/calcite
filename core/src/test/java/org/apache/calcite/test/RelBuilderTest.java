@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
@@ -187,7 +188,8 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {
       builder.scan("EMP");
-      RexNode call = builder.call(SqlStdOperatorTable.PLUS, builder.field(1),
+      RexNode call = builder.call(SqlStdOperatorTable.PLUS,
+          builder.field(1),
           builder.field(3));
       fail("expected error, got " + call);
     } catch (IllegalArgumentException e) {
@@ -260,9 +262,8 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
-            .aggregate(
-                builder.groupKey(), builder.aggregateCall(
-                    SqlStdOperatorTable.COUNT,
+            .aggregate(builder.groupKey(),
+                builder.aggregateCall(SqlStdOperatorTable.COUNT,
                     true,
                     "C",
                     builder.field("DEPTNO")))
@@ -282,14 +283,13 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field(1),
-                    builder.call(SqlStdOperatorTable.PLUS, builder.field(4),
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field(4),
                         builder.field(3)),
                     builder.field(1)),
                 builder.aggregateCall(SqlStdOperatorTable.COUNT, false, "C"),
                 builder.aggregateCall(SqlStdOperatorTable.SUM, false, "S",
-                    builder.call(
-                        SqlStdOperatorTable.PLUS,
-                        builder.field(3),
+                    builder.call(SqlStdOperatorTable.PLUS, builder.field(3),
                         builder.literal(1))))
             .build();
     assertThat(str(root),
@@ -302,15 +302,15 @@ public class RelBuilderTest {
   @Test public void testDistinct() {
     // Equivalent SQL:
     //   SELECT DISTINCT *
-    //   FROM emp
+    //   FROM dept
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
-        builder.scan("EMP")
+        builder.scan("DEPT")
             .distinct()
             .build();
     assertThat(str(root),
-        is("LogicalAggregate(group=[{}])\n"
-                + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+        is("LogicalAggregate(group=[{0, 1, 2}])\n"
+                + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
   }
 
   @Test public void testUnion() {
@@ -412,9 +412,9 @@ public class RelBuilderTest {
             .build();
     final String expected =
         "LogicalJoin(condition=[=($7, $0)], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[scott, DEPT]])\n"
             + "  LogicalFilter(condition=[IS NULL($6)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(str(root), is(expected));
 
     // Using USING method
@@ -440,8 +440,67 @@ public class RelBuilderTest {
             .build();
     final String expected =
         "LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  @Test public void testAlias() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp AS e, dept
+    //   WHERE e.deptno = dept.deptno
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("e")
+            .scan("DEPT")
+            .join(JoinRelType.LEFT)
+            .filter(
+                builder.equals(builder.field("e", "DEPTNO"),
+                    builder.field("DEPT", "DEPTNO")))
+            .project(builder.field("e", "ENAME"),
+                builder.field("DEPT", "DNAME"))
+            .build();
+    final String expected = "LogicalProject(ENAME=[$1], DNAME=[$9])\n"
+        + "  LogicalFilter(condition=[=($7, $8)])\n"
+        + "    LogicalJoin(condition=[true], joinType=[left])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+    final RelDataTypeField field = root.getRowType().getFieldList().get(1);
+    assertThat(field.getName(), is("DNAME"));
+    assertThat(field.getType().isNullable(), is(true));
+  }
+
+  @Test public void testAlias2() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp AS e, emp as m, dept
+    //   WHERE e.deptno = dept.deptno
+    //   AND m.empno = e.mgr
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("e")
+            .scan("EMP")
+            .as("m")
+            .scan("DEPT")
+            .join(JoinRelType.INNER)
+            .join(JoinRelType.INNER)
+            .filter(
+                builder.equals(builder.field("e", "DEPTNO"),
+                    builder.field("DEPT", "DEPTNO")),
+                builder.equals(builder.field("m", "EMPNO"),
+                    builder.field("e", "MGR")))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[AND(=($7, $16), =($8, $3))])\n"
+        + "  LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(str(root), is(expected));
   }
 
