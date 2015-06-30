@@ -232,8 +232,26 @@ public class MaterializationTest {
    * query. */
   @Test public void testFilterQueryOnFilterView4() {
     checkMaterialize(
-            "select * where \"deptno\" = 10",
-            "select \"name\" from \"emps\" where \"deptno\" = 30");
+            "select * from \"emps\" where \"deptno\" > 10",
+            "select \"name\" from \"emps\" where \"deptno\" > 30");
+  }
+
+  /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
+   * query and columns selected are subset of columns in materialized view */
+  @Test public void testFilterQueryOnFilterView5() {
+    checkMaterialize(
+            "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10",
+            "select \"name\" from \"emps\" where \"deptno\" > 30");
+  }
+
+  /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
+   * query. However, columns selected are not present in columns of materialized view,
+   * hence should not use materialized view*/
+  @Test public void testFilterQueryOnFilterView6() {
+    checkNoMaterialize(
+            "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10",
+            "select \"name\", \"empid\" from \"emps\" where \"deptno\" > 30",
+            JdbcTest.HR_MODEL);
   }
 
   /** Aggregation query at same level of aggregation as aggregation
