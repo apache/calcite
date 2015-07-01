@@ -203,6 +203,10 @@ public class RexImplicationChecker {
 
       final SqlKind fkind = fUse.getKey().getKind();
 
+      if (fkind == SqlKind.EQUALS) {
+        return true;
+      }
+
       switch (sUse.getKey().getKind()) {
       case GREATER_THAN:
       case GREATER_THAN_OR_EQUAL:
@@ -218,15 +222,6 @@ public class RexImplicationChecker {
           return false;
         }
         break;
-      case EQUALS:
-        if (!(fkind == SqlKind.EQUALS)) {
-          return false;
-        }
-        break;
-      case NOT_EQUALS:
-        if (!(fkind == SqlKind.EQUALS)) {
-          return false;
-        }
       default:
         return false;
       }

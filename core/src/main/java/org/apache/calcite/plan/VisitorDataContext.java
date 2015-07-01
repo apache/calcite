@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactoryImpl.JavaType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -110,27 +109,56 @@ public class VisitorDataContext implements DataContext {
             && literal instanceof RexLiteral)  {
       Integer index = ((RexInputRef) inputRef).getIndex();
       Object value = ((RexLiteral) literal).getValue();
-      final Class javaClass = ((JavaType) (inputRef.getType())).getJavaClass();
-      if (javaClass == Integer.class
-              && value instanceof BigDecimal) {
-        final Integer intValue = new Integer(((BigDecimal) value).intValue());
-        return  Pair.of(index, intValue);
-      }
-      if (javaClass == Date.class
-              && value instanceof NlsString) {
-        value = ((RexLiteral) literal).getValue2();
-        final Date dateValue = Date.valueOf((String) value);
-        return Pair.of(index, dateValue);
-      }
+      final RelDataType type = inputRef.getType();
 
-      if (javaClass == Double.class
-              && value instanceof BigDecimal) {
-        return Pair.of(index,
-                new Double(((BigDecimal) value).doubleValue()));
+      switch (type.getSqlTypeName()) {
+      case INTEGER:
+        if (value instanceof BigDecimal) {
+          final Integer intValue = new Integer(((BigDecimal) value).intValue());
+          return Pair.of(index, intValue);
+        }
+      case DOUBLE:
+        if (value instanceof BigDecimal) {
+          return Pair.of(index,
+                  new Double(((BigDecimal) value).doubleValue()));
+        }
+      case REAL:
+        if (value instanceof BigDecimal) {
+          return Pair.of(index,
+                  new Float(((BigDecimal) value).floatValue()));
+        }
+      case BIGINT:
+        if (value instanceof BigDecimal) {
+          return Pair.of(index,
+                  new Long(((BigDecimal) value).longValue()));
+        }
+      case SMALLINT:
+        if (value instanceof BigDecimal) {
+          return Pair.of(index,
+                  new Short(((BigDecimal) value).shortValue()));
+        }
+      case TINYINT:
+        if (value instanceof BigDecimal) {
+          return Pair.of(index,
+                  new Short(((BigDecimal) value).byteValue()));
+        }
+      case DECIMAL:
+        if (value instanceof BigDecimal) {
+          return Pair.of(index, value);
+        }
+      case DATE:
+        if (value instanceof NlsString) {
+          value = ((RexLiteral) literal).getValue2();
+          final Date dateValue = Date.valueOf((String) value);
+          return Pair.of(index, dateValue);
+        }
+      default:
+        //TODO: Support few more supported cases
+        return null;
       }
-      return Pair.of(index, value);
     }
 
+    //Unsupported Arguments
     return null;
   }
 
