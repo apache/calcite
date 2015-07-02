@@ -132,7 +132,7 @@ public class RexImplicationChecker {
     return true;
   }
 
-  /** Checks if conjunction first => Conjunction second**/
+  /** Checks if Conjunction first => Conjunction second**/
   private boolean impliesConjunction(RexNode first, RexNode second) {
 
     InputUsageFinder firstUsgFinder = new InputUsageFinder();
@@ -142,7 +142,6 @@ public class RexImplicationChecker {
     RexUtil.apply(secondUsgFinder, new ArrayList<RexNode>(), second);
 
     // Check Support
-
     if (!checkSupport(firstUsgFinder, secondUsgFinder)) {
       return false;
     }
@@ -154,6 +153,11 @@ public class RexImplicationChecker {
       usgList.add(Pair.of(entry.getKey(), list.get(0).getValue()));
     }
 
+    /* Get the literals from first conjunction and execute second conjunction using them
+     * E.g., for x >30 => x > 10,
+     * we will replace x by 30 in second expression and execute it i.e., 30>10
+     * If it's true then we infer implication.
+     */
     final DataContext dataValues = VisitorDataContext.getDataContext(rowType, usgList);
 
     if (dataValues == null) {
@@ -171,6 +175,22 @@ public class RexImplicationChecker {
             && (Boolean) result[0];
   }
 
+  /**
+   * Looks at the usage of variables in first and second conjunction to decide
+   * if this kind of expression is currently supported for proving first => second.
+   * 1. Variables should be used only once in both the conjunction against
+   *    given set of operations only: >,<,<=,>=,=,!=
+   * 2. All the variables used in second condition should be used even in the first.
+   * 3. If operator used for variable in first is op1 and op2 for second, then we support
+   *    these combination for conjunction (op1, op2):
+   *    a. (</<=, </<=)
+   *    b. (>/>=, >/>=)
+   *    c. (=, >,>=,<,<=,=,!=)
+   *    d. (!=, =)
+   * @param firstUsgFinder
+   * @param secondUsgFinder
+   * @return
+   */
   private boolean checkSupport(InputUsageFinder firstUsgFinder, InputUsageFinder secondUsgFinder) {
     Map<RexInputRef, InputRefUsage<SqlOperator,
             RexNode>> firstUsgMap = firstUsgFinder.usageMap;
@@ -203,27 +223,25 @@ public class RexImplicationChecker {
 
       final SqlKind fkind = fUse.getKey().getKind();
 
-      if (fkind == SqlKind.EQUALS) {
-        return true;
-      }
-
-      switch (sUse.getKey().getKind()) {
-      case GREATER_THAN:
-      case GREATER_THAN_OR_EQUAL:
-        if (!(fkind == SqlKind.GREATER_THAN)
-                && !(fkind == SqlKind.GREATER_THAN_OR_EQUAL)) {
+      if (fkind != SqlKind.EQUALS) {
+        switch (sUse.getKey().getKind()) {
+        case GREATER_THAN:
+        case GREATER_THAN_OR_EQUAL:
+          if (!(fkind == SqlKind.GREATER_THAN)
+                    && !(fkind == SqlKind.GREATER_THAN_OR_EQUAL)) {
+            return false;
+          }
+          break;
+        case LESS_THAN:
+        case LESS_THAN_OR_EQUAL:
+          if (!(fkind == SqlKind.LESS_THAN)
+                    && !(fkind == SqlKind.LESS_THAN_OR_EQUAL)) {
+            return false;
+          }
+          break;
+        default:
           return false;
         }
-        break;
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-        if (!(fkind == SqlKind.LESS_THAN)
-                && !(fkind == SqlKind.LESS_THAN_OR_EQUAL)) {
-          return false;
-        }
-        break;
-      default:
-        return false;
       }
     }
     return true;
@@ -243,6 +261,9 @@ public class RexImplicationChecker {
 
   /**
    * Visitor which builds a Usage Map of inputs used by an expression.
+   * E.g: for x >10 AND y < 20 AND x =40, Usage Map would look like:
+   * key:x value: {(>,10),(=,40), usageCount = 2}
+   * key:y value: {(>,20),usageCount=1}
    */
   private static class InputUsageFinder extends RexVisitorImpl<Void> {
     public final Map<RexInputRef, InputRefUsage<SqlOperator,
