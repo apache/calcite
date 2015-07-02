@@ -168,9 +168,15 @@ public class RexImplicationChecker {
     final RexExecutable exec = rexImpl.getExecutable(builder,
             constExps, rowType);
 
+    Object[] result;
     exec.setDataContext(dataValues);
-    Object[] result = exec.execute();
-
+    try {
+      result = exec.execute();
+    } catch (Exception e) {
+      // TODO: CheckSupport should not allow this exception to be thrown
+      // Need to monitor it and handle all the cases raising them.
+      return false;
+    }
     return result != null && result.length == 1 && result[0] instanceof Boolean
             && (Boolean) result[0];
   }
@@ -182,10 +188,11 @@ public class RexImplicationChecker {
    *    given set of operations only: >,<,<=,>=,=,!=
    * 2. All the variables used in second condition should be used even in the first.
    * 3. If operator used for variable in first is op1 and op2 for second, then we support
-   *    these combination for conjunction (op1, op2):
-   *    a. (</<=, </<=)
-   *    b. (>/>=, >/>=)
-   *    c. (=, >,>=,<,<=,=,!=)
+   *    these combination for conjunction (op1, op2) then op1, op2 belongs to
+   *    one of the following sets:
+   *    a. (<,<=) X (<,<=) , X represents cartesian product
+   *    b. (>/>=) X (>,>=)
+   *    c. (=) X (>,>=,<,<=,=,!=)
    *    d. (!=, =)
    * @param firstUsgFinder
    * @param secondUsgFinder

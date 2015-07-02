@@ -154,7 +154,7 @@ public class VisitorDataContext implements DataContext {
         }
       default:
         //TODO: Support few more supported cases
-        return null;
+        return Pair.of(index, value);
       }
     }
 
