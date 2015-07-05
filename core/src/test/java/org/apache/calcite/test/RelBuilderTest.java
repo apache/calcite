@@ -625,6 +625,60 @@ public class RelBuilderTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
   }
+
+  /** Tests that a sort on a field followed by a limit gives the same
+   * effect as calling sortLimit.
+   *
+   * <p>In general a relational operator cannot rely on the order of its input,
+   * but it is reasonable to merge sort and limit if they were created by
+   * consecutive builder operations. And clients such as Piglet rely on it. */
+  @Test public void testSortThenLimit() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sort(builder.desc(builder.field("DEPTNO")))
+            .limit(-1, 10)
+            .build();
+    final String expected = ""
+        + "LogicalSort(sort0=[$7], dir0=[DESC], fetch=[10])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(RelOptUtil.toString(root), is(expected));
+
+    final RelNode root2 =
+        builder.scan("EMP")
+            .sortLimit(-1, 10, builder.desc(builder.field("DEPTNO")))
+            .build();
+    assertThat(RelOptUtil.toString(root2), is(expected));
+  }
+
+  /** Tests that a sort on an expression followed by a limit gives the same
+   * effect as calling sortLimit. */
+  @Test public void testSortExpThenLimit() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("DEPT")
+            .sort(
+                builder.desc(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field("DEPTNO"), builder.literal(1))))
+            .limit(3, 10)
+            .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "  LogicalSort(sort0=[$3], dir0=[DESC], offset=[3], fetch=[10])\n"
+        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[+($0, 1)])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(RelOptUtil.toString(root), is(expected));
+
+    final RelNode root2 =
+        builder.scan("DEPT")
+            .sortLimit(3, 10,
+                builder.desc(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field("DEPTNO"), builder.literal(1))))
+            .build();
+    assertThat(RelOptUtil.toString(root2), is(expected));
+  }
 }
 
 // End RelBuilderTest.java

@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Values;
@@ -865,6 +866,38 @@ public class RelBuilder {
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
     final boolean addedFields = extraNodes.size() > originalExtraNodes.size();
+    if (fieldCollations.isEmpty()) {
+      assert !addedFields;
+      RelNode top = peek();
+      if (top instanceof Sort) {
+        final Sort sort2 = (Sort) top;
+        if (sort2.offset == null && sort2.fetch == null) {
+          Stacks.pop(stack);
+          push(sort2.getInput());
+          final RelNode sort =
+              sortFactory.createSort(build(), sort2.collation,
+                  offsetNode, fetchNode);
+          push(sort);
+          return this;
+        }
+      }
+      if (top instanceof Project) {
+        final Project project = (Project) top;
+        if (project.getInput() instanceof Sort) {
+          final Sort sort2 = (Sort) project.getInput();
+          if (sort2.offset == null && sort2.fetch == null) {
+            Stacks.pop(stack);
+            push(sort2.getInput());
+            final RelNode sort =
+                sortFactory.createSort(build(), sort2.collation,
+                    offsetNode, fetchNode);
+            push(sort);
+            project(project.getProjects());
+            return this;
+          }
+        }
+      }
+    }
     if (addedFields) {
       project(extraNodes);
     }
