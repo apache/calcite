@@ -191,7 +191,8 @@ public class RelOptMaterialization {
           }
         });
     if (rel2 == rel) {
-      return rel;
+      // No rewrite happened.
+      return null;
     }
     final Program program = Programs.hep(
         ImmutableList.of(ProjectFilterTransposeRule.INSTANCE,
