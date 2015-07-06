@@ -35,6 +35,7 @@ import org.apache.calcite.util.Pair;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -151,6 +152,16 @@ public class VisitorDataContext implements DataContext {
           value = ((RexLiteral) literal).getValue2();
           final Date dateValue = Date.valueOf((String) value);
           return Pair.of(index, dateValue);
+        } else if (value instanceof Calendar) {
+          final long timeInMillis = ((Calendar) value).getTimeInMillis();
+          return Pair.of(index, new Date(timeInMillis));
+        }
+      case CHAR:
+        if (value instanceof NlsString) {
+          // TODO: Support coallation. Not supported in {@link #NlsString} compare too.
+          final NlsString nl = (NlsString) value;
+          Character c = new Character(nl.getValue().charAt(0));
+          return Pair.of(index, c);
         }
       default:
         //TODO: Support few more supported cases

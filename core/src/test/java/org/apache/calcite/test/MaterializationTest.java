@@ -328,6 +328,17 @@ public class MaterializationTest {
             JdbcTest.HR_MODEL);
   }
 
+  /** As {@link #testFilterQueryOnFilterView13()} but using alias
+   * and condition of query is stronger*/
+  @Test public void testAlias() {
+    checkMaterialize(
+            "select * from \"emps\" as em where "
+                    + "(em.\"salary\" < 1111.9 and em.\"deptno\" > 10)"
+                    + "or (em.\"empid\" > 400 and em.\"salary\" > 5000)",
+            "select \"name\" as n from \"emps\" as e where "
+                    + "(e.\"empid\" > 500 and e.\"salary\" > 6000)");
+  }
+
   /** Aggregation query at same level of aggregation as aggregation
    * materialization. */
   @Test public void testAggregate() {
@@ -706,6 +717,13 @@ public class MaterializationTest {
         + "from (select * from \"emps\" union all select * from \"emps\")\n"
         + "join \"depts\" using (\"deptno\")";
     checkNoMaterialize(q, q, JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testJoinMaterialization() {
+    String q = "select *\n"
+            + "from (select * from \"emps\" where \"empid\" < 300)\n"
+            + "join \"depts\" using (\"deptno\")";
+    checkMaterialize("select * from \"emps\" where \"empid\" < 500", q);
   }
 }
 

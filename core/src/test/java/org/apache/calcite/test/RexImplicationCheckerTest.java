@@ -30,11 +30,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.NlsString;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import plan.RexImplicationChecker;
@@ -43,6 +45,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Calendar;
+
 /**
  * Tests the RexImplication checker
  */
@@ -50,14 +57,29 @@ public class RexImplicationCheckerTest {
   //~ Instance fields --------------------------------------------------------
 
   static RexBuilder rexBuilder = null;
-  static RexNode a;
-  static RexNode b;
-  static RexNode c;
-  static RexNode trueRex;
-  static RexNode falseRex;
+  static RexNode bl;
+  static RexNode i;
+  static RexNode dec;
+  static RexNode lg;
+  static RexNode sh;
+  static RexNode by;
+  static RexNode fl;
+  static RexNode dt;
+  static RexNode ch;
+  static RexNode ts;
+  static RexNode t;
+
   static RelDataType boolRelDataType;
   static RelDataType intRelDataType;
   static RelDataType decRelDataType;
+  static RelDataType longRelDataType;
+  static RelDataType shortDataType;
+  static RelDataType byteDataType;
+  static RelDataType floatDataType;
+  static RelDataType charDataType;
+  static RelDataType dateDataType;
+  static RelDataType timeStampDataType;
+  static RelDataType timeDataType;
   static RelDataTypeFactory typeFactory;
   static RexImplicationChecker checker;
   static RelDataType rowType;
@@ -72,22 +94,61 @@ public class RexImplicationCheckerTest {
     boolRelDataType = typeFactory.createJavaType(Boolean.class);
     intRelDataType = typeFactory.createJavaType(Integer.class);
     decRelDataType = typeFactory.createJavaType(Double.class);
+    longRelDataType = typeFactory.createJavaType(Long.class);
+    shortDataType = typeFactory.createJavaType(Short.class);
+    byteDataType = typeFactory.createJavaType(Byte.class);
+    floatDataType = typeFactory.createJavaType(Float.class);
+    charDataType = typeFactory.createJavaType(Character.class);
+    dateDataType = typeFactory.createJavaType(Date.class);
+    timeStampDataType = typeFactory.createJavaType(Timestamp.class);
+    timeDataType = typeFactory.createJavaType(Time.class);
 
-    a = new RexInputRef(
+    bl = new RexInputRef(
             0,
             typeFactory.createTypeWithNullability(boolRelDataType, true));
-    b = new RexInputRef(
+    i = new RexInputRef(
             1,
             typeFactory.createTypeWithNullability(intRelDataType, true));
-    c = new RexInputRef(
+    dec = new RexInputRef(
             2,
             typeFactory.createTypeWithNullability(decRelDataType, true));
-    trueRex = rexBuilder.makeLiteral(true);
-    falseRex = rexBuilder.makeLiteral(false);
+    lg = new RexInputRef(
+            3,
+            typeFactory.createTypeWithNullability(longRelDataType, true));
+    sh = new RexInputRef(
+            4,
+            typeFactory.createTypeWithNullability(shortDataType, true));
+    by = new RexInputRef(
+            5,
+            typeFactory.createTypeWithNullability(byteDataType, true));
+    fl = new RexInputRef(
+            6,
+            typeFactory.createTypeWithNullability(floatDataType, true));
+    ch = new RexInputRef(
+            7,
+            typeFactory.createTypeWithNullability(charDataType, true));
+    dt = new RexInputRef(
+            8,
+            typeFactory.createTypeWithNullability(dateDataType, true));
+    ts = new RexInputRef(
+            9,
+            typeFactory.createTypeWithNullability(timeStampDataType, true));
+    t = new RexInputRef(
+            10,
+            typeFactory.createTypeWithNullability(timeDataType, true));
+
     rowType =  typeFactory.builder()
             .add("bool", boolRelDataType)
             .add("int", intRelDataType)
             .add("dec", decRelDataType)
+            .add("long", longRelDataType)
+            .add("short", shortDataType)
+            .add("byte", byteDataType)
+            .add("float", floatDataType)
+            .add("char", charDataType)
+            .add("date", dateDataType)
+            .add("timestamp", timeStampDataType)
+            .add("time", timeDataType)
             .build();
 
     Frameworks.withPrepare(
@@ -116,42 +177,42 @@ public class RexImplicationCheckerTest {
             checker.implies(node1, node2));
   }
 
-
+  // Simple Tests for Operators
   @Test public void testSimpleGreaterCond() {
     RexNode node1 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.GREATER_THAN,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     RexNode node2 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.GREATER_THAN,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(30)));
 
     RexNode node3 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(30)));
 
     RexNode node4 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     RexNode node5 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.EQUALS,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(30)));
 
     RexNode node6 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.NOT_EQUALS,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     checkImplies(node2, node1);
@@ -171,37 +232,37 @@ public class RexImplicationCheckerTest {
     RexNode node1 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.LESS_THAN,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     RexNode node2 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.LESS_THAN,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(30)));
 
     RexNode node3 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(30)));
 
     RexNode node4 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     RexNode node5 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.EQUALS,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     RexNode node6 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.NOT_EQUALS,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     checkImplies(node1, node2);
@@ -222,19 +283,165 @@ public class RexImplicationCheckerTest {
     RexNode node1 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.EQUALS,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(30)));
 
     RexNode node2 =
             rexBuilder.makeCall(
                     SqlStdOperatorTable.NOT_EQUALS,
-                    b,
+                    i,
                     rexBuilder.makeExactLiteral(new BigDecimal(10)));
 
     //Check Identity
     checkImplies(node1, node1);
     //TODO: Support Identity
     // checkImplies(node2, node2);
+    checkImplies(node1, node2);
+    checkNotImplies(node2, node1);
+  }
+
+  // Simple Tests for DataTypes
+  @Test public void testSimpleDec() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN,
+                    dec,
+                    rexBuilder.makeApproxLiteral(new BigDecimal(30.9)));
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN,
+                    dec,
+                    rexBuilder.makeApproxLiteral(new BigDecimal(40.33)));
+
+    checkImplies(node1, node2);
+    checkNotImplies(node2, node1);
+  }
+
+  @Test public void testSimpleBoolean() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.EQUALS,
+                    bl,
+                    rexBuilder.makeLiteral(true));
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.EQUALS,
+                    bl,
+                    rexBuilder.makeLiteral(false));
+
+    //TODO: Need to support false => true
+    //checkImplies(node2, node1);
+    checkNotImplies(node1, node2);
+  }
+
+  @Test public void testSimpleLong() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    lg,
+                    rexBuilder.makeLiteral(new Long(324324L), longRelDataType, true));
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN,
+                    lg,
+                    rexBuilder.makeLiteral(new Long(324325L), longRelDataType, true));
+
+    checkImplies(node2, node1);
+    checkNotImplies(node1, node2);
+  }
+
+  @Test public void testSimpleShort() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    sh,
+                    rexBuilder.makeLiteral(new Short((short) 10), shortDataType, true));
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    sh,
+                    rexBuilder.makeLiteral(new Short((short) 11), shortDataType, true));
+
+    checkImplies(node2, node1);
+    checkNotImplies(node1, node2);
+  }
+
+  @Test public void testSimpleChar() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    ch,
+                    rexBuilder.makeCharLiteral(new NlsString("b", null, SqlCollation.COERCIBLE)));
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    ch,
+                    rexBuilder.makeCharLiteral(new NlsString("a", null, SqlCollation.COERCIBLE)));
+
+    checkImplies(node1, node2);
+    checkNotImplies(node2, node1);
+  }
+
+  @Test public void testSimpleDate() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    dt,
+                    rexBuilder.makeDateLiteral(Calendar.getInstance()));
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.EQUALS,
+                    dt,
+                    rexBuilder.makeDateLiteral(Calendar.getInstance()));
+
+    checkImplies(node2, node1);
+    checkNotImplies(node1, node2);
+  }
+
+  @Ignore("work in progress")
+  @Test public void testSimpleTimeStamp() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    ts,
+                    rexBuilder.makeTimestampLiteral(Calendar.getInstance(),
+                            timeStampDataType.getPrecision()));
+
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    ts,
+                    rexBuilder.makeTimestampLiteral(Calendar.getInstance(),
+                            timeStampDataType.getPrecision()));
+
+    checkImplies(node1, node2);
+    checkNotImplies(node2, node1);
+  }
+
+  @Ignore("work in progress")
+  @Test public void testSimpleTime() {
+    RexNode node1 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    t,
+                    rexBuilder.makeTimeLiteral(Calendar.getInstance(),
+                            timeDataType.getPrecision()));
+
+
+    RexNode node2 =
+            rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    t,
+                    rexBuilder.makeTimestampLiteral(Calendar.getInstance(),
+                            timeDataType.getPrecision()));
+
     checkImplies(node1, node2);
     checkNotImplies(node2, node1);
   }
