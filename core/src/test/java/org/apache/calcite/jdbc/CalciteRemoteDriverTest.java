@@ -174,7 +174,7 @@ public class CalciteRemoteDriverTest {
     final ResultSet resultSet = connection.getMetaData().getCatalogs();
     final ResultSetMetaData metaData = resultSet.getMetaData();
     assertEquals(1, metaData.getColumnCount());
-    assertEquals("TABLE_CATALOG", metaData.getColumnName(1));
+    assertEquals("TABLE_CAT", metaData.getColumnName(1));
     assertTrue(resultSet.next());
     assertFalse(resultSet.next());
     resultSet.close();
@@ -241,7 +241,7 @@ public class CalciteRemoteDriverTest {
   @Test public void testRemoteCatalogs() throws Exception {
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_CATALOGS)
-        .returns("TABLE_CATALOG=null\n");
+        .returns("TABLE_CAT=null\n");
   }
 
   @Test public void testRemoteSchemas() throws Exception {
