@@ -124,10 +124,8 @@ public class SqlAsOperator extends SqlSpecialOperator {
     return validateOperands(validator, scope, call);
   }
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
-    return call.getOperandList().get(0).getMonotonicity(scope);
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    return call.getOperandMonotonicity(0);
   }
 }
 

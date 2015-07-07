@@ -180,20 +180,14 @@ public class SqlBinaryOperator extends SqlOperator {
     return type;
   }
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     if (getName().equals("/")) {
-      final SqlNode operand0 = call.operand(0);
-      final SqlNode operand1 = call.operand(1);
-      final SqlMonotonicity mono0 = operand0.getMonotonicity(scope);
-      final SqlMonotonicity mono1 = operand1.getMonotonicity(scope);
+      final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
+      final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
       if (mono1 == SqlMonotonicity.CONSTANT) {
-        if (operand1 instanceof SqlLiteral) {
-          SqlLiteral literal = (SqlLiteral) operand1;
-          switch (
-              literal.bigDecimalValue().compareTo(
-                  BigDecimal.ZERO)) {
+        final Object o = call.getOperandLiteralValue(1);
+        if (o instanceof BigDecimal) {
+          switch (((BigDecimal) o).compareTo(BigDecimal.ZERO)) {
           case -1:
 
             // mono / -ve constant --> reverse mono, unstrict
@@ -211,7 +205,7 @@ public class SqlBinaryOperator extends SqlOperator {
       }
     }
 
-    return super.getMonotonicity(call, scope);
+    return super.getMonotonicity(call);
   }
 
   @Override public boolean validRexOperands(int count, boolean fail) {

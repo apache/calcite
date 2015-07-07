@@ -19,11 +19,11 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.base.Preconditions;
 
@@ -48,11 +48,9 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     // Monotonic iff its first argument is, but not strict.
-    return scope.getMonotonicity(call.operand(0)).unstrict();
+    return call.getOperandMonotonicity(0).unstrict();
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
