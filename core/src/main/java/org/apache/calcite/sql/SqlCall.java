@@ -156,7 +156,7 @@ public abstract class SqlCall extends SqlNode {
   protected String getCallSignature(
       SqlValidator validator,
       SqlValidatorScope scope) {
-    List<String> signatureList = new ArrayList<String>();
+    List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
       final RelDataType argType = validator.deriveType(scope, operand);
       if (null == argType) {
@@ -169,7 +169,9 @@ public abstract class SqlCall extends SqlNode {
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // Delegate to operator.
-    return getOperator().getMonotonicity(this, scope);
+    final SqlCallBinding binding =
+        new SqlCallBinding(scope.getValidator(), scope, this);
+    return getOperator().getMonotonicity(binding);
   }
 
   /**

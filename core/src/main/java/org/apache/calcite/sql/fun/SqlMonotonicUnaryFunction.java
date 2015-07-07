@@ -16,15 +16,14 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 /**
  * Base class for unary operators such as FLOOR/CEIL which are monotonic for
@@ -51,10 +50,8 @@ public class SqlMonotonicUnaryFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
-    return scope.getMonotonicity(call.operand(0)).unstrict();
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    return call.getOperandMonotonicity(0).unstrict();
   }
 }
 

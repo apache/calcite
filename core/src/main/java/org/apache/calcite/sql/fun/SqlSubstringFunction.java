@@ -23,9 +23,9 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -190,25 +190,19 @@ public class SqlSubstringFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     // SUBSTRING(x FROM 0 FOR constant) has same monotonicity as x
-    final List<SqlNode> operands = call.getOperandList();
-    if (operands.size() == 3) {
-      final SqlNode op0 = operands.get(0);
-      final SqlNode op1 = operands.get(1);
-      final SqlNode op2 = operands.get(2);
-      final SqlMonotonicity mono0 = op0.getMonotonicity(scope);
+    if (call.getOperandCount() == 3) {
+      final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       if ((mono0 != SqlMonotonicity.NOT_MONOTONIC)
-          && op1.getMonotonicity(scope) == SqlMonotonicity.CONSTANT
-          && op1 instanceof SqlLiteral
-          && ((SqlLiteral) op1).bigDecimalValue().equals(BigDecimal.ZERO)
-          && op2.getMonotonicity(scope) == SqlMonotonicity.CONSTANT) {
+          && call.getOperandMonotonicity(1) == SqlMonotonicity.CONSTANT
+          && call.getOperandLiteralValue(1) instanceof BigDecimal
+          && call.getOperandLiteralValue(1).equals(BigDecimal.ZERO)
+          && call.getOperandMonotonicity(2) == SqlMonotonicity.CONSTANT) {
         return mono0.unstrict();
       }
     }
-    return super.getMonotonicity(call, scope);
+    return super.getMonotonicity(call);
   }
 }
 

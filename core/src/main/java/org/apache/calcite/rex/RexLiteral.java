@@ -593,6 +593,10 @@ public class RexLiteral extends RexNode {
     return com.google.common.base.Objects.hashCode(value, type);
   }
 
+  public static Comparable value(RexNode node) {
+    return findValue(node);
+  }
+
   public static int intValue(RexNode node) {
     final Comparable value = findValue(node);
     return ((Number) value).intValue();

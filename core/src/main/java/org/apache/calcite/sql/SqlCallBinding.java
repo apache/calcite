@@ -21,13 +21,16 @@ import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -109,43 +112,45 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return call;
   }
 
-  // implement SqlOperatorBinding
-  public String getStringLiteralOperand(int ordinal) {
-    SqlNode node = call.operand(ordinal);
-    return SqlLiteral.stringValue(node);
+  public SqlMonotonicity getOperandMonotonicity(int ordinal) {
+    return call.getOperandList().get(ordinal).getMonotonicity(scope);
   }
 
-  // implement SqlOperatorBinding
-  public int getIntLiteralOperand(int ordinal) {
-    // todo: move this to SqlTypeUtil
+  @Override public String getStringLiteralOperand(int ordinal) {
     SqlNode node = call.operand(ordinal);
-    if (node instanceof SqlLiteral) {
-      SqlLiteral sqlLiteral = (SqlLiteral) node;
-      return sqlLiteral.intValue(true);
-    } else if (node instanceof SqlCall) {
-      final SqlCall c = (SqlCall) node;
-      if (c.getKind() == SqlKind.MINUS_PREFIX) {
-        SqlNode child = c.operand(0);
-        if (child instanceof SqlLiteral) {
-          return -((SqlLiteral) child).intValue(true);
-        }
+    final Object o = SqlLiteral.value(node);
+    return o instanceof NlsString ? ((NlsString) o).getValue() : null;
+  }
+
+  @Override public int getIntLiteralOperand(int ordinal) {
+    SqlNode node = call.operand(ordinal);
+    final Object o = SqlLiteral.value(node);
+    if (o instanceof BigDecimal) {
+      BigDecimal bd = (BigDecimal) o;
+      try {
+        return bd.intValueExact();
+      } catch (ArithmeticException e) {
+        throw SqlUtil.newContextException(node.pos,
+            RESOURCE.numberLiteralOutOfRange(bd.toString()));
       }
     }
     throw Util.newInternal("should never come here");
   }
 
-  // implement SqlOperatorBinding
-  public boolean isOperandNull(int ordinal, boolean allowCast) {
+  @Override public Comparable getOperandLiteralValue(int ordinal) {
+    SqlNode node = call.operand(ordinal);
+    return SqlLiteral.value(node);
+  }
+
+  @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
     return SqlUtil.isNullLiteral(call.operand(ordinal), allowCast);
   }
 
-  // implement SqlOperatorBinding
-  public int getOperandCount() {
+  @Override public int getOperandCount() {
     return call.getOperandList().size();
   }
 
-  // implement SqlOperatorBinding
-  public RelDataType getOperandType(int ordinal) {
+  @Override public RelDataType getOperandType(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
     final RelDataType type = validator.deriveType(scope, operand);
     final SqlValidatorNamespace namespace = validator.getNamespace(operand);
@@ -155,7 +160,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return type;
   }
 
-  public RelDataType getCursorOperand(int ordinal) {
+  @Override public RelDataType getCursorOperand(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.CURSOR)) {
       return null;
@@ -165,8 +170,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return validator.deriveType(scope, query);
   }
 
-  // implement SqlOperatorBinding
-  public String getColumnListParamInfo(
+  @Override public String getColumnListParamInfo(
       int ordinal,
       String paramName,
       List<String> columnList) {

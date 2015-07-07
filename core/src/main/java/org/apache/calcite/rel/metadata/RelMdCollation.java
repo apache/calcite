@@ -35,10 +35,13 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -177,7 +180,6 @@ public class RelMdCollation {
   /** Helper method to determine a {@link Project}'s collation. */
   public static List<RelCollation> project(RelNode input,
       List<? extends RexNode> projects) {
-    // TODO: also monotonic expressions
     final SortedSet<RelCollation> collations = Sets.newTreeSet();
     final List<RelCollation> inputCollations =
         RelMetadataQuery.collations(input);
@@ -188,6 +190,15 @@ public class RelMdCollation {
     for (Ord<RexNode> project : Ord.zip(projects)) {
       if (project.e instanceof RexInputRef) {
         targets.put(((RexInputRef) project.e).getIndex(), project.i);
+      } else if (project.e instanceof RexCall) {
+        final RexCall call = (RexCall) project.e;
+        final RexCallBinding binding =
+            RexCallBinding.create(input.getCluster().getTypeFactory(), call);
+        if (false) {
+          final SqlMonotonicity monotonicity =
+              call.getOperator().getMonotonicity(binding);
+          // TODO: do something with this monotonicity
+        }
       }
     }
     final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
