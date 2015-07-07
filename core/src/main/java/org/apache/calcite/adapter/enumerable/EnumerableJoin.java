@@ -45,7 +45,7 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
   /** Creates an EnumerableJoin.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
-  EnumerableJoin(
+  protected EnumerableJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode left,
