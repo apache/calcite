@@ -760,6 +760,19 @@ from "scott".emp;
 
 !ok
 
+# [CALCITE-280] BigDecimal underflow
+# Previously threw "java.lang.ArithmeticException: Non-terminating decimal
+# expansion; no exact representable decimal result"
+select avg(comm) as a, count(comm) as c from "scott".emp where empno < 7844;
++-------------------+---+
+| A                 | C |
++-------------------+---+
+| 733.3333333333333 | 3 |
++-------------------+---+
+(1 row)
+
+!ok
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c
