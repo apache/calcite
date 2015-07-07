@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica.server;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 
@@ -27,6 +28,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import java.io.IOException;
 import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -48,9 +50,16 @@ public class AvaticaHandler extends AbstractHandler {
     response.setContentType("application/json;charset=utf-8");
     response.setStatus(HttpServletResponse.SC_OK);
     if (request.getMethod().equals("POST")) {
+      // First look for a request in the header, then look in the body.
+      // The latter allows very large requests without hitting HTTP 413.
+      String rawRequest = request.getHeader("request");
+      if (rawRequest == null) {
+        try (ServletInputStream inputStream = request.getInputStream()) {
+          rawRequest = AvaticaUtils.readFully(inputStream);
+        }
+      }
       final String jsonRequest =
-          new String(request.getHeader("request").getBytes("ISO-8859-1"),
-              "UTF-8");
+          new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
       if (LOG.isTraceEnabled()) {
         LOG.trace("request: " + jsonRequest);
       }

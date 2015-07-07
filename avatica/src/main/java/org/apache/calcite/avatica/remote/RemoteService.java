@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import java.io.ByteArrayOutputStream;
+import org.apache.calcite.avatica.AvaticaUtils;
+
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -39,22 +41,24 @@ public class RemoteService extends JsonService {
       final HttpURLConnection connection =
           (HttpURLConnection) url.openConnection();
       connection.setRequestMethod("POST");
-      connection.setRequestProperty("request", request);
+      connection.setDoInput(true);
+      connection.setDoOutput(true);
+      if (request.length() < 256) {
+        connection.setRequestProperty("request", request);
+      } else {
+        try (DataOutputStream wr
+            = new DataOutputStream(connection.getOutputStream())) {
+          wr.writeBytes(request);
+          wr.flush();
+          wr.close();
+        }
+      }
       final int responseCode = connection.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) {
         throw new RuntimeException("response code " + responseCode);
       }
       final InputStream inputStream = connection.getInputStream();
-      final byte[] bytes = new byte[4096];
-      final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      for (;;) {
-        int count = inputStream.read(bytes, 0, bytes.length);
-        if (count < 0) {
-          break;
-        }
-        baos.write(bytes, 0, count);
-      }
-      return baos.toString();
+      return AvaticaUtils.readFully(inputStream);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
