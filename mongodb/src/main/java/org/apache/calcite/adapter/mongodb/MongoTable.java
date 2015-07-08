@@ -189,28 +189,31 @@ public class MongoTable extends AbstractQueryableTable
     };
   }
 
-  /** Helper method to strip non-numerics from a string
+  /** Helper method to strip non-numerics from a string.
+   *
    * <p>Currently used to determine mongod versioning numbers
-   * from buildInfo.versionArray for use in aggregate method logic</p>
-   * @param valueString
-   * @return Integer */
+   * from buildInfo.versionArray for use in aggregate method logic. */
   private static Integer parseIntString(String valueString) {
     return Integer.parseInt(valueString.replaceAll("[^0-9]", ""));
   }
 
   /** Executes an "aggregate" operation for pre-2.6 mongo servers.
+   *
    * <p>Return document is limited to 4M or 16M in size depending on
-   * version of mongo <p>Helper method for
-   * {@link org.apache.calcite.adapter.mongodb.MongoTable#aggregate}
-   * </p>
-   * @param dbCollection
-   * @param first the first aggregate action
-   * @param rest the rest of the aggregate actions
-   * @return AggregationOutput */
+   * version of mongo.
+
+   * <p>Helper method for
+   * {@link org.apache.calcite.adapter.mongodb.MongoTable#aggregate}.
+   *
+   * @param dbCollection Collection
+   * @param first First aggregate action
+   * @param rest Rest of the aggregate actions
+   * @return Aggregation output
+   */
   private AggregationOutput aggregateOldWay(DBCollection dbCollection,
        DBObject first, List<DBObject> rest) {
-    return dbCollection.aggregate(first, rest
-          .toArray(new DBObject[rest.size()]));
+    return dbCollection.aggregate(first,
+       rest.toArray(new DBObject[rest.size()]));
   }
 
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on

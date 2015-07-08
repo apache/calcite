@@ -3379,20 +3379,18 @@ public class JdbcTest {
   }
 
   /** Tests sorting by a column that is already sorted. */
-  @Ignore("fix output for timezone")
   @Test public void testOrderByOnSortedTable2() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select \"time_id\", \"the_date\" from \"time_by_day\"\n"
             + "where \"time_id\" < 370\n"
             + "order by \"time_id\"")
-        .returns("time_id=367; the_date=1997-01-01 00:00:00.0\n"
-            + "time_id=368; the_date=1997-01-02 00:00:00.0\n"
-            + "time_id=369; the_date=1997-01-03 00:00:00.0\n")
+        .returns("time_id=367; the_date=1997-01-01 00:00:00\n"
+            + "time_id=368; the_date=1997-01-02 00:00:00\n"
+            + "time_id=369; the_date=1997-01-03 00:00:00\n")
         .explainContains(""
-            + "PLAN=EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-            + "  EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
-            + "    EnumerableTableScan(table=[[foodmart2, time_by_day]])\n\n");
+            + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
+            + "  EnumerableTableScan(table=[[foodmart2, time_by_day]])\n\n");
   }
 
   @Test public void testWithInsideWhereExists() {
