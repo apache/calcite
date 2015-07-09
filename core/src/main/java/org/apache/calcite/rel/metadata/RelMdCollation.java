@@ -54,6 +54,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -233,13 +234,20 @@ public class RelMdCollation {
       collations.add(RelCollations.of(fieldCollations));
     }
 
-    final List<RelFieldCollation> fieldCollationsForRexCalls = Lists.newArrayList();
-    for (Map.Entry<Integer, SqlMonotonicity> targetMonotonicity
+    final List<RelFieldCollation> fieldCollationsForRexCalls =
+        new ArrayList<>();
+    for (Map.Entry<Integer, SqlMonotonicity> entry
         : targetsWithMonotonicity.entrySet()) {
-      if (targetMonotonicity.getValue() != SqlMonotonicity.NOT_MONOTONIC
-          && targetMonotonicity.getValue() != SqlMonotonicity.CONSTANT) {
-        fieldCollationsForRexCalls.add(new RelFieldCollation(targetMonotonicity.getKey(),
-            monotonicityToDirection(targetMonotonicity.getValue())));
+      final SqlMonotonicity value = entry.getValue();
+      switch (value) {
+      case NOT_MONOTONIC:
+      case CONSTANT:
+        break;
+      default:
+        fieldCollationsForRexCalls.add(
+            new RelFieldCollation(entry.getKey(),
+                RelFieldCollation.Direction.of(value)));
+        break;
       }
     }
 
@@ -248,24 +256,6 @@ public class RelMdCollation {
     }
 
     return ImmutableList.copyOf(collations);
-  }
-
-  private static RelFieldCollation.Direction monotonicityToDirection(SqlMonotonicity monotonicity) {
-    switch (monotonicity) {
-    case INCREASING:
-      return RelFieldCollation.Direction.ASCENDING;
-    case DECREASING:
-      return RelFieldCollation.Direction.DESCENDING;
-    case STRICTLY_INCREASING:
-      return RelFieldCollation.Direction.STRICTLY_ASCENDING;
-    case STRICTLY_DECREASING:
-      return RelFieldCollation.Direction.STRICTLY_DESCENDING;
-    case MONOTONIC:
-      return RelFieldCollation.Direction.CLUSTERED;
-    default:
-      throw new IllegalStateException(
-          String.format("SQL monotonicity of type %s is not allowed at this stage.", monotonicity));
-    }
   }
 
   /**

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose
  * output is to be sorted.
@@ -80,6 +82,43 @@ public class RelFieldCollation {
 
     Direction(String shortString) {
       this.shortString = shortString;
+    }
+
+    /** Converts thie direction to a
+     * {@link org.apache.calcite.sql.validate.SqlMonotonicity}. */
+    public SqlMonotonicity monotonicity() {
+      switch (this) {
+      case ASCENDING:
+        return SqlMonotonicity.INCREASING;
+      case STRICTLY_ASCENDING:
+        return SqlMonotonicity.STRICTLY_INCREASING;
+      case DESCENDING:
+        return SqlMonotonicity.DECREASING;
+      case STRICTLY_DESCENDING:
+        return SqlMonotonicity.STRICTLY_DECREASING;
+      case CLUSTERED:
+        return SqlMonotonicity.MONOTONIC;
+      default:
+        throw new AssertionError("unknown: " + this);
+      }
+    }
+
+    /** Converts a {@link SqlMonotonicity} to a direction. */
+    public static Direction of(SqlMonotonicity monotonicity) {
+      switch (monotonicity) {
+      case INCREASING:
+        return ASCENDING;
+      case DECREASING:
+        return DESCENDING;
+      case STRICTLY_INCREASING:
+        return STRICTLY_ASCENDING;
+      case STRICTLY_DECREASING:
+        return STRICTLY_DESCENDING;
+      case MONOTONIC:
+        return CLUSTERED;
+      default:
+        throw new AssertionError("unknown: " + monotonicity);
+      }
     }
   }
 
