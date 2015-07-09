@@ -4689,7 +4689,8 @@ public class SqlToRelConverter {
             new RexCallBinding(
                 rexBuilder.getTypeFactory(),
                 SqlStdOperatorTable.HISTOGRAM_AGG,
-                exprs);
+                exprs,
+                ImmutableList.<RelCollation>of());
 
         RexNode over =
             rexBuilder.makeOver(

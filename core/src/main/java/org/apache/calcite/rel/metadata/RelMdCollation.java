@@ -55,7 +55,9 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 
 /**
@@ -70,13 +72,15 @@ public class RelMdCollation {
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdCollation() {}
+  private RelMdCollation() {
+  }
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Fallback method to deduce collations for any relational expression not
+  /**
+   * Fallback method to deduce collations for any relational expression not
    * handled by a more specific method.
-   *
+   * <p/>
    * <p>{@link org.apache.calcite.rel.core.Union},
    * {@link org.apache.calcite.rel.core.Intersect},
    * {@link org.apache.calcite.rel.core.Minus},
@@ -146,40 +150,52 @@ public class RelMdCollation {
 
   // Helper methods
 
-  /** Helper method to determine a
-   * {@link org.apache.calcite.rel.core.TableScan}'s collation. */
+  /**
+   * Helper method to determine a
+   * {@link org.apache.calcite.rel.core.TableScan}'s collation.
+   */
   public static List<RelCollation> table(RelOptTable table) {
     return table.getCollationList();
   }
 
-  /** Helper method to determine a
-   * {@link org.apache.calcite.rel.core.Sort}'s collation. */
+  /**
+   * Helper method to determine a
+   * {@link org.apache.calcite.rel.core.Sort}'s collation.
+   */
   public static List<RelCollation> sort(RelCollation collation) {
     return ImmutableList.of(collation);
   }
 
-  /** Helper method to determine a
-   * {@link org.apache.calcite.rel.core.Filter}'s collation. */
+  /**
+   * Helper method to determine a
+   * {@link org.apache.calcite.rel.core.Filter}'s collation.
+   */
   public static List<RelCollation> filter(RelNode input) {
     return RelMetadataQuery.collations(input);
   }
 
-  /** Helper method to determine a
-   * limit's collation. */
+  /**
+   * Helper method to determine a
+   * limit's collation.
+   */
   public static List<RelCollation> limit(RelNode input) {
     return RelMetadataQuery.collations(input);
   }
 
-  /** Helper method to determine a
-   * {@link org.apache.calcite.rel.core.Calc}'s collation. */
+  /**
+   * Helper method to determine a
+   * {@link org.apache.calcite.rel.core.Calc}'s collation.
+   */
   public static List<RelCollation> calc(RelNode input,
-      RexProgram program) {
+                                        RexProgram program) {
     return program.getCollations(RelMetadataQuery.collations(input));
   }
 
-  /** Helper method to determine a {@link Project}'s collation. */
+  /**
+   * Helper method to determine a {@link Project}'s collation.
+   */
   public static List<RelCollation> project(RelNode input,
-      List<? extends RexNode> projects) {
+                                           List<? extends RexNode> projects) {
     final SortedSet<RelCollation> collations = Sets.newTreeSet();
     final List<RelCollation> inputCollations =
         RelMetadataQuery.collations(input);
@@ -187,18 +203,16 @@ public class RelMdCollation {
       return ImmutableList.of();
     }
     final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
+    final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
+        new HashMap<Integer, SqlMonotonicity>();
     for (Ord<RexNode> project : Ord.zip(projects)) {
       if (project.e instanceof RexInputRef) {
         targets.put(((RexInputRef) project.e).getIndex(), project.i);
       } else if (project.e instanceof RexCall) {
         final RexCall call = (RexCall) project.e;
         final RexCallBinding binding =
-            RexCallBinding.create(input.getCluster().getTypeFactory(), call);
-        if (false) {
-          final SqlMonotonicity monotonicity =
-              call.getOperator().getMonotonicity(binding);
-          // TODO: do something with this monotonicity
-        }
+            RexCallBinding.create(input.getCluster().getTypeFactory(), call, inputCollations);
+        targetsWithMonotonicity.put(project.i, call.getOperator().getMonotonicity(binding));
       }
     }
     final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
@@ -218,41 +232,78 @@ public class RelMdCollation {
       assert !fieldCollations.isEmpty();
       collations.add(RelCollations.of(fieldCollations));
     }
+
+    final List<RelFieldCollation> fieldCollationsForRexCalls = Lists.newArrayList();
+    for (Map.Entry<Integer, SqlMonotonicity> targetMonotonicity
+        : targetsWithMonotonicity.entrySet()) {
+      if (targetMonotonicity.getValue() != SqlMonotonicity.NOT_MONOTONIC
+          && targetMonotonicity.getValue() != SqlMonotonicity.CONSTANT) {
+        fieldCollationsForRexCalls.add(new RelFieldCollation(targetMonotonicity.getKey(),
+            monotonicityToDirection(targetMonotonicity.getValue())));
+      }
+    }
+
+    if (!fieldCollationsForRexCalls.isEmpty()) {
+      collations.add(RelCollations.of(fieldCollationsForRexCalls));
+    }
+
     return ImmutableList.copyOf(collations);
   }
 
-  /** Helper method to determine a
+  private static RelFieldCollation.Direction monotonicityToDirection(SqlMonotonicity monotonicity) {
+    switch (monotonicity) {
+    case INCREASING:
+      return RelFieldCollation.Direction.ASCENDING;
+    case DECREASING:
+      return RelFieldCollation.Direction.DESCENDING;
+    case STRICTLY_INCREASING:
+      return RelFieldCollation.Direction.STRICTLY_ASCENDING;
+    case STRICTLY_DECREASING:
+      return RelFieldCollation.Direction.STRICTLY_DESCENDING;
+    case MONOTONIC:
+      return RelFieldCollation.Direction.CLUSTERED;
+    default:
+      throw new IllegalStateException(
+          String.format("SQL monotonicity of type %s is not allowed at this stage.", monotonicity));
+    }
+  }
+
+  /**
+   * Helper method to determine a
    * {@link org.apache.calcite.rel.core.Window}'s collation.
-   *
+   * <p/>
    * <p>A Window projects the fields of its input first, followed by the output
    * from each of its windows. Assuming (quite reasonably) that the
    * implementation does not re-order its input rows, then any collations of its
-   * input are preserved. */
+   * input are preserved.
+   */
   public static List<RelCollation> window(RelNode input,
-      ImmutableList<Window.Group> groups) {
+                                          ImmutableList<Window.Group> groups) {
     return RelMetadataQuery.collations(input);
   }
 
-  /** Helper method to determine a
+  /**
+   * Helper method to determine a
    * {@link org.apache.calcite.rel.core.Values}'s collation.
-   *
+   * <p/>
    * <p>We actually under-report the collations. A Values with 0 or 1 rows - an
    * edge case, but legitimate and very common - is ordered by every permutation
    * of every subset of the columns.
-   *
+   * <p/>
    * <p>So, our algorithm aims to:<ul>
-   *   <li>produce at most N collations (where N is the number of columns);
-   *   <li>make each collation as long as possible;
-   *   <li>do not repeat combinations already emitted -
-   *       if we've emitted {@code (a, b)} do not later emit {@code (b, a)};
-   *   <li>probe the actual values and make sure that each collation is
-   *      consistent with the data
+   * <li>produce at most N collations (where N is the number of columns);
+   * <li>make each collation as long as possible;
+   * <li>do not repeat combinations already emitted -
+   * if we've emitted {@code (a, b)} do not later emit {@code (b, a)};
+   * <li>probe the actual values and make sure that each collation is
+   * consistent with the data
    * </ul>
-   *
+   * <p/>
    * <p>So, for an empty Values with 4 columns, we would emit
-   * {@code (a, b, c, d), (b, c, d), (c, d), (d)}. */
+   * {@code (a, b, c, d), (b, c, d), (c, d), (d)}.
+   */
   public static List<RelCollation> values(RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+                                          ImmutableList<ImmutableList<RexLiteral>> tuples) {
     final List<RelCollation> list = Lists.newArrayList();
     final int n = rowType.getFieldCount();
     final List<Pair<RelFieldCollation, Ordering<List<RexLiteral>>>> pairs =
@@ -308,13 +359,16 @@ public class RelMdCollation {
     }
   }
 
-  /** Helper method to determine a {@link Join}'s collation assuming that it
+  /**
+   * Helper method to determine a {@link Join}'s collation assuming that it
    * uses a merge-join algorithm.
-   *
+   * <p/>
    * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
-   * key, the result preserves those collations too. */
+   * key, the result preserves those collations too.
+   */
   public static List<RelCollation> mergeJoin(RelNode left, RelNode right,
-      ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
+                                             ImmutableIntList leftKeys,
+                                             ImmutableIntList rightKeys) {
     final ImmutableList.Builder<RelCollation> builder = ImmutableList.builder();
 
     final ImmutableList<RelCollation> leftCollations =

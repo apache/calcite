@@ -19,6 +19,8 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -26,14 +28,17 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
  * <code>LogicalAggregate</code> is a relational operator which eliminates
  * duplicates and computes totals.
- *
+ * <p/>
  * <p>Rules:
- *
+ * <p/>
  * <ul>
  * <li>{@link org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule}
  * <li>{@link org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule}
@@ -45,14 +50,14 @@ public final class LogicalAggregate extends Aggregate {
 
   /**
    * Creates a LogicalAggregate.
-   *
+   * <p/>
    * <p>Use {@link #create} unless you know what you're doing.
    *
-   * @param cluster  Cluster that this relational expression belongs to
-   * @param child    input relational expression
-   * @param groupSet Bit set of grouping fields
+   * @param cluster   Cluster that this relational expression belongs to
+   * @param child     input relational expression
+   * @param groupSet  Bit set of grouping fields
    * @param groupSets Grouping sets, or null to use just {@code groupSet}
-   * @param aggCalls Array of aggregates to compute, not null
+   * @param aggCalls  Array of aggregates to compute, not null
    */
   public LogicalAggregate(
       RelOptCluster cluster,
@@ -84,29 +89,45 @@ public final class LogicalAggregate extends Aggregate {
     super(input);
   }
 
-  /** Creates a LogicalAggregate. */
-  public static LogicalAggregate create(RelNode input,
-      boolean indicator,
-      ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
-      List<AggregateCall> aggCalls) {
+  /**
+   * Creates a LogicalAggregate.
+   */
+  public static LogicalAggregate create(final RelNode input,
+                                        boolean indicator,
+                                        ImmutableBitSet groupSet,
+                                        List<ImmutableBitSet> groupSets,
+                                        List<AggregateCall> aggCalls) {
     final RelOptCluster cluster = input.getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE).replaceIfs(
+        RelCollationTraitDef.INSTANCE,
+        new Supplier<List<RelCollation>>() {
+          public List<RelCollation> get() {
+            List<RelCollation> collations =
+                input.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
+            if (collations != null) {
+              return collations;
+            }
+
+            return ImmutableList.of();
+          }
+        });
     return new LogicalAggregate(cluster, traitSet, input, indicator, groupSet,
         groupSets, aggCalls);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+  @Override
+  public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
+                               boolean indicator, ImmutableBitSet groupSet,
+                               List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalAggregate(getCluster(), traitSet, input, indicator,
         groupSet, groupSets, aggCalls);
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }

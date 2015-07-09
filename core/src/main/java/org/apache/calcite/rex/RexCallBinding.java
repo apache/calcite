@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
@@ -31,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
+
 /**
  * <code>RexCallBinding</code> implements {@link SqlOperatorBinding} by
  * referring to an underlying collection of {@link RexNode} operands.
@@ -40,47 +43,97 @@ public class RexCallBinding extends SqlOperatorBinding {
 
   private final List<RexNode> operands;
 
+  private final List<RelCollation> inputCollations;
+
   //~ Constructors -----------------------------------------------------------
 
   public RexCallBinding(
       RelDataTypeFactory typeFactory,
       SqlOperator sqlOperator,
-      List<? extends RexNode> operands) {
+      List<? extends RexNode> operands,
+      List<RelCollation> inputCollations) {
     super(typeFactory, sqlOperator);
     this.operands = ImmutableList.copyOf(operands);
+    this.inputCollations = ImmutableList.copyOf(inputCollations);
   }
 
-  /** Creates a binding of the appropriate type. */
+  /**
+   * Creates a binding of the appropriate type.
+   */
   public static RexCallBinding create(RelDataTypeFactory typeFactory,
-      RexCall call) {
+                                      RexCall call,
+                                      List<RelCollation> inputCollations) {
     switch (call.getKind()) {
     case CAST:
       return new RexCastCallBinding(typeFactory, call.getOperator(),
-          call.getOperands(), call.getType());
+          call.getOperands(), call.getType(), inputCollations);
     }
     return new RexCallBinding(typeFactory, call.getOperator(),
-        call.getOperands());
+        call.getOperands(), inputCollations);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public String getStringLiteralOperand(int ordinal) {
+  @Override
+  public String getStringLiteralOperand(int ordinal) {
     return RexLiteral.stringValue(operands.get(ordinal));
   }
 
-  @Override public int getIntLiteralOperand(int ordinal) {
+  @Override
+  public int getIntLiteralOperand(int ordinal) {
     return RexLiteral.intValue(operands.get(ordinal));
   }
 
-  @Override public Comparable getOperandLiteralValue(int ordinal) {
+  @Override
+  public Comparable getOperandLiteralValue(int ordinal) {
     return RexLiteral.value(operands.get(ordinal));
   }
 
-  @Override public SqlMonotonicity getOperandMonotonicity(int ordinal) {
-    throw new AssertionError(); // to be completed
+  @Override
+  public SqlMonotonicity getOperandMonotonicity(int ordinal) {
+    RexNode operand = operands.get(ordinal);
+
+    if (operand instanceof RexInputRef) {
+      for (RelCollation ic : inputCollations) {
+        if (ic.getFieldCollations().isEmpty()) {
+          continue;
+        }
+
+        for (RelFieldCollation rfc : ic.getFieldCollations()) {
+          if (rfc.getFieldIndex() == ((RexInputRef) operand).getIndex()) {
+            return directionToMonotonicity(rfc.direction);
+            // TODO: Is it possible to have more than one RelFieldCollation for a RexInputRef?
+          }
+        }
+      }
+    } else if (operand instanceof RexCall) {
+      final RexCallBinding binding =
+          RexCallBinding.create(typeFactory, (RexCall) operand, inputCollations);
+      ((RexCall) operand).getOperator().getMonotonicity(binding);
+    }
+
+    return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
+  private SqlMonotonicity directionToMonotonicity(RelFieldCollation.Direction direction) {
+    switch (direction) {
+    case ASCENDING:
+      return SqlMonotonicity.INCREASING;
+    case DESCENDING:
+      return SqlMonotonicity.DECREASING;
+    case STRICTLY_ASCENDING:
+      return SqlMonotonicity.STRICTLY_INCREASING;
+    case STRICTLY_DESCENDING:
+      return SqlMonotonicity.STRICTLY_DECREASING;
+    case CLUSTERED:
+      return SqlMonotonicity.MONOTONIC;
+    default:
+      throw new IllegalStateException(String.format("Unsupported direction %s.", direction));
+    }
+  }
+
+  @Override
+  public boolean isOperandNull(int ordinal, boolean allowCast) {
     return RexUtil.isNullLiteral(operands.get(ordinal), allowCast);
   }
 
@@ -99,19 +152,24 @@ public class RexCallBinding extends SqlOperatorBinding {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }
 
-  /** To be compatible with {@code SqlCall}, CAST needs to pretend that it
-   * has two arguments, the second of which is the target type. */
+  /**
+   * To be compatible with {@code SqlCall}, CAST needs to pretend that it
+   * has two arguments, the second of which is the target type.
+   */
   private static class RexCastCallBinding extends RexCallBinding {
     private final RelDataType type;
 
-    public RexCastCallBinding(RelDataTypeFactory typeFactory,
+    public RexCastCallBinding(
+        RelDataTypeFactory typeFactory,
         SqlOperator sqlOperator, List<? extends RexNode> operands,
-        RelDataType type) {
-      super(typeFactory, sqlOperator, operands);
+        RelDataType type,
+        List<RelCollation> inputCollations) {
+      super(typeFactory, sqlOperator, operands, inputCollations);
       this.type = type;
     }
 
-    @Override public RelDataType getOperandType(int ordinal) {
+    @Override
+    public RelDataType getOperandType(int ordinal) {
       if (ordinal == 1) {
         return type;
       }
