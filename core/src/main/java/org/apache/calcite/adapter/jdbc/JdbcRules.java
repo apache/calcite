@@ -680,7 +680,7 @@ public class JdbcRules {
           agg.getTraitSet().replace(out);
       try {
         return new JdbcAggregate(rel.getCluster(), traitSet,
-            convert(agg.getInput(), traitSet), agg.indicator, agg.getGroupSet(),
+            convert(agg.getInput(), out), agg.indicator, agg.getGroupSet(),
             agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
         LOGGER.fine(e.toString());

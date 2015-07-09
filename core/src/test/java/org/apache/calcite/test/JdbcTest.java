@@ -3332,7 +3332,7 @@ public class JdbcTest {
             + "where \"deptno\" < 0")
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=($t0, $t2)], expr#4=[null], expr#5=[CASE($t3, $t4, $t1)], expr#6=[/($t5, $t0)], expr#7=[CAST($t6):JavaType(class java.lang.Integer)], CS=[$t0], C=[$t0], S=[$t5], A=[$t7])\n"
-            + "  EnumerableAggregate(group=[{}], CS=[COUNT()], agg#1=[$SUM0($1)])\n"
+            + "  EnumerableAggregate(group=[{}], CS=[COUNT()], S=[$SUM0($1)])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; C=0; S=null; A=null\n");

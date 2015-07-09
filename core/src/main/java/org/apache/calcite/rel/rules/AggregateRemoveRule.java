@@ -63,7 +63,7 @@ public class AggregateRemoveRule extends RelOptRule {
     // Distinct is "GROUP BY c1, c2" (where c1, c2 are a set of columns on
     // which the input is unique, i.e. contain a key) and has no aggregate
     // functions. It can be removed.
-    final RelNode newInput = convert(input, aggregate.getTraitSet());
+    final RelNode newInput = convert(input, aggregate.getTraitSet().simplify());
 
     // If aggregate was projecting a subset of columns, add a project for the
     // same effect.

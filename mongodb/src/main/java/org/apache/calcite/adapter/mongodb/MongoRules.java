@@ -512,7 +512,7 @@ public class MongoRules {
         return new MongoAggregate(
             rel.getCluster(),
             traitSet,
-            convert(agg.getInput(), traitSet),
+            convert(agg.getInput(), traitSet.simplify()),
             agg.indicator,
             agg.getGroupSet(),
             agg.getGroupSets(),
