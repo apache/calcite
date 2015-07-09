@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -718,7 +719,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final int groupCount = cx.getGroupCount();
     if (returnType == null) {
       RexCallBinding binding =
-          new RexCallBinding(cx.getTypeFactory(), fun, exprs) {
+          new RexCallBinding(cx.getTypeFactory(), fun, exprs, ImmutableList.<RelCollation>of()) {
             @Override public int getGroupCount() {
               return groupCount;
             }

@@ -55,7 +55,9 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 
 /**
@@ -187,18 +189,16 @@ public class RelMdCollation {
       return ImmutableList.of();
     }
     final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
+    final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
+        new HashMap<>();
     for (Ord<RexNode> project : Ord.zip(projects)) {
       if (project.e instanceof RexInputRef) {
         targets.put(((RexInputRef) project.e).getIndex(), project.i);
       } else if (project.e instanceof RexCall) {
         final RexCall call = (RexCall) project.e;
         final RexCallBinding binding =
-            RexCallBinding.create(input.getCluster().getTypeFactory(), call);
-        if (false) {
-          final SqlMonotonicity monotonicity =
-              call.getOperator().getMonotonicity(binding);
-          // TODO: do something with this monotonicity
-        }
+            RexCallBinding.create(input.getCluster().getTypeFactory(), call, inputCollations);
+        targetsWithMonotonicity.put(project.i, call.getOperator().getMonotonicity(binding));
       }
     }
     final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
@@ -218,7 +218,40 @@ public class RelMdCollation {
       assert !fieldCollations.isEmpty();
       collations.add(RelCollations.of(fieldCollations));
     }
+
+    final List<RelFieldCollation> fieldCollationsForRexCalls = Lists.newArrayList();
+    for (Map.Entry<Integer, SqlMonotonicity> targetMonotonicity
+        : targetsWithMonotonicity.entrySet()) {
+      if (targetMonotonicity.getValue() != SqlMonotonicity.NOT_MONOTONIC
+          && targetMonotonicity.getValue() != SqlMonotonicity.CONSTANT) {
+        fieldCollationsForRexCalls.add(new RelFieldCollation(targetMonotonicity.getKey(),
+            monotonicityToDirection(targetMonotonicity.getValue())));
+      }
+    }
+
+    if (!fieldCollationsForRexCalls.isEmpty()) {
+      collations.add(RelCollations.of(fieldCollationsForRexCalls));
+    }
+
     return ImmutableList.copyOf(collations);
+  }
+
+  private static RelFieldCollation.Direction monotonicityToDirection(SqlMonotonicity monotonicity) {
+    switch (monotonicity) {
+    case INCREASING:
+      return RelFieldCollation.Direction.ASCENDING;
+    case DECREASING:
+      return RelFieldCollation.Direction.DESCENDING;
+    case STRICTLY_INCREASING:
+      return RelFieldCollation.Direction.STRICTLY_ASCENDING;
+    case STRICTLY_DECREASING:
+      return RelFieldCollation.Direction.STRICTLY_DESCENDING;
+    case MONOTONIC:
+      return RelFieldCollation.Direction.CLUSTERED;
+    default:
+      throw new IllegalStateException(
+          String.format("SQL monotonicity of type %s is not allowed at this stage.", monotonicity));
+    }
   }
 
   /** Helper method to determine a
