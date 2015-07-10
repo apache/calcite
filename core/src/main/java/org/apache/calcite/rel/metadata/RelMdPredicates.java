@@ -193,9 +193,11 @@ public class RelMdPredicates {
 
   /** Infers predicates for a {@link org.apache.calcite.rel.core.SemiJoin}. */
   public RelOptPredicateList getPredicates(SemiJoin semiJoin) {
-    // Workaround, pending [CALCITE-390] "Transitive inference (RelMdPredicate)
-    // doesn't handle semi-join"
-    return RelOptPredicateList.EMPTY;
+    final RelNode left = semiJoin.getInput(0);
+    final RelOptPredicateList leftInfo =
+        RelMetadataQuery.getPulledUpPredicates(left);
+    return RelOptPredicateList.of(leftInfo.pulledUpPredicates,
+        leftInfo.pulledUpPredicates, ImmutableList.<RexNode>of());
   }
 
   /** Infers predicates for a {@link org.apache.calcite.rel.core.Join}. */
