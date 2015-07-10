@@ -36,9 +36,9 @@ import java.util.List;
 /**
  * <code>LogicalAggregate</code> is a relational operator which eliminates
  * duplicates and computes totals.
- * <p/>
+ *
  * <p>Rules:
- * <p/>
+ *
  * <ul>
  * <li>{@link org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule}
  * <li>{@link org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule}
@@ -50,14 +50,14 @@ public final class LogicalAggregate extends Aggregate {
 
   /**
    * Creates a LogicalAggregate.
-   * <p/>
+   *
    * <p>Use {@link #create} unless you know what you're doing.
    *
-   * @param cluster   Cluster that this relational expression belongs to
-   * @param child     input relational expression
-   * @param groupSet  Bit set of grouping fields
+   * @param cluster  Cluster that this relational expression belongs to
+   * @param child    input relational expression
+   * @param groupSet Bit set of grouping fields
    * @param groupSets Grouping sets, or null to use just {@code groupSet}
-   * @param aggCalls  Array of aggregates to compute, not null
+   * @param aggCalls Array of aggregates to compute, not null
    */
   public LogicalAggregate(
       RelOptCluster cluster,
@@ -82,16 +82,12 @@ public final class LogicalAggregate extends Aggregate {
         groupSet, groupSets, aggCalls);
   }
 
-  /**
-   * Creates a LogicalAggregate by parsing serialized output.
-   */
+  /** Creates a LogicalAggregate by parsing serialized output. */
   public LogicalAggregate(RelInput input) {
     super(input);
   }
 
-  /**
-   * Creates a LogicalAggregate.
-   */
+  /** Creates a LogicalAggregate. */
   public static LogicalAggregate create(final RelNode input,
                                         boolean indicator,
                                         ImmutableBitSet groupSet,
@@ -119,15 +115,14 @@ public final class LogicalAggregate extends Aggregate {
 
   @Override
   public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
-                               boolean indicator, ImmutableBitSet groupSet,
-                               List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalAggregate(getCluster(), traitSet, input, indicator,
         groupSet, groupSets, aggCalls);
   }
 
-  @Override
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
 }

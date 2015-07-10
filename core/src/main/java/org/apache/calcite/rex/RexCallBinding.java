@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-
 /**
  * <code>RexCallBinding</code> implements {@link SqlOperatorBinding} by
  * referring to an underlying collection of {@link RexNode} operands.
@@ -57,9 +56,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     this.inputCollations = ImmutableList.copyOf(inputCollations);
   }
 
-  /**
-   * Creates a binding of the appropriate type.
-   */
+  /** Creates a binding of the appropriate type. */
   public static RexCallBinding create(RelDataTypeFactory typeFactory,
                                       RexCall call,
                                       List<RelCollation> inputCollations) {
@@ -74,23 +71,19 @@ public class RexCallBinding extends SqlOperatorBinding {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public String getStringLiteralOperand(int ordinal) {
+  @Override public String getStringLiteralOperand(int ordinal) {
     return RexLiteral.stringValue(operands.get(ordinal));
   }
 
-  @Override
-  public int getIntLiteralOperand(int ordinal) {
+  @Override public int getIntLiteralOperand(int ordinal) {
     return RexLiteral.intValue(operands.get(ordinal));
   }
 
-  @Override
-  public Comparable getOperandLiteralValue(int ordinal) {
+  @Override public Comparable getOperandLiteralValue(int ordinal) {
     return RexLiteral.value(operands.get(ordinal));
   }
 
-  @Override
-  public SqlMonotonicity getOperandMonotonicity(int ordinal) {
+  @Override public SqlMonotonicity getOperandMonotonicity(int ordinal) {
     RexNode operand = operands.get(ordinal);
 
     if (operand instanceof RexInputRef) {
@@ -101,7 +94,7 @@ public class RexCallBinding extends SqlOperatorBinding {
 
         for (RelFieldCollation rfc : ic.getFieldCollations()) {
           if (rfc.getFieldIndex() == ((RexInputRef) operand).getIndex()) {
-            return directionToMonotonicity(rfc.direction);
+            return rfc.direction.monotonicity();
             // TODO: Is it possible to have more than one RelFieldCollation for a RexInputRef?
           }
         }
@@ -115,25 +108,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  private SqlMonotonicity directionToMonotonicity(RelFieldCollation.Direction direction) {
-    switch (direction) {
-    case ASCENDING:
-      return SqlMonotonicity.INCREASING;
-    case DESCENDING:
-      return SqlMonotonicity.DECREASING;
-    case STRICTLY_ASCENDING:
-      return SqlMonotonicity.STRICTLY_INCREASING;
-    case STRICTLY_DESCENDING:
-      return SqlMonotonicity.STRICTLY_DECREASING;
-    case CLUSTERED:
-      return SqlMonotonicity.MONOTONIC;
-    default:
-      throw new IllegalStateException(String.format("Unsupported direction %s.", direction));
-    }
-  }
-
-  @Override
-  public boolean isOperandNull(int ordinal, boolean allowCast) {
+  @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
     return RexUtil.isNullLiteral(operands.get(ordinal), allowCast);
   }
 
@@ -152,10 +127,8 @@ public class RexCallBinding extends SqlOperatorBinding {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }
 
-  /**
-   * To be compatible with {@code SqlCall}, CAST needs to pretend that it
-   * has two arguments, the second of which is the target type.
-   */
+  /** To be compatible with {@code SqlCall}, CAST needs to pretend that it
+   * has two arguments, the second of which is the target type. */
   private static class RexCastCallBinding extends RexCallBinding {
     private final RelDataType type;
 
@@ -168,8 +141,7 @@ public class RexCallBinding extends SqlOperatorBinding {
       this.type = type;
     }
 
-    @Override
-    public RelDataType getOperandType(int ordinal) {
+    @Override public RelDataType getOperandType(int ordinal) {
       if (ordinal == 1) {
         return type;
       }
