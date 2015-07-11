@@ -54,20 +54,23 @@ public class RelMdUniqueKeys {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Set<ImmutableBitSet> getUniqueKeys(Filter rel, boolean ignoreNulls) {
-    return RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
-  }
-
-  public Set<ImmutableBitSet> getUniqueKeys(Sort rel, boolean ignoreNulls) {
-    return RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
-  }
-
-  public Set<ImmutableBitSet> getUniqueKeys(Correlate rel,
+  public Set<ImmutableBitSet> getUniqueKeys(Filter rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
-    return RelMetadataQuery.getUniqueKeys(rel.getLeft(), ignoreNulls);
+    return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Project rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Sort rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
+    return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
+  }
+
+  public Set<ImmutableBitSet> getUniqueKeys(Correlate rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
+    return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);
+  }
+
+  public Set<ImmutableBitSet> getUniqueKeys(Project rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
     // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
     // preserves uniqueness), it is only safe to derive uniqueness
@@ -75,11 +78,9 @@ public class RelMdUniqueKeys {
     //
     // Further more, the unique bitset coming from the child needs
     // to be mapped to match the output of the project.
-    Map<Integer, Integer> mapInToOutPos = new HashMap<>();
-
-    List<RexNode> projExprs = rel.getProjects();
-
-    Set<ImmutableBitSet> projUniqueKeySet = new HashSet<>();
+    final Map<Integer, Integer> mapInToOutPos = new HashMap<>();
+    final List<RexNode> projExprs = rel.getProjects();
+    final Set<ImmutableBitSet> projUniqueKeySet = new HashSet<>();
 
     // Build an input to output position map.
     for (int i = 0; i < projExprs.size(); i++) {
@@ -96,7 +97,7 @@ public class RelMdUniqueKeys {
     }
 
     Set<ImmutableBitSet> childUniqueKeySet =
-        RelMetadataQuery.getUniqueKeys(rel.getInput(), ignoreNulls);
+        mq.getUniqueKeys(rel.getInput(), ignoreNulls);
 
     if (childUniqueKeySet != null) {
       // Now add to the projUniqueKeySet the child keys that are fully
@@ -123,7 +124,8 @@ public class RelMdUniqueKeys {
     return projUniqueKeySet;
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Join rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(Join rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
 
@@ -136,13 +138,11 @@ public class RelMdUniqueKeys {
     // that is undesirable, use RelMetadataQuery.areColumnsUnique() as
     // an alternative way of getting unique key information.
 
-    Set<ImmutableBitSet> retSet = new HashSet<>();
-    Set<ImmutableBitSet> leftSet =
-        RelMetadataQuery.getUniqueKeys(left, ignoreNulls);
+    final Set<ImmutableBitSet> retSet = new HashSet<>();
+    final Set<ImmutableBitSet> leftSet = mq.getUniqueKeys(left, ignoreNulls);
     Set<ImmutableBitSet> rightSet = null;
 
-    Set<ImmutableBitSet> tmpRightSet =
-        RelMetadataQuery.getUniqueKeys(right, ignoreNulls);
+    final Set<ImmutableBitSet> tmpRightSet = mq.getUniqueKeys(right, ignoreNulls);
     int nFieldsOnLeft = left.getRowType().getFieldCount();
 
     if (tmpRightSet != null) {
@@ -169,12 +169,10 @@ public class RelMdUniqueKeys {
 
     // determine if either or both the LHS and RHS are unique on the
     // equijoin columns
-    Boolean leftUnique =
-        RelMetadataQuery.areColumnsUnique(left, joinInfo.leftSet(),
-            ignoreNulls);
-    Boolean rightUnique =
-        RelMetadataQuery.areColumnsUnique(right, joinInfo.rightSet(),
-            ignoreNulls);
+    final Boolean leftUnique =
+        mq.areColumnsUnique(left, joinInfo.leftSet(), ignoreNulls);
+    final Boolean rightUnique =
+        mq.areColumnsUnique(right, joinInfo.rightSet(), ignoreNulls);
 
     // if the right hand side is unique on its equijoin columns, then we can
     // add the unique keys from left if the left hand side is not null
@@ -197,19 +195,20 @@ public class RelMdUniqueKeys {
     return retSet;
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(SemiJoin rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(SemiJoin rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
     // only return the unique keys from the LHS since a semijoin only
     // returns the LHS
-    return RelMetadataQuery.getUniqueKeys(rel.getLeft(), ignoreNulls);
+    return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel,
+  public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     // group by keys form a unique key
     return ImmutableSet.of(rel.getGroupSet());
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(SetOp rel,
+  public Set<ImmutableBitSet> getUniqueKeys(SetOp rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     if (!rel.all) {
       return ImmutableSet.of(
@@ -219,7 +218,8 @@ public class RelMdUniqueKeys {
   }
 
   // Catch-all rule when none of the others apply.
-  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel, boolean ignoreNulls) {
+  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
     // no information available
     return null;
   }

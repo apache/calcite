@@ -56,6 +56,7 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -217,8 +218,9 @@ public class Bindables {
           .itemIf("projects", projects, !projects.equals(identity()));
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return super.computeSelfCost(planner).multiplyBy(0.01d);
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq).multiplyBy(0.01d);
     }
 
     public static boolean canHandle(RelOptTable table) {
@@ -267,12 +269,13 @@ public class Bindables {
     public static BindableFilter create(final RelNode input,
         RexNode condition) {
       final RelOptCluster cluster = input.getCluster();
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
       final RelTraitSet traitSet =
           cluster.traitSetOf(BindableConvention.INSTANCE)
               .replaceIfs(RelCollationTraitDef.INSTANCE,
                   new Supplier<List<RelCollation>>() {
                     public List<RelCollation> get() {
-                      return RelMdCollation.filter(input);
+                      return RelMdCollation.filter(mq, input);
                     }
                   });
       return new BindableFilter(cluster, traitSet, input, condition);
@@ -638,8 +641,9 @@ public class Bindables {
           constants, rowType, groups);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return super.computeSelfCost(planner)
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq)
           .multiplyBy(BindableConvention.COST_MULTIPLIER);
     }
 

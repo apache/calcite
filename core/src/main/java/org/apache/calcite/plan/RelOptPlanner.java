@@ -192,9 +192,17 @@ public interface RelOptPlanner {
    * Computes the cost of a RelNode. In most cases, this just dispatches to
    * {@link RelMetadataQuery#getCumulativeCost}.
    *
-   * @param rel expression of interest
+   * @param rel Relational expression of interest
+   * @param mq Metadata query
    * @return estimated cost
    */
+  RelOptCost getCost(RelNode rel, RelMetadataQuery mq);
+
+  /**
+   * @deprecated Use {@link #getCost(RelNode, RelMetadataQuery)}
+   * or, better, call {@link RelMetadataQuery#getCumulativeCost(RelNode)}.
+   */
+  @Deprecated // to be removed before 2.0
   RelOptCost getCost(RelNode rel);
 
   /**

@@ -36,6 +36,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.util.Pair;
@@ -324,6 +325,7 @@ public class VolcanoPlannerTraitTest {
       RelTrait fromTrait = rel.getTraitSet().getTrait(this);
 
       if (conversionMap.containsKey(fromTrait)) {
+        final RelMetadataQuery mq = RelMetadataQuery.instance();
         for (Pair<RelTrait, ConverterRule> traitAndRule
             : conversionMap.get(fromTrait)) {
           RelTrait trait = traitAndRule.left;
@@ -332,7 +334,7 @@ public class VolcanoPlannerTraitTest {
           if (trait == toTrait) {
             RelNode converted = rule.convert(rel);
             if ((converted != null)
-                && (!planner.getCost(converted).isInfinite()
+                && (!planner.getCost(converted, mq).isInfinite()
                 || allowInfiniteCostConverters)) {
               return converted;
             }
@@ -369,8 +371,7 @@ public class VolcanoPlannerTraitTest {
       RelTrait fromTrait = converterRule.getInTrait();
       RelTrait toTrait = converterRule.getOutTrait();
 
-      conversionMap.put(fromTrait,
-          new Pair<RelTrait, ConverterRule>(toTrait, converterRule));
+      conversionMap.put(fromTrait, Pair.of(toTrait, converterRule));
     }
   }
 
@@ -391,7 +392,8 @@ public class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
@@ -437,7 +439,8 @@ public class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
 
@@ -454,7 +457,8 @@ public class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
@@ -508,7 +512,8 @@ public class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
 
@@ -731,7 +736,8 @@ public class VolcanoPlannerTraitTest {
           label);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeZeroCost();
     }
 

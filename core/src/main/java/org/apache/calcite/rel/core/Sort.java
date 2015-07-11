@@ -129,10 +129,11 @@ public abstract class Sort extends SingleRel {
   public abstract Sort copy(RelTraitSet traitSet, RelNode newInput,
       RelCollation newCollation, RexNode offset, RexNode fetch);
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // Higher cost if rows are wider discourages pushing a project through a
     // sort.
-    double rowCount = RelMetadataQuery.getRowCount(this);
+    double rowCount = mq.getRowCount(this);
     double bytesPerRow = getRowType().getFieldCount() * 4;
     return planner.getCostFactory().makeCost(
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);

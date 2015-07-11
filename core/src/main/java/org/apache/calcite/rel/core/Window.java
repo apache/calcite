@@ -170,14 +170,15 @@ public abstract class Window extends SingleRel {
     return constants;
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // Cost is proportional to the number of rows and the number of
     // components (groups and aggregate functions). There is
     // no I/O cost.
     //
     // TODO #1. Add memory cost.
     // TODO #2. MIN and MAX have higher CPU cost than SUM and COUNT.
-    final double rowsIn = RelMetadataQuery.getRowCount(getInput());
+    final double rowsIn = mq.getRowCount(getInput());
     int count = groups.size();
     for (Group group : groups) {
       count += group.aggCalls.size();

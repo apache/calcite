@@ -37,6 +37,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -86,18 +87,19 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
   public static EnumerableCalc create(final RelNode input,
       final RexProgram program) {
     final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(EnumerableConvention.INSTANCE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
             new Supplier<List<RelCollation>>() {
               public List<RelCollation> get() {
-                return RelMdCollation.calc(input, program);
+                return RelMdCollation.calc(mq, input, program);
               }
             })
         .replaceIf(RelDistributionTraitDef.INSTANCE,
             new Supplier<RelDistribution>() {
               public RelDistribution get() {
-                return RelMdDistribution.calc(input, program);
+                return RelMdDistribution.calc(mq, input, program);
               }
             });
     return new EnumerableCalc(cluster, traitSet, input, program);
@@ -207,7 +209,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
         Expressions.new_(
             enumeratorType,
             NO_EXPRS,
-            Expressions.<MemberDeclaration>list(
+            Expressions.list(
                 Expressions.fieldDecl(
                     Modifier.PUBLIC
                     | Modifier.FINAL,

@@ -125,8 +125,9 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double rowCount = RelMetadataQuery.getRowCount(this);
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double rowCount = mq.getRowCount(this);
 
     // Joins can be flipped, and for many algorithms, both versions are viable
     // and have the same cost. To make the results stable between versions of
@@ -143,8 +144,8 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
 
     // Cheaper if the smaller number of rows is coming from the LHS.
     // Model this by adding L log L to the cost.
-    final double rightRowCount = right.getRows();
-    final double leftRowCount = left.getRows();
+    final double rightRowCount = right.estimateRowCount(mq);
+    final double leftRowCount = left.estimateRowCount(mq);
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     } else {

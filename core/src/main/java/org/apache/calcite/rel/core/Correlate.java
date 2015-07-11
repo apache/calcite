@@ -185,19 +185,20 @@ public abstract class Correlate extends BiRel {
     return ImmutableSet.of(correlationId);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double rowCount = RelMetadataQuery.getRowCount(this);
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double rowCount = mq.getRowCount(this);
 
-    final double rightRowCount = right.getRows();
-    final double leftRowCount = left.getRows();
+    final double rightRowCount = right.estimateRowCount(mq);
+    final double leftRowCount = left.estimateRowCount(mq);
     if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
-    Double restartCount = RelMetadataQuery.getRowCount(getLeft());
+    Double restartCount = mq.getRowCount(getLeft());
     // RelMetadataQuery.getCumulativeCost(getRight()); does not work for
     // RelSubset, so we ask planner to cost-estimate right relation
-    RelOptCost rightCost = planner.getCost(getRight());
+    RelOptCost rightCost = planner.getCost(getRight(), mq);
     RelOptCost rescanCost =
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 

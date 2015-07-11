@@ -275,8 +275,8 @@ public class PlannerTest {
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode rel = planner.rel(validate).project();
-    final RelOptPredicateList predicates =
-        RelMetadataQuery.getPulledUpPredicates(rel);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
     final String buf = predicates.pulledUpPredicates.toString();
     assertThat(buf, equalTo(expectedPredicates));
   }
@@ -562,7 +562,7 @@ public class PlannerTest {
         Programs.of(ruleSet2));
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -1071,7 +1071,8 @@ public class PlannerTest {
   @Test public void testMergeProjectForceMode() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            new ProjectMergeRule(true, RelFactories.DEFAULT_PROJECT_FACTORY));
+            new ProjectMergeRule(true,
+                RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
   }

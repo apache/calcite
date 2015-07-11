@@ -950,6 +950,16 @@ public class UtilTest {
     assertEquals(ab, ab0);
     assertEquals(ab.hashCode(), ab0.hashCode());
 
+    final List<String> abc = FlatLists.of("A", "B", "C");
+    final List<String> abc0 = Arrays.asList("A", "B", "C");
+    assertEquals(abc, abc0);
+    assertEquals(abc.hashCode(), abc0.hashCode());
+
+    final List<Object> abc1 = FlatLists.of((Object) "A", "B", "C");
+    assertEquals(abc1, abc0);
+    assertEquals(abc, abc0);
+    assertEquals(abc1.hashCode(), abc0.hashCode());
+
     final List<String> an = FlatLists.of("A", null);
     final List<String> an0 = Arrays.asList("A", null);
     assertEquals(an, an0);

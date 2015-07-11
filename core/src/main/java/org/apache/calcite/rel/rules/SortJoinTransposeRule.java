@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 
 /**
@@ -99,11 +100,12 @@ public class SortJoinTransposeRule extends RelOptRule {
     // We create a new sort operator on the corresponding input
     final RelNode newLeftInput;
     final RelNode newRightInput;
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     if (join.getJoinType() == JoinRelType.LEFT) {
       // If the input is already sorted and we are not reducing the number of tuples,
       // we bail out
-      if (RelMdUtil.checkInputForCollationAndLimit(join.getLeft(), sort.getCollation(),
-          sort.offset, sort.fetch)) {
+      if (RelMdUtil.checkInputForCollationAndLimit(mq, join.getLeft(),
+          sort.getCollation(), sort.offset, sort.fetch)) {
         return;
       }
       newLeftInput = sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
@@ -116,8 +118,8 @@ public class SortJoinTransposeRule extends RelOptRule {
                   -join.getLeft().getRowType().getFieldCount()));
       // If the input is already sorted and we are not reducing the number of tuples,
       // we bail out
-      if (RelMdUtil.checkInputForCollationAndLimit(join.getRight(), rightCollation,
-          sort.offset, sort.fetch)) {
+      if (RelMdUtil.checkInputForCollationAndLimit(mq, join.getRight(),
+          rightCollation, sort.offset, sort.fetch)) {
         return;
       }
       newLeftInput = join.getLeft();

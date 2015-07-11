@@ -19,11 +19,12 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
@@ -37,17 +38,11 @@ import java.util.Map;
 public class CachingRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------
 
-  private final Map<List, CacheEntry> cache;
+  private final Map<List, CacheEntry> cache = new HashMap<>();
 
   private final RelMetadataProvider underlyingProvider;
 
   private final RelOptPlanner planner;
-
-  private static final Object NULL_SENTINEL = new Object() {
-    @Override public String toString() {
-      return "{null}";
-    }
-  };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,15 +51,14 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       RelOptPlanner planner) {
     this.underlyingProvider = underlyingProvider;
     this.planner = planner;
-
-    cache = new HashMap<List, CacheEntry>();
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public Function<RelNode, Metadata> apply(Class<? extends RelNode> relClass,
-      final Class<? extends Metadata> metadataClass) {
-    final Function<RelNode, Metadata> function =
+  public <M extends Metadata> UnboundMetadata<M>
+  apply(Class<? extends RelNode> relClass,
+      final Class<? extends M> metadataClass) {
+    final UnboundMetadata<M> function =
         underlyingProvider.apply(relClass, metadataClass);
     if (function == null) {
       return null;
@@ -72,11 +66,13 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
     // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
     // query results can stay fresh until the next Ice Age.
-    return new Function<RelNode, Metadata>() {
-      public Metadata apply(RelNode input) {
-        final Metadata metadata = function.apply(input);
-        return (Metadata) Proxy.newProxyInstance(metadataClass.getClassLoader(),
-            new Class[]{metadataClass}, new CachingInvocationHandler(metadata));
+    return new UnboundMetadata<M>() {
+      public M bind(RelNode rel, RelMetadataQuery mq) {
+        final Metadata metadata = function.bind(rel, mq);
+        return metadataClass.cast(
+            Proxy.newProxyInstance(metadataClass.getClassLoader(),
+                new Class[]{metadataClass},
+                new CachingInvocationHandler(metadata)));
       }
     };
   }
@@ -113,7 +109,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       if (args != null) {
         for (Object arg : args) {
           // Replace null values because ImmutableList does not allow them.
-          builder.add(arg == null ? NULL_SENTINEL : arg);
+          builder.add(NullSentinel.mask(arg));
         }
       }
       List<Object> key = builder.build();
@@ -129,14 +125,19 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       }
 
       // Cache miss or stale.
-      Object result = method.invoke(metadata, args);
-      if (result != null) {
-        entry = new CacheEntry();
-        entry.timestamp = timestamp;
-        entry.result = result;
-        cache.put(key, entry);
+      try {
+        Object result = method.invoke(metadata, args);
+        if (result != null) {
+          entry = new CacheEntry();
+          entry.timestamp = timestamp;
+          entry.result = result;
+          cache.put(key, entry);
+        }
+        return result;
+      } catch (InvocationTargetException e) {
+        Throwables.propagateIfPossible(e.getCause());
+        throw e;
       }
-      return result;
     }
   }
 }

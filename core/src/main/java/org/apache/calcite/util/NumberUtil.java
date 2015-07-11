@@ -155,6 +155,17 @@ public class NumberUtil {
 
     return a * b;
   }
+
+  /** Like {@link Math#min} but null safe. */
+  public static Double min(Double a, Double b) {
+    if (a == null) {
+      return b;
+    } else if (b == null) {
+      return a;
+    } else {
+      return Math.min(a, b);
+    }
+  }
 }
 
 // End NumberUtil.java

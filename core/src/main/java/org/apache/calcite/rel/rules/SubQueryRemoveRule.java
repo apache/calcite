@@ -148,7 +148,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     switch (e.getKind()) {
     case SCALAR_QUERY:
       builder.push(e.rel);
-      final Boolean unique = RelMetadataQuery.areColumnsUnique(builder.peek(),
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final Boolean unique = mq.areColumnsUnique(builder.peek(),
           ImmutableBitSet.of());
       if (unique == null || !unique) {
         builder.aggregate(builder.groupKey(),

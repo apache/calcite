@@ -26,7 +26,7 @@ import org.apache.calcite.rel.RelNode;
  * kinds of metadata for particular sub-classes of {@link RelNode}.
  *
  * <p>User code (typically in a planner rule or an implementation of
- * {@link RelNode#computeSelfCost(org.apache.calcite.plan.RelOptPlanner)})
+ * {@link RelNode#computeSelfCost(org.apache.calcite.plan.RelOptPlanner, RelMetadataQuery)})
  * acquires a {@code Metadata} instance by calling {@link RelNode#metadata}.
  *
  * <p>A {@code Metadata} instance already knows which particular {@code RelNode}

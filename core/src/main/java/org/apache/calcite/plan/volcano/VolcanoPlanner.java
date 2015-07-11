@@ -950,8 +950,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     RelVisitor visitor =
         new RelVisitor() {
           int depth = 0;
-
-          final HashSet<RelSubset> visitedSubsets = new HashSet<>();
+          final Set<RelSubset> visitedSubsets = new HashSet<>();
 
           public void visit(
               RelNode p,
@@ -991,7 +990,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@link Convention#NONE} and boosts their importance by 25%.
    */
   private void injectImportanceBoost() {
-    final HashSet<RelSubset> requireBoost = new HashSet<>();
+    final Set<RelSubset> requireBoost = new HashSet<>();
 
   SUBSET_LOOP:
     for (RelSubset subset : ruleQueue.subsetImportances.keySet()) {
@@ -1060,6 +1059,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Checks internal consistency.
    */
   protected void validate() {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         throw new AssertionError(
@@ -1073,7 +1073,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               + "] is in wrong set [" + set + "]");
         }
         for (RelNode rel : subset.getRels()) {
-          RelOptCost relCost = getCost(rel);
+          RelOptCost relCost = getCost(rel, mq);
           if (relCost.isLt(subset.bestCost)) {
             throw new AssertionError(
                 "rel [" + rel.getDescription()
@@ -1118,7 +1118,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  public RelOptCost getCost(RelNode rel) {
+  public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     assert rel != null : "pre-condition: rel != null";
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
@@ -1127,13 +1127,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         == Convention.NONE) {
       return costFactory.makeInfiniteCost();
     }
-    RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
+    RelOptCost cost = mq.getNonCumulativeCost(rel);
     if (!zeroCost.isLt(cost)) {
       // cost must be positive, so nudge it
       cost = costFactory.makeTinyCost();
     }
     for (RelNode input : rel.getInputs()) {
-      cost = cost.plus(getCost(input));
+      cost = cost.plus(getCost(input, mq));
     }
     return cost;
   }
@@ -1341,6 +1341,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @see #normalizePlan(String)
    */
   public void dump(PrintWriter pw) {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     pw.println("Root: " + root.getDescription());
     pw.println("Original rel:");
     pw.println(originalRootString);
@@ -1395,8 +1396,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           if (importance != null) {
             pw.print(", importance=" + importance);
           }
-          pw.print(", rowcount=" + RelMetadataQuery.getRowCount(rel));
-          pw.println(", cumulative cost=" + getCost(rel));
+          pw.print(", rowcount=" + mq.getRowCount(rel));
+          pw.println(", cumulative cost=" + getCost(rel, mq));
         }
       }
     }
@@ -1657,6 +1658,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // implements the interface required by its calling convention.
     final RelTraitSet traits = rel.getTraitSet();
     final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
+    assert convention != null;
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
       throw Util.newInternal(
@@ -1842,7 +1844,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // 100. We think this happens because the back-links to parents are
     // not established. So, give the subset another change to figure out
     // its cost.
-    subset.propagateCostImprovements(this, rel, new HashSet<RelSubset>());
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    subset.propagateCostImprovements(this, mq, rel, new HashSet<RelSubset>());
 
     return subset;
   }

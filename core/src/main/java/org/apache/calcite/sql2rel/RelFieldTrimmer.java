@@ -70,10 +70,8 @@ import com.google.common.collect.Iterables;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -107,7 +105,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   private final ReflectUtil.MethodDispatcher<TrimResult> trimFieldsDispatcher;
   private final RelBuilder relBuilder;
-  private Map<RelNode, Mapping> map = new HashMap<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -189,8 +186,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final ImmutableBitSet.Builder fieldsUsedBuilder = fieldsUsed.rebuild();
 
     // Fields that define the collation cannot be discarded.
-    final ImmutableList<RelCollation> collations =
-        RelMetadataQuery.collations(input);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final ImmutableList<RelCollation> collations = mq.collations(input);
     for (RelCollation collation : collations) {
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         fieldsUsedBuilder.set(fieldCollation.getFieldIndex());
@@ -293,9 +290,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   private TrimResult result(RelNode r, final Mapping mapping) {
-    map.put(r, mapping);
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
-    final RelNode r0 = r;
     for (final CorrelationId correlation : r.getVariablesSet()) {
       r = r.accept(
           new CorrelationReferenceFinder() {
@@ -362,7 +357,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelDataType rowType = project.getRowType();
     final int fieldCount = rowType.getFieldCount();
     final RelNode input = project.getInput();
-    final RelDataType inputRowType = input.getRowType();
 
     // Which fields are required from the input?
     final Set<RelDataTypeField> inputExtraFields =

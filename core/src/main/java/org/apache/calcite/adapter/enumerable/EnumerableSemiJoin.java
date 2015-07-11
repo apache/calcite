@@ -83,12 +83,13 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double rowCount = RelMetadataQuery.getRowCount(this);
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double rowCount = mq.getRowCount(this);
 
     // Right-hand input is the "build", and hopefully small, input.
-    final double rightRowCount = right.getRows();
-    final double leftRowCount = left.getRows();
+    final double rightRowCount = right.estimateRowCount(mq);
+    final double leftRowCount = left.estimateRowCount(mq);
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     } else {

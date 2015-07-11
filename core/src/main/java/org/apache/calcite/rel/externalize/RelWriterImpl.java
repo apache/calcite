@@ -40,8 +40,8 @@ public class RelWriterImpl implements RelWriter {
   private final SqlExplainLevel detailLevel;
   private final boolean withIdPrefix;
   protected final Spacer spacer = new Spacer();
-  private final List<Pair<String, Object>> values =
-      new ArrayList<Pair<String, Object>>();
+  private final List<Pair<String, Object>> values = new ArrayList<>();
+  protected final RelMetadataQuery mq = RelMetadataQuery.instance();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -59,14 +59,11 @@ public class RelWriterImpl implements RelWriter {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void explain_(
-      RelNode rel,
+  protected void explain_(RelNode rel,
       List<Pair<String, Object>> values) {
     List<RelNode> inputs = rel.getInputs();
 
-    if (!RelMetadataQuery.isVisibleInExplain(
-        rel,
-        detailLevel)) {
+    if (!mq.isVisibleInExplain(rel, detailLevel)) {
       // render children in place of this, at same level
       explainInputs(inputs);
       return;
@@ -101,9 +98,9 @@ public class RelWriterImpl implements RelWriter {
     switch (detailLevel) {
     case ALL_ATTRIBUTES:
       s.append(": rowcount = ")
-          .append(RelMetadataQuery.getRowCount(rel))
+          .append(mq.getRowCount(rel))
           .append(", cumulative cost = ")
-          .append(RelMetadataQuery.getCumulativeCost(rel));
+          .append(mq.getCumulativeCost(rel));
     }
     switch (detailLevel) {
     case NON_COST_ATTRIBUTES:

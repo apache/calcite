@@ -72,8 +72,8 @@ public class AggregateFilterTransposeRule extends RelOptRule {
     final ImmutableBitSet newGroupSet =
         aggregate.getGroupSet().union(filterColumns);
     final RelNode input = filter.getInput();
-    final Boolean unique =
-        RelMetadataQuery.areColumnsUnique(input, newGroupSet);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final Boolean unique = mq.areColumnsUnique(input, newGroupSet);
     if (unique != null && unique) {
       // The input is already unique on the grouping columns, so there's little
       // advantage of aggregating again. More important, without this check,

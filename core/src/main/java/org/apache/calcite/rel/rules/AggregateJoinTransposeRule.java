@@ -38,7 +38,9 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -153,8 +155,9 @@ public class AggregateJoinTransposeRule extends RelOptRule {
 
     // Do the columns used by the join appear in the output of the aggregate?
     final ImmutableBitSet aggregateColumns = aggregate.getGroupSet();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final ImmutableBitSet keyColumns = keyColumns(aggregateColumns,
-        RelMetadataQuery.getPulledUpPredicates(join).pulledUpPredicates);
+        mq.getPulledUpPredicates(join).pulledUpPredicates);
     final ImmutableBitSet joinColumns =
         RelOptUtil.InputFinder.bits(join.getCondition());
     final boolean allColumnsInAggregate =
@@ -202,17 +205,18 @@ public class AggregateJoinTransposeRule extends RelOptRule {
         // any functions experiencing a cartesian product effect.
         //
         // But finding out whether the input is already unique requires a call
-        // to areColumnsUnique that currently (until [CALCITE-794] "Detect
-        // cycles when computing statistics" is fixed) places a heavy load on
+        // to areColumnsUnique that currently (until [CALCITE-1048] "Make
+        // metadata more robust" is fixed) places a heavy load on
         // the metadata system.
         //
         // So we choose to imagine the the input is already unique, which is
         // untrue but harmless.
         //
+        Util.discard(Bug.CALCITE_1048_FIXED);
         unique = true;
       } else {
         final Boolean unique0 =
-            RelMetadataQuery.areColumnsUnique(joinInput, belowAggregateKey);
+            mq.areColumnsUnique(joinInput, belowAggregateKey);
         unique = unique0 != null && unique0;
       }
       if (unique) {

@@ -110,8 +110,9 @@ public class TraitPropagationTest {
           RelOptUtil.dumpPlan("LOGICAL PLAN", planned, false,
               SqlExplainLevel.ALL_ATTRIBUTES));
     }
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     assertEquals("Sortedness was not propagated", 3,
-        RelMetadataQuery.getCumulativeCost(planned).getRows(), 0);
+        mq.getCumulativeCost(planned).getRows(), 0);
   }
 
   /**
@@ -306,7 +307,8 @@ public class TraitPropagationTest {
           groupSets, aggCalls);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(1, 1, 1);
     }
   }
@@ -321,13 +323,14 @@ public class TraitPropagationTest {
     public static PhysProj create(final RelNode input,
         final List<RexNode> projects, RelDataType rowType) {
       final RelOptCluster cluster = input.getCluster();
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
       final RelTraitSet traitSet =
           cluster.traitSet().replace(PHYSICAL)
               .replaceIfs(
                   RelCollationTraitDef.INSTANCE,
                   new Supplier<List<RelCollation>>() {
                     public List<RelCollation> get() {
-                      return RelMdCollation.project(input, projects);
+                      return RelMdCollation.project(mq, input, projects);
                     }
                   });
       return new PhysProj(cluster, traitSet, input, projects, rowType);
@@ -338,7 +341,8 @@ public class TraitPropagationTest {
       return new PhysProj(getCluster(), traitSet, input, exps, rowType);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(1, 1, 1);
     }
   }
@@ -359,7 +363,8 @@ public class TraitPropagationTest {
           offset, fetch);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(1, 1, 1);
     }
   }
@@ -375,7 +380,8 @@ public class TraitPropagationTest {
           .add("i", integerType).build();
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(1, 1, 1);
     }
   }

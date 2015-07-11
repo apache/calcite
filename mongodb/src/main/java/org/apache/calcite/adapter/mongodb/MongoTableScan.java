@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
@@ -66,11 +67,12 @@ public class MongoTableScan extends TableScan implements MongoRel {
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // scans with a small project list are cheaper
     final float f = projectRowType == null ? 1f
         : (float) projectRowType.getFieldCount() / 100f;
-    return super.computeSelfCost(planner).multiplyBy(.1 * f);
+    return super.computeSelfCost(planner, mq).multiplyBy(.1 * f);
   }
 
   @Override public void register(RelOptPlanner planner) {

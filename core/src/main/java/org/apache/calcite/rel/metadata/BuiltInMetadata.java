@@ -122,7 +122,7 @@ public abstract class BuiltInMetadata {
     /**
      * Estimates the number of rows which will be returned by a relational
      * expression. The default implementation for this query asks the rel itself
-     * via {@link RelNode#getRows}, but metadata providers can override this
+     * via {@link RelNode#estimateRowCount}, but metadata providers can override this
      * with their own cost models.
      *
      * @return estimated row count, or null if no reliable estimate can be
@@ -131,14 +131,18 @@ public abstract class BuiltInMetadata {
     Double getRowCount();
   }
 
-  /** Metadata about the max number of rows returned by a relational expression. */
+  /** Metadata about the maximum number of rows returned by a relational
+   * expression. */
   public interface MaxRowCount extends Metadata {
     /**
      * Estimates the max number of rows which will be returned by a relational
-     * expression. The default implementation for this query returns Double.POSITIVE_INFINITY,
+     * expression.
+     *
+     * <p>The default implementation for this query returns
+     * {@link Double#POSITIVE_INFINITY},
      * but metadata providers can override this with their own cost models.
      *
-     * @return estimated max row count
+     * @return upper bound on the number of rows returned
      */
     Double getMaxRowCount();
   }
@@ -338,7 +342,7 @@ public abstract class BuiltInMetadata {
      * physical operator implementing this relational expression, and all other
      * operators within the same phase, across all splits.
      *
-     * @see org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism#splitCount()
+     * @see Parallelism#splitCount()
      */
     Double cumulativeMemoryWithinPhase();
 

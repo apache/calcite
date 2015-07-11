@@ -29,6 +29,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -162,11 +163,13 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public boolean isDistinct() {
-    return Boolean.TRUE.equals(RelMetadataQuery.areRowsUnique(this));
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    return Boolean.TRUE.equals(mq.areRowsUnique(this));
   }
 
   public boolean isKey(ImmutableBitSet columns) {
-    return Boolean.TRUE.equals(RelMetadataQuery.areColumnsUnique(this, columns));
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    return Boolean.TRUE.equals(mq.areColumnsUnique(this, columns));
   }
 
   public int getId() {
@@ -235,7 +238,11 @@ public abstract class AbstractRelNode implements RelNode {
     return Collections.emptyList();
   }
 
-  public double getRows() {
+  public final double getRows() {
+    return estimateRowCount(RelMetadataQuery.instance());
+  }
+
+  public double estimateRowCount(RelMetadataQuery mq) {
     return 1.0;
   }
 
@@ -271,15 +278,22 @@ public abstract class AbstractRelNode implements RelNode {
     return this;
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  public final RelOptCost computeSelfCost(RelOptPlanner planner) {
+    return computeSelfCost(planner, RelMetadataQuery.instance());
+  }
+
+  public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // by default, assume cost is proportional to number of rows
-    double rowCount = RelMetadataQuery.getRowCount(this);
+    double rowCount = mq.getRowCount(this);
     double bytesPerRow = 1;
     return planner.getCostFactory().makeCost(rowCount, rowCount, 0);
   }
 
-  public final <M extends Metadata> M metadata(Class<M> metadataClass) {
-    final M metadata = cluster.getMetadataFactory().query(this, metadataClass);
+  public final <M extends Metadata> M metadata(Class<M> metadataClass,
+      RelMetadataQuery mq) {
+    final MetadataFactory factory = cluster.getMetadataFactory();
+    final M metadata = factory.query(this, mq, metadataClass);
     assert metadata != null
         : "no provider found (rel=" + this + ", m=" + metadataClass
         + "); a backstop provider is recommended";

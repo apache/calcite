@@ -109,8 +109,9 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     }
 
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final RelOptPredicateList predicates =
-        RelMetadataQuery.getPulledUpPredicates(aggregate.getInput());
+        mq.getPulledUpPredicates(aggregate.getInput());
     if (predicates == null) {
       return;
     }

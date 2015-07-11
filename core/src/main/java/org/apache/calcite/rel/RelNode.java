@@ -170,9 +170,18 @@ public interface RelNode extends RelOptNode, Cloneable {
    * {@link RelMetadataQuery#getRowCount}, which gives plugins a chance to
    * override the rel's default ideas about row count.
    *
+   * @param mq Metadata query
    * @return Estimate of the number of rows this relational expression will
    *   return
    */
+  double estimateRowCount(RelMetadataQuery mq);
+
+  /**
+   * @deprecated Call {@link RelMetadataQuery#getRowCount(RelNode)};
+   * if you wish to override the default row count formula, override the
+   * {@link #estimateRowCount(RelMetadataQuery)} method.
+   */
+  @Deprecated // to be removed before 2.0
   double getRows();
 
   /**
@@ -246,20 +255,31 @@ public interface RelNode extends RelOptNode, Cloneable {
    * chance to override the rel's default ideas about cost.
    *
    * @param planner Planner for cost calculation
+   * @param mq Metadata query
    * @return Cost of this plan (not including children)
    */
+  RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq);
+
+  /**
+   * @deprecated Call {@link RelMetadataQuery#getNonCumulativeCost(RelNode)};
+   * if you wish to override the default cost formula, override the
+   * {@link #computeSelfCost(RelOptPlanner, RelMetadataQuery)} method.
+   */
+  @Deprecated // to be removed before 2.0
   RelOptCost computeSelfCost(RelOptPlanner planner);
 
   /**
    * Returns a metadata interface.
    *
-   * @param metadataClass Metadata interface
    * @param <M> Type of metadata being requested
+   * @param metadataClass Metadata interface
+   * @param mq Metadata query
+   *
    * @return Metadata object that supplies the desired metadata (never null,
    *     although if the information is not present the metadata object may
    *     return null from all methods)
    */
-  <M extends Metadata> M metadata(Class<M> metadataClass);
+  <M extends Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**
    * Describes the inputs and attributes of this relational expression.

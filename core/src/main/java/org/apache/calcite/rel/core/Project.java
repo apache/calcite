@@ -210,8 +210,9 @@ public abstract class Project extends SingleRel {
     return litmus.succeed();
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double dRows = RelMetadataQuery.getRowCount(getInput());
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double dRows = mq.getRowCount(getInput());
     double dCpu = dRows * exps.size();
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);

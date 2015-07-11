@@ -34,6 +34,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -495,7 +496,8 @@ public class VolcanoPlannerTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
@@ -523,7 +525,8 @@ public class VolcanoPlannerTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
@@ -582,7 +585,8 @@ public class VolcanoPlannerTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
 
@@ -605,7 +609,8 @@ public class VolcanoPlannerTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
 

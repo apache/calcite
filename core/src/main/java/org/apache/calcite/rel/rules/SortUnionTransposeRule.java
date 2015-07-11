@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
@@ -93,9 +94,10 @@ public class SortUnionTransposeRule extends RelOptRule {
     // Thus we use 'ret' as a flag to identify if we have finished pushing the
     // sort past a union.
     boolean ret = true;
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     for (RelNode input : union.getInputs()) {
-      if (!RelMdUtil.checkInputForCollationAndLimit(input, sort.getCollation(),
-          sort.offset, sort.fetch)) {
+      if (!RelMdUtil.checkInputForCollationAndLimit(mq, input,
+          sort.getCollation(), sort.offset, sort.fetch)) {
         ret = false;
         Sort branchSort = sort.copy(sort.getTraitSet(), input,
             sort.getCollation(), sort.offset, sort.fetch);

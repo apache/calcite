@@ -59,7 +59,8 @@ public class JoinPushTransitivePredicatesRule extends RelOptRule {
 
   @Override public void onMatch(RelOptRuleCall call) {
     Join join = call.rel(0);
-    RelOptPredicateList preds = RelMetadataQuery.getPulledUpPredicates(join);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelOptPredicateList preds = mq.getPulledUpPredicates(join);
 
     if (preds.leftInferredPredicates.isEmpty()
         && preds.rightInferredPredicates.isEmpty()) {

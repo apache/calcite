@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.util.ImmutableNullableList;
+
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,7 +55,7 @@ public class FlatLists {
    * @param <T> Element type
    * @return List containing the given members
    */
-  public static <T> List<T> of(T... t) {
+  public static <T extends Comparable> List<T> of(T... t) {
     return flatList_(t, false);
   }
 
@@ -65,21 +67,54 @@ public class FlatLists {
    * @param <T> Element type
    * @return List containing the given members
    */
+  @Deprecated // to be removed before 2.0
   public static <T> List<T> copy(T... t) {
+    return flatListNotComparable(t);
+  }
+
+  /**
+   * Creates a memory-, CPU- and cache-efficient comparable immutable list,
+   * always copying the contents.
+   *
+   * <p>The elements are comparable, and so is the returned list.
+   * Elements may be null.
+   *
+   * @param t Array of members of list
+   * @param <T> Element type
+   * @return List containing the given members
+   */
+  public static <T extends Comparable> List<T> copyOf(T... t) {
     return flatList_(t, true);
   }
 
   /**
-   * Creates a memory-, CPU- and cache-efficient immutable list, optionally
-   * copying the list.
+   * Creates a memory-, CPU- and cache-efficient immutable list,
+   * always copying the contents.
+   *
+   * <p>The elements need not be comparable,
+   * and the returned list may not implement {@link Comparable}.
+   * Elements may be null.
+   *
+   * @param t Array of members of list
+   * @param <T> Element type
+   * @return List containing the given members
+   */
+  public static <T> List<T> copyOf(T... t) {
+    return flatListNotComparable(t);
+  }
+
+  /**
+   * Creates a memory-, CPU- and cache-efficient comparable immutable list,
+   * optionally copying the list.
    *
    * @param copy Whether to always copy the list
    * @param t Array of members of list
    * @return List containing the given members
    */
-  private static <T> List<T> flatList_(T[] t, boolean copy) {
+  private static <T extends Comparable> List<T> flatList_(T[] t, boolean copy) {
     switch (t.length) {
     case 0:
+      //noinspection unchecked
       return COMPARABLE_EMPTY_LIST;
     case 1:
       return Collections.singletonList(t[0]);
@@ -92,10 +127,33 @@ public class FlatLists {
       //   write our own implementation and reduce creation overhead a
       //   bit.
       if (copy) {
-        return new ComparableListImpl(Arrays.asList(t.clone()));
+        return new ComparableListImpl<>(Arrays.asList(t.clone()));
       } else {
-        return new ComparableListImpl(Arrays.asList(t));
+        return new ComparableListImpl<>(Arrays.asList(t));
       }
+    }
+  }
+
+  /**
+   * Creates a memory-, CPU- and cache-efficient immutable list,
+   * always copying the list.
+   *
+   * @param t Array of members of list
+   * @return List containing the given members
+   */
+  private static <T> List<T> flatListNotComparable(T[] t) {
+    switch (t.length) {
+    case 0:
+      //noinspection unchecked
+      return COMPARABLE_EMPTY_LIST;
+    case 1:
+      return Collections.singletonList(t[0]);
+    case 2:
+      return new Flat2List<>(t[0], t[1]);
+    case 3:
+      return new Flat3List<>(t[0], t[1], t[2]);
+    default:
+      return ImmutableNullableList.copyOf(t);
     }
   }
 
@@ -110,13 +168,14 @@ public class FlatLists {
   public static <T> List<T> of(List<T> t) {
     switch (t.size()) {
     case 0:
+      //noinspection unchecked
       return COMPARABLE_EMPTY_LIST;
     case 1:
       return Collections.singletonList(t.get(0));
     case 2:
-      return new Flat2List<T>(t.get(0), t.get(1));
+      return new Flat2List<>(t.get(0), t.get(1));
     case 3:
-      return new Flat3List<T>(t.get(0), t.get(1), t.get(2));
+      return new Flat3List<>(t.get(0), t.get(1), t.get(2));
     default:
       // REVIEW: AbstractList contains a modCount field; we could
       //   write our own implementation and reduce creation overhead a

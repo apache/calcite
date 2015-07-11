@@ -25,7 +25,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
-import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -131,17 +131,15 @@ public abstract class Calc extends SingleRel {
     return program;
   }
 
-  public double getRows() {
-    return LogicalFilter.estimateFilteredRows(
-        getInput(),
-        program);
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double dRows = RelMetadataQuery.getRowCount(this);
-    double dCpu =
-        RelMetadataQuery.getRowCount(getInput())
-            * program.getExprCount();
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double dRows = mq.getRowCount(this);
+    double dCpu = mq.getRowCount(getInput())
+        * program.getExprCount();
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }

@@ -73,7 +73,7 @@ public abstract class Values extends AbstractRelNode {
 
   //~ Instance fields --------------------------------------------------------
 
-  protected final ImmutableList<ImmutableList<RexLiteral>> tuples;
+  public final ImmutableList<ImmutableList<RexLiteral>> tuples;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -143,14 +143,13 @@ public abstract class Values extends AbstractRelNode {
     return true;
   }
 
-  // implement RelNode
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return rowType;
   }
 
-  // implement RelNode
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double dRows = RelMetadataQuery.getRowCount(this);
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double dRows = mq.getRowCount(this);
 
     // Assume CPU is negligible since values are precomputed.
     double dCpu = 1;
@@ -159,7 +158,7 @@ public abstract class Values extends AbstractRelNode {
   }
 
   // implement RelNode
-  public double getRows() {
+  public double estimateRowCount(RelMetadataQuery mq) {
     return tuples.size();
   }
 

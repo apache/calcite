@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -81,11 +82,12 @@ public class LogicalValues extends Values {
   public static LogicalValues create(RelOptCluster cluster,
       final RelDataType rowType,
       final ImmutableList<ImmutableList<RexLiteral>> tuples) {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(
             RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
               public List<RelCollation> get() {
-                return RelMdCollation.values(rowType, tuples);
+                return RelMdCollation.values(mq, rowType, tuples);
               }
             });
     return new LogicalValues(cluster, traitSet, rowType, tuples);

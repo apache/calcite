@@ -56,6 +56,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
@@ -247,16 +248,17 @@ public class JdbcRules {
       }
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
       // We always "build" the
-      double rowCount = RelMetadataQuery.getRowCount(this);
+      double rowCount = mq.getRowCount(this);
 
       return planner.getCostFactory().makeCost(rowCount, 0, 0);
     }
 
-    @Override public double getRows() {
-      final double leftRowCount = left.getRows();
-      final double rightRowCount = right.getRows();
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      final double leftRowCount = left.estimateRowCount(mq);
+      final double rightRowCount = right.estimateRowCount(mq);
       return Math.max(leftRowCount, rightRowCount);
     }
 
@@ -316,13 +318,14 @@ public class JdbcRules {
       return program.explainCalc(super.explainTerms(pw));
     }
 
-    public double getRows() {
-      return LogicalFilter.estimateFilteredRows(getInput(), program);
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      double dRows = RelMetadataQuery.getRowCount(this);
-      double dCpu = RelMetadataQuery.getRowCount(getInput())
+    public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      double dRows = mq.getRowCount(this);
+      double dCpu = mq.getRowCount(getInput())
           * program.getExprCount();
       double dIo = 0;
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
@@ -387,8 +390,9 @@ public class JdbcRules {
       return new JdbcProject(getCluster(), traitSet, input, projects, rowType);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return super.computeSelfCost(planner)
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq)
           .multiplyBy(JdbcConvention.COST_MULTIPLIER);
     }
 
@@ -604,8 +608,9 @@ public class JdbcRules {
       return new JdbcUnion(getCluster(), traitSet, inputs, all);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return super.computeSelfCost(planner).multiplyBy(.1);
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq).multiplyBy(.1);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

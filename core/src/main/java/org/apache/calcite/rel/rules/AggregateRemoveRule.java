@@ -57,10 +57,11 @@ public class AggregateRemoveRule extends RelOptRule {
   public void onMatch(RelOptRuleCall call) {
     final LogicalAggregate aggregate = call.rel(0);
     final RelNode input = call.rel(1);
-    if (!aggregate.getAggCallList().isEmpty()
-        || aggregate.indicator
-        || !SqlFunctions.isTrue(
-            RelMetadataQuery.areColumnsUnique(input, aggregate.getGroupSet()))) {
+    if (!aggregate.getAggCallList().isEmpty() || aggregate.indicator) {
+      return;
+    }
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    if (!SqlFunctions.isTrue(mq.areColumnsUnique(input, aggregate.getGroupSet()))) {
       return;
     }
     // Distinct is "GROUP BY c1, c2" (where c1, c2 are a set of columns on

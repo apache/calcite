@@ -192,7 +192,7 @@ public class LoptMultiJoin {
     joinFilters =
         Lists.newArrayList(RelOptUtil.conjunctions(multiJoin.getJoinFilter()));
 
-    allJoinFilters = new ArrayList<RexNode>(joinFilters);
+    allJoinFilters = new ArrayList<>(joinFilters);
     List<RexNode> outerJoinFilters = multiJoin.getOuterJoinConditions();
     for (int i = 0; i < nJoinFactors; i++) {
       allJoinFilters.addAll(RelOptUtil.conjunctions(outerJoinFilters.get(i)));
@@ -235,8 +235,8 @@ public class LoptMultiJoin {
     joinRemovalFactors = new Integer[nJoinFactors];
     joinRemovalSemiJoins = new SemiJoin[nJoinFactors];
 
-    removableOuterJoinFactors = new HashSet<Integer>();
-    removableSelfJoinPairs = new HashMap<Integer, RemovableSelfJoin>();
+    removableOuterJoinFactors = new HashSet<>();
+    removableSelfJoinPairs = new HashMap<>();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -695,15 +695,15 @@ public class LoptMultiJoin {
     // Compute a column mapping such that if a column from the right
     // factor is also referenced in the left factor, we will map the
     // right reference to the left to avoid redundant references.
-    Map<Integer, Integer> columnMapping = new HashMap<Integer, Integer>();
+    final Map<Integer, Integer> columnMapping = new HashMap<>();
 
     // First, locate the originating column for all simple column
     // references in the left factor.
-    RelNode left = getJoinFactor(leftFactor);
-    Map<Integer, Integer> leftFactorColMapping =
-        new HashMap<Integer, Integer>();
+    final RelNode left = getJoinFactor(leftFactor);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final Map<Integer, Integer> leftFactorColMapping = new HashMap<>();
     for (int i = 0; i < left.getRowType().getFieldCount(); i++) {
-      RelColumnOrigin colOrigin = RelMetadataQuery.getColumnOrigin(left, i);
+      final RelColumnOrigin colOrigin = mq.getColumnOrigin(left, i);
       if (colOrigin != null) {
         leftFactorColMapping.put(
             colOrigin.getOriginColumnOrdinal(),
@@ -717,8 +717,7 @@ public class LoptMultiJoin {
     // factor.
     RelNode right = getJoinFactor(rightFactor);
     for (int i = 0; i < right.getRowType().getFieldCount(); i++) {
-      final RelColumnOrigin colOrigin =
-          RelMetadataQuery.getColumnOrigin(right, i);
+      final RelColumnOrigin colOrigin = mq.getColumnOrigin(right, i);
       if (colOrigin == null) {
         continue;
       }

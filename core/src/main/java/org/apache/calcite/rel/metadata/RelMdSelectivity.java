@@ -50,7 +50,8 @@ public class RelMdSelectivity {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Double getSelectivity(Union rel, RexNode predicate) {
+  public Double getSelectivity(Union rel, RelMetadataQuery mq,
+      RexNode predicate) {
     if ((rel.getInputs().size() == 0) || (predicate == null)) {
       return 1.0;
     }
@@ -60,7 +61,7 @@ public class RelMdSelectivity {
     int[] adjustments = new int[rel.getRowType().getFieldCount()];
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     for (RelNode input : rel.getInputs()) {
-      Double nRows = RelMetadataQuery.getRowCount(input);
+      Double nRows = mq.getRowCount(input);
       if (nRows == null) {
         return null;
       }
@@ -73,7 +74,7 @@ public class RelMdSelectivity {
                   null,
                   input.getRowType().getFieldList(),
                   adjustments));
-      double sel = RelMetadataQuery.getSelectivity(input, modifiedPred);
+      double sel = mq.getSelectivity(input, modifiedPred);
 
       sumRows += nRows;
       sumSelectedRows += nRows * sel;
@@ -85,36 +86,34 @@ public class RelMdSelectivity {
     return sumSelectedRows / sumRows;
   }
 
-  public Double getSelectivity(Sort rel, RexNode predicate) {
-    return RelMetadataQuery.getSelectivity(
-        rel.getInput(),
-        predicate);
+  public Double getSelectivity(Sort rel, RelMetadataQuery mq,
+      RexNode predicate) {
+    return mq.getSelectivity(rel.getInput(), predicate);
   }
 
-  public Double getSelectivity(Filter rel, RexNode predicate) {
+  public Double getSelectivity(Filter rel, RelMetadataQuery mq,
+      RexNode predicate) {
     // Take the difference between the predicate passed in and the
     // predicate in the filter's condition, so we don't apply the
     // selectivity of the filter twice.  If no predicate is passed in,
     // use the filter's condition.
     if (predicate != null) {
-      return RelMetadataQuery.getSelectivity(
-          rel.getInput(),
+      return mq.getSelectivity(rel.getInput(),
           RelMdUtil.minusPreds(
               rel.getCluster().getRexBuilder(),
               predicate,
               rel.getCondition()));
     } else {
-      return RelMetadataQuery.getSelectivity(
-          rel.getInput(),
-          rel.getCondition());
+      return mq.getSelectivity(rel.getInput(), rel.getCondition());
     }
   }
 
-  public Double getSelectivity(SemiJoin rel, RexNode predicate) {
+  public Double getSelectivity(SemiJoin rel, RelMetadataQuery mq,
+      RexNode predicate) {
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getSelectivity
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-    RexNode newPred = RelMdUtil.makeSemiJoinSelectivityRexNode(rel);
+    RexNode newPred = RelMdUtil.makeSemiJoinSelectivityRexNode(mq, rel);
     if (predicate != null) {
       newPred =
           rexBuilder.makeCall(
@@ -123,14 +122,13 @@ public class RelMdSelectivity {
               predicate);
     }
 
-    return RelMetadataQuery.getSelectivity(
-        rel.getLeft(),
-        newPred);
+    return mq.getSelectivity(rel.getLeft(), newPred);
   }
 
-  public Double getSelectivity(Aggregate rel, RexNode predicate) {
-    List<RexNode> notPushable = new ArrayList<RexNode>();
-    List<RexNode> pushable = new ArrayList<RexNode>();
+  public Double getSelectivity(Aggregate rel, RelMetadataQuery mq,
+      RexNode predicate) {
+    final List<RexNode> notPushable = new ArrayList<>();
+    final List<RexNode> pushable = new ArrayList<>();
     RelOptUtil.splitFilters(
         rel.getGroupSet(),
         predicate,
@@ -140,10 +138,7 @@ public class RelMdSelectivity {
     RexNode childPred =
         RexUtil.composeConjunction(rexBuilder, pushable, true);
 
-    Double selectivity =
-        RelMetadataQuery.getSelectivity(
-            rel.getInput(),
-            childPred);
+    Double selectivity = mq.getSelectivity(rel.getInput(), childPred);
     if (selectivity == null) {
       return null;
     } else {
@@ -153,9 +148,10 @@ public class RelMdSelectivity {
     }
   }
 
-  public Double getSelectivity(Project rel, RexNode predicate) {
-    List<RexNode> notPushable = new ArrayList<RexNode>();
-    List<RexNode> pushable = new ArrayList<RexNode>();
+  public Double getSelectivity(Project rel, RelMetadataQuery mq,
+      RexNode predicate) {
+    final List<RexNode> notPushable = new ArrayList<>();
+    final List<RexNode> pushable = new ArrayList<>();
     RelOptUtil.splitFilters(
         ImmutableBitSet.range(rel.getRowType().getFieldCount()),
         predicate,
@@ -171,10 +167,7 @@ public class RelMdSelectivity {
     } else {
       modifiedPred = RelOptUtil.pushPastProject(childPred, rel);
     }
-    Double selectivity =
-        RelMetadataQuery.getSelectivity(
-            rel.getInput(),
-            modifiedPred);
+    Double selectivity = mq.getSelectivity(rel.getInput(), modifiedPred);
     if (selectivity == null) {
       return null;
     } else {
@@ -185,7 +178,8 @@ public class RelMdSelectivity {
   }
 
   // Catch-all rule when none of the others apply.
-  public Double getSelectivity(RelNode rel, RexNode predicate) {
+  public Double getSelectivity(RelNode rel, RelMetadataQuery mq,
+      RexNode predicate) {
     return RelMdUtil.guessSelectivity(predicate);
   }
 }

@@ -58,10 +58,11 @@ public class LoptSemiJoinOptimizer {
 
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * RexBuilder for constructing new RexNodes
-   */
-  private RexBuilder rexBuilder;
+  private final RexBuilder rexBuilder;
+
+  /** Not thread-safe. But should be OK, because an optimizer is only used
+   * from within one thread.*/
+  final RelMetadataQuery mq = RelMetadataQuery.instance();
 
   /**
    * Semijoins corresponding to each join factor, if they are going to be
@@ -406,7 +407,7 @@ public class LoptSemiJoinOptimizer {
     while (keyIter.hasNext()) {
       boolean removeKey = false;
       final RelColumnOrigin colOrigin =
-          RelMetadataQuery.getColumnOrigin(factRel, keyIter.next());
+          mq.getColumnOrigin(factRel, keyIter.next());
 
       // can't use the rid column as a semijoin key
       if ((colOrigin == null)
@@ -635,13 +636,13 @@ public class LoptSemiJoinOptimizer {
     // a middle ground based on testing that was done with a large
     // data set.
     final ImmutableBitSet dimCols = ImmutableBitSet.of(semiJoin.getRightKeys());
-    double selectivity =
-        RelMdUtil.computeSemiJoinSelectivity(factRel, dimRel, semiJoin);
+    final double selectivity =
+        RelMdUtil.computeSemiJoinSelectivity(mq, factRel, dimRel, semiJoin);
     if (selectivity > .5) {
       return 0;
     }
 
-    RelOptCost factCost = RelMetadataQuery.getCumulativeCost(factRel);
+    final RelOptCost factCost = mq.getCumulativeCost(factRel);
 
     // if not enough information, return a low score
     if (factCost == null) {
@@ -654,9 +655,8 @@ public class LoptSemiJoinOptimizer {
     // Additional savings if the dimension columns are unique.  We can
     // ignore nulls since they will be filtered out by the semijoin.
     boolean uniq =
-        RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(
-            dimRel,
-            dimCols);
+        RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq,
+            dimRel, dimCols);
     if (uniq) {
       savings *= 2.0;
     }
@@ -664,9 +664,9 @@ public class LoptSemiJoinOptimizer {
     // compute the cost of doing an extra scan on the dimension table,
     // including the distinct sort on top of the scan; if the dimension
     // columns are already unique, no need to add on the dup removal cost
-    Double dimSortCost = RelMetadataQuery.getRowCount(dimRel);
-    Double dupRemCost = uniq ? 0 : dimSortCost;
-    RelOptCost dimCost = RelMetadataQuery.getCumulativeCost(dimRel);
+    final Double dimSortCost = mq.getRowCount(dimRel);
+    final Double dupRemCost = uniq ? 0 : dimSortCost;
+    final RelOptCost dimCost = mq.getCumulativeCost(dimRel);
     if ((dimSortCost == null)
         || (dupRemCost == null)
         || (dimCost == null)) {
@@ -708,9 +708,8 @@ public class LoptSemiJoinOptimizer {
     // Check if the semijoin keys corresponding to the dimension table
     // are unique.  The semijoin will filter out the nulls.
     final ImmutableBitSet dimKeys = ImmutableBitSet.of(semiJoin.getRightKeys());
-    RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
-    if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(
-        dimRel,
+    final RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
+    if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, dimRel,
         dimKeys)) {
       return;
     }
@@ -800,14 +799,14 @@ public class LoptSemiJoinOptimizer {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** . */
+  /** Compares factors. */
   private class FactorCostComparator
       implements Comparator<Integer> {
     public int compare(Integer rel1Idx, Integer rel2Idx) {
       RelOptCost c1 =
-          RelMetadataQuery.getCumulativeCost(chosenSemiJoins[rel1Idx]);
+          mq.getCumulativeCost(chosenSemiJoins[rel1Idx]);
       RelOptCost c2 =
-          RelMetadataQuery.getCumulativeCost(chosenSemiJoins[rel2Idx]);
+          mq.getCumulativeCost(chosenSemiJoins[rel2Idx]);
 
       // nulls are arbitrarily sorted
       if ((c1 == null) || (c2 == null)) {

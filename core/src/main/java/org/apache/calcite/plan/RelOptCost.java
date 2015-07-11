@@ -32,7 +32,7 @@ public interface RelOptCost {
   /**
    * @return number of rows processed; this should not be confused with the
    * row count produced by a relational expression
-   * ({@link org.apache.calcite.rel.RelNode#getRows})
+   * ({@link org.apache.calcite.rel.RelNode#estimateRowCount})
    */
   double getRows();
 

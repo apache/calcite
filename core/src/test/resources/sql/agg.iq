@@ -1393,7 +1393,7 @@ group by deptno, job;
 (3 rows)
 
 !ok
-!if (fixed.calcite794) {
+!if (fixed.calcite1048) {
 select job, sum(sal) as sum_sal, deptno
 from "scott".emp
 where deptno = 10

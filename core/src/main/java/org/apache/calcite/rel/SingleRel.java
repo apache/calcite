@@ -63,9 +63,9 @@ public abstract class SingleRel extends AbstractRelNode {
     return ImmutableList.of(input);
   }
 
-  @Override public double getRows() {
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
     // Not necessarily correct, but a better default than AbstractRelNode's 1.0
-    return RelMetadataQuery.getRowCount(input);
+    return mq.getRowCount(input);
   }
 
   @Override public void childrenAccept(RelVisitor visitor) {

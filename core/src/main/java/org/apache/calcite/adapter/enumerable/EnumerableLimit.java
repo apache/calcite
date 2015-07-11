@@ -30,6 +30,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -40,8 +41,8 @@ import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
 public class EnumerableLimit extends SingleRel implements EnumerableRel {
-  private final RexNode offset;
-  private final RexNode fetch;
+  public final RexNode offset;
+  public final RexNode fetch;
 
   /** Creates an EnumerableLimit.
    *
@@ -63,19 +64,20 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   public static EnumerableLimit create(final RelNode input, RexNode offset,
       RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(
                 RelCollationTraitDef.INSTANCE,
                 new Supplier<List<RelCollation>>() {
                   public List<RelCollation> get() {
-                    return RelMdCollation.limit(input);
+                    return RelMdCollation.limit(mq, input);
                   }
                 })
             .replaceIf(RelDistributionTraitDef.INSTANCE,
                 new Supplier<RelDistribution>() {
                   public RelDistribution get() {
-                    return RelMdDistribution.limit(input);
+                    return RelMdDistribution.limit(mq, input);
                   }
                 });
     return new EnumerableLimit(cluster, traitSet, input, offset, fetch);
@@ -96,21 +98,6 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return super.explainTerms(pw)
         .itemIf("offset", offset, offset != null)
         .itemIf("fetch", fetch, fetch != null);
-  }
-
-  @Override public double getRows() {
-    double rowCount = super.getRows();
-    final int offset =
-        this.offset == null ? 0 : RexLiteral.intValue(this.offset);
-    rowCount = Math.max(rowCount - offset, 0D);
-
-    if (this.fetch != null) {
-      final int limit = RexLiteral.intValue(this.fetch);
-      if (limit < rowCount) {
-        return (double) limit;
-      }
-    }
-    return rowCount;
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

@@ -179,22 +179,24 @@ public abstract class Join extends BiRel {
     return litmus.succeed();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // REVIEW jvs 9-Apr-2006:  Just for now...
-    double rowCount = RelMetadataQuery.getRowCount(this);
+    double rowCount = mq.getRowCount(this);
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 
-  /** @deprecated Use {@link RelMdUtil#getJoinRowCount(Join, RexNode)}. */
+  /** @deprecated Use {@link RelMdUtil#getJoinRowCount(RelMetadataQuery, Join, RexNode)}. */
   @Deprecated // to be removed before 2.0
   public static double estimateJoinedRows(
       Join joinRel,
       RexNode condition) {
-    return Util.first(RelMdUtil.getJoinRowCount(joinRel, condition), 1D);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    return Util.first(RelMdUtil.getJoinRowCount(mq, joinRel, condition), 1D);
   }
 
-  @Override public double getRows() {
-    return Util.first(RelMdUtil.getJoinRowCount(this, condition), 1D);
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    return Util.first(RelMdUtil.getJoinRowCount(mq, this, condition), 1D);
   }
 
   @Override public Set<CorrelationId> getVariablesSet() {

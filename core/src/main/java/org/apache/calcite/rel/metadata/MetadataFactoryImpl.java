@@ -19,8 +19,6 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -36,24 +34,27 @@ import java.util.concurrent.ExecutionException;
  */
 public class MetadataFactoryImpl implements MetadataFactory {
   @SuppressWarnings("unchecked")
-  public static final Function<RelNode, Metadata> DUMMY =
-      (Function) Functions.<Metadata>constant(null);
+  public static final UnboundMetadata<Metadata> DUMMY =
+      new UnboundMetadata<Metadata>() {
+        public Metadata bind(RelNode rel, RelMetadataQuery mq) {
+          return null;
+        }
+      };
 
   private final LoadingCache<
-      Pair<Class<RelNode>, Class<Metadata>>,
-      Function<RelNode, Metadata>> cache;
+      Pair<Class<RelNode>, Class<Metadata>>, UnboundMetadata<Metadata>> cache;
 
   public MetadataFactoryImpl(RelMetadataProvider provider) {
     this.cache = CacheBuilder.newBuilder().build(loader(provider));
   }
 
   static CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
-      Function<RelNode, Metadata>> loader(final RelMetadataProvider provider) {
+      UnboundMetadata<Metadata>> loader(final RelMetadataProvider provider) {
     return new CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
-        Function<RelNode, Metadata>>() {
-      @Override public Function<RelNode, Metadata> load(
+        UnboundMetadata<Metadata>>() {
+      @Override public UnboundMetadata<Metadata> load(
           Pair<Class<RelNode>, Class<Metadata>> key) throws Exception {
-        final Function<RelNode, Metadata> function =
+        final UnboundMetadata<Metadata> function =
             provider.apply(key.left, key.right);
         // Return DUMMY, not null, so the cache knows to not ask again.
         return function != null ? function : DUMMY;
@@ -61,14 +62,14 @@ public class MetadataFactoryImpl implements MetadataFactory {
     };
   }
 
-  public <T extends Metadata> T query(RelNode rel, Class<T> clazz) {
+  public <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
+      Class<M> metadataClazz) {
     try {
       //noinspection unchecked
       final Pair<Class<RelNode>, Class<Metadata>> key =
-          (Pair) Pair.of(rel.getClass(), clazz);
-      final Metadata apply = cache.get(key).apply(rel);
-      //noinspection unchecked
-      return (T) apply;
+          (Pair) Pair.of(rel.getClass(), metadataClazz);
+      final Metadata apply = cache.get(key).bind(rel, mq);
+      return metadataClazz.cast(apply);
     } catch (ExecutionException e) {
       if (e.getCause() instanceof RuntimeException) {
         throw (RuntimeException) e.getCause();

@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
@@ -48,8 +49,8 @@ public abstract class Minus extends SetOp {
     super(input);
   }
 
-  @Override public double getRows() {
-    return RelMdUtil.getMinusRowCount(this);
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    return RelMdUtil.getMinusRowCount(mq, this);
   }
 }
 

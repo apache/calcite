@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
@@ -115,7 +116,8 @@ public class AggregateStarTableRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
     final CalciteSchema.TableEntry tableEntry = pair.left;
     final TileKey tileKey = pair.right;
-    final double rowCount = aggregate.getRows();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final double rowCount = aggregate.estimateRowCount(mq);
     final Table aggregateTable = tableEntry.getTable();
     final RelDataType aggregateTableRowType =
         aggregateTable.getRowType(cluster.getTypeFactory());

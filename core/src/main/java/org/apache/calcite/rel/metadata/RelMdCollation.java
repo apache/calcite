@@ -47,12 +47,12 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * RelMdCollation supplies a default implementation of
@@ -77,7 +78,9 @@ public class RelMdCollation {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Fallback method to deduce collations for any relational expression not
+  /** Catch-all implementation for
+   * {@link BuiltInMetadata.Collation#collations()},
+   * invoked using reflection, for any relational expression not
    * handled by a more specific method.
    *
    * <p>{@link org.apache.calcite.rel.core.Union},
@@ -91,60 +94,72 @@ public class RelMdCollation {
    *
    * @param rel Relational expression
    * @return Relational expression's collations
+   *
+   * @see org.apache.calcite.rel.metadata.RelMetadataQuery#collations(RelNode)
    */
-  public ImmutableList<RelCollation> collations(RelNode rel) {
+  public ImmutableList<RelCollation> collations(RelNode rel,
+      RelMetadataQuery mq) {
     return ImmutableList.of();
   }
 
-  public ImmutableList<RelCollation> collations(Window rel) {
-    return ImmutableList.copyOf(window(rel.getInput(), rel.groups));
+  public ImmutableList<RelCollation> collations(Window rel,
+      RelMetadataQuery mq) {
+    return ImmutableList.copyOf(window(mq, rel.getInput(), rel.groups));
   }
 
-  public ImmutableList<RelCollation> collations(Filter rel) {
-    return RelMetadataQuery.collations(rel.getInput());
+  public ImmutableList<RelCollation> collations(Filter rel,
+      RelMetadataQuery mq) {
+    return mq.collations(rel.getInput());
   }
 
-  public ImmutableList<RelCollation> collations(TableScan scan) {
+  public ImmutableList<RelCollation> collations(TableScan scan,
+      RelMetadataQuery mq) {
     return ImmutableList.copyOf(table(scan.getTable()));
   }
 
-  public ImmutableList<RelCollation> collations(EnumerableMergeJoin join) {
+  public ImmutableList<RelCollation> collations(EnumerableMergeJoin join,
+      RelMetadataQuery mq) {
     // In general a join is not sorted. But a merge join preserves the sort
     // order of the left and right sides.
     return ImmutableList.copyOf(
-        RelMdCollation.mergeJoin(join.getLeft(),
-            join.getRight(),
-            join.getLeftKeys(),
-            join.getRightKeys()));
+        RelMdCollation.mergeJoin(mq, join.getLeft(), join.getRight(),
+            join.getLeftKeys(), join.getRightKeys()));
   }
 
-  public ImmutableList<RelCollation> collations(Sort sort) {
+  public ImmutableList<RelCollation> collations(Sort sort,
+      RelMetadataQuery mq) {
     return ImmutableList.copyOf(
         RelMdCollation.sort(sort.getCollation()));
   }
 
-  public ImmutableList<RelCollation> collations(SortExchange sort) {
+  public ImmutableList<RelCollation> collations(SortExchange sort,
+      RelMetadataQuery mq) {
     return ImmutableList.copyOf(
         RelMdCollation.sort(sort.getCollation()));
   }
 
-  public ImmutableList<RelCollation> collations(Project project) {
+  public ImmutableList<RelCollation> collations(Project project,
+      RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        project(project.getInput(), project.getProjects()));
+        project(mq, project.getInput(), project.getProjects()));
   }
 
-  public ImmutableList<RelCollation> collations(Values values) {
+  public ImmutableList<RelCollation> collations(Values values,
+      RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        values(values.getRowType(), values.getTuples()));
+        values(mq, values.getRowType(), values.getTuples()));
   }
 
-  public ImmutableList<RelCollation> collations(HepRelVertex rel) {
-    return RelMetadataQuery.collations(rel.getCurrentRel());
+  public ImmutableList<RelCollation> collations(HepRelVertex rel,
+      RelMetadataQuery mq) {
+    return mq.collations(rel.getCurrentRel());
   }
 
-  public ImmutableList<RelCollation> collations(RelSubset rel) {
+  public ImmutableList<RelCollation> collations(RelSubset rel,
+      RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE));
+        Preconditions.checkNotNull(
+            rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
   }
 
   // Helper methods
@@ -163,29 +178,28 @@ public class RelMdCollation {
 
   /** Helper method to determine a
    * {@link org.apache.calcite.rel.core.Filter}'s collation. */
-  public static List<RelCollation> filter(RelNode input) {
-    return RelMetadataQuery.collations(input);
+  public static List<RelCollation> filter(RelMetadataQuery mq, RelNode input) {
+    return mq.collations(input);
   }
 
   /** Helper method to determine a
    * limit's collation. */
-  public static List<RelCollation> limit(RelNode input) {
-    return RelMetadataQuery.collations(input);
+  public static List<RelCollation> limit(RelMetadataQuery mq, RelNode input) {
+    return mq.collations(input);
   }
 
   /** Helper method to determine a
    * {@link org.apache.calcite.rel.core.Calc}'s collation. */
-  public static List<RelCollation> calc(RelNode input,
+  public static List<RelCollation> calc(RelMetadataQuery mq, RelNode input,
       RexProgram program) {
-    return program.getCollations(RelMetadataQuery.collations(input));
+    return program.getCollations(mq.collations(input));
   }
 
   /** Helper method to determine a {@link Project}'s collation. */
-  public static List<RelCollation> project(RelNode input,
-      List<? extends RexNode> projects) {
-    final SortedSet<RelCollation> collations = Sets.newTreeSet();
-    final List<RelCollation> inputCollations =
-        RelMetadataQuery.collations(input);
+  public static List<RelCollation> project(RelMetadataQuery mq,
+      RelNode input, List<? extends RexNode> projects) {
+    final SortedSet<RelCollation> collations = new TreeSet<>();
+    final List<RelCollation> inputCollations = mq.collations(input);
     if (inputCollations == null || inputCollations.isEmpty()) {
       return ImmutableList.of();
     }
@@ -202,7 +216,7 @@ public class RelMdCollation {
         targetsWithMonotonicity.put(project.i, call.getOperator().getMonotonicity(binding));
       }
     }
-    final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>();
   loop:
     for (RelCollation ic : inputCollations) {
       if (ic.getFieldCollations().isEmpty()) {
@@ -251,9 +265,9 @@ public class RelMdCollation {
    * from each of its windows. Assuming (quite reasonably) that the
    * implementation does not re-order its input rows, then any collations of its
    * input are preserved. */
-  public static List<RelCollation> window(RelNode input,
+  public static List<RelCollation> window(RelMetadataQuery mq, RelNode input,
       ImmutableList<Window.Group> groups) {
-    return RelMetadataQuery.collations(input);
+    return mq.collations(input);
   }
 
   /** Helper method to determine a
@@ -274,8 +288,9 @@ public class RelMdCollation {
    *
    * <p>So, for an empty Values with 4 columns, we would emit
    * {@code (a, b, c, d), (b, c, d), (c, d), (d)}. */
-  public static List<RelCollation> values(RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+  public static List<RelCollation> values(RelMetadataQuery mq,
+      RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples) {
+    Util.discard(mq); // for future use
     final List<RelCollation> list = Lists.newArrayList();
     final int n = rowType.getFieldCount();
     final List<Pair<RelFieldCollation, Ordering<List<RexLiteral>>>> pairs =
@@ -336,18 +351,17 @@ public class RelMdCollation {
    *
    * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
    * key, the result preserves those collations too. */
-  public static List<RelCollation> mergeJoin(RelNode left, RelNode right,
+  public static List<RelCollation> mergeJoin(RelMetadataQuery mq,
+      RelNode left, RelNode right,
       ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
     final ImmutableList.Builder<RelCollation> builder = ImmutableList.builder();
 
-    final ImmutableList<RelCollation> leftCollations =
-        RelMetadataQuery.collations(left);
+    final ImmutableList<RelCollation> leftCollations = mq.collations(left);
     assert RelCollations.contains(leftCollations, leftKeys)
         : "cannot merge join: left input is not sorted on left keys";
     builder.addAll(leftCollations);
 
-    final ImmutableList<RelCollation> rightCollations =
-        RelMetadataQuery.collations(right);
+    final ImmutableList<RelCollation> rightCollations = mq.collations(right);
     assert RelCollations.contains(rightCollations, rightKeys)
         : "cannot merge join: right input is not sorted on right keys";
     final int leftFieldCount = left.getRowType().getFieldCount();

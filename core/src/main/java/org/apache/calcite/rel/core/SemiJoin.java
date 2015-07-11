@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
@@ -94,15 +95,16 @@ public class SemiJoin extends EquiJoin {
         joinInfo.leftKeys, joinInfo.rightKeys);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // REVIEW jvs 9-Apr-2006:  Just for now...
     return planner.getCostFactory().makeTinyCost();
   }
 
-  @Override public double getRows() {
-    return Util.first(RelMdUtil.getSemiJoinRowCount(left, right, joinType, condition),
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    return Util.first(
+        RelMdUtil.getSemiJoinRowCount(mq, left, right, joinType, condition),
         1D);
-
   }
 
   /**

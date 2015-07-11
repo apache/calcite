@@ -58,9 +58,9 @@ public abstract class ConverterImpl extends SingleRel
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelNode
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    double dRows = RelMetadataQuery.getRowCount(getInput());
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    double dRows = mq.getRowCount(getInput());
     double dCpu = dRows;
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);

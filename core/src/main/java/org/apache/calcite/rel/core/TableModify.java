@@ -54,7 +54,7 @@ public abstract class TableModify extends SingleRel {
    * Enumeration of supported modification operations.
    */
   public enum Operation {
-    INSERT, UPDATE, DELETE, MERGE;
+    INSERT, UPDATE, DELETE, MERGE
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -190,10 +190,10 @@ public abstract class TableModify extends SingleRel {
         .item("flattened", flattened);
   }
 
-  // implement RelNode
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // REVIEW jvs 21-Apr-2006:  Just for now...
-    double rowCount = RelMetadataQuery.getRowCount(this);
+    double rowCount = mq.getRowCount(this);
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 }

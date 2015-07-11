@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.ChunkList;
 import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
@@ -392,12 +393,14 @@ class RuleQueue {
       // The root always has importance = 1
       importance = 1.0;
     } else {
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
+
       // The importance of a subset is the max of its importance to its
       // parents
       importance = 0.0;
       for (RelSubset parent : subset.getParentSubsets(planner)) {
         final double childImportance =
-            computeImportanceOfChild(subset, parent);
+            computeImportanceOfChild(mq, subset, parent);
         importance = Math.max(importance, childImportance);
       }
     }
@@ -582,12 +585,11 @@ class RuleQueue {
    * with cost 50 will have importance 0.4, and a child with cost 25 will have
    * importance 0.2.
    */
-  private double computeImportanceOfChild(
-      RelSubset child,
+  private double computeImportanceOfChild(RelMetadataQuery mq, RelSubset child,
       RelSubset parent) {
     final double parentImportance = getImportance(parent);
-    final double childCost = toDouble(planner.getCost(child));
-    final double parentCost = toDouble(planner.getCost(parent));
+    final double childCost = toDouble(planner.getCost(child, mq));
+    final double parentCost = toDouble(planner.getCost(parent, mq));
     double alpha = childCost / parentCost;
     if (alpha >= 1.0) {
       // child is always less important than parent
@@ -688,7 +690,7 @@ class RuleQueue {
      * <p>Use a hunkList because {@link java.util.ArrayList} does not implement
      * remove(0) efficiently.</p>
      */
-    final List<VolcanoRuleMatch> list = new ChunkList<VolcanoRuleMatch>();
+    final List<VolcanoRuleMatch> list = new ChunkList<>();
 
     /**
      * A set of rule-match names contained in {@link #list}. Allows fast

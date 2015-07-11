@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
 
@@ -51,27 +52,19 @@ public abstract class Union extends SetOp {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelNode
-  public double getRows() {
-    double dRows = estimateRowCount(this);
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    double dRows = RelMdUtil.getUnionAllRowCount(RelMetadataQuery.instance(),
+        this);
     if (!all) {
       dRows *= 0.5;
     }
     return dRows;
   }
 
-  /**
-   * Helper method for computing row count for UNION ALL.
-   *
-   * @param rel node representing UNION ALL
-   * @return estimated row count for rel
-   */
+  @Deprecated // to be removed before 2.0
   public static double estimateRowCount(RelNode rel) {
-    double dRows = 0;
-    for (RelNode input : rel.getInputs()) {
-      dRows += RelMetadataQuery.getRowCount(input);
-    }
-    return dRows;
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    return RelMdUtil.getUnionAllRowCount(mq, (Union) rel);
   }
 }
 

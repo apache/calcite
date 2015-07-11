@@ -214,26 +214,24 @@ public class JdbcAdapterTest {
             + "inner join scott.salgrade s \n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], DNAME=[$1], GRADE=[$6])\n"
-            + "    JdbcJoin(condition=[=($5, $0)], joinType=[inner])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
-            + "      JdbcJoin(condition=[AND(>($2, $5), <($2, $6))], joinType=[inner])\n"
+            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], DNAME=[$8], GRADE=[$0])\n"
+            + "    JdbcJoin(condition=[AND(>($5, $1), <($5, $2))], joinType=[inner])\n"
+            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
+            + "      JdbcJoin(condition=[=($3, $4)], joinType=[inner])\n"
             + "        JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
             + "          JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "        JdbcTableScan(table=[[SCOTT, SALGRADE]])")
+            + "        JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "          JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t0\".\"EMPNO\", \"t0\".\"ENAME\", "
-            + "\"t\".\"DNAME\", \"SALGRADE\".\"GRADE\"\n"
-            + "FROM (SELECT \"DEPTNO\", \"DNAME\"\n"
-            + "FROM \"SCOTT\".\"DEPT\") AS \"t\"\n"
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
+            + "\"t0\".\"DNAME\", \"SALGRADE\".\"GRADE\"\n"
+            + "FROM \"SCOTT\".\"SALGRADE\"\n"
             + "INNER JOIN ((SELECT \"EMPNO\", \"ENAME\", \"SAL\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t0\"\n"
-            + "INNER JOIN \"SCOTT\".\"SALGRADE\" "
-            + "ON \"t0\".\"SAL\" > \"SALGRADE\".\"LOSAL\" "
-            + "AND \"t0\".\"SAL\" < \"SALGRADE\".\"HISAL\") "
-            + "ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")"
+            + " ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");
   }
 
   @Test public void testCrossJoinWithJoinKeyPlan() {

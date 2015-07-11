@@ -3060,8 +3060,8 @@ public class JdbcTest {
         .query("select \"store_id\", \"grocery_sqft\" from \"store\"\n"
             + "where \"store_id\" < 10\n"
             + "order by 1 fetch first 5 rows only")
-        .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0..23=[{inputs}], store_id=[$t0], grocery_sqft=[$t16])\n"
+        .explainContains("PLAN="
+            + "EnumerableCalc(expr#0..23=[{inputs}], store_id=[$t0], grocery_sqft=[$t16])\n"
             + "  EnumerableLimit(fetch=[5])\n"
             + "    EnumerableCalc(expr#0..23=[{inputs}], expr#24=[10], expr#25=[<($t0, $t24)], proj#0..23=[{exprs}], $condition=[$t25])\n"
             + "      EnumerableTableScan(table=[[foodmart2, store]])\n")
@@ -4778,10 +4778,10 @@ public class JdbcTest {
               return new Function<String, Object>() {
                 public Object apply(String v) {
                   switch (v) {
-                  case "calcite794":
-                    return Bug.CALCITE_794_FIXED;
                   case "calcite1045":
                     return Bug.CALCITE_1045_FIXED;
+                  case "calcite1048":
+                    return Bug.CALCITE_1048_FIXED;
                   }
                   return null;
                 }

@@ -146,24 +146,24 @@ public abstract class TableFunctionScan extends AbstractRelNode {
   }
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
-    final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
+    final List<RelNode> newInputs = new ArrayList<>(inputs);
     newInputs.set(ordinalInParent, p);
     inputs = ImmutableList.copyOf(newInputs);
     recomputeDigest();
   }
 
-  @Override public double getRows() {
-    // Calculate result as the sum of the input rowcount estimates,
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    // Calculate result as the sum of the input row count estimates,
     // assuming there are any, otherwise use the superclass default.  So
     // for a no-input UDX, behave like an AbstractRelNode; for a one-input
     // UDX, behave like a SingleRel; for a multi-input UDX, behave like
     // UNION ALL.  TODO jvs 10-Sep-2007: UDX-supplied costing metadata.
     if (inputs.size() == 0) {
-      return super.getRows();
+      return super.estimateRowCount(mq);
     }
     double nRows = 0.0;
     for (RelNode input : inputs) {
-      Double d = RelMetadataQuery.getRowCount(input);
+      Double d = mq.getRowCount(input);
       if (d != null) {
         nRows += d;
       }

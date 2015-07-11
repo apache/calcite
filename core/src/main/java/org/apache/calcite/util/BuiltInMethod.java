@@ -176,7 +176,7 @@ public enum BuiltInMethod {
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
   ARRAY(SqlFunctions.class, "array", Object[].class),
-  LIST_N(FlatLists.class, "of", Object[].class),
+  LIST_N(FlatLists.class, "copyOf", Comparable[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),
   COMPARABLE_EMPTY_LIST(FlatLists.class, "COMPARABLE_EMPTY_LIST", true),
@@ -346,6 +346,7 @@ public enum BuiltInMethod {
   COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
   CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
+  PREDICATES(Predicates.class, "getPredicates"),
   EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
   SCALAR_EXECUTE1(Scalar.class, "execute", Context.class),
@@ -353,7 +354,6 @@ public enum BuiltInMethod {
   CONTEXT_VALUES(Context.class, "values", true),
   CONTEXT_ROOT(Context.class, "root", true),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
-  PREDICATES(Predicates.class, "getPredicates"),
   METADATA_REL(Metadata.class, "rel");
 
   public final Method method;
@@ -373,7 +373,7 @@ public enum BuiltInMethod {
     MAP = builder.build();
   }
 
-  private BuiltInMethod(Method method, Constructor constructor, Field field) {
+  BuiltInMethod(Method method, Constructor constructor, Field field) {
     this.method = method;
     this.constructor = constructor;
     this.field = field;

@@ -31,8 +31,17 @@ import org.apache.calcite.rel.RelNode;
 public interface MetadataFactory {
   /** Returns a metadata interface to get a particular kind of metadata
    * from a particular relational expression. Returns null if that kind of
-   * metadata is not available. */
-  <T extends Metadata> T query(RelNode rel, Class<T> clazz);
+   * metadata is not available.
+   *
+   * @param <M> Metadata type
+   *
+   * @param rel Relational expression
+   * @param mq Metadata query
+   * @param metadataClazz Metadata class
+   * @return Metadata bound to {@code rel} and {@code query}
+   */
+  <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
+      Class<M> metadataClazz);
 }
 
 // End MetadataFactory.java

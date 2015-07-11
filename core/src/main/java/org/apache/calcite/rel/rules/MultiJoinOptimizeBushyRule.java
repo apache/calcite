@@ -87,6 +87,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     final MultiJoin multiJoinRel = call.rel(0);
     final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
 
@@ -94,7 +95,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     int x = 0;
     for (int i = 0; i < multiJoin.getNumJoinFactors(); i++) {
       final RelNode rel = multiJoin.getJoinFactor(i);
-      double cost = RelMetadataQuery.getRowCount(rel);
+      double cost = mq.getRowCount(rel);
       vertexes.add(new LeafVertex(i, rel, cost, x));
       x += rel.getRowType().getFieldCount();
     }

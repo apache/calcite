@@ -89,10 +89,11 @@ public abstract class Exchange extends SingleRel {
     return distribution;
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // Higher cost if rows are wider discourages pushing a project through an
     // exchange.
-    double rowCount = RelMetadataQuery.getRowCount(this);
+    double rowCount = mq.getRowCount(this);
     double bytesPerRow = getRowType().getFieldCount() * 4;
     return planner.getCostFactory().makeCost(
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);

@@ -83,8 +83,9 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
     final RelOptCluster cluster = right.getCluster();
     RelTraitSet traitSet = cluster.traitSet();
     if (traitSet.isEnabled(RelCollationTraitDef.INSTANCE)) {
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
       final List<RelCollation> collations =
-          RelMdCollation.mergeJoin(left, right, leftKeys, rightKeys);
+          RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys);
       traitSet = traitSet.replace(collations);
     }
     return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
@@ -107,13 +108,14 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // We assume that the inputs are sorted. The price of sorting them has
     // already been paid. The cost of the join is therefore proportional to the
     // input and output size.
-    final double rightRowCount = right.getRows();
-    final double leftRowCount = left.getRows();
-    final double rowCount = RelMetadataQuery.getRowCount(this);
+    final double rightRowCount = right.estimateRowCount(mq);
+    final double leftRowCount = left.estimateRowCount(mq);
+    final double rowCount = mq.getRowCount(this);
     final double d = leftRowCount + rightRowCount + rowCount;
     return planner.getCostFactory().makeCost(d, 0, 0);
   }

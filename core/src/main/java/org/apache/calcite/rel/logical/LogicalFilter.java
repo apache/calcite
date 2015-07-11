@@ -31,6 +31,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.base.Preconditions;
@@ -106,17 +107,18 @@ public final class LogicalFilter extends Filter {
   public static LogicalFilter create(final RelNode input, RexNode condition,
       ImmutableSet<CorrelationId> variablesSet) {
     final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
             new Supplier<List<RelCollation>>() {
               public List<RelCollation> get() {
-                return RelMdCollation.filter(input);
+                return RelMdCollation.filter(mq, input);
               }
             })
         .replaceIf(RelDistributionTraitDef.INSTANCE,
             new Supplier<RelDistribution>() {
               public RelDistribution get() {
-                return RelMdDistribution.filter(input);
+                return RelMdDistribution.filter(mq, input);
               }
             });
     return new LogicalFilter(cluster, traitSet, input, condition, variablesSet);

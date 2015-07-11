@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -111,13 +112,14 @@ public final class LogicalProject extends Project {
   public static LogicalProject create(final RelNode input,
       final List<? extends RexNode> projects, RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final RelTraitSet traitSet =
         cluster.traitSet().replace(Convention.NONE)
             .replaceIfs(
                 RelCollationTraitDef.INSTANCE,
                 new Supplier<List<RelCollation>>() {
                   public List<RelCollation> get() {
-                    return RelMdCollation.project(input, projects);
+                    return RelMdCollation.project(mq, input, projects);
                   }
                 });
     return new LogicalProject(cluster, traitSet, input, projects, rowType);

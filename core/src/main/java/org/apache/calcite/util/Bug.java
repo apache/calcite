@@ -171,9 +171,9 @@ public abstract class Bug {
   public static final boolean CALCITE_673_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-794">[CALCITE-794]
-   * Detect cycles when computing statistics</a> is fixed. */
-  public static final boolean CALCITE_794_FIXED = false;
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1048">[CALCITE-1048]
+   * Make metadata more robust</a> is fixed. */
+  public static final boolean CALCITE_1048_FIXED = false;
 
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1045">[CALCITE-1045]

@@ -74,14 +74,13 @@ public class RelMdSize {
   //~ Methods ----------------------------------------------------------------
 
   /** Catch-all implementation for
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size#averageRowSize()},
+   * {@link BuiltInMetadata.Size#averageRowSize()},
    * invoked using reflection.
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageRowSize
    */
-  public Double averageRowSize(RelNode rel) {
-    final List<Double> averageColumnSizes =
-        RelMetadataQuery.getAverageColumnSizes(rel);
+  public Double averageRowSize(RelNode rel, RelMetadataQuery mq) {
+    final List<Double> averageColumnSizes = mq.getAverageColumnSizes(rel);
     if (averageColumnSizes == null) {
       return null;
     }
@@ -99,30 +98,30 @@ public class RelMdSize {
   }
 
   /** Catch-all implementation for
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size#averageColumnSizes()},
+   * {@link BuiltInMetadata.Size#averageColumnSizes()},
    * invoked using reflection.
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageColumnSizes
    */
-  public List<Double> averageColumnSizes(RelNode rel) {
+  public List<Double> averageColumnSizes(RelNode rel, RelMetadataQuery mq) {
     return null; // absolutely no idea
   }
 
-  public List<Double> averageColumnSizes(Filter rel) {
-    return RelMetadataQuery.getAverageColumnSizes(rel.getInput());
+  public List<Double> averageColumnSizes(Filter rel, RelMetadataQuery mq) {
+    return mq.getAverageColumnSizes(rel.getInput());
   }
 
-  public List<Double> averageColumnSizes(Sort rel) {
-    return RelMetadataQuery.getAverageColumnSizes(rel.getInput());
+  public List<Double> averageColumnSizes(Sort rel, RelMetadataQuery mq) {
+    return mq.getAverageColumnSizes(rel.getInput());
   }
 
-  public List<Double> averageColumnSizes(Exchange rel) {
-    return RelMetadataQuery.getAverageColumnSizes(rel.getInput());
+  public List<Double> averageColumnSizes(Exchange rel, RelMetadataQuery mq) {
+    return mq.getAverageColumnSizes(rel.getInput());
   }
 
-  public List<Double> averageColumnSizes(Project rel) {
+  public List<Double> averageColumnSizes(Project rel, RelMetadataQuery mq) {
     final List<Double> inputColumnSizes =
-        RelMetadataQuery.getAverageColumnSizesNotNull(rel.getInput());
+        mq.getAverageColumnSizesNotNull(rel.getInput());
     final ImmutableNullableList.Builder<Double> sizes =
         ImmutableNullableList.builder();
     for (RexNode project : rel.getProjects()) {
@@ -131,7 +130,7 @@ public class RelMdSize {
     return sizes.build();
   }
 
-  public List<Double> averageColumnSizes(Values rel) {
+  public List<Double> averageColumnSizes(Values rel, RelMetadataQuery mq) {
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final ImmutableList.Builder<Double> list = ImmutableList.builder();
     for (int i = 0; i < fields.size(); i++) {
@@ -151,7 +150,7 @@ public class RelMdSize {
     return list.build();
   }
 
-  public List<Double> averageColumnSizes(TableScan rel) {
+  public List<Double> averageColumnSizes(TableScan rel, RelMetadataQuery mq) {
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final ImmutableList.Builder<Double> list = ImmutableList.builder();
     for (RelDataTypeField field : fields) {
@@ -160,9 +159,9 @@ public class RelMdSize {
     return list.build();
   }
 
-  public List<Double> averageColumnSizes(Aggregate rel) {
+  public List<Double> averageColumnSizes(Aggregate rel, RelMetadataQuery mq) {
     final List<Double> inputColumnSizes =
-        RelMetadataQuery.getAverageColumnSizesNotNull(rel.getInput());
+        mq.getAverageColumnSizesNotNull(rel.getInput());
     final ImmutableList.Builder<Double> list = ImmutableList.builder();
     for (int key : rel.getGroupSet()) {
       list.add(inputColumnSizes.get(key));
@@ -173,21 +172,21 @@ public class RelMdSize {
     return list.build();
   }
 
-  public List<Double> averageColumnSizes(SemiJoin rel) {
-    return averageJoinColumnSizes(rel, true);
+  public List<Double> averageColumnSizes(SemiJoin rel, RelMetadataQuery mq) {
+    return averageJoinColumnSizes(rel, mq, true);
   }
 
-  public List<Double> averageColumnSizes(Join rel) {
-    return averageJoinColumnSizes(rel, false);
+  public List<Double> averageColumnSizes(Join rel, RelMetadataQuery mq) {
+    return averageJoinColumnSizes(rel, mq, false);
   }
 
-  private List<Double> averageJoinColumnSizes(Join rel, boolean semijoin) {
+  private List<Double> averageJoinColumnSizes(Join rel, RelMetadataQuery mq,
+      boolean semijoin) {
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
-    final List<Double> lefts =
-        RelMetadataQuery.getAverageColumnSizes(left);
-    final List<Double> rights = semijoin
-        ? null : RelMetadataQuery.getAverageColumnSizes(right);
+    final List<Double> lefts = mq.getAverageColumnSizes(left);
+    final List<Double> rights =
+        semijoin ? null : mq.getAverageColumnSizes(right);
     if (lefts == null && rights == null) {
       return null;
     }
@@ -205,20 +204,19 @@ public class RelMdSize {
     return ImmutableNullableList.copyOf(sizes);
   }
 
-  public List<Double> averageColumnSizes(Intersect rel) {
-    return RelMetadataQuery.getAverageColumnSizes(rel.getInput(0));
+  public List<Double> averageColumnSizes(Intersect rel, RelMetadataQuery mq) {
+    return mq.getAverageColumnSizes(rel.getInput(0));
   }
 
-  public List<Double> averageColumnSizes(Minus rel) {
-    return RelMetadataQuery.getAverageColumnSizes(rel.getInput(0));
+  public List<Double> averageColumnSizes(Minus rel, RelMetadataQuery mq) {
+    return mq.getAverageColumnSizes(rel.getInput(0));
   }
 
-  public List<Double> averageColumnSizes(Union rel) {
+  public List<Double> averageColumnSizes(Union rel, RelMetadataQuery mq) {
     final int fieldCount = rel.getRowType().getFieldCount();
     List<List<Double>> inputColumnSizeList = Lists.newArrayList();
     for (RelNode input : rel.getInputs()) {
-      final List<Double> inputSizes =
-          RelMetadataQuery.getAverageColumnSizes(input);
+      final List<Double> inputSizes = mq.getAverageColumnSizes(input);
       if (inputSizes != null) {
         inputColumnSizeList.add(inputSizes);
       }

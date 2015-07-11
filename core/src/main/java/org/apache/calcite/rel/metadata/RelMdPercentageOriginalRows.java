@@ -53,16 +53,14 @@ public class RelMdPercentageOriginalRows {
 
   private RelMdPercentageOriginalRows() {}
 
-  public Double getPercentageOriginalRows(Aggregate rel) {
+  public Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
     // aggregation does not apply any filtering, so it does not modify the
     // percentage.  That's very much oversimplified.
-
-    return RelMetadataQuery.getPercentageOriginalRows(
-        rel.getInput());
+    return mq.getPercentageOriginalRows(rel.getInput());
   }
 
-  public Double getPercentageOriginalRows(Union rel) {
+  public Double getPercentageOriginalRows(Union rel, RelMetadataQuery mq) {
     double numerator = 0.0;
     double denominator = 0.0;
 
@@ -77,9 +75,8 @@ public class RelMdPercentageOriginalRows {
     // case where a huge table has been completely filtered away.
 
     for (RelNode input : rel.getInputs()) {
-      double rowCount = RelMetadataQuery.getRowCount(input);
-      double percentage =
-          RelMetadataQuery.getPercentageOriginalRows(input);
+      double rowCount = mq.getRowCount(input);
+      double percentage = mq.getPercentageOriginalRows(input);
       if (percentage != 0.0) {
         denominator += rowCount / percentage;
         numerator += rowCount;
@@ -89,7 +86,7 @@ public class RelMdPercentageOriginalRows {
     return quotientForPercentage(numerator, denominator);
   }
 
-  public Double getPercentageOriginalRows(Join rel) {
+  public Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
     // Assume any single-table filter conditions have already
     // been pushed down.
 
@@ -98,16 +95,13 @@ public class RelMdPercentageOriginalRows {
 
     // REVIEW jvs 28-Mar-2006:  need any special casing for SemiJoin?
 
-    double left = RelMetadataQuery.getPercentageOriginalRows(rel.getLeft());
-
-    double right =
-        RelMetadataQuery.getPercentageOriginalRows(rel.getRight());
-
+    double left = mq.getPercentageOriginalRows(rel.getLeft());
+    double right = mq.getPercentageOriginalRows(rel.getRight());
     return left * right;
   }
 
   // Catch-all rule when none of the others apply.
-  public Double getPercentageOriginalRows(RelNode rel) {
+  public Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
     if (rel.getInputs().size() > 1) {
       // No generic formula available for multiple inputs.
       return null;
@@ -120,8 +114,7 @@ public class RelMdPercentageOriginalRows {
 
     RelNode child = rel.getInputs().get(0);
 
-    Double childPercentage =
-        RelMetadataQuery.getPercentageOriginalRows(child);
+    Double childPercentage = mq.getPercentageOriginalRows(child);
     if (childPercentage == null) {
       return null;
     }
@@ -130,9 +123,7 @@ public class RelMdPercentageOriginalRows {
     // filtering is the effect of single-table filters) with the percentage
     // filtering performed by the child.
     Double relPercentage =
-        quotientForPercentage(
-            RelMetadataQuery.getRowCount(rel),
-            RelMetadataQuery.getRowCount(child));
+        quotientForPercentage(mq.getRowCount(rel), mq.getRowCount(child));
     if (relPercentage == null) {
       return null;
     }
@@ -147,22 +138,23 @@ public class RelMdPercentageOriginalRows {
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getCumulativeCost(RelNode rel) {
-    RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
+  public RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+    RelOptCost cost = mq.getNonCumulativeCost(rel);
     List<RelNode> inputs = rel.getInputs();
     for (RelNode input : inputs) {
-      cost = cost.plus(RelMetadataQuery.getCumulativeCost(input));
+      cost = cost.plus(mq.getCumulativeCost(input));
     }
     return cost;
   }
 
-  public RelOptCost getCumulativeCost(EnumerableInterpreter rel) {
-    return RelMetadataQuery.getNonCumulativeCost(rel);
+  public RelOptCost getCumulativeCost(EnumerableInterpreter rel,
+      RelMetadataQuery mq) {
+    return mq.getNonCumulativeCost(rel);
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getNonCumulativeCost(RelNode rel) {
-    return rel.computeSelfCost(rel.getCluster().getPlanner());
+  public RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+    return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 
   private static Double quotientForPercentage(

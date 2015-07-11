@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
@@ -269,6 +270,10 @@ public class PlannerImpl implements Planner {
   public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) throws RelConversionException {
     ensure(State.STATE_5_CONVERTED);
+    rel.getCluster().setMetadataProvider(
+        new CachingRelMetadataProvider(
+            rel.getCluster().getMetadataProvider(),
+            rel.getCluster().getPlanner()));
     Program program = programs.get(ruleSetIndex);
     return program.run(planner, rel, requiredOutputTraits);
   }

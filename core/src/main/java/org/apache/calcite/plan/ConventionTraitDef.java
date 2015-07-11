@@ -18,6 +18,7 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -124,6 +125,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       RelNode rel,
       Convention toConvention,
       boolean allowInfiniteCostConverters) {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final ConversionData conversionData = getConversionData(planner);
 
     final Convention fromConvention = rel.getConvention();
@@ -139,7 +141,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       RelNode converted = rel;
       Convention previous = null;
       for (Convention arc : conversionPath) {
-        if (planner.getCost(converted).isInfinite()
+        if (planner.getCost(converted, mq).isInfinite()
             && !allowInfiniteCostConverters) {
           continue loop;
         }

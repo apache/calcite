@@ -53,14 +53,11 @@ public class RelMdColumnOrigins {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      Aggregate rel,
-      int iOutputColumn) {
+  public Set<RelColumnOrigin> getColumnOrigins(Aggregate rel,
+      RelMetadataQuery mq, int iOutputColumn) {
     if (iOutputColumn < rel.getGroupCount()) {
       // Group columns pass through directly.
-      return invokeGetColumnOrigins(
-          rel.getInput(),
-          iOutputColumn);
+      return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
     }
 
     if (rel.indicator) {
@@ -75,11 +72,10 @@ public class RelMdColumnOrigins {
         rel.getAggCallList().get(iOutputColumn
                 - rel.getGroupCount() - rel.getIndicatorCount());
 
-    Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
+    final Set<RelColumnOrigin> set = new HashSet<>();
     for (Integer iInput : call.getArgList()) {
       Set<RelColumnOrigin> inputSet =
-          invokeGetColumnOrigins(
-              rel.getInput(), iInput);
+          mq.getColumnOrigins(rel.getInput(), iInput);
       inputSet = createDerivedColumnOrigins(inputSet);
       if (inputSet != null) {
         set.addAll(inputSet);
@@ -88,25 +84,18 @@ public class RelMdColumnOrigins {
     return set;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      Join rel,
+  public Set<RelColumnOrigin> getColumnOrigins(Join rel, RelMetadataQuery mq,
       int iOutputColumn) {
     int nLeftColumns = rel.getLeft().getRowType().getFieldList().size();
     Set<RelColumnOrigin> set;
     boolean derived = false;
     if (iOutputColumn < nLeftColumns) {
-      set =
-          invokeGetColumnOrigins(
-              rel.getLeft(),
-              iOutputColumn);
+      set = mq.getColumnOrigins(rel.getLeft(), iOutputColumn);
       if (rel.getJoinType().generatesNullsOnLeft()) {
         derived = true;
       }
     } else {
-      set =
-          invokeGetColumnOrigins(
-              rel.getRight(),
-              iOutputColumn - nLeftColumns);
+      set = mq.getColumnOrigins(rel.getRight(), iOutputColumn - nLeftColumns);
       if (rel.getJoinType().generatesNullsOnRight()) {
         derived = true;
       }
@@ -119,15 +108,11 @@ public class RelMdColumnOrigins {
     return set;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      SetOp rel,
-      int iOutputColumn) {
-    Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
+  public Set<RelColumnOrigin> getColumnOrigins(SetOp rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    final Set<RelColumnOrigin> set = new HashSet<>();
     for (RelNode input : rel.getInputs()) {
-      Set<RelColumnOrigin> inputSet =
-          invokeGetColumnOrigins(
-              input,
-              iOutputColumn);
+      Set<RelColumnOrigin> inputSet = mq.getColumnOrigins(input, iOutputColumn);
       if (inputSet == null) {
         return null;
       }
@@ -136,30 +121,25 @@ public class RelMdColumnOrigins {
     return set;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      Project rel,
-      int iOutputColumn) {
-    final RelNode child = rel.getInput();
+  public Set<RelColumnOrigin> getColumnOrigins(Project rel,
+      final RelMetadataQuery mq, int iOutputColumn) {
+    final RelNode input = rel.getInput();
     RexNode rexNode = rel.getProjects().get(iOutputColumn);
 
     if (rexNode instanceof RexInputRef) {
       // Direct reference:  no derivation added.
       RexInputRef inputRef = (RexInputRef) rexNode;
-      return invokeGetColumnOrigins(
-          child,
-          inputRef.getIndex());
+      return mq.getColumnOrigins(input, inputRef.getIndex());
     }
 
     // Anything else is a derivation, possibly from multiple
     // columns.
-    final Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
+    final Set<RelColumnOrigin> set = new HashSet<>();
     RexVisitor visitor =
         new RexVisitorImpl<Void>(true) {
           public Void visitInputRef(RexInputRef inputRef) {
             Set<RelColumnOrigin> inputSet =
-                invokeGetColumnOrigins(
-                    child,
-                    inputRef.getIndex());
+                mq.getColumnOrigins(input, inputRef.getIndex());
             if (inputSet != null) {
               set.addAll(inputSet);
             }
@@ -171,34 +151,24 @@ public class RelMdColumnOrigins {
     return createDerivedColumnOrigins(set);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      Filter rel,
-      int iOutputColumn) {
-    return invokeGetColumnOrigins(
-        rel.getInput(),
-        iOutputColumn);
+  public Set<RelColumnOrigin> getColumnOrigins(Filter rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      Sort rel,
+  public Set<RelColumnOrigin> getColumnOrigins(Sort rel, RelMetadataQuery mq,
       int iOutputColumn) {
-    return invokeGetColumnOrigins(
-        rel.getInput(),
-        iOutputColumn);
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      Exchange rel,
-      int iOutputColumn) {
-    return invokeGetColumnOrigins(
-        rel.getInput(),
-        iOutputColumn);
+  public Set<RelColumnOrigin> getColumnOrigins(Exchange rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(
-      TableFunctionScan rel,
-      int iOutputColumn) {
-    Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
+  public Set<RelColumnOrigin> getColumnOrigins(TableFunctionScan rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    final Set<RelColumnOrigin> set = new HashSet<>();
     Set<RelColumnMapping> mappings = rel.getColumnMappings();
     if (mappings == null) {
       if (rel.getInputs().size() > 0) {
@@ -216,10 +186,9 @@ public class RelMdColumnOrigins {
       if (mapping.iOutputColumn != iOutputColumn) {
         continue;
       }
-      Set<RelColumnOrigin> origins =
-          invokeGetColumnOrigins(
-              rel.getInputs().get(mapping.iInputRel),
-              mapping.iInputColumn);
+      final RelNode input = rel.getInputs().get(mapping.iInputRel);
+      final int column = mapping.iInputColumn;
+      Set<RelColumnOrigin> origins = mq.getColumnOrigins(input, column);
       if (origins == null) {
         return null;
       }
@@ -232,9 +201,8 @@ public class RelMdColumnOrigins {
   }
 
   // Catch-all rule when none of the others apply.
-  public Set<RelColumnOrigin> getColumnOrigins(
-      RelNode rel,
-      int iOutputColumn) {
+  public Set<RelColumnOrigin> getColumnOrigins(RelNode rel,
+      RelMetadataQuery mq, int iOutputColumn) {
     // NOTE jvs 28-Mar-2006: We may get this wrong for a physical table
     // expression which supports projections.  In that case,
     // it's up to the plugin writer to override with the
@@ -245,7 +213,7 @@ public class RelMdColumnOrigins {
       return null;
     }
 
-    Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
+    final Set<RelColumnOrigin> set = new HashSet<>();
 
     RelOptTable table = rel.getTable();
     if (table == null) {
@@ -267,18 +235,12 @@ public class RelMdColumnOrigins {
     return set;
   }
 
-  protected Set<RelColumnOrigin> invokeGetColumnOrigins(
-      RelNode rel,
-      int iOutputColumn) {
-    return RelMetadataQuery.getColumnOrigins(rel, iOutputColumn);
-  }
-
   private Set<RelColumnOrigin> createDerivedColumnOrigins(
       Set<RelColumnOrigin> inputSet) {
     if (inputSet == null) {
       return null;
     }
-    Set<RelColumnOrigin> set = new HashSet<RelColumnOrigin>();
+    final Set<RelColumnOrigin> set = new HashSet<>();
     for (RelColumnOrigin rco : inputSet) {
       RelColumnOrigin derived =
           new RelColumnOrigin(

@@ -276,7 +276,7 @@ public abstract class Aggregate extends SingleRel {
     return pw;
   }
 
-  @Override public double getRows() {
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
     // Assume that each sort column has 50% of the value count.
     // Therefore one sort column has .5 * rowCount,
     // 2 sort columns give .75 * rowCount.
@@ -285,16 +285,17 @@ public abstract class Aggregate extends SingleRel {
     if (groupCount == 0) {
       return 1;
     } else {
-      double rowCount = super.getRows();
+      double rowCount = super.estimateRowCount(mq);
       rowCount *= 1.0 - Math.pow(.5, groupCount);
       return rowCount;
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
     // than what's currently in Join.
-    double rowCount = RelMetadataQuery.getRowCount(this);
+    double rowCount = mq.getRowCount(this);
     // Aggregates with more aggregate functions cost a bit more
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
     for (AggregateCall aggCall : aggCalls) {

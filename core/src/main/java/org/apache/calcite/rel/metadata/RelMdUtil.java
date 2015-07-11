@@ -26,11 +26,14 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlFunction;
@@ -77,13 +80,11 @@ public class RelMdUtil {
    * @param rel the semijoin of interest
    * @return constructed rexnode
    */
-  public static RexNode makeSemiJoinSelectivityRexNode(SemiJoin rel) {
+  public static RexNode makeSemiJoinSelectivityRexNode(RelMetadataQuery mq,
+      SemiJoin rel) {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     double selectivity =
-        computeSemiJoinSelectivity(
-            rel.getLeft(),
-            rel.getRight(),
-            rel);
+        computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(), rel);
     RexNode selec =
         rexBuilder.makeApproxLiteral(new BigDecimal(selectivity));
     return rexBuilder.makeCall(ARTIFICIAL_SELECTIVITY_FUNC, selec);
@@ -113,12 +114,10 @@ public class RelMdUtil {
    * @param rel semijoin rel
    * @return calculated selectivity
    */
-  public static double computeSemiJoinSelectivity(SemiJoin rel) {
-    return computeSemiJoinSelectivity(
-        rel.getLeft(),
-        rel.getRight(),
-        rel.getLeftKeys(),
-        rel.getRightKeys());
+  public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
+      SemiJoin rel) {
+    return computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(),
+        rel.getLeftKeys(), rel.getRightKeys());
   }
 
   /**
@@ -132,14 +131,9 @@ public class RelMdUtil {
    * @param rel     semijoin rel
    * @return calculated selectivity
    */
-  public static double computeSemiJoinSelectivity(
-      RelNode factRel,
-      RelNode dimRel,
-      SemiJoin rel) {
-    return computeSemiJoinSelectivity(
-        factRel,
-        dimRel,
-        rel.getLeftKeys(),
+  public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
+      RelNode factRel, RelNode dimRel, SemiJoin rel) {
+    return computeSemiJoinSelectivity(mq, factRel, dimRel, rel.getLeftKeys(),
         rel.getRightKeys());
   }
 
@@ -155,10 +149,8 @@ public class RelMdUtil {
    * @param dimKeyList  RHS keys used in the filter
    * @return calculated selectivity
    */
-  public static double computeSemiJoinSelectivity(
-      RelNode factRel,
-      RelNode dimRel,
-      List<Integer> factKeyList,
+  public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
+      RelNode factRel, RelNode dimRel, List<Integer> factKeyList,
       List<Integer> dimKeyList) {
     ImmutableBitSet.Builder factKeys = ImmutableBitSet.builder();
     for (int factCol : factKeyList) {
@@ -170,20 +162,19 @@ public class RelMdUtil {
     }
     final ImmutableBitSet dimKeys = dimKeyBuilder.build();
 
-    Double factPop =
-        RelMetadataQuery.getPopulationSize(factRel, factKeys.build());
+    Double factPop = mq.getPopulationSize(factRel, factKeys.build());
     if (factPop == null) {
       // use the dimension population if the fact population is
       // unavailable; since we're filtering the fact table, that's
       // the population we ideally want to use
-      factPop = RelMetadataQuery.getPopulationSize(dimRel, dimKeys);
+      factPop = mq.getPopulationSize(dimRel, dimKeys);
     }
 
     // if cardinality and population are available, use them; otherwise
     // use percentage original rows
     Double selectivity;
     Double dimCard =
-        RelMetadataQuery.getDistinctRowCount(
+        mq.getDistinctRowCount(
             dimRel,
             dimKeys,
             null);
@@ -194,7 +185,7 @@ public class RelMdUtil {
       }
       selectivity = dimCard / factPop;
     } else {
-      selectivity = RelMetadataQuery.getPercentageOriginalRows(dimRel);
+      selectivity = mq.getPercentageOriginalRows(dimRel);
     }
 
     if (selectivity == null) {
@@ -220,26 +211,24 @@ public class RelMdUtil {
    * @return true if bit mask represents a unique column set; false if not (or
    * if no metadata is available)
    */
-  public static boolean areColumnsDefinitelyUnique(
-      RelNode rel,
-      ImmutableBitSet colMask) {
-    Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask, false);
+  public static boolean areColumnsDefinitelyUnique(RelMetadataQuery mq,
+      RelNode rel, ImmutableBitSet colMask) {
+    Boolean b = mq.areColumnsUnique(rel, colMask, false);
     return b != null && b;
   }
 
-  public static Boolean areColumnsUnique(
-      RelNode rel,
+  public static Boolean areColumnsUnique(RelMetadataQuery mq, RelNode rel,
       List<RexInputRef> columnRefs) {
     ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
     for (RexInputRef columnRef : columnRefs) {
       colMask.set(columnRef.getIndex());
     }
-    return RelMetadataQuery.areColumnsUnique(rel, colMask.build());
+    return mq.areColumnsUnique(rel, colMask.build());
   }
 
-  public static boolean areColumnsDefinitelyUnique(RelNode rel,
-      List<RexInputRef> columnRefs) {
-    Boolean b = areColumnsUnique(rel, columnRefs);
+  public static boolean areColumnsDefinitelyUnique(RelMetadataQuery mq,
+      RelNode rel, List<RexInputRef> columnRefs) {
+    Boolean b = areColumnsUnique(mq, rel, columnRefs);
     return b != null && b;
   }
 
@@ -255,31 +244,29 @@ public class RelMdUtil {
    * @return true if bit mask represents a unique column set; false if not (or
    * if no metadata is available)
    */
-  public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(RelNode rel,
-      ImmutableBitSet colMask) {
-    Boolean b = RelMetadataQuery.areColumnsUnique(rel, colMask, true);
+  public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(
+      RelMetadataQuery mq, RelNode rel, ImmutableBitSet colMask) {
+    Boolean b = mq.areColumnsUnique(rel, colMask, true);
     if (b == null) {
       return false;
     }
     return b;
   }
 
-  public static Boolean areColumnsUniqueWhenNullsFiltered(
-      RelNode rel,
-      List<RexInputRef> columnRefs) {
+  public static Boolean areColumnsUniqueWhenNullsFiltered(RelMetadataQuery mq,
+      RelNode rel, List<RexInputRef> columnRefs) {
     ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
 
     for (RexInputRef columnRef : columnRefs) {
       colMask.set(columnRef.getIndex());
     }
 
-    return RelMetadataQuery.areColumnsUnique(rel, colMask.build(), true);
+    return mq.areColumnsUnique(rel, colMask.build(), true);
   }
 
   public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(
-      RelNode rel,
-      List<RexInputRef> columnRefs) {
-    Boolean b = areColumnsUniqueWhenNullsFiltered(rel, columnRefs);
+      RelMetadataQuery mq, RelNode rel, List<RexInputRef> columnRefs) {
+    Boolean b = areColumnsUniqueWhenNullsFiltered(mq, rel, columnRefs);
     if (b == null) {
       return false;
     }
@@ -476,9 +463,9 @@ public class RelMdUtil {
       RexBuilder rexBuilder,
       RexNode pred1,
       RexNode pred2) {
-    List<RexNode> list1 = RelOptUtil.conjunctions(pred1);
-    List<RexNode> list2 = RelOptUtil.conjunctions(pred2);
-    List<RexNode> minusList = new ArrayList<>();
+    final List<RexNode> list1 = RelOptUtil.conjunctions(pred1);
+    final List<RexNode> list2 = RelOptUtil.conjunctions(pred2);
+    final List<RexNode> minusList = new ArrayList<>();
 
     for (RexNode rex1 : list1) {
       boolean add = true;
@@ -550,14 +537,15 @@ public class RelMdUtil {
 
   /**
    * Computes the cardinality of a particular expression from the projection
-   * list
+   * list.
    *
    * @param rel  RelNode corresponding to the project
    * @param expr projection expression
    * @return cardinality
    */
-  public static Double cardOfProjExpr(Project rel, RexNode expr) {
-    return expr.accept(new CardOfProjExpr(rel));
+  public static Double cardOfProjExpr(RelMetadataQuery mq, Project rel,
+      RexNode expr) {
+    return expr.accept(new CardOfProjExpr(mq, rel));
   }
 
   /**
@@ -567,9 +555,8 @@ public class RelMdUtil {
    * @param groupKey keys to compute the population for
    * @return computed population size
    */
-  public static Double getJoinPopulationSize(
-      RelNode joinRel,
-      ImmutableBitSet groupKey) {
+  public static Double getJoinPopulationSize(RelMetadataQuery mq,
+      RelNode joinRel, ImmutableBitSet groupKey) {
     ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
     ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
     RelNode left = joinRel.getInputs().get(0);
@@ -577,23 +564,14 @@ public class RelMdUtil {
 
     // separate the mask into masks for the left and right
     RelMdUtil.setLeftRightBitmaps(
-        groupKey,
-        leftMask,
-        rightMask,
-        left.getRowType().getFieldCount());
+        groupKey, leftMask, rightMask, left.getRowType().getFieldCount());
 
     Double population =
         NumberUtil.multiply(
-            RelMetadataQuery.getPopulationSize(
-                left,
-                leftMask.build()),
-            RelMetadataQuery.getPopulationSize(
-                right,
-                rightMask.build()));
+            mq.getPopulationSize(left, leftMask.build()),
+            mq.getPopulationSize(right, rightMask.build()));
 
-    return RelMdUtil.numDistinctVals(
-        population,
-        RelMetadataQuery.getRowCount(joinRel));
+    return numDistinctVals(population, mq.getRowCount(joinRel));
   }
 
   /**
@@ -608,12 +586,9 @@ public class RelMdUtil {
    *                  otherwise use <code>left NDV * right NDV</code>.
    * @return number of distinct rows
    */
-  public static Double getJoinDistinctRowCount(
-      RelNode joinRel,
-      JoinRelType joinType,
-      ImmutableBitSet groupKey,
-      RexNode predicate,
-      boolean useMaxNdv) {
+  public static Double getJoinDistinctRowCount(RelMetadataQuery mq,
+      RelNode joinRel, JoinRelType joinType, ImmutableBitSet groupKey,
+      RexNode predicate, boolean useMaxNdv) {
     Double distRowCount;
     ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
     ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
@@ -630,10 +605,10 @@ public class RelMdUtil {
     RexNode leftPred = null;
     RexNode rightPred = null;
     if (predicate != null) {
-      List<RexNode> leftFilters = new ArrayList<>();
-      List<RexNode> rightFilters = new ArrayList<>();
-      List<RexNode> joinFilters = new ArrayList<>();
-      List<RexNode> predList = RelOptUtil.conjunctions(predicate);
+      final List<RexNode> leftFilters = new ArrayList<>();
+      final List<RexNode> rightFilters = new ArrayList<>();
+      final List<RexNode> joinFilters = new ArrayList<>();
+      final List<RexNode> predList = RelOptUtil.conjunctions(predicate);
 
       RelOptUtil.classifyFilters(
           joinRel,
@@ -655,35 +630,35 @@ public class RelMdUtil {
 
     if (useMaxNdv) {
       distRowCount = Math.max(
-          RelMetadataQuery.getDistinctRowCount(left, leftMask.build(),
-              leftPred),
-          RelMetadataQuery.getDistinctRowCount(right, rightMask.build(),
-              rightPred));
+          mq.getDistinctRowCount(left, leftMask.build(), leftPred),
+          mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     } else {
       distRowCount =
         NumberUtil.multiply(
-            RelMetadataQuery.getDistinctRowCount(
-                left,
-                leftMask.build(),
-                leftPred),
-            RelMetadataQuery.getDistinctRowCount(
-                right,
-                rightMask.build(),
-                rightPred));
+            mq.getDistinctRowCount(left, leftMask.build(), leftPred),
+            mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     }
 
-    return RelMdUtil.numDistinctVals(
-        distRowCount,
-        RelMetadataQuery.getRowCount(joinRel));
+    return RelMdUtil.numDistinctVals(distRowCount, mq.getRowCount(joinRel));
+  }
+
+  /** Returns an estimate of the number of rows returned by a {@link Union}
+   * (before duplicates are eliminated). */
+  public static double getUnionAllRowCount(RelMetadataQuery mq, Union rel) {
+    double rowCount = 0;
+    for (RelNode input : rel.getInputs()) {
+      rowCount += mq.getRowCount(input);
+    }
+    return rowCount;
   }
 
   /** Returns an estimate of the number of rows returned by a {@link Minus}. */
-  public static double getMinusRowCount(Minus minus) {
+  public static double getMinusRowCount(RelMetadataQuery mq, Minus minus) {
     // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
     final List<RelNode> inputs = minus.getInputs();
-    double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
+    double dRows = mq.getRowCount(inputs.get(0));
     for (int i = 1; i < inputs.size(); i++) {
-      dRows -= 0.5 * RelMetadataQuery.getRowCount(inputs.get(i));
+      dRows -= 0.5 * mq.getRowCount(inputs.get(i));
     }
     if (dRows < 0) {
       dRows = 0;
@@ -692,16 +667,17 @@ public class RelMdUtil {
   }
 
   /** Returns an estimate of the number of rows returned by a {@link Join}. */
-  public static Double getJoinRowCount(Join join, RexNode condition) {
+  public static Double getJoinRowCount(RelMetadataQuery mq, Join join,
+      RexNode condition) {
     // Row count estimates of 0 will be rounded up to 1.
     // So, use maxRowCount where the product is very small.
-    final Double left = RelMetadataQuery.getRowCount(join.getLeft());
-    final Double right = RelMetadataQuery.getRowCount(join.getRight());
+    final Double left = mq.getRowCount(join.getLeft());
+    final Double right = mq.getRowCount(join.getRight());
     if (left == null || right == null) {
       return null;
     }
     if (left <= 1D || right <= 1D) {
-      Double max = RelMetadataQuery.getMaxRowCount(join);
+      Double max = mq.getMaxRowCount(join);
       if (max != null && max <= 1D) {
         return max;
       }
@@ -709,19 +685,38 @@ public class RelMdUtil {
     double product = left * right;
 
     // TODO:  correlation factor
-    return product * RelMetadataQuery.getSelectivity(join, condition);
+    return product * mq.getSelectivity(join, condition);
   }
 
   /** Returns an estimate of the number of rows returned by a
    * {@link SemiJoin}. */
-  public static Double getSemiJoinRowCount(RelNode left, RelNode right,
-      JoinRelType joinType, RexNode condition) {
+  public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
+      RelNode right, JoinRelType joinType, RexNode condition) {
     // TODO:  correlation factor
-    final Double leftCount = RelMetadataQuery.getRowCount(left);
+    final Double leftCount = mq.getRowCount(left);
     if (leftCount == null) {
       return null;
     }
     return leftCount * RexUtil.getSelectivity(condition);
+  }
+
+  public static double estimateFilteredRows(RelNode child, RexProgram program,
+      RelMetadataQuery mq) {
+    // convert the program's RexLocalRef condition to an expanded RexNode
+    RexLocalRef programCondition = program.getCondition();
+    RexNode condition;
+    if (programCondition == null) {
+      condition = null;
+    } else {
+      condition = program.expandLocalRef(programCondition);
+    }
+    return estimateFilteredRows(child, condition, mq);
+  }
+
+  public static double estimateFilteredRows(RelNode child, RexNode condition,
+      RelMetadataQuery mq) {
+    return mq.getRowCount(child)
+        * mq.getSelectivity(child, condition);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -729,10 +724,12 @@ public class RelMdUtil {
   /** Visitor that walks over a scalar expression and computes the
    * cardinality of its result. */
   private static class CardOfProjExpr extends RexVisitorImpl<Double> {
+    private final RelMetadataQuery mq;
     private Project rel;
 
-    public CardOfProjExpr(Project rel) {
+    public CardOfProjExpr(RelMetadataQuery mq, Project rel) {
       super(true);
+      this.mq = mq;
       this.rel = rel;
     }
 
@@ -740,57 +737,45 @@ public class RelMdUtil {
       int index = var.getIndex();
       ImmutableBitSet col = ImmutableBitSet.of(index);
       Double distinctRowCount =
-          RelMetadataQuery.getDistinctRowCount(
-              rel.getInput(),
-              col,
-              null);
+          mq.getDistinctRowCount(rel.getInput(), col, null);
       if (distinctRowCount == null) {
         return null;
       } else {
-        return RelMdUtil.numDistinctVals(
-            distinctRowCount,
-            RelMetadataQuery.getRowCount(rel));
+        return numDistinctVals(distinctRowCount, mq.getRowCount(rel));
       }
     }
 
     public Double visitLiteral(RexLiteral literal) {
-      return RelMdUtil.numDistinctVals(
-          1.0,
-          RelMetadataQuery.getRowCount(rel));
+      return numDistinctVals(1.0, mq.getRowCount(rel));
     }
 
     public Double visitCall(RexCall call) {
       Double distinctRowCount;
-      Double rowCount = RelMetadataQuery.getRowCount(rel);
+      Double rowCount = mq.getRowCount(rel);
       if (call.isA(SqlKind.MINUS_PREFIX)) {
-        distinctRowCount =
-            cardOfProjExpr(rel, call.getOperands().get(0));
+        distinctRowCount = cardOfProjExpr(mq, rel, call.getOperands().get(0));
       } else if (call.isA(ImmutableList.of(SqlKind.PLUS, SqlKind.MINUS))) {
-        Double card0 = cardOfProjExpr(rel, call.getOperands().get(0));
+        Double card0 = cardOfProjExpr(mq, rel, call.getOperands().get(0));
         if (card0 == null) {
           return null;
         }
-        Double card1 = cardOfProjExpr(rel, call.getOperands().get(1));
+        Double card1 = cardOfProjExpr(mq, rel, call.getOperands().get(1));
         if (card1 == null) {
           return null;
         }
         distinctRowCount = Math.max(card0, card1);
-      } else if (call.isA(
-          ImmutableList.of(SqlKind.TIMES, SqlKind.DIVIDE))) {
+      } else if (call.isA(ImmutableList.of(SqlKind.TIMES, SqlKind.DIVIDE))) {
         distinctRowCount =
             NumberUtil.multiply(
-                cardOfProjExpr(rel, call.getOperands().get(0)),
-                cardOfProjExpr(rel, call.getOperands().get(1)));
+                cardOfProjExpr(mq, rel, call.getOperands().get(0)),
+                cardOfProjExpr(mq, rel, call.getOperands().get(1)));
 
         // TODO zfong 6/21/06 - Broadbase has code to handle date
         // functions like year, month, day; E.g., cardinality of Month()
         // is 12
       } else {
         if (call.getOperands().size() == 1) {
-          distinctRowCount =
-              cardOfProjExpr(
-                  rel,
-                  call.getOperands().get(0));
+          distinctRowCount = cardOfProjExpr(mq, rel, call.getOperands().get(0));
         } else {
           distinctRowCount = rowCount / 10;
         }
@@ -805,13 +790,11 @@ public class RelMdUtil {
    *
    * <p>If this is the case, it is safe to push down a
    * {@link org.apache.calcite.rel.core.Sort} with limit and optional offset. */
-  public static boolean checkInputForCollationAndLimit(RelNode input,
-      RelCollation collation, RexNode offset, RexNode fetch) {
+  public static boolean checkInputForCollationAndLimit(RelMetadataQuery mq,
+      RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     // Check if the input is already sorted
-    ImmutableList<RelCollation> inputCollations =
-        RelMetadataQuery.collations(input);
     boolean alreadySorted = false;
-    for (RelCollation inputCollation : inputCollations) {
+    for (RelCollation inputCollation : mq.collations(input)) {
       if (inputCollation.satisfies(collation)) {
         alreadySorted = true;
         break;
@@ -819,7 +802,7 @@ public class RelMdUtil {
     }
     // Check if we are not reducing the number of tuples
     boolean alreadySmaller = true;
-    final Double rowCount = RelMetadataQuery.getMaxRowCount(input);
+    final Double rowCount = mq.getMaxRowCount(input);
     if (rowCount != null && fetch != null) {
       final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
       final int limit = RexLiteral.intValue(fetch);

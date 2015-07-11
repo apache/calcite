@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -64,12 +65,24 @@ import java.util.Set;
  * custom providers for the standard queries in order to handle additional
  * relational expressions (either logical or physical). In either case, the
  * process is the same: write a reflective provider and chain it on to an
- * instance of {@link DefaultRelMetadataProvider}, prepending it to the default
+ * instance of {@link DefaultRelMetadataProvider}, pre-pending it to the default
  * providers. Then supply that instance to the planner via the appropriate
  * plugin mechanism.
  */
 public abstract class RelMetadataQuery {
+  /** Set of active metadata queries. */
+  public final Set<List> set = new HashSet<>();
+
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns an instance of RelMetadataQuery. It ensures that cycles do not
+   * occur while computing metadata.
+   */
+  public static RelMetadataQuery instance() {
+    return new RelMetadataQuery() {
+    };
+  }
 
   /**
    * Returns the
@@ -80,9 +93,9 @@ public abstract class RelMetadataQuery {
    * @return estimated row count, or null if no reliable estimate can be
    * determined
    */
-  public static Double getRowCount(RelNode rel) {
+  public Double getRowCount(RelNode rel) {
     final BuiltInMetadata.RowCount metadata =
-        rel.metadata(BuiltInMetadata.RowCount.class);
+        rel.metadata(BuiltInMetadata.RowCount.class, this);
     Double result = metadata.getRowCount();
     return validateResult(result);
   }
@@ -95,9 +108,9 @@ public abstract class RelMetadataQuery {
    * @param rel the relational expression
    * @return max row count
    */
-  public static Double getMaxRowCount(RelNode rel) {
+  public Double getMaxRowCount(RelNode rel) {
     final BuiltInMetadata.MaxRowCount metadata =
-        rel.metadata(BuiltInMetadata.MaxRowCount.class);
+        rel.metadata(BuiltInMetadata.MaxRowCount.class, this);
     return metadata.getMaxRowCount();
   }
 
@@ -109,9 +122,9 @@ public abstract class RelMetadataQuery {
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
-  public static RelOptCost getCumulativeCost(RelNode rel) {
+  public RelOptCost getCumulativeCost(RelNode rel) {
     final BuiltInMetadata.CumulativeCost metadata =
-        rel.metadata(BuiltInMetadata.CumulativeCost.class);
+        rel.metadata(BuiltInMetadata.CumulativeCost.class, this);
     return metadata.getCumulativeCost();
   }
 
@@ -123,9 +136,9 @@ public abstract class RelMetadataQuery {
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
-  public static RelOptCost getNonCumulativeCost(RelNode rel) {
+  public RelOptCost getNonCumulativeCost(RelNode rel) {
     final BuiltInMetadata.NonCumulativeCost metadata =
-        rel.metadata(BuiltInMetadata.NonCumulativeCost.class);
+        rel.metadata(BuiltInMetadata.NonCumulativeCost.class, this);
     return metadata.getNonCumulativeCost();
   }
 
@@ -138,9 +151,9 @@ public abstract class RelMetadataQuery {
    * @return estimated percentage (between 0.0 and 1.0), or null if no
    * reliable estimate can be determined
    */
-  public static Double getPercentageOriginalRows(RelNode rel) {
+  public Double getPercentageOriginalRows(RelNode rel) {
     final BuiltInMetadata.PercentageOriginalRows metadata =
-        rel.metadata(BuiltInMetadata.PercentageOriginalRows.class);
+        rel.metadata(BuiltInMetadata.PercentageOriginalRows.class, this);
     Double result = metadata.getPercentageOriginalRows();
     assert isPercentage(result, true);
     return result;
@@ -157,9 +170,9 @@ public abstract class RelMetadataQuery {
    * determined (whereas empty set indicates definitely no origin columns at
    * all)
    */
-  public static Set<RelColumnOrigin> getColumnOrigins(RelNode rel, int column) {
+  public Set<RelColumnOrigin> getColumnOrigins(RelNode rel, int column) {
     final BuiltInMetadata.ColumnOrigin metadata =
-        rel.metadata(BuiltInMetadata.ColumnOrigin.class);
+        rel.metadata(BuiltInMetadata.ColumnOrigin.class, this);
     return metadata.getColumnOrigins(column);
   }
 
@@ -176,7 +189,7 @@ public abstract class RelMetadataQuery {
    * @return the origin of a column provided it's a simple column; otherwise,
    * returns null
    */
-  public static RelColumnOrigin getColumnOrigin(RelNode rel, int column) {
+  public RelColumnOrigin getColumnOrigin(RelNode rel, int column) {
     final Set<RelColumnOrigin> origins = getColumnOrigins(rel, column);
     if (origins == null || origins.size() != 1) {
       return null;
@@ -193,12 +206,11 @@ public abstract class RelMetadataQuery {
    *
    * @return the table, if the RelNode is a simple table; otherwise null
    */
-  public static RelOptTable getTableOrigin(RelNode rel) {
+  public RelOptTable getTableOrigin(RelNode rel) {
     // Determine the simple origin of the first column in the
     // RelNode.  If it's simple, then that means that the underlying
     // table is also simple, even if the column itself is derived.
-    final Set<RelColumnOrigin> colOrigins =
-        getColumnOrigins(rel, 0);
+    final Set<RelColumnOrigin> colOrigins = getColumnOrigins(rel, 0);
     if (colOrigins == null || colOrigins.size() == 0) {
       return null;
     }
@@ -212,13 +224,13 @@ public abstract class RelMetadataQuery {
    *
    * @param rel       the relational expression
    * @param predicate predicate whose selectivity is to be estimated against
-   *                  rel's output
+   *                  {@code rel}'s output
    * @return estimated selectivity (between 0.0 and 1.0), or null if no
    * reliable estimate can be determined
    */
-  public static Double getSelectivity(RelNode rel, RexNode predicate) {
+  public Double getSelectivity(RelNode rel, RexNode predicate) {
     final BuiltInMetadata.Selectivity metadata =
-        rel.metadata(BuiltInMetadata.Selectivity.class);
+        rel.metadata(BuiltInMetadata.Selectivity.class, this);
     Double result = metadata.getSelectivity(predicate);
     assert isPercentage(result, true);
     return result;
@@ -233,9 +245,9 @@ public abstract class RelMetadataQuery {
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
-  public static Set<ImmutableBitSet> getUniqueKeys(RelNode rel) {
+  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel) {
     final BuiltInMetadata.UniqueKeys metadata =
-        rel.metadata(BuiltInMetadata.UniqueKeys.class);
+        rel.metadata(BuiltInMetadata.UniqueKeys.class, this);
     return metadata.getUniqueKeys(false);
   }
 
@@ -247,13 +259,14 @@ public abstract class RelMetadataQuery {
    * @param rel         the relational expression
    * @param ignoreNulls if true, ignore null values when determining
    *                    whether the keys are unique
+   *
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
-  public static Set<ImmutableBitSet> getUniqueKeys(RelNode rel,
+  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel,
       boolean ignoreNulls) {
     final BuiltInMetadata.UniqueKeys metadata =
-        rel.metadata(BuiltInMetadata.UniqueKeys.class);
+        rel.metadata(BuiltInMetadata.UniqueKeys.class, this);
     return metadata.getUniqueKeys(ignoreNulls);
   }
 
@@ -264,12 +277,13 @@ public abstract class RelMetadataQuery {
    * statistic over all columns.
    *
    * @param rel     the relational expression
+   *
    * @return true or false depending on whether the rows are unique, or
    * null if not enough information is available to make that determination
    */
-  public static Boolean areRowsUnique(RelNode rel) {
+  public Boolean areRowsUnique(RelNode rel) {
     final BuiltInMetadata.ColumnUniqueness metadata =
-        rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
+        rel.metadata(BuiltInMetadata.ColumnUniqueness.class, this);
     final ImmutableBitSet columns =
         ImmutableBitSet.range(rel.getRowType().getFieldCount());
     return metadata.areColumnsUnique(columns, false);
@@ -277,24 +291,25 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(ImmutableBitSet, boolean)}
    * statistic.
    *
    * @param rel     the relational expression
    * @param columns column mask representing the subset of columns for which
    *                uniqueness will be determined
+   *
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public static Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns) {
+  public Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns) {
     final BuiltInMetadata.ColumnUniqueness metadata =
-        rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
+        rel.metadata(BuiltInMetadata.ColumnUniqueness.class, this);
     return metadata.areColumnsUnique(columns, false);
   }
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(ImmutableBitSet, boolean)}
    * statistic.
    *
    * @param rel         the relational expression
@@ -305,46 +320,46 @@ public abstract class RelMetadataQuery {
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public static Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns,
+  public Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns,
       boolean ignoreNulls) {
     final BuiltInMetadata.ColumnUniqueness metadata =
-        rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
+        rel.metadata(BuiltInMetadata.ColumnUniqueness.class, this);
     return metadata.areColumnsUnique(columns, ignoreNulls);
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Collation#collations()}
+   * {@link BuiltInMetadata.Collation#collations()}
    * statistic.
    *
    * @param rel         the relational expression
    * @return List of sorted column combinations, or
    * null if not enough information is available to make that determination
    */
-  public static ImmutableList<RelCollation> collations(RelNode rel) {
+  public ImmutableList<RelCollation> collations(RelNode rel) {
     final BuiltInMetadata.Collation metadata =
-        rel.metadata(BuiltInMetadata.Collation.class);
+        rel.metadata(BuiltInMetadata.Collation.class, this);
     return metadata.collations();
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution#distribution()}
+   * {@link BuiltInMetadata.Distribution#distribution()}
    * statistic.
    *
    * @param rel         the relational expression
    * @return List of sorted column combinations, or
    * null if not enough information is available to make that determination
    */
-  public static RelDistribution distribution(RelNode rel) {
+  public RelDistribution distribution(RelNode rel) {
     final BuiltInMetadata.Distribution metadata =
-        rel.metadata(BuiltInMetadata.Distribution.class);
+        rel.metadata(BuiltInMetadata.Distribution.class, this);
     return metadata.distribution();
   }
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.PopulationSize#getPopulationSize(org.apache.calcite.util.ImmutableBitSet)}
+   * {@link BuiltInMetadata.PopulationSize#getPopulationSize(ImmutableBitSet)}
    * statistic.
    *
    * @param rel      the relational expression
@@ -354,31 +369,31 @@ public abstract class RelMetadataQuery {
    * estimate can be determined
    *
    */
-  public static Double getPopulationSize(RelNode rel,
+  public Double getPopulationSize(RelNode rel,
       ImmutableBitSet groupKey) {
     final BuiltInMetadata.PopulationSize metadata =
-        rel.metadata(BuiltInMetadata.PopulationSize.class);
+        rel.metadata(BuiltInMetadata.PopulationSize.class, this);
     Double result = metadata.getPopulationSize(groupKey);
     return validateResult(result);
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size#averageRowSize()}
+   * {@link BuiltInMetadata.Size#averageRowSize()}
    * statistic.
    *
    * @param rel      the relational expression
    * @return average size of a row, in bytes, or null if not known
      */
-  public static Double getAverageRowSize(RelNode rel) {
+  public Double getAverageRowSize(RelNode rel) {
     final BuiltInMetadata.Size metadata =
-        rel.metadata(BuiltInMetadata.Size.class);
+        rel.metadata(BuiltInMetadata.Size.class, this);
     return metadata.averageRowSize();
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size#averageColumnSizes()}
+   * {@link BuiltInMetadata.Size#averageColumnSizes()}
    * statistic.
    *
    * @param rel      the relational expression
@@ -386,17 +401,17 @@ public abstract class RelMetadataQuery {
    * value, in bytes. Each value or the entire list may be null if the
    * metadata is not available
    */
-  public static List<Double> getAverageColumnSizes(RelNode rel) {
+  public List<Double> getAverageColumnSizes(RelNode rel) {
     final BuiltInMetadata.Size metadata =
-        rel.metadata(BuiltInMetadata.Size.class);
+        rel.metadata(BuiltInMetadata.Size.class, this);
     return metadata.averageColumnSizes();
   }
 
   /** As {@link #getAverageColumnSizes(org.apache.calcite.rel.RelNode)} but
    * never returns a null list, only ever a list of nulls. */
-  public static List<Double> getAverageColumnSizesNotNull(RelNode rel) {
+  public List<Double> getAverageColumnSizesNotNull(RelNode rel) {
     final BuiltInMetadata.Size metadata =
-        rel.metadata(BuiltInMetadata.Size.class);
+        rel.metadata(BuiltInMetadata.Size.class, this);
     final List<Double> averageColumnSizes = metadata.averageColumnSizes();
     return averageColumnSizes == null
         ? Collections.<Double>nCopies(rel.getRowType().getFieldCount(), null)
@@ -405,7 +420,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism#isPhaseTransition()}
+   * {@link BuiltInMetadata.Parallelism#isPhaseTransition()}
    * statistic.
    *
    * @param rel      the relational expression
@@ -413,29 +428,29 @@ public abstract class RelMetadataQuery {
    * expression belongs to a different process than its inputs, or null if not
    * known
    */
-  public static Boolean isPhaseTransition(RelNode rel) {
+  public Boolean isPhaseTransition(RelNode rel) {
     final BuiltInMetadata.Parallelism metadata =
-        rel.metadata(BuiltInMetadata.Parallelism.class);
+        rel.metadata(BuiltInMetadata.Parallelism.class, this);
     return metadata.isPhaseTransition();
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism#splitCount()}
+   * {@link BuiltInMetadata.Parallelism#splitCount()}
    * statistic.
    *
    * @param rel      the relational expression
    * @return the number of distinct splits of the data, or null if not known
    */
-  public static Integer splitCount(RelNode rel) {
+  public Integer splitCount(RelNode rel) {
     final BuiltInMetadata.Parallelism metadata =
-        rel.metadata(BuiltInMetadata.Parallelism.class);
+        rel.metadata(BuiltInMetadata.Parallelism.class, this);
     return metadata.splitCount();
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory#memory()}
+   * {@link BuiltInMetadata.Memory#memory()}
    * statistic.
    *
    * @param rel      the relational expression
@@ -443,15 +458,15 @@ public abstract class RelMetadataQuery {
    * operator implementing this relational expression, across all splits,
    * or null if not known
    */
-  public static Double memory(RelNode rel) {
+  public Double memory(RelNode rel) {
     final BuiltInMetadata.Memory metadata =
-        rel.metadata(BuiltInMetadata.Memory.class);
+        rel.metadata(BuiltInMetadata.Memory.class, this);
     return metadata.memory();
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory#cumulativeMemoryWithinPhase()}
+   * {@link BuiltInMetadata.Memory#cumulativeMemoryWithinPhase()}
    * statistic.
    *
    * @param rel      the relational expression
@@ -459,15 +474,15 @@ public abstract class RelMetadataQuery {
    * physical operator implementing this relational expression, and all other
    * operators within the same phase, across all splits, or null if not known
    */
-  public static Double cumulativeMemoryWithinPhase(RelNode rel) {
+  public Double cumulativeMemoryWithinPhase(RelNode rel) {
     final BuiltInMetadata.Memory metadata =
-        rel.metadata(BuiltInMetadata.Memory.class);
+        rel.metadata(BuiltInMetadata.Memory.class, this);
     return metadata.cumulativeMemoryWithinPhase();
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory#cumulativeMemoryWithinPhaseSplit()}
+   * {@link BuiltInMetadata.Memory#cumulativeMemoryWithinPhaseSplit()}
    * statistic.
    *
    * @param rel      the relational expression
@@ -475,15 +490,15 @@ public abstract class RelMetadataQuery {
    * the physical operator implementing this relational expression, and all
    * operators within the same phase, within each split, or null if not known
    */
-  public static Double cumulativeMemoryWithinPhaseSplit(RelNode rel) {
+  public Double cumulativeMemoryWithinPhaseSplit(RelNode rel) {
     final BuiltInMetadata.Memory metadata =
-        rel.metadata(BuiltInMetadata.Memory.class);
+        rel.metadata(BuiltInMetadata.Memory.class, this);
     return metadata.cumulativeMemoryWithinPhaseSplit();
   }
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(org.apache.calcite.util.ImmutableBitSet, org.apache.calcite.rex.RexNode)}
+   * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(ImmutableBitSet, RexNode)}
    * statistic.
    *
    * @param rel       the relational expression
@@ -492,27 +507,27 @@ public abstract class RelMetadataQuery {
    * @return distinct row count for groupKey, filtered by predicate, or null
    * if no reliable estimate can be determined
    */
-  public static Double getDistinctRowCount(
+  public Double getDistinctRowCount(
       RelNode rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
     final BuiltInMetadata.DistinctRowCount metadata =
-        rel.metadata(BuiltInMetadata.DistinctRowCount.class);
+        rel.metadata(BuiltInMetadata.DistinctRowCount.class, this);
     Double result = metadata.getDistinctRowCount(groupKey, predicate);
     return validateResult(result);
   }
 
   /**
    * Returns the
-   * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates#getPredicates()}
+   * {@link BuiltInMetadata.Predicates#getPredicates()}
    * statistic.
    *
    * @param rel the relational expression
    * @return Predicates that can be pulled above this RelNode
    */
-  public static RelOptPredicateList getPulledUpPredicates(RelNode rel) {
+  public RelOptPredicateList getPulledUpPredicates(RelNode rel) {
     final BuiltInMetadata.Predicates metadata =
-        rel.metadata(BuiltInMetadata.Predicates.class);
+        rel.metadata(BuiltInMetadata.Predicates.class, this);
     return metadata.getPredicates();
   }
 
@@ -526,10 +541,10 @@ public abstract class RelMetadataQuery {
    * @return true for visible, false for invisible; if no metadata is available,
    * defaults to true
    */
-  public static boolean isVisibleInExplain(RelNode rel,
+  public boolean isVisibleInExplain(RelNode rel,
       SqlExplainLevel explainLevel) {
     final BuiltInMetadata.ExplainVisibility metadata =
-        rel.metadata(BuiltInMetadata.ExplainVisibility.class);
+        rel.metadata(BuiltInMetadata.ExplainVisibility.class, this);
     Boolean b = metadata.isVisibleInExplain(explainLevel);
     return b == null || b;
   }

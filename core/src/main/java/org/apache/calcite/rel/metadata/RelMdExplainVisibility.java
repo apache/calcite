@@ -36,8 +36,14 @@ public class RelMdExplainVisibility {
 
   //~ Methods ----------------------------------------------------------------
 
-  // Catch-all rule when none of the others apply.
-  public Boolean isVisibleInExplain(RelNode rel, SqlExplainLevel explainLevel) {
+  /** Catch-all implementation for
+   * {@link BuiltInMetadata.ExplainVisibility#isVisibleInExplain(SqlExplainLevel)},
+   * invoked using reflection.
+   *
+   * @see org.apache.calcite.rel.metadata.RelMetadataQuery#isVisibleInExplain(RelNode, SqlExplainLevel)
+   */
+  public Boolean isVisibleInExplain(RelNode rel, RelMetadataQuery mq,
+      SqlExplainLevel explainLevel) {
     // no information available
     return null;
   }

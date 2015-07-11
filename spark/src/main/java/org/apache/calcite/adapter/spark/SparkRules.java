@@ -43,8 +43,8 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
@@ -271,15 +271,15 @@ public abstract class SparkRules {
       return program.explainCalc(super.explainTerms(pw));
     }
 
-    public double getRows() {
-      return LogicalFilter.estimateFilteredRows(getInput(), program);
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      double dRows = RelMetadataQuery.getRowCount(this);
-      double dCpu =
-          RelMetadataQuery.getRowCount(getInput())
-              * program.getExprCount();
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      double dRows = mq.getRowCount(this);
+      double dCpu = mq.getRowCount(getInput())
+          * program.getExprCount();
       double dIo = 0;
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
