@@ -138,7 +138,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.AND,
           28,
           true,
-          ReturnTypes.BOOLEAN_NULLABLE,
+          ReturnTypes.ARG0_NULLABLE, // more efficient than BOOLEAN_NULLABLE
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
 
@@ -427,7 +427,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OR,
           26,
           true,
-          ReturnTypes.BOOLEAN_NULLABLE,
+          ReturnTypes.ARG0_NULLABLE, // more efficient than BOOLEAN_NULLABLE
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
 
@@ -628,7 +628,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "NOT",
           SqlKind.NOT,
           30,
-          ReturnTypes.BOOLEAN_NULLABLE,
+          ReturnTypes.ARG0,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
 

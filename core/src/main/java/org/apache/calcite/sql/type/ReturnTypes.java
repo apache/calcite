@@ -95,16 +95,33 @@ public abstract class ReturnTypes {
    * returned type will also be nullable. First Arg must be of string type.
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE_VARYING =
-      cascade(
-          ARG0, SqlTypeTransforms.TO_NULLABLE,
+      cascade(ARG0, SqlTypeTransforms.TO_NULLABLE,
           SqlTypeTransforms.TO_VARYING);
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based). If any of the other operands are nullable the
    * returned type will also be nullable.
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE =
-      cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
+      new SqlReturnTypeInference() {
+        // Equivalent to
+        //   cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
+        // but implemented by hand because used in AND, which is a very common
+        // operator.
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final int n = opBinding.getOperandCount();
+          RelDataType type1 = null;
+          for (int i = 0; i < n; i++) {
+            type1 = opBinding.getOperandType(i);
+            if (type1.isNullable()) {
+              break;
+            }
+          }
+          return type1;
+        }
+      };
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based), with nulls always allowed.
