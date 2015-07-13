@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package plan;
-
-import org.apache.calcite.plan.SubstitutionVisitor;
+package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -30,11 +28,11 @@ import java.util.List;
 /**
  * Substitutes part of a tree of relational expressions with another tree.
  *
- * <p>The call {@code new SubstitutionVisitor(target, query).go(replacement))}
+ * <p>The call {@code new MaterializedSubstitutionVisitor(target, query).go(replacement))}
  * will return {@code query} with every occurrence of {@code target} replaced
  * by {@code replacement}.</p>
  *
- * <p>The following example shows how {@code SubstitutionVisitor} can be used
+ * <p>The following example shows how {@code MaterializedSubstitutionVisitor} can be used
  * for materialized view recognition.</p>
  *
  * <ul>
@@ -62,11 +60,13 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
     super(target_, query_);
-    this.unifyRules = ImmutableList.<UnifyRule>of(ProjectToProjectUnifyRule1.INSTANCE);
+    ImmutableList.Builder<UnifyRule> builder = new ImmutableList.Builder<UnifyRule>();
+    builder.addAll(this.unifyRules);
+    builder.add(ProjectToProjectUnifyRule1.INSTANCE);
+    this.unifyRules = builder.build();
   }
 
   public RelNode go(RelNode replacement_) {
-    this.RULE_MAP.clear();
     return super.go(replacement_);
   }
 
@@ -76,11 +76,11 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
   private static class ProjectToProjectUnifyRule1 extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule1 INSTANCE =
-            new ProjectToProjectUnifyRule1();
+        new ProjectToProjectUnifyRule1();
 
     private ProjectToProjectUnifyRule1() {
       super(operand(MutableProject.class, query(0)),
-              operand(MutableProject.class, target(0)), 1);
+          operand(MutableProject.class, target(0)), 1);
     }
 
     @Override
@@ -97,8 +97,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       }
 
       final MutableProject newProject =
-              MutableProject.of(
-                      query.getRowType(), call.target, newProjects);
+          MutableProject.of(
+              query.getRowType(), call.target, newProjects);
 
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
@@ -106,7 +106,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
     @Override
     protected UnifyRuleCall match(SubstitutionVisitor visitor, MutableRel query,
-                        MutableRel target) {
+        MutableRel target) {
       assert query instanceof MutableProject && target instanceof MutableProject;
 
       if (queryOperand.matches(visitor, query)) {
@@ -121,37 +121,41 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
             RexNode newCondition;
             try {
               newCondition = transformRex(innerFilter.getCondition(),
-                      innerFilter.getInput().getRowType().getFieldList(),
-                      target.getRowType().getFieldList());
+                  innerFilter.getInput().getRowType().getFieldList(),
+                  target.getRowType().getFieldList());
             } catch (MatchFailed e) {
               return null;
             }
             final MutableFilter newFilter = MutableFilter.of(target,
-                    newCondition);
+                newCondition);
 
             return visitor.new UnifyRuleCall(this, query, newFilter,
-                    copy(visitor.getSlots(), slotCount));
+                copy(visitor.getSlots(), slotCount));
           }
         }
       }
       return null;
     }
 
-    private RexNode transformRex(RexNode node, final List<RelDataTypeField> oldFields,
-                                       final List<RelDataTypeField> newFields) {
+    private RexNode transformRex(
+        RexNode node,
+        final List<RelDataTypeField> oldFields,
+        final List<RelDataTypeField> newFields) {
       List<RexNode> nodes = transformRex(ImmutableList.of(node), oldFields, newFields);
       return nodes.get(0);
     }
 
-    private List<RexNode> transformRex(List<RexNode> nodes, final List<RelDataTypeField> oldFields,
-                                       final List<RelDataTypeField> newFields) {
+    private List<RexNode> transformRex(
+        List<RexNode> nodes,
+        final List<RelDataTypeField> oldFields,
+        final List<RelDataTypeField> newFields) {
       RexShuttle shuttle = new RexShuttle() {
         @Override public RexNode visitInputRef(RexInputRef ref) {
           RelDataTypeField f = oldFields.get(ref.getIndex());
           for (int index = 0; index < newFields.size(); index++) {
             RelDataTypeField newf = newFields.get(index);
             if (f.getKey().equals(newf.getKey())
-                    && f.getValue() == newf.getValue()) {
+                && f.getValue() == newf.getValue()) {
               return new RexInputRef(index, f.getValue());
             }
           }
@@ -163,4 +167,4 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   }
 }
 
-// End SubstitutionVisitor.java
+// End MaterializedViewSubstitutionVisitor.java

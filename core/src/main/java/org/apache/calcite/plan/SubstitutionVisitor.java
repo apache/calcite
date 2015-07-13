@@ -147,7 +147,7 @@ public class SubstitutionVisitor {
 
   protected static List<UnifyRule> unifyRules;
 
-  protected static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
+  private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
       new HashMap<>();
 
   private final RelOptCluster cluster;
@@ -2003,7 +2003,9 @@ public class SubstitutionVisitor {
 
     public abstract boolean matches(SubstitutionVisitor visitor, MutableRel rel);
 
-    public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) { return false; }
+    public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) {
+      return false;
+    }
   }
 
   /** Operand to a {@link UnifyRule} that matches a relational expression of a
@@ -2023,7 +2025,7 @@ public class SubstitutionVisitor {
 
     @Override public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) {
       return clazz.isInstance(rel)
-              && allWeaker(visitor, inputs, rel.getInputs());
+          && allWeaker(visitor, inputs, rel.getInputs());
     }
     private static boolean allMatch(SubstitutionVisitor visitor,
         List<Operand> operands, List<MutableRel> rels) {
@@ -2038,8 +2040,9 @@ public class SubstitutionVisitor {
       return true;
     }
 
-    private static boolean allWeaker(SubstitutionVisitor visitor,
-                                    List<Operand> operands, List<MutableRel> rels) {
+    private static boolean allWeaker(
+        SubstitutionVisitor visitor,
+        List<Operand> operands, List<MutableRel> rels) {
       if (operands.size() != rels.size()) {
         return false;
       }
@@ -2111,7 +2114,7 @@ public class SubstitutionVisitor {
       }
 
       if (!(rel0 instanceof MutableFilter)
-              || !(rel instanceof MutableFilter)) {
+          || !(rel instanceof MutableFilter)) {
         return false;
       }
 
@@ -2122,17 +2125,18 @@ public class SubstitutionVisitor {
       final MutableRel rel0input = ((MutableFilter) rel0).getInput();
       final MutableRel relinput = ((MutableFilter) rel).getInput();
       if (rel0input != relinput
-              && !visitor.equivalents.get(rel0input).contains(relinput)) {
+          && !visitor.equivalents.get(rel0input).contains(relinput)) {
         return false;
       }
 
-      RexExecutorImpl rexImpl = (RexExecutorImpl) (rel.cluster.getPlanner().getExecutor());
-      plan.RexImplicationChecker rexImplicationChecker = new plan.RexImplicationChecker(
-              rel.cluster.getRexBuilder(),
-              rexImpl, rel.getRowType());
+      RexExecutorImpl rexImpl =
+          (RexExecutorImpl) (rel.cluster.getPlanner().getExecutor());
+      RexImplicationChecker rexImplicationChecker = new RexImplicationChecker(
+          rel.cluster.getRexBuilder(),
+          rexImpl, rel.getRowType());
 
       return rexImplicationChecker.implies(((MutableFilter) rel0).getCondition(),
-              ((MutableFilter) rel).getCondition());
+          ((MutableFilter) rel).getCondition());
     }
   }
 

@@ -23,6 +23,7 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.MaterializedViewSubstitutionVisitor;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
@@ -38,7 +39,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -105,8 +105,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import plan.MaterializedViewSubstitutionVisitor;
 
 import static org.apache.calcite.util.Stacks.peek;
 import static org.apache.calcite.util.Stacks.pop;
@@ -412,23 +410,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     hepPlanner.setRoot(root);
     root = hepPlanner.findBestExp();
 
-    RelNode newRoot = new SubstitutionVisitor(target, root)
-            .go(materialization.tableRel);
-
-    if (newRoot == null) {
-      return mvSubstitute(root, materialization, target);
-    } else {
-      RelNode newRoot2 = mvSubstitute(newRoot, materialization, target);
-      return (newRoot2 == null) ? newRoot : newRoot2;
-    }
-  }
-
-  private RelNode mvSubstitute(RelNode root, RelOptMaterialization materialization,
-                               RelNode target) {
     return new MaterializedViewSubstitutionVisitor(target, root)
-              .go(materialization.tableRel);
+            .go(materialization.tableRel);
   }
-
 
   private void useApplicableMaterializations() {
     // Avoid using materializations while populating materializations!

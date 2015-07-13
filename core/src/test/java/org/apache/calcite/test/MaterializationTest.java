@@ -179,7 +179,8 @@ public class MaterializationTest {
         + "from \"emps\" where \"deptno\" - 10 = 2",
         JdbcTest.HR_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[=($t0, $t3)], name=[$t2], E=[$t1], $condition=[$t4])\n"
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], "
+                + "expr#4=[=($t0, $t3)], name=[$t2], E=[$t1], $condition=[$t4])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]]"));
   }
 
@@ -212,7 +213,8 @@ public class MaterializationTest {
   @Test public void testFilterQueryOnFilterView2() {
     checkMaterialize(
         "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10",
-        "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10 and \"empid\" < 150");
+        "select \"empid\" + 1 as x, \"name\" from \"emps\" "
+            + "where \"deptno\" = 10 and \"empid\" < 150");
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is weaker in
@@ -220,11 +222,13 @@ public class MaterializationTest {
   @Ignore("not implemented")
   @Test public void testFilterQueryOnFilterView3() {
     checkMaterialize(
-        "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10 or \"deptno\" = 20 or \"empid\" < 160",
+        "select \"deptno\", \"empid\", \"name\" from \"emps\" "
+            + "where \"deptno\" = 10 or \"deptno\" = 20 or \"empid\" < 160",
         "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10",
         JdbcTest.HR_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], X=[$t4], name=[$t2], condition=?)\n"
+            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[1], "
+                + "expr#4=[+($t1, $t3)], X=[$t4], name=[$t2], condition=?)\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -248,7 +252,8 @@ public class MaterializationTest {
    * query and columns selected are subset of columns in materialized view */
   @Test public void testFilterQueryOnFilterView6() {
     checkMaterialize(
-            "select \"name\", \"deptno\", \"salary\" from \"emps\" where \"salary\" > 2000.5",
+            "select \"name\", \"deptno\", \"salary\" from \"emps\" "
+                + "where \"salary\" > 2000.5",
             "select \"name\" from \"emps\" where \"deptno\" > 30 and \"salary\" > 3000");
   }
 
@@ -258,11 +263,11 @@ public class MaterializationTest {
   @Test public void testFilterQueryOnFilterView7() {
     checkMaterialize(
             "select * from \"emps\" where "
-                    + "((\"salary\" < 1111.9 and \"deptno\" > 10)"
-                    + "or (\"empid\" > 400 and \"salary\" > 5000) "
-                    + "or \"salary\" > 500)",
+                + "((\"salary\" < 1111.9 and \"deptno\" > 10)"
+                + "or (\"empid\" > 400 and \"salary\" > 5000) "
+                + "or \"salary\" > 500)",
             "select \"name\" from \"emps\" where (\"salary\" > 1000 "
-                    + "or (\"deptno\" >= 30 and \"salary\" <= 500))");
+                + "or (\"deptno\" >= 30 and \"salary\" <= 500))");
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
@@ -280,11 +285,13 @@ public class MaterializationTest {
   @Test public void testFilterQueryOnFilterView9() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10",
-            "select \"name\", \"empid\" from \"emps\" where \"deptno\" > 30 or \"empid\" > 10",
+            "select \"name\", \"empid\" from \"emps\" "
+                + "where \"deptno\" > 30 or \"empid\" > 10",
             JdbcTest.HR_MODEL);
   }
-  /** As {@link #testFilterQueryOnFilterView()} but condition currently has unsupported type being checked on
-   * query.*/
+  /** As {@link #testFilterQueryOnFilterView()} but condition currently
+   * has unsupported type being checked on query.
+   */
   @Test public void testFilterQueryOnFilterView10() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10 "
@@ -306,8 +313,9 @@ public class MaterializationTest {
             JdbcTest.HR_MODEL);
   }
 
-  /** As {@link #testFilterQueryOnFilterView()} but condition of query is stronger but is
-   * on the column not present in MV (salary). */
+  /** As {@link #testFilterQueryOnFilterView()} but condition of
+   * query is stronger but is on the column not present in MV (salary).
+   */
   @Test public void testFilterQueryOnFilterView12() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"salary\" > 2000.5",
@@ -352,11 +360,13 @@ public class MaterializationTest {
    * COUNT is rolled up using SUM. */
   @Test public void testAggregateRollUp() {
     checkMaterialize(
-        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"empid\", \"deptno\"",
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" "
+            + "group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"",
         JdbcTest.HR_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], "
+                + "expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }

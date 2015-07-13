@@ -88,7 +88,7 @@ public class VisitorDataContext implements DataContext {
   }
 
   public static DataContext getDataContext(RelDataType rowType, List<Pair<RexInputRef,
-          RexNode>> usgList) {
+      RexNode>> usgList) {
     int size = rowType.getFieldList().size();
     Object[] values = new Object[size];
     for (Pair<RexInputRef, RexNode> elem: usgList) {
@@ -107,7 +107,7 @@ public class VisitorDataContext implements DataContext {
     literal = removeCast(literal);
 
     if (inputRef instanceof RexInputRef
-            && literal instanceof RexLiteral)  {
+        && literal instanceof RexLiteral)  {
       Integer index = ((RexInputRef) inputRef).getIndex();
       Object value = ((RexLiteral) literal).getValue();
       final RelDataType type = inputRef.getType();
@@ -121,27 +121,27 @@ public class VisitorDataContext implements DataContext {
       case DOUBLE:
         if (value instanceof BigDecimal) {
           return Pair.of(index,
-                  new Double(((BigDecimal) value).doubleValue()));
+              new Double(((BigDecimal) value).doubleValue()));
         }
       case REAL:
         if (value instanceof BigDecimal) {
           return Pair.of(index,
-                  new Float(((BigDecimal) value).floatValue()));
+              new Float(((BigDecimal) value).floatValue()));
         }
       case BIGINT:
         if (value instanceof BigDecimal) {
           return Pair.of(index,
-                  new Long(((BigDecimal) value).longValue()));
+              new Long(((BigDecimal) value).longValue()));
         }
       case SMALLINT:
         if (value instanceof BigDecimal) {
           return Pair.of(index,
-                  new Short(((BigDecimal) value).shortValue()));
+              new Short(((BigDecimal) value).shortValue()));
         }
       case TINYINT:
         if (value instanceof BigDecimal) {
           return Pair.of(index,
-                  new Short(((BigDecimal) value).byteValue()));
+              new Short(((BigDecimal) value).byteValue()));
         }
       case DECIMAL:
         if (value instanceof BigDecimal) {
