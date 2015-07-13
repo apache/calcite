@@ -88,7 +88,6 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
     final List<RexNode> conditions =
         RelOptUtil.conjunctions(filterRel.getCondition());
-    final ImmutableBitSet groupKeys = aggRel.getGroupSet();
     final RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
     final List<RelDataTypeField> origFields =
         aggRel.getRowType().getFieldList();
@@ -98,19 +97,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
     for (RexNode condition : conditions) {
       ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(condition);
-      boolean push = groupKeys.contains(rCols);
-      if (push && aggRel.indicator) {
-        // If grouping sets are used, the filter can be pushed if
-        // the columns referenced in the predicate are present in
-        // all the grouping sets.
-        for (ImmutableBitSet groupingSet: aggRel.getGroupSets()) {
-          if (!groupingSet.contains(rCols)) {
-            push = false;
-            break;
-          }
-        }
-      }
-      if (push) {
+      if (canPush(aggRel, rCols)) {
         pushedConditions.add(
             condition.accept(
                 new RelOptUtil.RexInputConverter(rexBuilder, origFields,
@@ -130,6 +117,27 @@ public class FilterAggregateTransposeRule extends RelOptRule {
     rel = aggRel.copy(aggRel.getTraitSet(), ImmutableList.of(rel));
     rel = builder.push(rel).filter(remainingConditions).build();
     call.transformTo(rel);
+  }
+
+  private boolean canPush(Aggregate aggregate, ImmutableBitSet rCols) {
+    // If the filter references columns not in the group key, we cannot push
+    final ImmutableBitSet groupKeys =
+        ImmutableBitSet.range(0, aggregate.getGroupSet().cardinality());
+    if (!groupKeys.contains(rCols)) {
+      return false;
+    }
+
+    if (aggregate.indicator) {
+      // If grouping sets are used, the filter can be pushed if
+      // the columns referenced in the predicate are present in
+      // all the grouping sets.
+      for (ImmutableBitSet groupingSet: aggregate.getGroupSets()) {
+        if (!groupingSet.contains(rCols)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }
 

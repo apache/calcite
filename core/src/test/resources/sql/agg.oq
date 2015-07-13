@@ -800,4 +800,44 @@ order by 1, 2;
 
 !ok
 
+# [CALCITE-799] Incorrect result for "HAVING count(*) > 1"
+select d.deptno, min(e.empid) as empid
+from (values (100, 'Bill', 1),
+             (200, 'Eric', 1),
+             (150, 'Sebastian', 3)) as e(empid, name, deptno)
+join (values (1, 'LeaderShip'),
+             (2, 'TestGroup'),
+             (3, 'Development')) as d(deptno, name)
+on e.deptno = d.deptno
+group by d.deptno
+having count(*) > 1;
++--------+-------+
+| DEPTNO | EMPID |
++--------+-------+
+|      1 |   100 |
++--------+-------+
+(1 row)
+
+!ok
+
+# Same, using USING (combining [CALCITE-799] and [CALCITE-801])
+select d.deptno, min(e.empid) as empid
+from (values (100, 'Bill', 1),
+             (200, 'Eric', 1),
+             (150, 'Sebastian', 3)) as e(empid, name, deptno)
+join (values (1, 'LeaderShip'),
+             (2, 'TestGroup'),
+             (3, 'Development')) as d(deptno, name)
+using (deptno)
+group by d.deptno
+having count(*) > 1;
++--------+-------+
+| DEPTNO | EMPID |
++--------+-------+
+|      1 |   100 |
++--------+-------+
+(1 row)
+
+!ok
+
 # End agg.oq
