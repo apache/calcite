@@ -126,12 +126,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public RelDataType createJoinType(RelDataType... types) {
     assert types != null;
     assert types.length >= 1;
-    final List<RelDataType> flattenedTypes =
-        getTypeArray(ImmutableList.copyOf(types));
+    final List<RelDataType> flattenedTypes = new ArrayList<>();
+    getTypeList(ImmutableList.copyOf(types), flattenedTypes);
     return canonize(
-        new RelCrossType(
-            flattenedTypes,
-            getFieldArray(flattenedTypes)));
+        new RelCrossType(flattenedTypes, getFieldList(flattenedTypes)));
   }
 
   // implement RelDataTypeFactory
@@ -359,11 +357,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * Returns an array of the fields in an array of types.
+   * Returns a list of the fields in a list of types.
    */
-  private static List<RelDataTypeField> getFieldArray(List<RelDataType> types) {
-    ArrayList<RelDataTypeField> fieldList =
-        new ArrayList<RelDataTypeField>();
+  private static List<RelDataTypeField> getFieldList(List<RelDataType> types) {
+    final List<RelDataTypeField> fieldList = new ArrayList<>();
     for (RelDataType type : types) {
       addFields(type, fieldList);
     }
@@ -371,20 +368,14 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * Returns an array of all atomic types in an array.
+   * Returns a list of all atomic types in a list.
    */
-  private static List<RelDataType> getTypeArray(List<RelDataType> types) {
-    List<RelDataType> flatTypes = new ArrayList<RelDataType>();
-    getTypeArray(types, flatTypes);
-    return flatTypes;
-  }
-
-  private static void getTypeArray(
-      List<RelDataType> inTypes,
+  private static void getTypeList(
+      ImmutableList<RelDataType> inTypes,
       List<RelDataType> flatTypes) {
     for (RelDataType inType : inTypes) {
       if (inType instanceof RelCrossType) {
-        getTypeArray(((RelCrossType) inType).types, flatTypes);
+        getTypeList(((RelCrossType) inType).types, flatTypes);
       } else {
         flatTypes.add(inType);
       }
@@ -392,11 +383,13 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * Adds all fields in <code>type</code> to <code>fieldList</code>.
+   * Adds all fields in <code>type</code> to <code>fieldList</code>,
+   * renumbering the fields (if necessary) to ensure that their index
+   * matches their position in the list.
    */
   private static void addFields(
       RelDataType type,
-      ArrayList<RelDataTypeField> fieldList) {
+      List<RelDataTypeField> fieldList) {
     if (type instanceof RelCrossType) {
       final RelCrossType crossType = (RelCrossType) type;
       for (RelDataType type1 : crossType.types) {
@@ -405,6 +398,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     } else {
       List<RelDataTypeField> fields = type.getFieldList();
       for (RelDataTypeField field : fields) {
+        if (field.getIndex() != fieldList.size()) {
+          field = new RelDataTypeFieldImpl(field.getName(), fieldList.size(),
+              field.getType());
+        }
         fieldList.add(field);
       }
     }
@@ -415,8 +412,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   private List<RelDataTypeFieldImpl> fieldsOf(Class clazz) {
-    final List<RelDataTypeFieldImpl> list =
-        new ArrayList<RelDataTypeFieldImpl>();
+    final List<RelDataTypeFieldImpl> list = new ArrayList<>();
     for (Field field : clazz.getFields()) {
       if (Modifier.isStatic(field.getModifiers())) {
         continue;
@@ -436,8 +432,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * implement RelDataTypeFactory with SQL 2003 compliant behavior. Let p1, s1
-   * be the precision and scale of the first operand Let p2, s2 be the
+   * {@inheritDoc}
+   *
+   * <p>Implement RelDataTypeFactory with SQL 2003 compliant behavior. Let p1,
+   * s1 be the precision and scale of the first operand Let p2, s2 be the
    * precision and scale of the second operand Let p, s be the precision and
    * scale of the result, Then the result type is a decimal with:
    *

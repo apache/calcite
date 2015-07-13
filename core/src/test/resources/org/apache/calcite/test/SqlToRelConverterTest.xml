@@ -2438,7 +2438,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
         <Resource name="sql">
             <![CDATA[select deptno
 from EMP
-where deptno > (select min(deptno) * 2 + 10 from EMP]]>
+where deptno > (select min(deptno) * 2 + 10 from EMP)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2508,7 +2508,7 @@ LogicalProject(DEPTNO=[$7])
 from emp
 group by deptno
 having sum(case when deptno in (1, 2) then 0 else 1 end) +
-sum(case when deptno in (3, 4) then 0 else 1 end) > 10)]]>
+sum(case when deptno in (3, 4) then 0 else 1 end) > 10]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2525,11 +2525,11 @@ LogicalProject(DEPTNO=[$0])
             <![CDATA[select sal
 from emp
 group by sal
-having sal in
-(select deptno
-from dept
-group by deptno
-having sum(deptno) > 0)]]>
+having sal in (
+  select deptno
+  from dept
+  group by deptno
+  having sum(deptno) > 0)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2633,9 +2633,10 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColu
     </TestCase>
     <TestCase name="testWindowAggWithGroupBy">
         <Resource name="sql">
-            <![CDATA[select min(deptno), rank() over (order by empno)
-            max(empno) over (partition by deptno)
-            from emp group by deptno, empno]]>
+            <![CDATA[select min(deptno), rank() over (order by empno),
+max(empno) over (partition by deptno)
+from emp group by deptno, empno
+]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2646,13 +2647,14 @@ LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
 ]]>
         </Resource>
     </TestCase>
-        <TestCase name="testWindowAggWithGroupByAndJoin">
+    <TestCase name="testWindowAggWithGroupByAndJoin">
         <Resource name="sql">
             <![CDATA[select min(d.deptno), rank() over (order by e.empno),
-            max(e.empno) over (partition by e.deptno)
-            from emp e, dept d
-            where e.deptno = d.deptno
-            group by d.deptno, e.empno, e.deptno]]>
+ max(e.empno) over (partition by e.deptno)
+from emp e, dept d
+where e.deptno = d.deptno
+group by d.deptno, e.empno, e.deptno
+]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2669,9 +2671,10 @@ LogicalProject(EXPR$0=[$3], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
     <TestCase name="testWindowAggWithGroupByAndHaving">
         <Resource name="sql">
             <![CDATA[select min(deptno), rank() over (order by empno),
-            max(empno) over (partition by deptno)
-            from emp group by deptno, empno
-            having empno < 10 and min(deptno) < 20]]>
+max(empno) over (partition by deptno)
+from emp group by deptno, empno
+having empno < 10 and min(deptno) < 20
+]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2684,14 +2687,14 @@ LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
         </Resource>
     </TestCase>
     <TestCase name="testWindowAggInSubqueryJoin">
-    <Resource name="sql">
-            <![CDATA[select T.x, T.y, T.z,
-        emp.empno from (select min(deptno) as x,
-        rank() over (order by empno) as y,
-        max(empno) over (partition by deptno) as z
-        from emp group by deptno, empno) as T
-        inner join emp on T.x = emp.deptno
-        and T.y = emp.empno]]>
+        <Resource name="sql">
+            <![CDATA[select T.x, T.y, T.z, emp.empno from (select min(deptno) as x,
+   rank() over (order by empno) as y,
+   max(empno) over (partition by deptno) as z
+   from emp group by deptno, empno) as T
+ inner join emp on T.x = emp.deptno
+ and T.y = emp.empno
+]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2702,6 +2705,24 @@ LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3])
         LogicalProject(DEPTNO=[$7], EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testValuesUsing">
+        <Resource name="sql">
+            <![CDATA[select d.deptno, min(e.empid) as empid
+from (values (100, 'Bill', 1)) as e(empid, name, deptno)
+join (values (1, 'LeaderShip')) as d(deptno, name)
+  using (deptno)
+group by d.deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EMPID=[MIN($1)])
+  LogicalProject(DEPTNO=[$3], EXPR$0=[$0])
+    LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+      LogicalValues(tuples=[[{ 100, 'Bill', 1 }]])
+      LogicalValues(tuples=[[{ 1, 'LeaderShip' }]])
 ]]>
         </Resource>
     </TestCase>

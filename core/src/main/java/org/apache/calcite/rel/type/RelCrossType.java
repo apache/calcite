@@ -44,7 +44,6 @@ public class RelCrossType extends RelDataTypeImpl {
       List<RelDataTypeField> fields) {
     super(fields);
     this.types = ImmutableList.copyOf(types);
-    assert types != null;
     assert types.size() >= 1;
     for (RelDataType type : types) {
       assert !(type instanceof RelCrossType);

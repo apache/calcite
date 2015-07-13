@@ -235,4 +235,24 @@ EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t2], DEPTNO0=[$t0])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+### [CALCITE-801] NullPointerException using USING on table alias with column aliases
+select *
+from (values (100, 'Bill', 1),
+             (200, 'Eric', 1),
+             (150, 'Sebastian', 3)) as e(empid, name, deptno)
+join (values (1, 'LeaderShip'),
+             (2, 'TestGroup'),
+             (3, 'Development')) as d(deptno, name)
+using (deptno);
++-------+-----------+--------+---------+-------------+
+| EMPID | NAME      | DEPTNO | DEPTNO0 | NAME0       |
++-------+-----------+--------+---------+-------------+
+|   100 | Bill      |      1 |       1 | LeaderShip  |
+|   150 | Sebastian |      3 |       3 | Development |
+|   200 | Eric      |      1 |       1 | LeaderShip  |
++-------+-----------+--------+---------+-------------+
+(3 rows)
+
+!ok
+
 # End join.oq
