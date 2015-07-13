@@ -223,4 +223,30 @@ window w1 as ();
 
 !ok
 
+# Window Aggregate and group-by.
+# (ORDER BY is necessary to work around [QUIDEM-7].)
+!set outputformat mysql
+select min(deptno) as x, rank() over (order by ename) as y,
+  max(ename) over (partition by deptno) as z
+from emp
+group by deptno, ename
+order by ename;
+
++----+---+-------+
+| X  | Y | Z     |
++----+---+-------+
+|    | 9 | Wilma |
+| 50 | 1 | Eve   |
+| 50 | 5 | Eve   |
+| 20 | 4 | Eric  |
+| 10 | 3 | Jane  |
+| 10 | 7 | Jane  |
+| 60 | 6 | Grace |
+| 30 | 2 | Susan |
+| 30 | 8 | Susan |
++----+---+-------+
+(9 rows)
+
+!ok
+
 # End winagg.oq

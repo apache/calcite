@@ -219,7 +219,7 @@ public class FlatLists {
    *
    * <p>The list is created via {@link FlatLists#of}.
    *
-   * @param <T>
+   * @param <T> Element type
    */
   protected static class Flat2List<T>
       extends AbstractFlatList<T>
@@ -346,7 +346,7 @@ public class FlatLists {
    *
    * <p>The list is created via {@link FlatLists#of(java.util.List)}.
    *
-   * @param <T>
+   * @param <T> Element type
    */
   protected static class Flat3List<T>
       extends AbstractFlatList<T>

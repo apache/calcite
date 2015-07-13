@@ -2631,4 +2631,78 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColu
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWindowAggWithGroupBy">
+        <Resource name="sql">
+            <![CDATA[select min(deptno), rank() over (order by empno)
+            max(empno) over (partition by deptno)
+            from emp group by deptno, empno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalAggregate(group=[{0, 1}], EXPR$0=[MIN($0)])
+    LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+        <TestCase name="testWindowAggWithGroupByAndJoin">
+        <Resource name="sql">
+            <![CDATA[select min(d.deptno), rank() over (order by e.empno),
+            max(e.empno) over (partition by e.deptno)
+            from emp e, dept d
+            where e.deptno = d.deptno
+            group by d.deptno, e.empno, e.deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$3], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[MAX($1) OVER (PARTITION BY $2 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalAggregate(group=[{0, 1, 2}], EXPR$0=[MIN($0)])
+    LogicalProject(DEPTNO0=[$9], EMPNO=[$0], DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, $9)])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWindowAggWithGroupByAndHaving">
+        <Resource name="sql">
+            <![CDATA[select min(deptno), rank() over (order by empno),
+            max(empno) over (partition by deptno)
+            from emp group by deptno, empno
+            having empno < 10 and min(deptno) < 20]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalFilter(condition=[AND(<($1, 10), <($2, 20))])
+    LogicalAggregate(group=[{0, 1}], EXPR$0=[MIN($0)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWindowAggInSubqueryJoin">
+    <Resource name="sql">
+            <![CDATA[select T.x, T.y, T.z,
+        emp.empno from (select min(deptno) as x,
+        rank() over (order by empno) as y,
+        max(empno) over (partition by deptno) as z
+        from emp group by deptno, empno) as T
+        inner join emp on T.x = emp.deptno
+        and T.y = emp.empno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3])
+  LogicalJoin(condition=[AND(=($0, $10), =($1, $3))], joinType=[inner])
+    LogicalProject(X=[$2], Y=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], Z=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+      LogicalAggregate(group=[{0, 1}], X=[MIN($0)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

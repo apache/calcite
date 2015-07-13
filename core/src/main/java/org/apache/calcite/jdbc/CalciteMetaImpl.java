@@ -344,6 +344,7 @@ public class CalciteMetaImpl extends MetaImpl {
         "ORDINAL_POSITION",
         "IS_NULLABLE",
         "SCOPE_CATALOG",
+        "SCOPE_SCHEMA",
         "SCOPE_TABLE",
         "SOURCE_DATA_TYPE",
         "IS_AUTOINCREMENT",
@@ -514,7 +515,7 @@ public class CalciteMetaImpl extends MetaImpl {
   public MetaResultSet getCatalogs() {
     return createResultSet(catalogs(),
         MetaCatalog.class,
-        "TABLE_CATALOG");
+        "TABLE_CAT");
   }
 
   public MetaResultSet getTableTypes() {

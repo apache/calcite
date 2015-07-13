@@ -2820,12 +2820,9 @@ public abstract class RelOptUtil {
    *
    * <p>Optimizes if the fields are the identity projection.
    *
-   * @param factory
-   *          ProjectFactory
-   * @param child
-   *          Input relational expression
-   * @param posList
-   *          Source of each projected field
+   * @param factory ProjectFactory
+   * @param child Input relational expression
+   * @param posList Source of each projected field
    * @return Relational expression that projects given fields
    */
   public static RelNode createProject(final RelFactories.ProjectFactory factory,

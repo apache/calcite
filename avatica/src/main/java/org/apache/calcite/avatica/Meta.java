@@ -52,11 +52,13 @@ public interface Meta {
    */
   Map<DatabaseProperty, Object> getDatabaseProperties();
 
+  /** Per {@link DatabaseMetaData#getTables(String, String, String, String[])}. */
   MetaResultSet getTables(String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       List<String> typeList);
 
+  /** Per {@link DatabaseMetaData#getColumns(String, String, String, String)}. */
   MetaResultSet getColumns(String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
@@ -64,42 +66,56 @@ public interface Meta {
 
   MetaResultSet getSchemas(String catalog, Pat schemaPattern);
 
+  /** Per {@link DatabaseMetaData#getCatalogs()}. */
   MetaResultSet getCatalogs();
 
+  /** Per {@link DatabaseMetaData#getTableTypes()}. */
   MetaResultSet getTableTypes();
 
+  /** Per {@link DatabaseMetaData#getProcedures(String, String, String)}. */
   MetaResultSet getProcedures(String catalog,
       Pat schemaPattern,
       Pat procedureNamePattern);
 
+  /** Per {@link DatabaseMetaData#getProcedureColumns(String, String, String, String)}. */
   MetaResultSet getProcedureColumns(String catalog,
       Pat schemaPattern,
       Pat procedureNamePattern,
       Pat columnNamePattern);
 
+  /** Per {@link DatabaseMetaData#getColumnPrivileges(String, String, String, String)}. */
   MetaResultSet getColumnPrivileges(String catalog,
       String schema,
       String table,
       Pat columnNamePattern);
 
+  /** Per {@link DatabaseMetaData#getTablePrivileges(String, String, String)}. */
   MetaResultSet getTablePrivileges(String catalog,
       Pat schemaPattern,
       Pat tableNamePattern);
 
+  /** Per
+   * {@link DatabaseMetaData#getBestRowIdentifier(String, String, String, int, boolean)}. */
   MetaResultSet getBestRowIdentifier(String catalog,
       String schema,
       String table,
       int scope,
       boolean nullable);
 
+  /** Per {@link DatabaseMetaData#getVersionColumns(String, String, String)}. */
   MetaResultSet getVersionColumns(String catalog, String schema, String table);
 
+  /** Per {@link DatabaseMetaData#getPrimaryKeys(String, String, String)}. */
   MetaResultSet getPrimaryKeys(String catalog, String schema, String table);
 
+  /** Per {@link DatabaseMetaData#getImportedKeys(String, String, String)}. */
   MetaResultSet getImportedKeys(String catalog, String schema, String table);
 
+  /** Per {@link DatabaseMetaData#getExportedKeys(String, String, String)}. */
   MetaResultSet getExportedKeys(String catalog, String schema, String table);
 
+  /** Per
+   * {@link DatabaseMetaData#getCrossReference(String, String, String, String, String, String)}. */
   MetaResultSet getCrossReference(String parentCatalog,
       String parentSchema,
       String parentTable,
@@ -107,43 +123,53 @@ public interface Meta {
       String foreignSchema,
       String foreignTable);
 
+  /** Per {@link DatabaseMetaData#getTypeInfo()}. */
   MetaResultSet getTypeInfo();
 
+  /** Per {@link DatabaseMetaData#getIndexInfo(String, String, String, boolean, boolean)}. */
   MetaResultSet getIndexInfo(String catalog,
       String schema,
       String table,
       boolean unique,
       boolean approximate);
 
+  /** Per {@link DatabaseMetaData#getUDTs(String, String, String, int[])}. */
   MetaResultSet getUDTs(String catalog,
       Pat schemaPattern,
       Pat typeNamePattern,
       int[] types);
 
+  /** Per {@link DatabaseMetaData#getSuperTypes(String, String, String)}. */
   MetaResultSet getSuperTypes(String catalog,
       Pat schemaPattern,
       Pat typeNamePattern);
 
+  /** Per {@link DatabaseMetaData#getSuperTables(String, String, String)}. */
   MetaResultSet getSuperTables(String catalog,
       Pat schemaPattern,
       Pat tableNamePattern);
 
+  /** Per {@link DatabaseMetaData#getAttributes(String, String, String, String)}. */
   MetaResultSet getAttributes(String catalog,
       Pat schemaPattern,
       Pat typeNamePattern,
       Pat attributeNamePattern);
 
+  /** Per {@link DatabaseMetaData#getClientInfoProperties()}. */
   MetaResultSet getClientInfoProperties();
 
+  /** Per {@link DatabaseMetaData#getFunctions(String, String, String)}. */
   MetaResultSet getFunctions(String catalog,
       Pat schemaPattern,
       Pat functionNamePattern);
 
+  /** Per {@link DatabaseMetaData#getFunctionColumns(String, String, String, String)}. */
   MetaResultSet getFunctionColumns(String catalog,
       Pat schemaPattern,
       Pat functionNamePattern,
       Pat columnNamePattern);
 
+  /** Per {@link DatabaseMetaData#getPseudoColumns(String, String, String, String)}. */
   MetaResultSet getPseudoColumns(String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,

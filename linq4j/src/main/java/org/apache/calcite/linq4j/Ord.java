@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.AbstractList;
 import java.util.Iterator;
 import java.util.List;
@@ -43,7 +45,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    * Creates an Ord.
    */
   public static <E> Ord<E> of(int n, E e) {
-    return new Ord<E>(n, e);
+    return new Ord<>(n, e);
   }
 
   /**
@@ -82,7 +84,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    * Returns a numbered list based on an array.
    */
   public static <E> List<Ord<E>> zip(final E[] elements) {
-    return new OrdArrayList<E>(elements);
+    return new OrdArrayList<>(elements);
   }
 
   /**
@@ -90,8 +92,47 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    */
   public static <E> List<Ord<E>> zip(final List<? extends E> elements) {
     return elements instanceof RandomAccess
-        ? new OrdRandomAccessList<E>(elements)
-        : new OrdList<E>(elements);
+        ? new OrdRandomAccessList<>(elements)
+        : new OrdList<>(elements);
+  }
+
+  /**
+   * Iterates over an array in reverse order.
+   *
+   * <p>Given the array ["a", "b", "c"], returns (2, "c") then (1, "b") then
+   * (0, "a").
+   */
+  public static <E> Iterable<Ord<E>> reverse(E... elements) {
+    return reverse(ImmutableList.copyOf(elements));
+  }
+
+  /**
+   * Iterates over a list in reverse order.
+   *
+   * <p>Given the list ["a", "b", "c"], returns (2, "c") then (1, "b") then
+   * (0, "a").
+   */
+  public static <E> Iterable<Ord<E>> reverse(Iterable<? extends E> elements) {
+    final ImmutableList<E> elementList = ImmutableList.copyOf(elements);
+    return new Iterable<Ord<E>>() {
+      public Iterator<Ord<E>> iterator() {
+        return new Iterator<Ord<E>>() {
+          int i = elementList.size() - 1;
+
+          public boolean hasNext() {
+            return i >= 0;
+          }
+
+          public Ord<E> next() {
+            return Ord.of(i, elementList.get(i--));
+          }
+
+          public void remove() {
+            throw new UnsupportedOperationException("remove");
+          }
+        };
+      }
+    };
   }
 
   public Integer getKey() {

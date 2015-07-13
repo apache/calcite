@@ -41,8 +41,10 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /** Tests covering {@link RemoteMeta}. */
@@ -98,7 +100,7 @@ public class RemoteMetaTest {
     Method m = AvaticaConnection.class.getDeclaredMethod("prepareAndExecuteInternal",
       AvaticaStatement.class, String.class, int.class);
     m.setAccessible(true);
-    return (Meta.ExecuteResult) m.invoke(conn, statement, sql, new Integer(maxRowCount));
+    return (Meta.ExecuteResult) m.invoke(conn, statement, sql, maxRowCount);
   }
 
   private static Connection getConnection(JdbcMeta m, String id) throws Exception {
@@ -126,6 +128,53 @@ public class RemoteMetaTest {
       statement.close();
       conn.close();
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-780">[CALCITE-780]
+   * HTTP error 413 when sending a long string to the Avatica server</a>. */
+  @Test public void testRemoteExecuteVeryLargeQuery() throws Exception {
+    // Before the bug was fixed, a value over 7998 caused an HTTP 413.
+    // 16K bytes, I guess.
+    checkLargeQuery(8);
+    checkLargeQuery(240);
+    checkLargeQuery(8000);
+    checkLargeQuery(240000);
+  }
+
+  private void checkLargeQuery(int n) throws Exception {
+    try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
+      final AvaticaStatement statement = conn.createStatement();
+      final String frenchDisko = "It said human existence is pointless\n"
+          + "As acts of rebellious solidarity\n"
+          + "Can bring sense in this world\n"
+          + "La resistance!\n";
+      final String sql = "select '"
+          + longString(frenchDisko, n)
+          + "' as s from (values 'x')";
+      prepareAndExecuteInternal(conn, statement, sql, -1);
+      ResultSet rs = statement.getResultSet();
+      int count = 0;
+      while (rs.next()) {
+        count++;
+      }
+      assertThat(count, is(1));
+      rs.close();
+      statement.close();
+      conn.close();
+    }
+  }
+
+  /** Creates a string of exactly {@code length} characters by concatenating
+   * {@code fragment}. */
+  private static String longString(String fragment, int length) {
+    assert fragment.length() > 0;
+    final StringBuilder buf = new StringBuilder();
+    while (buf.length() < length) {
+      buf.append(fragment);
+    }
+    buf.setLength(length);
+    return buf.toString();
   }
 
   @Test public void testRemoteConnectionProperties() throws Exception {

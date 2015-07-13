@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.avatica;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.AbstractList;
 import java.util.HashMap;
@@ -164,6 +167,20 @@ public class AvaticaUtils {
       throw new RuntimeException("Property '" + className
           + "' not valid for plugin type " + pluginClass.getName(), e);
     }
+  }
+
+  /** Reads the contents of an input stream and returns as a string. */
+  public static String readFully(InputStream inputStream) throws IOException {
+    final byte[] bytes = new byte[4096];
+    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    for (;;) {
+      int count = inputStream.read(bytes, 0, bytes.length);
+      if (count < 0) {
+        break;
+      }
+      baos.write(bytes, 0, count);
+    }
+    return baos.toString();
   }
 }
 
