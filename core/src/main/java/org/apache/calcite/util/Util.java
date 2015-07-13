@@ -21,10 +21,12 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -2173,6 +2175,21 @@ public class Util {
 
     public Object getNode() {
       return node;
+    }
+  }
+
+  /**
+   * Visitor which looks for an OVER clause inside a tree of
+   * {@link SqlNode} objects.
+   */
+  public static class OverFinder extends SqlBasicVisitor<Void> {
+    public static final OverFinder INSTANCE = new Util.OverFinder();
+
+    @Override public Void visit(SqlCall call) {
+      if (call.getKind() == SqlKind.OVER) {
+        throw FoundOne.NULL;
+      }
+      return super.visit(call);
     }
   }
 }

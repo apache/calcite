@@ -332,6 +332,12 @@ public interface CalciteResource {
   @BaseMessage("Window specification must contain an ORDER BY clause")
   ExInst<SqlValidatorException> overMissingOrderBy();
 
+  @BaseMessage("PARTITION BY expression should not contain OVER clause")
+  ExInst<SqlValidatorException> partitionbyShouldNotContainOver();
+
+  @BaseMessage("ORDER BY expression should not contain OVER clause")
+  ExInst<SqlValidatorException> orderbyShouldNotContainOver();
+
   @BaseMessage("UNBOUNDED FOLLOWING cannot be specified for the lower frame boundary")
   ExInst<SqlValidatorException> badLowerBoundary();
 

@@ -3801,6 +3801,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Test specified collation, window clause syntax rule 4,5.
   }
 
+  @Test public void testOverInPartitionBy() {
+    winSql(
+        "select sum(deptno) over ^(partition by sum(deptno) \n"
+        + "over(order by deptno))^ from emp")
+        .fails("PARTITION BY expression should not contain OVER clause");
+
+    winSql(
+        "select sum(deptno) over w \n"
+        + "from emp \n"
+        + "window w as ^(partition by sum(deptno) over(order by deptno))^")
+        .fails("PARTITION BY expression should not contain OVER clause");
+  }
+
+  @Test public void testOverInOrderBy() {
+    winSql(
+        "select sum(deptno) over ^(order by sum(deptno) \n"
+        + "over(order by deptno))^ from emp")
+        .fails("ORDER BY expression should not contain OVER clause");
+
+    winSql(
+        "select sum(deptno) over w \n"
+        + "from emp \n"
+        + "window w as ^(order by sum(deptno) over(order by deptno))^")
+        .fails("ORDER BY expression should not contain OVER clause");
+  }
+
   @Test public void testWindowFunctions() {
     // SQL 03 Section 6.10
 
@@ -3859,8 +3885,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
     winSql("select rank() over w2 from emp\n"
         + "window w as (partition by sal), w2 as (w order by deptno)").ok();
+
     // row_number function
     winExp("row_number() over (order by deptno)").ok();
+    winExp("row_number() over (partition by deptno)").ok();
+    winExp("row_number() over ()").ok();
+    winExp("row_number() over (order by deptno ^rows^ 2 preceding)")
+        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+    winExp("row_number() over (order by deptno ^range^ 2 preceding)")
+        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
 
     // rank function type
     if (defined.contains("DENSE_RANK")) {
@@ -4187,7 +4220,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'COMM' is not being grouped");
 
     // syntax rule 7
-    win("window w as (order by rank() over (order by sal))").ok();
+    win("window w as ^(order by rank() over (order by sal))^")
+        .fails("ORDER BY expression should not contain OVER clause");
 
     // ------------------------------------
     // ---- window frame between tests ----
