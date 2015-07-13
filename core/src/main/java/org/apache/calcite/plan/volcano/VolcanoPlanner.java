@@ -389,7 +389,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // the query in terms of the star table.
     if (materialization.starTable != null) {
       RelNode newRoot = RelOptMaterialization.tryUseStar(
-              root, materialization.starRelOptTable);
+          root, materialization.starRelOptTable);
       if (newRoot != null) {
         root = newRoot;
       }
