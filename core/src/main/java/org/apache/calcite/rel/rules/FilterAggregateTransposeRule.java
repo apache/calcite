@@ -131,7 +131,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       // If grouping sets are used, the filter can be pushed if
       // the columns referenced in the predicate are present in
       // all the grouping sets.
-      for (ImmutableBitSet groupingSet: aggregate.getGroupSets()) {
+      for (ImmutableBitSet groupingSet : aggregate.getGroupSets()) {
         if (!groupingSet.contains(rCols)) {
           return false;
         }

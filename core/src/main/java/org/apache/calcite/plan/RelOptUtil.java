@@ -1158,7 +1158,7 @@ public abstract class RelOptUtil {
             && kind != SqlKind.EQUALS
             && kind != SqlKind.IS_DISTINCT_FROM) {
           if (reverse) {
-            kind = reverse(kind);
+            kind = kind.reverse();
           }
           rangeOp.add(op(kind, call.getOperator()));
         }
@@ -1197,21 +1197,6 @@ public abstract class RelOptUtil {
           }
         },
         false);
-  }
-
-  public static SqlKind reverse(SqlKind kind) {
-    switch (kind) {
-    case GREATER_THAN:
-      return SqlKind.LESS_THAN;
-    case GREATER_THAN_OR_EQUAL:
-      return SqlKind.LESS_THAN_OR_EQUAL;
-    case LESS_THAN:
-      return SqlKind.GREATER_THAN;
-    case LESS_THAN_OR_EQUAL:
-      return SqlKind.GREATER_THAN_OR_EQUAL;
-    default:
-      return kind;
-    }
   }
 
   public static SqlOperator op(SqlKind kind, SqlOperator operator) {

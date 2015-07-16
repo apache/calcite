@@ -746,7 +746,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       BlockBuilder builder, final Result result, int windowIdx,
       List<AggImpState> aggs, PhysType outputPhysType,
       List<Expression> outputRow) {
-    for (final AggImpState agg: aggs) {
+    for (final AggImpState agg : aggs) {
       agg.context =
           new WinAggContext() {
             public SqlAggFunction aggregation() {

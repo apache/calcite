@@ -728,6 +728,26 @@ public enum SqlKind {
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
 
+  /** Returns the kind that corresponds to this operator but in the opposite
+   * direction. Or returns this, if this kind is not reversible.
+   *
+   * <p>For example, {@code GREATER_THAN.reverse()} returns {@link #LESS_THAN}.
+   */
+  public SqlKind reverse() {
+    switch (this) {
+    case GREATER_THAN:
+      return LESS_THAN;
+    case GREATER_THAN_OR_EQUAL:
+      return LESS_THAN_OR_EQUAL;
+    case LESS_THAN:
+      return GREATER_THAN;
+    case LESS_THAN_OR_EQUAL:
+      return GREATER_THAN_OR_EQUAL;
+    default:
+      return this;
+    }
+  }
+
   /**
    * Returns whether this {@code SqlKind} belongs to a given category.
    *

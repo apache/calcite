@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.NlsString;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
@@ -38,6 +39,7 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -70,48 +72,48 @@ public class RexExecutorTest {
   /** Tests an executor that uses variables stored in a {@link DataContext}.
    * Can change the value of the variable and execute again. */
   @Test public void testVariableExecution() throws Exception {
-    check(new Action() {
-      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
-        Object[] values = new Object[1];
-        final DataContext testContext = new TestDataContext(values);
-        final RelDataType varchar = rexBuilder.getTypeFactory().createSqlType(
-            SqlTypeName.VARCHAR);
-        final RelDataType integer = rexBuilder.getTypeFactory().createSqlType(
-            SqlTypeName.INTEGER);
-        // calcite is internally creating the creating the input ref via a
-        // RexRangeRef
-        // which eventually leads to a RexInputRef. So we are good.
-        final RexInputRef input = rexBuilder.makeInputRef(varchar, 0);
-        final RexNode lengthArg = rexBuilder.makeLiteral(3, integer, true);
-        final RexNode substr =
-            rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, input,
-                lengthArg);
-        ImmutableList<RexNode> constExps = ImmutableList.of(substr);
+    check(
+        new Action() {
+          public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+            Object[] values = new Object[1];
+            final DataContext testContext = new TestDataContext(values);
+            final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+            final RelDataType varchar =
+                typeFactory.createSqlType(SqlTypeName.VARCHAR);
+            final RelDataType integer =
+                typeFactory.createSqlType(SqlTypeName.INTEGER);
+            // Calcite is internally creating the input ref via a RexRangeRef
+            // which eventually leads to a RexInputRef. So we are good.
+            final RexInputRef input = rexBuilder.makeInputRef(varchar, 0);
+            final RexNode lengthArg = rexBuilder.makeLiteral(3, integer, true);
+            final RexNode substr =
+                rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, input,
+                    lengthArg);
+            ImmutableList<RexNode> constExps = ImmutableList.of(substr);
 
-        final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-        final RelDataType rowType = typeFactory.builder()
-            .add("someStr", varchar)
-            .build();
+            final RelDataType rowType = typeFactory.builder()
+                .add("someStr", varchar)
+                .build();
 
-        final RexExecutable exec = executor.getExecutable(rexBuilder,
-            constExps, rowType);
-        exec.setDataContext(testContext);
-        values[0] = "Hello World";
-        Object[] result = exec.execute();
-        assertTrue(result[0] instanceof String);
-        assertThat((String) result[0], equalTo("llo World"));
-        values[0] = "Calcite";
-        result = exec.execute();
-        assertTrue(result[0] instanceof String);
-        assertThat((String) result[0], equalTo("lcite"));
-      }
-    });
+            final RexExecutable exec = executor.getExecutable(rexBuilder,
+                constExps, rowType);
+            exec.setDataContext(testContext);
+            values[0] = "Hello World";
+            Object[] result = exec.execute();
+            assertTrue(result[0] instanceof String);
+            assertThat((String) result[0], equalTo("llo World"));
+            values[0] = "Calcite";
+            result = exec.execute();
+            assertTrue(result[0] instanceof String);
+            assertThat((String) result[0], equalTo("lcite"));
+          }
+        });
   }
 
   @Test public void testConstant() throws Exception {
     check(new Action() {
       public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
-        final List<RexNode> reducedValues = new ArrayList<RexNode>();
+        final List<RexNode> reducedValues = new ArrayList<>();
         final RexLiteral ten = rexBuilder.makeExactLiteral(BigDecimal.TEN);
         executor.reduce(rexBuilder, ImmutableList.<RexNode>of(ten),
             reducedValues);
@@ -123,10 +125,68 @@ public class RexExecutorTest {
     });
   }
 
+  /** Reduces several expressions to constants. */
+  @Test public void testConstant2() throws Exception {
+    // Same as testConstant; 10 -> 10
+    checkConstant(10L,
+        new Function<RexBuilder, RexNode>() {
+          public RexNode apply(RexBuilder rexBuilder) {
+            return rexBuilder.makeExactLiteral(BigDecimal.TEN);
+          }
+        });
+    // 10 + 1 -> 11
+    checkConstant(11L,
+        new Function<RexBuilder, RexNode>() {
+          public RexNode apply(RexBuilder rexBuilder) {
+            return rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeExactLiteral(BigDecimal.TEN),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+          }
+        });
+    // date 'today' <= date 'today' -> true
+    checkConstant(true,
+        new Function<RexBuilder, RexNode>() {
+          public RexNode apply(RexBuilder rexBuilder) {
+            Calendar calendar = Calendar.getInstance();
+            return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                rexBuilder.makeDateLiteral(calendar),
+                rexBuilder.makeDateLiteral(calendar));
+          }
+        });
+    // date 'today' < date 'today' -> false
+    checkConstant(false,
+        new Function<RexBuilder, RexNode>() {
+          public RexNode apply(RexBuilder rexBuilder) {
+            Calendar calendar = Calendar.getInstance();
+            return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
+                rexBuilder.makeDateLiteral(calendar),
+                rexBuilder.makeDateLiteral(calendar));
+          }
+        });
+  }
+
+  private void checkConstant(final Object operand,
+      final Function<RexBuilder, RexNode> function) throws Exception {
+    check(
+        new Action() {
+          public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+            final List<RexNode> reducedValues = new ArrayList<>();
+            final RexNode expression = function.apply(rexBuilder);
+            assert expression != null;
+            executor.reduce(rexBuilder, ImmutableList.of(expression),
+                reducedValues);
+            assertThat(reducedValues.size(), equalTo(1));
+            assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
+            assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
+                equalTo(operand));
+          }
+        });
+  }
+
   @Test public void testSubstring() throws Exception {
     check(new Action() {
       public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
-        final List<RexNode> reducedValues = new ArrayList<RexNode>();
+        final List<RexNode> reducedValues = new ArrayList<>();
         final RexLiteral hello =
             rexBuilder.makeCharLiteral(
                 new NlsString("Hello world!", null, null));

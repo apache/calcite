@@ -145,11 +145,19 @@ public class SubstitutionVisitor {
   private static final Equivalence<List<?>> PAIRWISE_STRING_EQUIVALENCE =
       (Equivalence) STRING_EQUIVALENCE.pairwise();
 
-  protected static List<UnifyRule> unifyRules;
+  protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
+      ImmutableList.<UnifyRule>of(
+//          TrivialRule.INSTANCE,
+          ProjectToProjectUnifyRule.INSTANCE,
+          FilterToProjectUnifyRule.INSTANCE,
+//          ProjectToFilterUnifyRule.INSTANCE,
+          FilterToFilterUnifyRule.INSTANCE,
+          AggregateToAggregateUnifyRule.INSTANCE,
+          AggregateOnProjectToAggregateUnifyRule.INSTANCE);
 
-  private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
+  private final ImmutableList<UnifyRule> rules;
+  private final Map<Pair<Class, Class>, List<UnifyRule>> ruleMap =
       new HashMap<>();
-
   private final RelOptCluster cluster;
   private final Holder query;
   private final MutableRel target;
@@ -174,8 +182,16 @@ public class SubstitutionVisitor {
    * Assumes no rule needs more than 2 slots. */
   protected final MutableRel[] slots = new MutableRel[2];
 
+  /** Creates a SubstitutionVisitor with the default rule set. */
   public SubstitutionVisitor(RelNode target_, RelNode query_) {
+    this(target_, query_, DEFAULT_RULES);
+  }
+
+  /** Creates a SubstitutionVisitor. */
+  public SubstitutionVisitor(RelNode target_, RelNode query_,
+      ImmutableList<UnifyRule> rules) {
     this.cluster = target_.getCluster();
+    this.rules = rules;
     this.query = Holder.of(toMutable(query_));
     this.target = toMutable(target_);
     final Set<MutableRel> parents = Sets.newIdentityHashSet();
@@ -201,28 +217,6 @@ public class SubstitutionVisitor {
     visitor.go(query);
     allNodes.removeAll(parents);
     queryLeaves = ImmutableList.copyOf(allNodes);
-    initUnifyRules();
-    initRuleMap();
-  }
-
-  public void initUnifyRules() {
-    unifyRules =
-            ImmutableList.<UnifyRule>of(
-//          TrivialRule.INSTANCE,
-                    ProjectToProjectUnifyRule.INSTANCE,
-                    FilterToProjectUnifyRule.INSTANCE,
-//          ProjectToFilterUnifyRule.INSTANCE,
-                    FilterToFilterUnifyRule.INSTANCE,
-                    AggregateToAggregateUnifyRule.INSTANCE,
-                    AggregateOnProjectToAggregateUnifyRule.INSTANCE);
-  }
-
-  public void initRuleMap() {
-    this.RULE_MAP.clear();
-  }
-
-  public MutableRel[] getSlots() {
-    return slots;
   }
 
   private static MutableRel toMutable(RelNode rel) {
@@ -619,23 +613,23 @@ public class SubstitutionVisitor {
     return rule.apply(call);
   }
 
-  private static List<UnifyRule> applicableRules(MutableRel query,
+  private List<UnifyRule> applicableRules(MutableRel query,
       MutableRel target) {
     final Class queryClass = query.getClass();
     final Class targetClass = target.getClass();
     final Pair<Class, Class> key = Pair.of(queryClass, targetClass);
-    List<UnifyRule> list = RULE_MAP.get(key);
+    List<UnifyRule> list = ruleMap.get(key);
     if (list == null) {
       final ImmutableList.Builder<UnifyRule> builder =
           ImmutableList.builder();
-      for (UnifyRule rule : unifyRules) {
+      for (UnifyRule rule : rules) {
         //noinspection unchecked
         if (mightMatch(rule, queryClass, targetClass)) {
           builder.add(rule);
         }
       }
       list = builder.build();
-      RULE_MAP.put(key, list);
+      ruleMap.put(key, list);
     }
     return list;
   }
@@ -648,6 +642,7 @@ public class SubstitutionVisitor {
 
   /** Exception thrown to exit a matcher. Not really an error. */
   protected static class MatchFailed extends ControlFlowException {
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
     public static final MatchFailed INSTANCE = new MatchFailed();
   }
 

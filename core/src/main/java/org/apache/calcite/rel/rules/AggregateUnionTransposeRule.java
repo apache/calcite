@@ -156,7 +156,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
   private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
     final List<AggregateCall> newCalls = Lists.newArrayList();
-    for (Ord<AggregateCall> ord: Ord.zip(origCalls)) {
+    for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {
       final AggregateCall origCall = ord.e;
       if (origCall.isDistinct()
           || !SUPPORTED_AGGREGATES.containsKey(origCall.getAggregation()

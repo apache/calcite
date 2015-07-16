@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.plan;
 
 import org.apache.calcite.DataContext;
@@ -39,40 +38,44 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
-
-/** Checks if Condition X logically implies Condition Y
+/**
+ * Checks whether one condition logically implies another.
  *
- * <p>(x > 10) implies (x > 5)</p>
+ * <p>If A &rArr; B, whenever A is true, B will be true also.
  *
- * <p>(y = 10) implies (y < 30 AND x > 30)</p>
+ * <p>For example:
+ * <ul>
+ * <li>(x &gt; 10) &rArr; (x &gt; 5)
+ * <li>(y = 10) &rArr; (y &lt; 30 OR x &gt; 30)
+ * </ul>
  */
 public class RexImplicationChecker {
   final RexBuilder builder;
-  final RexExecutorImpl rexImpl;
+  final RexExecutorImpl executor;
   final RelDataType rowType;
 
   public RexImplicationChecker(
       RexBuilder builder,
-      RexExecutorImpl rexImpl,
+      RexExecutorImpl executor,
       RelDataType rowType) {
     this.builder = builder;
-    this.rexImpl = rexImpl;
+    this.executor = executor;
     this.rowType = rowType;
   }
 
   /**
-   * Checks if condition first implies (=>) condition second
-   * This reduces to SAT problem which is NP-Complete
-   * When func says first => second then it is definitely true
-   * It cannot prove if first doesnot imply second.
+   * Checks if condition first implies (&rArr;) condition second.
+   *
+   * <p>This reduces to SAT problem which is NP-Complete.
+   * When this method says first implies second then it is definitely true.
+   * But it cannot prove that first does not imply second.
+   *
    * @param first first condition
    * @param second second condition
-   * @return true if it can prove first => second, otherwise false i.e.,
-   * it doesn't know if implication holds .
+   * @return true if it can prove first &rArr; second; otherwise false i.e.,
+   * it doesn't know if implication holds
    */
   public boolean implies(RexNode first, RexNode second) {
-
     // Validation
     if (!validate(first, second)) {
       return false;
@@ -91,22 +94,26 @@ public class RexImplicationChecker {
       return true;
     }
 
-    /** Decompose DNF into List of Conjunctions
+    /** Decomposes DNF into List of Conjunctions.
      *
-     * (x > 10 AND y > 30) OR (z > 90) will be converted to
+     * <p>For example,
+     * {@code x > 10 AND y > 30) OR (z > 90)}
+     * will be converted to
      * list of 2 conditions:
-     * 1. (x > 10 AND y > 30)
-     * 2. (z > 90)
      *
+     * <ul>
+     *   <li>(x > 10 AND y > 30)</li>
+     *   <li>z > 90</li>
+     * </ul>
      */
     List<RexNode> firstDnfs = RelOptUtil.disjunctions(firstDnf);
     List<RexNode> secondDnfs = RelOptUtil.disjunctions(secondDnf);
 
     for (RexNode f : firstDnfs) {
       if (!f.isAlwaysFalse()) {
-        //Check if f implies atleast
+        // Check if f implies at least
         // one of the conjunctions in list secondDnfs
-        boolean implyOneConjuntion = false;
+        boolean implyOneConjunction = false;
         for (RexNode s : secondDnfs) {
           if (s.isAlwaysFalse()) { // f cannot imply s
             continue;
@@ -115,57 +122,61 @@ public class RexImplicationChecker {
           if (impliesConjunction(f, s)) {
             // Satisfies one of the condition, so lets
             // move to next conjunction in firstDnfs
-            implyOneConjuntion = true;
+            implyOneConjunction = true;
             break;
           }
-        } //end of inner loop
+        }
 
-        // If f couldnot imply even one conjunction in
+        // If f could not imply even one conjunction in
         // secondDnfs, then final implication may be false
-        if (!implyOneConjuntion) {
+        if (!implyOneConjunction) {
           return false;
         }
       }
-    } //end of outer loop
+    }
 
     return true;
   }
 
-  /** Checks if Conjunction first => Conjunction second**/
+  /** Returns whether first implies second (both are conjunctions). */
   private boolean impliesConjunction(RexNode first, RexNode second) {
+    final InputUsageFinder firstUsageFinder = new InputUsageFinder();
+    final InputUsageFinder secondUsageFinder = new InputUsageFinder();
 
-    InputUsageFinder firstUsgFinder = new InputUsageFinder();
-    InputUsageFinder secondUsgFinder = new InputUsageFinder();
-
-    RexUtil.apply(firstUsgFinder, new ArrayList<RexNode>(), first);
-    RexUtil.apply(secondUsgFinder, new ArrayList<RexNode>(), second);
+    RexUtil.apply(firstUsageFinder, new ArrayList<RexNode>(), first);
+    RexUtil.apply(secondUsageFinder, new ArrayList<RexNode>(), second);
 
     // Check Support
-    if (!checkSupport(firstUsgFinder, secondUsgFinder)) {
+    if (!checkSupport(firstUsageFinder, secondUsageFinder)) {
       return false;
     }
 
-    List<Pair<RexInputRef, RexNode>> usgList = new ArrayList<>();
-    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator,
-        RexNode>> entry: firstUsgFinder.usageMap.entrySet()) {
-      final List<Pair<SqlOperator, RexNode>> list = entry.getValue().getUsageList();
-      usgList.add(Pair.of(entry.getKey(), list.get(0).getValue()));
+    List<Pair<RexInputRef, RexNode>> usageList = new ArrayList<>();
+    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
+        : firstUsageFinder.usageMap.entrySet()) {
+      final Pair<SqlOperator, RexNode> pair = entry.getValue().usageList.get(0);
+      usageList.add(Pair.of(entry.getKey(), pair.getValue()));
     }
 
-    /* Get the literals from first conjunction and execute second conjunction using them
-     * E.g., for x >30 => x > 10,
-     * we will replace x by 30 in second expression and execute it i.e., 30>10
-     * If it's true then we infer implication.
-     */
-    final DataContext dataValues = VisitorDataContext.getDataContext(rowType, usgList);
+    // Get the literals from first conjunction and executes second conjunction
+    // using them.
+    //
+    // E.g., for
+    //   x > 30 &rArr; x > 10,
+    // we will replace x by 30 in second expression and execute it i.e.,
+    //   30 > 10
+    //
+    // If it's true then we infer implication.
+    final DataContext dataValues =
+        VisitorDataContext.of(rowType, usageList);
 
     if (dataValues == null) {
       return false;
     }
 
     ImmutableList<RexNode> constExps = ImmutableList.of(second);
-    final RexExecutable exec = rexImpl.getExecutable(builder,
-        constExps, rowType);
+    final RexExecutable exec =
+        executor.getExecutable(builder, constExps, rowType);
 
     Object[] result;
     exec.setDataContext(dataValues);
@@ -176,72 +187,85 @@ public class RexImplicationChecker {
       // Need to monitor it and handle all the cases raising them.
       return false;
     }
-    return result != null && result.length == 1 && result[0] instanceof Boolean
+    return result != null
+        && result.length == 1
+        && result[0] instanceof Boolean
         && (Boolean) result[0];
   }
 
   /**
    * Looks at the usage of variables in first and second conjunction to decide
-   * if this kind of expression is currently supported for proving first => second.
-   * 1. Variables should be used only once in both the conjunction against
-   *    given set of operations only: >,<,<=,>=,=,!=
-   * 2. All the variables used in second condition should be used even in the first.
-   * 3. If operator used for variable in first is op1 and op2 for second, then we support
-   *    these combination for conjunction (op1, op2) then op1, op2 belongs to
-   *    one of the following sets:
-   *    a. (<,<=) X (<,<=) , X represents cartesian product
-   *    b. (>/>=) X (>,>=)
-   *    c. (=) X (>,>=,<,<=,=,!=)
-   *    d. (!=, =)
-   * @return true, if input usage pattern is supported. Otherwise, false.
+   * whether this kind of expression is currently supported for proving first
+   * implies second.
+   *
+   * <ol>
+   * <li>Variables should be used only once in both the conjunction against
+   * given set of operations only: >, <, <=, >=, =, !=
+   *
+   * <li>All the variables used in second condition should be used even in the
+   * first.
+   *
+   * <li>If operator used for variable in first is op1 and op2 for second, then
+   * we support these combination for conjunction (op1, op2) then op1, op2
+   * belongs to one of the following sets:
+   *
+   * <ul>
+   *    <li>(<, <=) X (<, <=)      <i>note: X represents cartesian product</i>
+   *    <li>(> / >=) X (>, >=)
+   *    <li>(=) X (>, >=, <, <=, =, !=)
+   *    <li>(!=, =)
+   * </ul>
+   * </ol>
+   *
+   * @return whether input usage pattern is supported
    */
-  private boolean checkSupport(
-      InputUsageFinder firstUsgFinder,
-      InputUsageFinder secondUsgFinder) {
-    Map<RexInputRef, InputRefUsage<SqlOperator,
-        RexNode>> firstUsgMap = firstUsgFinder.usageMap;
-    Map<RexInputRef, InputRefUsage<SqlOperator,
-        RexNode>> secondUsgMap = secondUsgFinder.usageMap;
+  private boolean checkSupport(InputUsageFinder firstUsageFinder,
+      InputUsageFinder secondUsageFinder) {
+    final Map<RexInputRef, InputRefUsage<SqlOperator, RexNode>> firstUsageMap =
+        firstUsageFinder.usageMap;
+    final Map<RexInputRef, InputRefUsage<SqlOperator, RexNode>> secondUsageMap =
+        secondUsageFinder.usageMap;
 
-    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator,
-        RexNode>> entry: firstUsgMap.entrySet()) {
+    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
+        : firstUsageMap.entrySet()) {
       if (entry.getValue().usageCount > 1) {
         return false;
       }
     }
 
-    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator,
-        RexNode>> entry: secondUsgMap.entrySet()) {
+    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
+        : secondUsageMap.entrySet()) {
       final InputRefUsage<SqlOperator, RexNode> secondUsage = entry.getValue();
-      if (secondUsage.getUsageCount() > 1
-          || secondUsage.getUsageList().size() != 1) {
+      if (secondUsage.usageCount > 1
+          || secondUsage.usageList.size() != 1) {
         return false;
       }
 
-      final InputRefUsage<SqlOperator, RexNode> firstUsage = firstUsgMap.get(entry.getKey());
+      final InputRefUsage<SqlOperator, RexNode> firstUsage =
+          firstUsageMap.get(entry.getKey());
       if (firstUsage == null
-          || firstUsage.getUsageList().size() != 1) {
+          || firstUsage.usageList.size() != 1) {
         return false;
       }
 
-      final Pair<SqlOperator, RexNode> fUse = firstUsage.getUsageList().get(0);
-      final Pair<SqlOperator, RexNode> sUse = secondUsage.getUsageList().get(0);
+      final Pair<SqlOperator, RexNode> fUse = firstUsage.usageList.get(0);
+      final Pair<SqlOperator, RexNode> sUse = secondUsage.usageList.get(0);
 
-      final SqlKind fkind = fUse.getKey().getKind();
+      final SqlKind fKind = fUse.getKey().getKind();
 
-      if (fkind != SqlKind.EQUALS) {
+      if (fKind != SqlKind.EQUALS) {
         switch (sUse.getKey().getKind()) {
         case GREATER_THAN:
         case GREATER_THAN_OR_EQUAL:
-          if (!(fkind == SqlKind.GREATER_THAN)
-              && !(fkind == SqlKind.GREATER_THAN_OR_EQUAL)) {
+          if (!(fKind == SqlKind.GREATER_THAN)
+              && !(fKind == SqlKind.GREATER_THAN_OR_EQUAL)) {
             return false;
           }
           break;
         case LESS_THAN:
         case LESS_THAN_OR_EQUAL:
-          if (!(fkind == SqlKind.LESS_THAN)
-              && !(fkind == SqlKind.LESS_THAN_OR_EQUAL)) {
+          if (!(fKind == SqlKind.LESS_THAN)
+              && !(fKind == SqlKind.LESS_THAN_OR_EQUAL)) {
             return false;
           }
           break;
@@ -254,35 +278,29 @@ public class RexImplicationChecker {
   }
 
   private boolean validate(RexNode first, RexNode second) {
-    if (first == null || second == null) {
-      return false;
-    }
-    if (!(first instanceof RexCall)
-        || !(second instanceof RexCall)) {
-      return false;
-    }
-    return true;
+    return first instanceof RexCall && second instanceof RexCall;
   }
 
-
   /**
-   * Visitor which builds a Usage Map of inputs used by an expression.
-   * E.g: for x >10 AND y < 20 AND x =40, Usage Map would look like:
-   * key:x value: {(>,10),(=,40), usageCount = 2}
-   * key:y value: {(>,20),usageCount=1}
+   * Visitor that builds a usage map of inputs used by an expression.
+   *
+   * <p>E.g: for x > 10 AND y < 20 AND x = 40, usage map is as follows:
+   * <ul>
+   * <li>key: x value: {(>, 10),(=, 40), usageCount = 2}
+   * <li>key: y value: {(>, 20), usageCount = 1}
+   * </ul>
    */
   private static class InputUsageFinder extends RexVisitorImpl<Void> {
-    public final Map<RexInputRef, InputRefUsage<SqlOperator,
-        RexNode>> usageMap = new HashMap<>();
+    public final Map<RexInputRef, InputRefUsage<SqlOperator, RexNode>>
+    usageMap = new HashMap<>();
 
     public InputUsageFinder() {
       super(true);
     }
 
     public Void visitInputRef(RexInputRef inputRef) {
-      InputRefUsage<SqlOperator,
-          RexNode> inputRefUse = getUsageMap(inputRef);
-      inputRefUse.incrUsage();
+      InputRefUsage<SqlOperator, RexNode> inputRefUse = getUsageMap(inputRef);
+      inputRefUse.usageCount++;
       return null;
     }
 
@@ -318,8 +336,7 @@ public class RexImplicationChecker {
     }
 
     private SqlOperator reverse(SqlOperator op) {
-      return RelOptUtil.op(
-          RelOptUtil.reverse(op.getKind()), op);
+      return RelOptUtil.op(op.getKind().reverse(), op);
     }
 
     private static RexNode removeCast(RexNode inputRef) {
@@ -333,11 +350,12 @@ public class RexImplicationChecker {
       return inputRef;
     }
 
-    private void updateUsage(SqlOperator op, RexInputRef inputRef, RexNode literal) {
-      InputRefUsage<SqlOperator,
-          RexNode> inputRefUse = getUsageMap(inputRef);
+    private void updateUsage(SqlOperator op, RexInputRef inputRef,
+        RexNode literal) {
+      final InputRefUsage<SqlOperator, RexNode> inputRefUse =
+          getUsageMap(inputRef);
       Pair<SqlOperator, RexNode> use = Pair.of(op, literal);
-      inputRefUse.getUsageList().add(use);
+      inputRefUse.usageList.add(use);
     }
 
     private InputRefUsage<SqlOperator, RexNode> getUsageMap(RexInputRef rex) {
@@ -352,26 +370,12 @@ public class RexImplicationChecker {
   }
 
   /**
-   * DataStructure to store usage of InputRefs in expression
+   * Usage of a {@link RexInputRef} in an expression.
    */
-
   private static class InputRefUsage<T1, T2> {
-    private final List<Pair<T1, T2>> usageList =
-        new ArrayList<Pair<T1, T2>>();
+    private final List<Pair<T1, T2>> usageList = new ArrayList<>();
     private int usageCount = 0;
-
-    public InputRefUsage() {}
-
-    public int getUsageCount() {
-      return usageCount;
-    }
-
-    public void incrUsage() {
-      usageCount++;
-    }
-
-    public List<Pair<T1, T2>> getUsageList() {
-      return usageList;
-    }
   }
 }
+
+// End RexImplicationChecker.java

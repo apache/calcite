@@ -25,45 +25,19 @@ import org.apache.calcite.rex.RexShuttle;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+
 /**
- * Substitutes part of a tree of relational expressions with another tree.
- *
- * <p>The call {@code new MaterializedSubstitutionVisitor(target, query).go(replacement))}
- * will return {@code query} with every occurrence of {@code target} replaced
- * by {@code replacement}.</p>
- *
- * <p>The following example shows how {@code MaterializedSubstitutionVisitor} can be used
- * for materialized view recognition.</p>
- *
- * <ul>
- * <li>query = SELECT a, c FROM t WHERE x = 5 AND b = 4</li>
- * <li>target = SELECT a, b, c FROM t WHERE x = 5</li>
- * <li>replacement = SELECT * FROM mv</li>
- * <li>result = SELECT a, c FROM mv WHERE b = 4</li>
- * </ul>
- *
- * <p>Note that {@code result} uses the materialized view table {@code mv} and a
- * simplified condition {@code b = 4}.</p>
- *
- * <p>Uses a bottom-up matching algorithm. Nodes do not need to be identical.
- * At each level, returns the residue.</p>
- *
- * <p>The inputs must only include the core relational operators:
- * {@link org.apache.calcite.rel.logical.LogicalTableScan},
- * {@link LogicalFilter},
- * {@link LogicalProject},
- * {@link org.apache.calcite.rel.logical.LogicalJoin},
- * {@link LogicalUnion},
- * {@link LogicalAggregate}.</p>
+ * Extension to {@link SubstitutionVisitor}.
  */
 public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
+  private static final ImmutableList<UnifyRule> EXTENDED_RULES =
+      ImmutableList.<UnifyRule>builder()
+          .addAll(DEFAULT_RULES)
+          .add(ProjectToProjectUnifyRule1.INSTANCE)
+          .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
-    super(target_, query_);
-    ImmutableList.Builder<UnifyRule> builder = new ImmutableList.Builder<UnifyRule>();
-    builder.addAll(this.unifyRules);
-    builder.add(ProjectToProjectUnifyRule1.INSTANCE);
-    this.unifyRules = builder.build();
+    super(target_, query_, EXTENDED_RULES);
   }
 
   public RelNode go(RelNode replacement_) {
@@ -73,7 +47,6 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   /**
    * Project to Project Unify rule.
    */
-
   private static class ProjectToProjectUnifyRule1 extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule1 INSTANCE =
         new ProjectToProjectUnifyRule1();
@@ -83,12 +56,13 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           operand(MutableProject.class, target(0)), 1);
     }
 
-    @Override
-    protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected UnifyResult apply(UnifyRuleCall call) {
       final MutableProject query = (MutableProject) call.query;
 
-      final List<RelDataTypeField> oldFieldList = query.getInput().getRowType().getFieldList();
-      final List<RelDataTypeField> newFieldList = call.target.getRowType().getFieldList();
+      final List<RelDataTypeField> oldFieldList =
+          query.getInput().getRowType().getFieldList();
+      final List<RelDataTypeField> newFieldList =
+          call.target.getRowType().getFieldList();
       List<RexNode> newProjects;
       try {
         newProjects = transformRex(query.getProjects(), oldFieldList, newFieldList);
@@ -104,9 +78,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       return call.result(newProject2);
     }
 
-    @Override
-    protected UnifyRuleCall match(SubstitutionVisitor visitor, MutableRel query,
-        MutableRel target) {
+    @Override protected UnifyRuleCall match(SubstitutionVisitor visitor,
+        MutableRel query, MutableRel target) {
       assert query instanceof MutableProject && target instanceof MutableProject;
 
       if (queryOperand.matches(visitor, query)) {
@@ -116,8 +89,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
           final MutableProject queryProject = (MutableProject) query;
           if (queryProject.getInput() instanceof MutableFilter) {
-
-            final MutableFilter innerFilter = (MutableFilter) (queryProject.getInput());
+            final MutableFilter innerFilter =
+                (MutableFilter) queryProject.getInput();
             RexNode newCondition;
             try {
               newCondition = transformRex(innerFilter.getCondition(),
@@ -130,18 +103,18 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
                 newCondition);
 
             return visitor.new UnifyRuleCall(this, query, newFilter,
-                copy(visitor.getSlots(), slotCount));
+                copy(visitor.slots, slotCount));
           }
         }
       }
       return null;
     }
 
-    private RexNode transformRex(
-        RexNode node,
+    private RexNode transformRex(RexNode node,
         final List<RelDataTypeField> oldFields,
         final List<RelDataTypeField> newFields) {
-      List<RexNode> nodes = transformRex(ImmutableList.of(node), oldFields, newFields);
+      List<RexNode> nodes =
+          transformRex(ImmutableList.of(node), oldFields, newFields);
       return nodes.get(0);
     }
 

@@ -113,7 +113,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       if (aggregate.indicator) {
         ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder =
                 ImmutableList.builder();
-        for (ImmutableBitSet groupingSet: aggregate.getGroupSets()) {
+        for (ImmutableBitSet groupingSet : aggregate.getGroupSets()) {
           final ImmutableBitSet.Builder newGroupingSet =
                   ImmutableBitSet.builder();
           for (int c : groupingSet) {

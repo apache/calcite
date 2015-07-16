@@ -67,17 +67,17 @@ public class VisitorDataContext implements DataContext {
       return null;
     }
   }
-  public static DataContext getDataContext(RelNode targetRel, LogicalFilter queryRel) {
-    return getDataContext(targetRel.getRowType(), queryRel.getCondition());
+  public static DataContext of(RelNode targetRel, LogicalFilter queryRel) {
+    return of(targetRel.getRowType(), queryRel.getCondition());
   }
 
-  public static DataContext getDataContext(RelDataType rowType, RexNode rex) {
-    int size = rowType.getFieldList().size();
-    Object[] values = new Object[size];
-    List<RexNode> operands = ((RexCall) rex).getOperands();
+  public static DataContext of(RelDataType rowType, RexNode rex) {
+    final int size = rowType.getFieldList().size();
+    final Object[] values = new Object[size];
+    final List<RexNode> operands = ((RexCall) rex).getOperands();
     final RexNode firstOperand = operands.get(0);
     final RexNode secondOperand = operands.get(1);
-    final Pair<Integer, ? extends Object> value = getValue(firstOperand, secondOperand);
+    final Pair<Integer, ?> value = getValue(firstOperand, secondOperand);
     if (value != null) {
       int index = value.getKey();
       values[index] = value.getValue();
@@ -87,12 +87,12 @@ public class VisitorDataContext implements DataContext {
     }
   }
 
-  public static DataContext getDataContext(RelDataType rowType, List<Pair<RexInputRef,
-      RexNode>> usgList) {
-    int size = rowType.getFieldList().size();
-    Object[] values = new Object[size];
-    for (Pair<RexInputRef, RexNode> elem: usgList) {
-      Pair<Integer, ? extends Object> value = getValue(elem.getKey(), elem.getValue());
+  public static DataContext of(RelDataType rowType,
+      List<Pair<RexInputRef, RexNode>> usageList) {
+    final int size = rowType.getFieldList().size();
+    final Object[] values = new Object[size];
+    for (Pair<RexInputRef, RexNode> elem : usageList) {
+      Pair<Integer, ?> value = getValue(elem.getKey(), elem.getValue());
       if (value == null) {
         return null;
       }
@@ -102,46 +102,40 @@ public class VisitorDataContext implements DataContext {
     return new VisitorDataContext(values);
   }
 
-  public static Pair<Integer, ? extends Object> getValue(RexNode inputRef, RexNode literal) {
+  public static Pair<Integer, ?> getValue(RexNode inputRef, RexNode literal) {
     inputRef = removeCast(inputRef);
     literal = removeCast(literal);
 
     if (inputRef instanceof RexInputRef
         && literal instanceof RexLiteral)  {
-      Integer index = ((RexInputRef) inputRef).getIndex();
+      final int index = ((RexInputRef) inputRef).getIndex();
       Object value = ((RexLiteral) literal).getValue();
       final RelDataType type = inputRef.getType();
 
       switch (type.getSqlTypeName()) {
       case INTEGER:
         if (value instanceof BigDecimal) {
-          final Integer intValue = new Integer(((BigDecimal) value).intValue());
-          return Pair.of(index, intValue);
+          return Pair.of(index, ((BigDecimal) value).intValue());
         }
       case DOUBLE:
         if (value instanceof BigDecimal) {
-          return Pair.of(index,
-              new Double(((BigDecimal) value).doubleValue()));
+          return Pair.of(index, ((BigDecimal) value).doubleValue());
         }
       case REAL:
         if (value instanceof BigDecimal) {
-          return Pair.of(index,
-              new Float(((BigDecimal) value).floatValue()));
+          return Pair.of(index, ((BigDecimal) value).floatValue());
         }
       case BIGINT:
         if (value instanceof BigDecimal) {
-          return Pair.of(index,
-              new Long(((BigDecimal) value).longValue()));
+          return Pair.of(index, ((BigDecimal) value).longValue());
         }
       case SMALLINT:
         if (value instanceof BigDecimal) {
-          return Pair.of(index,
-              new Short(((BigDecimal) value).shortValue()));
+          return Pair.of(index, ((BigDecimal) value).shortValue());
         }
       case TINYINT:
         if (value instanceof BigDecimal) {
-          return Pair.of(index,
-              new Short(((BigDecimal) value).byteValue()));
+          return Pair.of(index, (short) ((BigDecimal) value).byteValue());
         }
       case DECIMAL:
         if (value instanceof BigDecimal) {
@@ -158,13 +152,12 @@ public class VisitorDataContext implements DataContext {
         }
       case CHAR:
         if (value instanceof NlsString) {
-          // TODO: Support coallation. Not supported in {@link #NlsString} compare too.
+          // TODO: Support collation. Not supported in NlsString compare too.
           final NlsString nl = (NlsString) value;
-          Character c = new Character(nl.getValue().charAt(0));
-          return Pair.of(index, c);
+          return Pair.of(index, nl.getValue().charAt(0));
         }
       default:
-        //TODO: Support few more supported cases
+        // TODO: Support few more supported cases
         return Pair.of(index, value);
       }
     }
@@ -184,3 +177,5 @@ public class VisitorDataContext implements DataContext {
     return inputRef;
   }
 }
+
+// End VisitorDataContext.java

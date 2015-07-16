@@ -435,7 +435,6 @@ public class DiffRepository {
             tag,
             expected2Canonical,
             actualCanonical);
-        amend(expected, actual);
       } catch (ComparisonFailure e) {
         amend(expected, actual);
         throw e;
