@@ -388,8 +388,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // First, if the materialization is in terms of a star table, rewrite
     // the query in terms of the star table.
     if (materialization.starTable != null) {
-      root = RelOptMaterialization.tryUseStar(
+      RelNode newRoot = RelOptMaterialization.tryUseStar(
           root, materialization.starRelOptTable);
+      if (newRoot != null) {
+        root = newRoot;
+      }
     }
 
     // Push filters to the bottom, and combine projects on top.

@@ -622,6 +622,61 @@ public class LatticeTest {
                 counter));
     assertThat(counter.intValue(), equalTo(1));
   }
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-787">[CALCITE-787]
+   * Wrong assignment of star table to Materialized views</a> */
+  @Test public void testOneLatticeOneMV() {
+    final AtomicInteger counter = new AtomicInteger();
+    final Class<JdbcTest.EmpDeptTableFactory> clazz =
+        JdbcTest.EmpDeptTableFactory.class;
+
+    final String mv = "       materializations: [\n"
+        + "         {\n"
+        + "           table: \"m0\",\n"
+        + "           view: \"m0v\",\n"
+        + "           sql: \"select * from \\\"foodmart\\\".\\\"sales_fact_1997\\\" "
+        + "where \\\"product_id\\\" = 10\" "
+        + "         }\n"
+        + "       ]\n";
+
+    final String model = ""
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + JdbcTest.FOODMART_SCHEMA
+        + ",\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '"
+        + clazz.getName()
+        + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       lattices: " + "[" + INVENTORY_LATTICE
+        + "       ]\n"
+        + "     },\n"
+        + "     {\n"
+        + "       name: 'mat',\n"
+        + mv
+        + "     }\n"
+        + "   ]\n"
+        + "}";
+
+    CalciteAssert.model(model)
+        .withDefaultSchema("foodmart")
+        .query("select * from \"foodmart\".\"sales_fact_1997\" where \"product_id\" = 10")
+        .enableMaterializations(true)
+        .substitutionMatches(
+            CalciteAssert.checkRel(
+                "EnumerableTableScan(table=[[mat, m0]])\n",
+                counter));
+    assertThat(counter.intValue(), equalTo(1));
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-760">[CALCITE-760]
