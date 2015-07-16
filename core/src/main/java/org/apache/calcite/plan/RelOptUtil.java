@@ -2238,8 +2238,9 @@ public abstract class RelOptUtil {
 
 
   /**
-   * Similar to {@link org.apache.calcite.plan.RelOptUtil.classifyFilters} except
-   * here the intent is to push the filters above a Correlate node down into the inputs
+   * Similar to {@link org.apache.calcite.plan.RelOptUtil#classifyFilters},
+   * except here the intent is to push the filters above a
+   * {@link org.apache.calcite.rel.core.Correlate} node down into the inputs
    * of the Correlate.
    */
   public static boolean classifyFiltersForCorrelation(
