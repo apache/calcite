@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
@@ -36,7 +37,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -48,24 +51,24 @@ import javax.xml.parsers.ParserConfigurationException;
  * <p>Loads files containing test input and output into memory. If there are
  * differences, writes out a log file containing the actual output.
  *
- * <p>Typical usage is as follows. A testcase class defines a method
+ * <p>Typical usage is as follows. A test case class defines a method
  *
  * <blockquote><pre><code>
  *
  * package com.acme.test;
  *
  * public class MyTest extends TestCase {
- *     public DiffRepository getDiffRepos() {
- *         return DiffRepository.lookup(MyTest.class);
- *     }
+ *   public DiffRepository getDiffRepos() {
+ *     return DiffRepository.lookup(MyTest.class);
+ *   }
  *
- *     &#64;Test public void testToUpper() {
- *          getDiffRepos().assertEquals("${result}", "${string}");
- *     }
+ *   &#64;Test public void testToUpper() {
+ *     getDiffRepos().assertEquals("${result}", "${string}");
+ *   }
  *
- *     &#64;Test public void testToLower() {
- *          getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
- *     }
+ *   &#64;Test public void testToLower() {
+ *     getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
+ *   }
  * }
  * </code></pre></blockquote>
  *
@@ -93,7 +96,7 @@ import javax.xml.parsers.ParserConfigurationException;
  *
  * </code></pre></blockquote>
  *
- * <p>If any of the testcases fails, a log file is generated, called
+ * <p>If any of the test cases fails, a log file is generated, called
  * <code>target/surefire/com/acme/test/MyTest.xml</code>, containing the actual
  * output.</p>
  *
@@ -110,9 +113,9 @@ import javax.xml.parsers.ParserConfigurationException;
  * <blockquote><code>cp target/surefire/com/acme/test/MyTest.xml
  * src/test/resources/com/acme/test/MyTest.xml</code></blockquote>
  *
- * <p>If a resource or testcase does not exist, <code>DiffRepository</code>
+ * <p>If a resource or test case does not exist, <code>DiffRepository</code>
  * creates them in the log file. Because DiffRepository is so forgiving, it is
- * very easy to create new tests and testcases.</p>
+ * very easy to create new tests and test cases.</p>
  *
  * <p>The {@link #lookup} method ensures that all test cases share the same
  * instance of the repository. This is important more than one one test case
@@ -153,16 +156,17 @@ public class DiffRepository {
   private static final String RESOURCE_NAME_ATTR = "name";
 
   /**
-   * Holds one diff-repository per class. It is necessary for all testcases in
-   * the same class to share the same diff-repository: if the repos gets
-   * loaded once per testcase, then only one diff is recorded.
+   * Holds one diff-repository per class. It is necessary for all test cases in
+   * the same class to share the same diff-repository: if the repository gets
+   * loaded once per test case, then only one diff is recorded.
    */
-  private static final Map<Class, DiffRepository> MAP_CLASS_TO_REPOS =
-      new HashMap<Class, DiffRepository>();
+  private static final Map<Class, DiffRepository> MAP_CLASS_TO_REPOSITORY =
+      new HashMap<>();
 
   //~ Instance fields --------------------------------------------------------
 
-  private final DiffRepository baseRepos;
+  private final DiffRepository baseRepository;
+  private final int indent;
   private Document doc;
   private final Element root;
   private final File logFile;
@@ -175,15 +179,15 @@ public class DiffRepository {
    *
    * @param refFile   Reference file
    * @param logFile   Log file
-   * @param baseRepos Parent repository or null
+   * @param baseRepository Parent repository or null
    * @param filter    Filter or null
    */
   private DiffRepository(
       URL refFile,
       File logFile,
-      DiffRepository baseRepos,
+      DiffRepository baseRepository,
       Filter filter) {
-    this.baseRepos = baseRepos;
+    this.baseRepository = baseRepository;
     this.filter = filter;
     if (refFile == null) {
       throw new IllegalArgumentException("url must not be null");
@@ -211,11 +215,12 @@ public class DiffRepository {
         throw new RuntimeException("expected root element of type '" + ROOT_TAG
             + "', but found '" + root.getNodeName() + "'");
       }
-    } catch (ParserConfigurationException e) {
-      throw Util.newInternal(e, "error while creating xml parser");
-    } catch (SAXException e) {
+    } catch (ParserConfigurationException | SAXException e) {
       throw Util.newInternal(e, "error while creating xml parser");
     }
+    indent = logFile.getPath().contains("RelOptRulesTest")
+        || logFile.getPath().contains("SqlToRelConverterTest")
+        || logFile.getPath().contains("SqlLimitsTest") ? 4 : 2;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -260,7 +265,7 @@ public class DiffRepository {
       // what is in the Java. It helps to have a redundant copy in the
       // resource file.
       final String testCaseName = getCurrentTestCaseName(true);
-      if (baseRepos == null || baseRepos.get(testCaseName, tag) == null) {
+      if (baseRepository == null || baseRepository.get(testCaseName, tag) == null) {
         set(tag, text);
       }
       return text;
@@ -268,7 +273,7 @@ public class DiffRepository {
   }
 
   /**
-   * Sets the value of a given resource of the current testcase.
+   * Sets the value of a given resource of the current test case.
    *
    * @param resourceName Name of the resource, e.g. "sql"
    * @param value        Value of the resource
@@ -288,7 +293,7 @@ public class DiffRepository {
   }
 
   /**
-   * Returns a given resource from a given testcase.
+   * Returns a given resource from a given test case.
    *
    * @param testCaseName Name of test case, e.g. "testFoo"
    * @param resourceName Name of resource, e.g. "sql", "plan"
@@ -299,8 +304,8 @@ public class DiffRepository {
       String resourceName) {
     Element testCaseElement = getTestCaseElement(testCaseName, true);
     if (testCaseElement == null) {
-      if (baseRepos != null) {
-        return baseRepos.get(testCaseName, resourceName);
+      if (baseRepository != null) {
+        return baseRepository.get(testCaseName, resourceName);
       } else {
         return null;
       }
@@ -359,13 +364,13 @@ public class DiffRepository {
         if (testCaseName.equals(
             testCase.getAttribute(TEST_CASE_NAME_ATTR))) {
           if (checkOverride
-              && (baseRepos != null)
-              && (baseRepos.getTestCaseElement(testCaseName, false) != null)
+              && (baseRepository != null)
+              && (baseRepository.getTestCaseElement(testCaseName, false) != null)
               && !"true".equals(
                   testCase.getAttribute(TEST_CASE_OVERRIDES_ATTR))) {
             throw new RuntimeException(
                 "TestCase  '" + testCaseName + "' overrides a "
-                + "testcase in the base repository, but does "
+                + "test case in the base repository, but does "
                 + "not specify 'overrides=true'");
           }
           return testCase;
@@ -376,11 +381,11 @@ public class DiffRepository {
   }
 
   /**
-   * Returns the name of the current testcase by looking up the call stack for
+   * Returns the name of the current test case by looking up the call stack for
    * a method whose name starts with "test", for example "testFoo".
    *
    * @param fail Whether to fail if no method is found
-   * @return Name of current testcase, or null if not found
+   * @return Name of current test case, or null if not found
    */
   private String getCurrentTestCaseName(boolean fail) {
     // REVIEW jvs 12-Mar-2006: Too clever by half.  Someone might not know
@@ -390,7 +395,7 @@ public class DiffRepository {
     // failing here if they forgot?
 
     // Clever, this. Dump the stack and look up it for a method which
-    // looks like a testcase name, e.g. "testFoo".
+    // looks like a test case name, e.g. "testFoo".
     final StackTraceElement[] stackTrace;
     Throwable runtimeException = new Throwable();
     runtimeException.fillInStackTrace();
@@ -402,7 +407,7 @@ public class DiffRepository {
       }
     }
     if (fail) {
-      throw new RuntimeException("no testcase on current callstack");
+      throw new RuntimeException("no test case on current call stack");
     } else {
       return null;
     }
@@ -414,7 +419,7 @@ public class DiffRepository {
     if (expected2 == null) {
       update(testCaseName, expected, actual);
       throw new AssertionError("reference file does not contain resource '"
-          + expected + "' for testcase '" + testCaseName + "'");
+          + expected + "' for test case '" + testCaseName + "'");
     } else {
       try {
         // TODO jvs 25-Apr-2006:  reuse bulk of
@@ -430,6 +435,7 @@ public class DiffRepository {
             tag,
             expected2Canonical,
             actualCanonical);
+        amend(expected, actual);
       } catch (ComparisonFailure e) {
         amend(expected, actual);
         throw e;
@@ -458,7 +464,7 @@ public class DiffRepository {
       root.appendChild(testCaseElement);
     }
     Element resourceElement =
-        getResourceElement(testCaseElement, resourceName);
+        getResourceElement(testCaseElement, resourceName, true);
     if (resourceElement == null) {
       resourceElement = doc.createElement(RESOURCE_TAG);
       resourceElement.setAttribute(RESOURCE_NAME_ATTR, resourceName);
@@ -483,7 +489,7 @@ public class DiffRepository {
       boolean b = logFile.getParentFile().mkdirs();
       Util.discard(b);
       w = new FileWriter(logFile);
-      write(doc, w);
+      write(doc, w, indent);
     } catch (IOException e) {
       throw Util.newInternal(e,
           "error while writing test reference log '" + logFile + "'");
@@ -499,7 +505,7 @@ public class DiffRepository {
   }
 
   /**
-   * Returns a given resource from a given testcase.
+   * Returns a given resource from a given test case.
    *
    * @param testCaseElement The enclosing TestCase element, e.g. <code>
    *                        &lt;TestCase name="testFoo"&gt;</code>.
@@ -509,16 +515,40 @@ public class DiffRepository {
   private static Element getResourceElement(
       Element testCaseElement,
       String resourceName) {
+    return getResourceElement(testCaseElement, resourceName, false);
+  }
+
+  /**
+   * Returns a given resource from a given test case.
+   *
+   * @param testCaseElement The enclosing TestCase element, e.g. <code>
+   *                        &lt;TestCase name="testFoo"&gt;</code>.
+   * @param resourceName    Name of resource, e.g. "sql", "plan"
+   * @param killYoungerSiblings Whether to remove resources with the same
+   *                        name and the same parent that are eclipsed
+   * @return The value of the resource, or null if not found
+   */
+  private static Element getResourceElement(Element testCaseElement,
+      String resourceName, boolean killYoungerSiblings) {
     final NodeList childNodes = testCaseElement.getChildNodes();
+    Element found = null;
+    final List<Node> kills = new ArrayList<>();
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(RESOURCE_TAG)
           && resourceName.equals(
               ((Element) child).getAttribute(RESOURCE_NAME_ATTR))) {
-        return (Element) child;
+        if (found == null) {
+          found = (Element) child;
+        } else if (killYoungerSiblings) {
+          kills.add(child);
+        }
       }
     }
-    return null;
+    for (Node kill : kills) {
+      testCaseElement.removeChild(kill);
+    }
+    return found;
   }
 
   private static void removeAllChildren(Element element) {
@@ -534,10 +564,10 @@ public class DiffRepository {
    * <p>FIXME: I'm sure there's a library call to do this, but I'm danged if I
    * can find it. -- jhyde, 2006/2/9.
    */
-  private static void write(Document doc, Writer w) {
+  private static void write(Document doc, Writer w, int indent) {
     final XmlOutput out = new XmlOutput(w);
     out.setGlob(true);
-    out.setIndentString("    ");
+    out.setIndentString(Spaces.of(indent));
     writeNode(doc, out);
   }
 
@@ -634,8 +664,8 @@ public class DiffRepository {
    * Finds the repository instance for a given class, with no base
    * repository or filter.
    *
-   * @param clazz Testcase class
-   * @return The diff repository shared between testcases in this class.
+   * @param clazz Test case class
+   * @return The diff repository shared between test cases in this class.
    */
   public static DiffRepository lookup(Class clazz) {
     return lookup(clazz, null);
@@ -645,28 +675,28 @@ public class DiffRepository {
    * Finds the repository instance for a given class and inheriting from
    * a given repository.
    *
-   * @param clazz     Testcase class
-   * @param baseRepos Base class of test class
-   * @return The diff repository shared between testcases in this class.
+   * @param clazz     Test case class
+   * @param baseRepository Base class of test class
+   * @return The diff repository shared between test cases in this class.
    */
   public static DiffRepository lookup(
       Class clazz,
-      DiffRepository baseRepos) {
-    return lookup(clazz, baseRepos, null);
+      DiffRepository baseRepository) {
+    return lookup(clazz, baseRepository, null);
   }
 
   /**
    * Finds the repository instance for a given class.
    *
-   * <p>It is important that all testcases in a class share the same
-   * repository instance. This ensures that, if two or more testcases fail,
-   * the log file will contains the actual results of both testcases.
+   * <p>It is important that all test cases in a class share the same
+   * repository instance. This ensures that, if two or more test cases fail,
+   * the log file will contains the actual results of both test cases.
    *
-   * <p>The <code>baseRepos</code> parameter is useful if the test is an
+   * <p>The <code>baseRepository</code> parameter is useful if the test is an
    * extension to a previous test. If the test class has a base class which
    * also has a repository, specify the repository here. DiffRepository will
    * look for resources in the base class if it cannot find them in this
-   * repository. If test resources from testcases in the base class are
+   * repository. If test resources from test cases in the base class are
    * missing or incorrect, it will not write them to the log file -- you
    * probably need to fix the base test.
    *
@@ -675,24 +705,25 @@ public class DiffRepository {
    * if the behavior of a derived test is slightly different than a base
    * test. If you do not specify a filter, no filtering will happen.
    *
-   * @param clazz     Testcase class
-   * @param baseRepos Base repository
+   * @param clazz     Test case class
+   * @param baseRepository Base repository
    * @param filter    Filters each string returned by the repository
-   * @return The diff repository shared between testcases in this class.
+   * @return The diff repository shared between test cases in this class.
    */
   public static synchronized DiffRepository lookup(
       Class clazz,
-      DiffRepository baseRepos,
+      DiffRepository baseRepository,
       Filter filter) {
-    DiffRepository diffRepos = MAP_CLASS_TO_REPOS.get(clazz);
-    if (diffRepos == null) {
+    DiffRepository diffRepository = MAP_CLASS_TO_REPOSITORY.get(clazz);
+    if (diffRepository == null) {
       final URL refFile = findFile(clazz, ".xml");
       final File logFile =
           new File(refFile.getFile().replace("test-classes", "surefire"));
-      diffRepos = new DiffRepository(refFile, logFile, baseRepos, filter);
-      MAP_CLASS_TO_REPOS.put(clazz, diffRepos);
+      diffRepository =
+          new DiffRepository(refFile, logFile, baseRepository, filter);
+      MAP_CLASS_TO_REPOSITORY.put(clazz, diffRepository);
     }
-    return diffRepos;
+    return diffRepository;
   }
 
   /**

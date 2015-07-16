@@ -1132,7 +1132,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * [CALCITE-753] Test aggregate operators do not derive row types with duplicate column names
    */
   @Test public void testAggNoDuplicateColumnNames() {
-    sql("SELECT empno, EXPR$2, COUNT(empno) FROM (SELECT empno, deptno AS EXPR$2 "
+    sql("SELECT empno, EXPR$2, COUNT(empno) FROM (SELECT empno, deptno AS EXPR$2\n"
             + "FROM emp) GROUP BY empno, EXPR$2").convertsTo("${plan}");
   }
 
