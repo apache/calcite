@@ -1024,6 +1024,38 @@ public class RexUtil {
     return new CnfHelper(rexBuilder).toCnf(rex);
   }
 
+  /** Converts an expression to disjunctive normal form (DNF).
+   *
+   * <p>DNF: It is a form of logical formula which is disjunction of conjunctive clauses</p>
+   *
+   * <p>All logicl formulas can be converted into DNF.</p>
+   *
+   * <p>The following expression is in DNF:
+   *
+   * <blockquote>(a AND b) OR (c AND d)</blockquote>
+   *
+   * <p>The following expression is not in CNF:
+   *
+   * <blockquote>(a OR b) AND c</blockquote>
+   *
+   * but can be converted to DNF:
+   *
+   * <blockquote>(a AND c) OR (b AND c)</blockquote>
+   *
+   * <p>The following expression is not in CNF:
+   *
+   * <blockquote>NOT (a OR NOT b)</blockquote>
+   *
+   * but can be converted to DNF by applying de Morgan's theorem:
+   *
+   * <blockquote>NOT a AND b</blockquote>
+   *
+   * <p>Expressions not involving AND, OR or NOT at the top level are in DNF.
+   */
+  public static RexNode toDnf(RexBuilder rexBuilder, RexNode rex) {
+    return new DnfHelper(rexBuilder).toDnf(rex);
+  }
+
   /**
    * Returns whether an operator is associative. AND is associative,
    * which means that "(x AND y) and z" is equivalent to "x AND (y AND z)".
@@ -1722,6 +1754,79 @@ public class RexUtil {
       return composeDisjunction(rexBuilder, nodes, false);
     }
   }
+
+  /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
+  private static class DnfHelper {
+    final RexBuilder rexBuilder;
+
+    private DnfHelper(RexBuilder rexBuilder) {
+      this.rexBuilder = rexBuilder;
+    }
+
+    public RexNode toDnf(RexNode rex) {
+      final List<RexNode> operands;
+      switch (rex.getKind()) {
+      case AND:
+        operands = flattenAnd(((RexCall) rex).getOperands());
+        final RexNode head = operands.get(0);
+        final RexNode headDnf = toDnf(head);
+        final List<RexNode> headDnfs = RelOptUtil.disjunctions(headDnf);
+        final RexNode tail = and(Util.skip(operands));
+        final RexNode tailDnf = toDnf(tail);
+        final List<RexNode> tailDnfs = RelOptUtil.disjunctions(tailDnf);
+        final List<RexNode> list = Lists.newArrayList();
+        for (RexNode h : headDnfs) {
+          for (RexNode t : tailDnfs) {
+            list.add(and(ImmutableList.of(h, t)));
+          }
+        }
+        return or(list);
+      case OR:
+        operands = flattenOr(((RexCall) rex).getOperands());
+        return or(toDnfs(operands));
+      case NOT:
+        final RexNode arg = ((RexCall) rex).getOperands().get(0);
+        switch (arg.getKind()) {
+        case NOT:
+          return toDnf(((RexCall) arg).getOperands().get(0));
+        case OR:
+          operands = ((RexCall) arg).getOperands();
+          return toDnf(and(Lists.transform(flattenOr(operands), ADD_NOT)));
+        case AND:
+          operands = ((RexCall) arg).getOperands();
+          return toDnf(or(Lists.transform(flattenAnd(operands), ADD_NOT)));
+        default:
+          return rex;
+        }
+      default:
+        return rex;
+      }
+    }
+
+    private List<RexNode> toDnfs(List<RexNode> nodes) {
+      final List<RexNode> list = Lists.newArrayList();
+      for (RexNode node : nodes) {
+        RexNode dnf = toDnf(node);
+        switch (dnf.getKind()) {
+        case OR:
+          list.addAll(((RexCall) dnf).getOperands());
+          break;
+        default:
+          list.add(dnf);
+        }
+      }
+      return list;
+    }
+
+    private RexNode and(Iterable<? extends RexNode> nodes) {
+      return composeConjunction(rexBuilder, nodes, false);
+    }
+
+    private RexNode or(Iterable<? extends RexNode> nodes) {
+      return composeDisjunction(rexBuilder, nodes, false);
+    }
+  }
+
 
   /** Shuttle that adds {@code offset} to each {@link RexInputRef} in an
    * expression. */
