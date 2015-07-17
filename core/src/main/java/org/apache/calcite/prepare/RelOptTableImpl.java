@@ -290,31 +290,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
         final RelFieldCollation fieldCollation =
             collation.getFieldCollations().get(0);
         if (fieldCollation.getFieldIndex() == i) {
-          return monotonicity(fieldCollation.direction);
+          return fieldCollation.direction.monotonicity();
         }
       }
     }
     return SqlMonotonicity.NOT_MONOTONIC;
-  }
-
-  /** Converts a {@link org.apache.calcite.rel.RelFieldCollation.Direction}
-   * value to a {@link org.apache.calcite.sql.validate.SqlMonotonicity}. */
-  private static SqlMonotonicity
-  monotonicity(RelFieldCollation.Direction direction) {
-    switch (direction) {
-    case ASCENDING:
-      return SqlMonotonicity.INCREASING;
-    case STRICTLY_ASCENDING:
-      return SqlMonotonicity.STRICTLY_INCREASING;
-    case DESCENDING:
-      return SqlMonotonicity.DECREASING;
-    case STRICTLY_DESCENDING:
-      return SqlMonotonicity.STRICTLY_DECREASING;
-    case CLUSTERED:
-      return SqlMonotonicity.MONOTONIC;
-    default:
-      throw new AssertionError("unknown: " + direction);
-    }
   }
 
   public SqlAccessType getAllowedAccess() {

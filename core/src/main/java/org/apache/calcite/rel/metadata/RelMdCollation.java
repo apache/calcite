@@ -35,10 +35,13 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -51,8 +54,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 
 /**
@@ -168,7 +174,8 @@ public class RelMdCollation {
   }
 
   /** Helper method to determine a
-   * {@link org.apache.calcite.rel.core.Calc}'s collation. */
+   * {@link org.apache.calcite.rel.core.Calc}'s collation.
+   */
   public static List<RelCollation> calc(RelNode input,
       RexProgram program) {
     return program.getCollations(RelMetadataQuery.collations(input));
@@ -177,7 +184,6 @@ public class RelMdCollation {
   /** Helper method to determine a {@link Project}'s collation. */
   public static List<RelCollation> project(RelNode input,
       List<? extends RexNode> projects) {
-    // TODO: also monotonic expressions
     final SortedSet<RelCollation> collations = Sets.newTreeSet();
     final List<RelCollation> inputCollations =
         RelMetadataQuery.collations(input);
@@ -185,9 +191,16 @@ public class RelMdCollation {
       return ImmutableList.of();
     }
     final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
+    final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
+        new HashMap<Integer, SqlMonotonicity>();
     for (Ord<RexNode> project : Ord.zip(projects)) {
       if (project.e instanceof RexInputRef) {
         targets.put(((RexInputRef) project.e).getIndex(), project.i);
+      } else if (project.e instanceof RexCall) {
+        final RexCall call = (RexCall) project.e;
+        final RexCallBinding binding =
+            RexCallBinding.create(input.getCluster().getTypeFactory(), call, inputCollations);
+        targetsWithMonotonicity.put(project.i, call.getOperator().getMonotonicity(binding));
       }
     }
     final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
@@ -207,18 +220,40 @@ public class RelMdCollation {
       assert !fieldCollations.isEmpty();
       collations.add(RelCollations.of(fieldCollations));
     }
+
+    final List<RelFieldCollation> fieldCollationsForRexCalls =
+        new ArrayList<>();
+    for (Map.Entry<Integer, SqlMonotonicity> entry
+        : targetsWithMonotonicity.entrySet()) {
+      final SqlMonotonicity value = entry.getValue();
+      switch (value) {
+      case NOT_MONOTONIC:
+      case CONSTANT:
+        break;
+      default:
+        fieldCollationsForRexCalls.add(
+            new RelFieldCollation(entry.getKey(),
+                RelFieldCollation.Direction.of(value)));
+        break;
+      }
+    }
+
+    if (!fieldCollationsForRexCalls.isEmpty()) {
+      collations.add(RelCollations.of(fieldCollationsForRexCalls));
+    }
+
     return ImmutableList.copyOf(collations);
   }
 
   /** Helper method to determine a
    * {@link org.apache.calcite.rel.core.Window}'s collation.
-   *
+   * <p/>
    * <p>A Window projects the fields of its input first, followed by the output
    * from each of its windows. Assuming (quite reasonably) that the
    * implementation does not re-order its input rows, then any collations of its
    * input are preserved. */
   public static List<RelCollation> window(RelNode input,
-      ImmutableList<Window.Group> groups) {
+                                          ImmutableList<Window.Group> groups) {
     return RelMetadataQuery.collations(input);
   }
 
@@ -235,7 +270,7 @@ public class RelMdCollation {
    *   <li>do not repeat combinations already emitted -
    *       if we've emitted {@code (a, b)} do not later emit {@code (b, a)};
    *   <li>probe the actual values and make sure that each collation is
-   *      consistent with the data
+   *       consistent with the data
    * </ul>
    *
    * <p>So, for an empty Values with 4 columns, we would emit

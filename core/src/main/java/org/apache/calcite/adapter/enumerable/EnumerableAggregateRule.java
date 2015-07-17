@@ -41,7 +41,7 @@ class EnumerableAggregateRule extends ConverterRule {
       return new EnumerableAggregate(
           rel.getCluster(),
           traitSet,
-          convert(agg.getInput(), traitSet),
+          convert(agg.getInput(), EnumerableConvention.INSTANCE),
           agg.indicator,
           agg.getGroupSet(),
           agg.getGroupSets(),

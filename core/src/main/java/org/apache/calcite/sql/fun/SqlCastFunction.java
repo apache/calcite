@@ -37,7 +37,6 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -199,15 +198,11 @@ public class SqlCastFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
-    RelDataTypeFamily castFrom =
-        scope.getValidator().deriveType(scope, call.operand(0)).getFamily();
-    RelDataTypeFamily castTo =
-        scope.getValidator().deriveType(scope, call.operand(1)).getFamily();
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    RelDataTypeFamily castFrom = call.getOperandType(0).getFamily();
+    RelDataTypeFamily castTo = call.getOperandType(1).getFamily();
     if (isMonotonicPreservingCast(castFrom, castTo)) {
-      return call.operand(0).getMonotonicity(scope);
+      return call.getOperandMonotonicity(0);
     } else {
       return SqlMonotonicity.NOT_MONOTONIC;
     }

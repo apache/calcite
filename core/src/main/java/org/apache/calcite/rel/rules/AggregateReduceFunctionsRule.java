@@ -340,7 +340,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             argType, argType.isNullable());
     final AggregateCall sumZeroCall =
         AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
-            oldCall.getArgList(), oldCall.filterArg, sumType, null);
+            oldCall.getArgList(), oldCall.filterArg, sumType, oldCall.name);
     final AggregateCall countCall =
         AggregateCall.create(
             SqlStdOperatorTable.COUNT,

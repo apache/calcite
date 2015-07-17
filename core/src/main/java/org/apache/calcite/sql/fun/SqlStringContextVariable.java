@@ -16,15 +16,14 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 /**
  * Base class for functions such as "USER", "CURRENT_ROLE", and "CURRENT_PATH".
@@ -49,9 +48,7 @@ public class SqlStringContextVariable extends SqlFunction {
   }
 
   // All of the string constants are monotonic.
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     return SqlMonotonicity.CONSTANT;
   }
 

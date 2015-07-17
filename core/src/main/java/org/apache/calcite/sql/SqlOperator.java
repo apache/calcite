@@ -723,10 +723,26 @@ public abstract class SqlOperator {
    *
    * @param call  Call to this operator
    * @param scope Scope in which the call occurs
+   *
+   * @deprecated Use {@link #getMonotonicity(SqlOperatorBinding)}
    */
+  @Deprecated // to be removed before 2.0
   public SqlMonotonicity getMonotonicity(
       SqlCall call,
       SqlValidatorScope scope) {
+    return getMonotonicity(
+        new SqlCallBinding(scope.getValidator(), scope, call));
+  }
+
+  /**
+   * Returns whether a call to this operator is monotonic.
+   *
+   * <p>Default implementation returns {@link SqlMonotonicity#NOT_MONOTONIC}.
+   *
+   * @param call Call to this operator with particular arguments and information
+   *             about the monotonicity of the arguments
+   */
+  public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 

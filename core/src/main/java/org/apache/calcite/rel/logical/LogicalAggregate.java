@@ -19,12 +19,17 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -77,28 +82,39 @@ public final class LogicalAggregate extends Aggregate {
         groupSet, groupSets, aggCalls);
   }
 
-  /**
-   * Creates a LogicalAggregate by parsing serialized output.
-   */
+  /** Creates a LogicalAggregate by parsing serialized output. */
   public LogicalAggregate(RelInput input) {
     super(input);
   }
 
   /** Creates a LogicalAggregate. */
-  public static LogicalAggregate create(RelNode input,
-      boolean indicator,
-      ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
-      List<AggregateCall> aggCalls) {
+  public static LogicalAggregate create(final RelNode input,
+                                        boolean indicator,
+                                        ImmutableBitSet groupSet,
+                                        List<ImmutableBitSet> groupSets,
+                                        List<AggregateCall> aggCalls) {
     final RelOptCluster cluster = input.getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE).replaceIfs(
+        RelCollationTraitDef.INSTANCE,
+        new Supplier<List<RelCollation>>() {
+          public List<RelCollation> get() {
+            List<RelCollation> collations =
+                input.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
+            if (collations != null) {
+              return collations;
+            }
+
+            return ImmutableList.of();
+          }
+        });
     return new LogicalAggregate(cluster, traitSet, input, indicator, groupSet,
         groupSets, aggCalls);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
+  @Override
+  public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
       boolean indicator, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);

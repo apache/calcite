@@ -259,9 +259,68 @@ public class SqlLiteral extends SqlNode {
   }
 
   /**
+   * Extracts the value from a literal.
+   *
+   * <p>Cases:
+   * <ul>
+   * <li>If the node is a character literal, a chain of string
+   * literals, or a CAST of a character literal, returns the value as a
+   * {@link NlsString}.
+   *
+   * <li>If the node is a numeric literal, or a negated numeric literal,
+   * returns the value as a {@link BigDecimal}.
+   *
+   * <li>If the node is a {@link SqlIntervalQualifier},
+   * returns its {@link TimeUnitRange}.
+   *
+   * <li>Otherwise the behavior is not specified.
+   * </ul>
+   */
+  public static Comparable value(SqlNode node) {
+    if (node instanceof SqlLiteral) {
+      SqlLiteral literal = (SqlLiteral) node;
+      switch (literal.getTypeName().getFamily()) {
+      case CHARACTER:
+        return (NlsString) literal.value;
+      case NUMERIC:
+        return (BigDecimal) literal.value;
+      }
+    }
+    if (SqlUtil.isLiteralChain(node)) {
+      assert node instanceof SqlCall;
+      final SqlLiteral literal =
+          SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
+      assert SqlTypeUtil.inCharFamily(literal.getTypeName());
+      return (NlsString) literal.value;
+    }
+    if (node instanceof SqlIntervalQualifier) {
+      SqlIntervalQualifier qualifier = (SqlIntervalQualifier) node;
+      return qualifier.timeUnitRange;
+    }
+    switch (node.getKind()) {
+    case CAST:
+      assert node instanceof SqlCall;
+      return value(((SqlCall) node).operand(0));
+    case MINUS_PREFIX:
+      assert node instanceof SqlCall;
+      Comparable o = value(((SqlCall) node).operand(0));
+      if (o instanceof BigDecimal) {
+        BigDecimal bigDecimal = (BigDecimal) o;
+        return bigDecimal.negate();
+      }
+      // fall through
+    default:
+      throw Util.newInternal("invalid literal: " + node);
+    }
+  }
+
+  /**
    * Extracts the string value from a string literal, a chain of string
    * literals, or a CAST of a string literal.
+   *
+   * @deprecated Use {@link #value(SqlNode)}
    */
+  @Deprecated // to be removed before 2.0
   public static String stringValue(SqlNode node) {
     if (node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) node;
@@ -466,6 +525,7 @@ public class SqlLiteral extends SqlNode {
    *
    * @return -1, 0 or 1
    */
+  @Deprecated // to be removed before 2.0
   public int signum() {
     return bigDecimalValue().compareTo(
         BigDecimal.ZERO);
@@ -484,6 +544,7 @@ public class SqlLiteral extends SqlNode {
     }
   }
 
+  @Deprecated // to be removed before 2.0
   public String getStringValue() {
     return ((NlsString) value).getValue();
   }

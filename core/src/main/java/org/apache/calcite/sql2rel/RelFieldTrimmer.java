@@ -200,7 +200,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       fieldsUsed = ImmutableBitSet.range(input.getRowType().getFieldCount());
     }
     final ImmutableList<RelCollation> collations =
-        RelMetadataQuery.collations(rel);
+        RelMetadataQuery.collations(input);
     for (RelCollation collation : collations) {
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         fieldsUsed = fieldsUsed.set(fieldCollation.getFieldIndex());

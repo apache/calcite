@@ -18,6 +18,7 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
@@ -25,7 +26,6 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 /**
  * A special operator for the subtraction of two DATETIMEs. The format of
@@ -70,10 +70,8 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
     call.operand(2).unparse(writer, leftPrec, rightPrec);
   }
 
-  public SqlMonotonicity getMonotonicity(
-      SqlCall call,
-      SqlValidatorScope scope) {
-    return SqlStdOperatorTable.MINUS.getMonotonicity(call, scope);
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    return SqlStdOperatorTable.MINUS.getMonotonicity(call);
   }
 }
 

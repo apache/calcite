@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import java.util.AbstractList;
@@ -94,6 +95,7 @@ public abstract class SqlOperatorBinding {
    * @param ordinal zero-based ordinal of operand of interest
    * @return string value
    */
+  @Deprecated // to be removed before 2.0
   public String getStringLiteralOperand(int ordinal) {
     throw new UnsupportedOperationException();
   }
@@ -104,7 +106,34 @@ public abstract class SqlOperatorBinding {
    * @param ordinal zero-based ordinal of operand of interest
    * @return integer value
    */
+  @Deprecated // to be removed before 2.0
   public int getIntLiteralOperand(int ordinal) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Gets the value of a literal operand.
+   *
+   * <p>Cases:
+   * <ul>
+   * <li>If the operand is not a literal, the value is null.
+   *
+   * <li>If the operand is a string literal,
+   * the value will be of type {@link org.apache.calcite.util.NlsString}.
+   *
+   * <li>If the operand is a numeric literal,
+   * the value will be of type {@link java.math.BigDecimal}.
+   *
+   * <li>If the operand is an interval qualifier,
+   * the value will be of type {@link SqlIntervalQualifier}</li>
+   *
+   * <li>Otherwise the type is undefined, and the value may be null.
+   * </ul>
+   *
+   * @param ordinal zero-based ordinal of operand of interest
+   * @return value of operand
+   */
+  public Comparable getOperandLiteralValue(int ordinal) {
     throw new UnsupportedOperationException();
   }
 
@@ -134,6 +163,16 @@ public abstract class SqlOperatorBinding {
    * @return bound operand type
    */
   public abstract RelDataType getOperandType(int ordinal);
+
+  /**
+   * Gets the monotonicity of a bound operand.
+   *
+   * @param ordinal zero-based ordinal of operand of interest
+   * @return monotonicity of operand
+   */
+  public SqlMonotonicity getOperandMonotonicity(int ordinal) {
+    return SqlMonotonicity.NOT_MONOTONIC;
+  }
 
   /**
    * Collects the types of the bound operands into a list.
