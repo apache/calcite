@@ -850,30 +850,30 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>CUME_DIST</code> Window function.
    */
   public static final SqlRankFunction CUME_DIST =
-      new SqlRankFunction("CUME_DIST");
+      new SqlRankFunction("CUME_DIST", true);
 
   /**
    * <code>DENSE_RANK</code> Window function.
    */
   public static final SqlRankFunction DENSE_RANK =
-      new SqlRankFunction("DENSE_RANK");
+      new SqlRankFunction("DENSE_RANK", true);
 
   /**
    * <code>PERCENT_RANK</code> Window function.
    */
   public static final SqlRankFunction PERCENT_RANK =
-      new SqlRankFunction("PERCENT_RANK");
+      new SqlRankFunction("PERCENT_RANK", true);
 
   /**
    * <code>RANK</code> Window function.
    */
-  public static final SqlRankFunction RANK = new SqlRankFunction("RANK");
+  public static final SqlRankFunction RANK = new SqlRankFunction("RANK", true);
 
   /**
    * <code>ROW_NUMBER</code> Window function.
    */
   public static final SqlRankFunction ROW_NUMBER =
-      new SqlRankFunction("ROW_NUMBER");
+      new SqlRankFunction("ROW_NUMBER", false);
 
   //-------------------------------------------------------------
   //                   SPECIAL OPERATORS

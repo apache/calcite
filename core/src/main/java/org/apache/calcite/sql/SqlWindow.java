@@ -27,6 +27,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
@@ -523,6 +524,13 @@ public class SqlWindow extends SqlCall {
     }
 
     for (SqlNode partitionItem : partitionList) {
+      try {
+        partitionItem.accept(Util.OverFinder.INSTANCE);
+      } catch (ControlFlowException e) {
+        throw validator.newValidationError(this,
+            RESOURCE.partitionbyShouldNotContainOver());
+      }
+
       partitionItem.validateExpr(validator, operandScope);
     }
 
@@ -530,6 +538,13 @@ public class SqlWindow extends SqlCall {
       boolean savedColumnReferenceExpansion =
           validator.getColumnReferenceExpansion();
       validator.setColumnReferenceExpansion(false);
+      try {
+        orderItem.accept(Util.OverFinder.INSTANCE);
+      } catch (ControlFlowException e) {
+        throw validator.newValidationError(this,
+            RESOURCE.orderbyShouldNotContainOver());
+      }
+
       try {
         orderItem.validateExpr(validator, scope);
       } finally {
