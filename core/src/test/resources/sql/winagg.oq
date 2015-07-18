@@ -163,6 +163,10 @@ select *, dense_rank() over (order by deptno) as c from emp;
 
 !ok
 
+# Disabled because produces different results on JDK 1.7.
+# See winagg-jdk8, which is only run under JDK 1.8.
+# When [QUIDEM-8] is fixed, use "if (jdk8) ..."
+!if (false) {
 select *,
   row_number() over (order by deptno) as r1,
   row_number() over (partition by deptno order by gender desc) as r2,
@@ -184,6 +188,8 @@ from emp;
 (9 rows)
 
 !ok
+!}
+
 !if (false) {
 select *, count(*) over (order by deptno), first_value(ename) over (order by deptno rows 2 following) from emp;
  ERROR:  frame starting from following row cannot end with current row

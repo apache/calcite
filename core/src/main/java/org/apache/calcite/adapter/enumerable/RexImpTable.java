@@ -1388,6 +1388,10 @@ public class RexImpTable {
           Expressions.subtract(result.index(), result.startIndex()),
           Expressions.constant(1));
     }
+
+    @Override public boolean needCacheWhenFrameIntact() {
+      return false;
+    }
   }
 
   /** Implementor for the {@code TRIM} function. */
