@@ -247,6 +247,10 @@ public class SqlWindow extends SqlCall {
     return false;
   }
 
+  public void setRows(SqlLiteral isRows) {
+    this.isRows = isRows;
+  }
+
   public boolean isRows() {
     return isRows.booleanValue();
   }

@@ -145,6 +145,7 @@ select *, rank() over (order by deptno) as c from emp;
 (9 rows)
 
 !ok
+
 # Calcite does not yet generate tied ranks
 select *, dense_rank() over (order by deptno) as c from emp;
  ENAME | DEPTNO | GENDER | C
@@ -161,6 +162,54 @@ select *, dense_rank() over (order by deptno) as c from emp;
 (9 rows)
 
 !ok
+
+# [CALCITE-806] ROW_NUMBER should emit distinct values
+#
+# We only run this test under JDK 1.8 because the results are
+# non-deterministic and are different (but still correct) on
+# JDK 1.7 and other platforms.
+!if (jdk18) {
+select *,
+  row_number() over (order by deptno) as r1,
+  row_number() over (partition by deptno order by gender desc) as r2,
+  row_number() over (partition by deptno order by gender) as r3,
+  row_number() over (partition by gender) as r4,
+  row_number() over () as r
+from emp;
+ ENAME | DEPTNO | GENDER | R1 | R2 | R3 | R4 | R
+-------+--------+--------+----+----+----+----+---
+ Wilma |        | F      |  9 |  1 |  1 |  1 | 1
+ Eve   |     50 | F      |  7 |  2 |  1 |  2 | 2
+ Jane  |     10 | F      |  1 |  2 |  1 |  3 | 3
+ Grace |     60 | F      |  8 |  1 |  1 |  4 | 4
+ Susan |     30 | F      |  4 |  1 |  1 |  5 | 5
+ Alice |     30 | F      |  5 |  2 |  2 |  6 | 6
+ Adam  |     50 | M      |  6 |  1 |  2 |  1 | 7
+ Eric  |     20 | M      |  3 |  1 |  1 |  2 | 8
+ Bob   |     10 | M      |  2 |  1 |  2 |  3 | 9
+(9 rows)
+
+!ok
+!}
+
+# As above, ROW_NUMBER without explicit ORDER BY
+select deptno,
+  ename,
+  row_number() over (partition by deptno) as r
+from emp
+where gender = 'F';
+ DEPTNO | ENAME | R
+--------+-------+---
+     10 | Jane  | 1
+     30 | Alice | 2
+     30 | Susan | 1
+     50 | Eve   | 1
+     60 | Grace | 1
+        | Wilma | 1
+(6 rows)
+
+!ok
+
 !if (false) {
 select *, count(*) over (order by deptno), first_value(ename) over (order by deptno rows 2 following) from emp;
  ERROR:  frame starting from following row cannot end with current row
@@ -184,6 +233,7 @@ select *, count(*) over (partition by deptno) as c from emp;
 (9 rows)
 
 !ok
+
 # No ORDER BY, windows defined in WINDOW clause.
 select deptno, gender, min(gender) over w1 as a, min(gender) over w2 as d
 from emp
@@ -224,13 +274,11 @@ window w1 as ();
 !ok
 
 # Window Aggregate and group-by.
-# (ORDER BY is necessary to work around [QUIDEM-7].)
 !set outputformat mysql
 select min(deptno) as x, rank() over (order by ename) as y,
   max(ename) over (partition by deptno) as z
 from emp
-group by deptno, ename
-order by ename;
+group by deptno, ename;
 
 +----+---+-------+
 | X  | Y | Z     |

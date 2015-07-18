@@ -4022,18 +4022,19 @@ public class JdbcTest {
         .query("select \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
+            + " row_number() over (partition by \"deptno\") as r,\n"
             + " row_number() over (partition by \"deptno\" order by \"commission\" desc nulls first) as rcnf,\n"
             + " row_number() over (partition by \"deptno\" order by \"commission\" desc nulls last) as rcnl,\n"
             + " row_number() over (partition by \"deptno\" order by \"empid\") as r,\n"
             + " row_number() over (partition by \"deptno\" order by \"empid\" desc) as rd\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
-            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER NOT NULL, RCNL INTEGER NOT NULL, R INTEGER NOT NULL, RD INTEGER NOT NULL]")
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, R INTEGER NOT NULL, RCNF INTEGER NOT NULL, RCNL INTEGER NOT NULL, R INTEGER NOT NULL, RD INTEGER NOT NULL]")
         .returnsUnordered(
-            "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3",
-            "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2",
-            "deptno=10; empid=150; commission=null; RCNF=1; RCNL=3; R=3; RD=1",
-            "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1");
+            "deptno=10; empid=100; commission=1000; R=1; RCNF=2; RCNL=1; R=1; RD=3",
+            "deptno=10; empid=110; commission=250; R=3; RCNF=3; RCNL=2; R=2; RD=2",
+            "deptno=10; empid=150; commission=null; R=2; RCNF=1; RCNL=3; R=3; RD=1",
+            "deptno=20; empid=200; commission=500; R=1; RCNF=1; RCNL=1; R=1; RD=1");
   }
 
   /** Tests UNBOUNDED PRECEDING clause. */
@@ -4595,7 +4596,16 @@ public class JdbcTest {
     final FileReader fileReader = new FileReader(inFile);
     final BufferedReader bufferedReader = new BufferedReader(fileReader);
     final FileWriter writer = new FileWriter(outFile);
-    final Quidem quidem = new Quidem(bufferedReader, writer);
+    final Function<String, Object> env =
+        new Function<String, Object>() {
+          public Object apply(String varName) {
+            if (varName.equals("jdk18")) {
+              return System.getProperty("java.version").startsWith("1.8");
+            }
+            return null;
+          }
+        };
+    final Quidem quidem = new Quidem(bufferedReader, writer, env);
     quidem.execute(
         new Quidem.ConnectionFactory() {
           public Connection connect(String name) throws Exception {
