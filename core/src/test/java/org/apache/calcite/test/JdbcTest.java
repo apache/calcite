@@ -4036,6 +4036,23 @@ public class JdbcTest {
             "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1");
   }
 
+  /** Tests for ROW_NUMBER without explicit ORDER BY. It still should return unique values. */
+  @Test public void testWinRowNumberEmptyOrderBy() {
+    CalciteAssert.hr()
+        .query("select \"deptno\",\n"
+            + " \"empid\",\n"
+            + " \"commission\",\n"
+            + " row_number() over (partition by \"deptno\") as r,\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, R INTEGER NOT NULL]")
+        .returnsUnordered(
+            "deptno=10; empid=100; commission=1000; R=1",
+            "deptno=10; empid=110; commission=250; R=3",
+            "deptno=10; empid=150; commission=null; R=2",
+            "deptno=20; empid=200; commission=500; R=1");
+  }
+
   /** Tests UNBOUNDED PRECEDING clause. */
   @Test public void testOverUnboundedPreceding() {
     CalciteAssert.hr()

@@ -1747,6 +1747,12 @@ public class SqlToRelConverter {
     SqlNode windowOrRef = call.operand(1);
     final SqlWindow window =
         validator.resolveWindow(windowOrRef, bb.scope, true);
+    // ROW_NUMBER() expects specific kind of framing.
+    if (aggCall.getOperator() == SqlStdOperatorTable.ROW_NUMBER) {
+      window.setLowerBound(SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO));
+      window.setUpperBound(SqlWindow.createCurrentRow(SqlParserPos.ZERO));
+      window.setRows(SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
+    }
     final SqlNodeList partitionList = window.getPartitionList();
     final ImmutableList.Builder<RexNode> partitionKeys =
         ImmutableList.builder();
