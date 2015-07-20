@@ -107,6 +107,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private static final String STR_SET_OP_INCONSISTENT =
       "Set operator cannot combine streaming and non-streaming inputs";
 
+  private static final String ROW_RANGE_NOT_ALLOWED_WITH_RANK =
+      "ROW/RANGE not allowed with RANK, DENSE_RANK or ROW_NUMBER functions";
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlValidatorTest() {
@@ -3891,9 +3894,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winExp("row_number() over (partition by deptno)").ok();
     winExp("row_number() over ()").ok();
     winExp("row_number() over (order by deptno ^rows^ 2 preceding)")
-        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     winExp("row_number() over (order by deptno ^range^ 2 preceding)")
-        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
 
     // rank function type
     if (defined.contains("DENSE_RANK")) {
@@ -3928,10 +3931,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // window framing defined in window clause
     winSql(
         "select rank() over w from emp window w as (order by empno ^rows^ 2 preceding )")
-        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     winSql(
         "select dense_rank() over w from emp window w as (order by empno ^rows^ 2 preceding)")
-        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     if (defined.contains("PERCENT_RANK")) {
       winSql("select percent_rank() over w from emp\n"
           + "window w as (order by empno)")
@@ -3939,7 +3942,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       winSql(
           "select percent_rank() over w from emp\n"
           + "window w as (order by empno ^rows^ 2 preceding)")
-          .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+          .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
       winSql(
           "select percent_rank() over w from emp\n"
           + "window w as ^(partition by empno)^")
@@ -3957,7 +3960,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
               "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
       winSql(
           "select cume_dist() over w from emp window w as (order by empno ^rows^ 2 preceding)")
-          .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+          .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
       winSql(
           "select cume_dist() over w from emp window w as (order by empno)")
           .ok();
@@ -3969,10 +3972,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
     // window framing defined in in-line window
     winSql("select rank() over (order by empno ^range^ 2 preceding ) from emp ")
-        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     winSql(
         "select dense_rank() over (order by empno ^rows^ 2 preceding ) from emp ")
-        .fails("ROW/RANGE not allowed with RANK or DENSE_RANK functions");
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     if (defined.contains("PERCENT_RANK")) {
       winSql("select percent_rank() over (order by empno) from emp").ok();
     }

@@ -192,6 +192,24 @@ from emp;
 !ok
 !}
 
+# As above, ROW_NUMBER without explicit ORDER BY
+select deptno,
+  ename,
+  row_number() over (partition by deptno) as r
+from emp
+where gender = 'F';
+ DEPTNO | ENAME | R
+--------+-------+---
+     10 | Jane  | 1
+     30 | Alice | 2
+     30 | Susan | 1
+     50 | Eve   | 1
+     60 | Grace | 1
+        | Wilma | 1
+(6 rows)
+
+!ok
+
 !if (false) {
 select *, count(*) over (order by deptno), first_value(ename) over (order by deptno rows 2 following) from emp;
  ERROR:  frame starting from following row cannot end with current row
