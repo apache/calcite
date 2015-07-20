@@ -4046,7 +4046,7 @@ public class JdbcTest {
         .query("select \"deptno\",\n"
             + " \"empid\",\n"
             + " \"commission\",\n"
-            + " row_number() over (partition by \"deptno\") as r,\n"
+            + " row_number() over (partition by \"deptno\") as r\n"
             + "from \"hr\".\"emps\"")
         .typeIs(
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, R INTEGER NOT NULL]")
