@@ -163,10 +163,12 @@ select *, dense_rank() over (order by deptno) as c from emp;
 
 !ok
 
-# Disabled because produces different results on JDK 1.7.
-# See winagg-jdk8, which is only run under JDK 1.8.
-# When [QUIDEM-8] is fixed, use "if (jdk8) ..."
-!if (false) {
+# [CALCITE-806] ROW_NUMBER should emit distinct values
+#
+# We only run this test under JDK 1.8 because the results are
+# non-deterministic and are different (but still correct) on
+# JDK 1.7 and other platforms.
+!if (jdk18) {
 select *,
   row_number() over (order by deptno) as r1,
   row_number() over (partition by deptno order by gender desc) as r2,
@@ -254,13 +256,11 @@ window w1 as ();
 !ok
 
 # Window Aggregate and group-by.
-# (ORDER BY is necessary to work around [QUIDEM-7].)
 !set outputformat mysql
 select min(deptno) as x, rank() over (order by ename) as y,
   max(ename) over (partition by deptno) as z
 from emp
-group by deptno, ename
-order by ename;
+group by deptno, ename;
 
 +----+---+-------+
 | X  | Y | Z     |

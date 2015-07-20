@@ -252,9 +252,6 @@ public class JdbcTest {
       + "(8,1,4))\n"
       + " as t(rn,val,expected)";
 
-  private static final boolean JDK17 =
-      System.getProperty("java.version").startsWith("1.7");
-
   public static List<Pair<String, String>> getFoodmartQueries() {
     return FOODMART_QUERIES;
   }
@@ -4572,12 +4569,6 @@ public class JdbcTest {
     checkRun("sql/winagg.oq");
   }
 
-  @Test public void testRunWinAggJdk8() throws Exception {
-    if (!JDK17) {
-      checkRun("sql/winagg-jdk8.oq");
-    }
-  }
-
   @Test public void testRunMisc() throws Exception {
     checkRun("sql/misc.oq");
   }
@@ -4622,7 +4613,16 @@ public class JdbcTest {
     final FileReader fileReader = new FileReader(inFile);
     final BufferedReader bufferedReader = new BufferedReader(fileReader);
     final FileWriter writer = new FileWriter(outFile);
-    final Quidem quidem = new Quidem(bufferedReader, writer);
+    final Function<String, Object> env =
+        new Function<String, Object>() {
+          public Object apply(String varName) {
+            if (varName.equals("jdk18")) {
+              return System.getProperty("java.version").startsWith("1.8");
+            }
+            return null;
+          }
+        };
+    final Quidem quidem = new Quidem(bufferedReader, writer, env);
     quidem.execute(
         new Quidem.ConnectionFactory() {
           public Connection connect(String name) throws Exception {
