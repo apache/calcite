@@ -236,7 +236,7 @@ public class RelMdDistinctRowCount {
     if (childPred == null) {
       modifiedPred = null;
     } else {
-      modifiedPred = RelOptUtil.pushFilterPastProject(childPred, rel);
+      modifiedPred = RelOptUtil.pushPastProject(childPred, rel);
     }
     Double distinctRowCount =
         RelMetadataQuery.getDistinctRowCount(

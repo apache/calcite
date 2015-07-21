@@ -169,7 +169,7 @@ public class RelMdSelectivity {
     if (childPred == null) {
       modifiedPred = null;
     } else {
-      modifiedPred = RelOptUtil.pushFilterPastProject(childPred, rel);
+      modifiedPred = RelOptUtil.pushPastProject(childPred, rel);
     }
     Double selectivity =
         RelMetadataQuery.getSelectivity(

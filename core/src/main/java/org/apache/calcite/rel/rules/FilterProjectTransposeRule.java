@@ -88,7 +88,7 @@ public class FilterProjectTransposeRule extends RelOptRule {
 
     // convert the filter to one that references the child of the project
     RexNode newCondition =
-        RelOptUtil.pushFilterPastProject(filter.getCondition(), project);
+        RelOptUtil.pushPastProject(filter.getCondition(), project);
 
     // Remove cast of BOOLEAN NOT NULL to BOOLEAN or vice versa. Filter accepts
     // nullable and not-nullable conditions, but a CAST might get in the way of

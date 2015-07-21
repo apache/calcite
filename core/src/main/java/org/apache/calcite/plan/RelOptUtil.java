@@ -58,7 +58,6 @@ import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -2365,45 +2364,29 @@ public abstract class RelOptUtil {
     return exps;
   }
 
+  @Deprecated // to be removed before 2.0
+  public static RexNode pushFilterPastProject(RexNode filter,
+      final Project projRel) {
+    return pushPastProject(filter, projRel);
+  }
+
   /**
-   * Converts a filter to the new filter that would result if the filter is
-   * pushed past a LogicalProject that it currently is referencing.
+   * Converts an expression that is based on the output fields of a
+   * {@link Project} to an equivalent expression on the Project's
+   * input fields.
    *
-   * @param filter  the filter to be converted
-   * @param projRel project rel underneath the filter
-   * @return converted filter
+   * @param node The expression to be converted
+   * @param project Project underneath the expression
+   * @return converted expression
    */
-  public static RexNode pushFilterPastProject(
-      RexNode filter,
-      Project projRel) {
-    // use RexPrograms to merge the filter and LogicalProject into a
-    // single program so we can convert the LogicalFilter condition to
-    // directly reference the LogicalProject's child
-    RexBuilder rexBuilder = projRel.getCluster().getRexBuilder();
-    RexProgram bottomProgram =
-        RexProgram.create(
-            projRel.getInput().getRowType(),
-            projRel.getProjects(),
-            null,
-            projRel.getRowType(),
-            rexBuilder);
-
-    RexProgramBuilder topProgramBuilder =
-        new RexProgramBuilder(
-            projRel.getRowType(),
-            rexBuilder);
-    topProgramBuilder.addIdentity();
-    topProgramBuilder.addCondition(filter);
-    RexProgram topProgram = topProgramBuilder.getProgram();
-
-    RexProgram mergedProgram =
-        RexProgramBuilder.mergePrograms(
-            topProgram,
-            bottomProgram,
-            rexBuilder);
-
-    return mergedProgram.expandLocalRef(
-        mergedProgram.getCondition());
+  public static RexNode pushPastProject(RexNode node,
+      final Project project) {
+    return node.accept(
+        new RexShuttle() {
+          @Override public RexNode visitInputRef(RexInputRef ref) {
+            return project.getProjects().get(ref.getIndex());
+          }
+        });
   }
 
   /**
