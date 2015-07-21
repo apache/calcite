@@ -1636,10 +1636,9 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
-  LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
-    LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
+  LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1660,10 +1659,9 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
-  LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
-    LogicalProject(DEPTNO=[$7], FOUR=[4], ENAME=[$1])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
+  LogicalProject(DEPTNO=[$7], FOUR=[4], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1708,10 +1706,9 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
-  LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
-    LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
+  LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1732,10 +1729,9 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
-  LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
-    LogicalProject(DEPTNO=[$7], $f0=[+(42, 24)], MGR=[$3])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
+  LogicalProject(DEPTNO=[$7], $f0=[+(42, 24)], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

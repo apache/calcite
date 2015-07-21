@@ -2379,14 +2379,32 @@ public abstract class RelOptUtil {
    * @param project Project underneath the expression
    * @return converted expression
    */
-  public static RexNode pushPastProject(RexNode node,
-      final Project project) {
-    return node.accept(
-        new RexShuttle() {
-          @Override public RexNode visitInputRef(RexInputRef ref) {
-            return project.getProjects().get(ref.getIndex());
-          }
-        });
+  public static RexNode pushPastProject(RexNode node, Project project) {
+    return node.accept(pushShuttle(project));
+  }
+
+  /**
+   * Converts a list of expressions that are based on the output fields of a
+   * {@link Project} to equivalent expressions on the Project's
+   * input fields.
+   *
+   * @param nodes The expressions to be converted
+   * @param project Project underneath the expression
+   * @return converted expressions
+   */
+  public static List<RexNode> pushPastProject(List<? extends RexNode> nodes,
+      Project project) {
+    final List<RexNode> list = new ArrayList<>();
+    pushShuttle(project).visitList(nodes, list);
+    return list;
+  }
+
+  private static RexShuttle pushShuttle(final Project project) {
+    return new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef ref) {
+        return project.getProjects().get(ref.getIndex());
+      }
+    };
   }
 
   /**
