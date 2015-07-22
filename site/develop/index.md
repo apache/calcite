@@ -25,9 +25,9 @@ Want to help add a feature or fix a bug?
 
 ## Project Members
 
-Name | Apache Id | Github | Role
-:--- | :-------- | :----- | :---
-{% for c in site.data.contributors %}  {{ c.name }} | <a href="http://people.apache.org/committer-index#{{ c.apacheId }}">{{ c.apacheId }}</a> | <a href="http://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}http://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.role }}
+Name | Apache Id | Github | Organization | Role
+:--- | :-------- | :----- | :---         | :---
+{% for c in site.data.contributors %}  {{ c.name }} | <a href="http://people.apache.org/committer-index#{{ c.apacheId }}">{{ c.apacheId }}</a> | <a href="http://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}http://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endfor %}
 
 ## Mailing Lists

@@ -19,59 +19,73 @@
 - name: Alan Gates
   apacheId: gates
   githubId: alanfgates
+  org: Hortonworks
   role: Mentor
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
+  org: MapR
   role: Committer
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
+  org: Hortonworks
   role: Champion
 - name: Chris Wensel
   apacheId: cwensel
   githubId: cwensel
+  org: Concurrent
   role: PMC
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
+  org: Salesforce
   role: PMC
 - name: Jacques Nadeau
   apacheId: jacques
   githubId: jacques-n
+  org: Dremio
   role: PMC
 - name: Jesús Camacho Rodríguez
   apacheId: jcamacho
   githubId: jcamachor
+  org: Hortonworks
   role: Committer
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
+  org: MapR
   role: Committer
 - name: John Pullokkaran
   apacheId: jpullokk
   githubId: jpullokkaran
+  org: Hortonworks
   role: Committer
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
+  org: Hortonworks
   role: PMC
   homepage: http://people.apache.org/~jhyde
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
+  org: Hortonworks
   role: Committer
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
+  org: NGData
   role: Mentor
 - name: Ted Dunning
   apacheId: tdunning
   githubId: tdunning
+  org: MapR
   role: Mentor
   avatar: https://www.mapr.com/sites/default/files/otherpageimages/ted-circle-80.png
 - name: Vladimir Sitnikov
   apacheId: vladimirsitnikov
   githubId: vlsi
+  org: NetCracker
   role: PMC
 # End contributors.yml
