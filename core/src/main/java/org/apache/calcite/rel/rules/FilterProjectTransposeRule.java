@@ -86,10 +86,10 @@ public class FilterProjectTransposeRule extends RelOptRule {
       return;
     }
 
-    if (filter.hasCorrelation()) {
+    if (RexUtil.containsCorrelation(filter.getCondition())) {
       // If there is a correlation condition anywhere in the filter, don't
       // push this filter past project since in some cases it can prevent a
-      // Correlate from being decorrelated
+      // Correlate from being de-correlated.
       return;
     }
 

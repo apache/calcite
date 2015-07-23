@@ -44,11 +44,9 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
-import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterCorrelateRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -241,24 +239,18 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     if (mapOldToNewRel.containsKey(root)) {
       // has been rewritten; apply rules post-decorrelation
-      HepProgram program2 = HepProgram.builder()
+      final HepProgram program2 = HepProgram.builder()
           .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
           .addRuleInstance(FilterJoinRule.JOIN)
           .build();
 
-      HepPlanner planner2 = createPlanner(program2);
-
-      RelNode newroot = mapOldToNewRel.get(root);
-      // planner.setRoot(newroot);
-      planner2.setRoot(newroot);
-      // newroot = planner.findBestExp();
-      newroot = planner2.findBestExp();
-
-      return newroot;
-    } else {
-      // not rewritten
-      return root;
+      final HepPlanner planner2 = createPlanner(program2);
+      final RelNode newRoot = mapOldToNewRel.get(root);
+      planner2.setRoot(newRoot);
+      return planner2.findBestExp();
     }
+
+    return root;
   }
 
   private Function2<RelNode, RelNode, Void> createCopyHook() {

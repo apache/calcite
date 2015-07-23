@@ -26,17 +26,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexChecker;
-import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitor;
-import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -113,29 +108,6 @@ public abstract class Filter extends SingleRel {
 
   public RexNode getCondition() {
     return condition;
-  }
-
-  /**
-   * Check if any of the operands of the filter contains a
-   * correlation variable
-   */
-  public boolean hasCorrelation() {
-    if (condition instanceof RexCall) {
-      try {
-        RexVisitor<Void> visitor =
-            new RexVisitorImpl<Void>(true) {
-              public Void visitCorrelVariable(RexCorrelVariable var) {
-                throw new Util.FoundOne(var);
-              }
-            };
-        condition.accept(visitor);
-        return false;
-      } catch (Util.FoundOne e) {
-        Util.swallow(e,  null);
-        return true;
-      }
-    }
-    return false;
   }
 
   @Override public boolean isValid(boolean fail) {

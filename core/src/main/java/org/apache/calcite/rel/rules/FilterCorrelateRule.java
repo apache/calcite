@@ -27,14 +27,16 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Planner rule that pushes filters above Correlate node into the children of the Correlate.
+ * Planner rule that pushes a {@link Filter} above a {@link Correlate} into the
+ * inputs of the Correlate.
  */
 public class FilterCorrelateRule extends RelOptRule {
 
@@ -43,8 +45,6 @@ public class FilterCorrelateRule extends RelOptRule {
           RelFactories.DEFAULT_PROJECT_FACTORY);
 
   private final RelFactories.FilterFactory filterFactory;
-
-  private final RelFactories.ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -59,26 +59,20 @@ public class FilterCorrelateRule extends RelOptRule {
             operand(Correlate.class, RelOptRule.any())),
         "FilterCorrelateRule");
     this.filterFactory = filterFactory;
-    this.projectFactory = projectFactory;
+    Util.discard(projectFactory); // for future use
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    Filter filter = call.rel(0);
-    Correlate corr = call.rel(1);
-
-    if (filter == null) {
-      return;
-    }
+    final Filter filter = call.rel(0);
+    final Correlate corr = call.rel(1);
 
     final List<RexNode> aboveFilters =
-        filter != null
-            ? RelOptUtil.conjunctions(filter.getCondition())
-            : Lists.<RexNode>newArrayList();
+        RelOptUtil.conjunctions(filter.getCondition());
 
-    List<RexNode> leftFilters = new ArrayList<RexNode>();
-    List<RexNode> rightFilters = new ArrayList<RexNode>();
+    final List<RexNode> leftFilters = new ArrayList<>();
+    final List<RexNode> rightFilters = new ArrayList<>();
 
     // Try to push down above filters. These are typically where clause
     // filters. They can be pushed down if they are not on the NULL
@@ -100,20 +94,17 @@ public class FilterCorrelateRule extends RelOptRule {
       return;
     }
 
-    // create FilterRels on top of the children if any filters were
-    // pushed to them
+    // Create Filters on top of the children if any filters were
+    // pushed to them.
     final RexBuilder rexBuilder = corr.getCluster().getRexBuilder();
     RelNode leftRel =
         RelOptUtil.createFilter(corr.getLeft(), leftFilters, filterFactory);
     RelNode rightRel =
         RelOptUtil.createFilter(corr.getRight(), rightFilters, filterFactory);
 
-    // create the new LogicalCorrelate rel
-    List<RelNode> corrInputs = Lists.newArrayList();
-    corrInputs.add(leftRel);
-    corrInputs.add(rightRel);
-
-    RelNode newCorrRel = corr.copy(corr.getTraitSet(), corrInputs);
+    // Create the new Correlate
+    RelNode newCorrRel =
+        corr.copy(corr.getTraitSet(), ImmutableList.of(leftRel, rightRel));
 
     call.getPlanner().onCopy(corr, newCorrRel);
 
@@ -124,7 +115,7 @@ public class FilterCorrelateRule extends RelOptRule {
       call.getPlanner().onCopy(filter, rightRel);
     }
 
-    // create a LogicalFilter on top of the join if needed
+    // Create a Filter on top of the join if needed
     RelNode newRel =
         RelOptUtil.createFilter(newCorrRel,
             RexUtil.fixUp(rexBuilder, aboveFilters, newCorrRel.getRowType()),
@@ -132,7 +123,6 @@ public class FilterCorrelateRule extends RelOptRule {
 
     call.transformTo(newRel);
   }
-
 }
 
 // End FilterCorrelateRule.java
