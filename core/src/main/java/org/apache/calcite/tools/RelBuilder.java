@@ -444,6 +444,11 @@ public class RelBuilder {
     return aggregateCall(SqlStdOperatorTable.SUM, distinct, alias, operand);
   }
 
+  /** Creates a call to the AVG aggregate function. */
+  public AggCall avg(boolean distinct, String alias, RexNode operand) {
+    return aggregateCall(SqlStdOperatorTable.AVG, distinct, alias, operand);
+  }
+
   /** Creates a call to the MIN aggregate function. */
   public AggCall min(String alias, RexNode operand) {
     return aggregateCall(SqlStdOperatorTable.MIN, false, alias, operand);
