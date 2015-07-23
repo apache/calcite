@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -82,11 +83,14 @@ public class FilterCorrelateRule extends RelOptRule {
     // Try to push down above filters. These are typically where clause
     // filters. They can be pushed down if they are not on the NULL
     // generating side.
-    RelOptUtil.classifyFiltersForCorrelation(
+    RelOptUtil.classifyFilters(
         corr,
         aboveFilters,
+        JoinRelType.INNER,
+        false,
         !corr.getJoinType().toJoinType().generatesNullsOnLeft(),
         !corr.getJoinType().toJoinType().generatesNullsOnRight(),
+        aboveFilters,
         leftFilters,
         rightFilters);
 
