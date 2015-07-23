@@ -1345,6 +1345,42 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case (correlated scalar aggregate subquery) for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714] </a>.
+   */
+  @Test public void testCorrelationScalarAggAndFilter() {
+    tester.withDecorrelation(true).assertConvertsTo(
+       "SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno \n"
+       + "and e1.deptno < 10 and d1.deptno < 15 \n"
+       + "and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)",
+       "${plan}");
+  }
+
+  /**
+   * Test case (correlated Exists subquery) for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714] </a>.
+   */
+  @Test public void testCorrelationExistsAndFilter() {
+    tester.withDecorrelation(true).assertConvertsTo(
+       "SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno \n"
+       + "and e1.deptno < 10 and d1.deptno < 15 \n"
+       + "and exists (select * from emp e2 where e1.empno = e2.empno)",
+       "${plan}");
+  }
+
+  /**
+   * Test case (correlated Not-Exists subquery) for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714] </a>.
+   */
+  @Test public void testCorrelationNotExistsAndFilter() {
+    tester.withDecorrelation(true).assertConvertsTo(
+       "SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno \n"
+       + "and e1.deptno < 10 and d1.deptno < 15 \n"
+       + "and not exists (select * from emp e2 where e1.empno = e2.empno)",
+       "${plan}");
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(boolean)

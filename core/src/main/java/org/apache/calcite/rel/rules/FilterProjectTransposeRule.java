@@ -86,6 +86,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
       return;
     }
 
+    if (filter.hasCorrelation()) {
+      // If there is a correlation condition anywhere in the filter, don't
+      // push this filter past project since in some cases it can prevent a
+      // Correlate from being decorrelated
+      return;
+    }
+
     // convert the filter to one that references the child of the project
     RexNode newCondition =
         RelOptUtil.pushPastProject(filter.getCondition(), project);
