@@ -21,6 +21,7 @@ import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -36,6 +37,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import javax.annotation.Nonnull;
 
 /**
@@ -347,7 +349,9 @@ public class ImmutableBitSet
   }
 
   /** Returns the number of bits set to {@code true} in this
-   * {@code ImmutableBitSet}. */
+   * {@code ImmutableBitSet}.
+   *
+   * @see #size() */
   public int cardinality() {
     return countBits(words);
   }
@@ -383,6 +387,8 @@ public class ImmutableBitSet
    * The maximum element in the set is the size - 1st element.
    *
    * @return the number of bits currently in this bit set
+   *
+   * @see #cardinality()
    */
   public int size() {
     return words.length * BITS_PER_WORD;
@@ -603,6 +609,13 @@ public class ImmutableBitSet
     return words.length == 0 ? words : words.clone();
   }
 
+  /** Returns the union of this immutable bit set with a {@link BitSet}. */
+  public ImmutableBitSet union(BitSet other) {
+    return builder(this)
+        .addAll(BitSets.toIter(other))
+        .build();
+  }
+
   /** Returns the union of this bit set with another. */
   public ImmutableBitSet union(ImmutableBitSet other) {
     return builder(this)
@@ -678,6 +691,22 @@ public class ImmutableBitSet
    * <p>Does not modify the input map or its bit sets. */
   public static SortedMap<Integer, ImmutableBitSet> closure(
       SortedMap<Integer, ImmutableBitSet> equivalence) {
+    if (equivalence.isEmpty()) {
+      return ImmutableSortedMap.of();
+    }
+    int length = equivalence.lastKey();
+    for (ImmutableBitSet bitSet : equivalence.values()) {
+      length = Math.max(length, bitSet.length());
+    }
+    if (equivalence.size() < length
+        || equivalence.firstKey() != 0) {
+      SortedMap<Integer, ImmutableBitSet> old = equivalence;
+      equivalence = new TreeMap<>();
+      for (int i = 0; i < length; i++) {
+        final ImmutableBitSet bitSet = old.get(i);
+        equivalence.put(i, bitSet == null ? ImmutableBitSet.of() : bitSet);
+      }
+    }
     final Closure closure = new Closure(equivalence);
     return closure.closure;
   }
@@ -786,6 +815,19 @@ public class ImmutableBitSet
             return bitSet.permute(map);
           }
         });
+  }
+
+  /** Returns a bit set with every bit moved up {@code offset} positions.
+   * Offset may be negative, but throws if any bit ends up negative. */
+  public ImmutableBitSet shift(int offset) {
+    if (offset == 0) {
+      return this;
+    }
+    final Builder builder = builder();
+    for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
+      builder.set(i + offset);
+    }
+    return builder.build();
   }
 
   /**

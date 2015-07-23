@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import com.google.common.collect.ImmutableSortedMap;
+
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.SortedMap;
@@ -275,6 +277,22 @@ public final class BitSets {
    * <p>Does not modify the input map or its bit sets. */
   public static SortedMap<Integer, BitSet> closure(
       SortedMap<Integer, BitSet> equivalence) {
+    if (equivalence.isEmpty()) {
+      return ImmutableSortedMap.of();
+    }
+    int length = equivalence.lastKey();
+    for (BitSet bitSet : equivalence.values()) {
+      length = Math.max(length, bitSet.length());
+    }
+    if (equivalence.size() < length
+        || equivalence.firstKey() != 0) {
+      SortedMap<Integer, BitSet> old = equivalence;
+      equivalence = new TreeMap<>();
+      for (int i = 0; i < length; i++) {
+        final BitSet bitSet = old.get(i);
+        equivalence.put(i, bitSet == null ? new BitSet() : bitSet);
+      }
+    }
     final Closure closure = new Closure(equivalence);
     return closure.closure;
   }
@@ -305,8 +323,7 @@ public final class BitSets {
    */
   private static class Closure {
     private SortedMap<Integer, BitSet> equivalence;
-    private final SortedMap<Integer, BitSet> closure =
-        new TreeMap<Integer, BitSet>();
+    private final SortedMap<Integer, BitSet> closure = new TreeMap<>();
 
     public Closure(SortedMap<Integer, BitSet> equivalence) {
       this.equivalence = equivalence;

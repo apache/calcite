@@ -23,6 +23,8 @@ import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -205,6 +207,24 @@ public abstract class Mappings {
       builder.set(target);
     }
     return builder.build(bitSet);
+  }
+
+  /**
+   * Applies a mapping to a collection of {@code ImmutableBitSet}s.
+   *
+   * @param mapping Mapping
+   * @param bitSets Collection of bit sets
+   * @return Bit sets with mapping applied
+   */
+  public static ImmutableList<ImmutableBitSet> apply2(final Mapping mapping,
+      Iterable<ImmutableBitSet> bitSets) {
+    return ImmutableList.copyOf(
+        Iterables.transform(bitSets,
+            new Function<ImmutableBitSet, ImmutableBitSet>() {
+              public ImmutableBitSet apply(ImmutableBitSet input1) {
+                return Mappings.apply(mapping, input1);
+              }
+            }));
   }
 
   /**
