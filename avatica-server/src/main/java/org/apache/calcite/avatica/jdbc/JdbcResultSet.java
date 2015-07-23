@@ -37,7 +37,13 @@ import java.util.List;
 class JdbcResultSet extends Meta.MetaResultSet {
   protected JdbcResultSet(String connectionId, int statementId,
       boolean ownStatement, Meta.Signature signature, Meta.Frame firstFrame) {
-    super(connectionId, statementId, ownStatement, signature, firstFrame, -1);
+    this(connectionId, statementId, ownStatement, signature, firstFrame, -1);
+  }
+
+  protected JdbcResultSet(String connectionId, int statementId,
+      boolean ownStatement, Meta.Signature signature, Meta.Frame firstFrame,
+      int updateCount) {
+    super(connectionId, statementId, ownStatement, signature, firstFrame, updateCount);
   }
 
   /** Creates a result set. */
@@ -51,6 +57,15 @@ class JdbcResultSet extends Meta.MetaResultSet {
       ResultSet resultSet, int maxRowCount) {
     try {
       Meta.Signature sig = JdbcMeta.signature(resultSet.getMetaData());
+      return create(connectionId, statementId, resultSet, maxRowCount, sig);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static JdbcResultSet create(String connectionId, int statementId,
+      ResultSet resultSet, int maxRowCount, Meta.Signature signature) {
+    try {
       final Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       final int fetchRowCount =
         (maxRowCount == -1 || maxRowCount > 100) ? 100 : maxRowCount;
@@ -58,11 +73,24 @@ class JdbcResultSet extends Meta.MetaResultSet {
       if (firstFrame.done) {
         resultSet.close();
       }
-      return new JdbcResultSet(connectionId, statementId, true, sig,
+      return new JdbcResultSet(connectionId, statementId, true, signature,
           firstFrame);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** Creates a empty result set with empty frame */
+  public static JdbcResultSet empty(String connectionId, int statementId,
+      Meta.Signature signature) {
+    return new JdbcResultSet(connectionId, statementId, true, signature,
+        Meta.Frame.EMPTY);
+  }
+
+  /** Create a result set that only has the updateCount */
+  public static JdbcResultSet count(String connectionId, int statementId,
+      int updateCount) {
+    return new JdbcResultSet(connectionId, statementId, true, null, null, updateCount);
   }
 
   /** Creates a frame containing a given number or unlimited number of rows

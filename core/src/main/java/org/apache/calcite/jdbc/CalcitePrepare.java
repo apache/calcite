@@ -270,8 +270,10 @@ public interface CalcitePrepare {
         List<ColumnMetaData> columns,
         Meta.CursorFactory cursorFactory,
         int maxRowCount,
-        Bindable<T> bindable) {
-      super(columns, sql, parameterList, internalParameters, cursorFactory);
+        Bindable<T> bindable,
+        Meta.StatementType statementType) {
+      super(columns, sql, parameterList, internalParameters, cursorFactory,
+          statementType);
       this.rowType = rowType;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;

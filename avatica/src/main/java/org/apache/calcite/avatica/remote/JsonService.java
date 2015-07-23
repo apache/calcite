@@ -63,7 +63,7 @@ public abstract class JsonService implements Service {
     }
     return new Meta.Signature(columns, signature.sql,
         signature.parameters, signature.internalParameters,
-        signature.cursorFactory);
+        signature.cursorFactory, signature.statementType);
   }
 
   private static ColumnMetaData finagle(ColumnMetaData column) {
@@ -223,6 +223,14 @@ public abstract class JsonService implements Service {
   public FetchResponse apply(FetchRequest request) {
     try {
       return decode(apply(encode(request)), FetchResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
+  public ExecuteResponse apply(ExecuteRequest request) {
+    try {
+      return finagle(decode(apply(encode(request)), ExecuteResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }

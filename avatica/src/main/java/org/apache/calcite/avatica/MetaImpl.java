@@ -252,7 +252,7 @@ public abstract class MetaImpl implements Meta {
       final AvaticaStatement statement = connection.createStatement();
       final Signature signature =
           new Signature(columns, "", Collections.<AvaticaParameter>emptyList(),
-              internalParameters, cursorFactory);
+              internalParameters, cursorFactory, Meta.StatementType.SELECT);
       return MetaResultSet.create(connection.id, statement.getId(), true,
           signature, firstFrame);
     } catch (SQLException e) {
@@ -736,8 +736,7 @@ public abstract class MetaImpl implements Meta {
     return new FetchIterable(handle, firstFrame, parameterValues);
   }
 
-  public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
-      int offset, int fetchMaxRowCount) {
+  public Frame fetch(StatementHandle h, int offset, int fetchMaxRowCount) {
     return null;
   }
 
@@ -865,7 +864,7 @@ public abstract class MetaImpl implements Meta {
           rows = null;
           break;
         }
-        frame = fetch(handle, parameterValues, frame.offset, 100);
+        frame = fetch(handle, frame.offset, 100);
         parameterValues = null; // don't execute next time
         if (frame == null) {
           rows = null;

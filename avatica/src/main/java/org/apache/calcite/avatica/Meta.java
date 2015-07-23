@@ -221,8 +221,12 @@ public interface Meta {
    * no limit
    * @return Frame, or null if there are no more
    */
-  Frame fetch(StatementHandle h, List<TypedValue> parameterValues, int offset,
-      int fetchMaxRowCount);
+  Frame fetch(StatementHandle h, int offset, int fetchMaxRowCount);
+
+  /**
+   * Executes a PreparedStatement */
+  ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
+      int maxRowCount);
 
   /** Called during the creation of a statement to allocate a new handle.
    *
@@ -489,17 +493,21 @@ public interface Meta {
     public final transient Map<String, Object> internalParameters;
     public final CursorFactory cursorFactory;
 
+    public final Meta.StatementType statementType;
+
     /** Creates a Signature. */
     public Signature(List<ColumnMetaData> columns,
         String sql,
         List<AvaticaParameter> parameters,
         Map<String, Object> internalParameters,
-        CursorFactory cursorFactory) {
+        CursorFactory cursorFactory,
+        Meta.StatementType statementType) {
       this.columns = columns;
       this.sql = sql;
       this.parameters = parameters;
       this.internalParameters = internalParameters;
       this.cursorFactory = cursorFactory;
+      this.statementType = statementType;
     }
 
     /** Used by Jackson to create a Signature by de-serializing JSON. */
@@ -508,23 +516,26 @@ public interface Meta {
         @JsonProperty("columns") List<ColumnMetaData> columns,
         @JsonProperty("sql") String sql,
         @JsonProperty("parameters") List<AvaticaParameter> parameters,
-        @JsonProperty("cursorFactory") CursorFactory cursorFactory) {
+        @JsonProperty("cursorFactory") CursorFactory cursorFactory,
+        @JsonProperty("statementType") Meta.StatementType statementType) {
       return new Signature(columns, sql, parameters,
-          Collections.<String, Object>emptyMap(), cursorFactory);
+          Collections.<String, Object>emptyMap(), cursorFactory, statementType);
     }
 
     /** Returns a copy of this Signature, substituting given CursorFactory. */
     public Signature setCursorFactory(CursorFactory cursorFactory) {
       return new Signature(columns, sql, parameters, internalParameters,
-          cursorFactory);
+            cursorFactory, statementType);
     }
 
     /** Creates a copy of this Signature with null lists and maps converted to
      * empty. */
     public Signature sanitize() {
-      if (columns == null || parameters == null || internalParameters == null) {
+      if (columns == null || parameters == null || internalParameters == null
+          || statementType == null) {
         return new Signature(sanitize(columns), sql, sanitize(parameters),
-            sanitize(internalParameters), cursorFactory);
+            sanitize(internalParameters), cursorFactory,
+            Meta.StatementType.SELECT);
       }
       return this;
     }
@@ -689,6 +700,22 @@ public interface Meta {
     void assign(Signature signature, Frame firstFrame, int updateCount)
         throws SQLException;
     void execute() throws SQLException;
+  }
+
+  /**
+   * Facilitate the Type of Statement during statment prepare */
+  enum StatementType {
+    SELECT, INSERT, UPDATE, DELETE, UPSERT, MERGE, OTHER_DML,
+    CREATE, DROP, ALTER, OTHER_DDL, CALL;
+
+    public boolean canUpdate() {
+      switch(this) {
+      case INSERT:
+        return true;
+      default:
+        return false;
+      }
+    }
   }
 }
 

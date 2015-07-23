@@ -51,8 +51,13 @@ public class LocalService implements Service {
           resultSet.statementId, resultSet.ownStatement, null, null,
           resultSet.updateCount);
     }
+
+    Meta.Signature signature = resultSet.signature;
     Meta.CursorFactory cursorFactory = resultSet.signature.cursorFactory;
+    Meta.Frame frame = null;
+    int updatCount = -1;
     final List<Object> list;
+
     if (resultSet.firstFrame != null) {
       list = list(resultSet.firstFrame.rows);
       switch (cursorFactory.style) {
@@ -62,19 +67,40 @@ public class LocalService implements Service {
       case MAP:
       case LIST:
         break;
+      case RECORD:
+        cursorFactory = Meta.CursorFactory.LIST;
+        break;
       default:
         cursorFactory = Meta.CursorFactory.map(cursorFactory.fieldNames);
+      }
+
+      boolean done;
+      if (resultSet.firstFrame == null) {
+        done = false;
+      } else {
+        done = resultSet.firstFrame.done;
+      }
+
+      frame = new Meta.Frame(0, done, list);
+      updatCount = -1;
+
+      if (signature.statementType != null) {
+        if (signature.statementType.canUpdate()) {
+          frame = null;
+          updatCount = ((Number) ((List) list.get(0)).get(0)).intValue();
+        }
       }
     } else {
       //noinspection unchecked
       cursorFactory = Meta.CursorFactory.LIST;
     }
-    Meta.Signature signature = resultSet.signature;
+
     if (cursorFactory != resultSet.signature.cursorFactory) {
       signature = signature.setCursorFactory(cursorFactory);
     }
+
     return new ResultSetResponse(resultSet.connectionId, resultSet.statementId,
-        resultSet.ownStatement, signature, resultSet.firstFrame, -1);
+        resultSet.ownStatement, signature, frame, updatCount);
   }
 
   private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
@@ -166,10 +192,20 @@ public class LocalService implements Service {
         request.connectionId, request.statementId, null);
     final Meta.Frame frame =
         meta.fetch(h,
-            request.parameterValues,
             request.offset,
             request.fetchMaxRowCount);
     return new FetchResponse(frame);
+  }
+
+  public ExecuteResponse apply(ExecuteRequest request) {
+    final Meta.ExecuteResult executeResult = meta.execute(request.statementHandle,
+        request.parameterValues, request.maxRowCount);
+
+    final List<ResultSetResponse> results = new ArrayList<>();
+    for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
+      results.add(toResponse(metaResultSet));
+    }
+    return new ExecuteResponse(results);
   }
 
   public CreateStatementResponse apply(CreateStatementRequest request) {
