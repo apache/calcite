@@ -459,6 +459,16 @@ public class SqlFunctionsTest {
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), equalTo("hex string has odd length"));
     }
+
+    final byte[] bytes4 = {10, 0, 1, -80};
+    final ByteString byteString4 = new ByteString(bytes4);
+    final byte[] bytes5 = {10, 0, 1, 127};
+    final ByteString byteString5 = new ByteString(bytes5);
+    final ByteString byteString6 = new ByteString(bytes4);
+
+    assertThat(byteString4.compareTo(byteString5) > 0, is(true));
+    assertThat(byteString4.compareTo(byteString6) == 0, is(true));
+    assertThat(byteString5.compareTo(byteString4) < 0, is(true));
   }
 
   private void thereAndBack(byte[] bytes) {

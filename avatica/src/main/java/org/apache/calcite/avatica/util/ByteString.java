@@ -70,8 +70,8 @@ public class ByteString implements Comparable<ByteString>, Serializable {
     final byte[] v2 = that.bytes;
     final int n = Math.min(v1.length, v2.length);
     for (int i = 0; i < n; i++) {
-      byte c1 = v1[i];
-      byte c2 = v2[i];
+      int c1 = v1[i] & 0xff;
+      int c2 = v2[i] & 0xff;
       if (c1 != c2) {
         return c1 - c2;
       }
