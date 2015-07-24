@@ -166,7 +166,7 @@ abstract class CalciteConnectionImpl
   }
 
   <T> CalcitePrepare.CalciteSignature<T> parseQuery(String sql,
-      CalcitePrepare.Context prepareContext, int maxRowCount) {
+      CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
       final CalcitePrepare prepare = prepareFactory.apply();

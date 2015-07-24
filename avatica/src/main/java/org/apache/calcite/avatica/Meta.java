@@ -190,7 +190,7 @@ public interface Meta {
    * @param maxRowCount Negative for no limit (different meaning than JDBC)
    * @return Signature of prepared statement
    */
-  StatementHandle prepare(ConnectionHandle ch, String sql, int maxRowCount);
+  StatementHandle prepare(ConnectionHandle ch, String sql, long maxRowCount);
 
   /** Prepares and executes a statement.
    *
@@ -203,7 +203,7 @@ public interface Meta {
    *     first frame of data
    */
   ExecuteResult prepareAndExecute(StatementHandle h, String sql,
-      int maxRowCount, PrepareCallback callback);
+      long maxRowCount, PrepareCallback callback);
 
   /** Returns a frame of rows.
    *
@@ -221,7 +221,7 @@ public interface Meta {
    * no limit
    * @return Frame, or null if there are no more
    */
-  Frame fetch(StatementHandle h, List<TypedValue> parameterValues, int offset,
+  Frame fetch(StatementHandle h, List<TypedValue> parameterValues, long offset,
       int fetchMaxRowCount);
 
   /** Called during the creation of a statement to allocate a new handle.
@@ -356,11 +356,19 @@ public interface Meta {
     public final boolean ownStatement;
     public final Frame firstFrame;
     public final Signature signature;
-    public final int updateCount;
+    public final long updateCount;
 
+    @Deprecated // to be removed before 2.0
     protected MetaResultSet(String connectionId, int statementId,
         boolean ownStatement, Signature signature, Frame firstFrame,
         int updateCount) {
+      this(connectionId, statementId, ownStatement, signature, firstFrame,
+          (long) updateCount);
+    }
+
+    protected MetaResultSet(String connectionId, int statementId,
+        boolean ownStatement, Signature signature, Frame firstFrame,
+        long updateCount) {
       this.signature = signature;
       this.connectionId = connectionId;
       this.statementId = statementId;
@@ -372,11 +380,11 @@ public interface Meta {
     public static MetaResultSet create(String connectionId, int statementId,
         boolean ownStatement, Signature signature, Frame firstFrame) {
       return new MetaResultSet(connectionId, statementId, ownStatement,
-          Objects.requireNonNull(signature), firstFrame, -1);
+          Objects.requireNonNull(signature), firstFrame, -1L);
     }
 
     public static MetaResultSet count(String connectionId, int statementId,
-        int updateCount) {
+        long updateCount) {
       assert updateCount >= 0;
       return new MetaResultSet(connectionId, statementId, false, null, null,
           updateCount);
@@ -549,7 +557,7 @@ public interface Meta {
         new Frame(0, false, Collections.emptyList());
 
     /** Zero-based offset of first row. */
-    public final int offset;
+    public final long offset;
     /** Whether this is definitely the last frame of rows.
      * If true, there are no more rows.
      * If false, there may or may not be more rows. */
@@ -557,7 +565,7 @@ public interface Meta {
     /** The rows. */
     public final Iterable<Object> rows;
 
-    public Frame(int offset, boolean done, Iterable<Object> rows) {
+    public Frame(long offset, boolean done, Iterable<Object> rows) {
       this.offset = offset;
       this.done = done;
       this.rows = rows;
@@ -686,7 +694,7 @@ public interface Meta {
   interface PrepareCallback {
     Object getMonitor();
     void clear() throws SQLException;
-    void assign(Signature signature, Frame firstFrame, int updateCount)
+    void assign(Signature signature, Frame firstFrame, long updateCount)
         throws SQLException;
     void execute() throws SQLException;
   }

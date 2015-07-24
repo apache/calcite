@@ -148,7 +148,7 @@ public class LocalService implements Service {
               }
 
               @Override public void assign(Meta.Signature signature,
-                  Meta.Frame firstFrame, int updateCount) {
+                  Meta.Frame firstFrame, long updateCount) {
               }
 
               @Override public void execute() {

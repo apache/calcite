@@ -97,8 +97,9 @@ public class RemoteMetaTest {
 
   private static Meta.ExecuteResult prepareAndExecuteInternal(AvaticaConnection conn,
     final AvaticaStatement statement, String sql, int maxRowCount) throws Exception {
-    Method m = AvaticaConnection.class.getDeclaredMethod("prepareAndExecuteInternal",
-      AvaticaStatement.class, String.class, int.class);
+    Method m =
+        AvaticaConnection.class.getDeclaredMethod("prepareAndExecuteInternal",
+            AvaticaStatement.class, String.class, long.class);
     m.setAccessible(true);
     return (Meta.ExecuteResult) m.invoke(conn, statement, sql, maxRowCount);
   }

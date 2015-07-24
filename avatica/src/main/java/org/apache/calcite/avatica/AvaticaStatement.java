@@ -52,7 +52,7 @@ public abstract class AvaticaStatement
   protected AvaticaResultSet openResultSet;
 
   /** Current update count. Same lifecycle as {@link #openResultSet}. */
-  protected int updateCount;
+  protected long updateCount;
 
   private int queryTimeoutMillis;
   final int resultSetType;
@@ -60,7 +60,7 @@ public abstract class AvaticaStatement
   final int resultSetHoldability;
   private int fetchSize;
   private int fetchDirection;
-  protected int maxRowCount = 0;
+  protected long maxRowCount = 0;
 
   /**
    * Creates an AvaticaStatement.
@@ -105,7 +105,7 @@ public abstract class AvaticaStatement
     this.updateCount = -1;
     try {
       // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
-      final int maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
+      final long maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
       Meta.ExecuteResult x =
           connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
     } catch (RuntimeException e) {
@@ -139,7 +139,11 @@ public abstract class AvaticaStatement
     }
   }
 
-  public int executeUpdate(String sql) throws SQLException {
+  public final int executeUpdate(String sql) throws SQLException {
+    return (int) executeLargeUpdate(sql);
+  }
+
+  public long executeLargeUpdate(String sql) throws SQLException {
     checkNotPreparedOrCallable("executeUpdate(String)");
     executeInternal(sql);
     return updateCount;
@@ -182,11 +186,19 @@ public abstract class AvaticaStatement
     throw connection.helper.unsupported();
   }
 
-  public int getMaxRows() {
+  public final int getMaxRows() {
+    return (int) getLargeMaxRows();
+  }
+
+  public long getLargeMaxRows() {
     return maxRowCount;
   }
 
-  public void setMaxRows(int maxRowCount) throws SQLException {
+  public final void setMaxRows(int maxRowCount) throws SQLException {
+    setLargeMaxRows(maxRowCount);
+  }
+
+  public void setLargeMaxRows(long maxRowCount) throws SQLException {
     if (maxRowCount < 0) {
       throw connection.helper.createException(
           "illegal maxRows value: " + maxRowCount);
@@ -255,6 +267,10 @@ public abstract class AvaticaStatement
   }
 
   public int getUpdateCount() throws SQLException {
+    return (int) updateCount;
+  }
+
+  public long getLargeUpdateCount() throws SQLException {
     return updateCount;
   }
 

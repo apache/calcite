@@ -535,7 +535,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       String sql,
       Queryable<T> expression,
       Type elementType,
-      int maxRowCount) {
+      long maxRowCount) {
     return prepare_(context, sql, expression, elementType, maxRowCount);
   }
 
@@ -544,7 +544,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       String sql,
       Queryable<T> queryable,
       Type elementType,
-      int maxRowCount) {
+      long maxRowCount) {
     if (SIMPLE_SQLS.contains(sql)) {
       return simplePrepare(context, sql);
     }
@@ -612,7 +612,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       String sql,
       Queryable<T> queryable,
       Type elementType,
-      int maxRowCount,
+      long maxRowCount,
       CalciteCatalogReader catalogReader,
       RelOptPlanner planner) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
@@ -709,7 +709,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     //noinspection unchecked
     final Bindable<T> bindable = preparedResult.getBindable();
-    return new CalciteSignature<T>(
+    return new CalciteSignature<>(
         sql,
         parameters,
         preparingStmt.internalParameters,

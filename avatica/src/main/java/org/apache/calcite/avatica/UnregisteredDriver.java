@@ -42,7 +42,7 @@ import java.util.logging.Logger;
  *
  * <p>The provider must implement:</p>
  * <ul>
- *   <li>{@link Meta#prepare(Meta.ConnectionHandle, String, int)}
+ *   <li>{@link Meta#prepare(Meta.ConnectionHandle, String, long)}
  *   <li>{@link Meta#createIterable(org.apache.calcite.avatica.Meta.StatementHandle, org.apache.calcite.avatica.Meta.Signature, java.util.List, Meta.Frame)}
  * </ul>
  */

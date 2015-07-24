@@ -158,7 +158,7 @@ class RemoteMeta extends MetaImpl {
   }
 
   @Override public StatementHandle prepare(ConnectionHandle ch, String sql,
-      int maxRowCount) {
+      long maxRowCount) {
     connectionSync(ch, new ConnectionPropertiesImpl()); // sync connection state if necessary
     final Service.PrepareResponse response = service.apply(
         new Service.PrepareRequest(ch.id, sql, maxRowCount));
@@ -166,7 +166,7 @@ class RemoteMeta extends MetaImpl {
   }
 
   @Override public ExecuteResult prepareAndExecute(StatementHandle h,
-      String sql, int maxRowCount, PrepareCallback callback) {
+      String sql, long maxRowCount, PrepareCallback callback) {
     // sync connection state if necessary
     connectionSync(new ConnectionHandle(h.connectionId),
       new ConnectionPropertiesImpl());
@@ -195,7 +195,7 @@ class RemoteMeta extends MetaImpl {
   }
 
   @Override public Frame fetch(StatementHandle h,
-      List<TypedValue> parameterValues, int offset, int fetchMaxRowCount) {
+      List<TypedValue> parameterValues, long offset, int fetchMaxRowCount) {
     final Service.FetchResponse response =
         service.apply(
             new Service.FetchRequest(h.connectionId, h.id, parameterValues,

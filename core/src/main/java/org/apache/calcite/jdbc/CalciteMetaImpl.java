@@ -537,7 +537,7 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public StatementHandle prepare(ConnectionHandle ch, String sql,
-      int maxRowCount) {
+      long maxRowCount) {
     final StatementHandle h = createStatement(ch);
     final CalciteConnectionImpl calciteConnection = getConnection();
 
@@ -550,7 +550,7 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public ExecuteResult prepareAndExecute(StatementHandle h,
-      String sql, int maxRowCount, PrepareCallback callback) {
+      String sql, long maxRowCount, PrepareCallback callback) {
     final CalcitePrepare.CalciteSignature<Object> signature;
     try {
       synchronized (callback.getMonitor()) {
@@ -574,7 +574,7 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
-      int offset, int fetchMaxRowCount) {
+      long offset, int fetchMaxRowCount) {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
     final Signature signature = stmt.getSignature();
@@ -670,15 +670,15 @@ public class CalciteMetaImpl extends MetaImpl {
    * {@link Iterator}. */
   private static class LimitIterator<E> implements Iterator<E> {
     private final Iterator<E> iterator;
-    private final int limit;
+    private final long limit;
     int i = 0;
 
-    private LimitIterator(Iterator<E> iterator, int limit) {
+    private LimitIterator(Iterator<E> iterator, long limit) {
       this.iterator = iterator;
       this.limit = limit;
     }
 
-    static <E> Iterator<E> of(Iterator<E> iterator, int limit) {
+    static <E> Iterator<E> of(Iterator<E> iterator, long limit) {
       if (limit <= 0) {
         return iterator;
       }

@@ -694,7 +694,8 @@ public abstract class EnumerableDefaults {
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
-    return groupByMultiple_(new HashMap<TKey, TAccumulate>(),
+    return groupByMultiple_(
+        new HashMap<TKey, TAccumulate>(),
         enumerable,
         keySelectors,
         accumulatorInitializer,
@@ -716,8 +717,13 @@ public abstract class EnumerableDefaults {
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       Function2<TKey, TAccumulate, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return groupBy_(new WrapMap<TKey, TAccumulate>(comparer), enumerable,
-        keySelector, accumulatorInitializer, accumulatorAdder, resultSelector);
+    return groupBy_(
+        new WrapMap<TKey, TAccumulate>(comparer),
+        enumerable,
+        keySelector,
+        accumulatorInitializer,
+        accumulatorAdder,
+        resultSelector);
   }
 
   private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
@@ -918,8 +924,15 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector) {
-    return join(outer, inner, outerKeySelector, innerKeySelector,
-        resultSelector, null, false, false);
+    return join(
+        outer,
+        inner,
+        outerKeySelector,
+        innerKeySelector,
+        resultSelector,
+        null,
+        false,
+        false);
   }
 
   /**
@@ -933,8 +946,15 @@ public abstract class EnumerableDefaults {
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return join(outer, inner, outerKeySelector, innerKeySelector,
-        resultSelector, comparer, false, false);
+    return join(
+        outer,
+        inner,
+        outerKeySelector,
+        innerKeySelector,
+        resultSelector,
+        comparer,
+        false,
+        false);
   }
 
   /**
@@ -949,8 +969,15 @@ public abstract class EnumerableDefaults {
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
-    return join_(outer, inner, outerKeySelector, innerKeySelector,
-        resultSelector, comparer, generateNullsOnLeft, generateNullsOnRight);
+    return join_(
+        outer,
+        inner,
+        outerKeySelector,
+        innerKeySelector,
+        resultSelector,
+        comparer,
+        generateNullsOnLeft,
+        generateNullsOnRight);
   }
 
   /** Implementation of join that builds the right input and probes with the
@@ -1985,6 +2012,21 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Returns a specified number of contiguous elements
+   * from the start of a sequence.
+   */
+  public static <TSource> Enumerable<TSource> take(Enumerable<TSource> source,
+      final long count) {
+    return takeWhileLong(
+        source, new Predicate2<TSource, Long>() {
+          public boolean apply(TSource v1, Long v2) {
+            // Count is 1-based
+            return v2 < count;
+          }
+        });
+  }
+
+  /**
    * Returns elements from a sequence as long as a
    * specified condition is true.
    */
@@ -2004,7 +2046,22 @@ public abstract class EnumerableDefaults {
       final Predicate2<TSource, Integer> predicate) {
     return new AbstractEnumerable<TSource>() {
       public Enumerator<TSource> enumerator() {
-        return new TakeWhileEnumerator<TSource>(source.enumerator(), predicate);
+        return new TakeWhileEnumerator<>(source.enumerator(), predicate);
+      }
+    };
+  }
+
+  /**
+   * Returns elements from a sequence as long as a
+   * specified condition is true. The element's index is used in the
+   * logic of the predicate function.
+   */
+  public static <TSource> Enumerable<TSource> takeWhileLong(
+      final Enumerable<TSource> source,
+      final Predicate2<TSource, Long> predicate) {
+    return new AbstractEnumerable<TSource>() {
+      public Enumerator<TSource> enumerator() {
+        return new TakeWhileLongEnumerator<>(source.enumerator(), predicate);
       }
     };
   }
@@ -2392,8 +2449,49 @@ public abstract class EnumerableDefaults {
 
     public boolean moveNext() {
       if (!done) {
-        if (enumerator.moveNext() && predicate.apply(enumerator.current(),
-            ++n)) {
+        if (enumerator.moveNext()
+            && predicate.apply(enumerator.current(), ++n)) {
+          return true;
+        } else {
+          done = true;
+        }
+      }
+      return false;
+    }
+
+    public void reset() {
+      enumerator.reset();
+      done = false;
+      n = -1;
+    }
+
+    public void close() {
+      enumerator.close();
+    }
+  }
+
+  /** Enumerable that implements take-while. */
+  static class TakeWhileLongEnumerator<TSource> implements Enumerator<TSource> {
+    private final Enumerator<TSource> enumerator;
+    private final Predicate2<TSource, Long> predicate;
+
+    boolean done = false;
+    long n = -1;
+
+    public TakeWhileLongEnumerator(Enumerator<TSource> enumerator,
+        Predicate2<TSource, Long> predicate) {
+      this.enumerator = enumerator;
+      this.predicate = predicate;
+    }
+
+    public TSource current() {
+      return enumerator.current();
+    }
+
+    public boolean moveNext() {
+      if (!done) {
+        if (enumerator.moveNext()
+            && predicate.apply(enumerator.current(), ++n)) {
           return true;
         } else {
           done = true;

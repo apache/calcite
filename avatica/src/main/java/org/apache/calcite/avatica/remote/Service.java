@@ -221,7 +221,7 @@ public interface Service {
     public final boolean ownStatement;
     public final Meta.Signature signature;
     public final Meta.Frame firstFrame;
-    public final int updateCount;
+    public final long updateCount;
 
     @JsonCreator
     public ResultSetResponse(
@@ -230,7 +230,7 @@ public interface Service {
         @JsonProperty("ownStatement") boolean ownStatement,
         @JsonProperty("signature") Meta.Signature signature,
         @JsonProperty("firstFrame") Meta.Frame firstFrame,
-        @JsonProperty("updateCount") int updateCount) {
+        @JsonProperty("updateCount") long updateCount) {
       this.connectionId = connectionId;
       this.statementId = statementId;
       this.ownStatement = ownStatement;
@@ -241,11 +241,11 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#prepareAndExecute(Meta.StatementHandle, String, int, Meta.PrepareCallback)}. */
+   * {@link Meta#prepareAndExecute(Meta.StatementHandle, String, long, Meta.PrepareCallback)}. */
   class PrepareAndExecuteRequest extends Request {
     public final String connectionId;
     public final String sql;
-    public final int maxRowCount;
+    public final long maxRowCount;
     public final int statementId;
 
     @JsonCreator
@@ -253,7 +253,7 @@ public interface Service {
         @JsonProperty("connectionId") String connectionId,
         @JsonProperty("statementId") int statementId,
         @JsonProperty("sql") String sql,
-        @JsonProperty("maxRowCount") int maxRowCount) {
+        @JsonProperty("maxRowCount") long maxRowCount) {
       this.connectionId = connectionId;
       this.statementId = statementId;
       this.sql = sql;
@@ -278,17 +278,17 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#prepare(org.apache.calcite.avatica.Meta.ConnectionHandle, String, int)}. */
+   * {@link Meta#prepare(Meta.ConnectionHandle, String, long)}. */
   class PrepareRequest extends Request {
     public final String connectionId;
     public final String sql;
-    public final int maxRowCount;
+    public final long maxRowCount;
 
     @JsonCreator
     public PrepareRequest(
         @JsonProperty("connectionId") String connectionId,
         @JsonProperty("sql") String sql,
-        @JsonProperty("maxRowCount") int maxRowCount) {
+        @JsonProperty("maxRowCount") long maxRowCount) {
       this.connectionId = connectionId;
       this.sql = sql;
       this.maxRowCount = maxRowCount;
@@ -312,11 +312,11 @@ public interface Service {
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#fetch(Meta.StatementHandle, List, int, int)}. */
+   * {@link Meta#fetch(Meta.StatementHandle, List, long, int)}. */
   class FetchRequest extends Request {
     public final String connectionId;
     public final int statementId;
-    public final int offset;
+    public final long offset;
     /** Maximum number of rows to be returned in the frame. Negative means no
      * limit. */
     public final int fetchMaxRowCount;
@@ -329,7 +329,7 @@ public interface Service {
         @JsonProperty("connectionId") String connectionId,
         @JsonProperty("statementId") int statementId,
         @JsonProperty("parameterValues") List<TypedValue> parameterValues,
-        @JsonProperty("offset") int offset,
+        @JsonProperty("offset") long offset,
         @JsonProperty("fetchMaxRowCount") int fetchMaxRowCount) {
       this.connectionId = connectionId;
       this.statementId = statementId;

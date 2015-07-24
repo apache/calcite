@@ -436,7 +436,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   protected Meta.ExecuteResult prepareAndExecuteInternal(
-      final AvaticaStatement statement, String sql, int maxRowCount)
+      final AvaticaStatement statement, String sql, long maxRowCount)
       throws SQLException {
     final Meta.PrepareCallback callback =
         new Meta.PrepareCallback() {
@@ -458,7 +458,7 @@ public abstract class AvaticaConnection implements Connection {
           }
 
           public void assign(Meta.Signature signature, Meta.Frame firstFrame,
-              int updateCount) throws SQLException {
+              long updateCount) throws SQLException {
             if (updateCount != -1) {
               statement.updateCount = updateCount;
             } else {

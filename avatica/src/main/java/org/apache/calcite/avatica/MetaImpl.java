@@ -737,7 +737,7 @@ public abstract class MetaImpl implements Meta {
   }
 
   public Frame fetch(StatementHandle h, List<TypedValue> parameterValues,
-      int offset, int fetchMaxRowCount) {
+      long offset, int fetchMaxRowCount) {
     return null;
   }
 

@@ -19,7 +19,12 @@ package org.apache.calcite.avatica;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.AbstractList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +33,13 @@ import java.util.Map;
 /** Avatica utilities. */
 public class AvaticaUtils {
   private static final Map<Class, Class> BOX;
+
+  private static final MethodHandle SET_LARGE_MAX_ROWS =
+      method(void.class, Statement.class, "setLargeMaxRows", long.class);
+  private static final MethodHandle GET_LARGE_MAX_ROWS =
+      method(long.class, Statement.class, "getLargeMaxRows");
+  private static final MethodHandle GET_LARGE_UPDATE_COUNT =
+      method(void.class, Statement.class, "getLargeUpdateCount");
 
   private AvaticaUtils() {}
 
@@ -41,6 +53,19 @@ public class AvaticaUtils {
     BOX.put(long.class, Long.class);
     BOX.put(float.class, Float.class);
     BOX.put(double.class, Double.class);
+  }
+
+  private static MethodHandle method(Class returnType, Class targetType,
+      String name, Class... argTypes) {
+    final MethodHandles.Lookup lookup = MethodHandles.lookup();
+    try {
+      return lookup.findVirtual(targetType, name,
+          MethodType.methodType(returnType, targetType, argTypes));
+    } catch (NoSuchMethodException e) {
+      return null;
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -181,6 +206,67 @@ public class AvaticaUtils {
       baos.write(bytes, 0, count);
     }
     return baos.toString();
+  }
+
+  /** Invokes {@code Statement#setLargeMaxRows}, falling back on
+   * {@link Statement#setMaxRows(int)} if the method does not exist (before
+   * JDK 1.8) or throws {@link UnsupportedOperationException}. */
+  public static void setLargeMaxRows(Statement statement, long n)
+      throws SQLException {
+    if (SET_LARGE_MAX_ROWS != null) {
+      try {
+        // Call Statement.setLargeMaxRows
+        SET_LARGE_MAX_ROWS.invokeExact(n);
+        return;
+      } catch (UnsupportedOperationException e) {
+        // ignore, and fall through to call Statement.setMaxRows
+      } catch (Error | RuntimeException | SQLException e) {
+        throw e;
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+    int i = (int) Math.max(Math.min(n, Integer.MAX_VALUE), Integer.MIN_VALUE);
+    statement.setMaxRows(i);
+  }
+
+  /** Invokes {@code Statement#getLargeMaxRows}, falling back on
+   * {@link Statement#getMaxRows()} if the method does not exist (before
+   * JDK 1.8) or throws {@link UnsupportedOperationException}. */
+  public static long getLargeMaxRows(Statement statement) throws SQLException {
+    if (GET_LARGE_MAX_ROWS != null) {
+      try {
+        // Call Statement.getLargeMaxRows
+        return (long) GET_LARGE_MAX_ROWS.invokeExact();
+      } catch (UnsupportedOperationException e) {
+        // ignore, and fall through to call Statement.getMaxRows
+      } catch (Error | RuntimeException | SQLException e) {
+        throw e;
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return statement.getMaxRows();
+  }
+
+  /** Invokes {@code Statement#getLargeUpdateCount}, falling back on
+   * {@link Statement#getUpdateCount()} if the method does not exist (before
+   * JDK 1.8) or throws {@link UnsupportedOperationException}. */
+  public static long getLargeUpdateCount(Statement statement)
+      throws SQLException {
+    if (GET_LARGE_UPDATE_COUNT != null) {
+      try {
+        // Call Statement.getLargeUpdateCount
+        return (long) GET_LARGE_UPDATE_COUNT.invokeExact();
+      } catch (UnsupportedOperationException e) {
+        // ignore, and fall through to call Statement.getUpdateCount
+      } catch (Error | RuntimeException | SQLException e) {
+        throw e;
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return statement.getUpdateCount();
   }
 }
 

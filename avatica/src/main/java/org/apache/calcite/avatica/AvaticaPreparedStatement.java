@@ -114,7 +114,11 @@ public abstract class AvaticaPreparedStatement
     return this;
   }
 
-  public int executeUpdate() throws SQLException {
+  public final int executeUpdate() throws SQLException {
+    return (int) executeLargeUpdate();
+  }
+
+  public long executeLargeUpdate() throws SQLException {
     getConnection().executeQueryInternal(this, signature, null);
     return updateCount;
   }
