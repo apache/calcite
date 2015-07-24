@@ -22,15 +22,21 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTransformer;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -51,8 +57,7 @@ public class RexTransformerTest {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Before
-  public void setUp() {
+  @Before public void setUp() {
     typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
     boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
@@ -68,6 +73,13 @@ public class RexTransformerTest {
         typeFactory.createTypeWithNullability(boolRelDataType, true));
     trueRex = rexBuilder.makeLiteral(true);
     falseRex = rexBuilder.makeLiteral(false);
+  }
+
+  @After public void testDown() {
+    typeFactory = null;
+    rexBuilder = null;
+    boolRelDataType = null;
+    x = y = z = trueRex = falseRex = null;
   }
 
   void check(
@@ -135,7 +147,7 @@ public class RexTransformerTest {
   /**
    * the or operator should pass through unchanged since e.g. x OR y should
    * return true if x=null and y=true if it was transformed into something
-   * like (x ISNOTNULL) AND (y ISNOTNULL) AND (x OR y) an incorrect result
+   * like (x IS NOT NULL) AND (y IS NOT NULL) AND (x OR y) an incorrect result
    * could be produced
    */
   @Test public void testOrUnchanged() {
@@ -316,6 +328,29 @@ public class RexTransformerTest {
         Boolean.TRUE,
         and,
         "AND(AND(AND(IS NOT NULL($0), IS NOT NULL($1)), =($0, $1)), AND(IS NOT NULL($2), >(false, $2)))");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-814">[CALCITE-814]
+   * RexBuilder reverses precision and scale of DECIMAL literal</a>. */
+  @Test public void testExactLiteral() {
+    final RexLiteral literal =
+        rexBuilder.makeExactLiteral(new BigDecimal("-1234.56"));
+    assertThat(literal.getType().getFullTypeString(),
+        is("DECIMAL(6, 2) NOT NULL"));
+    assertThat(literal.getValue().toString(), is("-1234.56"));
+
+    final RexLiteral literal2 =
+        rexBuilder.makeExactLiteral(new BigDecimal("1234.56"));
+    assertThat(literal2.getType().getFullTypeString(),
+        is("DECIMAL(6, 2) NOT NULL"));
+    assertThat(literal2.getValue().toString(), is("1234.56"));
+
+    final RexLiteral literal3 =
+        rexBuilder.makeExactLiteral(new BigDecimal("0.0123456"));
+    assertThat(literal3.getType().getFullTypeString(),
+        is("DECIMAL(6, 7) NOT NULL"));
+    assertThat(literal3.getValue().toString(), is("0.0123456"));
   }
 }
 

@@ -842,10 +842,9 @@ public class RexBuilder {
         relType = typeFactory.createSqlType(SqlTypeName.BIGINT);
       }
     } else {
-      int precision = bd.unscaledValue().toString().length();
+      int precision = bd.unscaledValue().abs().toString().length();
       relType =
-          typeFactory.createSqlType(
-              SqlTypeName.DECIMAL, scale, precision);
+          typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
     }
     return makeExactLiteral(bd, relType);
   }
