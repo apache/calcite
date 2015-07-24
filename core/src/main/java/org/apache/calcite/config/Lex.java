@@ -36,6 +36,14 @@ public enum Lex {
    * Back-ticks allow identifiers to contain non-alphanumeric characters. */
   MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false),
 
+  /** Lexical policy similar to MySQL with ANSI_QUOTES option enabled. (To be
+   * precise: MySQL on Windows; MySQL on Linux uses case-sensitive matching,
+   * like the Linux file system.) The case of identifiers is preserved whether
+   * or not they quoted; after which, identifiers are matched
+   * case-insensitively. Double quotes allow identifiers to contain
+   * non-alphanumeric characters. */
+  MYSQL_ANSI(Quoting.DOUBLE_QUOTE, Casing.UNCHANGED, Casing.UNCHANGED, false),
+
   /** Lexical policy similar to Microsoft SQL Server.
    * The case of identifiers is preserved whether or not they are quoted;
    * after which, identifiers are matched case-insensitively.
