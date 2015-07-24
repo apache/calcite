@@ -5382,12 +5382,16 @@ String CommonNonReservedKeyWord() :
 {
     < LPAREN: "(">
     | < RPAREN: ")">
+    <#if parser.includeBraces >
     | < LBRACE_D: "{" (" ")* ["d","D"] >
     | < LBRACE_T: "{" (" ")* ["t","T"] >
     | < LBRACE_TS: "{" (" ")* ["t","T"] ["s","S"] >
     | < LBRACE_FN: "{" (" ")* ["f","F"] ["n","N"] >
     | < LBRACE: "{" >
     | < RBRACE: "}" >
+    <#else>
+      <#include "/@includes/braces.ftl" />
+    </#if>
     | < LBRACKET: "[" >
     | < RBRACKET: "]" >
     | < SEMICOLON: ";" >
@@ -5432,6 +5436,10 @@ TOKEN_MGR_DECLS : {
     void popState() {
       SwitchTo(lexicalStateStack.remove(lexicalStateStack.size() - 1));
     }
+
+    <#if parser.includeAdditionalDeclarations>
+      <#include "/@includes/tokenManagerDeclarations.ftl" />
+    </#if>
 }
 
 /*
