@@ -45,9 +45,9 @@ import java.util.List;
 public class RexCall extends RexNode {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlOperator op;
+  public final SqlOperator op;
   public final ImmutableList<RexNode> operands;
-  private final RelDataType type;
+  public final RelDataType type;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -106,6 +106,10 @@ public class RexCall extends RexNode {
 
   public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitCall(this);
+  }
+
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitCall(this, arg);
   }
 
   public RelDataType getType() {

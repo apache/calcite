@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
@@ -113,9 +114,9 @@ public final class LogicalCalc extends Calc {
     return new LogicalCalc(getCluster(), traitSet, child, program);
   }
 
-  @Override public void collectVariablesUsed(Set<String> variableSet) {
+  @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
     final RelOptUtil.VariableUsedVisitor vuv =
-        new RelOptUtil.VariableUsedVisitor();
+        new RelOptUtil.VariableUsedVisitor(null);
     for (RexNode expr : program.getExprList()) {
       expr.accept(vuv);
     }

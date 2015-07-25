@@ -5362,6 +5362,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "require alias");
   }
 
+  @Test public void testJoinOnIn() {
+    final String sql = "select * from emp join dept\n"
+        + "on dept.deptno in (select deptno from emp)";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinOnInCorrelated() {
+    final String sql = "select * from emp as e join dept\n"
+        + "on dept.deptno in (select deptno from emp where deptno < e.deptno)";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinOnInCorrelatedFails() {
+    final String sql = "select * from emp as e join dept as d\n"
+        + "on d.deptno in (select deptno from emp where deptno < d.^empno^)";
+    sql(sql).fails("Column 'EMPNO' not found in table 'D'");
+  }
+
+  @Test public void testJoinOnExistsCorrelated() {
+    final String sql = "select * from emp as e join dept\n"
+        + "on exists (select 1, 2 from emp where deptno < e.deptno)";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinOnScalarCorrelated() {
+    final String sql = "select * from emp as e join dept d\n"
+        + "on d.deptno = (select 1 from emp where deptno < e.deptno)";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinOnScalarFails() {
+    final String sql = "select * from emp as e join dept d\n"
+        + "on d.deptno = (^select 1, 2 from emp where deptno < e.deptno^)";
+    sql(sql).fails(
+        "(?s)Cannot apply '\\$SCALAR_QUERY' to arguments of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)>\\)'\\. Supported form\\(s\\).*");
+  }
+
   @Test public void testJoinUsingThreeWay() {
     check("select *\n"
         + "from emp as e\n"

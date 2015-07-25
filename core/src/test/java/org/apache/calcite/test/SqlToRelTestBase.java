@@ -92,7 +92,7 @@ public abstract class SqlToRelTestBase {
   }
 
   protected Tester createTester() {
-    return new TesterImpl(getDiffRepos(), true, false, null);
+    return new TesterImpl(getDiffRepos(), false, false, true, null);
   }
 
   /**
@@ -208,6 +208,13 @@ public abstract class SqlToRelTestBase {
 
     /** Returns a tester that optionally decorrelates queries. */
     Tester withDecorrelation(boolean enable);
+
+    /** Returns a tester that optionally expands sub-queries.
+     * If {@code expand} is false, the plan contains a
+     * {@link org.apache.calcite.rex.RexSubQuery} for each sub-query.
+     *
+     * @see Prepare#THREAD_EXPAND */
+    Tester withExpand(boolean expand);
 
     Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory);
@@ -453,6 +460,7 @@ public abstract class SqlToRelTestBase {
     private final DiffRepository diffRepos;
     private final boolean enableDecorrelate;
     private final boolean enableTrim;
+    private final boolean enableExpand;
     private final Function<RelDataTypeFactory, Prepare.CatalogReader>
     catalogReaderFactory;
     private RelDataTypeFactory typeFactory;
@@ -463,15 +471,17 @@ public abstract class SqlToRelTestBase {
      * @param diffRepos Diff repository
      * @param enableDecorrelate Whether to decorrelate
      * @param enableTrim Whether to trim unused fields
+     * @param enableExpand Whether to expand sub-queries
      * @param catalogReaderFactory Function to create catalog reader, or null
      */
     protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
-        boolean enableTrim,
+        boolean enableTrim, boolean enableExpand,
         Function<RelDataTypeFactory, Prepare.CatalogReader>
             catalogReaderFactory) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
       this.enableTrim = enableTrim;
+      this.enableExpand = enableExpand;
       this.catalogReaderFactory = catalogReaderFactory;
     }
 
@@ -495,6 +505,7 @@ public abstract class SqlToRelTestBase {
               catalogReader,
               typeFactory);
       converter.setTrimUnusedFields(true);
+      converter.setExpand(enableExpand);
       final SqlNode validatedQuery = validator.validate(sqlQuery);
       RelRoot root =
           converter.convertQuery(validatedQuery, false, true);
@@ -645,19 +656,30 @@ public abstract class SqlToRelTestBase {
     }
 
     public TesterImpl withDecorrelation(boolean enable) {
-      return this.enableDecorrelate == enable ? this
-          : new TesterImpl(diffRepos, enable, enableTrim, catalogReaderFactory);
+      return this.enableDecorrelate == enable
+          ? this
+          : new TesterImpl(diffRepos, enable, enableTrim, enableExpand,
+              catalogReaderFactory);
     }
 
     public Tester withTrim(boolean enable) {
-      return this.enableTrim == enable ? this
-          : new TesterImpl(diffRepos, enableDecorrelate, enable,
+      return this.enableTrim == enable
+          ? this
+          : new TesterImpl(diffRepos, enableDecorrelate, enable, enableExpand,
+              catalogReaderFactory);
+    }
+
+    public Tester withExpand(boolean expand) {
+      return this.enableExpand == expand
+          ? this
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim, expand,
               catalogReaderFactory);
     }
 
     public Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory) {
-      return new TesterImpl(diffRepos, enableDecorrelate, false, factory);
+      return new TesterImpl(diffRepos, enableDecorrelate, false, enableExpand,
+          factory);
     }
   }
 

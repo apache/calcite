@@ -23,11 +23,13 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -73,7 +75,7 @@ public final class LogicalJoin extends Join {
    * @param right            Right input
    * @param condition        Join condition
    * @param joinType         Join type
-   * @param variablesStopped Set of names of variables which are set by the
+   * @param variablesSet     Set of variables that are set by the
    *                         LHS and used by the RHS and are not available to
    *                         nodes above this LogicalJoin in the tree
    * @param semiJoinDone     Whether this join has been translated to a
@@ -89,22 +91,30 @@ public final class LogicalJoin extends Join {
       RelNode left,
       RelNode right,
       RexNode condition,
+      Set<CorrelationId> variablesSet,
       JoinRelType joinType,
-      Set<String> variablesStopped,
       boolean semiJoinDone,
       ImmutableList<RelDataTypeField> systemFieldList) {
-    super(cluster, traitSet, left, right, condition, joinType,
-        variablesStopped);
-    assert systemFieldList != null;
+    super(cluster, traitSet, left, right, condition, variablesSet, joinType);
     this.semiJoinDone = semiJoinDone;
-    this.systemFieldList = systemFieldList;
+    this.systemFieldList = Preconditions.checkNotNull(systemFieldList);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalJoin(RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
+      RelNode right, RexNode condition, JoinRelType joinType,
+      Set<String> variablesStopped, boolean semiJoinDone,
+      ImmutableList<RelDataTypeField> systemFieldList) {
+    this(cluster, traitSet, left, right, condition,
+        CorrelationId.setOf(variablesStopped), joinType, semiJoinDone,
+        systemFieldList);
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalJoin(RelOptCluster cluster, RelNode left, RelNode right,
       RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
     this(cluster, cluster.traitSetOf(Convention.NONE), left, right, condition,
-        joinType, variablesStopped, false,
+        CorrelationId.setOf(variablesStopped), joinType, false,
         ImmutableList.<RelDataTypeField>of());
   }
 
@@ -113,37 +123,52 @@ public final class LogicalJoin extends Join {
       RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
       boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
     this(cluster, cluster.traitSetOf(Convention.NONE), left, right, condition,
-        joinType, variablesStopped, semiJoinDone, systemFieldList);
+        CorrelationId.setOf(variablesStopped), joinType, semiJoinDone,
+        systemFieldList);
   }
 
   /**
    * Creates a LogicalJoin by parsing serialized output.
    */
   public LogicalJoin(RelInput input) {
-    this(
-        input.getCluster(), input.getInputs().get(0),
-        input.getInputs().get(1), input.getExpression("condition"),
-        input.getEnum("joinType", JoinRelType.class),
-        ImmutableSet.<String>of(), false,
+    this(input.getCluster(), input.getCluster().traitSetOf(Convention.NONE),
+        input.getInputs().get(0), input.getInputs().get(1),
+        input.getExpression("condition"), ImmutableSet.<CorrelationId>of(),
+        input.getEnum("joinType", JoinRelType.class), false,
         ImmutableList.<RelDataTypeField>of());
   }
 
   /** Creates a LogicalJoin, flagged with whether it has been translated to a
    * semi-join. */
   public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
+      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
       boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
     final RelOptCluster cluster = left.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalJoin(cluster, traitSet, left, right, condition, joinType,
-        variablesStopped, semiJoinDone, systemFieldList);
+    return new LogicalJoin(cluster, traitSet, left, right, condition,
+        variablesSet, joinType, semiJoinDone, systemFieldList);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static LogicalJoin create(RelNode left, RelNode right,
+      RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
+      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
+    return create(left, right, condition, CorrelationId.setOf(variablesStopped),
+        joinType, semiJoinDone, systemFieldList);
   }
 
   /** Creates a LogicalJoin. */
   public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
-    return create(left, right, condition, joinType, variablesStopped, false,
+      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType) {
+    return create(left, right, condition, variablesSet, joinType, false,
         ImmutableList.<RelDataTypeField>of());
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static LogicalJoin create(RelNode left, RelNode right,
+      RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
+    return create(left, right, condition, CorrelationId.setOf(variablesStopped),
+        joinType, false, ImmutableList.<RelDataTypeField>of());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -151,15 +176,9 @@ public final class LogicalJoin extends Join {
   @Override public LogicalJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalJoin(
-        getCluster(),
-        left,
-        right,
-        conditionExpr,
-        joinType,
-        this.variablesStopped,
-        semiJoinDone,
-        this.systemFieldList);
+    return new LogicalJoin(getCluster(),
+        getCluster().traitSetOf(Convention.NONE), left, right, conditionExpr,
+        variablesSet, joinType, semiJoinDone, systemFieldList);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

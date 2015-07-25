@@ -22,6 +22,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -257,6 +260,10 @@ public class RexUtil {
     }
 
     public Boolean visitOver(RexOver over) {
+      return false;
+    }
+
+    public Boolean visitSubQuery(RexSubQuery subQuery) {
       return false;
     }
 
@@ -1248,7 +1255,7 @@ public class RexUtil {
     Iterator<RexNode> iterator = targets.iterator();
     while (iterator.hasNext()) {
       RexNode next = iterator.next();
-      if (equivalent(next, e)) {
+      if (eq(next, e)) {
         ++count;
         iterator.remove();
       }
@@ -1256,11 +1263,12 @@ public class RexUtil {
     return count > 0;
   }
 
-  /** Returns whether two expressions are equivalent. */
-  private static boolean equivalent(RexNode e1, RexNode e2) {
-    // TODO: make broader;
-    // 1. 'x = y' should be equivalent to 'y = x'.
-    // 2. 'c2 and c1' should be equivalent to 'c1 and c2'.
+  /** Returns whether two {@link RexNode}s are structurally equal.
+   *
+   * <p>This method considers structure, not semantics. 'x &lt; y' is not
+   * equivalent to 'y &gt; x'.
+   */
+  public static boolean eq(RexNode e1, RexNode e2) {
     return e1 == e2 || e1.toString().equals(e2.toString());
   }
 
@@ -1341,8 +1349,12 @@ public class RexUtil {
     }
     switch (a.getKind()) {
     case NOT:
-      // NOT x IS TRUE ==> x IS NOT TRUE
+      // (NOT x) IS TRUE ==> x IS FALSE
       // Similarly for IS NOT TRUE, IS FALSE, etc.
+      //
+      // Note that
+      //   (NOT x) IS TRUE !=> x IS FALSE
+      // because of null values.
       return simplify(rexBuilder,
           rexBuilder.makeCall(op(kind.negate()),
               ((RexCall) a).getOperands().get(0)));
@@ -1990,7 +2002,7 @@ public class RexUtil {
   }
 
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
-   * there an expression contains a {@link RexCorrelVariable}. */
+   * applied to an expression that contains a {@link RexCorrelVariable}. */
   private static class CorrelationFinder extends RexVisitorImpl<Void> {
     static final CorrelationFinder INSTANCE = new CorrelationFinder();
 
@@ -2028,6 +2040,81 @@ public class RexUtil {
         return new RexInputRef(ref.getIndex(), refType2);
       }
       throw new AssertionError("mismatched type " + ref + " " + rightType);
+    }
+  }
+
+  /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
+   * applied to an expression that contains a {@link RexSubQuery}. */
+  public static class SubQueryFinder extends RexVisitorImpl<Void> {
+    public static final SubQueryFinder INSTANCE = new SubQueryFinder();
+
+    /** Returns whether a {@link Project} contains a sub-query. */
+    public static final Predicate<Project> PROJECT_PREDICATE =
+        new Predicate<Project>() {
+          public boolean apply(Project project) {
+            for (RexNode node : project.getProjects()) {
+              try {
+                node.accept(INSTANCE);
+              } catch (Util.FoundOne e) {
+                return true;
+              }
+            }
+            return false;
+          }
+        };
+
+    /** Returns whether a {@link Filter} contains a sub-query. */
+    public static final Predicate<Filter> FILTER_PREDICATE =
+        new Predicate<Filter>() {
+          public boolean apply(Filter filter) {
+            try {
+              filter.getCondition().accept(INSTANCE);
+              return false;
+            } catch (Util.FoundOne e) {
+              return true;
+            }
+          }
+        };
+
+    /** Returns whether a {@link Join} contains a sub-query. */
+    public static final Predicate<Join> JOIN_PREDICATE =
+        new Predicate<Join>() {
+          public boolean apply(Join join) {
+            try {
+              join.getCondition().accept(INSTANCE);
+              return false;
+            } catch (Util.FoundOne e) {
+              return true;
+            }
+          }
+        };
+
+    private SubQueryFinder() {
+      super(true);
+    }
+
+    @Override public Void visitSubQuery(RexSubQuery subQuery) {
+      throw new Util.FoundOne(subQuery);
+    }
+
+    public static RexSubQuery find(Iterable<RexNode> nodes) {
+      for (RexNode node : nodes) {
+        try {
+          node.accept(INSTANCE);
+        } catch (Util.FoundOne e) {
+          return (RexSubQuery) e.getNode();
+        }
+      }
+      return null;
+    }
+
+    public static RexSubQuery find(RexNode node) {
+      try {
+        node.accept(INSTANCE);
+        return null;
+      } catch (Util.FoundOne e) {
+        return (RexSubQuery) e.getNode();
+      }
     }
   }
 }

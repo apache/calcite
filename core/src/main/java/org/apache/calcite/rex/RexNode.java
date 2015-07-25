@@ -90,6 +90,12 @@ public abstract class RexNode {
    * which applies a visitor to several expressions simultaneously.
    */
   public abstract <R> R accept(RexVisitor<R> visitor);
+
+  /**
+   * Accepts a visitor with a payload, dispatching to the right overloaded
+   * {@link RexBiVisitor#visitInputRef(RexInputRef, Object)} visitXxx} method.
+   */
+  public abstract <R, P> R accept(RexBiVisitor<R, P> visitor, P arg);
 }
 
 // End RexNode.java

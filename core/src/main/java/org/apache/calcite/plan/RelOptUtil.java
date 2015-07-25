@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -60,6 +61,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -83,7 +85,9 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -155,7 +159,7 @@ public abstract class RelOptUtil {
    * Returns a list of variables set by a relational expression or its
    * descendants.
    */
-  public static Set<String> getVariablesSet(RelNode rel) {
+  public static Set<CorrelationId> getVariablesSet(RelNode rel) {
     VariableSetVisitor visitor = new VariableSetVisitor();
     go(visitor, rel);
     return visitor.variables;
@@ -165,19 +169,18 @@ public abstract class RelOptUtil {
    * Returns a set of distinct variables set by <code>rel0</code> and used by
    * <code>rel1</code>.
    */
-  public static List<String> getVariablesSetAndUsed(
-      RelNode rel0,
+  public static List<CorrelationId> getVariablesSetAndUsed(RelNode rel0,
       RelNode rel1) {
-    Set<String> set = getVariablesSet(rel0);
+    Set<CorrelationId> set = getVariablesSet(rel0);
     if (set.size() == 0) {
       return ImmutableList.of();
     }
-    Set<String> used = getVariablesUsed(rel1);
+    Set<CorrelationId> used = getVariablesUsed(rel1);
     if (used.size() == 0) {
       return ImmutableList.of();
     }
-    final List<String> result = new ArrayList<>();
-    for (String s : set) {
+    final List<CorrelationId> result = new ArrayList<>();
+    for (CorrelationId s : set) {
       if (used.contains(s) && !result.contains(s)) {
         result.add(s);
       }
@@ -187,24 +190,45 @@ public abstract class RelOptUtil {
 
   /**
    * Returns a set of variables used by a relational expression or its
-   * descendants. The set may contain duplicates. The item type is the same as
-   * {@link org.apache.calcite.rex.RexVariable#getName}
+   * descendants.
+   *
+   * <p>The set may contain "duplicates" (variables with different ids that,
+   * when resolved, will reference the same source relational expression).
+   *
+   * <p>The item type is the same as
+   * {@link org.apache.calcite.rex.RexCorrelVariable#id}.
    */
-  public static Set<String> getVariablesUsed(RelNode rel) {
-    final VariableUsedVisitor vuv = new VariableUsedVisitor();
-    RelShuttle visitor = new RelHomogeneousShuttle() {
-      @Override public RelNode visit(RelNode other) {
-        other.collectVariablesUsed(vuv.variables);
-        other.accept(vuv);
-        RelNode result = super.visit(other);
-        // Important! Remove stopped variables AFTER we visit
-        // children. (which what super.visit() does)
-        vuv.variables.removeAll(other.getVariablesStopped());
-        return result;
-      }
-    };
+  public static Set<CorrelationId> getVariablesUsed(RelNode rel) {
+    CorrelationCollector visitor = new CorrelationCollector();
     rel.accept(visitor);
-    return vuv.variables;
+    return visitor.vuv.variables;
+  }
+
+  /** Finds which columns of a correlation variable are used within a
+   * relational expression. */
+  public static ImmutableBitSet correlationColumns(CorrelationId id,
+      RelNode rel) {
+    final CorrelationCollector collector = new CorrelationCollector();
+    rel.accept(collector);
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (int field : collector.vuv.variableFields.get(id)) {
+      if (field >= 0) {
+        builder.set(field);
+      }
+    }
+    return builder.build();
+  }
+
+  /** Returns true, and calls {@link Litmus#succeed()} if a given relational
+   * expression does not contain a given correlation. */
+  public static boolean notContainsCorrelation(RelNode r,
+      CorrelationId correlationId, Litmus litmus) {
+    final Set<CorrelationId> set = getVariablesUsed(r);
+    if (!set.contains(correlationId)) {
+      return litmus.succeed();
+    } else {
+      return litmus.fail("contains " + correlationId);
+    }
   }
 
   /**
@@ -2946,6 +2970,7 @@ public abstract class RelOptUtil {
     public Logic negate() {
       switch (this) {
       case UNKNOWN_AS_FALSE:
+      case TRUE:
         return UNKNOWN_AS_TRUE;
       case UNKNOWN_AS_TRUE:
         return UNKNOWN_AS_FALSE;
@@ -2982,7 +3007,8 @@ public abstract class RelOptUtil {
     // Pushing sub-queries is OK in principle (if they don't reference both
     // sides of the join via correlating variables) but we'd rather not do it
     // yet.
-    if (!containsGet(joinCond)) {
+    if (!containsGet(joinCond)
+        && RexUtil.SubQueryFinder.find(joinCond) == null) {
       joinCond = pushDownEqualJoinConditions(
           joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
     }
@@ -3177,7 +3203,7 @@ public abstract class RelOptUtil {
 
   /** Visitor that finds all variables used but not stopped in an expression. */
   private static class VariableSetVisitor extends RelVisitor {
-    final Set<String> variables = new HashSet<>();
+    final Set<CorrelationId> variables = new HashSet<>();
 
     // implement RelVisitor
     public void visit(
@@ -3189,17 +3215,41 @@ public abstract class RelOptUtil {
 
       // Important! Remove stopped variables AFTER we visit children
       // (which what super.visit() does)
-      variables.removeAll(p.getVariablesStopped());
+      variables.removeAll(p.getVariablesSet());
     }
   }
 
   /** Visitor that finds all variables used in an expression. */
   public static class VariableUsedVisitor extends RexShuttle {
-    public final Set<String> variables = new LinkedHashSet<>();
+    public final Set<CorrelationId> variables = new LinkedHashSet<>();
+    public final Multimap<CorrelationId, Integer> variableFields =
+        LinkedHashMultimap.create();
+    private final RelShuttle relShuttle;
 
-    public RexNode visitCorrelVariable(RexCorrelVariable p) {
-      variables.add(p.getName());
+    public VariableUsedVisitor(RelShuttle relShuttle) {
+      this.relShuttle = relShuttle;
+    }
+
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable p) {
+      variables.add(p.id);
+      variableFields.put(p.id, -1);
       return p;
+    }
+
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        final RexCorrelVariable v =
+            (RexCorrelVariable) fieldAccess.getReferenceExpr();
+        variableFields.put(v.id, fieldAccess.getField().getIndex());
+      }
+      return super.visitFieldAccess(fieldAccess);
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      if (relShuttle != null) {
+        subQuery.rel.accept(relShuttle); // look inside sub-queries
+      }
+      return super.visitSubQuery(subQuery);
     }
   }
 
@@ -3460,6 +3510,23 @@ public abstract class RelOptUtil {
         return LEFT;
       }
       return BOTH;
+    }
+  }
+
+  /** Shuttle that finds correlation variables inside a given relational
+   * expression, including those that are inside
+   * {@link RexSubQuery sub-queries}. */
+  private static class CorrelationCollector extends RelHomogeneousShuttle {
+    private final VariableUsedVisitor vuv = new VariableUsedVisitor(this);
+
+    @Override public RelNode visit(RelNode other) {
+      other.collectVariablesUsed(vuv.variables);
+      other.accept(vuv);
+      RelNode result = super.visit(other);
+      // Important! Remove stopped variables AFTER we visit
+      // children. (which what super.visit() does)
+      vuv.variables.removeAll(other.getVariablesSet());
+      return result;
     }
   }
 }

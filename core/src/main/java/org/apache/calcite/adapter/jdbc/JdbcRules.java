@@ -35,6 +35,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
@@ -159,8 +160,8 @@ public class JdbcRules {
             newInputs.get(0),
             newInputs.get(1),
             join.getCondition(),
-            join.getJoinType(),
-            join.getVariablesStopped());
+            join.getVariablesSet(),
+            join.getJoinType());
       } catch (InvalidRelException e) {
         LOGGER.fine(e.toString());
         return null;
@@ -211,6 +212,15 @@ public class JdbcRules {
 
   /** Join operator implemented in JDBC convention. */
   public static class JdbcJoin extends Join implements JdbcRel {
+    /** Creates a JdbcJoin. */
+    protected JdbcJoin(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode left, RelNode right, RexNode condition,
+        Set<CorrelationId> variablesSet, JoinRelType joinType)
+        throws InvalidRelException {
+      super(cluster, traitSet, left, right, condition, variablesSet, joinType);
+    }
+
+    @Deprecated // to be removed before 2.0
     protected JdbcJoin(
         RelOptCluster cluster,
         RelTraitSet traitSet,
@@ -220,8 +230,8 @@ public class JdbcRules {
         JoinRelType joinType,
         Set<String> variablesStopped)
         throws InvalidRelException {
-      super(cluster, traitSet, left, right, condition,
-          joinType, variablesStopped);
+      this(cluster, traitSet, left, right, condition,
+          CorrelationId.setOf(variablesStopped), joinType);
     }
 
     @Override public JdbcJoin copy(RelTraitSet traitSet, RexNode condition,
@@ -229,7 +239,7 @@ public class JdbcRules {
         boolean semiJoinDone) {
       try {
         return new JdbcJoin(getCluster(), traitSet, left, right,
-            condition, joinType, variablesStopped);
+            condition, variablesSet, joinType);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
         // internal error.

@@ -29,13 +29,13 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -54,6 +55,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Stacks;
@@ -66,6 +68,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
@@ -75,6 +78,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -111,6 +115,7 @@ public class RelBuilder {
   private final RelFactories.SetOpFactory setOpFactory;
   private final RelFactories.JoinFactory joinFactory;
   private final RelFactories.SemiJoinFactory semiJoinFactory;
+  private final RelFactories.CorrelateFactory correlateFactory;
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
   private final List<Frame> stack = new ArrayList<>();
@@ -143,6 +148,9 @@ public class RelBuilder {
     this.semiJoinFactory =
         Util.first(context.unwrap(RelFactories.SemiJoinFactory.class),
             RelFactories.DEFAULT_SEMI_JOIN_FACTORY);
+    this.correlateFactory =
+        Util.first(context.unwrap(RelFactories.CorrelateFactory.class),
+            RelFactories.DEFAULT_CORRELATE_FACTORY);
     this.valuesFactory =
         Util.first(context.unwrap(RelFactories.ValuesFactory.class),
             RelFactories.DEFAULT_VALUES_FACTORY);
@@ -738,7 +746,7 @@ public class RelBuilder {
       final String name2 = inferAlias(exprList, node);
       names.add(Util.first(name, name2));
     }
-    if (ProjectRemoveRule.isIdentity(exprList, peek().getRowType())) {
+    if (RexUtil.isIdentity(exprList, peek().getRowType())) {
       return this;
     }
     final RelDataType inputRowType = peek().getRowType();
@@ -983,15 +991,44 @@ public class RelBuilder {
    * conditions. */
   public RelBuilder join(JoinRelType joinType,
       Iterable<? extends RexNode> conditions) {
+    return join(joinType,
+        RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, false),
+        ImmutableSet.<CorrelationId>of());
+  }
+
+  public RelBuilder join(JoinRelType joinType, RexNode condition) {
+    return join(joinType, condition, ImmutableSet.<CorrelationId>of());
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Join} with correlating
+   * variables. */
+  public RelBuilder join(JoinRelType joinType, RexNode condition,
+      Set<CorrelationId> variablesSet) {
     final Frame right = Stacks.pop(stack);
     final Frame left = Stacks.pop(stack);
-    final RelNode join = joinFactory.createJoin(left.rel, right.rel,
-        RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, false),
-        joinType, ImmutableSet.<String>of(), false);
+    final RelNode join;
+    final boolean correlate = variablesSet.size() == 1;
+    if (correlate) {
+      final CorrelationId id = Iterables.getOnlyElement(variablesSet);
+      final ImmutableBitSet requiredColumns =
+          RelOptUtil.correlationColumns(id, right.rel);
+      if (!RelOptUtil.notContainsCorrelation(left.rel, id, Litmus.IGNORE)) {
+        throw new IllegalArgumentException("variable " + id
+            + " must not be used by left input to correlation");
+      }
+      join = correlateFactory.createCorrelate(left.rel, right.rel, id,
+          requiredColumns, SemiJoinType.of(joinType));
+    } else {
+      join = joinFactory.createJoin(left.rel, right.rel, condition,
+          variablesSet, joinType, false);
+    }
     final List<Pair<String, RelDataType>> pairs = new ArrayList<>();
     pairs.addAll(left.right);
     pairs.addAll(right.right);
     Stacks.push(stack, new Frame(join, ImmutableList.copyOf(pairs)));
+    if (correlate) {
+      filter(condition);
+    }
     return this;
   }
 

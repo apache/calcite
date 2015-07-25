@@ -70,6 +70,10 @@ public class RexRangeRef extends RexNode {
   public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitRangeRef(this);
   }
+
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitRangeRef(this, arg);
+  }
 }
 
 // End RexRangeRef.java

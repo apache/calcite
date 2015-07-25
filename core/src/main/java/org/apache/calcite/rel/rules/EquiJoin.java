@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableIntList;
@@ -38,7 +39,7 @@ public abstract class EquiJoin extends org.apache.calcite.rel.core.EquiJoin {
       ImmutableIntList rightKeys, JoinRelType joinType,
       Set<String> variablesStopped) {
     super(cluster, traits, left, right, condition, leftKeys, rightKeys,
-        joinType, variablesStopped);
+        CorrelationId.setOf(variablesStopped), joinType);
   }
 }
 

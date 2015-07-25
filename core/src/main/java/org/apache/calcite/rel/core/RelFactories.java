@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -37,6 +38,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -59,6 +61,9 @@ public class RelFactories {
       new FilterFactoryImpl();
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
+
+  public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
+      new CorrelateFactoryImpl();
 
   public static final SemiJoinFactory DEFAULT_SEMI_JOIN_FACTORY =
       new SemiJoinFactoryImpl();
@@ -234,13 +239,18 @@ public class RelFactories {
      * @param left             Left input
      * @param right            Right input
      * @param condition        Join condition
-     * @param joinType         Join type
-     * @param variablesStopped Set of names of variables which are set by the
+     * @param variablesSet     Set of variables that are set by the
      *                         LHS and used by the RHS and are not available to
      *                         nodes above this LogicalJoin in the tree
+     * @param joinType         Join type
      * @param semiJoinDone     Whether this join has been translated to a
      *                         semi-join
      */
+    RelNode createJoin(RelNode left, RelNode right, RexNode condition,
+        Set<CorrelationId> variablesSet, JoinRelType joinType,
+        boolean semiJoinDone);
+
+    @Deprecated // to be removed before 2.0
     RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
         boolean semiJoinDone);
@@ -252,10 +262,51 @@ public class RelFactories {
    */
   private static class JoinFactoryImpl implements JoinFactory {
     public RelNode createJoin(RelNode left, RelNode right,
-        RexNode condition, JoinRelType joinType,
-        Set<String> variablesStopped, boolean semiJoinDone) {
-      return LogicalJoin.create(left, right, condition, joinType,
-          variablesStopped, semiJoinDone, ImmutableList.<RelDataTypeField>of());
+        RexNode condition, Set<CorrelationId> variablesSet,
+        JoinRelType joinType, boolean semiJoinDone) {
+      return LogicalJoin.create(left, right, condition, variablesSet, joinType,
+          semiJoinDone, ImmutableList.<RelDataTypeField>of());
+    }
+
+    public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
+        JoinRelType joinType, Set<String> variablesStopped,
+        boolean semiJoinDone) {
+      return createJoin(left, right, condition,
+          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
+    }
+  }
+
+  /**
+   * Can create a correlate of the appropriate type for a rule's calling
+   * convention.
+   *
+   * <p>The result is typically a {@link Correlate}.
+   */
+  public interface CorrelateFactory {
+    /**
+     * Creates a correlate.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param correlationId    Variable name for the row of left input
+     * @param requiredColumns  Required columns
+     * @param joinType         Join type
+     */
+    RelNode createCorrelate(RelNode left, RelNode right,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        SemiJoinType joinType);
+  }
+
+  /**
+   * Implementation of {@link CorrelateFactory} that returns a vanilla
+   * {@link org.apache.calcite.rel.logical.LogicalCorrelate}.
+   */
+  private static class CorrelateFactoryImpl implements CorrelateFactory {
+    public RelNode createCorrelate(RelNode left, RelNode right,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        SemiJoinType joinType) {
+      return LogicalCorrelate.create(left, right, correlationId,
+          requiredColumns, joinType);
     }
   }
 

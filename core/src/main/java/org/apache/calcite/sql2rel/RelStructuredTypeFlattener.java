@@ -390,7 +390,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public void rewriteRel(LogicalFilter rel) {
     RelNode newRel =
-        RelOptUtil.createFilter(
+        rel.copy(rel.getTraitSet(),
             getNewForOldRel(rel.getInput()),
             rel.getCondition().accept(new RewriteRexShuttle()));
     setNewForOldRel(rel, newRel);
@@ -401,14 +401,13 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         LogicalJoin.create(getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
             rel.getCondition().accept(new RewriteRexShuttle()),
-            rel.getJoinType(),
-            rel.getVariablesStopped());
+            rel.getVariablesSet(), rel.getJoinType());
     setNewForOldRel(rel, newRel);
   }
 
   public void rewriteRel(LogicalCorrelate rel) {
     ImmutableBitSet.Builder newPos = ImmutableBitSet.builder();
-    for (Integer pos : rel.getRequiredColumns()) {
+    for (int pos : rel.getRequiredColumns()) {
       RelDataType corrFieldType =
           rel.getLeft().getRowType().getFieldList().get(pos)
               .getType();

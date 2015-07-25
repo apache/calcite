@@ -112,6 +112,10 @@ public class RexInputRef extends RexSlot {
     return visitor.visitInputRef(this);
   }
 
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitInputRef(this, arg);
+  }
+
   /**
    * Creates a name for an input reference, of the form "$index". If the index
    * is low, uses a cache of common names, to reduce gc.

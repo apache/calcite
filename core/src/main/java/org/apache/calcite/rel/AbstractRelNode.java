@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -40,6 +41,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -237,15 +239,19 @@ public abstract class AbstractRelNode implements RelNode {
     return 1.0;
   }
 
-  public Set<String> getVariablesStopped() {
-    return Collections.emptySet();
+  public final Set<String> getVariablesStopped() {
+    return CorrelationId.names(getVariablesSet());
   }
 
-  public void collectVariablesUsed(Set<String> variableSet) {
+  public Set<CorrelationId> getVariablesSet() {
+    return ImmutableSet.of();
+  }
+
+  public void collectVariablesUsed(Set<CorrelationId> variableSet) {
     // for default case, nothing to do
   }
 
-  public void collectVariablesSet(Set<String> variableSet) {
+  public void collectVariablesSet(Set<CorrelationId> variableSet) {
   }
 
   public void childrenAccept(RelVisitor visitor) {
@@ -305,7 +311,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   public RelNode onRegister(RelOptPlanner planner) {
     List<RelNode> oldInputs = getInputs();
-    List<RelNode> inputs = new ArrayList<RelNode>(oldInputs.size());
+    List<RelNode> inputs = new ArrayList<>(oldInputs.size());
     for (final RelNode input : oldInputs) {
       RelNode e = planner.ensureRegistered(input, null);
       if (e != input) {

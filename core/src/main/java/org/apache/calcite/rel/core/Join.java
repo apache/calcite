@@ -35,6 +35,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -56,43 +57,67 @@ public abstract class Join extends BiRel {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexNode condition;
-  protected final ImmutableSet<String> variablesStopped;
+  protected final ImmutableSet<CorrelationId> variablesSet;
 
   /**
    * Values must be of enumeration {@link JoinRelType}, except that
    * {@link JoinRelType#RIGHT} is disallowed.
    */
-  protected JoinRelType joinType;
+  protected final JoinRelType joinType;
 
   //~ Constructors -----------------------------------------------------------
+
+  // Next time we need to change the constructor of Join, let's change the
+  // "Set<String> variablesStopped" parameter to
+  // "Set<CorrelationId> variablesSet". At that point we would deprecate
+  // RelNode.getVariablesStopped().
 
   /**
    * Creates a Join.
    *
+   * <p>Note: We plan to change the {@code variablesStopped} parameter to
+   * {@code Set&lt;CorrelationId&gt; variablesSet}
+   * {@link org.apache.calcite.util.Bug#upgrade(String) before version 2.0},
+   * because {@link #getVariablesSet()}
+   * is preferred over {@link #getVariablesStopped()}.
+   * This constructor is not deprecated, for now, because maintaining overloaded
+   * constructors in multiple sub-classes would be onerous.
+   *
    * @param cluster          Cluster
-   * @param traits           Traits
+   * @param traitSet         Trait set
    * @param left             Left input
    * @param right            Right input
    * @param condition        Join condition
    * @param joinType         Join type
-   * @param variablesStopped Set of names of variables which are set by the
+   * @param variablesSet     Set variables that are set by the
    *                         LHS and used by the RHS and are not available to
-   *                         nodes above this LogicalJoin in the tree
+   *                         nodes above this Join in the tree
    */
   protected Join(
       RelOptCluster cluster,
-      RelTraitSet traits,
+      RelTraitSet traitSet,
+      RelNode left,
+      RelNode right,
+      RexNode condition,
+      Set<CorrelationId> variablesSet,
+      JoinRelType joinType) {
+    super(cluster, traitSet, left, right);
+    this.condition = Preconditions.checkNotNull(condition);
+    this.variablesSet = ImmutableSet.copyOf(variablesSet);
+    this.joinType = Preconditions.checkNotNull(joinType);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected Join(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
       RelNode left,
       RelNode right,
       RexNode condition,
       JoinRelType joinType,
       Set<String> variablesStopped) {
-    super(cluster, traits, left, right);
-    this.condition = condition;
-    this.variablesStopped = ImmutableSet.copyOf(variablesStopped);
-    assert joinType != null;
-    assert condition != null;
-    this.joinType = joinType;
+    this(cluster, traitSet, left, right, condition,
+        CorrelationId.setOf(variablesStopped), joinType);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -172,8 +197,8 @@ public abstract class Join extends BiRel {
     return Util.first(RelMdUtil.getJoinRowCount(this, condition), 1D);
   }
 
-  @Override public Set<String> getVariablesStopped() {
-    return variablesStopped;
+  @Override public Set<CorrelationId> getVariablesSet() {
+    return variablesSet;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

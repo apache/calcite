@@ -98,6 +98,18 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     return expr.accept(this);
   }
 
+  public R visitSubQuery(RexSubQuery subQuery) {
+    if (!deep) {
+      return null;
+    }
+
+    R r = null;
+    for (RexNode operand : subQuery.operands) {
+      r = operand.accept(this);
+    }
+    return r;
+  }
+
   /**
    * <p>Visits an array of expressions, returning the logical 'and' of their
    * results.

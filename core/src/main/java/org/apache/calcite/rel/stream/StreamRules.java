@@ -251,13 +251,15 @@ public class StreamRules {
       final RelNode right = join.getRight();
 
       final LogicalDelta rightWithDelta = LogicalDelta.create(right);
-      final LogicalJoin joinL = LogicalJoin.create(left, rightWithDelta, join.getCondition(),
-          join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone(),
+      final LogicalJoin joinL = LogicalJoin.create(left, rightWithDelta,
+          join.getCondition(), join.getVariablesSet(), join.getJoinType(),
+          join.isSemiJoinDone(),
           ImmutableList.copyOf(join.getSystemFieldList()));
 
       final LogicalDelta leftWithDelta = LogicalDelta.create(left);
-      final LogicalJoin joinR = LogicalJoin.create(leftWithDelta, right, join.getCondition(),
-          join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone(),
+      final LogicalJoin joinR = LogicalJoin.create(leftWithDelta, right,
+          join.getCondition(), join.getVariablesSet(), join.getJoinType(),
+          join.isSemiJoinDone(),
           ImmutableList.copyOf(join.getSystemFieldList()));
 
       List<RelNode> inputsToUnion = Lists.newArrayList();

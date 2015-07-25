@@ -36,11 +36,20 @@ public abstract class EquiJoin extends Join {
   /** Creates an EquiJoin. */
   public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
       RelNode right, RexNode condition, ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys, JoinRelType joinType,
-      Set<String> variablesStopped) {
-    super(cluster, traits, left, right, condition, joinType, variablesStopped);
+      ImmutableIntList rightKeys, Set<CorrelationId> variablesSet,
+      JoinRelType joinType) {
+    super(cluster, traits, left, right, condition, variablesSet, joinType);
     this.leftKeys = Preconditions.checkNotNull(leftKeys);
     this.rightKeys = Preconditions.checkNotNull(rightKeys);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
+      RelNode right, RexNode condition, ImmutableIntList leftKeys,
+      ImmutableIntList rightKeys, JoinRelType joinType,
+      Set<String> variablesStopped) {
+    this(cluster, traits, left, right, condition, leftKeys, rightKeys,
+        CorrelationId.setOf(variablesStopped), joinType);
   }
 
   public ImmutableIntList getLeftKeys() {

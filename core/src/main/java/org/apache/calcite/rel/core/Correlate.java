@@ -19,6 +19,7 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelInput;
@@ -29,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -109,6 +111,11 @@ public abstract class Correlate extends BiRel {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean isValid(Litmus litmus) {
+    return super.isValid(litmus)
+        && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
+  }
+
   @Override public Correlate copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return copy(traitSet,
@@ -133,8 +140,8 @@ public abstract class Correlate extends BiRel {
     case INNER:
       // LogicalJoin is used to share the code of column names deduplication
       final LogicalJoin join = LogicalJoin.create(left, right,
-          getCluster().getRexBuilder().makeLiteral(true), joinType.toJoinType(),
-          ImmutableSet.<String>of());
+          getCluster().getRexBuilder().makeLiteral(true),
+          ImmutableSet.<CorrelationId>of(), joinType.toJoinType());
       return join.deriveRowType();
     case ANTI:
     case SEMI:
@@ -174,8 +181,8 @@ public abstract class Correlate extends BiRel {
     return requiredColumns;
   }
 
-  @Override public Set<String> getVariablesStopped() {
-    return ImmutableSet.of(correlationId.getName());
+  @Override public Set<CorrelationId> getVariablesSet() {
+    return ImmutableSet.of(correlationId);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {

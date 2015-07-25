@@ -71,8 +71,8 @@ public class SemiJoin extends EquiJoin {
         condition,
         leftKeys,
         rightKeys,
-        JoinRelType.INNER,
-        ImmutableSet.<String>of());
+        ImmutableSet.<CorrelationId>of(),
+        JoinRelType.INNER);
   }
 
   /** Creates a SemiJoin. */

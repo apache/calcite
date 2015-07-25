@@ -44,7 +44,6 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -260,7 +259,7 @@ public class Lattice {
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
     final Set<String> columnNames = Sets.newHashSet();
-    for (int i : BitSets.toIter(groupSet)) {
+    for (int i : groupSet) {
       if (k++ > 0) {
         buf.append(", ");
         groupBuf.append(", ");

@@ -81,6 +81,10 @@ public class RexFieldAccess extends RexNode {
     return visitor.visitFieldAccess(this);
   }
 
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitFieldAccess(this, arg);
+  }
+
   /**
    * Returns the expression whose field is being accessed.
    */

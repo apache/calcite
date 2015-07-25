@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -249,7 +250,7 @@ public class SubstitutionVisitor {
       final MutableRel left = toMutable(join.getLeft());
       final MutableRel right = toMutable(join.getRight());
       return MutableJoin.of(join.getCluster(), left, right,
-          join.getCondition(), join.getJoinType(), join.getVariablesStopped());
+          join.getCondition(), join.getJoinType(), join.getVariablesSet());
     }
     if (rel instanceof Sort) {
       final Sort sort = (Sort) rel;
@@ -646,7 +647,7 @@ public class SubstitutionVisitor {
     case JOIN:
       final MutableJoin join = (MutableJoin) node;
       return LogicalJoin.create(fromMutable(join.getLeft()), fromMutable(join.getRight()),
-          join.getCondition(), join.getJoinType(), join.getVariablesStopped());
+          join.getCondition(), join.getVariablesSet(), join.getJoinType());
     default:
       throw new AssertionError(node.deep());
     }
@@ -690,7 +691,7 @@ public class SubstitutionVisitor {
       final MutableJoin join = (MutableJoin) node;
       return MutableJoin.of(join.cluster, copyMutable(join.getLeft()),
           copyMutable(join.getRight()), join.getCondition(), join.getJoinType(),
-          join.getVariablesStopped());
+          join.getVariablesSet());
     default:
       throw new AssertionError(node.deep());
     }
@@ -1980,7 +1981,7 @@ public class SubstitutionVisitor {
     //~ Instance fields --------------------------------------------------------
 
     protected final RexNode condition;
-    protected final ImmutableSet<String> variablesStopped;
+    protected final ImmutableSet<CorrelationId> variablesSet;
 
     /**
      * Values must be of enumeration {@link JoinRelType}, except that
@@ -1994,10 +1995,10 @@ public class SubstitutionVisitor {
         MutableRel right,
         RexNode condition,
         JoinRelType joinType,
-        Set<String> variablesStopped) {
+        Set<CorrelationId> variablesSet) {
       super(MutableRelType.JOIN, left.cluster, rowType, left, right);
       this.condition = Preconditions.checkNotNull(condition);
-      this.variablesStopped = ImmutableSet.copyOf(variablesStopped);
+      this.variablesSet = ImmutableSet.copyOf(variablesSet);
       this.joinType = Preconditions.checkNotNull(joinType);
     }
 
@@ -2009,13 +2010,13 @@ public class SubstitutionVisitor {
       return joinType;
     }
 
-    public ImmutableSet getVariablesStopped() {
-      return variablesStopped;
+    public ImmutableSet<CorrelationId> getVariablesSet() {
+      return variablesSet;
     }
 
     static MutableJoin of(RelOptCluster cluster, MutableRel left,
         MutableRel right, RexNode condition, JoinRelType joinType,
-        Set<String> variablesStopped) {
+        Set<CorrelationId> variablesStopped) {
       List<RelDataTypeField> fieldList = Collections.emptyList();
       RelDataType rowType =
           Join.deriveJoinRowType(left.getRowType(), right.getRowType(),

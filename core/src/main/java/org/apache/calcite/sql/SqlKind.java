@@ -913,15 +913,15 @@ public enum SqlKind {
   public SqlKind negate() {
     switch (this) {
     case IS_TRUE:
-      return IS_NOT_TRUE;
+      return IS_FALSE;
     case IS_FALSE:
-      return IS_NOT_FALSE;
+      return IS_TRUE;
     case IS_NULL:
       return IS_NOT_NULL;
     case IS_NOT_TRUE:
-      return IS_TRUE;
+      return IS_NOT_FALSE;
     case IS_NOT_FALSE:
-      return IS_FALSE;
+      return IS_NOT_TRUE;
     case IS_NOT_NULL:
       return IS_NULL;
     case IS_DISTINCT_FROM:

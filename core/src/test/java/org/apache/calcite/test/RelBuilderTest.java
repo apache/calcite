@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableFunctionScan;
@@ -44,6 +46,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.junit.Test;
 
@@ -51,6 +54,7 @@ import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -768,6 +772,24 @@ public class RelBuilderTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(str(root), is(expected));
+  }
+
+  @Test public void testCorrelationFails() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    final RelOptCluster cluster = builder.peek().getCluster();
+    final CorrelationId id = cluster.createCorrel();
+    final RexNode v =
+        builder.getRexBuilder().makeCorrel(builder.peek().getRowType(), id);
+    try {
+      builder.filter(builder.equals(builder.field(0), v))
+          .scan("DEPT")
+          .join(JoinRelType.INNER, builder.literal(true), ImmutableSet.of(id));
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("variable $cor0 must not be used by left input to correlation"));
+    }
   }
 
   @Test public void testAlias() {

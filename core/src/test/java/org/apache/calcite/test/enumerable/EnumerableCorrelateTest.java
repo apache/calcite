@@ -31,38 +31,37 @@ public class EnumerableCorrelateTest {
     tester(true, new JdbcTest.HrSchema())
         .query(
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
-        .explainContains(
-            "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
-            + "  EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner])\n"
-            + "    EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], deptno0=[$t0], $f0=[$t5])\n"
-            + "      EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
-            + "        EnumerableAggregate(group=[{1}])\n"
-            + "          EnumerableTableScan(table=[[s, emps]])\n"
+        .explainContains(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "  EnumerableSemiJoin(condition=[=($1, $3)], joinType=[inner])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
+            + "      EnumerableAggregate(group=[{1}])\n"
+            + "        EnumerableTableScan(table=[[s, emps]])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])\n"
             + "        EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian");
-
   }
 
   @Test public void simpleCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
-        .explainContains(
-            "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NOT NULL($t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
-            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{1}])\n"
+        .explainContains(""
+            + "EnumerableCalc(expr#0..5=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{1}])\n"
             + "    EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableAggregate(group=[{}], agg#0=[MIN($0)])\n"
-            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t0, $t6)], $f0=[$t4], $condition=[$t7])\n"
+            + "    EnumerableAggregate(group=[{0}])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t0, $t6)], i=[$t4], $condition=[$t7])\n"
             + "        EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian");
-
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,

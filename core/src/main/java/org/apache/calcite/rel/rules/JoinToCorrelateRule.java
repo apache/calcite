@@ -102,10 +102,9 @@ public class JoinToCorrelateRule extends RelOptRule {
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelBuilder relBuilder = call.builder();
-    final int dynInId = cluster.createCorrel();
-    final CorrelationId correlationId = new CorrelationId(dynInId);
+    final CorrelationId correlationId = cluster.createCorrel();
     final RexNode corrVar =
-        rexBuilder.makeCorrel(left.getRowType(), correlationId.getName());
+        rexBuilder.makeCorrel(left.getRowType(), correlationId);
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
 
     // Replace all references of left input with FieldAccess(corrVar, field)

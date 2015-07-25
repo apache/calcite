@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 
@@ -35,7 +36,7 @@ public class RelOptQuery {
   /**
    * Prefix to the name of correlating variables.
    */
-  public static final String CORREL_PREFIX = "$cor";
+  public static final String CORREL_PREFIX = CorrelationId.CORREL_PREFIX;
 
   //~ Instance fields --------------------------------------------------------
 

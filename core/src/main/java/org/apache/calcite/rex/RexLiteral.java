@@ -279,7 +279,7 @@ public class RexLiteral extends RexNode {
       }
       return litmus.succeed();
     } else if (o instanceof Map) {
-      final Map<Object, Object> map = (Map) o;
+      @SuppressWarnings("unchecked") final Map<Object, Object> map = (Map) o;
       for (Map.Entry entry : map.entrySet()) {
         if (!validConstant(entry.getKey(), litmus)) {
           return litmus.fail("not a constant: " + entry.getKey());
@@ -649,14 +649,16 @@ public class RexLiteral extends RexNode {
         && (((RexLiteral) node).value == null);
   }
 
-  private static boolean equals(
-      Object o1,
-      Object o2) {
+  private static boolean equals(Object o1, Object o2) {
     return (o1 == null) ? (o2 == null) : o1.equals(o2);
   }
 
   public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitLiteral(this);
+  }
+
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitLiteral(this, arg);
   }
 }
 

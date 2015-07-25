@@ -1759,7 +1759,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           nextSetId++,
           Util.minus(
               RelOptUtil.getVariablesSet(rel),
-              rel.getVariablesStopped()),
+              rel.getVariablesSet()),
           RelOptUtil.getVariablesUsed(rel));
       this.allSets.add(set);
     }

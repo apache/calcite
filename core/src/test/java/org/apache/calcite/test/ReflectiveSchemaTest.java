@@ -25,7 +25,6 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Predicate1;
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -148,9 +147,8 @@ public class ReflectiveSchemaTest {
                     Types.of(Enumerable.class, Employee.class),
                     null,
                     LINQ4J_AS_ENUMERABLE_METHOD,
-                    Arrays.<Expression>asList(
-                        Expressions.constant(
-                            new JdbcTest.HrSchema().emps))), "asQueryable"),
+                    Expressions.constant(new JdbcTest.HrSchema().emps)),
+                "asQueryable"),
             Employee.class)
             .select(
                 Expressions.<Function1<Employee, Integer>>lambda(
@@ -447,8 +445,23 @@ public class ReflectiveSchemaTest {
         + "where \"wrapperBoolean\"")
         .returns("C=0\n");
     with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\" is true")
+        .returns("C=0\n");
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"wrapperBoolean\" is not true")
         .returns("C=2\n");
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\" is false")
+        .returns("C=1\n");
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\" is not false")
+        .returns("C=1\n");
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\" is null")
+        .returns("C=1\n");
+    with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\" is not null")
+        .returns("C=1\n");
     with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"primitiveInt\" > 0")
         .returns("C=1\n");

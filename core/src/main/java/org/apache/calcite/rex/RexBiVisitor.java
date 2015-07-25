@@ -17,36 +17,36 @@
 package org.apache.calcite.rex;
 
 /**
- * Visitor pattern for traversing a tree of {@link RexNode} objects.
+ * Visitor pattern for traversing a tree of {@link RexNode} objects
+ * and passing a payload to each.
  *
- * @see org.apache.calcite.util.Glossary#VISITOR_PATTERN
- * @see RexShuttle
- * @see RexVisitorImpl
+ * @see RexVisitor
  *
  * @param <R> Return type
+ * @param <P> Payload type
  */
-public interface RexVisitor<R> {
+public interface RexBiVisitor<R, P> {
   //~ Methods ----------------------------------------------------------------
 
-  R visitInputRef(RexInputRef inputRef);
+  R visitInputRef(RexInputRef inputRef, P arg);
 
-  R visitLocalRef(RexLocalRef localRef);
+  R visitLocalRef(RexLocalRef localRef, P arg);
 
-  R visitLiteral(RexLiteral literal);
+  R visitLiteral(RexLiteral literal, P arg);
 
-  R visitCall(RexCall call);
+  R visitCall(RexCall call, P arg);
 
-  R visitOver(RexOver over);
+  R visitOver(RexOver over, P arg);
 
-  R visitCorrelVariable(RexCorrelVariable correlVariable);
+  R visitCorrelVariable(RexCorrelVariable correlVariable, P arg);
 
-  R visitDynamicParam(RexDynamicParam dynamicParam);
+  R visitDynamicParam(RexDynamicParam dynamicParam, P arg);
 
-  R visitRangeRef(RexRangeRef rangeRef);
+  R visitRangeRef(RexRangeRef rangeRef, P arg);
 
-  R visitFieldAccess(RexFieldAccess fieldAccess);
+  R visitFieldAccess(RexFieldAccess fieldAccess, P arg);
 
-  R visitSubQuery(RexSubQuery subQuery);
+  R visitSubQuery(RexSubQuery subQuery, P arg);
 }
 
-// End RexVisitor.java
+// End RexBiVisitor.java

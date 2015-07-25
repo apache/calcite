@@ -43,7 +43,7 @@ class EnumerableJoinRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     LogicalJoin join = (LogicalJoin) rel;
-    List<RelNode> newInputs = new ArrayList<RelNode>();
+    List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       if (!(input.getConvention() instanceof EnumerableConvention)) {
         input =
@@ -65,8 +65,7 @@ class EnumerableJoinRule extends ConverterRule {
       // if it is an inner join.
       try {
         return new EnumerableThetaJoin(cluster, traitSet, left, right,
-            join.getCondition(), join.getJoinType(),
-            join.getVariablesStopped());
+            join.getCondition(), join.getVariablesSet(), join.getJoinType());
       } catch (InvalidRelException e) {
         EnumerableRules.LOGGER.fine(e.toString());
         return null;
@@ -82,8 +81,8 @@ class EnumerableJoinRule extends ConverterRule {
           info.getEquiCondition(left, right, cluster.getRexBuilder()),
           info.leftKeys,
           info.rightKeys,
-          join.getJoinType(),
-          join.getVariablesStopped());
+          join.getVariablesSet(),
+          join.getJoinType());
     } catch (InvalidRelException e) {
       EnumerableRules.LOGGER.fine(e.toString());
       return null;

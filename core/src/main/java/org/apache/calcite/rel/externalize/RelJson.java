@@ -397,7 +397,7 @@ public class RelJson {
       if (correl != null) {
         final Object jsonType = map.get("type");
         RelDataType type = toType(cluster.getTypeFactory(), jsonType);
-        return rexBuilder.makeCorrel(type, correl);
+        return rexBuilder.makeCorrel(type, new CorrelationId(correl));
       }
       if (map.containsKey("literal")) {
         final Object literal = map.get("literal");

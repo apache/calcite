@@ -231,10 +231,10 @@ public class LatticeTest {
       foodmartModel()
           .query("select count(*) from \"adhoc\".\"star\"")
           .convertMatches(
-              CalciteAssert.checkRel(
-                  "LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-                      + "  LogicalProject(DUMMY=[0])\n"
-                      + "    StarTableScan(table=[[adhoc, star]])\n",
+              CalciteAssert.checkRel(""
+                  + "LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+                  + "  LogicalProject($f0=[0])\n"
+                  + "    StarTableScan(table=[[adhoc, star]])\n",
                   counter));
     } catch (RuntimeException e) {
       assertThat(Throwables.getStackTraceAsString(e),
@@ -429,24 +429,29 @@ public class LatticeTest {
 
   /** Tests a query that is created within {@link #testTileAlgorithm()}. */
   @Test public void testJG() {
+    final String sql = ""
+        + "SELECT \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\", COUNT(*) AS \"m0\", SUM(\"s\".\"store_sales\") AS \"m1\", SUM(\"s\".\"unit_sales\") AS \"m2\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\" AS \"s\"\n"
+        + "JOIN \"foodmart\".\"product\" AS \"p\" ON \"s\".\"product_id\" = \"p\".\"product_id\"\n"
+        + "JOIN \"foodmart\".\"time_by_day\" AS \"t\" ON \"s\".\"time_id\" = \"t\".\"time_id\"\n"
+        + "JOIN \"foodmart\".\"product_class\" AS \"pc\" ON \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"\n"
+        + "GROUP BY \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\"";
+    final String explain = "JdbcToEnumerableConverter\n"
+        + "  JdbcAggregate(group=[{3, 6, 8, 9, 10, 12}], m0=[COUNT()], m1=[$SUM0($2)], m2=[$SUM0($3)])\n"
+        + "    JdbcJoin(condition=[=($4, $11)], joinType=[inner])\n"
+        + "      JdbcJoin(condition=[=($1, $7)], joinType=[inner])\n"
+        + "        JdbcJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "          JdbcProject(product_id=[$0], time_id=[$1], store_sales=[$5], unit_sales=[$7])\n"
+        + "            JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
+        + "          JdbcProject(product_class_id=[$0], product_id=[$1], recyclable_package=[$8])\n"
+        + "            JdbcTableScan(table=[[foodmart, product]])\n"
+        + "        JdbcProject(time_id=[$0], the_day=[$2], the_year=[$4], quarter=[$8])\n"
+        + "          JdbcTableScan(table=[[foodmart, time_by_day]])\n"
+        + "      JdbcProject(product_class_id=[$0], product_family=[$4])\n"
+        + "        JdbcTableScan(table=[[foodmart, product_class]])";
     CalciteAssert.that().with(CalciteAssert.Config.JDBC_FOODMART)
-        .query(
-            "SELECT \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\", COUNT(*) AS \"m0\", SUM(\"s\".\"store_sales\") AS \"m1\", SUM(\"s\".\"unit_sales\") AS \"m2\"\n"
-                + "FROM \"foodmart\".\"sales_fact_1997\" AS \"s\"\n"
-                + "JOIN \"foodmart\".\"product\" AS \"p\" ON \"s\".\"product_id\" = \"p\".\"product_id\"\n"
-                + "JOIN \"foodmart\".\"time_by_day\" AS \"t\" ON \"s\".\"time_id\" = \"t\".\"time_id\"\n"
-                + "JOIN \"foodmart\".\"product_class\" AS \"pc\" ON \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"\n"
-                + "GROUP BY \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\"")
-        .explainContains(
-            "JdbcToEnumerableConverter\n"
-                + "  JdbcAggregate(group=[{7, 16, 25, 27, 31, 37}], m0=[COUNT()], m1=[$SUM0($5)], m2=[$SUM0($7)])\n"
-                + "    JdbcJoin(condition=[=($8, $33)], joinType=[inner])\n"
-                + "      JdbcJoin(condition=[=($1, $23)], joinType=[inner])\n"
-                + "        JdbcJoin(condition=[=($0, $9)], joinType=[inner])\n"
-                + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
-                + "          JdbcTableScan(table=[[foodmart, product]])\n"
-                + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
-                + "      JdbcTableScan(table=[[foodmart, product_class]])");
+        .query(sql)
+        .explainContains(explain);
   }
 
   /** Tests a query that uses no columns from the fact table. */

@@ -87,9 +87,13 @@ public abstract class Prepare {
   public static final TryThreadLocal<Boolean> THREAD_TRIM =
       TryThreadLocal.of(false);
 
-  /** Temporary, while CALCITE-816 is under development.
+  /** Temporary, until
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1045">[CALCITE-1045]
+   * Decorrelate sub-queries in Project and Join</a> is fixed.
    *
-   * @see org.apache.calcite.util.Util#deprecated(Object, boolean) */
+   * <p>The default is false, meaning do not expand queries during sql-to-rel,
+   * but a few tests override and set it to true. After CALCITE-1045
+   * is fixed, remove those overrides and use false everywhere. */
   public static final TryThreadLocal<Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
@@ -209,6 +213,7 @@ public abstract class Prepare {
 
     SqlToRelConverter sqlToRelConverter =
         getSqlToRelConverter(validator, catalogReader);
+    sqlToRelConverter.setExpand(THREAD_EXPAND.get());
 
     SqlExplain sqlExplain = null;
     if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
@@ -344,6 +349,7 @@ public abstract class Prepare {
         getSqlToRelConverter(
             getSqlValidator(), catalogReader);
     converter.setTrimUnusedFields(shouldTrim(root.rel));
+    converter.setExpand(THREAD_EXPAND.get());
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();
     final boolean dml = SqlKind.DML.contains(root.kind);
     return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));

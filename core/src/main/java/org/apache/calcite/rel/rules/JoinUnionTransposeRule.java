@@ -70,7 +70,7 @@ public class JoinUnionTransposeRule extends RelOptRule {
     if (!unionRel.all) {
       return;
     }
-    if (!join.getVariablesStopped().isEmpty()) {
+    if (!join.getVariablesSet().isEmpty()) {
       return;
     }
     // The UNION ALL cannot be on the null generating side

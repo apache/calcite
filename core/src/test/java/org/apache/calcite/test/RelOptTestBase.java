@@ -170,6 +170,36 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     }
     SqlToRelTestBase.assertValid(relAfter);
   }
+
+  /** Sets the SQL statement for a test. */
+  Sql sql(String sql) {
+    return new Sql(sql, null, true);
+  }
+
+  /** Allows fluent testing. */
+  class Sql {
+    private final String sql;
+    private final HepPlanner hepPlanner;
+    private final boolean expand;
+
+    public Sql(String sql, HepPlanner hepPlanner, boolean expand) {
+      this.sql = sql;
+      this.hepPlanner = hepPlanner;
+      this.expand = expand;
+    }
+
+    public Sql with(HepPlanner hepPlanner) {
+      return new Sql(sql, hepPlanner, expand);
+    }
+
+    public Sql expand(boolean expand) {
+      return new Sql(sql, hepPlanner, expand);
+    }
+
+    public void check() {
+      checkPlanning(tester.withExpand(expand), null, hepPlanner, sql);
+    }
+  }
 }
 
 // End RelOptTestBase.java

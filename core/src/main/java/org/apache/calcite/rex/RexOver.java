@@ -89,6 +89,10 @@ public class RexOver extends RexCall {
     return visitor.visitOver(this);
   }
 
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitOver(this, arg);
+  }
+
   /**
    * Returns whether an expression contains an OVER clause.
    */

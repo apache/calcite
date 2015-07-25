@@ -173,16 +173,17 @@ functions, or a combination of constants and aggregate
 functions. Aggregate and grouping functions may only appear in an
 aggregate query, and only in a SELECT, HAVING or ORDER BY clause.
 
-A scalar sub-query is a sub-query used as an expression. It can occur
-in most places where an expression can occur (such as the SELECT
-clause, WHERE clause, or as an argument to an aggregate
-function). If the sub-query returns no rows, the value is NULL; if it
+A scalar sub-query is a sub-query used as an expression.
+If the sub-query returns no rows, the value is NULL; if it
 returns more than one row, it is an error.
 
-A sub-query can occur in the FROM clause of a query and also in IN
-and EXISTS expressions.  A sub-query that occurs in IN and
-EXISTS expressions may be correlated; that is, refer to tables in
-the FROM clause of an enclosing query.
+IN, EXISTS and scalar sub-queries can occur
+in any place where an expression can occur (such as the SELECT clause,
+WHERE clause, ON clause of a JOIN, or as an argument to an aggregate
+function).
+
+An IN, EXISTS or scalar sub-query may be correlated; that is, it
+may refer to tables in the FROM clause of an enclosing query.
 
 ## Keywords
 

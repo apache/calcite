@@ -37,6 +37,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -417,25 +418,33 @@ public class Bindables {
           convert(join.getRight(),
               join.getRight().getTraitSet()
                   .replace(BindableConvention.INSTANCE)),
-          join.getCondition(), join.getJoinType(), join.getVariablesStopped());
+          join.getCondition(), join.getVariablesSet(), join.getJoinType());
     }
   }
 
   /** Implementation of {@link org.apache.calcite.rel.core.Join} in
    * bindable calling convention. */
   public static class BindableJoin extends Join implements BindableRel {
+    /** Creates a BindableJoin. */
+    protected BindableJoin(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode left, RelNode right, RexNode condition,
+        Set<CorrelationId> variablesSet, JoinRelType joinType) {
+      super(cluster, traitSet, left, right, condition, variablesSet, joinType);
+    }
+
+    @Deprecated // to be removed before 2.0
     protected BindableJoin(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode left, RelNode right, RexNode condition, JoinRelType joinType,
         Set<String> variablesStopped) {
-      super(cluster, traitSet, left, right, condition, joinType,
-          variablesStopped);
+      this(cluster, traitSet, left, right, condition,
+          CorrelationId.setOf(variablesStopped), joinType);
     }
 
     public BindableJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
         RelNode left, RelNode right, JoinRelType joinType,
         boolean semiJoinDone) {
       return new BindableJoin(getCluster(), traitSet, left, right,
-          conditionExpr, joinType, variablesStopped);
+          conditionExpr, variablesSet, joinType);
     }
 
     public Class<Object[]> getElementType() {

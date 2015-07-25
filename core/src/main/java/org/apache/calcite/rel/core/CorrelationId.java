@@ -16,15 +16,30 @@
  */
 package org.apache.calcite.rel.core;
 
+import com.google.common.collect.ImmutableSet;
+
+import java.util.Set;
+
 /**
  * Describes the necessary parameters for an implementation in order to
  * identify and set dynamic variables
  */
 public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
-  private static final String CORREL_PREFIX = "$cor";
+  /**
+   * Prefix to the name of correlating variables.
+   */
+  public static final String CORREL_PREFIX = "$cor";
 
   private final int id;
   private final String name;
+
+  /**
+   * Creates a correlation identifier.
+   */
+  private CorrelationId(int id, String name) {
+    this.id = id;
+    this.name = name;
+  }
 
   /**
    * Creates a correlation identifier.
@@ -33,22 +48,19 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
    * @param id     Identifier
    */
   public CorrelationId(int id) {
-    this.id = id;
-    this.name = CORREL_PREFIX + id;
+    this(id, CORREL_PREFIX + id);
   }
 
   /**
-   * Creates a correlation identifier.
-   * This is a type-safe wrapper over int.
+   * Creates a correlation identifier from a name.
    *
    * @param name     variable name
    */
   public CorrelationId(String name) {
-    assert name != null && name.startsWith(CORREL_PREFIX)
+    this(Integer.parseInt(name.substring(CORREL_PREFIX.length())), name);
+    assert name.startsWith(CORREL_PREFIX)
         : "Correlation name should start with " + CORREL_PREFIX
         + " actual name is " + name;
-    this.id = Integer.parseInt(name.substring(CORREL_PREFIX.length()));
-    this.name = name;
   }
 
   /**
@@ -61,7 +73,7 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
   }
 
   /**
-   * Returns the preffered name of the variable.
+   * Returns the preferred name of the variable.
    *
    * @return name
    */
@@ -85,6 +97,30 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
     return this == obj
         || obj instanceof CorrelationId
         && this.id == ((CorrelationId) obj).id;
+  }
+
+  /** Converts a set of correlation ids to a set of names. */
+  public static ImmutableSet<CorrelationId> setOf(Set<String> set) {
+    if (set.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    final ImmutableSet.Builder<CorrelationId> builder = ImmutableSet.builder();
+    for (String s : set) {
+      builder.add(new CorrelationId(s));
+    }
+    return builder.build();
+  }
+
+  /** Converts a set of names to a set of correlation ids. */
+  public static Set<String> names(Set<CorrelationId> set) {
+    if (set.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    for (CorrelationId s : set) {
+      builder.add(s.name);
+    }
+    return builder.build();
   }
 }
 

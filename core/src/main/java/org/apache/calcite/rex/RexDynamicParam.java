@@ -55,6 +55,10 @@ public class RexDynamicParam extends RexVariable {
   public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitDynamicParam(this);
   }
+
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitDynamicParam(this, arg);
+  }
 }
 
 // End RexDynamicParam.java

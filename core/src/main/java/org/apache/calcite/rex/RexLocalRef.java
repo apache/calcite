@@ -77,6 +77,10 @@ public class RexLocalRef extends RexSlot {
     return visitor.visitLocalRef(this);
   }
 
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+    return visitor.visitLocalRef(this, arg);
+  }
+
   private static String createName(int index) {
     return NAMES.get(index);
   }

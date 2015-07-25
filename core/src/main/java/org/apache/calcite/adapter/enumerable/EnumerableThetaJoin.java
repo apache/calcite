@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -43,11 +44,20 @@ import java.util.Set;
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}
  * that allows conditions that are not just {@code =} (equals). */
 public class EnumerableThetaJoin extends Join implements EnumerableRel {
+  /** Creates an EnumerableThetaJoin. */
+  protected EnumerableThetaJoin(RelOptCluster cluster, RelTraitSet traits,
+      RelNode left, RelNode right, RexNode condition,
+      Set<CorrelationId> variablesSet, JoinRelType joinType)
+      throws InvalidRelException {
+    super(cluster, traits, left, right, condition, variablesSet, joinType);
+  }
+
+  @Deprecated // to be removed before 2.0
   protected EnumerableThetaJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition, JoinRelType joinType,
       Set<String> variablesStopped) throws InvalidRelException {
-    super(cluster, traits, left, right, condition, joinType,
-        variablesStopped);
+    this(cluster, traits, left, right, condition,
+        CorrelationId.setOf(variablesStopped), joinType);
   }
 
   @Override public EnumerableThetaJoin copy(RelTraitSet traitSet,
@@ -55,7 +65,7 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
       boolean semiJoinDone) {
     try {
       return new EnumerableThetaJoin(getCluster(), traitSet, left, right,
-          condition, joinType, variablesStopped);
+          condition, variablesSet, joinType);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.

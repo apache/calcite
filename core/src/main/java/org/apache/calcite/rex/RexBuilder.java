@@ -23,6 +23,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -431,14 +432,14 @@ public class RexBuilder {
   /**
    * Creates an expression referencing a correlation variable.
    *
+   * @param id Name of variable
    * @param type Type of variable
-   * @param name Name of variable
    * @return Correlation variable
    */
   public RexNode makeCorrel(
       RelDataType type,
-      String name) {
-    return new RexCorrelVariable(name, type);
+      CorrelationId id) {
+    return new RexCorrelVariable(id, type);
   }
 
   /**

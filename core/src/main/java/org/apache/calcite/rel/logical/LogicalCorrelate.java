@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -26,6 +27,7 @@ import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 
 /**
  * A relational operator that performs nested-loop joins.
@@ -69,6 +71,7 @@ public final class LogicalCorrelate extends Correlate {
         correlationId,
         requiredColumns,
         joinType);
+    assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

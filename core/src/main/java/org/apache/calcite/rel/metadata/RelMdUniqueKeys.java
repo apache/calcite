@@ -28,7 +28,6 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -76,11 +75,11 @@ public class RelMdUniqueKeys {
     //
     // Further more, the unique bitset coming from the child needs
     // to be mapped to match the output of the project.
-    Map<Integer, Integer> mapInToOutPos = new HashMap<Integer, Integer>();
+    Map<Integer, Integer> mapInToOutPos = new HashMap<>();
 
     List<RexNode> projExprs = rel.getProjects();
 
-    Set<ImmutableBitSet> projUniqueKeySet = new HashSet<ImmutableBitSet>();
+    Set<ImmutableBitSet> projUniqueKeySet = new HashSet<>();
 
     // Build an input to output position map.
     for (int i = 0; i < projExprs.size(); i++) {
@@ -105,7 +104,7 @@ public class RelMdUniqueKeys {
       for (ImmutableBitSet colMask : childUniqueKeySet) {
         ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
         boolean completeKeyProjected = true;
-        for (int bit : BitSets.toIter(colMask)) {
+        for (int bit : colMask) {
           if (mapInToOutPos.containsKey(bit)) {
             tmpMask.set(mapInToOutPos.get(bit));
           } else {
@@ -137,7 +136,7 @@ public class RelMdUniqueKeys {
     // that is undesirable, use RelMetadataQuery.areColumnsUnique() as
     // an alternative way of getting unique key information.
 
-    Set<ImmutableBitSet> retSet = new HashSet<ImmutableBitSet>();
+    Set<ImmutableBitSet> retSet = new HashSet<>();
     Set<ImmutableBitSet> leftSet =
         RelMetadataQuery.getUniqueKeys(left, ignoreNulls);
     Set<ImmutableBitSet> rightSet = null;
@@ -147,7 +146,7 @@ public class RelMdUniqueKeys {
     int nFieldsOnLeft = left.getRowType().getFieldCount();
 
     if (tmpRightSet != null) {
-      rightSet = new HashSet<ImmutableBitSet>();
+      rightSet = new HashSet<>();
       for (ImmutableBitSet colMask : tmpRightSet) {
         ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
         for (int bit : colMask) {

@@ -78,6 +78,16 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
+  public RexNode visitSubQuery(RexSubQuery subQuery) {
+    boolean[] update = {false};
+    List<RexNode> clonedOperands = visitList(subQuery.operands, update);
+    if (update[0]) {
+      return subQuery.clone(subQuery.getType(), clonedOperands);
+    } else {
+      return subQuery;
+    }
+  }
+
   public RexNode visitCall(final RexCall call) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(call.operands, update);
@@ -238,7 +248,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
     if (exprList == null) {
       return null;
     }
-    final List<T> list2 = new ArrayList<T>(exprList);
+    final List<T> list2 = new ArrayList<>(exprList);
     if (mutate(list2)) {
       return list2;
     } else {

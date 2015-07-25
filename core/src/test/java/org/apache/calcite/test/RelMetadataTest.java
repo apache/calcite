@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -1160,7 +1161,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // Join
     final LogicalJoin join =
         LogicalJoin.create(empScan, deptProject, rexBuilder.makeLiteral(true),
-            JoinRelType.INNER, ImmutableSet.<String>of());
+            ImmutableSet.<CorrelationId>of(), JoinRelType.INNER);
     rowSize = RelMetadataQuery.getAverageRowSize(join);
     columnSizes = RelMetadataQuery.getAverageColumnSizes(join);
     assertThat(columnSizes.size(), equalTo(13));

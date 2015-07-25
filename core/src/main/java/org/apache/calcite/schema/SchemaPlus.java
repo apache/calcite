@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
  * <p>Given a user-defined schema that implements the {@link Schema} interface,
  * Calcite creates a wrapper that implements the {@code SchemaPlus} interface.
  * This provides extra functionality, such as access to tables that have been
- * added explicitly.</p>
+ * added explicitly.
  *
  * <p>A user-defined schema does not need to implement this interface, but by
  * the time a schema is passed to a method in a user-defined schema or

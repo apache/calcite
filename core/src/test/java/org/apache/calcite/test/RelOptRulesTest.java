@@ -78,6 +78,7 @@ import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -110,7 +111,7 @@ import static org.junit.Assert.assertTrue;
  * translated into relational algebra and then fed into a
  * {@link org.apache.calcite.plan.hep.HepPlanner}. The planner fires the rule on
  * every
- * pattern match in a depth-first left-to-right preorder traversal of the tree
+ * pattern match in a depth-first left-to-right pre-order traversal of the tree
  * for as long as the rule continues to succeed in applying its transform. (For
  * rules which call transformTo more than once, only the last result is used.)
  * The plan before and after "optimization" is diffed against a .ref file using
@@ -1995,7 +1996,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
   @Test public void testSortJoinTranspose4() {
     // Create a customized test with RelCollation trait in the test cluster.
-    Tester tester = new TesterImpl(getDiffRepos(), true, false, null) {
+    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, null) {
       @Override public RelOptPlanner createPlanner() {
         return new MockRelOptPlanner() {
           @Override public List<RelTraitDef> getRelTraitDefs() {
@@ -2061,6 +2062,160 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "having count(*) > 3";
     checkPlanning(new HepPlanner(program), sql);
   }
+
+  private Sql checkSubQuery(String sql) {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SubQueryRemoveRule.PROJECT)
+        .addRuleInstance(SubQueryRemoveRule.FILTER)
+        .addRuleInstance(SubQueryRemoveRule.JOIN)
+        .build();
+    return sql(sql).with(new HepPlanner(program)).expand(false);
+  }
+
+  /** Tests expanding a sub-query, specifically an uncorrelated scalar
+   * sub-query in a project (SELECT clause). */
+  @Test public void testExpandProjectScalar() throws Exception {
+    final String sql = "select empno,\n"
+        + "  (select deptno from sales.emp where empno < 20) as d\n"
+        + "from sales.emp";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandProjectIn() throws Exception {
+    final String sql = "select empno,\n"
+        + "  deptno in (select deptno from sales.emp where empno < 20) as d\n"
+        + "from sales.emp";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandProjectInNullable() throws Exception {
+    final String sql = "with e2 as (\n"
+        + "  select empno, case when true then deptno else null end as deptno\n"
+        + "  from sales.emp)\n"
+        + "select empno,\n"
+        + "  deptno in (select deptno from e2 where empno < 20) as d\n"
+        + "from e2";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandProjectInComposite() throws Exception {
+    final String sql = "select empno, (empno, deptno) in (\n"
+        + "    select empno, deptno from sales.emp where empno < 20) as d\n"
+        + "from sales.emp";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandProjectExists() throws Exception {
+    final String sql = "select empno,\n"
+        + "  exists (select deptno from sales.emp where empno < 20) as d\n"
+        + "from sales.emp";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandFilterScalar() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where (select deptno from sales.emp where empno < 20)\n"
+        + " < (select deptno from sales.emp where empno > 100)\n"
+        + "or emp.sal < 100";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandFilterIn() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where deptno in (select deptno from sales.emp where empno < 20)\n"
+        + "or emp.sal < 100";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandFilterInComposite() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where (empno, deptno) in (\n"
+        + "  select empno, deptno from sales.emp where empno < 20)\n"
+        + "or emp.sal < 100";
+    checkSubQuery(sql).check();
+  }
+
+  /** An IN filter that requires full 3-value logic (true, false, unknown). */
+  @Test public void testExpandFilterIn3Value() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where empno\n"
+        + " < case deptno in (select case when true then deptno else null end\n"
+        + "                   from sales.emp where empno < 20)\n"
+        + "   when true then 10\n"
+        + "   when false then 20\n"
+        + "   else 30\n"
+        + "   end";
+    checkSubQuery(sql).check();
+  }
+
+  /** An EXISTS filter that can be converted into true/false. */
+  @Test public void testExpandFilterExists() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where exists (select deptno from sales.emp where empno < 20)\n"
+        + "or emp.sal < 100";
+    checkSubQuery(sql).check();
+  }
+
+  /** An EXISTS filter that can be converted into a semi-join. */
+  @Test public void testExpandFilterExistsSimple() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where exists (select deptno from sales.emp where empno < 20)";
+    checkSubQuery(sql).check();
+  }
+
+  /** An EXISTS filter that can be converted into a semi-join. */
+  @Test public void testExpandFilterExistsSimpleAnd() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where exists (select deptno from sales.emp where empno < 20)\n"
+        + "and emp.sal < 100";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandJoinScalar() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp left join sales.dept\n"
+        + "on (select deptno from sales.emp where empno < 20)\n"
+        + " < (select deptno from sales.emp where empno > 100)";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandJoinIn() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp left join sales.dept\n"
+        + "on emp.deptno in (select deptno from sales.emp where empno < 20)";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandJoinInComposite() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp left join sales.dept\n"
+        + "on (emp.empno, dept.deptno) in (\n"
+        + "  select empno, deptno from sales.emp where empno < 20)";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testExpandJoinExists() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp left join sales.dept\n"
+        + "on exists (select deptno from sales.emp where empno < 20)";
+    checkSubQuery(sql).check();
+  }
+
+  @Test public void testWhereInCorrelated() {
+    final String sql = "select empno from emp as e\n"
+        + "join dept as d using (deptno)\n"
+        + "where e.sal in (\n"
+        + "  select e2.sal from emp as e2 where e2.deptno > e.deptno)";
+    checkSubQuery(sql).check();
+  }
+
 }
 
 // End RelOptRulesTest.java

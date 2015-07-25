@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -175,16 +176,38 @@ public interface RelNode extends RelOptNode, Cloneable {
   double getRows();
 
   /**
-   * Returns the names of variables which are set in this relational
+   * Returns the names of variables that are set in this relational
    * expression but also used and therefore not available to parents of this
    * relational expression.
+   *
    * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
-   * variables</p>
+   * variables.
+   *
+   * <p>Note: {@link #getVariablesSet()} is equivalent but returns
+   * {@link CorrelationId} rather than their names. It is preferable except for
+   * calling old methods that require a set of strings.
+   *
+   * @return Names of variables which are set in this relational
+   *   expression
+   *
+   * @deprecated Use {@link #getVariablesSet()}
+   * and {@link CorrelationId#names(Set)}
+   */
+  @Deprecated // to be removed before 2.0
+  Set<String> getVariablesStopped();
+
+  /**
+   * Returns the variables that are set in this relational
+   * expression but also used and therefore not available to parents of this
+   * relational expression.
+   *
+   * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
+   * variables.
    *
    * @return Names of variables which are set in this relational
    *   expression
    */
-  Set<String> getVariablesStopped();
+  Set<CorrelationId> getVariablesSet();
 
   /**
    * Collects variables known to be used by this expression or its
@@ -194,7 +217,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @param variableSet receives variables used
    */
-  void collectVariablesUsed(Set<String> variableSet);
+  void collectVariablesUsed(Set<CorrelationId> variableSet);
 
   /**
    * Collects variables set by this expression.
@@ -202,7 +225,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @param variableSet receives variables known to be set by
    */
-  void collectVariablesSet(Set<String> variableSet);
+  void collectVariablesSet(Set<CorrelationId> variableSet);
 
   /**
    * Interacts with the {@link RelVisitor} in a

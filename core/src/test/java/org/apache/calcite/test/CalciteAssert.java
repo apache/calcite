@@ -142,7 +142,7 @@ public class CalciteAssert {
           return this;
         }
 
-        @Override public AssertThat with(String property, String value) {
+        @Override public AssertThat with(String property, Object value) {
           return this;
         }
 
@@ -808,7 +808,7 @@ public class CalciteAssert {
       return x;
     }
 
-    public AssertThat with(String property, String value) {
+    public AssertThat with(String property, Object value) {
       return new AssertThat(connectionFactory.with(property, value));
     }
 
@@ -977,7 +977,7 @@ public class CalciteAssert {
   public abstract static class ConnectionFactory {
     public abstract Connection createConnection() throws SQLException;
 
-    public ConnectionFactory with(String property, String value) {
+    public ConnectionFactory with(String property, Object value) {
       throw new UnsupportedOperationException();
     }
 
@@ -1107,10 +1107,10 @@ public class CalciteAssert {
       return connection;
     }
 
-    public ConnectionFactory with(String property, String value) {
+    public ConnectionFactory with(String property, Object value) {
       ImmutableMap.Builder<String, String> b = ImmutableMap.builder();
       b.putAll(this.map);
-      b.put(property, value);
+      b.put(property, value.toString());
       return new MapConnectionFactory(b.build(), postProcessors);
     }
 

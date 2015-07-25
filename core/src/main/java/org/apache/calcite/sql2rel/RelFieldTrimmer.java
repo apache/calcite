@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
@@ -68,6 +69,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
@@ -155,6 +157,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         dispatchTrimFields(root, fieldsUsed, extraFields);
     if (!trimResult.right.isIdentity()) {
       throw new IllegalArgumentException();
+    }
+    if (SqlToRelConverter.SQL2REL_LOGGER.isLoggable(Level.FINE)) {
+      SqlToRelConverter.SQL2REL_LOGGER.fine(
+          RelOptUtil.dumpPlan("Plan after trimming unused fields",
+              trimResult.left, false, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
     return trimResult.left;
   }
@@ -434,8 +441,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    relBuilder.push(newInput);
-    relBuilder.filter(newConditionExpr);
+    // Use copy rather than relBuilder so that correlating variables get set.
+    relBuilder.push(
+        filter.copy(filter.getTraitSet(), newInput, newConditionExpr));
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter

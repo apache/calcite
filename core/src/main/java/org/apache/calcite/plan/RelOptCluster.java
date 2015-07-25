@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.MetadataFactoryImpl;
@@ -143,8 +144,8 @@ public class RelOptCluster {
    * Constructs a new id for a correlating variable. It is unique within the
    * whole query.
    */
-  public int createCorrel() {
-    return nextCorrel.getAndIncrement();
+  public CorrelationId createCorrel() {
+    return new CorrelationId(nextCorrel.getAndIncrement());
   }
 
   /** Returns the default trait set for this cluster. */

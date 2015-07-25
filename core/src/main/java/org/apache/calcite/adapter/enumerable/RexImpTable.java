@@ -359,10 +359,8 @@ public class RexImpTable {
       public T get() {
         try {
           return constructor.newInstance();
-        } catch (InstantiationException e) {
-          throw new IllegalStateException(
-              "Unable to instantiate aggregate implementor " + constructor, e);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (InstantiationException | IllegalAccessException
+            | InvocationTargetException e) {
           throw new IllegalStateException(
               "Error while creating aggregate implementor " + constructor, e);
         }
@@ -1883,11 +1881,9 @@ public class RexImpTable {
         return translator.translate(operands.get(0),
             negate ? NullAs.IS_NOT_NULL : NullAs.IS_NULL);
       } else {
-        return maybeNegate(
-            negate == seek,
-            translator.translate(
-                operands.get(0),
-                negate == seek ? NullAs.TRUE : NullAs.FALSE));
+        return maybeNegate(negate == seek,
+            translator.translate(operands.get(0),
+                seek ? NullAs.FALSE : NullAs.TRUE));
       }
     }
   }

@@ -859,6 +859,10 @@ public class RexProgram {
       return expr.accept(this);
     }
 
+    @Override public Boolean visitOver(RexOver over) {
+      return false;
+    }
+
     @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
       // Correlating variables are constant WITHIN A RESTART, so that's
       // good enough.
