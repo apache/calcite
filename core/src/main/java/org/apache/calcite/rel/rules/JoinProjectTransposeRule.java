@@ -75,20 +75,52 @@ public class JoinProjectTransposeRule extends RelOptRule {
               operand(LogicalProject.class, any())),
           "JoinProjectTransposeRule(Other-Project)");
 
+  public static final JoinProjectTransposeRule BOTH_PROJECT_INCLUDE_OUTER =
+      new JoinProjectTransposeRule(
+          operand(LogicalJoin.class,
+              operand(LogicalProject.class, any()),
+              operand(LogicalProject.class, any())),
+          "Join(IncludingOuter)ProjectTransposeRule(Project-Project)",
+          true, RelFactories.DEFAULT_PROJECT_FACTORY);
+
+  public static final JoinProjectTransposeRule LEFT_PROJECT_INCLUDE_OUTER =
+      new JoinProjectTransposeRule(
+          operand(LogicalJoin.class,
+              some(operand(LogicalProject.class, any()))),
+          "Join(IncludingOuter)ProjectTransposeRule(Project-Other)",
+          true, RelFactories.DEFAULT_PROJECT_FACTORY);
+
+  public static final JoinProjectTransposeRule RIGHT_PROJECT_INCLUDE_OUTER =
+      new JoinProjectTransposeRule(
+          operand(
+              LogicalJoin.class,
+              operand(RelNode.class, any()),
+              operand(LogicalProject.class, any())),
+          "Join(IncludingOuter)ProjectTransposeRule(Other-Project)",
+          true, RelFactories.DEFAULT_PROJECT_FACTORY);
+
+  private final boolean includeOuter;
   private final ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
   public JoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description) {
-    this(operand, description, RelFactories.DEFAULT_PROJECT_FACTORY);
+    this(operand, description, false, RelFactories.DEFAULT_PROJECT_FACTORY);
   }
 
-  public JoinProjectTransposeRule(
-      RelOptRuleOperand operand,
-      String description, ProjectFactory pFactory) {
+  @Deprecated
+  public JoinProjectTransposeRule(RelOptRuleOperand operand,
+      String description, ProjectFactory projectFactory) {
+    this(operand, description, false, projectFactory);
+  }
+
+  public JoinProjectTransposeRule(RelOptRuleOperand operand,
+      String description, boolean includeOuter,
+      ProjectFactory projectFactory) {
     super(operand, description);
-    projectFactory = pFactory;
+    this.includeOuter = includeOuter;
+    this.projectFactory = projectFactory;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -103,15 +135,18 @@ public class JoinProjectTransposeRule extends RelOptRule {
     RelNode leftJoinChild;
     RelNode rightJoinChild;
 
-    // see if at least one input's projection doesn't generate nulls
-    if (hasLeftChild(call) && !joinType.generatesNullsOnLeft()) {
+    // If 1) the rule works on outer joins, or
+    //    2) input's projection doesn't generate nulls
+    if (hasLeftChild(call)
+            && (includeOuter || !joinType.generatesNullsOnLeft())) {
       leftProj = call.rel(1);
       leftJoinChild = getProjectChild(call, leftProj, true);
     } else {
       leftProj = null;
       leftJoinChild = call.rel(1);
     }
-    if (hasRightChild(call) && !joinType.generatesNullsOnRight()) {
+    if (hasRightChild(call)
+            && (includeOuter || !joinType.generatesNullsOnRight())) {
       rightProj = getRightChild(call);
       rightJoinChild = getProjectChild(call, rightProj, false);
     } else {
@@ -235,6 +270,14 @@ public class JoinProjectTransposeRule extends RelOptRule {
     // finally, create the projection on top of the join
     RelNode newProjRel = projectFactory.createProject(newJoinRel, newProjExprs,
         joinRel.getRowType().getFieldNames());
+    // if the join was outer, we might need a cast after the
+    // projection to fix differences wrt nullability of fields
+    if (joinType != JoinRelType.INNER) {
+      RelNode newTopProjRel = RelOptUtil.createCastRel(newProjRel, joinRel.getRowType(),
+          false, projectFactory);
+      call.transformTo(newTopProjRel);
+      return;
+    }
 
     call.transformTo(newProjRel);
   }
@@ -294,7 +337,7 @@ public class JoinProjectTransposeRule extends RelOptRule {
    *                           removed)
    * @param projects           Projection expressions &amp; names to be created
    */
-  private void createProjectExprs(
+  protected void createProjectExprs(
       Project projRel,
       RelNode joinChild,
       int adjustmentAmount,

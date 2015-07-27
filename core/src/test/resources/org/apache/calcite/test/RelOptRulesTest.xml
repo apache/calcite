@@ -3255,6 +3255,37 @@ LogicalProject(NAME=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinProjectTranspose">
+        <Resource name="sql">
+            <![CDATA[select a.name
+from dept a
+left join dept b on b.deptno > 10
+right join dept c on b.deptno > 10
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1])
+  LogicalJoin(condition=[$4], joinType=[right])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[$2], NAME0=[$3], $f4=[>($2, 10)])
+      LogicalJoin(condition=[$4], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[>($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$1])
+  LogicalJoin(condition=[>($2, 10)], joinType=[right])
+    LogicalJoin(condition=[>($2, 10)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testMergeFilter">
         <Resource name="sql">
             <![CDATA[select name from (

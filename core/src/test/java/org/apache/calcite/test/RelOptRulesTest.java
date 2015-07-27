@@ -51,6 +51,7 @@ import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.JoinAddRedundantSemiJoinRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinExtractFilterRule;
+import org.apache.calcite.rel.rules.JoinProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
@@ -286,6 +287,29 @@ public class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(join)
             .addRuleInstance(filterOnJoin)
             .addGroupEnd()
+            .build();
+    checkPlanning(tester,
+        preProgram,
+        new HepPlanner(program),
+        "select a.name\n"
+            + "from dept a\n"
+            + "left join dept b on b.deptno > 10\n"
+            + "right join dept c on b.deptno > 10\n");
+  }
+
+  @Test public void testJoinProjectTranspose() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.LEFT_PROJECT_INCLUDE_OUTER)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .addRuleInstance(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+            .addRuleInstance(JoinProjectTransposeRule.LEFT_PROJECT_INCLUDE_OUTER)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
             .build();
     checkPlanning(tester,
         preProgram,
