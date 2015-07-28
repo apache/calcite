@@ -31,7 +31,6 @@ import java.util.List;
 public class SqlRankFunction extends SqlAggFunction {
   //~ Instance fields --------------------------------------------------------
 
-  private final boolean requiresOrder;
   private final RelDataType type = null;
 
   //~ Constructors -----------------------------------------------------------
@@ -39,19 +38,17 @@ public class SqlRankFunction extends SqlAggFunction {
   public SqlRankFunction(String name, boolean requiresOrder) {
     super(
         name,
+        null,
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER,
         null,
         OperandTypes.NILADIC,
-        SqlFunctionCategory.NUMERIC);
-    this.requiresOrder = requiresOrder;
+        SqlFunctionCategory.NUMERIC,
+        requiresOrder,
+        true);
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @Override public boolean requiresOrder() {
-    return requiresOrder;
-  }
 
   @Override public boolean allowsFraming() {
     return false;

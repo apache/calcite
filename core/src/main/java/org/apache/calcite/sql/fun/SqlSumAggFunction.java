@@ -46,11 +46,14 @@ public class SqlSumAggFunction extends SqlAggFunction {
   public SqlSumAggFunction(RelDataType type) {
     super(
         "SUM",
+        null,
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.NUMERIC,
-        SqlFunctionCategory.NUMERIC);
+        SqlFunctionCategory.NUMERIC,
+        false,
+        false);
     this.type = type;
   }
 

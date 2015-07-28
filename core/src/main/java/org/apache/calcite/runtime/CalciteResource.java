@@ -243,6 +243,9 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> naturalOrUsingColumnNotCompatible(String a0,
       String a1, String a2);
 
+  @BaseMessage("OVER clause is necessary for window functions")
+  ExInst<SqlValidatorException> absentOverClause();
+
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
 
