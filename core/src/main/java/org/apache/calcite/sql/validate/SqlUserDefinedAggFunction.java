@@ -49,7 +49,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker, AggregateFunction function) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        SqlFunctionCategory.USER_DEFINED_FUNCTION);
+        SqlFunctionCategory.USER_DEFINED_FUNCTION, false, false);
     this.function = function;
   }
 

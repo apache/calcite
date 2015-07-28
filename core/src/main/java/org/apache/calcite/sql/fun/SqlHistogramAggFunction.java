@@ -45,11 +45,14 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
   public SqlHistogramAggFunction(RelDataType type) {
     super(
         "$HISTOGRAM",
+        null,
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.HISTOGRAM,
         null,
         OperandTypes.NUMERIC_OR_STRING,
-        SqlFunctionCategory.NUMERIC);
+        SqlFunctionCategory.NUMERIC,
+        false,
+        false);
     this.type = type;
   }
 

@@ -946,8 +946,8 @@ public class PlannerTest {
   /** User-defined aggregate function. */
   public static class MyCountAggFunction extends SqlAggFunction {
     public MyCountAggFunction() {
-      super("MY_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
-          OperandTypes.ANY, SqlFunctionCategory.NUMERIC);
+      super("MY_COUNT", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
+          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false);
     }
 
     public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {

@@ -47,13 +47,16 @@ public class SqlCountAggFunction extends SqlAggFunction {
   public SqlCountAggFunction() {
     super(
         "COUNT",
+        null,
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.BIGINT,
         null,
         SqlValidator.STRICT
             ? OperandTypes.ANY
             : OperandTypes.ONE_OR_MORE,
-        SqlFunctionCategory.NUMERIC);
+        SqlFunctionCategory.NUMERIC,
+        false,
+        false);
   }
 
   //~ Methods ----------------------------------------------------------------

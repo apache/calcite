@@ -34,15 +34,14 @@ public class SqlNtileAggFunction extends SqlAggFunction {
   public SqlNtileAggFunction() {
     super(
         "NTILE",
+        null,
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER,
         null,
         OperandTypes.POSITIVE_INTEGER_LITERAL,
-        SqlFunctionCategory.NUMERIC);
-  }
-
-  @Override public boolean requiresOrder() {
-    return true;
+        SqlFunctionCategory.NUMERIC,
+        false,
+        true);
   }
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
