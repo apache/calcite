@@ -425,7 +425,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     String planBefore = NL + RelOptUtil.toString(rel);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     converter.setTrimUnusedFields(true);
-    rel = converter.trimUnusedFields(rel);
+    rel = converter.trimUnusedFields(false, rel);
     String planAfter = NL + RelOptUtil.toString(rel);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }

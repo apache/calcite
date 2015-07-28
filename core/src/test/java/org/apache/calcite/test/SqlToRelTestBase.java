@@ -495,7 +495,7 @@ public abstract class SqlToRelTestBase {
       }
       if (enableTrim) {
         converter.setTrimUnusedFields(true);
-        rel = converter.trimUnusedFields(rel);
+        rel = converter.trimUnusedFields(false, rel);
       }
       return rel;
     }

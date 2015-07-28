@@ -65,6 +65,33 @@ public class MaterializationTest {
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
+  @Test public void testScan() {
+    CalciteAssert.that()
+        .withMaterializations(
+            "{\n"
+                + "  version: '1.0',\n"
+                + "  defaultSchema: 'SCOTT_CLONE',\n"
+                + "  schemas: [ {\n"
+                + "    name: 'SCOTT_CLONE',\n"
+                + "    type: 'custom',\n"
+                + "    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',\n"
+                + "    operand: {\n"
+                + "      jdbcDriver: '" + JdbcTest.SCOTT.driver + "',\n"
+                + "      jdbcUser: '" + JdbcTest.SCOTT.username + "',\n"
+                + "      jdbcPassword: '" + JdbcTest.SCOTT.password + "',\n"
+                + "      jdbcUrl: '" + JdbcTest.SCOTT.url + "',\n"
+                + "      jdbcSchema: 'SCOTT'\n"
+                + "   } } ]\n"
+                + "}",
+            "m0",
+            "select empno, deptno from emp order by deptno")
+        .query(
+            "select empno, deptno from emp")
+        .enableMaterializations(true)
+        .explainContains("EnumerableTableScan(table=[[SCOTT_CLONE, m0]])")
+        .sameResultWithMaterializationsDisabled();
+  }
+
   @Test public void testFilter() {
     CalciteAssert.that()
         .withMaterializations(

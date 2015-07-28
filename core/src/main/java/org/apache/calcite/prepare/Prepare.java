@@ -80,6 +80,7 @@ public abstract class Prepare {
   protected CalciteTimingTracer timingTracer;
   protected List<List<String>> fieldOrigins;
   protected final List<RelCollation> collations = new ArrayList<>();
+  protected boolean ordered;
   protected RelDataType parameterRowType;
 
   // temporary. for testing.
@@ -230,6 +231,10 @@ public abstract class Prepare {
       timingTracer.traceTime("end sql2rel");
     }
 
+    // A query can have 0 collations and still be ordered (if it is ordered
+    // on a non-projected expression). But otherwise,
+    // ordered == !collations.isEmpty().
+    ordered = !SqlToRelConverter.isUnordered(sqlQuery);
     assert collations.isEmpty();
     if (rootRel instanceof Sort) {
       collations.add(((Sort) rootRel).getCollation());
@@ -353,7 +358,7 @@ public abstract class Prepare {
         getSqlToRelConverter(
             getSqlValidator(), catalogReader);
     converter.setTrimUnusedFields(shouldTrim(rootRel));
-    return converter.trimUnusedFields(rootRel);
+    return converter.trimUnusedFields(ordered, rootRel);
   }
 
   private boolean shouldTrim(RelNode rootRel) {

@@ -23,9 +23,11 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -487,14 +489,23 @@ public class SqlToRelConverter {
    * <p>Currently this functionality is disabled in farrago/luciddb; the
    * default implementation of this method does nothing.
    *
+   * @param ordered Whether the relational expression must produce results in
+   * a particular order (typically because it has an ORDER BY at top level)
    * @param rootRel Relational expression that is at the root of the tree
    * @return Trimmed relational expression
    */
-  public RelNode trimUnusedFields(RelNode rootRel) {
+  public RelNode trimUnusedFields(boolean ordered, RelNode rootRel) {
     // Trim fields that are not used by their consumer.
     if (isTrimUnusedFields()) {
       final RelFieldTrimmer trimmer = newFieldTrimmer();
+      final List<RelCollation> collations =
+          rootRel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
       rootRel = trimmer.trim(rootRel);
+      if (!ordered && collations != null) {
+        final RelTraitSet traitSet = rootRel.getTraitSet()
+            .replace(RelCollationTraitDef.INSTANCE, collations);
+        rootRel = rootRel.copy(traitSet, rootRel.getInputs());
+      }
       boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
       if (dumpPlan) {
         SQL2REL_LOGGER.fine(
@@ -540,6 +551,10 @@ public class SqlToRelConverter {
     if (top && isStream(query)) {
       result = new LogicalDelta(cluster, result.getTraitSet(), result);
     }
+    if (isUnordered(query)) {
+      result = result.copy(result.getTraitSet().replace(RelCollations.EMPTY),
+          result.getInputs());
+    }
     checkConvertedType(query, result);
 
     boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
@@ -558,6 +573,11 @@ public class SqlToRelConverter {
   private static boolean isStream(SqlNode query) {
     return query instanceof SqlSelect
         && ((SqlSelect) query).isKeywordPresent(SqlSelectKeyword.STREAM);
+  }
+
+  public static boolean isUnordered(SqlNode query) {
+    return query instanceof SqlSelect
+        && ((SqlSelect) query).getOrderList() == null;
   }
 
   protected boolean checkConvertedRowType(

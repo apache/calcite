@@ -199,7 +199,7 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
-  private static final ConnectionSpec SCOTT =
+  public static final ConnectionSpec SCOTT =
       Util.first(CalciteAssert.DB.scott,
           CalciteAssert.DatabaseInstance.HSQLDB.scott);
 
