@@ -33,6 +33,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -107,7 +108,8 @@ public class Frameworks {
           public R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
               SchemaPlus rootSchema, CalciteServerStatement statement) {
             final CalciteSchema schema =
-                CalciteSchema.from(config.getDefaultSchema());
+                CalciteSchema.from(
+                    Util.first(config.getDefaultSchema(), rootSchema));
             return action.apply(cluster, relOptSchema, schema.root().plus());
           }
         });
