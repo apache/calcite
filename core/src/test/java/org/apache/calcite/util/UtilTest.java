@@ -72,6 +72,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -1282,8 +1283,32 @@ public class UtilTest {
         isA((Class) ImmutableList.class));
 
     // list with no nulls uses ImmutableList
-    assertThat(ImmutableNullableList.copyOf(Arrays.asList("a", "b", "c")),
+    final List<String> abcList = Arrays.asList("a", "b", "c");
+    assertThat(ImmutableNullableList.copyOf(abcList),
         isA((Class) ImmutableList.class));
+
+    // list with no nulls uses ImmutableList
+    final Iterable<String> abc =
+        new Iterable<String>() {
+          public Iterator<String> iterator() {
+            return abcList.iterator();
+          }
+        };
+    assertThat(ImmutableNullableList.copyOf(abc),
+        isA((Class) ImmutableList.class));
+    assertThat(ImmutableNullableList.copyOf(abc), equalTo(abcList));
+
+    // list with no nulls uses ImmutableList
+    final List<String> ab0cList = Arrays.asList("a", "b", null, "c");
+    final Iterable<String> ab0c =
+        new Iterable<String>() {
+          public Iterator<String> iterator() {
+            return ab0cList.iterator();
+          }
+        };
+    assertThat(ImmutableNullableList.copyOf(ab0c),
+        not(isA((Class) ImmutableList.class)));
+    assertThat(ImmutableNullableList.copyOf(ab0c), equalTo(ab0cList));
   }
 
   /** Test for {@link org.apache.calcite.util.UnmodifiableArrayList}. */

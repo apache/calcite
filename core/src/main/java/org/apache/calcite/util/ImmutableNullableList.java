@@ -22,6 +22,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -66,6 +67,33 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
         //noinspection unchecked
         return new ImmutableNullableList<E>((E[]) objects);
       }
+    }
+    return ImmutableList.copyOf(elements);
+  }
+
+  /**
+   * Returns an immutable list containing the given elements, in order.
+   *
+   * <p>Behavior as
+   * {@link com.google.common.collect.ImmutableList#copyOf(Iterable)}
+   * except that this list allows nulls.
+   */
+  public static <E> List<E> copyOf(Iterable<? extends E> elements) {
+    if (elements instanceof ImmutableNullableList
+        || elements instanceof ImmutableList
+        || elements == SINGLETON_NULL) {
+      //noinspection unchecked
+      return (List<E>) elements;
+    }
+    if (elements instanceof Collection) {
+      //noinspection unchecked
+      return copyOf((Collection) elements);
+    }
+    // If there are no nulls, ImmutableList is better.
+    final List<E> list = new ArrayList<>();
+    Iterables.addAll(list, elements);
+    if (list.contains(null)) {
+      return ImmutableNullableList.copyOf(list);
     }
     return ImmutableList.copyOf(elements);
   }
