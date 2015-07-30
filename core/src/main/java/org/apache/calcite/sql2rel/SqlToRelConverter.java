@@ -188,6 +188,10 @@ public class SqlToRelConverter {
 
   private static final BigDecimal TWO = BigDecimal.valueOf(2L);
 
+  /** Size of the smallest IN list that will be converted to a semijoin to a
+   * static table. */
+  public static final int IN_SUBQUERY_THRESHOLD = 20;
+
   //~ Instance fields --------------------------------------------------------
 
   protected final SqlValidator validator;
@@ -1021,9 +1025,12 @@ public class SqlToRelConverter {
       final boolean outerJoin = bb.subqueryNeedsOuterJoin
           || isNotIn
           || subQuery.logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
+      final RelDataType targetRowType =
+          SqlTypeUtil.promoteToRowType(typeFactory,
+              validator.getValidatedNodeType(leftKeyNode), null);
       converted =
           convertExists(query, RelOptUtil.SubqueryType.IN, subQuery.logic,
-              outerJoin);
+              outerJoin, targetRowType);
       if (converted.right) {
         // Generate
         //    emp CROSS JOIN (SELECT COUNT(*) AS c,
@@ -1072,7 +1079,7 @@ public class SqlToRelConverter {
       call = (SqlBasicCall) subQuery.node;
       query = call.getOperands()[0];
       converted = convertExists(query, RelOptUtil.SubqueryType.EXISTS,
-          subQuery.logic, true);
+          subQuery.logic, true, null);
       assert !converted.right;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.left, true)) {
         return;
@@ -1086,7 +1093,7 @@ public class SqlToRelConverter {
       call = (SqlBasicCall) subQuery.node;
       query = call.getOperands()[0];
       converted = convertExists(query, RelOptUtil.SubqueryType.SCALAR,
-          subQuery.logic, true);
+          subQuery.logic, true, null);
       assert !converted.right;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.left, false)) {
         return;
@@ -1101,7 +1108,7 @@ public class SqlToRelConverter {
       // select * from unnest(select multiset[deptno] from emps);
       //
       converted = convertExists(subQuery.node, RelOptUtil.SubqueryType.SCALAR,
-          subQuery.logic, true);
+          subQuery.logic, true, null);
       assert !converted.right;
       subQuery.expr = bb.register(converted.left, JoinRelType.LEFT);
       return;
@@ -1377,10 +1384,10 @@ public class SqlToRelConverter {
    * predicate. A threshold of 0 forces usage of an inline table in all cases; a
    * threshold of Integer.MAX_VALUE forces usage of OR in all cases
    *
-   * @return threshold, default 20
+   * @return threshold, default {@link #IN_SUBQUERY_THRESHOLD}
    */
   protected int getInSubqueryThreshold() {
-    return 20;
+    return IN_SUBQUERY_THRESHOLD;
   }
 
   /**
@@ -1404,13 +1411,14 @@ public class SqlToRelConverter {
       SqlNode seek,
       RelOptUtil.SubqueryType subqueryType,
       RelOptUtil.Logic logic,
-      boolean needsOuterJoin) {
+      boolean needsOuterJoin,
+      RelDataType targetDataType) {
     final SqlValidatorScope seekScope =
         (seek instanceof SqlSelect)
             ? validator.getSelectScope((SqlSelect) seek)
             : null;
     final Blackboard seekBb = createBlackboard(seekScope, null);
-    RelNode seekRel = convertQueryOrInList(seekBb, seek);
+    RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
     return RelOptUtil.createExistsPlan(seekRel, subqueryType, logic,
         needsOuterJoin);
@@ -1418,7 +1426,8 @@ public class SqlToRelConverter {
 
   private RelNode convertQueryOrInList(
       Blackboard bb,
-      SqlNode seek) {
+      SqlNode seek,
+      RelDataType targetRowType) {
     // NOTE: Once we start accepting single-row queries as row constructors,
     // there will be an ambiguity here for a case like X IN ((SELECT Y FROM
     // Z)).  The SQL standard resolves the ambiguity by saying that a lone
@@ -1431,7 +1440,7 @@ public class SqlToRelConverter {
           seek,
           ((SqlNodeList) seek).getList(),
           false,
-          null);
+          targetRowType);
     } else {
       return convertQueryRecursive(seek, false, null);
     }
@@ -3296,7 +3305,7 @@ public class SqlToRelConverter {
         validator.setValidatedNodeType(
             list,
             multisetType.getComponentType());
-        input = convertQueryOrInList(usedBb, list);
+        input = convertQueryOrInList(usedBb, list, null);
       } else {
         input = convertQuery(call.operand(0), false, true);
       }

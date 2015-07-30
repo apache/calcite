@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -213,7 +214,7 @@ public class CsvTest {
     return new Function1<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          final List<String> lines = new ArrayList<String>();
+          final List<String> lines = new ArrayList<>();
           CsvTest.collect(lines, resultSet);
           Assert.assertEquals(Arrays.asList(expected), lines);
         } catch (SQLException e) {
@@ -317,13 +318,37 @@ public class CsvTest {
         expect("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-824">[CALCITE-824]
+   * Type inference when converting IN clause to semijoin</a>. */
+  @Test public void testInToSemiJoinWithCast() throws SQLException {
+    // Note that the IN list needs at least 20 values to trigger the rewrite
+    // to a semijoin. Try it both ways.
+    final String sql = "SELECT e.name\n"
+        + "FROM emps AS e\n"
+        + "WHERE cast(e.empno as bigint) in ";
+    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD - 5),
+        "smart", expect("NAME=Alice"));
+    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD),
+        "smart", expect("NAME=Alice"));
+    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD + 1000),
+        "smart", expect("NAME=Alice"));
+  }
+
+  private String range(int first, int count) {
+    final StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < count; i++) {
+      sb.append(i == 0 ? "(" : ", ").append(first + i);
+    }
+    return sb.append(')').toString();
+  }
+
   @Test public void testDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
-    Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-
-    try {
+    try (Connection connection
+        = DriverManager.getConnection("jdbc:calcite:", info)) {
       ResultSet res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINEDAT");
       res.next();
@@ -360,8 +385,6 @@ public class CsvTest {
       Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
           resultSet.getTimestamp(3));
 
-    } finally {
-      connection.close();
     }
   }
 }
