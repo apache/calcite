@@ -741,6 +741,12 @@ public class RelBuilder {
     if (ProjectRemoveRule.isIdentity(exprList, peek().getRowType())) {
       return this;
     }
+    final RelDataType inputRowType = peek().getRowType();
+    if (RexUtil.isIdentity(exprList, inputRowType)
+        && names.equals(inputRowType.getFieldNames())) {
+      // Do not create an identity project if it does not rename any fields
+      return this;
+    }
     final RelNode project =
         projectFactory.createProject(build(), ImmutableList.copyOf(exprList),
             names);

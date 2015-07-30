@@ -85,13 +85,14 @@ public class ProjectRemoveRule extends RelOptRule {
   }
 
   public static boolean isTrivial(Project project) {
-    return isIdentity(project.getProjects(), project.getInput().getRowType());
+    return RexUtil.isIdentity(project.getProjects(),
+        project.getInput().getRowType());
   }
 
+  @Deprecated // to be removed before 1.5
   public static boolean isIdentity(List<? extends RexNode> exps,
       RelDataType childRowType) {
-    return childRowType.getFieldCount() == exps.size()
-        && RexUtil.containIdentity(exps, childRowType, false);
+    return RexUtil.isIdentity(exps, childRowType);
   }
 }
 

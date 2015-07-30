@@ -693,6 +693,13 @@ public class RexUtil {
     return true;
   }
 
+  /** Returns whether a list of expressions projects the incoming fields. */
+  public static boolean isIdentity(List<? extends RexNode> exps,
+      RelDataType inputRowType) {
+    return inputRowType.getFieldCount() == exps.size()
+        && containIdentity(exps, inputRowType, false);
+  }
+
   /**
    * Converts a collection of expressions into an AND.
    * If there are zero expressions, returns TRUE.

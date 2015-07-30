@@ -42,7 +42,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.MultiJoin;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -2706,7 +2705,7 @@ public abstract class RelOptUtil {
             : SqlValidatorUtil.uniquify(fieldNames,
                 SqlValidatorUtil.F_SUGGESTER);
     if (optimize
-        && ProjectRemoveRule.isIdentity(exprs, child.getRowType())) {
+        && RexUtil.isIdentity(exprs, child.getRowType())) {
       if (child instanceof Project && fieldNames != null) {
         final RelDataType rowType =
             RexUtil.createStructType(
@@ -2982,6 +2981,11 @@ public abstract class RelOptUtil {
     final int leftCount = originalJoin.getLeft().getRowType().getFieldCount();
     final int rightCount = originalJoin.getRight().getRowType().getFieldCount();
 
+    // You cannot push a 'get' because field names might change.
+    //
+    // Pushing sub-queries is OK in principle (if they don't reference both
+    // sides of the join via correlating variables) but we'd rather not do it
+    // yet.
     if (!containsGet(joinCond)) {
       joinCond = pushDownEqualJoinConditions(
           joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);

@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Permutation;
 
 import java.util.List;
@@ -98,7 +99,7 @@ public class ProjectMergeRule extends RelOptRule {
     // If we're not in force mode and the two projects reference identical
     // inputs, then return and let ProjectRemoveRule replace the projects.
     if (!force) {
-      if (ProjectRemoveRule.isIdentity(topProject.getProjects(),
+      if (RexUtil.isIdentity(topProject.getProjects(),
           topProject.getInput().getRowType())) {
         return;
       }
@@ -107,7 +108,7 @@ public class ProjectMergeRule extends RelOptRule {
     final List<RexNode> newProjects =
         RelOptUtil.pushPastProject(topProject.getProjects(), bottomProject);
     final RelNode input = bottomProject.getInput();
-    if (ProjectRemoveRule.isIdentity(newProjects, input.getRowType())) {
+    if (RexUtil.isIdentity(newProjects, input.getRowType())) {
       if (force
           || input.getRowType().getFieldNames()
               .equals(topProject.getRowType().getFieldNames())) {

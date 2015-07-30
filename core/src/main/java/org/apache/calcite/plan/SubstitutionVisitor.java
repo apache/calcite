@@ -37,7 +37,6 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -2144,7 +2143,7 @@ public class SubstitutionVisitor {
     public static boolean isTrivial(MutableProject project) {
       MutableRel child = project.getInput();
       final RelDataType childRowType = child.getRowType();
-      return ProjectRemoveRule.isIdentity(project.getProjects(), childRowType);
+      return RexUtil.isIdentity(project.getProjects(), childRowType);
     }
 
     /** Equivalent to
