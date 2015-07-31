@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-source 'https://rubygems.org'
-gem 'github-pages'
-gem 'rouge'
-gem 'jekyll-oembed', :require => 'jekyll_oembed'
-# End Gemfile
+require "rubygems"
+require "bundler/setup"
+Bundler.require(:default)
+
+# End bundler.rb
