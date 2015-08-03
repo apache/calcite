@@ -48,6 +48,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -116,11 +117,13 @@ public final class LogicalWindow extends Window {
     // Build a list of groups, partitions, and aggregate functions. Each
     // aggregate function will add its arguments as outputs of the input
     // program.
+    final Map<RexOver, RexOver> origToNewOver = new IdentityHashMap<>();
     for (RexNode agg : program.getExprList()) {
       if (agg instanceof RexOver) {
-        RexOver over = (RexOver) agg;
-        over = (RexOver) over.accept(replaceConstants);
-        addWindows(windowMap, over, inputFieldCount);
+        final RexOver origOver = (RexOver) agg;
+        final RexOver newOver = (RexOver) origOver.accept(replaceConstants);
+        origToNewOver.put(origOver, newOver);
+        addWindows(windowMap, newOver, inputFieldCount);
       }
     }
 
@@ -199,7 +202,7 @@ public final class LogicalWindow extends Window {
           public RexNode visitOver(RexOver over) {
             // Look up the aggCall which this expr was translated to.
             final Window.RexWinAggCall aggCall =
-                aggMap.get(over);
+                aggMap.get(origToNewOver.get(over));
             assert aggCall != null;
             assert RelOptUtil.eq(
                 "over",
@@ -238,18 +241,32 @@ public final class LogicalWindow extends Window {
                 localRef.getType());
           }
         };
-    // TODO: The order that the "over" calls occur in the groups and
-    // partitions may not match the order in which they occurred in the
-    // original expression. We should add a project to permute them.
 
     LogicalWindow window =
         new LogicalWindow(
             cluster, traitSet, child, constants, intermediateRowType,
             groups);
 
+    // The order that the "over" calls occur in the groups and
+    // partitions may not match the order in which they occurred in the
+    // original expression.
+    // Add a project to permute them.
+    final List<RexNode> rexNodesWindow = new ArrayList<>();
+    for (RexNode rexNode : program.getExprList()) {
+      rexNodesWindow.add(rexNode.accept(shuttle));
+    }
+    final List<RexNode> refToWindow = toInputRefs(rexNodesWindow);
+
+    final List<RexNode> projectList = new ArrayList<>();
+    for (RexLocalRef inputRef : program.getProjectList()) {
+      final int index = inputRef.getIndex();
+      final RexInputRef ref = (RexInputRef) refToWindow.get(index);
+      projectList.add(ref);
+    }
+
     return RelOptUtil.createProject(
         window,
-        toInputRefs(program.getProjectList()),
+        projectList,
         outRowType.getFieldNames());
   }
 
