@@ -35,7 +35,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -77,8 +76,6 @@ public class RelJsonReader {
   public RelNode read(String s) throws IOException {
     lastRel = null;
     final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
     Map<String, Object> o = mapper.readValue(s, TYPE_REF);
     readRels((List<Map<String, Object>>) o.get("rels"));
     System.out.println(lastRel);

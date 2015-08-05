@@ -317,8 +317,8 @@ public class MongoAdapterIT {
         .queryContains(
             mongoChecker(
                 "{\n"
-                    + "  $match: {\n"
-                    + "    state: \"OK\"\n"
+                    + "  \"$match\": {\n"
+                    + "    \"state\": \"OK\"\n"
                     + "  }\n"
                     + "}",
                 "{$project: {CITY: '$city', LONGITUDE: '$loc[0]', LATITUDE: '$loc[1]', POP: '$pop', STATE: '$state', ID: '$_id'}}"));
@@ -345,8 +345,8 @@ public class MongoAdapterIT {
             // $match must occur before $project for good performance.
             mongoChecker(
                 "{\n"
-                    + "  $match: {\n"
-                    + "    warehouse_state_province: \"CA\"\n"
+                    + "  \"$match\": {\n"
+                    + "    \"warehouse_state_province\": \"CA\"\n"
                     + "  }\n"
                     + "}",
                 "{$project: {warehouse_id: 1, warehouse_state_province: 1}}"));
@@ -371,31 +371,31 @@ public class MongoAdapterIT {
         .queryContains(
             mongoChecker(
                 "{\n"
-                    + "  $match: {\n"
-                    + "    $or: [\n"
+                    + "  \"$match\": {\n"
+                    + "    \"$or\": [\n"
                     + "      {\n"
-                    + "        store_name: \"Store 1\"\n"
+                    + "        \"store_name\": \"Store 1\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 10\"\n"
+                    + "        \"store_name\": \"Store 10\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 11\"\n"
+                    + "        \"store_name\": \"Store 11\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 15\"\n"
+                    + "        \"store_name\": \"Store 15\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 16\"\n"
+                    + "        \"store_name\": \"Store 16\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 24\"\n"
+                    + "        \"store_name\": \"Store 24\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 3\"\n"
+                    + "        \"store_name\": \"Store 3\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        store_name: \"Store 7\"\n"
+                    + "        \"store_name\": \"Store 7\"\n"
                     + "      }\n"
                     + "    ]\n"
                     + "  }\n"
@@ -541,9 +541,9 @@ public class MongoAdapterIT {
                 "{$group: {_id: '$STATE', C: {$sum: 1}}}",
                 "{$project: {STATE: '$_id', C: '$C'}}",
                 "{\n"
-                    + "  $match: {\n"
-                    + "    C: {\n"
-                    + "      $gt: 1500\n"
+                    + "  \"$match\": {\n"
+                    + "    \"C\": {\n"
+                    + "      \"$gt\": 1500\n"
                     + "    }\n"
                     + "  }\n"
                     + "}",
@@ -624,13 +624,13 @@ public class MongoAdapterIT {
         .queryContains(
             mongoChecker(
                 "{\n"
-                    + "  $match: {\n"
-                    + "    $or: [\n"
+                    + "  \"$match\": {\n"
+                    + "    \"$or\": [\n"
                     + "      {\n"
-                    + "        state: \"CA\"\n"
+                    + "        \"state\": \"CA\"\n"
                     + "      },\n"
                     + "      {\n"
-                    + "        state: \"TX\"\n"
+                    + "        \"state\": \"TX\"\n"
                     + "      }\n"
                     + "    ]\n"
                     + "  }\n"
