@@ -113,7 +113,7 @@ public class JsonBuilder {
         buf.append(",");
         newline(buf, indent + 1);
       }
-      buf.append(entry.getKey());
+      append(buf, 0, entry.getKey());
       buf.append(": ");
       append(buf, indent + 1, entry.getValue());
     }

@@ -1011,17 +1011,17 @@ public class UtilTest {
     map.put("nullValue", null);
     assertEquals(
         "{\n"
-            + "  foo: 1,\n"
-            + "  baz: true,\n"
-            + "  bar: \"can't\",\n"
-            + "  list: [\n"
+            + "  \"foo\": 1,\n"
+            + "  \"baz\": true,\n"
+            + "  \"bar\": \"can't\",\n"
+            + "  \"list\": [\n"
             + "    2,\n"
             + "    3,\n"
             + "    [],\n"
             + "    {},\n"
             + "    null\n"
             + "  ],\n"
-            + "  nullValue: null\n"
+            + "  \"nullValue\": null\n"
             + "}",
         builder.toJsonString(map));
   }
