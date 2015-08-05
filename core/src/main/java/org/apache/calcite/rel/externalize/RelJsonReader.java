@@ -78,7 +78,6 @@ public class RelJsonReader {
     final ObjectMapper mapper = new ObjectMapper();
     Map<String, Object> o = mapper.readValue(s, TYPE_REF);
     readRels((List<Map<String, Object>>) o.get("rels"));
-    System.out.println(lastRel);
     return lastRel;
   }
 
