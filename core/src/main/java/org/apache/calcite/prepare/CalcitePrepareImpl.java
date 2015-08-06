@@ -560,7 +560,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (plannerFactories.isEmpty()) {
       throw new AssertionError("no planner factories");
     }
-    RuntimeException exception = null;
+    RuntimeException exception = Util.FoundOne.NULL;
     for (Function1<Context, RelOptPlanner> plannerFactory : plannerFactories) {
       final RelOptPlanner planner = plannerFactory.apply(context);
       if (planner == null) {
@@ -573,11 +573,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         exception = e;
       }
     }
-    if (exception == null) {
-      throw new RuntimeException();
-    } else {
-      throw exception;
-    }
+    throw exception;
   }
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
@@ -1254,7 +1250,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       if (i >= 0) {
         return values.get(i);
       }
-      throw new RuntimeException("unknown parameter " + param);
+      throw ion = nullException("unknown parameter " + param);
     }
   }
 }
