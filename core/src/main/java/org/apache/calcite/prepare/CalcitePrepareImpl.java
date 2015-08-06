@@ -560,7 +560,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (plannerFactories.isEmpty()) {
       throw new AssertionError("no planner factories");
     }
-    RuntimeException exception = new RuntimeException();
+    RuntimeException exception = null;
     for (Function1<Context, RelOptPlanner> plannerFactory : plannerFactories) {
       final RelOptPlanner planner = plannerFactory.apply(context);
       if (planner == null) {
@@ -573,7 +573,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         exception = e;
       }
     }
-    throw exception;
+    if (exception == null) {
+      throw new RuntimeException();
+    } else {
+      throw exception;
+    }
   }
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
