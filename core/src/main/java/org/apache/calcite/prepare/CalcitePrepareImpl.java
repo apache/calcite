@@ -1250,7 +1250,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       if (i >= 0) {
         return values.get(i);
       }
-      throw ion = nullException("unknown parameter " + param);
+      throw new RuntimeException("unknown parameter " + param);
     }
   }
 }
