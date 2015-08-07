@@ -30,6 +30,7 @@ import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -260,19 +261,18 @@ public interface CalcitePrepare {
    * statement directly, without an explicit prepare step. */
   class CalciteSignature<T> extends Meta.Signature {
     @JsonIgnore public final RelDataType rowType;
+    @JsonIgnore private final List<RelCollation> collationList;
     private final long maxRowCount;
     private final Bindable<T> bindable;
 
-    public CalciteSignature(String sql,
-        List<AvaticaParameter> parameterList,
-        Map<String, Object> internalParameters,
-        RelDataType rowType,
-        List<ColumnMetaData> columns,
-        Meta.CursorFactory cursorFactory,
-        long maxRowCount,
+    public CalciteSignature(String sql, List<AvaticaParameter> parameterList,
+        Map<String, Object> internalParameters, RelDataType rowType,
+        List<ColumnMetaData> columns, Meta.CursorFactory cursorFactory,
+        List<RelCollation> collationList, long maxRowCount,
         Bindable<T> bindable) {
       super(columns, sql, parameterList, internalParameters, cursorFactory);
       this.rowType = rowType;
+      this.collationList = collationList;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;
     }
@@ -285,6 +285,10 @@ public interface CalcitePrepare {
         enumerable = EnumerableDefaults.take(enumerable, maxRowCount);
       }
       return enumerable;
+    }
+
+    public List<RelCollation> getCollationList() {
+      return collationList;
     }
   }
 }

@@ -23,6 +23,8 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Schema;
@@ -34,6 +36,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
@@ -63,7 +66,7 @@ public class CloneSchema extends AbstractSchema {
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    final Map<String, Table> map = new LinkedHashMap<String, Table>();
+    final Map<String, Table> map = new LinkedHashMap<>();
     for (String name : sourceSchema.getTableNames()) {
       final Table table = sourceSchema.getTable(name);
       if (table instanceof QueryableTable) {
@@ -81,14 +84,22 @@ public class CloneSchema extends AbstractSchema {
         sourceTable.asQueryable(queryProvider, sourceSchema, name);
     final JavaTypeFactory typeFactory =
         ((CalciteConnection) queryProvider).getTypeFactory();
-    return createCloneTable(typeFactory, Schemas.proto(sourceTable), null,
-        queryable);
+    return createCloneTable(typeFactory, Schemas.proto(sourceTable),
+        ImmutableList.<RelCollation>of(), null, queryable);
   }
 
+  @Deprecated // to be removed before 2.0
   public static <T> Table createCloneTable(final JavaTypeFactory typeFactory,
       final RelProtoDataType protoRowType,
       final List<ColumnMetaData.Rep> repList,
       final Enumerable<T> source) {
+    return createCloneTable(typeFactory, protoRowType,
+        ImmutableList.<RelCollation>of(), repList, source);
+  }
+
+  public static <T> Table createCloneTable(final JavaTypeFactory typeFactory,
+      final RelProtoDataType protoRowType, final List<RelCollation> collations,
+      final List<ColumnMetaData.Rep> repList, final Enumerable<T> source) {
     final Type elementType;
     if (source instanceof QueryableTable) {
       elementType = ((QueryableTable) source).getElementType();
@@ -108,10 +119,15 @@ public class CloneSchema extends AbstractSchema {
             new Supplier<ArrayTable.Content>() {
               public ArrayTable.Content get() {
                 final ColumnLoader loader =
-                    new ColumnLoader<T>(typeFactory, source, protoRowType,
+                    new ColumnLoader<>(typeFactory, source, protoRowType,
                         repList);
+                final List<RelCollation> collation2 =
+                    collations.isEmpty()
+                        && loader.sortField >= 0
+                        ? RelCollations.createSingleton(loader.sortField)
+                        : collations;
                 return new ArrayTable.Content(loader.representationValues,
-                    loader.size(), loader.sortField);
+                    loader.size(), collation2);
               }
             }));
   }

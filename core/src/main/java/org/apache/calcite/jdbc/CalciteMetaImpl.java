@@ -34,6 +34,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -195,7 +196,8 @@ public class CalciteMetaImpl extends MetaImpl {
       final CalcitePrepare.CalciteSignature<Object> signature =
           new CalcitePrepare.CalciteSignature<Object>("",
               ImmutableList.<AvaticaParameter>of(), internalParameters, null,
-              columns, cursorFactory, -1, null) {
+              columns, cursorFactory, ImmutableList.<RelCollation>of(), -1,
+              null) {
             @Override public Enumerable<Object> enumerable(
                 DataContext dataContext) {
               return Linq4j.asEnumerable(firstFrame.rows);

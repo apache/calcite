@@ -28,7 +28,9 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexExecutorImpl;
@@ -55,6 +57,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -76,6 +79,7 @@ public abstract class Prepare {
   protected final Convention resultConvention;
   protected CalciteTimingTracer timingTracer;
   protected List<List<String>> fieldOrigins;
+  protected final List<RelCollation> collations = new ArrayList<>();
   protected RelDataType parameterRowType;
 
   // temporary. for testing.
@@ -224,6 +228,11 @@ public abstract class Prepare {
 
     if (timingTracer != null) {
       timingTracer.traceTime("end sql2rel");
+    }
+
+    assert collations.isEmpty();
+    if (rootRel instanceof Sort) {
+      collations.add(((Sort) rootRel).getCollation());
     }
 
     final RelDataType resultType = validator.getValidatedNodeType(sqlQuery);
@@ -500,17 +509,20 @@ public abstract class Prepare {
     protected final boolean isDml;
     protected final LogicalTableModify.Operation tableModOp;
     protected final List<List<String>> fieldOrigins;
+    protected final List<RelCollation> collations;
 
     public PreparedResultImpl(
         RelDataType rowType,
         RelDataType parameterRowType,
         List<List<String>> fieldOrigins,
+        List<RelCollation> collations,
         RelNode rootRel,
         LogicalTableModify.Operation tableModOp,
         boolean isDml) {
       this.rowType = Preconditions.checkNotNull(rowType);
       this.parameterRowType = Preconditions.checkNotNull(parameterRowType);
       this.fieldOrigins = Preconditions.checkNotNull(fieldOrigins);
+      this.collations = ImmutableList.copyOf(collations);
       this.rootRel = Preconditions.checkNotNull(rootRel);
       this.tableModOp = tableModOp;
       this.isDml = isDml;

@@ -27,7 +27,6 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -80,14 +79,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         keys.add(ImmutableBitSet.of(ord.i));
       }
     }
-    final List<RelCollation> collations;
-    if (content.sortField >= 0) {
-      collations = ImmutableList.of(
-          RelCollations.of(new RelFieldCollation(content.sortField)));
-    } else {
-      collations = ImmutableList.of();
-    }
-    return Statistics.of(content.size, keys, collations);
+    return Statistics.of(content.size, keys, content.collations);
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
@@ -109,6 +101,11 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         return content.enumerator();
       }
     };
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> Pair<Object, T> toPair(Object dataSet) {
+    return (Pair<Object, T>) dataSet;
   }
 
   /** How a column's values are represented. */
@@ -450,16 +447,14 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
 
     public Object permute(Object dataSet, int[] sources) {
-      final Pair<Object, Comparable[]> pair =
-          (Pair<Object, Comparable[]>) dataSet;
+      final Pair<Object, Comparable[]> pair = toPair(dataSet);
       Object codes = pair.left;
       Comparable[] codeValues = pair.right;
       return Pair.of(representation.permute(codes, sources), codeValues);
     }
 
     public Object getObject(Object dataSet, int ordinal) {
-      final Pair<Object, Comparable[]> pair =
-          (Pair<Object, Comparable[]>) dataSet;
+      final Pair<Object, Comparable[]> pair = toPair(dataSet);
       int code = representation.getInt(pair.left, ordinal);
       return pair.right[code];
     }
@@ -469,8 +464,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
 
     public int size(Object dataSet) {
-      final Pair<Object, Comparable[]> pair =
-          (Pair<Object, Comparable[]>) dataSet;
+      final Pair<Object, Comparable[]> pair = toPair(dataSet);
       return representation.size(pair.left);
     }
 
@@ -581,22 +575,22 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
 
     public Object getObject(Object dataSet, int ordinal) {
-      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      Pair<Object, Integer> pair = toPair(dataSet);
       return pair.left;
     }
 
     public int getInt(Object dataSet, int ordinal) {
-      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      Pair<Object, Integer> pair = toPair(dataSet);
       return ((Number) pair.left).intValue();
     }
 
     public int size(Object dataSet) {
-      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      Pair<Object, Integer> pair = toPair(dataSet);
       return pair.right;
     }
 
     public String toString(Object dataSet) {
-      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      Pair<Object, Integer> pair = toPair(dataSet);
       return Collections.nCopies(pair.right, pair.left).toString();
     }
   }
@@ -808,12 +802,21 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   public static class Content {
     private final List<Column> columns;
     private final int size;
-    private final int sortField;
+    private final ImmutableList<RelCollation> collations;
 
-    public Content(List<? extends Column> columns, int size, int sortField) {
+    public Content(List<? extends Column> columns, int size,
+        Iterable<? extends RelCollation> collations) {
       this.columns = ImmutableList.copyOf(columns);
       this.size = size;
-      this.sortField = sortField;
+      this.collations = ImmutableList.copyOf(collations);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public Content(List<? extends Column> columns, int size, int sortField) {
+      this(columns, size,
+          sortField >= 0
+              ? RelCollations.createSingleton(sortField)
+              : ImmutableList.<RelCollation>of());
     }
 
     @SuppressWarnings("unchecked")

@@ -369,6 +369,7 @@ public class MaterializationService {
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
       return CloneSchema.createCloneTable(connection.getTypeFactory(),
           RelDataTypeImpl.proto(calciteSignature.rowType),
+          calciteSignature.getCollationList(),
           Lists.transform(calciteSignature.columns,
               new Function<ColumnMetaData, ColumnMetaData.Rep>() {
                 public ColumnMetaData.Rep apply(ColumnMetaData column) {
