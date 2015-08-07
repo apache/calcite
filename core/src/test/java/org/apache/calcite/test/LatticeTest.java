@@ -436,7 +436,7 @@ public class LatticeTest {
                 + "GROUP BY \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\"")
         .explainContains(
             "JdbcToEnumerableConverter\n"
-                + "  JdbcAggregate(group=[{7, 16, 25, 27, 31, 37}], m0=[COUNT()], m1=[$SUM0($5)], m2=[$SUM0($7)])\n"
+                + "  JdbcAggregate(group=[{7, 16, 25, 27, 31, 37}], m0=[COUNT()], m1=[SUM($5)], m2=[SUM($7)])\n"
                 + "    JdbcJoin(condition=[=($8, $33)], joinType=[inner])\n"
                 + "      JdbcJoin(condition=[=($1, $23)], joinType=[inner])\n"
                 + "        JdbcJoin(condition=[=($0, $9)], joinType=[inner])\n"
