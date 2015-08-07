@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Supplier;
@@ -95,9 +96,14 @@ public final class LogicalProject extends Project {
   public static LogicalProject create(final RelNode input,
       final List<? extends RexNode> projects, List<String> fieldNames) {
     final RelOptCluster cluster = input.getCluster();
+    final List<String> fieldNames2 =
+        fieldNames == null
+            ? null
+            : SqlValidatorUtil.uniquify(fieldNames,
+                SqlValidatorUtil.F_SUGGESTER);
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
-            fieldNames);
+            fieldNames2);
     return create(input, projects, rowType);
   }
 

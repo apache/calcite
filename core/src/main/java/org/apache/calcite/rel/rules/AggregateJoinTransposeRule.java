@@ -63,27 +63,51 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       new AggregateJoinTransposeRule(LogicalAggregate.class,
           RelFactories.DEFAULT_AGGREGATE_FACTORY,
           LogicalJoin.class,
-          RelFactories.DEFAULT_JOIN_FACTORY);
+          RelFactories.DEFAULT_JOIN_FACTORY,
+          RelFactories.DEFAULT_PROJECT_FACTORY);
 
   /** Extended instance of the rule that can push down aggregate functions. */
   public static final AggregateJoinTransposeRule EXTENDED =
       new AggregateJoinTransposeRule(LogicalAggregate.class,
           RelFactories.DEFAULT_AGGREGATE_FACTORY,
           LogicalJoin.class,
-          RelFactories.DEFAULT_JOIN_FACTORY, true);
+          RelFactories.DEFAULT_JOIN_FACTORY,
+          RelFactories.DEFAULT_PROJECT_FACTORY, true);
 
   private final RelFactories.AggregateFactory aggregateFactory;
 
   private final RelFactories.JoinFactory joinFactory;
 
+  private final RelFactories.ProjectFactory projectFactory;
+
   private final boolean allowFunctions;
+
+  @Deprecated
+  public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
+      RelFactories.AggregateFactory aggregateFactory,
+      Class<? extends Join> joinClass,
+      RelFactories.JoinFactory joinFactory) {
+    this(aggregateClass, aggregateFactory, joinClass, joinFactory,
+            RelFactories.DEFAULT_PROJECT_FACTORY, false);
+  }
+
+  @Deprecated
+  public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
+      RelFactories.AggregateFactory aggregateFactory,
+      Class<? extends Join> joinClass,
+      RelFactories.JoinFactory joinFactory,
+      boolean allowFunctions) {
+    this(aggregateClass, aggregateFactory, joinClass, joinFactory,
+            RelFactories.DEFAULT_PROJECT_FACTORY, allowFunctions);
+  }
 
   /** Creates an AggregateJoinTransposeRule. */
   public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
       RelFactories.AggregateFactory aggregateFactory,
       Class<? extends Join> joinClass,
-      RelFactories.JoinFactory joinFactory) {
-    this(aggregateClass, aggregateFactory, joinClass, joinFactory, false);
+      RelFactories.JoinFactory joinFactory,
+      RelFactories.ProjectFactory projectFactory) {
+    this(aggregateClass, aggregateFactory, joinClass, joinFactory, projectFactory, false);
   }
 
   /** Creates an AggregateJoinTransposeRule that may push down functions. */
@@ -91,12 +115,14 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       RelFactories.AggregateFactory aggregateFactory,
       Class<? extends Join> joinClass,
       RelFactories.JoinFactory joinFactory,
+      RelFactories.ProjectFactory projectFactory,
       boolean allowFunctions) {
     super(
         operand(aggregateClass, null, Aggregate.IS_SIMPLE,
             operand(joinClass, any())));
     this.aggregateFactory = aggregateFactory;
     this.joinFactory = joinFactory;
+    this.projectFactory = projectFactory;
     this.allowFunctions = allowFunctions;
   }
 
@@ -279,7 +305,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     if (allColumnsInAggregate && newAggCalls.isEmpty()) {
       // no need to aggregate
     } else {
-      r = RelOptUtil.createProject(r, projects, null, true);
+      r = RelOptUtil.createProject(r, projects, null, true, projectFactory);
       if (allColumnsInAggregate) {
         // let's see if we can convert
         List<RexNode> projects2 = new ArrayList<>();
@@ -298,7 +324,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
         if (projects2.size()
             == aggregate.getGroupSet().cardinality() + newAggCalls.size()) {
           // We successfully converted agg calls into projects.
-          r = RelOptUtil.createProject(r, projects2, null, true);
+          r = RelOptUtil.createProject(r, projects2, null, true, projectFactory);
           break b;
         }
       }

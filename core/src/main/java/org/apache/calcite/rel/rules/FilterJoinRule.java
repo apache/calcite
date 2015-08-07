@@ -250,7 +250,7 @@ public abstract class FilterJoinRule extends RelOptRule {
     // Push expression in join condition into Project below Join.
     if (newJoinRel instanceof Join) {
       newJoinRel = RelOptUtil.pushDownJoinConditions(
-          (Join) newJoinRel);
+          (Join) newJoinRel, projectFactory);
     }
 
     // create a FilterRel on top of the join if needed

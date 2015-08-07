@@ -20,7 +20,6 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
@@ -29,6 +28,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -113,7 +113,7 @@ public class RelFactories {
   private static class ProjectFactoryImpl implements ProjectFactory {
     public RelNode createProject(RelNode input,
         List<? extends RexNode> childExprs, List<String> fieldNames) {
-      return RelOptUtil.createProject(input, childExprs, fieldNames);
+      return LogicalProject.create(input, childExprs, fieldNames);
     }
   }
 

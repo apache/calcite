@@ -2497,6 +2497,11 @@ public abstract class RelOptUtil {
     return createProject(child, Mappings.asList(mapping.inverse()));
   }
 
+  public static RelNode createProject(RelNode child, Mappings.TargetMapping mapping,
+          RelFactories.ProjectFactory projectFactory) {
+    return createProject(projectFactory, child, Mappings.asList(mapping.inverse()));
+  }
+
   /** Returns whether relational expression {@code target} occurs within a
    * relational expression {@code ancestor}. */
   public static boolean contains(RelNode ancestor, final RelNode target) {
@@ -2629,7 +2634,23 @@ public abstract class RelOptUtil {
       List<Pair<RexNode, String>> projectList,
       boolean optimize) {
     return createProject(child, Pair.left(projectList), Pair.right(projectList),
-        optimize);
+        optimize, RelFactories.DEFAULT_PROJECT_FACTORY);
+  }
+
+  /**
+   * Creates a relational expression which projects a list of (expression, name)
+   * pairs.
+   *
+   * @param child             input relational expression
+   * @param projectList       list of (expression, name) pairs
+   * @param optimize          Whether to optimize
+   * @param projectFactory    Factory to create project operators
+   */
+  public static RelNode createProject(
+      RelNode child, List<Pair<RexNode, String>> projectList,
+      boolean optimize, RelFactories.ProjectFactory projectFactory) {
+    return createProject(child, Pair.left(projectList), Pair.right(projectList),
+        optimize, projectFactory);
   }
 
   /**
@@ -2669,6 +2690,33 @@ public abstract class RelOptUtil {
       List<? extends RexNode> exprs,
       List<String> fieldNames,
       boolean optimize) {
+    return createProject(child, exprs, fieldNames, optimize,
+            RelFactories.DEFAULT_PROJECT_FACTORY);
+  }
+
+  /**
+   * Creates a relational expression which projects an array of expressions,
+   * and optionally optimizes.
+   *
+   * <p>The result may not be a
+   * {@link org.apache.calcite.rel.logical.LogicalProject}. If the
+   * projection is trivial, <code>child</code> is returned directly; and future
+   * versions may return other formulations of expressions, such as
+   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
+   *
+   * @param child          input relational expression
+   * @param exprs          list of expressions for the input columns
+   * @param fieldNames     aliases of the expressions, or null to generate
+   * @param optimize       Whether to return <code>child</code> unchanged if the
+   *                       projections are trivial.
+   * @param projectFactory Factory to create project operators
+   */
+  public static RelNode createProject(
+      RelNode child,
+      List<? extends RexNode> exprs,
+      List<String> fieldNames,
+      boolean optimize,
+      RelFactories.ProjectFactory projectFactory) {
     final RelOptCluster cluster = child.getCluster();
     final List<String> fieldNames2 =
         fieldNames == null
@@ -2690,7 +2738,7 @@ public abstract class RelOptUtil {
       }
       return child;
     }
-    return LogicalProject.create(child, exprs, fieldNames2);
+    return projectFactory.createProject(child, exprs, fieldNames2);
   }
 
   /**
@@ -2945,6 +2993,23 @@ public abstract class RelOptUtil {
    * @param originalJoin Join whose condition is to be pushed down
    */
   public static RelNode pushDownJoinConditions(Join originalJoin) {
+    return pushDownJoinConditions(originalJoin, RelFactories.DEFAULT_PROJECT_FACTORY);
+  }
+
+  /**
+   * Pushes down expressions in "equal" join condition.
+   *
+   * <p>For example, given
+   * "emp JOIN dept ON emp.deptno + 1 = dept.deptno", adds a project above
+   * "emp" that computes the expression
+   * "emp.deptno + 1". The resulting join condition is a simple combination
+   * of AND, equals, and input fields, plus the remaining non-equal conditions.
+   *
+   * @param originalJoin Join whose condition is to be pushed down
+   * @param projectFactory Factory to create project operator
+   */
+  public static RelNode pushDownJoinConditions(Join originalJoin,
+          RelFactories.ProjectFactory projectFactory) {
     RexNode joinCond = originalJoin.getCondition();
     final JoinRelType joinType = originalJoin.getJoinType();
     RelNode leftRel = originalJoin.getLeft();
@@ -2980,7 +3045,7 @@ public abstract class RelOptUtil {
               }
             }
           },
-          true);
+          true, projectFactory);
     }
     if (!extraRightExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
@@ -3008,7 +3073,7 @@ public abstract class RelOptUtil {
               }
             }
           },
-          true);
+          true, projectFactory);
     }
 
     RelNode join = originalJoin.copy(originalJoin.getTraitSet(),
@@ -3021,7 +3086,7 @@ public abstract class RelOptUtil {
                   + rightCount + extraRightExprs.size(),
               0, 0, leftCount,
               leftCount, leftCount + extraLeftExprs.size(), rightCount);
-      return RelOptUtil.createProject(join, mapping);
+      return RelOptUtil.createProject(join, mapping, projectFactory);
     }
     return join;
   }
