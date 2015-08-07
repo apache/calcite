@@ -1092,6 +1092,34 @@ group by m.empno;
 
 !ok
 
+# Collation of LogicalAggregate ([CALCITE-783] and [CALCITE-822])
+select  sum(x) as sum_cnt,
+  count(distinct y) as cnt_dist
+from
+  (
+  select
+    count(*)                as x,
+          t1.job      as y,
+    t1.deptno as z
+  from
+    "scott".emp t1
+  group by t1.job, t1.deptno
+  order by t1.job, t1.deptno
+) sq(x,y,z)
+group by z
+order by sum_cnt;
+
++---------+----------+
+| SUM_CNT | CNT_DIST |
++---------+----------+
+|       3 |        3 |
+|       5 |        3 |
+|       6 |        3 |
++---------+----------+
+(3 rows)
+
+!ok
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c
