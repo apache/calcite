@@ -18,7 +18,6 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Predicate1;
@@ -71,11 +70,7 @@ public class TableScanNode implements Node {
 
 
   public void run() throws InterruptedException {
-    final Enumerator<Row> enumerator = enumerable.enumerator();
-    while (enumerator.moveNext()) {
-      sink.send(enumerator.current());
-    }
-    enumerator.close();
+    sink.setSourceEnumerable(enumerable);
     sink.end();
   }
 

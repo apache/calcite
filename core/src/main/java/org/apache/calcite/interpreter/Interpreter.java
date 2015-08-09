@@ -18,13 +18,18 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.DelegatingEnumerator;
+import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.CalcSplitRule;
 import org.apache.calcite.rel.rules.FilterTableScanRule;
 import org.apache.calcite.rel.rules.ProjectTableScanRule;
@@ -87,32 +92,30 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
 
   public Enumerator<Object[]> enumerator() {
     start();
-    final ArrayDeque<Row> queue = nodes.get(rootRel).sink.list;
-    return new Enumerator<Object[]>() {
-      Row row;
+    Sink sink = nodes.get(rootRel).sink;
+    Enumerator<Row> rows;
+    if (sink instanceof EnumerableProxySink) {
+      rows = ((EnumerableProxySink) sink).enumerable.enumerator();
+    } else {
+      final ArrayDeque<Row> queue = ((ListSink) sink).list;
+      rows = Linq4j.asEnumerable(queue).enumerator();
+    }
 
-      public Object[] current() {
-        return row.getValues();
-      }
-
-      public boolean moveNext() {
-        try {
-          row = queue.removeFirst();
-        } catch (NoSuchElementException e) {
-          return false;
-        }
-        return true;
-      }
-
-      public void reset() {
-        row = null;
-      }
-
+    return new DelegatingEnumerator<Object[]>(Linq4j.transform(rows, rowConverter)) {
+      @Override
       public void close() {
+        super.close();
         Interpreter.this.close();
       }
     };
   }
+
+  private Function1<Row, Object[]> rowConverter = new Function1<Row, Object[]>() {
+    @Override
+    public Object[] apply(Row row) {
+      return row.getValues();
+    }
+  };
 
   private void start() {
     // We rely on the nodes being ordered leaves first.
@@ -261,7 +264,14 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     if (x == null) {
       throw new AssertionError("should be registered: " + rel);
     }
-    return new ListSource(x.sink);
+    Sink sink = x.sink;
+    if (sink instanceof ListSink) {
+      return new ListSource((ListSink) x.sink);
+    } else if (sink instanceof EnumerableProxySink) {
+      return new EnumerableProxySource((EnumerableProxySink) sink);
+    }
+    throw new IllegalStateException(
+      "Got a sink " + sink + " to which there is no match source type!");
   }
 
   private RelNode getInput(RelNode rel, int ordinal) {
@@ -273,9 +283,14 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   }
 
   public Sink sink(RelNode rel) {
-    final ArrayDeque<Row> queue = new ArrayDeque<Row>(1);
-    final ListSink sink = new ListSink(queue);
-    final NodeInfo nodeInfo = new NodeInfo(rel, sink);
+    final Sink sink;
+    if (rel instanceof TableScan) {
+      sink = new EnumerableProxySink();
+    } else {
+      final ArrayDeque<Row> queue = new ArrayDeque<Row>(1);
+      sink = new ListSink(queue);
+    }
+    NodeInfo nodeInfo = new NodeInfo(rel, sink);
     nodes.put(rel, nodeInfo);
     return sink;
   }
@@ -291,12 +306,80 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   /** Information about a node registered in the data flow graph. */
   private static class NodeInfo {
     final RelNode rel;
-    final ListSink sink;
+    final Sink sink;
     Node node;
 
-    public NodeInfo(RelNode rel, ListSink sink) {
+    public NodeInfo(RelNode rel, Sink sink) {
       this.rel = rel;
       this.sink = sink;
+    }
+  }
+
+  /**
+   * A sink that just proxies for an {@link org.apache.calcite.linq4j.Enumerable}. As such, its
+   * not really a "sink" but instead just a thin layer for the {@link EnumerableProxySource} to
+   * get an enumerator.
+   * <p>
+   * It can be little bit slower than the {@link Interpreter.ListSink} when trying to iterate
+   * over the elements of the enumerable, unless the enumerable is backed by an in-memory cache
+   * of the rows.
+   * </p>
+   */
+  private static class EnumerableProxySink implements Sink {
+
+    private Enumerable<Row> enumerable;
+
+    @Override
+    public void send(Row row) throws InterruptedException {
+      throw new UnsupportedOperationException("Row are only added through the enumerable passed "
+                                              + "in through #setSourceEnumerable()!");
+    }
+
+    @Override
+    public void end() throws InterruptedException {
+      // noop
+    }
+
+    @Override
+    public void setSourceEnumerable(Enumerable<Row> enumerable) {
+      this.enumerable = enumerable;
+    }
+  }
+
+  /**
+   * A {@link Source} that is just backed by an {@link Enumerator}. The {@link Enumerator} is closed
+   * when it is finished or by calling {@link #close()}
+   */
+  private static class EnumerableProxySource implements Source {
+
+    private Enumerator<Row> enumerator;
+    private final EnumerableProxySink source;
+
+    public EnumerableProxySource(EnumerableProxySink sink) {
+      this.source = sink;
+    }
+
+    @Override
+    public Row receive() {
+      if (enumerator == null) {
+        enumerator = source.enumerable.enumerator();
+        assert enumerator != null : "Sink did not set enumerable before source was asked for "
+                                    + "a row!";
+      }
+      if (enumerator.moveNext()) {
+        return enumerator.current();
+      }
+      // close the enumerator once we have gone through everything
+      enumerator.close();
+      this.enumerator = null;
+      return null;
+    }
+
+    @Override
+    public void close() {
+      if (this.enumerator != null) {
+        this.enumerator.close();
+      }
     }
   }
 
@@ -314,6 +397,17 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
 
     public void end() throws InterruptedException {
     }
+
+    @Override
+    public void setSourceEnumerable(Enumerable<Row> enumerable) throws InterruptedException {
+      // just copy over the source into the local list
+      Enumerator<Row> enumerator = enumerable.enumerator();
+      Row row;
+      while (!enumerator.moveNext()) {
+        this.send(enumerator.current());
+      }
+      enumerator.close();
+    }
   }
 
   /** Implementation of {@link Source} using a {@link java.util.ArrayDeque}. */
@@ -330,6 +424,11 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
       } catch (NoSuchElementException e) {
         return null;
       }
+    }
+
+    @Override
+    public void close() {
+      // noop
     }
   }
 

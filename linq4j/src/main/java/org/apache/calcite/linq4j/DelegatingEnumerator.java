@@ -14,18 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.interpreter;
+package org.apache.calcite.linq4j;
 
 /**
- * Source of rows.
- *
- * <p>Corresponds to an input of a relational expression.
+ * Simple enumerator that just delegates all calls to the passed enumerator
+ * @param <T> type of value to return, as passed from the delegate enumerator
  */
-public interface Source {
-  /** Reads a row. Null means end of data. */
-  Row receive();
+public class DelegatingEnumerator<T> implements Enumerator<T> {
 
-  void close();
+  private Enumerator<T> delegate;
+
+  public DelegatingEnumerator(Enumerator<T> delegate) {
+    this.delegate = delegate;
+  }
+
+  @Override public T current() {
+    return delegate.current();
+  }
+
+  @Override public boolean moveNext() {
+    return delegate.moveNext();
+  }
+
+  @Override public void reset() {
+    delegate.reset();
+  }
+
+  @Override public void close() {
+    delegate.close();
+  }
 }
 
-// End Source.java
+// End DelegatingEnumerator.java

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.apache.calcite.linq4j.function.Function1;
+
 import com.google.common.collect.Lists;
 
 import java.io.Closeable;
@@ -201,6 +203,16 @@ public abstract class Linq4j {
 
   private static <V> Enumerator<V> listEnumerator(List<? extends V> list) {
     return new ListEnumerator<V>(list);
+  }
+
+  public static <T, R> Enumerator<R> transform(final Enumerator<T> enumerator,
+    final Function1<T, R> func) {
+    return new DelegatingEnumerator<R>((Enumerator<R>) enumerator) {
+      @Override
+      public R current() {
+        return func.apply((T) super.current());
+      }
+    };
   }
 
   /**

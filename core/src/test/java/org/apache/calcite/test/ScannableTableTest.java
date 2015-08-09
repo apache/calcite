@@ -205,6 +205,7 @@ public class ScannableTableTest {
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("i=4; k=1942\n"
             + "i=6; k=1943\n"));
+    resultSet.close();
     assertThat(buf.toString(),
         equalTo("returnCount=4, projects=[0, 2]"));
     buf.setLength(0);
@@ -274,9 +275,12 @@ public class ScannableTableTest {
     final Statement statement = connection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select \"k\" from \"s\".\"beatles2\" where \"k\" > 1941");
-    assertThat(buf.toString(),
-        equalTo("returnCount=4, projects=[2]"));
     assertThat(CalciteAssert.toString(resultSet), equalTo("k=1942\nk=1943\n"));
+    // have to iterate (CalciteAssert.toString) and then close the result set b/c it is backed by
+    // an enumerable that only populates the info buffer (buf) on close
+    resultSet.close();
+    assertThat(buf.toString(),
+      equalTo("returnCount=4, projects=[2]"));
   }
 
   /** Table that returns one column via the {@link ScannableTable} interface. */

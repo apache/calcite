@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -38,6 +39,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -45,6 +47,7 @@ import org.junit.Test;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Iterator;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -54,23 +57,29 @@ import static org.junit.Assert.assertThat;
  * Tests for streaming queries.
  */
 public class StreamTest {
-  public static final String STREAM_SCHEMA = "     {\n"
-      + "       name: 'STREAMS',\n"
+  public static final String STREAM_SCHEMA_NAME = "STREAMS";
+  public static final String INFINITE_STREAM_SCHEMA_NAME = "INFINITE_STREAMS";
+
+  private static String schemaFor(String name, Class<? extends TableFactory> clazz) {
+    return "     {\n"
+      + "       name: '" + name + "',\n"
       + "       tables: [ {\n"
       + "         type: 'custom',\n"
       + "         name: 'ORDERS',\n"
       + "         stream: {\n"
       + "           stream: true\n"
       + "         },\n"
-      + "         factory: '" + OrdersStreamTableFactory.class.getName() + "'\n"
+      + "         factory: '" + clazz.getName() + "'\n"
       + "       } ]\n"
       + "     }\n";
+  }
 
   public static final String STREAM_MODEL = "{\n"
       + "  version: '1.0',\n"
       + "  defaultSchema: 'foodmart',\n"
       + "   schemas: [\n"
-      + STREAM_SCHEMA
+      + schemaFor(STREAM_SCHEMA_NAME, OrdersStreamTableFactory.class) + ",\n"
+      + schemaFor(INFINITE_STREAM_SCHEMA_NAME, InfiniteOrdersStreamTableFactory.class)
       + "   ]\n"
       + "}";
 
@@ -80,7 +89,7 @@ public class StreamTest {
         .query("select stream * from orders")
         .convertContains("LogicalDelta\n"
             + "  LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3])\n"
-            + "    EnumerableTableScan(table=[[STREAMS, ORDERS]])\n")
+            + "    LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains("EnumerableInterpreter\n"
             + "  BindableTableScan(table=[[]])")
         .returns(
@@ -97,7 +106,7 @@ public class StreamTest {
             "LogicalDelta\n"
                 + "  LogicalProject(PRODUCT=[$2])\n"
                 + "    LogicalFilter(condition=[>($3, 6)])\n"
-                + "      EnumerableTableScan(table=[[STREAMS, ORDERS]])\n")
+                + "      LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
             "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[6], expr#5=[>($t3, $t4)], PRODUCT=[$t2], $condition=[$t5])\n"
                 + "  EnumerableInterpreter\n"
@@ -120,7 +129,7 @@ public class StreamTest {
                 + "  LogicalFilter(condition=[>($2, 1)])\n"
                 + "    LogicalAggregate(group=[{0, 1}], C=[COUNT()])\n"
                 + "      LogicalProject(ROWTIME=[FLOOR($0, FLAG(HOUR))], PRODUCT=[$2])\n"
-                + "        EnumerableTableScan(table=[[STREAMS, ORDERS]])\n")
+                + "        LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
             "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[>($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
                 + "  EnumerableAggregate(group=[{0, 1}], C=[COUNT()])\n"
@@ -142,7 +151,7 @@ public class StreamTest {
             "LogicalDelta\n"
                 + "  LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
                 + "    LogicalProject(ROWTIME=[FLOOR($0, FLAG(HOUR))], PRODUCT=[$2], UNITS=[$3])\n"
-                + "      EnumerableTableScan(table=[[STREAMS, ORDERS]])\n")
+                + "      LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
             "EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
                 + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2], UNITS=[$t3])\n"
@@ -186,6 +195,19 @@ public class StreamTest {
                 "ROWTIME=2015-02-15 10:00:00; PRODUCT=paint; UNITS=3"));
   }
 
+  /**
+   * Regression test for CALCITE-809
+   */
+  @Test public void testInfiniteStreamsDoNotBufferInMemory() {
+    CalciteAssert.model(STREAM_MODEL)
+                 .withDefaultSchema(INFINITE_STREAM_SCHEMA_NAME)
+                 .query("select stream * from orders")
+                 .limit(100)
+                 .explainContains("EnumerableInterpreter\n"
+                                  + "  BindableTableScan(table=[[]])")
+                 .returnsCount(100);
+  }
+
   private Function<ResultSet, Void> startsWith(String... rows) {
     final ImmutableList<String> rowList = ImmutableList.copyOf(rows);
     return new Function<ResultSet, Void>() {
@@ -210,6 +232,38 @@ public class StreamTest {
     };
   }
 
+  /**
+   * Base table for the Orders table. Manages the base schema used for the test tables and common
+   * functions.
+   */
+  private abstract static class BaseOrderStreamTable implements ScannableTable, StreamableTable {
+    protected final RelProtoDataType protoRowType = new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory a0) {
+        return a0.builder()
+                 .add("ROWTIME", SqlTypeName.TIMESTAMP)
+                 .add("ID", SqlTypeName.INTEGER)
+                 .add("PRODUCT", SqlTypeName.VARCHAR, 10)
+                 .add("UNITS", SqlTypeName.INTEGER)
+                 .build();
+      }
+    };
+
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return protoRowType.apply(typeFactory);
+    }
+
+    public Statistic getStatistic() {
+      return Statistics.of(100d,
+        ImmutableList.<ImmutableBitSet>of(),
+        RelCollations.createSingleton(0));
+    }
+
+    public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
+    }
+  }
+
   /** Mock table that returns a stream of orders from a fixed array. */
   @SuppressWarnings("UnusedDeclaration")
   public static class OrdersStreamTableFactory implements TableFactory<Table> {
@@ -219,16 +273,6 @@ public class StreamTest {
 
     public Table create(SchemaPlus schema, String name,
         Map<String, Object> operand, RelDataType rowType) {
-      final RelProtoDataType protoRowType = new RelProtoDataType() {
-        public RelDataType apply(RelDataTypeFactory a0) {
-          return a0.builder()
-              .add("ROWTIME", SqlTypeName.TIMESTAMP)
-              .add("ID", SqlTypeName.INTEGER)
-              .add("PRODUCT", SqlTypeName.VARCHAR, 10)
-              .add("UNITS", SqlTypeName.INTEGER)
-              .build();
-        }
-      };
       final ImmutableList<Object[]> rows = ImmutableList.of(
           new Object[] {ts(10, 15, 0), 1, "paint", 10},
           new Object[] {ts(10, 24, 15), 2, "paper", 5},
@@ -236,25 +280,7 @@ public class StreamTest {
           new Object[] {ts(10, 58, 0), 4, "paint", 3},
           new Object[] {ts(11, 10, 0), 5, "paint", 3});
 
-      return new StreamableTable() {
-        public Table stream() {
-          return new OrdersTable(protoRowType, rows);
-        }
-
-        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-          return protoRowType.apply(typeFactory);
-        }
-
-        public Statistic getStatistic() {
-          return Statistics.of(100d,
-              ImmutableList.<ImmutableBitSet>of(),
-              RelCollations.createSingleton(0));
-        }
-
-        public Schema.TableType getJdbcTableType() {
-          return Schema.TableType.TABLE;
-        }
-      };
+      return new OrdersTable(rows);
     }
 
     private Object ts(int h, int m, int s) {
@@ -263,13 +289,10 @@ public class StreamTest {
   }
 
   /** Table representing the ORDERS stream. */
-  public static class OrdersTable implements ScannableTable {
-    private final RelProtoDataType protoRowType;
+  public static class OrdersTable extends BaseOrderStreamTable {
     private final ImmutableList<Object[]> rows;
 
-    public OrdersTable(RelProtoDataType protoRowType,
-        ImmutableList<Object[]> rows) {
-      this.protoRowType = protoRowType;
+    public OrdersTable(ImmutableList<Object[]> rows) {
       this.rows = rows;
     }
 
@@ -277,18 +300,65 @@ public class StreamTest {
       return Linq4j.asEnumerable(rows);
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return protoRowType.apply(typeFactory);
+    @Override
+    public Table stream() {
+      return new OrdersTable(rows);
+    }
+  }
+
+  /**
+   * Mock table that returns a stream of orders from a fixed array.
+   */
+  @SuppressWarnings("UnusedDeclaration")
+  public static class InfiniteOrdersStreamTableFactory implements TableFactory<Table> {
+    // public constructor, per factory contract
+    public InfiniteOrdersStreamTableFactory() {
     }
 
-    public Statistic getStatistic() {
-      return Statistics.of(100d,
-          ImmutableList.<ImmutableBitSet>of(),
-          RelCollations.createSingleton(0));
+    public Table create(SchemaPlus schema, String name,
+      Map<String, Object> operand, RelDataType rowType) {
+      return new InfiniteOrdersTable();
+    }
+  }
+
+  public static final Function0<Object[]> ROW_GENERATOR = new Function0() {
+    private int counter = 0;
+    private Iterator<String> items = Iterables.cycle("paint", "paper", "brush").iterator();
+
+    @Override
+    public Object[] apply() {
+      return new Object[]{System.currentTimeMillis(), counter++, items.next(), 10};
+    }
+  };
+
+
+  /**
+   * Table representing an infinitely larger ORDERS stream.
+   */
+  public static class InfiniteOrdersTable extends BaseOrderStreamTable {
+
+    public Enumerable<Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(new Iterable<Object[]>() {
+        @Override
+        public Iterator<Object[]> iterator() {
+          return new Iterator<Object[]>() {
+            @Override
+            public boolean hasNext() {
+              return true;
+            }
+
+            @Override
+            public Object[] next() {
+              return ROW_GENERATOR.apply();
+            }
+          };
+        }
+      });
     }
 
-    public Schema.TableType getJdbcTableType() {
-      return Schema.TableType.STREAM;
+    @Override
+    public Table stream() {
+      return this;
     }
   }
 }
