@@ -206,13 +206,8 @@ public abstract class Linq4j {
   }
 
   public static <T, R> Enumerator<R> transform(final Enumerator<T> enumerator,
-    final Function1<T, R> func) {
-    return new DelegatingEnumerator<R>((Enumerator<R>) enumerator) {
-      @Override
-      public R current() {
-        return func.apply((T) super.current());
-      }
-    };
+      final Function1<T, R> func) {
+    return new TransformedEnumerator<>(enumerator, func);
   }
 
   /**
@@ -730,6 +725,39 @@ public abstract class Linq4j {
     }
 
     public void close() {
+    }
+  }
+
+  /** Enumerator that applies a transform to each value from a backing
+   * enumerator.
+   *
+   * @param <T> Element type of backing enumerator
+   * @param <R> Element type
+   */
+  private static class TransformedEnumerator<T, R> implements Enumerator<R> {
+    private final Enumerator<T> enumerator;
+    private final Function1<T, R> func;
+
+    public TransformedEnumerator(Enumerator<T> enumerator,
+        Function1<T, R> func) {
+      this.enumerator = enumerator;
+      this.func = func;
+    }
+
+    public boolean moveNext() {
+      return enumerator.moveNext();
+    }
+
+    public R current() {
+      return func.apply(enumerator.current());
+    }
+
+    public void reset() {
+      enumerator.reset();
+    }
+
+    public void close() {
+      enumerator.close();
     }
   }
 }

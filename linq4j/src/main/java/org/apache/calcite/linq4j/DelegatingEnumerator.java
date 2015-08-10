@@ -17,12 +17,12 @@
 package org.apache.calcite.linq4j;
 
 /**
- * Simple enumerator that just delegates all calls to the passed enumerator
+ * Simple enumerator that just delegates all calls to the passed enumerator.
+ *
  * @param <T> type of value to return, as passed from the delegate enumerator
  */
 public class DelegatingEnumerator<T> implements Enumerator<T> {
-
-  private Enumerator<T> delegate;
+  protected final Enumerator<T> delegate;
 
   public DelegatingEnumerator(Enumerator<T> delegate) {
     this.delegate = delegate;

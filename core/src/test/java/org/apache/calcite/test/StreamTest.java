@@ -71,15 +71,17 @@ public class StreamTest {
       + "         },\n"
       + "         factory: '" + clazz.getName() + "'\n"
       + "       } ]\n"
-      + "     }\n";
+      + "     }";
   }
 
   public static final String STREAM_MODEL = "{\n"
       + "  version: '1.0',\n"
       + "  defaultSchema: 'foodmart',\n"
       + "   schemas: [\n"
-      + schemaFor(STREAM_SCHEMA_NAME, OrdersStreamTableFactory.class) + ",\n"
+      + schemaFor(STREAM_SCHEMA_NAME, OrdersStreamTableFactory.class)
+      + ",\n"
       + schemaFor(INFINITE_STREAM_SCHEMA_NAME, InfiniteOrdersStreamTableFactory.class)
+      + "\n"
       + "   ]\n"
       + "}";
 
@@ -196,16 +198,18 @@ public class StreamTest {
   }
 
   /**
-   * Regression test for CALCITE-809
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-809">[CALCITE-809]
+   * TableScan does not support large/infinite scans</a>.
    */
   @Test public void testInfiniteStreamsDoNotBufferInMemory() {
     CalciteAssert.model(STREAM_MODEL)
-                 .withDefaultSchema(INFINITE_STREAM_SCHEMA_NAME)
-                 .query("select stream * from orders")
-                 .limit(100)
-                 .explainContains("EnumerableInterpreter\n"
-                                  + "  BindableTableScan(table=[[]])")
-                 .returnsCount(100);
+        .withDefaultSchema(INFINITE_STREAM_SCHEMA_NAME)
+        .query("select stream * from orders")
+        .limit(100)
+        .explainContains("EnumerableInterpreter\n"
+            + "  BindableTableScan(table=[[]])")
+        .returnsCount(100);
   }
 
   private Function<ResultSet, Void> startsWith(String... rows) {
@@ -240,14 +244,13 @@ public class StreamTest {
     protected final RelProtoDataType protoRowType = new RelProtoDataType() {
       public RelDataType apply(RelDataTypeFactory a0) {
         return a0.builder()
-                 .add("ROWTIME", SqlTypeName.TIMESTAMP)
-                 .add("ID", SqlTypeName.INTEGER)
-                 .add("PRODUCT", SqlTypeName.VARCHAR, 10)
-                 .add("UNITS", SqlTypeName.INTEGER)
-                 .build();
+            .add("ROWTIME", SqlTypeName.TIMESTAMP)
+            .add("ID", SqlTypeName.INTEGER)
+            .add("PRODUCT", SqlTypeName.VARCHAR, 10)
+            .add("UNITS", SqlTypeName.INTEGER)
+            .build();
       }
     };
-
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return protoRowType.apply(typeFactory);
@@ -300,8 +303,7 @@ public class StreamTest {
       return Linq4j.asEnumerable(rows);
     }
 
-    @Override
-    public Table stream() {
+    @Override public Table stream() {
       return new OrdersTable(rows);
     }
   }
@@ -316,48 +318,47 @@ public class StreamTest {
     }
 
     public Table create(SchemaPlus schema, String name,
-      Map<String, Object> operand, RelDataType rowType) {
+        Map<String, Object> operand, RelDataType rowType) {
       return new InfiniteOrdersTable();
     }
   }
 
-  public static final Function0<Object[]> ROW_GENERATOR = new Function0() {
-    private int counter = 0;
-    private Iterator<String> items = Iterables.cycle("paint", "paper", "brush").iterator();
+  public static final Function0<Object[]> ROW_GENERATOR =
+      new Function0<Object[]>() {
+        private int counter = 0;
+        private Iterator<String> items =
+            Iterables.cycle("paint", "paper", "brush").iterator();
 
-    @Override
-    public Object[] apply() {
-      return new Object[]{System.currentTimeMillis(), counter++, items.next(), 10};
-    }
-  };
-
+        @Override public Object[] apply() {
+          return new Object[]{System.currentTimeMillis(), counter++, items.next(), 10};
+        }
+      };
 
   /**
    * Table representing an infinitely larger ORDERS stream.
    */
   public static class InfiniteOrdersTable extends BaseOrderStreamTable {
-
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(new Iterable<Object[]>() {
-        @Override
-        public Iterator<Object[]> iterator() {
+        @Override public Iterator<Object[]> iterator() {
           return new Iterator<Object[]>() {
-            @Override
             public boolean hasNext() {
               return true;
             }
 
-            @Override
             public Object[] next() {
               return ROW_GENERATOR.apply();
+            }
+
+            public void remove() {
+              throw new UnsupportedOperationException();
             }
           };
         }
       });
     }
 
-    @Override
-    public Table stream() {
+    @Override public Table stream() {
       return this;
     }
   }

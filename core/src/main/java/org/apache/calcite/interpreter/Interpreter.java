@@ -102,20 +102,19 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     }
 
     return new DelegatingEnumerator<Object[]>(Linq4j.transform(rows, rowConverter)) {
-      @Override
-      public void close() {
+      @Override public void close() {
         super.close();
         Interpreter.this.close();
       }
     };
   }
 
-  private Function1<Row, Object[]> rowConverter = new Function1<Row, Object[]>() {
-    @Override
-    public Object[] apply(Row row) {
-      return row.getValues();
-    }
-  };
+  private Function1<Row, Object[]> rowConverter =
+    new Function1<Row, Object[]>() {
+      @Override public Object[] apply(Row row) {
+        return row.getValues();
+      }
+    };
 
   private void start() {
     // We rely on the nodes being ordered leaves first.
@@ -287,7 +286,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     if (rel instanceof TableScan) {
       sink = new EnumerableProxySink();
     } else {
-      final ArrayDeque<Row> queue = new ArrayDeque<Row>(1);
+      final ArrayDeque<Row> queue = new ArrayDeque<>(1);
       sink = new ListSink(queue);
     }
     NodeInfo nodeInfo = new NodeInfo(rel, sink);
@@ -319,36 +318,31 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
    * A sink that just proxies for an {@link org.apache.calcite.linq4j.Enumerable}. As such, its
    * not really a "sink" but instead just a thin layer for the {@link EnumerableProxySource} to
    * get an enumerator.
-   * <p>
-   * It can be little bit slower than the {@link Interpreter.ListSink} when trying to iterate
+   *
+   * <p>It can be little bit slower than the {@link Interpreter.ListSink} when trying to iterate
    * over the elements of the enumerable, unless the enumerable is backed by an in-memory cache
    * of the rows.
-   * </p>
    */
   private static class EnumerableProxySink implements Sink {
-
     private Enumerable<Row> enumerable;
 
-    @Override
-    public void send(Row row) throws InterruptedException {
-      throw new UnsupportedOperationException("Row are only added through the enumerable passed "
-                                              + "in through #setSourceEnumerable()!");
+    @Override public void send(Row row) throws InterruptedException {
+      throw new UnsupportedOperationException("Rows are only added through the "
+          + "enumerable passed in through #setSourceEnumerable()!");
     }
 
-    @Override
-    public void end() throws InterruptedException {
+    @Override public void end() throws InterruptedException {
       // noop
     }
 
-    @Override
-    public void setSourceEnumerable(Enumerable<Row> enumerable) {
+    @Override public void setSourceEnumerable(Enumerable<Row> enumerable) {
       this.enumerable = enumerable;
     }
   }
 
   /**
    * A {@link Source} that is just backed by an {@link Enumerator}. The {@link Enumerator} is closed
-   * when it is finished or by calling {@link #close()}
+   * when it is finished or by calling {@link #close()}.
    */
   private static class EnumerableProxySource implements Source {
 
@@ -359,12 +353,11 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
       this.source = sink;
     }
 
-    @Override
-    public Row receive() {
+    @Override public Row receive() {
       if (enumerator == null) {
         enumerator = source.enumerable.enumerator();
-        assert enumerator != null : "Sink did not set enumerable before source was asked for "
-                                    + "a row!";
+        assert enumerator != null
+            : "Sink did not set enumerable before source was asked for a row!";
       }
       if (enumerator.moveNext()) {
         return enumerator.current();
@@ -375,8 +368,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
       return null;
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
       if (this.enumerator != null) {
         this.enumerator.close();
       }
@@ -398,12 +390,11 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     public void end() throws InterruptedException {
     }
 
-    @Override
-    public void setSourceEnumerable(Enumerable<Row> enumerable) throws InterruptedException {
+    @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
+        throws InterruptedException {
       // just copy over the source into the local list
-      Enumerator<Row> enumerator = enumerable.enumerator();
-      Row row;
-      while (!enumerator.moveNext()) {
+      final Enumerator<Row> enumerator = enumerable.enumerator();
+      while (enumerator.moveNext()) {
         this.send(enumerator.current());
       }
       enumerator.close();
@@ -426,8 +417,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
       }
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
       // noop
     }
   }
