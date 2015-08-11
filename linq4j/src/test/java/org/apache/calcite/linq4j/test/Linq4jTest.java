@@ -855,6 +855,28 @@ public class Linq4jTest {
     assertThat(enumerator.moveNext(), is(false));
   }
 
+  @Test public void testTransformEnumerator() {
+    final List<String> strings = Arrays.asList("one", "two", "three");
+    final Function1<String, Integer> func = new Function1<String, Integer>() {
+      public Integer apply(String a0) {
+        return a0.length();
+      }
+    };
+    final Enumerator<Integer> enumerator =
+        Linq4j.transform(Linq4j.enumerator(strings), func);
+    assertThat(enumerator.moveNext(), is(true));
+    assertThat(enumerator.current(), is(3));
+    assertThat(enumerator.moveNext(), is(true));
+    assertThat(enumerator.current(), is(3));
+    assertThat(enumerator.moveNext(), is(true));
+    assertThat(enumerator.current(), is(5));
+    assertThat(enumerator.moveNext(), is(false));
+
+    final Enumerator<Integer> enumerator2 =
+        Linq4j.transform(Linq4j.<String>emptyEnumerator(), func);
+    assertThat(enumerator2.moveNext(), is(false));
+  }
+
   @Test public void testCast() {
     final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
     final Enumerator<Integer> enumerator =

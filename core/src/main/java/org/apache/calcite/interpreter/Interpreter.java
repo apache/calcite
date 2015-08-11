@@ -18,18 +18,16 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.DelegatingEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.TransformedEnumerator;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
-import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.CalcSplitRule;
 import org.apache.calcite.rel.rules.FilterTableScanRule;
 import org.apache.calcite.rel.rules.ProjectTableScanRule;
@@ -92,29 +90,21 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
 
   public Enumerator<Object[]> enumerator() {
     start();
-    Sink sink = nodes.get(rootRel).sink;
-    Enumerator<Row> rows;
-    if (sink instanceof EnumerableProxySink) {
-      rows = ((EnumerableProxySink) sink).enumerable.enumerator();
+    final NodeInfo nodeInfo = nodes.get(rootRel);
+    final Enumerator<Row> rows;
+    if (nodeInfo.rowEnumerable != null) {
+      rows = nodeInfo.rowEnumerable.enumerator();
     } else {
-      final ArrayDeque<Row> queue = ((ListSink) sink).list;
-      rows = Linq4j.asEnumerable(queue).enumerator();
+      final ArrayDeque<Row> queue = ((ListSink) nodeInfo.sink).list;
+      rows = Linq4j.iterableEnumerator(queue);
     }
 
-    return new DelegatingEnumerator<Object[]>(Linq4j.transform(rows, rowConverter)) {
-      @Override public void close() {
-        super.close();
-        Interpreter.this.close();
-      }
-    };
-  }
-
-  private Function1<Row, Object[]> rowConverter =
-    new Function1<Row, Object[]>() {
-      @Override public Object[] apply(Row row) {
+    return new TransformedEnumerator<Row, Object[]>(rows) {
+      protected Object[] transform(Row row) {
         return row.getValues();
       }
     };
+  }
 
   private void start() {
     // We rely on the nodes being ordered leaves first.
@@ -259,15 +249,16 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
 
   public Source source(RelNode rel, int ordinal) {
     final RelNode input = getInput(rel, ordinal);
-    final NodeInfo x = nodes.get(input);
-    if (x == null) {
+    final NodeInfo nodeInfo = nodes.get(input);
+    if (nodeInfo == null) {
       throw new AssertionError("should be registered: " + rel);
     }
-    Sink sink = x.sink;
+    if (nodeInfo.rowEnumerable != null) {
+      return new EnumeratorSource(nodeInfo.rowEnumerable.enumerator());
+    }
+    Sink sink = nodeInfo.sink;
     if (sink instanceof ListSink) {
-      return new ListSource((ListSink) x.sink);
-    } else if (sink instanceof EnumerableProxySink) {
-      return new EnumerableProxySource((EnumerableProxySink) sink);
+      return new ListSource((ListSink) nodeInfo.sink);
     }
     throw new IllegalStateException(
       "Got a sink " + sink + " to which there is no match source type!");
@@ -281,17 +272,37 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     return rel.getInput(ordinal);
   }
 
+  /**
+   * Creates a Sink for a relational expression to write into.
+   *
+   * <p>This method is generally called from the constructor of a {@link Node}.
+   * But a constructor could instead call
+   * {@link #enumerable(RelNode, Enumerable)}.
+   *
+   * @param rel Relational expression
+   * @return Sink
+   */
   public Sink sink(RelNode rel) {
-    final Sink sink;
-    if (rel instanceof TableScan) {
-      sink = new EnumerableProxySink();
-    } else {
-      final ArrayDeque<Row> queue = new ArrayDeque<>(1);
-      sink = new ListSink(queue);
-    }
-    NodeInfo nodeInfo = new NodeInfo(rel, sink);
+    final ArrayDeque<Row> queue = new ArrayDeque<>(1);
+    final Sink sink = new ListSink(queue);
+    NodeInfo nodeInfo = new NodeInfo(rel, sink, null);
     nodes.put(rel, nodeInfo);
     return sink;
+  }
+
+  /** Tells the interpreter that a given relational expression wishes to
+   * give its output as an enumerable.
+   *
+   * <p>This is as opposed to the norm, where a relational expression calls
+   * {@link #sink(RelNode)}, then its {@link Node#run()} method writes into that
+   * sink.
+   *
+   * @param rel Relational expression
+   * @param rowEnumerable Contents of relational expression
+   */
+  public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
+    NodeInfo nodeInfo = new NodeInfo(rel, null, rowEnumerable);
+    nodes.put(rel, nodeInfo);
   }
 
   public Context createContext() {
@@ -306,37 +317,14 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
   private static class NodeInfo {
     final RelNode rel;
     final Sink sink;
+    final Enumerable<Row> rowEnumerable;
     Node node;
 
-    public NodeInfo(RelNode rel, Sink sink) {
+    public NodeInfo(RelNode rel, Sink sink, Enumerable<Row> rowEnumerable) {
       this.rel = rel;
       this.sink = sink;
-    }
-  }
-
-  /**
-   * A sink that just proxies for an {@link org.apache.calcite.linq4j.Enumerable}. As such, its
-   * not really a "sink" but instead just a thin layer for the {@link EnumerableProxySource} to
-   * get an enumerator.
-   *
-   * <p>It can be little bit slower than the {@link Interpreter.ListSink} when trying to iterate
-   * over the elements of the enumerable, unless the enumerable is backed by an in-memory cache
-   * of the rows.
-   */
-  private static class EnumerableProxySink implements Sink {
-    private Enumerable<Row> enumerable;
-
-    @Override public void send(Row row) throws InterruptedException {
-      throw new UnsupportedOperationException("Rows are only added through the "
-          + "enumerable passed in through #setSourceEnumerable()!");
-    }
-
-    @Override public void end() throws InterruptedException {
-      // noop
-    }
-
-    @Override public void setSourceEnumerable(Enumerable<Row> enumerable) {
-      this.enumerable = enumerable;
+      this.rowEnumerable = rowEnumerable;
+      assert (sink != null) != (rowEnumerable != null) : "one or the other";
     }
   }
 
@@ -344,34 +332,24 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
    * A {@link Source} that is just backed by an {@link Enumerator}. The {@link Enumerator} is closed
    * when it is finished or by calling {@link #close()}.
    */
-  private static class EnumerableProxySource implements Source {
+  private static class EnumeratorSource implements Source {
+    private final Enumerator<Row> enumerator;
 
-    private Enumerator<Row> enumerator;
-    private final EnumerableProxySink source;
-
-    public EnumerableProxySource(EnumerableProxySink sink) {
-      this.source = sink;
+    public EnumeratorSource(final Enumerator<Row> enumerator) {
+      this.enumerator = Preconditions.checkNotNull(enumerator);
     }
 
     @Override public Row receive() {
-      if (enumerator == null) {
-        enumerator = source.enumerable.enumerator();
-        assert enumerator != null
-            : "Sink did not set enumerable before source was asked for a row!";
-      }
       if (enumerator.moveNext()) {
         return enumerator.current();
       }
       // close the enumerator once we have gone through everything
       enumerator.close();
-      this.enumerator = null;
       return null;
     }
 
     @Override public void close() {
-      if (this.enumerator != null) {
-        this.enumerator.close();
-      }
+      enumerator.close();
     }
   }
 

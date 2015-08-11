@@ -59,19 +59,13 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * {@link org.apache.calcite.rel.core.TableScan}.
  */
 public class TableScanNode implements Node {
-  private final Sink sink;
-  private final Enumerable<Row> enumerable;
-
   private TableScanNode(Interpreter interpreter, TableScan rel,
       Enumerable<Row> enumerable) {
-    this.enumerable = enumerable;
-    this.sink = interpreter.sink(rel);
+    interpreter.enumerable(rel, enumerable);
   }
 
-
   public void run() throws InterruptedException {
-    sink.setSourceEnumerable(enumerable);
-    sink.end();
+    // nothing to do
   }
 
   /** Creates a TableScanNode.
