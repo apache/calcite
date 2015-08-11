@@ -1111,9 +1111,7 @@ public abstract class RelOptUtil {
 
         boolean foundInput = false;
         for (int i = 0; i < inputs.size() && !foundInput; i++) {
-          final int lowerLimit = inputsRange[i].nextSetBit(0);
-          final int upperLimit = inputsRange[i].length();
-          if (projRefs.nextSetBit(lowerLimit) < upperLimit) {
+          if (inputsRange[i].contains(projRefs)) {
             leftInput = i;
             leftFields = inputs.get(leftInput).getRowType().getFieldList();
 

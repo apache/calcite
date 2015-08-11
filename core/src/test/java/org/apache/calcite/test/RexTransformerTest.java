@@ -17,8 +17,12 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -33,8 +37,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -351,6 +358,38 @@ public class RexTransformerTest {
     assertThat(literal3.getType().getFullTypeString(),
         is("DECIMAL(6, 7) NOT NULL"));
     assertThat(literal3.getValue().toString(), is("0.0123456"));
+  }
+
+    /** Test case for
+     * <a href="https://issues.apache.org/jira/browse/CALCITE-833">[CALCITE-833]
+     * RelOptUtil.splitJoinCondition attempts to split a Join-Condition which
+     * has a remaining condition</a>. */
+  @Test
+  public void testSplitJoinCondition() {
+    final String sql = "select * \n"
+        + "from emp a \n"
+        + "INNER JOIN dept b \n"
+        + "ON CAST(a.empno AS int) <> b.deptno";
+
+    final RelNode relNode = new SqlToRelTestBase() { } .createTester().convertSqlToRel(sql);
+    final LogicalJoin join = (LogicalJoin) relNode.getInput(0);
+    final List<RexNode> leftJoinKeys = new ArrayList<RexNode>();
+    final List<RexNode> rightJoinKeys = new ArrayList<RexNode>();
+    final RexNode remaining = RelOptUtil.splitJoinCondition(new ArrayList<RelDataTypeField>(),
+        join.getInputs().get(0),
+        join.getInputs().get(1),
+        join.getCondition(),
+        leftJoinKeys,
+        rightJoinKeys,
+        null,
+        null);
+
+    assertEquals("<>(CAST($0):INTEGER NOT NULL, $9)",
+        remaining.toString());
+    assertEquals(true,
+        leftJoinKeys.isEmpty());
+    assertEquals(true,
+        rightJoinKeys.isEmpty());
   }
 }
 
