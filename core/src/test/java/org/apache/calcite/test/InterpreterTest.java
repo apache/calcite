@@ -106,6 +106,19 @@ public class InterpreterTest {
     assertRows(interpreter, "[b, 2]", "[c, 3]");
   }
 
+  /** Tests a plan where the sort field is projected away. */
+  @Test public void testInterpretOrder() throws Exception {
+    final String sql = "select y\n"
+        + "from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "order by -x";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).project();
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRows(interpreter, "[c]", "[b]", "[a]");
+  }
+
   private static void assertRows(Interpreter interpreter, String... rows) {
     assertRows(interpreter, false, rows);
   }

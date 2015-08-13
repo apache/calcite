@@ -200,7 +200,7 @@ public class AggregateStarTableRule extends RelOptRule {
       if (roll == null) {
         break tryRoll;
       }
-      return AggregateCall.create(roll, false, ImmutableList.of(offset + i),
+      return AggregateCall.create(roll, false, ImmutableList.of(offset + i), -1,
           groupCount, input, null, aggregateCall.name);
     }
 
@@ -215,7 +215,7 @@ public class AggregateStarTableRule extends RelOptRule {
         }
         newArgs.add(z);
       }
-      return AggregateCall.create(aggregation, false, newArgs,
+      return AggregateCall.create(aggregation, false, newArgs, -1,
           groupCount, input, null, aggregateCall.name);
     }
 

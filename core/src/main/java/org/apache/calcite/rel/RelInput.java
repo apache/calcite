@@ -78,6 +78,12 @@ public interface RelInput {
 
   List<RexNode> getExpressionList(String tag);
 
+  List<String> getStringList(String tag);
+
+  List<Integer> getIntegerList(String tag);
+
+  List<List<Integer>> getIntegerListList(String tag);
+
   RelDataType getRowType(String tag);
 
   RelDataType getRowType(String expressionsTag, String fieldsTag);

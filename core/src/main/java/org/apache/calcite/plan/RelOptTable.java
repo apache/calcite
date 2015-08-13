@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -112,9 +113,7 @@ public interface RelOptTable {
 
   /** Can expand a view into relational expressions. */
   interface ViewExpander {
-    RelNode expandView(
-        RelDataType rowType,
-        String queryString,
+    RelRoot expandView(RelDataType rowType, String queryString,
         List<String> schemaPath);
   }
 

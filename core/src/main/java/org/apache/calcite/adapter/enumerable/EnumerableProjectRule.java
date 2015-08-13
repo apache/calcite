@@ -18,8 +18,6 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -36,18 +34,7 @@ class EnumerableProjectRule extends ConverterRule {
 
   public RelNode convert(RelNode rel) {
     final LogicalProject project = (LogicalProject) rel;
-    if (rel.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE)
-        != RelCollations.PRESERVE) {
-      return EnumerableProject.create(
-          convert(project.getInput(),
-              project.getInput().getTraitSet()
-                  .replace(EnumerableConvention.INSTANCE)),
-          project.getProjects(),
-          project.getRowType());
-    }
-    // Special case for PRESERVE, to hand-create collation.
-    return new EnumerableProject(rel.getCluster(),
-        rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
+    return EnumerableProject.create(
         convert(project.getInput(),
             project.getInput().getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),

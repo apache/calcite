@@ -81,7 +81,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
         getSqlToRelConverter(getSqlValidator(), catalogReader);
 
     materialization.queryRel =
-        sqlToRelConverter2.convertQuery(node, true, true);
+        sqlToRelConverter2.convertQuery(node, true, true).rel;
 
     // Identify and substitute a StarTable in queryRel.
     //

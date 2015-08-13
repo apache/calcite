@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -63,7 +64,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     return cluster;
   }
 
-  public RelNode expandView(RelDataType rowType, String queryString,
+  public RelRoot expandView(RelDataType rowType, String queryString,
       List<String> schemaPath) {
     return preparingStmt.expandView(rowType, queryString, schemaPath);
   }

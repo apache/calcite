@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
@@ -116,19 +117,16 @@ public class ViewTable
   public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    return expandView(context, relOptTable.getRowType(), viewSql);
+    return expandView(context, relOptTable.getRowType(), viewSql).rel;
   }
 
-  private RelNode expandView(
-      RelOptTable.ToRelContext preparingStmt,
-      RelDataType rowType,
-      String queryString) {
+  private RelRoot expandView(RelOptTable.ToRelContext preparingStmt,
+      RelDataType rowType, String queryString) {
     try {
-      RelNode rel = preparingStmt.expandView(rowType, queryString, schemaPath);
+      RelRoot root = preparingStmt.expandView(rowType, queryString, schemaPath);
 
-      rel = RelOptUtil.createCastRel(rel, rowType, true);
-      //rel = viewExpander.flattenTypes(rel, false);
-      return rel;
+      root = root.withRel(RelOptUtil.createCastRel(root.rel, rowType, true));
+      return root;
     } catch (Throwable e) {
       throw Util.newInternal(
           e, "Error while parsing view definition:  " + queryString);

@@ -35,7 +35,7 @@ import java.util.List;
 public abstract class SingleRel extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
-  private RelNode input;
+  protected RelNode input;
 
   //~ Constructors -----------------------------------------------------------
 

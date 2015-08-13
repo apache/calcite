@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -42,6 +43,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
@@ -56,6 +58,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.stream.Delta;
 import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -102,6 +105,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -425,26 +429,36 @@ public class SqlToRelConverter {
   }
 
   private void checkConvertedType(SqlNode query, RelNode result) {
-    if (!query.isA(SqlKind.DML)) {
-      // Verify that conversion from SQL to relational algebra did
-      // not perturb any type information.  (We can't do this if the
-      // SQL statement is something like an INSERT which has no
-      // validator type information associated with its result,
-      // hence the namespace check above.)
-      RelDataType convertedRowType = result.getRowType();
-      if (!checkConvertedRowType(query, convertedRowType)) {
-        RelDataType validatedRowType =
-            validator.getValidatedNodeType(query);
-        validatedRowType = uniquifyFields(validatedRowType);
-        throw Util.newInternal("Conversion to relational algebra failed to "
-            + "preserve datatypes:\n"
-            + "validated type:\n"
-            + validatedRowType.getFullTypeString()
-            + "\nconverted type:\n"
-            + convertedRowType.getFullTypeString()
-            + "\nrel:\n"
-            + RelOptUtil.toString(result));
-      }
+    if (query.isA(SqlKind.DML)) {
+      return;
+    }
+    // Verify that conversion from SQL to relational algebra did
+    // not perturb any type information.  (We can't do this if the
+    // SQL statement is something like an INSERT which has no
+    // validator type information associated with its result,
+    // hence the namespace check above.)
+    final List<RelDataTypeField> validatedFields =
+        validator.getValidatedNodeType(query).getFieldList();
+    final RelDataType validatedRowType =
+        validator.getTypeFactory().createStructType(
+            Pair.right(validatedFields),
+            SqlValidatorUtil.uniquify(Pair.left(validatedFields)));
+
+    final List<RelDataTypeField> convertedFields =
+        result.getRowType().getFieldList().subList(0, validatedFields.size());
+    final RelDataType convertedRowType =
+        validator.getTypeFactory().createStructType(convertedFields);
+
+    if (!RelOptUtil.equal("validated row type", validatedRowType,
+        "converted row type", convertedRowType, false)) {
+      throw Util.newInternal("Conversion to relational algebra failed to "
+          + "preserve datatypes:\n"
+          + "validated type:\n"
+          + validatedRowType.getFullTypeString()
+          + "\nconverted type:\n"
+          + convertedRowType.getFullTypeString()
+          + "\nrel:\n"
+          + RelOptUtil.toString(result));
     }
   }
 
@@ -501,7 +515,10 @@ public class SqlToRelConverter {
       final List<RelCollation> collations =
           rootRel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
       rootRel = trimmer.trim(rootRel);
-      if (!ordered && collations != null) {
+      if (!ordered
+          && collations != null
+          && !collations.isEmpty()
+          && !collations.equals(ImmutableList.of(RelCollations.EMPTY))) {
         final RelTraitSet traitSet = rootRel.getTraitSet()
             .replace(RelCollationTraitDef.INSTANCE, collations);
         rootRel = rootRel.copy(traitSet, rootRel.getInputs());
@@ -539,7 +556,7 @@ public class SqlToRelConverter {
    *                        will become a JDBC result set; <code>false</code> if
    *                        the query will be part of a view.
    */
-  public RelNode convertQuery(
+  public RelRoot convertQuery(
       SqlNode query,
       final boolean needsValidation,
       final boolean top) {
@@ -547,13 +564,17 @@ public class SqlToRelConverter {
       query = validator.validate(query);
     }
 
-    RelNode result = convertQueryRecursive(query, top, null);
-    if (top && isStream(query)) {
-      result = new LogicalDelta(cluster, result.getTraitSet(), result);
+    RelNode result = convertQueryRecursive(query, top, null).rel;
+    if (top) {
+      if (isStream(query)) {
+        result = new LogicalDelta(cluster, result.getTraitSet(), result);
+      }
     }
-    if (isUnordered(query)) {
-      result = result.copy(result.getTraitSet().replace(RelCollations.EMPTY),
-          result.getInputs());
+    RelCollation collation = RelCollations.EMPTY;
+    if (!query.isA(SqlKind.DML)) {
+      if (isOrdered(query)) {
+        collation = requiredCollation(result);
+      }
     }
     checkConvertedType(query, result);
 
@@ -567,7 +588,9 @@ public class SqlToRelConverter {
               SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
 
-    return result;
+    final RelDataType validatedRowType = validator.getValidatedNodeType(query);
+    return RelRoot.of(result, validatedRowType, query.getKind())
+        .withCollation(collation);
   }
 
   private static boolean isStream(SqlNode query) {
@@ -575,33 +598,39 @@ public class SqlToRelConverter {
         && ((SqlSelect) query).isKeywordPresent(SqlSelectKeyword.STREAM);
   }
 
-  public static boolean isUnordered(SqlNode query) {
-    return query instanceof SqlSelect
-        && ((SqlSelect) query).getOrderList() == null;
+  public static boolean isOrdered(SqlNode query) {
+    switch (query.getKind()) {
+    case SELECT:
+      return ((SqlSelect) query).getOrderList() != null
+          && ((SqlSelect) query).getOrderList().size() > 0;
+    case WITH:
+      return isOrdered(((SqlWith) query).body);
+    case ORDER_BY:
+      return ((SqlOrderBy) query).orderList.size() > 0;
+    default:
+      return false;
+    }
   }
 
-  protected boolean checkConvertedRowType(
-      SqlNode query,
-      RelDataType convertedRowType) {
-    RelDataType validatedRowType = validator.getValidatedNodeType(query);
-    validatedRowType = uniquifyFields(validatedRowType);
-
-    return RelOptUtil.equal("validated row type", validatedRowType,
-        "converted row type", convertedRowType, false);
-  }
-
-  protected RelDataType uniquifyFields(RelDataType rowType) {
-    return validator.getTypeFactory().createStructType(
-        RelOptUtil.getFieldTypeList(rowType),
-        SqlValidatorUtil.uniquify(rowType.getFieldNames()));
+  private RelCollation requiredCollation(RelNode r) {
+    if (r instanceof Sort) {
+      return ((Sort) r).collation;
+    }
+    if (r instanceof Project) {
+      return requiredCollation(((Project) r).getInput());
+    }
+    if (r instanceof Delta) {
+      return requiredCollation(((Delta) r).getInput());
+    }
+    throw new AssertionError();
   }
 
   /**
    * Converts a SELECT statement's parse tree into a relational expression.
    */
-  public RelNode convertSelect(SqlSelect select) {
+  public RelNode convertSelect(SqlSelect select, boolean top) {
     final SqlValidatorScope selectScope = validator.getWhereScope(select);
-    final Blackboard bb = createBlackboard(selectScope, null);
+    final Blackboard bb = createBlackboard(selectScope, null, top);
     convertSelectImpl(bb, select);
     return bb.root;
   }
@@ -609,15 +638,14 @@ public class SqlToRelConverter {
   /**
    * Factory method for creating translation workspace.
    */
-  protected Blackboard createBlackboard(
-      SqlValidatorScope scope,
-      Map<String, RexNode> nameToNodeMap) {
-    return new Blackboard(scope, nameToNodeMap);
+  protected Blackboard createBlackboard(SqlValidatorScope scope,
+      Map<String, RexNode> nameToNodeMap, boolean top) {
+    return new Blackboard(scope, nameToNodeMap, top);
   }
 
   /**
-   * Implementation of {@link #convertSelect(SqlSelect)}; derived class may
-   * override.
+   * Implementation of {@link #convertSelect(SqlSelect, boolean)};
+   * derived class may override.
    */
   protected void convertSelectImpl(
       final Blackboard bb,
@@ -796,8 +824,11 @@ public class SqlToRelConverter {
         false);
 
     // If extra expressions were added to the project list for sorting,
-    // add another project to remove them.
-    if (orderExprList.size() > 0) {
+    // add another project to remove them. But make the collation empty, because
+    // we can't represent the real collation.
+    //
+    // If it is the top node, use the real collation, but don't trim fields.
+    if (orderExprList.size() > 0 && !bb.top) {
       final List<RexNode> exprs = new ArrayList<>();
       final RelDataType rowType = bb.root.getRowType();
       final int fieldCount =
@@ -806,13 +837,8 @@ public class SqlToRelConverter {
         exprs.add(rexBuilder.makeInputRef(bb.root, i));
       }
       bb.setRoot(
-          new LogicalProject(
-              cluster,
-              cluster.traitSetOf(RelCollations.PRESERVE),
-              bb.root,
-              exprs,
-              cluster.getTypeFactory().createStructType(
-                  rowType.getFieldList().subList(0, fieldCount))),
+          LogicalProject.create(bb.root, exprs,
+              rowType.getFieldNames().subList(0, fieldCount)),
           false);
     }
   }
@@ -1437,7 +1463,7 @@ public class SqlToRelConverter {
         (seek instanceof SqlSelect)
             ? validator.getSelectScope((SqlSelect) seek)
             : null;
-    final Blackboard seekBb = createBlackboard(seekScope, null);
+    final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
     return RelOptUtil.createExistsPlan(seekRel, subqueryType, logic,
@@ -1462,7 +1488,7 @@ public class SqlToRelConverter {
           false,
           targetRowType);
     } else {
-      return convertQueryRecursive(seek, false, null);
+      return convertQueryRecursive(seek, false, null).project();
     }
   }
 
@@ -1721,10 +1747,9 @@ public class SqlToRelConverter {
   public RexNode convertExpression(
       SqlNode node) {
     Map<String, RelDataType> nameToTypeMap = Collections.emptyMap();
-    Blackboard bb =
-        createBlackboard(
-            new ParameterScope((SqlValidatorImpl) validator, nameToTypeMap),
-            null);
+    final ParameterScope scope =
+        new ParameterScope((SqlValidatorImpl) validator, nameToTypeMap);
+    final Blackboard bb = createBlackboard(scope, null, false);
     return bb.convertExpression(node);
   }
 
@@ -1746,10 +1771,9 @@ public class SqlToRelConverter {
     for (Map.Entry<String, RexNode> entry : nameToNodeMap.entrySet()) {
       nameToTypeMap.put(entry.getKey(), entry.getValue().getType());
     }
-    Blackboard bb =
-        createBlackboard(
-            new ParameterScope((SqlValidatorImpl) validator, nameToTypeMap),
-            nameToNodeMap);
+    final ParameterScope scope =
+        new ParameterScope((SqlValidatorImpl) validator, nameToTypeMap);
+    final Blackboard bb = createBlackboard(scope, nameToNodeMap, false);
     return bb.convertExpression(node);
   }
 
@@ -1925,20 +1949,22 @@ public class SqlToRelConverter {
 
     case JOIN:
       final SqlJoin join = (SqlJoin) from;
-      final Blackboard fromBlackboard =
-          createBlackboard(validator.getJoinScope(from), null);
+      final SqlValidatorScope scope = validator.getJoinScope(from);
+      final Blackboard fromBlackboard = createBlackboard(scope, null, false);
       SqlNode left = join.getLeft();
       SqlNode right = join.getRight();
       final boolean isNatural = join.isNatural();
       final JoinType joinType = join.getJoinType();
+      final SqlValidatorScope leftScope =
+          Util.first(validator.getJoinScope(left),
+              ((DelegatingScope) bb.scope).getParent());
       final Blackboard leftBlackboard =
-          createBlackboard(
-              Util.first(validator.getJoinScope(left),
-                  ((DelegatingScope) bb.scope).getParent()), null);
+          createBlackboard(leftScope, null, false);
+      final SqlValidatorScope rightScope =
+          Util.first(validator.getJoinScope(right),
+              ((DelegatingScope) bb.scope).getParent());
       final Blackboard rightBlackboard =
-          createBlackboard(
-              Util.first(validator.getJoinScope(right),
-                  ((DelegatingScope) bb.scope).getParent()), null);
+          createBlackboard(rightScope, null, false);
       convertFrom(leftBlackboard, left);
       RelNode leftRel = leftBlackboard.root;
       convertFrom(rightBlackboard, right);
@@ -1981,7 +2007,7 @@ public class SqlToRelConverter {
     case INTERSECT:
     case EXCEPT:
     case UNION:
-      final RelNode rel = convertQueryRecursive(from, false, null);
+      final RelNode rel = convertQueryRecursive(from, false, null).project();
       bb.setRoot(rel, true);
       return;
 
@@ -2029,7 +2055,7 @@ public class SqlToRelConverter {
       datasetStack.push(sampleName);
       SqlCall cursorCall = call.operand(1);
       SqlNode query = cursorCall.operand(0);
-      RelNode converted = convertQuery(query, false, false);
+      RelNode converted = convertQuery(query, false, false).rel;
       bb.setRoot(converted, false);
       datasetStack.pop();
       return;
@@ -2788,29 +2814,28 @@ public class SqlToRelConverter {
    * @param targetRowType Target row type, or null
    * @return Relational expression
    */
-  protected RelNode convertQueryRecursive(
-      SqlNode query,
-      boolean top,
+  protected RelRoot convertQueryRecursive(SqlNode query, boolean top,
       RelDataType targetRowType) {
-    switch (query.getKind()) {
+    final SqlKind kind = query.getKind();
+    switch (kind) {
     case SELECT:
-      return convertSelect((SqlSelect) query);
+      return RelRoot.of(convertSelect((SqlSelect) query, top), kind);
     case INSERT:
-      return convertInsert((SqlInsert) query);
+      return RelRoot.of(convertInsert((SqlInsert) query), kind);
     case DELETE:
-      return convertDelete((SqlDelete) query);
+      return RelRoot.of(convertDelete((SqlDelete) query), kind);
     case UPDATE:
-      return convertUpdate((SqlUpdate) query);
+      return RelRoot.of(convertUpdate((SqlUpdate) query), kind);
     case MERGE:
-      return convertMerge((SqlMerge) query);
+      return RelRoot.of(convertMerge((SqlMerge) query), kind);
     case UNION:
     case INTERSECT:
     case EXCEPT:
-      return convertSetOp((SqlCall) query);
+      return RelRoot.of(convertSetOp((SqlCall) query), kind);
     case WITH:
-      return convertWith((SqlWith) query);
+      return convertWith((SqlWith) query, top);
     case VALUES:
-      return convertValues((SqlCall) query, targetRowType);
+      return RelRoot.of(convertValues((SqlCall) query, targetRowType), kind);
     default:
       throw Util.newInternal("not a query: " + query);
     }
@@ -2824,8 +2849,10 @@ public class SqlToRelConverter {
    * @return Relational expression
    */
   protected RelNode convertSetOp(SqlCall call) {
-    final RelNode left = convertQueryRecursive(call.operand(0), false, null);
-    final RelNode right = convertQueryRecursive(call.operand(1), false, null);
+    final RelNode left =
+        convertQueryRecursive(call.operand(0), false, null).project();
+    final RelNode right =
+        convertQueryRecursive(call.operand(1), false, null).project();
     boolean all = false;
     if (call.getOperator() instanceof SqlSetOperator) {
       all = ((SqlSetOperator) (call.getOperator())).isAll();
@@ -2864,8 +2891,7 @@ public class SqlToRelConverter {
         validator.getValidatedNodeType(call);
     assert targetRowType != null;
     RelNode sourceRel =
-        convertQueryRecursive(
-            call.getSource(), false, targetRowType);
+        convertQueryRecursive(call.getSource(), false, targetRowType).project();
     RelNode massagedRel = convertColumnList(call, sourceRel);
 
     return createModify(targetTable, massagedRel);
@@ -2953,9 +2979,7 @@ public class SqlToRelConverter {
         return cluster;
       }
 
-      public RelNode expandView(
-          RelDataType rowType,
-          String queryString,
+      public RelRoot expandView(RelDataType rowType, String queryString,
           List<String> schemaPath) {
         return viewExpander.expandView(rowType, queryString, schemaPath);
       }
@@ -3084,7 +3108,7 @@ public class SqlToRelConverter {
 
   private RelNode convertDelete(SqlDelete call) {
     RelOptTable targetTable = getTargetTable(call);
-    RelNode sourceRel = convertSelect(call.getSourceSelect());
+    RelNode sourceRel = convertSelect(call.getSourceSelect(), false);
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.DELETE, null, false);
   }
@@ -3100,7 +3124,7 @@ public class SqlToRelConverter {
       targetColumnNameList.add(name);
     }
 
-    RelNode sourceRel = convertSelect(call.getSourceSelect());
+    RelNode sourceRel = convertSelect(call.getSourceSelect(), false);
 
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.UPDATE, targetColumnNameList, false);
@@ -3129,7 +3153,7 @@ public class SqlToRelConverter {
 
     // first, convert the merge's source select to construct the columns
     // from the target table and the set expressions in the update call
-    RelNode mergeSourceRel = convertSelect(call.getSourceSelect());
+    RelNode mergeSourceRel = convertSelect(call.getSourceSelect(), false);
 
     // then, convert the insert statement so we can get the insert
     // values expressions
@@ -3199,7 +3223,6 @@ public class SqlToRelConverter {
     final SqlQualified qualified;
     if (bb.scope != null) {
       qualified = bb.scope.fullyQualify(identifier);
-      identifier = qualified.identifier;
     } else {
       qualified = SqlQualified.create(null, 1, null, identifier);
     }
@@ -3271,7 +3294,7 @@ public class SqlToRelConverter {
     final SqlCall cursorCall = (SqlCall) subQuery.node;
     assert cursorCall.operandCount() == 1;
     SqlNode query = cursorCall.operand(0);
-    RelNode converted = convertQuery(query, false, false);
+    RelNode converted = convertQuery(query, false, false).rel;
     int iCursor = bb.cursors.size();
     bb.cursors.add(converted);
     subQuery.expr =
@@ -3305,21 +3328,18 @@ public class SqlToRelConverter {
       if (op == SqlStdOperatorTable.MULTISET_VALUE) {
         final SqlNodeList list =
             new SqlNodeList(call.getOperandList(), call.getParserPosition());
-//                assert bb.scope instanceof SelectScope : bb.scope;
         CollectNamespace nss =
             (CollectNamespace) validator.getNamespace(call);
         Blackboard usedBb;
         if (null != nss) {
-          usedBb = createBlackboard(nss.getScope(), null);
+          usedBb = createBlackboard(nss.getScope(), null, false);
         } else {
           usedBb =
-              createBlackboard(
-                  new ListScope(bb.scope) {
-                    public SqlNode getNode() {
-                      return call;
-                    }
-                  },
-                  null);
+              createBlackboard(new ListScope(bb.scope) {
+                public SqlNode getNode() {
+                  return call;
+                }
+              }, null, false);
         }
         RelDataType multisetType = validator.getValidatedNodeType(call);
         validator.setValidatedNodeType(
@@ -3327,7 +3347,8 @@ public class SqlToRelConverter {
             multisetType.getComponentType());
         input = convertQueryOrInList(usedBb, list, null);
       } else {
-        input = convertQuery(call.operand(0), false, true);
+        final RelRoot root = convertQuery(call.operand(0), false, true);
+        input = root.rel;
       }
 
       if (lastList.size() > 0) {
@@ -3492,8 +3513,8 @@ public class SqlToRelConverter {
   /**
    * Converts a WITH sub-query into a relational expression.
    */
-  public RelNode convertWith(SqlWith with) {
-    return convertQuery(with.body, false, false);
+  public RelRoot convertWith(SqlWith with, boolean top) {
+    return convertQuery(with.body, false, top);
   }
 
   /**
@@ -3504,7 +3525,7 @@ public class SqlToRelConverter {
       RelDataType targetRowType) {
     final SqlValidatorScope scope = validator.getOverScope(values);
     assert scope != null;
-    final Blackboard bb = createBlackboard(scope, null);
+    final Blackboard bb = createBlackboard(scope, null, false);
     convertValuesImpl(bb, values, targetRowType);
     return bb.root;
   }
@@ -3538,7 +3559,7 @@ public class SqlToRelConverter {
     final List<RelNode> unionRels = new ArrayList<>();
     for (SqlNode rowConstructor1 : values.getOperandList()) {
       SqlCall rowConstructor = (SqlCall) rowConstructor1;
-      Blackboard tmpBb = createBlackboard(bb.scope, null);
+      Blackboard tmpBb = createBlackboard(bb.scope, null, false);
       replaceSubqueries(tmpBb, rowConstructor,
           RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final List<Pair<RexNode, String>> exps = new ArrayList<>();
@@ -3604,7 +3625,7 @@ public class SqlToRelConverter {
     private final Map<String, RexNode> mapCorrelateVariableToRexNode =
         new HashMap<>();
 
-    List<RelNode> cursors;
+    final List<RelNode> cursors = new ArrayList<>();
 
     /**
      * List of <code>IN</code> and <code>EXISTS</code> nodes inside this
@@ -3637,6 +3658,7 @@ public class SqlToRelConverter {
         new ArrayList<>();
 
     private final List<RelDataTypeField> systemFieldList = new ArrayList<>();
+    final boolean top;
 
     /**
      * Creates a Blackboard.
@@ -3647,13 +3669,13 @@ public class SqlToRelConverter {
      * @param nameToNodeMap Map which translates the expression to map a
      *                      given parameter into, if translating expressions;
      *                      null otherwise
+     * @param top           Whether this is the root of the query
      */
-    protected Blackboard(
-        SqlValidatorScope scope,
-        Map<String, RexNode> nameToNodeMap) {
+    protected Blackboard(SqlValidatorScope scope,
+        Map<String, RexNode> nameToNodeMap, boolean top) {
       this.scope = scope;
       this.nameToNodeMap = nameToNodeMap;
-      this.cursors = new ArrayList<>();
+      this.top = top;
       subqueryNeedsOuterJoin = false;
     }
 

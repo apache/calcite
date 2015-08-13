@@ -2940,11 +2940,9 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "order by - \"empid\"")
-        .explainContains(""
-            + "EnumerableCalc(expr#0..5=[{inputs}], proj#0..4=[{exprs}])\n"
-            + "  EnumerableSort(sort0=[$5], dir0=[ASC])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[-($t0)], proj#0..5=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, emps]])")
+        .explainContains("EnumerableSort(sort0=[$5], dir0=[ASC])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[-($t0)], proj#0..5=[{exprs}])\n"
+            + "    EnumerableTableScan(table=[[hr, emps]])")
         .returns(""
             + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
             + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"

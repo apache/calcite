@@ -2409,12 +2409,11 @@ LogicalAggregate(group=[{0}], EMPID=[MIN($1)])
 ]]>
         </Resource>
     </TestCase>
-
     <TestCase name="testCorrelationScalarAggAndFilter">
         <Resource name="sql">
             <![CDATA[SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno
-     and e1.deptno < 10 and d1.deptno < 15
-     and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2442,12 +2441,11 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-
     <TestCase name="testCorrelationExistsAndFilter">
         <Resource name="sql">
             <![CDATA[SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno
-     and e1.deptno < 10 and d1.deptno < 15
-     and exists (select * from emp e2 where e1.empno = e2.empno)]]>
+and e1.deptno < 10 and d1.deptno < 15
+and exists (select * from emp e2 where e1.empno = e2.empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2476,12 +2474,11 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-
     <TestCase name="testCorrelationNotExistsAndFilter">
         <Resource name="sql">
             <![CDATA[SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno
-     and e1.deptno < 10 and d1.deptno < 15
-     and not exists (select * from emp e2 where e1.empno = e2.empno)]]>
+and e1.deptno < 10 and d1.deptno < 15
+and not exists (select * from emp e2 where e1.empno = e2.empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[

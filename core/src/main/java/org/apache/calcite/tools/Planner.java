@@ -18,6 +18,7 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -61,6 +62,10 @@ public interface Planner {
    * @throws org.apache.calcite.tools.RelConversionException if the node
    * cannot be converted or has not been validated
    */
+  RelRoot rel(SqlNode sql) throws RelConversionException;
+
+  /** @deprecated Use {@link #rel}. */
+  @Deprecated // to removed before 2.0
   RelNode convert(SqlNode sql) throws RelConversionException;
 
   /** Returns the type factory. */

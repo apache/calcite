@@ -93,8 +93,8 @@ public class JdbcFrontLinqBackTest {
         .query("select upper(\"name\") as un, \"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
             + "order by \"deptno\", \"name\" desc")
-        .explainContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[UPPER($t1)], UN=[$t2], deptno=[$t0])\n"
+        .explainContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[UPPER($t1)], UN=[$t2], deptno=[$t0], name=[$t1])\n"
             + "  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], name=[$t2])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])")
@@ -209,8 +209,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testInsert() {
-    final List<JdbcTest.Employee> employees =
-        new ArrayList<JdbcTest.Employee>();
+    final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
         .returns(
@@ -293,8 +292,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testInsert2() {
-    final List<JdbcTest.Employee> employees =
-        new ArrayList<JdbcTest.Employee>();
+    final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)")
         .returns("ROWCOUNT=1\n");
@@ -311,8 +309,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Some of the rows have the wrong number of columns. */
   @Test public void testInsertMultipleRowMismatch() {
-    final List<JdbcTest.Employee> employees =
-        new ArrayList<JdbcTest.Employee>();
+    final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values\n"
         + " (1, 3, 'third'),\n"

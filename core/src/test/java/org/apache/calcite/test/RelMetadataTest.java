@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
@@ -127,10 +128,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   // ----------------------------------------------------------------------
 
   private RelNode convertSql(String sql) {
-    RelNode rel = tester.convertSqlToRel(sql);
+    final RelRoot root = tester.convertSqlToRel(sql);
     DefaultRelMetadataProvider provider = new DefaultRelMetadataProvider();
-    rel.getCluster().setMetadataProvider(provider);
-    return rel;
+    root.rel.getCluster().setMetadataProvider(provider);
+    return root.rel;
   }
 
   private void checkPercentageOriginalRows(String sql, double expected) {
@@ -996,7 +997,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
             ImmutableList.<ImmutableBitSet>of(),
             ImmutableList.of(
                 AggregateCall.create(
-                    SqlStdOperatorTable.COUNT, false, ImmutableIntList.of(),
+                    SqlStdOperatorTable.COUNT, false, ImmutableIntList.of(), -1,
                     2, join, null, null)));
     rowSize = RelMetadataQuery.getAverageRowSize(aggregate);
     columnSizes = RelMetadataQuery.getAverageColumnSizes(aggregate);

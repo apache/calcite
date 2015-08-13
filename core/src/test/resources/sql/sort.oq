@@ -85,6 +85,19 @@ select * from e as e1, e as e2 order by e1.empid + e2.empid, e1.empid;
 
 !ok
 
+# WITH ... LIMIT
+with e as (select "empid" as empid from "hr"."emps" where "empid" < 200)
+select * from e where empid > 100 limit 5;
++-------+
+| EMPID |
++-------+
+|   150 |
+|   110 |
++-------+
+(2 rows)
+
+!ok
+
 # [CALCITE-634] Allow ORDER BY aggregate function in SELECT DISTINCT, provided
 # that it occurs in SELECT clause
 select distinct "deptno", count(*) as c

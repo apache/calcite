@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Collection;
 import java.util.Iterator;
 
 /**
@@ -38,7 +37,7 @@ public class RuleSets {
   }
 
   /** Creates a rule set with a given collection of rules. */
-  public static RuleSet ofList(Collection<RelOptRule> rules) {
+  public static RuleSet ofList(Iterable<? extends RelOptRule> rules) {
     return new ListRuleSet(ImmutableList.copyOf(rules));
   }
 

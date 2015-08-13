@@ -43,6 +43,7 @@ public class RelCollations {
    * A collation that cannot be replicated by applying a sort. The only
    * implementation choice is to apply operations that preserve order.
    */
+  @Deprecated // to be removed before 2.0
   public static final RelCollation PRESERVE =
       RelCollationTraitDef.INSTANCE.canonize(
           new RelCollationImpl(

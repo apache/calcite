@@ -343,9 +343,13 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public void rewriteRel(LogicalTableModify rel) {
     LogicalTableModify newRel =
-        LogicalTableModify.create(rel.getTable(), rel.getCatalogReader(),
-            getNewForOldRel(rel.getInput()), rel.getOperation(),
-            rel.getUpdateColumnList(), true);
+        LogicalTableModify.create(
+            rel.getTable(),
+            rel.getCatalogReader(),
+            getNewForOldRel(rel.getInput()),
+            rel.getOperation(),
+            rel.getUpdateColumnList(),
+            true);
     setNewForOldRel(rel, newRel);
   }
 
@@ -394,8 +398,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public void rewriteRel(LogicalJoin rel) {
     LogicalJoin newRel =
-        LogicalJoin.create(
-            getNewForOldRel(rel.getLeft()),
+        LogicalJoin.create(getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
             rel.getCondition().accept(new RewriteRexShuttle()),
             rel.getJoinType(),

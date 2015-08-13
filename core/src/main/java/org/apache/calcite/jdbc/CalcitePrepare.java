@@ -32,6 +32,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
@@ -226,12 +227,12 @@ public interface CalcitePrepare {
   /** The result of parsing and validating a SQL query and converting it to
    * relational algebra. */
   class ConvertResult extends ParseResult {
-    public final RelNode relNode;
+    public final RelRoot root;
 
     public ConvertResult(CalcitePrepareImpl prepare, SqlValidator validator,
-        String sql, SqlNode sqlNode, RelDataType rowType, RelNode relNode) {
+        String sql, SqlNode sqlNode, RelDataType rowType, RelRoot root) {
       super(prepare, validator, sql, sqlNode, rowType);
-      this.relNode = relNode;
+      this.root = root;
     }
   }
 
@@ -245,10 +246,10 @@ public interface CalcitePrepare {
 
     public AnalyzeViewResult(CalcitePrepareImpl prepare,
         SqlValidator validator, String sql, SqlNode sqlNode,
-        RelDataType rowType, RelNode relNode, Table table,
+        RelDataType rowType, RelRoot root, Table table,
         ImmutableList<String> tablePath, RexNode constraint,
         ImmutableIntList columnMapping) {
-      super(prepare, validator, sql, sqlNode, rowType, relNode);
+      super(prepare, validator, sql, sqlNode, rowType, root);
       this.table = table;
       this.tablePath = tablePath;
       this.constraint = constraint;

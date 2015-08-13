@@ -20,7 +20,7 @@ import org.apache.calcite.rel.core.Project;
 
 /**
  * Interpreter node that implements a
- * {@link org.apache.calcite.rel.logical.LogicalFilter}.
+ * {@link org.apache.calcite.rel.core.Project}.
  */
 public class ProjectNode extends AbstractSingleNode<Project> {
   private final Scalar scalar;

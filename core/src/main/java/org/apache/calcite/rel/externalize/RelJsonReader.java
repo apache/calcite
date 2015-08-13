@@ -60,24 +60,24 @@ public class RelJsonReader {
 
   private final RelOptCluster cluster;
   private final RelOptSchema relOptSchema;
-  private final Schema schema;
   private final RelJson relJson = new RelJson(null);
-  private final Map<String, RelNode> relMap =
-      new LinkedHashMap<String, RelNode>();
+  private final Map<String, RelNode> relMap = new LinkedHashMap<>();
   private RelNode lastRel;
 
   public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
       Schema schema) {
     this.cluster = cluster;
     this.relOptSchema = relOptSchema;
-    this.schema = schema;
+    Util.discard(schema);
   }
 
   public RelNode read(String s) throws IOException {
     lastRel = null;
     final ObjectMapper mapper = new ObjectMapper();
     Map<String, Object> o = mapper.readValue(s, TYPE_REF);
-    readRels((List<Map<String, Object>>) o.get("rels"));
+    @SuppressWarnings("unchecked")
+    final List<Map<String, Object>> rels = (List) o.get("rels");
+    readRels(rels);
     System.out.println(lastRel);
     return lastRel;
   }
@@ -102,7 +102,7 @@ public class RelJsonReader {
       }
 
       public RelOptTable getTable(String table) {
-        final List<String> list = (List<String>) jsonRel.get(table);
+        final List<String> list = getStringList(table);
         return relOptSchema.getTableForMember(list);
       }
 
@@ -113,11 +113,11 @@ public class RelJsonReader {
       }
 
       public List<RelNode> getInputs() {
-        List<String> jsonInputs = (List<String>) jsonRel.get("inputs");
+        final List<String> jsonInputs = getStringList("inputs");
         if (jsonInputs == null) {
           return ImmutableList.of(lastRel);
         }
-        final List<RelNode> inputs = new ArrayList<RelNode>();
+        final List<RelNode> inputs = new ArrayList<>();
         for (String jsonInput : jsonInputs) {
           inputs.add(lookupInput(jsonInput));
         }
@@ -145,17 +145,25 @@ public class RelJsonReader {
         return builder.build();
       }
 
+      public List<String> getStringList(String tag) {
+        //noinspection unchecked
+        return (List<String>) jsonRel.get(tag);
+      }
+
       public List<Integer> getIntegerList(String tag) {
+        //noinspection unchecked
         return (List<Integer>) jsonRel.get(tag);
       }
 
       public List<List<Integer>> getIntegerListList(String tag) {
+        //noinspection unchecked
         return (List<List<Integer>>) jsonRel.get(tag);
       }
 
       public List<AggregateCall> getAggregateCalls(String tag) {
-        List<Map<String, Object>> jsonAggs = (List) jsonRel.get(tag);
-        final List<AggregateCall> inputs = new ArrayList<AggregateCall>();
+        @SuppressWarnings("unchecked")
+        final List<Map<String, Object>> jsonAggs = (List) jsonRel.get(tag);
+        final List<AggregateCall> inputs = new ArrayList<>();
         for (Map<String, Object> jsonAggCall : jsonAggs) {
           inputs.add(toAggCall(jsonAggCall));
         }
@@ -184,8 +192,9 @@ public class RelJsonReader {
       }
 
       public List<RexNode> getExpressionList(String tag) {
+        @SuppressWarnings("unchecked")
         final List<Object> jsonNodes = (List) jsonRel.get(tag);
-        final List<RexNode> nodes = new ArrayList<RexNode>();
+        final List<RexNode> nodes = new ArrayList<>();
         for (Object jsonNode : jsonNodes) {
           nodes.add(relJson.toRex(this, jsonNode));
         }
@@ -215,6 +224,7 @@ public class RelJsonReader {
       }
 
       public RelCollation getCollation() {
+        //noinspection unchecked
         return relJson.toCollation((List) get("collation"));
       }
 
@@ -223,7 +233,8 @@ public class RelJsonReader {
       }
 
       public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {
-        List<List> jsonTuples = (List) get(tag);
+        //noinspection unchecked
+        final List<List> jsonTuples = (List) get(tag);
         final ImmutableList.Builder<ImmutableList<RexLiteral>> builder =
             ImmutableList.builder();
         for (List jsonTuple : jsonTuples) {
@@ -245,9 +256,7 @@ public class RelJsonReader {
       final RelNode rel = (RelNode) constructor.newInstance(input);
       relMap.put(id, rel);
       lastRel = rel;
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new RuntimeException(e);
     } catch (InvocationTargetException e) {
       final Throwable e2 = e.getCause();
@@ -263,6 +272,7 @@ public class RelJsonReader {
     final SqlAggFunction aggregation =
         relJson.toAggregation(aggName, jsonAggCall);
     final Boolean distinct = (Boolean) jsonAggCall.get("distinct");
+    @SuppressWarnings("unchecked")
     final List<Integer> operands = (List<Integer>) jsonAggCall.get("operands");
     final Integer filterOperand = (Integer) jsonAggCall.get("filter");
     final RelDataType type =

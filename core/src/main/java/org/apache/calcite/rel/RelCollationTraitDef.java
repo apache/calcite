@@ -64,10 +64,6 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
       RelNode rel,
       RelCollation toCollation,
       boolean allowInfiniteCostConverters) {
-    if (toCollation == RelCollations.PRESERVE) {
-      return null;
-    }
-
     if (toCollation.getFieldCollations().isEmpty()) {
       // An empty sort doesn't make sense.
       return null;
@@ -87,7 +83,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
 
   public boolean canConvert(
       RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait) {
-    return toTrait != RelCollations.PRESERVE;
+    return true;
   }
 }
 

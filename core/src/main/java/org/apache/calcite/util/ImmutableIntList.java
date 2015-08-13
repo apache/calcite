@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -246,7 +247,10 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     };
   }
 
-  /** Returns the identity list [0, ..., count - 1]. */
+  /** Returns the identity list [0, ..., count - 1].
+   *
+   * @see Mappings#isIdentity(List, int)
+   */
   public static ImmutableIntList identity(int count) {
     final int[] integers = new int[count];
     for (int i = 0; i < integers.length; i++) {

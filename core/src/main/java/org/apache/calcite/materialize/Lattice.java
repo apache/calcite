@@ -584,7 +584,7 @@ public class Lattice {
       // Walk the join tree.
       List<RelNode> relNodes = Lists.newArrayList();
       List<int[][]> tempLinks = Lists.newArrayList();
-      populate(relNodes, tempLinks, parsed.relNode);
+      populate(relNodes, tempLinks, parsed.root.rel);
 
       // Get aliases.
       List<String> aliases = Lists.newArrayList();

@@ -63,7 +63,8 @@ public class EnumerableProject extends Project implements EnumerableRel {
     Util.discard(flags);
   }
 
-  /** Creates a LogicalProject, specifying row type rather than field names. */
+  /** Creates an EnumerableProject, specifying row type rather than field
+   * names. */
   public static EnumerableProject create(final RelNode input,
       final List<? extends RexNode> projects, RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();

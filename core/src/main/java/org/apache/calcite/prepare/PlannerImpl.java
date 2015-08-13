@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
@@ -75,7 +76,7 @@ public class PlannerImpl implements Planner {
   private SqlNode validatedSqlNode;
 
   // set in STATE_5_CONVERT
-  private RelNode rel;
+  private RelRoot root;
 
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
@@ -178,7 +179,11 @@ public class PlannerImpl implements Planner {
     return validatedSqlNode;
   }
 
-  public RelNode convert(SqlNode sql) throws RelConversionException {
+  public final RelNode convert(SqlNode sql) throws RelConversionException {
+    return rel(sql).rel;
+  }
+
+  public RelRoot rel(SqlNode sql) throws RelConversionException {
     ensure(State.STATE_4_VALIDATED);
     assert validatedSqlNode != null;
     final RexBuilder rexBuilder = createRexBuilder();
@@ -188,17 +193,18 @@ public class PlannerImpl implements Planner {
             createCatalogReader(), cluster, convertletTable);
     sqlToRelConverter.setTrimUnusedFields(false);
     sqlToRelConverter.enableTableAccessConversion(false);
-    rel = sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
-    rel = sqlToRelConverter.flattenTypes(rel, true);
-    rel = RelDecorrelator.decorrelateQuery(rel);
+    root =
+        sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
+    root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
+    root = root.withRel(RelDecorrelator.decorrelateQuery(root.rel));
     state = State.STATE_5_CONVERTED;
-    return rel;
+    return root;
   }
 
   /** Implements {@link org.apache.calcite.plan.RelOptTable.ViewExpander}
    * interface for {@link org.apache.calcite.tools.Planner}. */
   public class ViewExpanderImpl implements ViewExpander {
-    public RelNode expandView(RelDataType rowType, String queryString,
+    public RelRoot expandView(RelDataType rowType, String queryString,
         List<String> schemaPath) {
       SqlParser parser = SqlParser.create(queryString, parserConfig);
       SqlNode sqlNode;
@@ -224,12 +230,11 @@ public class PlannerImpl implements Planner {
       sqlToRelConverter.setTrimUnusedFields(false);
       sqlToRelConverter.enableTableAccessConversion(false);
 
-      RelNode rel =
-          sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
-      rel = sqlToRelConverter.flattenTypes(rel, true);
-      rel = RelDecorrelator.decorrelateQuery(rel);
+      root = sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
+      root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
+      root = root.withRel(RelDecorrelator.decorrelateQuery(root.rel));
 
-      return rel;
+      return PlannerImpl.this.root;
     }
   }
 

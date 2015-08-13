@@ -19,6 +19,7 @@ package org.apache.calcite.plan;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
@@ -385,6 +386,7 @@ public abstract class RelOptUtil {
           AggregateCall.create(minFunction,
               false,
               ImmutableList.of(0),
+              -1,
               0,
               ret,
               null,
@@ -462,6 +464,7 @@ public abstract class RelOptUtil {
           AggregateCall.create(minFunction,
               false,
               ImmutableList.of(projectedKeyCount),
+              -1,
               projectedKeyCount,
               ret,
               null,
@@ -2566,9 +2569,7 @@ public abstract class RelOptUtil {
         return cluster;
       }
 
-      public RelNode expandView(
-          RelDataType rowType,
-          String queryString,
+      public RelRoot expandView(RelDataType rowType, String queryString,
           List<String> schemaPath) {
         throw new UnsupportedOperationException();
       }

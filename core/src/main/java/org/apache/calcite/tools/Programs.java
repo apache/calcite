@@ -29,6 +29,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -61,7 +62,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -94,7 +94,7 @@ public class Programs {
           FilterCalcMergeRule.INSTANCE,
           ProjectCalcMergeRule.INSTANCE);
 
-  /** Program that converts filters and projects to calcs. */
+  /** Program that converts filters and projects to {@link Calc}s. */
   public static final Program CALC_PROGRAM =
       hep(CALC_RULES, true, new DefaultRelMetadataProvider());
 
@@ -157,7 +157,7 @@ public class Programs {
   }
 
   /** Creates a program from a list of rules. */
-  public static Program ofRules(Collection<RelOptRule> rules) {
+  public static Program ofRules(Iterable<? extends RelOptRule> rules) {
     return of(RuleSets.ofList(rules));
   }
 
@@ -167,8 +167,8 @@ public class Programs {
   }
 
   /** Creates a program that executes a list of rules in a HEP planner. */
-  public static Program hep(ImmutableList<RelOptRule> rules, boolean noDag,
-      RelMetadataProvider metadataProvider) {
+  public static Program hep(Iterable<? extends RelOptRule> rules,
+      boolean noDag, RelMetadataProvider metadataProvider) {
     final HepProgramBuilder builder = HepProgram.builder();
     for (RelOptRule rule : rules) {
       builder.addRuleInstance(rule);
@@ -205,7 +205,8 @@ public class Programs {
    * {@link org.apache.calcite.rel.rules.MultiJoin} and
    * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule})
    * if there are 6 or more joins (7 or more relations). */
-  public static Program heuristicJoinOrder(final Collection<RelOptRule> rules,
+  public static Program heuristicJoinOrder(
+      final Iterable<? extends RelOptRule> rules,
       final boolean bushy, final int minJoinCount) {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
