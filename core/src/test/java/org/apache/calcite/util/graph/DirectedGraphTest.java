@@ -156,7 +156,7 @@ public class DirectedGraphTest {
     for (String s : TopologicalOrderIterator.of(graph)) {
       list.add(s);
     }
-    assertEquals("[A, B, E, C, F, D]", list.toString());
+    assertEquals("[A, E, B, C, F, D]", list.toString());
   }
 
   private DefaultDirectedGraph<String, DefaultEdge> createDag() {

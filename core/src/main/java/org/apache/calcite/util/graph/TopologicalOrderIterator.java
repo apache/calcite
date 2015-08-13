@@ -74,7 +74,24 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
   }
 
   public V next() {
-    V v = empties.remove(0);
+    // The topological ordering will order vertices as u->v
+    // if u has more outgoing edges than v.
+    // If both have the same number, any order could be picked.
+    // The goal is to have an expression evaluated first
+    // if there are other expressions dependent on it.
+    int chosenIndex = 0;
+    int chosenNumOutEdges =
+        graph.vertexMap.get(empties.get(chosenIndex)).outEdges.size();
+    for (int i = 1; i < empties.size(); ++i) {
+      final int numOutEdges =
+          graph.vertexMap.get(empties.get(i)).outEdges.size();
+      if (chosenNumOutEdges < numOutEdges) {
+        chosenIndex = i;
+        chosenNumOutEdges = numOutEdges;
+      }
+    }
+
+    final V v = empties.remove(chosenIndex);
     for (E o : graph.vertexMap.get(v).outEdges) {
       //noinspection unchecked
       final V target = (V) o.target;
