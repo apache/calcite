@@ -771,6 +771,31 @@ select avg(comm) as a, count(comm) as c from "scott".emp where empno < 7844;
 
 !ok
 
+# [CALCITE-846] Push aggregate with FILTER through UNION ALL
+select deptno, count(*) filter (where job = 'CLERK') as cf, count(*) as c
+from (
+  select * from "scott".emp where deptno < 20
+  union all
+  select * from "scott".emp where deptno > 20)
+group by deptno;
++--------+----+---+
+| DEPTNO | CF | C |
++--------+----+---+
+|     10 |  1 | 3 |
+|     30 |  1 | 6 |
++--------+----+---+
+(2 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK'], expr#3=[=($t0, $t2)], DEPTNO=[$t1], $f1=[$t3])
+    EnumerableUnion(all=[true])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[>($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # [CALCITE-751] Aggregate join transpose
 select count(*)
 from "scott".emp join "scott".dept using (deptno);

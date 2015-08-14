@@ -18,13 +18,12 @@ limitations under the License.
 <Root>
     <TestCase name="testProjectToWindowRuleForMultipleWindows">
         <Resource name="sql">
-            <![CDATA[
-select count(*) over(partition by empno order by sal) as count1,
-    count(*) over(partition by deptno order by sal) as count2,
-    sum(deptno)  over(partition by empno order by sal) as sum1,
-    sum(deptno)  over(partition by deptno order by sal) as sum2
-    from emp
-]]>
+            <![CDATA[select
+ count(*) over(partition by empno order by sal) as count1,
+ count(*) over(partition by deptno order by sal) as count2,
+ sum(deptno) over(partition by empno order by sal) as sum1,
+ sum(deptno) over(partition by deptno order by sal) as sum2
+from emp]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
@@ -1594,6 +1593,43 @@ LogicalProject(DEPTNO=[CASE($2, null, $0)], JOB=[CASE($3, null, $1)], EXPR$2=[$4
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
         LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushCountFilterThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select deptno, count(*) filter (where job = 'CLERK')
+from (
+  select * from emp where deptno = 10
+  union all
+  select * from emp where deptno > 20)
+group by deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
+  LogicalProject(DEPTNO=[$7], $f1=[=($2, 'CLERK')])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[>($7, 20)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
+      LogicalProject(DEPTNO=[$7], $f1=[=($2, 'CLERK')])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
+      LogicalProject(DEPTNO=[$7], $f1=[=($2, 'CLERK')])
+        LogicalFilter(condition=[>($7, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

@@ -61,8 +61,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
   private final RelFactories.SetOpFactory setOpFactory;
 
   private static final Map<Class<? extends SqlAggFunction>, Boolean>
-  SUPPORTED_AGGREGATES =
-      new IdentityHashMap<Class<? extends SqlAggFunction>, Boolean>();
+  SUPPORTED_AGGREGATES = new IdentityHashMap<>();
 
   static {
     SUPPORTED_AGGREGATES.put(SqlMinMaxAggFunction.class, true);
@@ -118,7 +117,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     boolean anyTransformed = false;
 
     // create corresponding aggregates on top of each union child
-    List<RelNode> newUnionInputs = new ArrayList<RelNode>();
+    final List<RelNode> newUnionInputs = new ArrayList<>();
     for (RelNode input : union.getInputs()) {
       boolean alreadyUnique =
           RelMdUtil.areColumnsDefinitelyUnique(
@@ -178,7 +177,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       }
       AggregateCall newCall =
           AggregateCall.create(aggFun, origCall.isDistinct(),
-              ImmutableList.of(groupCount + ord.i), groupCount, input,
+              ImmutableList.of(groupCount + ord.i), -1, groupCount, input,
               aggType, origCall.getName());
       newCalls.add(newCall);
     }
