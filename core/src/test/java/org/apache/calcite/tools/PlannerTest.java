@@ -31,6 +31,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
@@ -40,6 +41,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -78,9 +81,12 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.plan.RelOptRule.operand;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -509,6 +515,60 @@ public class PlannerTest {
         equalTo(
             "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "  EnumerableTableScan(table=[[hr, emps]])\n"));
+  }
+
+  /** Unit test that calls {@link Planner#transform} twice with
+   *  rule name conflicts */
+  @Test public void testPlanTransformWithRuleNameConflicts() throws Exception {
+    // Create two dummy rules with identical rules.
+    RelOptRule rule1 = new RelOptRule(
+        operand(LogicalProject.class,
+            operand(LogicalFilter.class, RelOptRule.any())),
+        "MYRULE") {
+      @Override public boolean matches(RelOptRuleCall call) {
+        return false;
+      }
+
+      public void onMatch(RelOptRuleCall call) {
+      }
+    };
+
+    RelOptRule rule2 = new RelOptRule(
+        operand(LogicalFilter.class,
+            operand(LogicalProject.class, RelOptRule.any())),
+        "MYRULE") {
+
+      @Override public boolean matches(RelOptRuleCall call) {
+        return false;
+      }
+
+      public void onMatch(RelOptRuleCall call) {
+      }
+    };
+
+    RuleSet ruleSet1 =
+        RuleSets.ofList(
+            rule1,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE);
+
+    RuleSet ruleSet2 =
+        RuleSets.ofList(
+            rule2);
+
+    Planner planner = getPlanner(null, Programs.of(ruleSet1),
+        Programs.of(ruleSet2));
+    SqlNode parse = planner.parse("select * from \"emps\"");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.convert(validate);
+    RelTraitSet traitSet = planner.getEmptyTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    RelNode transform2 = planner.transform(1, traitSet, transform);
+    assertThat(toString(transform2),
+        equalTo(
+            "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+                + "  EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
   /** Tests that Hive dialect does not generate "AS". */
