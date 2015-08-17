@@ -1783,6 +1783,7 @@ public class SqlToRelConverter {
     try {
       Util.permAssert(bb.window == null, "already in window agg mode");
       bb.window = window;
+      bb.setInOver(true);
       RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
       rexAgg =
           rexBuilder.ensureType(
@@ -1800,6 +1801,7 @@ public class SqlToRelConverter {
       return rexAgg.accept(visitor);
     } finally {
       bb.window = null;
+      bb.setInOver(false);
     }
   }
 
@@ -3364,7 +3366,6 @@ public class SqlToRelConverter {
     return ret;
   }
 
-
   private void convertSelectList(
       Blackboard bb,
       SqlSelect select,
@@ -3608,6 +3609,8 @@ public class SqlToRelConverter {
         new ArrayList<>();
 
     private final List<RelDataTypeField> systemFieldList = new ArrayList<>();
+
+    private boolean inOver;
 
     /**
      * Creates a Blackboard.
@@ -4109,7 +4112,8 @@ public class SqlToRelConverter {
     public RexNode visit(SqlCall call) {
       if (agg != null) {
         final SqlOperator op = call.getOperator();
-        if (op.isAggregator() || op.getKind() == SqlKind.FILTER) {
+        if (!isInOver()
+            && (op.isAggregator() || op.getKind() == SqlKind.FILTER)) {
           return agg.lookupAggregates(call);
         }
       }
@@ -4143,6 +4147,22 @@ public class SqlToRelConverter {
 
     public List<SqlMonotonicity> getColumnMonotonicities() {
       return columnMonotonicities;
+    }
+
+    /**
+     * Determines whether the {@link Blackboard} is in Over
+     * @return <code>true</code> if the {@link Blackboard} is in Over
+     */
+    public final boolean isInOver() {
+      return inOver;
+    }
+
+    /**
+     * Sets whether the {@link Blackboard} is in Over or not.
+     * @param inOver Whether the {@link Blackboard} is in Over or not
+     */
+    public final void setInOver(final boolean inOver) {
+      this.inOver = inOver;
     }
   }
 

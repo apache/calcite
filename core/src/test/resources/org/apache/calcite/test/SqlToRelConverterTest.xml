@@ -2330,6 +2330,22 @@ LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWindowAverageWithGroupBy">
+        <Resource name="sql">
+            <![CDATA[select avg(deptno) over ()
+from emp
+group by deptno
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(/(SUM($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), COUNT($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWindowAggWithGroupByAndJoin">
         <Resource name="sql">
             <![CDATA[select min(d.deptno), rank() over (order by e.empno),
