@@ -1303,6 +1303,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-847">[CALCITE-847]
+   * AVG window function in GROUP BY gives AssertionError</a>.
+   */
+  @Test public void testWindowAverageWithGroupBy() {
+    final String sql = "select avg(deptno) over ()\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
    * variant involving joins</a>.
    */

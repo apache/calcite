@@ -3414,7 +3414,6 @@ public class SqlToRelConverter {
     return ret;
   }
 
-
   private void convertSelectList(
       Blackboard bb,
       SqlSelect select,
@@ -4160,7 +4159,8 @@ public class SqlToRelConverter {
     public RexNode visit(SqlCall call) {
       if (agg != null) {
         final SqlOperator op = call.getOperator();
-        if (op.isAggregator() || op.getKind() == SqlKind.FILTER) {
+        if (window == null
+            && (op.isAggregator() || op.getKind() == SqlKind.FILTER)) {
           return agg.lookupAggregates(call);
         }
       }
@@ -4195,6 +4195,7 @@ public class SqlToRelConverter {
     public List<SqlMonotonicity> getColumnMonotonicities() {
       return columnMonotonicities;
     }
+
   }
 
   /** Deferred lookup. */
