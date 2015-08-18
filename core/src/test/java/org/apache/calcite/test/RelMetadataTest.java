@@ -1074,7 +1074,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     predicates = RelMetadataQuery.getPulledUpPredicates(semiJoin);
     assertThat(predicates.pulledUpPredicates.toString(), is("[=($0, 1)]"));
-    assertThat(predicates.leftInferredPredicates.toString(), is("[=($0, 1)]"));
+    assertThat(predicates.leftInferredPredicates.toString(), is("[]"));
     assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
   }
 
