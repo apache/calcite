@@ -40,9 +40,10 @@ public class Main {
    *
    * <p>Arguments are as follows:
    * <ul>
-   *   <li>args[0]: the {@link Meta.Factory} class name
+   *   <li>args[0]: the {@link org.apache.calcite.avatica.Meta.Factory} class
+   *       name
    *   <li>args[1+]: arguments passed along to
-   *   {@link Meta.Factory#create(java.util.List)}
+   *   {@link org.apache.calcite.avatica.Meta.Factory#create(java.util.List)}
    * </ul>
    *
    * @param args Command-line arguments
