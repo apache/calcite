@@ -30,6 +30,7 @@ import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
 import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -3399,6 +3400,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param scope Scope in which expression occurs
    */
   private void validateExpr(SqlNode expr, SqlValidatorScope scope) {
+    if (expr instanceof SqlCall) {
+      final SqlCall sqlCall = (SqlCall) expr;
+      if (sqlCall.getOperator().isAggregator()
+          && ((SqlAggFunction) sqlCall.getOperator()).requiresOver()) {
+        throw newValidationError(expr,
+            RESOURCE.absentOverClause());
+      }
+    }
+
     // Call on the expression to validate itself.
     expr.validateExpr(this, scope);
 

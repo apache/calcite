@@ -3804,6 +3804,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Test specified collation, window clause syntax rule 4,5.
   }
 
+  @Test public void testWindowFunctionsWithoutOver() {
+    winSql(
+        "select sum(empno) \n"
+        + "from emp \n"
+        + "group by deptno \n"
+        + "order by ^row_number()^")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql(
+        "select ^rank()^ \n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql(
+        "select cume_dist() over w , ^rank()^\n"
+        + "from emp \n"
+        + "window w as (partition by deptno order by deptno)")
+        .fails("OVER clause is necessary for window functions");
+  }
+
   @Test public void testOverInPartitionBy() {
     winSql(
         "select sum(deptno) over ^(partition by sum(deptno) \n"
@@ -3900,7 +3920,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // rank function type
     if (defined.contains("DENSE_RANK")) {
-      winExp("dense_rank()").ok();
+      winExp("^dense_rank()^")
+          .fails("OVER clause is necessary for window functions");
     } else {
       checkWinFuncExpWithWinClause(
           "^dense_rank()^",

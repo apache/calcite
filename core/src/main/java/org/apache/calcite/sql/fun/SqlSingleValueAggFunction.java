@@ -43,11 +43,14 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
       RelDataType type) {
     super(
         "SINGLE_VALUE",
+        null,
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.ARG0,
         null,
         OperandTypes.ANY,
-        SqlFunctionCategory.SYSTEM);
+        SqlFunctionCategory.SYSTEM,
+        false,
+        false);
     this.type = type;
   }
 

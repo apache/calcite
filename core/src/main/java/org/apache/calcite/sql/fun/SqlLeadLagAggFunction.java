@@ -76,15 +76,14 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
   public SqlLeadLagAggFunction(boolean isLead) {
     super(
         isLead ? "LEAD" : "LAG",
+        null,
         SqlKind.OTHER_FUNCTION,
         RETURN_TYPE,
         null,
         OPERAND_TYPES,
-        SqlFunctionCategory.NUMERIC);
-  }
-
-  @Override public boolean requiresOrder() {
-    return true;
+        SqlFunctionCategory.NUMERIC,
+        false,
+        true);
   }
 
   @Override public boolean allowsFraming() {
