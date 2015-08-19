@@ -1087,9 +1087,10 @@ public class RexUtil {
 
   /** Converts an expression to disjunctive normal form (DNF).
    *
-   * <p>DNF: It is a form of logical formula which is disjunction of conjunctive clauses</p>
+   * <p>DNF: It is a form of logical formula which is disjunction of conjunctive
+   * clauses.
    *
-   * <p>All logicl formulas can be converted into DNF.</p>
+   * <p>All logical formulas can be converted into DNF.
    *
    * <p>The following expression is in DNF:
    *
@@ -1280,16 +1281,97 @@ public class RexUtil {
       return simplifyAnd(rexBuilder, (RexCall) e);
     case OR:
       return simplifyOr(rexBuilder, (RexCall) e);
+    case NOT:
+      return simplifyNot(rexBuilder, (RexCall) e);
     case CASE:
       return simplifyCase(rexBuilder, (RexCall) e);
+    }
+    switch (e.getKind()) {
     case IS_NULL:
-      return ((RexCall) e).getOperands().get(0).getType().isNullable()
-          ? e : rexBuilder.makeLiteral(false);
     case IS_NOT_NULL:
-      return ((RexCall) e).getOperands().get(0).getType().isNullable()
-          ? e : rexBuilder.makeLiteral(true);
+    case IS_TRUE:
+    case IS_NOT_TRUE:
+    case IS_FALSE:
+    case IS_NOT_FALSE:
+      assert e instanceof RexCall;
+      return simplifyIs(rexBuilder, (RexCall) e);
     default:
       return e;
+    }
+  }
+
+  private static RexNode simplifyNot(RexBuilder rexBuilder, RexCall call) {
+    final RexNode a = call.getOperands().get(0);
+    switch (a.getKind()) {
+    case NOT:
+      // NOT NOT x ==> x
+      return simplify(rexBuilder, ((RexCall) a).getOperands().get(0));
+    }
+    final SqlKind negateKind = a.getKind().negate();
+    if (a.getKind() != negateKind) {
+      return simplify(rexBuilder,
+          rexBuilder.makeCall(op(negateKind),
+              ImmutableList.of(((RexCall) a).getOperands().get(0))));
+    }
+    return call;
+  }
+
+  private static RexNode simplifyIs(RexBuilder rexBuilder, RexCall call) {
+    final SqlKind kind = call.getKind();
+    final RexNode a = call.getOperands().get(0);
+    if (!a.getType().isNullable()) {
+      switch (kind) {
+      case IS_NULL:
+      case IS_NOT_NULL:
+        // x IS NULL ==> FALSE (if x is not nullable)
+        // x IS NOT NULL ==> TRUE (if x is not nullable)
+        return rexBuilder.makeLiteral(kind == SqlKind.IS_NOT_NULL);
+      case IS_TRUE:
+      case IS_NOT_FALSE:
+        // x IS TRUE ==> x (if x is not nullable)
+        // x IS NOT FALSE ==> x (if x is not nullable)
+        return simplify(rexBuilder, a);
+      case IS_FALSE:
+      case IS_NOT_TRUE:
+        // x IS NOT TRUE ==> NOT x (if x is not nullable)
+        // x IS FALSE ==> NOT x (if x is not nullable)
+        return simplify(rexBuilder,
+            rexBuilder.makeCall(SqlStdOperatorTable.NOT, a));
+      }
+    }
+    switch (a.getKind()) {
+    case NOT:
+      // NOT x IS TRUE ==> x IS NOT TRUE
+      // Similarly for IS NOT TRUE, IS FALSE, etc.
+      return simplify(rexBuilder,
+          rexBuilder.makeCall(op(kind.negate()),
+              ((RexCall) a).getOperands().get(0)));
+    }
+    RexNode a2 = simplify(rexBuilder, a);
+    if (a != a2) {
+      return rexBuilder.makeCall(op(kind), ImmutableList.of(a2));
+    }
+    return call;
+  }
+
+  private static SqlOperator op(SqlKind kind) {
+    switch (kind) {
+    case IS_FALSE:
+      return SqlStdOperatorTable.IS_FALSE;
+    case IS_TRUE:
+      return SqlStdOperatorTable.IS_TRUE;
+    case IS_UNKNOWN:
+      return SqlStdOperatorTable.IS_UNKNOWN;
+    case IS_NULL:
+      return SqlStdOperatorTable.IS_NULL;
+    case IS_NOT_FALSE:
+      return SqlStdOperatorTable.IS_NOT_FALSE;
+    case IS_NOT_TRUE:
+      return SqlStdOperatorTable.IS_NOT_TRUE;
+    case IS_NOT_NULL:
+      return SqlStdOperatorTable.IS_NOT_NULL;
+    default:
+      throw new AssertionError(kind);
     }
   }
 
@@ -1379,11 +1461,13 @@ public class RexUtil {
         --i;
         break;
       case LITERAL:
-        if (!RexLiteral.booleanValue(term)) {
-          return term; // false
-        } else {
-          terms.remove(i);
-          --i;
+        if (!RexLiteral.isNullLiteral(term)) {
+          if (!RexLiteral.booleanValue(term)) {
+            return term; // false
+          } else {
+            terms.remove(i);
+            --i;
+          }
         }
       }
     }
@@ -1420,11 +1504,13 @@ public class RexUtil {
       final RexNode term = terms.get(i);
       switch (term.getKind()) {
       case LITERAL:
-        if (RexLiteral.booleanValue(term)) {
-          return term; // true
-        } else {
-          terms.remove(i);
-          --i;
+        if (!RexLiteral.isNullLiteral(term)) {
+          if (RexLiteral.booleanValue(term)) {
+            return term; // true
+          } else {
+            terms.remove(i);
+            --i;
+          }
         }
       }
     }

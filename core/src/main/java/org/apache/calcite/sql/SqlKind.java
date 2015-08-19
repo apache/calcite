@@ -907,6 +907,32 @@ public enum SqlKind {
     }
   }
 
+  /** Returns the kind that you get if you apply NOT to this kind.
+   *
+   * <p>For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}. */
+  public SqlKind negate() {
+    switch (this) {
+    case IS_TRUE:
+      return IS_NOT_TRUE;
+    case IS_FALSE:
+      return IS_NOT_FALSE;
+    case IS_NULL:
+      return IS_NOT_NULL;
+    case IS_NOT_TRUE:
+      return IS_TRUE;
+    case IS_NOT_FALSE:
+      return IS_FALSE;
+    case IS_NOT_NULL:
+      return IS_NULL;
+    case IS_DISTINCT_FROM:
+      return IS_NOT_DISTINCT_FROM;
+    case IS_NOT_DISTINCT_FROM:
+      return IS_DISTINCT_FROM;
+    default:
+      return this;
+    }
+  }
+
   /**
    * Returns whether this {@code SqlKind} belongs to a given category.
    *

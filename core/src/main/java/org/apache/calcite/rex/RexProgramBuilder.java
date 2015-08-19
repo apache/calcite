@@ -41,13 +41,12 @@ public class RexProgramBuilder {
 
   private final RexBuilder rexBuilder;
   private final RelDataType inputRowType;
-  private final List<RexNode> exprList = new ArrayList<RexNode>();
+  private final List<RexNode> exprList = new ArrayList<>();
   private final Map<Pair<String, String>, RexLocalRef> exprMap =
-      new HashMap<Pair<String, String>, RexLocalRef>();
-  private final List<RexLocalRef> localRefList = new ArrayList<RexLocalRef>();
-  private final List<RexLocalRef> projectRefList =
-      new ArrayList<RexLocalRef>();
-  private final List<String> projectNameList = new ArrayList<String>();
+      new HashMap<>();
+  private final List<RexLocalRef> localRefList = new ArrayList<>();
+  private final List<RexLocalRef> projectRefList = new ArrayList<>();
+  private final List<String> projectNameList = new ArrayList<>();
   private RexLocalRef conditionRef = null;
   private boolean validating;
 
@@ -78,19 +77,21 @@ public class RexProgramBuilder {
    * @param rexBuilder     Rex builder
    * @param inputRowType   Input row type
    * @param exprList       Common expressions
-   * @param projectRefList Projections
-   * @param conditionRef   Condition, or null
+   * @param projectList    Projections
+   * @param condition      Condition, or null
    * @param outputRowType  Output row type
    * @param normalize      Whether to normalize
+   * @param simplify       Whether to simplify
    */
   private RexProgramBuilder(
       RexBuilder rexBuilder,
       final RelDataType inputRowType,
       final List<RexNode> exprList,
-      final List<RexLocalRef> projectRefList,
-      final RexLocalRef conditionRef,
+      final Iterable<? extends RexNode> projectList,
+      RexNode condition,
       final RelDataType outputRowType,
-      boolean normalize) {
+      boolean normalize,
+      boolean simplify) {
     this(inputRowType, rexBuilder);
 
     // Create a shuttle for registering input expressions.
@@ -106,24 +107,38 @@ public class RexProgramBuilder {
       }
     }
 
+    final RexShuttle expander = new RexProgram.ExpansionShuttle(exprList);
+
     // Register project expressions
     // and create a named project item.
     final List<RelDataTypeField> fieldList = outputRowType.getFieldList();
-    for (Pair<RexLocalRef, RelDataTypeField> pair
-        : Pair.zip(projectRefList, fieldList)) {
-      final RexLocalRef projectRef = pair.left;
+    for (Pair<? extends RexNode, RelDataTypeField> pair
+        : Pair.zip(projectList, fieldList)) {
+      final RexNode project;
+      if (simplify) {
+        project = RexUtil.simplify(rexBuilder, pair.left.accept(expander));
+      } else {
+        project = pair.left;
+      }
       final String name = pair.right.getName();
-      final int oldIndex = projectRef.getIndex();
-      final RexNode expr = exprList.get(oldIndex);
-      final RexLocalRef ref = (RexLocalRef) expr.accept(shuttle);
+      final RexLocalRef ref = (RexLocalRef) project.accept(shuttle);
       addProject(ref.getIndex(), name);
     }
 
     // Register the condition, if there is one.
-    if (conditionRef != null) {
-      final RexNode expr = exprList.get(conditionRef.getIndex());
-      final RexLocalRef ref = (RexLocalRef) expr.accept(shuttle);
-      addCondition(ref);
+    if (condition != null) {
+      if (simplify) {
+        condition = RexUtil.simplify(rexBuilder,
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+                condition.accept(expander)));
+        if (condition.isAlwaysTrue()) {
+          condition = null;
+        }
+      }
+      if (condition != null) {
+        final RexLocalRef ref = (RexLocalRef) condition.accept(shuttle);
+        addCondition(ref);
+      }
     }
   }
 
@@ -463,7 +478,8 @@ public class RexProgramBuilder {
         projectRefs,
         conditionRef,
         outputRowType,
-        normalize);
+        normalize,
+        false);
   }
 
   /**
@@ -494,28 +510,37 @@ public class RexProgramBuilder {
    * @param rexBuilder     Rex builder
    * @param inputRowType   Input row type
    * @param exprList       Common expressions
-   * @param projectRefList Projections
-   * @param conditionRef   Condition, or null
+   * @param projectList    Projections
+   * @param condition      Condition, or null
    * @param outputRowType  Output row type
    * @param normalize      Whether to normalize
+   * @param simplify       Whether to simplify expressions
    * @return A program builder
    */
   public static RexProgramBuilder create(
       RexBuilder rexBuilder,
       final RelDataType inputRowType,
       final List<RexNode> exprList,
-      final List<RexLocalRef> projectRefList,
-      final RexLocalRef conditionRef,
+      final List<? extends RexNode> projectList,
+      final RexNode condition,
+      final RelDataType outputRowType,
+      boolean normalize,
+      boolean simplify) {
+    return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
+        projectList, condition, outputRowType, normalize, simplify);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static RexProgramBuilder create(
+      RexBuilder rexBuilder,
+      final RelDataType inputRowType,
+      final List<RexNode> exprList,
+      final List<? extends RexNode> projectList,
+      final RexNode condition,
       final RelDataType outputRowType,
       boolean normalize) {
-    return new RexProgramBuilder(
-        rexBuilder,
-        inputRowType,
-        exprList,
-        projectRefList,
-        conditionRef,
-        outputRowType,
-        normalize);
+    return create(rexBuilder, inputRowType, exprList, projectList, condition,
+        outputRowType, normalize, false);
   }
 
   /**
@@ -557,21 +582,11 @@ public class RexProgramBuilder {
     return progBuilder;
   }
 
-  /**
-   * Normalizes a program.
-   *
-   * @param rexBuilder Rex builder
-   * @param program    Program
-   * @return Normalized program
-   */
+  @Deprecated // to be removed before 2.0
   public static RexProgram normalize(
       RexBuilder rexBuilder,
       RexProgram program) {
-    // Normalize program by creating program builder from the program, then
-    // converting to a program. getProgram does not need to normalize
-    // because the builder was normalized on creation.
-    return forProgram(program, rexBuilder, true)
-        .getProgram(false);
+    return program.normalize(rexBuilder, false);
   }
 
   /**
@@ -601,7 +616,7 @@ public class RexProgramBuilder {
     // register the result.
     // REVIEW jpham 28-Apr-2006: if the user shuttle rewrites an input
     // expression, then input references may change
-    List<RexLocalRef> newRefs = new ArrayList<RexLocalRef>(exprList.size());
+    List<RexLocalRef> newRefs = new ArrayList<>(exprList.size());
     RexShuttle refShuttle = new UpdateRefShuttle(newRefs);
     int i = 0;
     for (RexNode expr : exprList) {
@@ -753,7 +768,7 @@ public class RexProgramBuilder {
 
   private List<RexLocalRef> registerProjectsAndCondition(RexProgram program) {
     final List<RexNode> exprList = program.getExprList();
-    final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
+    final List<RexLocalRef> projectRefList = new ArrayList<>();
     final RexShuttle shuttle = new RegisterOutputShuttle(exprList);
 
     // For each project, lookup the expr and expand it so it is in terms of

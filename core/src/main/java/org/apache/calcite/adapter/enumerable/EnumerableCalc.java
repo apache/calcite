@@ -144,6 +144,9 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
             inputJavaType);
 
+    final RexProgram program =
+        this.program.normalize(getCluster().getRexBuilder(), true);
+
     BlockStatement moveNextBody;
     if (program.getCondition() == null) {
       moveNextBody =

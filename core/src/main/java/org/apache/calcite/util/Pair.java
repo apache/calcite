@@ -216,12 +216,12 @@ public class Pair<T1, T2>
    * @return Iterable over pairs
    */
   public static <K, V> Iterable<Pair<K, V>> zip(
-      final Iterable<K> ks,
-      final Iterable<V> vs) {
+      final Iterable<? extends K> ks,
+      final Iterable<? extends V> vs) {
     return new Iterable<Pair<K, V>>() {
       public Iterator<Pair<K, V>> iterator() {
-        final Iterator<K> kIterator = ks.iterator();
-        final Iterator<V> vIterator = vs.iterator();
+        final Iterator<? extends K> kIterator = ks.iterator();
+        final Iterator<? extends V> vIterator = vs.iterator();
 
         return new Iterator<Pair<K, V>>() {
           public boolean hasNext() {

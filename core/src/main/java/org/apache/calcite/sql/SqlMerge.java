@@ -23,7 +23,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -80,7 +79,8 @@ public class SqlMerge extends SqlCall {
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
-      targetTable = (SqlIdentifier) operand;
+      assert operand instanceof SqlIdentifier;
+      targetTable = operand;
       break;
     case 1:
       condition = operand;
@@ -193,11 +193,6 @@ public class SqlMerge extends SqlCall {
               SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
               "SET",
               "");
-
-      Iterator targetColumnIter =
-          updateCall.getTargetColumnList().getList().iterator();
-      Iterator sourceExpressionIter =
-          updateCall.getSourceExpressionList().getList().iterator();
 
       for (Pair<SqlNode, SqlNode> pair : Pair.zip(
           updateCall.targetColumnList, updateCall.sourceExpressionList)) {

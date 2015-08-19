@@ -35,7 +35,6 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.tools.RelBuilder;
@@ -199,8 +198,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
         protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
             RelBuilder relBuilder, RelNode input, RexProgram program) {
           assert !program.containsAggs();
-          program = RexProgramBuilder.normalize(cluster.getRexBuilder(),
-              program);
+          program = program.normalize(cluster.getRexBuilder(), false);
           return super.makeRel(cluster, traitSet, relBuilder, input, program);
         }
       },

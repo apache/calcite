@@ -663,7 +663,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * <p>We have a loose definition of 'predicate': any boolean expression will
    * do, except CASE. For example '(CASE ...) = 5' or '(CASE ...) IS NULL'.
    */
-  protected static RexCall pushPredicateIntoCase(RexCall call) {
+  public static RexCall pushPredicateIntoCase(RexCall call) {
     if (call.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
       return call;
     }
