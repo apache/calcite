@@ -240,9 +240,9 @@ where exists (
 (3 rows)
 
 !ok
-EnumerableSemiJoin(condition=[=($1, $6)], joinType=[inner])
+EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner])
   EnumerableTableScan(table=[[hr, emps]])
-  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f0=[$t5], deptno0=[$t0])
+  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], deptno0=[$t0], $f0=[$t5])
     EnumerableJoin(condition=[=($0, $1)], joinType=[inner])
       EnumerableAggregate(group=[{1}])
         EnumerableTableScan(table=[[hr, emps]])
