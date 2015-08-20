@@ -63,6 +63,10 @@ public abstract class SqlCall extends SqlNode {
     throw new UnsupportedOperationException();
   }
 
+  @Override public SqlKind getKind() {
+    return getOperator().getKind();
+  }
+
   public abstract SqlOperator getOperator();
 
   public abstract List<SqlNode> getOperandList();

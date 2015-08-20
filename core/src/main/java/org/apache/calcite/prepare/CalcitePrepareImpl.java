@@ -412,6 +412,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         constraint, ImmutableIntList.copyOf(columnMapping));
   }
 
+  @Override public void executeDdl(Context context, SqlNode node) {
+    throw new UnsupportedOperationException();
+  }
+
   /** Factory method for default SQL parser. */
   protected SqlParser createParser(String sql) {
     return createParser(sql, createParserConfig());
@@ -658,6 +662,21 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
 
       Hook.PARSE_TREE.run(new Object[] {sql, sqlNode});
+
+      if (sqlNode.getKind().belongsTo(SqlKind.DDL)) {
+        executeDdl(context, sqlNode);
+
+        // Return a dummy signature that contains no rows
+        final Bindable<T> bindable = new Bindable<T>() {
+          public Enumerable<T> bind(DataContext dataContext) {
+            return Linq4j.emptyEnumerable();
+          }
+        };
+        return new CalciteSignature<>(sql, ImmutableList.<AvaticaParameter>of(),
+            ImmutableMap.<String, Object>of(), null,
+            ImmutableList.<ColumnMetaData>of(), Meta.CursorFactory.OBJECT,
+            ImmutableList.<RelCollation>of(), -1, bindable);
+      }
 
       final CalciteSchema rootSchema = context.getRootSchema();
       final ChainedSqlOperatorTable opTab =

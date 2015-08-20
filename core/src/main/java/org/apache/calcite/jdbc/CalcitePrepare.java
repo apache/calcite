@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.ImmutableIntList;
@@ -75,6 +76,12 @@ public interface CalcitePrepare {
   ParseResult parse(Context context, String sql);
 
   ConvertResult convert(Context context, String sql);
+
+  /** Executes a DDL statement.
+   *
+   * <p>The statement identified itself as DDL in the
+   * {@link org.apache.calcite.jdbc.CalcitePrepare.ParseResult#kind} field. */
+  void executeDdl(Context context, SqlNode node);
 
   /** Analyzes a view.
    *
@@ -221,6 +228,26 @@ public interface CalcitePrepare {
       this.sqlNode = sqlNode;
       this.rowType = rowType;
       this.typeFactory = validator.getTypeFactory();
+    }
+
+    /** Returns the kind of statement.
+     *
+     * <p>Possibilities include:
+     *
+     * <ul>
+     *   <li>Queries: usually {@link SqlKind#SELECT}, but
+     *   other query operators such as {@link SqlKind#UNION} and
+     *   {@link SqlKind#ORDER_BY} are possible
+     *   <li>DML statements: {@link SqlKind#INSERT}, {@link SqlKind#UPDATE} etc.
+     *   <li>Session control statements: {@link SqlKind#COMMIT}
+     *   <li>DDL statements: {@link SqlKind#CREATE_TABLE},
+     *   {@link SqlKind#DROP_INDEX}
+     * </ul>
+     *
+     * @return Kind of statement, never null
+     */
+    public SqlKind kind() {
+      return sqlNode.getKind();
     }
   }
 

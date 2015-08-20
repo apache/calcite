@@ -613,7 +613,64 @@ public enum SqlKind {
   GROUPING_ID,
 
   /** The internal {@code GROUP_ID()} function. */
-  GROUP_ID;
+  GROUP_ID,
+
+  // DDL and session control statements follow. The list is not exhaustive: feel
+  // free to add more.
+
+  /** {@code COMMIT} session control statement. */
+  COMMIT,
+
+  /** {@code ROLLBACK} session control statement. */
+  ROLLBACK,
+
+  /** {@code ALTER SESSION} DDL statement. */
+  ALTER_SESSION,
+
+  /** {@code CREATE TABLE} DDL statement. */
+  CREATE_TABLE,
+
+  /** {@code ALTER TABLE} DDL statement. */
+  ALTER_TABLE,
+
+  /** {@code DROP TABLE} DDL statement. */
+  DROP_TABLE,
+
+  /** {@code CREATE VIEW} DDL statement. */
+  CREATE_VIEW,
+
+  /** {@code ALTER VIEW} DDL statement. */
+  ALTER_VIEW,
+
+  /** {@code DROP VIEW} DDL statement. */
+  DROP_VIEW,
+
+  /** {@code CREATE SEQUENCE} DDL statement. */
+  CREATE_SEQUENCE,
+
+  /** {@code ALTER SEQUENCE} DDL statement. */
+  ALTER_SEQUENCE,
+
+  /** {@code DROP SEQUENCE} DDL statement. */
+  DROP_SEQUENCE,
+
+  /** {@code CREATE INDEX} DDL statement. */
+  CREATE_INDEX,
+
+  /** {@code ALTER INDEX} DDL statement. */
+  ALTER_INDEX,
+
+  /** {@code DROP INDEX} DDL statement. */
+  DROP_INDEX,
+
+  /** DDL statement not handled above.
+   *
+   * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
+   * and have your own object types you no doubt want to define CREATE and DROP
+   * commands for them. Use OTHER_DDL in the short term, but we are happy to add
+   * new enum values for your object types. Just ask!
+   */
+  OTHER_DDL;
 
   //~ Static fields/initializers ---------------------------------------------
 
@@ -679,6 +736,16 @@ public enum SqlKind {
       EnumSet.of(INSERT, DELETE, UPDATE, MERGE, PROCEDURE_CALL);
 
   /**
+   * Category consisting of all DDL operators.
+   */
+  public static final EnumSet<SqlKind> DDL =
+      EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
+          CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
+          CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
+          CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
+          CREATE_INDEX, ALTER_INDEX, DROP_INDEX);
+
+  /**
    * Category consisting of query node types.
    *
    * <p>Consists of:
@@ -697,9 +764,9 @@ public enum SqlKind {
   /**
    * Category of all SQL statement types.
    *
-   * <p>Consists of all types in {@link #QUERY} and {@link #DML}.
+   * <p>Consists of all types in {@link #QUERY}, {@link #DML} and {@link #DDL}.
    */
-  public static final Set<SqlKind> TOP_LEVEL = plus(QUERY, DML);
+  public static final EnumSet<SqlKind> TOP_LEVEL = concat(QUERY, DML, DDL);
 
   /**
    * Category consisting of regular and special functions.
@@ -762,10 +829,13 @@ public enum SqlKind {
     return category.contains(this);
   }
 
-  private static <E extends Enum<E>> EnumSet<E> plus(EnumSet<E> set0,
-      EnumSet<E> set1) {
+  @SafeVarargs
+  private static <E extends Enum<E>> EnumSet<E> concat(EnumSet<E> set0,
+      EnumSet<E>... sets) {
     EnumSet<E> set = set0.clone();
-    set.addAll(set1);
+    for (EnumSet<E> s : sets) {
+      set.addAll(s);
+    }
     return set;
   }
 }

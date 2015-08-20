@@ -31,6 +31,7 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.linq4j.BaseQueryable;
@@ -40,6 +41,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.Types;
@@ -74,10 +76,20 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
+import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
@@ -102,6 +114,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -995,6 +1008,19 @@ public class JdbcTest {
     assertTrue(resultSet.isClosed());
     assertTrue(statement.isClosed());
     assertTrue(connection.isClosed());
+  }
+
+  /** Tests that a driver can be extended with its own parser and can execute
+   * its own flavor of DDL. */
+  @Test public void testMockDdl() throws Exception {
+    final MockDdlDriver driver = new MockDdlDriver();
+    try (Connection connection =
+             driver.connect("jdbc:calcite:", new Properties());
+        Statement statement = connection.createStatement()) {
+      assertThat(driver.counter, is(0));
+      statement.executeQuery("COMMIT");
+      assertThat(driver.counter, is(1));
+    }
   }
 
   /**
@@ -6808,6 +6834,49 @@ public class JdbcTest {
 
     @Override protected Handler createHandler() {
       return HANDLERS.get();
+    }
+  }
+
+  /** Mock driver that can execute a trivial DDL statement. */
+  public static class MockDdlDriver extends org.apache.calcite.jdbc.Driver {
+    public int counter;
+
+    public MockDdlDriver() {
+    }
+
+    @Override protected Function0<CalcitePrepare> createPrepareFactory() {
+      return new Function0<CalcitePrepare>() {
+        @Override public CalcitePrepare apply() {
+          return new CalcitePrepareImpl() {
+            @Override protected SqlParser.ConfigBuilder createParserConfig() {
+              return super.createParserConfig().setParserFactory(
+                  new SqlParserImplFactory() {
+                    @Override public SqlAbstractParserImpl
+                    getParser(Reader stream) {
+                      return new SqlParserImpl(stream) {
+                        @Override public SqlNode parseSqlStmtEof() {
+                          return new SqlCall(SqlParserPos.ZERO) {
+                            @Override public SqlOperator getOperator() {
+                              return new SqlSpecialOperator("COMMIT",
+                                  SqlKind.COMMIT);
+                            }
+
+                            @Override public List<SqlNode> getOperandList() {
+                              return ImmutableList.of();
+                            }
+                          };
+                        }
+                      };
+                    }
+                  });
+            }
+
+            @Override public void executeDdl(Context context, SqlNode node) {
+              ++counter;
+            }
+          };
+        }
+      };
     }
   }
 
