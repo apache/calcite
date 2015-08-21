@@ -327,6 +327,8 @@ public abstract class SqlAbstractParserImpl {
 
   protected int nDynamicParams;
 
+  protected String originalSql;
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -440,6 +442,20 @@ public abstract class SqlAbstractParserImpl {
    * Sets the maximum length for sql identifier.
    */
   public abstract void setIdentifierMaxLength(int identifierMaxLength);
+
+  /**
+   * Sets the SQL text that is being parsed.
+   */
+  public void setOriginalSql(String originalSql) {
+    this.originalSql = originalSql;
+  }
+
+  /**
+   * Returns the SQL text.
+   */
+  public String getOriginalSql() {
+    return originalSql;
+  }
 
   /**
    * Change parser state.

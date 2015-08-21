@@ -42,6 +42,7 @@ public class SqlParser {
       Config config) {
     this.originalInput = s;
     this.parser = parser;
+    parser.setOriginalSql(s);
     parser.setTabSize(1);
     parser.setQuotedCasing(config.quotedCasing());
     parser.setUnquotedCasing(config.unquotedCasing());
