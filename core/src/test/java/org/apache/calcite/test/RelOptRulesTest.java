@@ -64,6 +64,7 @@ import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
@@ -1607,6 +1608,16 @@ public class RelOptRulesTest extends RelOptTestBase {
     transitiveInference(ReduceExpressionsRule.JOIN_INSTANCE,
         ReduceExpressionsRule.PROJECT_INSTANCE,
         FilterProjectTransposeRule.INSTANCE);
+  }
+
+  @Test public void testProjectWindowTransposeRule() {
+    HepProgram program = new HepProgramBuilder()
+      .addRuleInstance(ProjectToWindowRule.PROJECT)
+      .addRuleInstance(ProjectWindowTransposeRule.INSTANCE)
+      .build();
+
+    final String sql = "select count(empno) over(), deptno from emp";
+    checkPlanning(program, sql);
   }
 
   @Test public void testPushFilterWithRank() throws Exception {

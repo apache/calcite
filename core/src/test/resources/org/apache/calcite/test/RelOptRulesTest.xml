@@ -3041,6 +3041,26 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectWindowTransposeRule">
+        <Resource name="sql">
+            <![CDATA[select count(empno) over(), deptno from emp]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[$1], DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$1], $1=[$2])
+    LogicalWindow(window#0=[window(partition {} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT($0)])])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[COUNT($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterWithRank">
         <Resource name="sql">
             <![CDATA[select e1.ename, r
