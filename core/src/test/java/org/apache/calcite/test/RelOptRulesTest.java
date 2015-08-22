@@ -62,6 +62,8 @@ import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
@@ -139,6 +141,15 @@ public class RelOptRulesTest extends RelOptTestBase {
     return DiffRepository.lookup(RelOptRulesTest.class);
   }
 
+  @Test public void testProjectWindowTransposeRule() {
+    HepProgram program = new HepProgramBuilder()
+      .addRuleInstance(ProjectToWindowRule.PROJECT)
+      .addRuleInstance(ProjectWindowTransposeRule.INSTANCE)
+      .build();
+
+    checkPlanning(program,
+        "select count(empno) over(), deptno from emp");
+  }
 
   @Test public void testUnionToDistinctRule() {
     checkPlanning(UnionToDistinctRule.INSTANCE,
