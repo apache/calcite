@@ -670,6 +670,10 @@ limitations under the License.
             <executions>
               <execution>
                 <id>source-release-assembly</id>
+                <phase>none</phase>
+              </execution>
+              <execution>
+                <id>source-release-assembly-calcite</id>
                 <phase>package</phase>
                 <goals>
                   <goal>single</goal>
