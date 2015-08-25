@@ -16,6 +16,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <Root>
+    <TestCase name="testProjectToWindowRuleForMultipleWindows">
+        <Resource name="sql">
+            <![CDATA[
+select count(*) over(partition by empno order by sal) as count1,
+    count(*) over(partition by deptno order by sal) as count2,
+    sum(deptno)  over(partition by empno order by sal) as sum1,
+    sum(deptno)  over(partition by deptno order by sal) as sum2
+    from emp
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($0=[$9], $1=[$11], $2=[$10], $3=[$12])
+  LogicalWindow(window#0=[window(partition {0} order by [5] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [COUNT(), SUM($7)])], window#1=[window(partition {7} order by [5] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [COUNT(), SUM($7)])])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(COUNT1=[COUNT() OVER (PARTITION BY $0 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], COUNT2=[COUNT() OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], SUM1=[SUM($7) OVER (PARTITION BY $0 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], SUM2=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUnionToDistinctRule">
         <Resource name="sql">
             <![CDATA[select * from dept union select * from dept]]>
