@@ -1632,6 +1632,25 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "where r < 2");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841],
+   * Redundant windows when window function arguments are expressions</a>. */
+  @Test public void testExpressionInWindowFunction() {
+    HepProgram preProgram =  new HepProgramBuilder().build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ProjectToWindowRule.PROJECT);
+
+    final String sql = "select\n"
+        + " sum(deptno) over(partition by deptno order by sal) as sum1,\n"
+        + "sum(deptno + sal) over(partition by deptno order by sal) as sum2\n"
+        + "from emp";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
   @Test public void testPushAggregateThroughJoin1() throws Exception {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)

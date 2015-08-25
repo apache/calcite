@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -37,13 +38,25 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.DefaultDirectedGraph;
+import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import java.util.Collections;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -239,11 +252,122 @@ public abstract class ProjectToWindowRule extends RelOptRule {
     }
 
     @Override protected List<Set<Integer>> getCohorts() {
-      // Here used to be the implementation that treats all the RexOvers
-      // as a single Cohort. This is flawed if the RexOvers
-      // depend on each other (i.e. the second one uses the result
-      // of the first).
-      return Collections.emptyList();
+      // Two RexOver will be put in the same cohort
+      // if the following conditions are satisfied
+      // (1). They have the same RexWindow
+      // (2). They are not dependent on each other
+      final List<RexNode> exprs = this.program.getExprList();
+      final DirectedGraph<Integer, DefaultEdge> graph =
+          createGraphFromExpression(exprs);
+      final List<Integer> rank = getRank(graph);
+
+      final List<Pair<RexWindow, Set<Integer>>> windowToIndices = new ArrayList<>();
+      for (int i = 0; i < exprs.size(); ++i) {
+        final RexNode expr = exprs.get(i);
+        if (expr instanceof RexOver) {
+          final RexOver over = (RexOver) expr;
+
+          // If we can found an existing cohort which satisfies the two conditions,
+          // we will add this RexOver into that cohort
+          boolean isFound = false;
+          for (Pair<RexWindow, Set<Integer>> pair : windowToIndices) {
+            // Check the first condition
+            if (pair.left.equals(over.getWindow())) {
+              // Check the second condition
+              boolean hasDependency = false;
+              for (int ordinal : pair.right) {
+                if (isDependent(graph, rank, ordinal, i)) {
+                  hasDependency = true;
+                  break;
+                }
+              }
+
+              if (!hasDependency) {
+                pair.right.add(i);
+                isFound = true;
+                break;
+              }
+            }
+          }
+
+          // This RexOver cannot be added into any existing cohort
+          if (!isFound) {
+            final Set<Integer> newSet = Sets.newHashSet(i);
+            windowToIndices.add(Pair.of(over.getWindow(), newSet));
+          }
+        }
+      }
+
+      final List<Set<Integer>> cohorts = new ArrayList<>();
+      for (Pair<RexWindow, Set<Integer>> pair : windowToIndices) {
+        cohorts.add(pair.right);
+      }
+      return cohorts;
+    }
+
+    private boolean isDependent(final DirectedGraph<Integer, DefaultEdge> graph,
+        final List<Integer> rank,
+        final int ordinal1,
+        final int ordinal2) {
+      if (rank.get(ordinal2) > rank.get(ordinal1)) {
+        return isDependent(graph, rank, ordinal2, ordinal1);
+      }
+
+      // Check if the expression in ordinal1
+      // could depend on expression in ordinal2 by Depth-First-Search
+      final Deque<Integer> dfs = new ArrayDeque<>();
+      final Set<Integer> visited = new HashSet<>();
+      dfs.push(ordinal2);
+      while (!dfs.isEmpty()) {
+        int source = dfs.pop();
+        if (visited.contains(source)) {
+          continue;
+        }
+
+        if (source == ordinal1) {
+          return true;
+        }
+
+        visited.add(source);
+        for (DefaultEdge e : graph.getOutwardEdges(source)) {
+          int target = (int) e.target;
+          if (rank.get(target) < rank.get(ordinal1)) {
+            dfs.push(target);
+          }
+        }
+      }
+
+      return false;
+    }
+
+    private List<Integer> getRank(DirectedGraph<Integer, DefaultEdge> graph) {
+      final int[] rankArr = new int[graph.vertexSet().size()];
+      int rank = 0;
+      for (int i : TopologicalOrderIterator.of(graph)) {
+        rankArr[i] = rank++;
+      }
+      return ImmutableIntList.of(rankArr);
+    }
+
+    private DirectedGraph<Integer, DefaultEdge> createGraphFromExpression(
+        final List<RexNode> exprs) {
+      final DirectedGraph<Integer, DefaultEdge> graph =
+          DefaultDirectedGraph.create();
+      for (int i = 0; i < exprs.size(); i++) {
+        graph.addVertex(i);
+      }
+
+      for (final Ord<RexNode> expr : Ord.zip(exprs)) {
+        expr.e.accept(
+            new RexVisitorImpl<Void>(true) {
+              public Void visitLocalRef(RexLocalRef localRef) {
+                graph.addEdge(localRef.getIndex(), expr.i);
+                return null;
+              }
+            });
+      }
+      assert graph.vertexSet().size() == exprs.size();
+      return graph;
     }
   }
 }
