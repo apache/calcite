@@ -62,6 +62,7 @@ import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
@@ -139,6 +140,22 @@ public class RelOptRulesTest extends RelOptTestBase {
     return DiffRepository.lookup(RelOptRulesTest.class);
   }
 
+  @Test public void testExpressionInWindowFunction() {
+    HepProgram preProgram =  new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ProjectToWindowRule.PROJECT);
+
+    checkPlanning(tester,
+        preProgram,
+        hepPlanner,
+        "select sum(deptno) over(partition by deptno) as sum1, \n"
+            + "sum(deptno + sal) over(partition by deptno) as sum2 \n"
+            + "from emp");
+  }
 
   @Test public void testUnionToDistinctRule() {
     checkPlanning(UnionToDistinctRule.INSTANCE,
