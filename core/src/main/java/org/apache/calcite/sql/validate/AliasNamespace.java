@@ -21,7 +21,9 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
@@ -67,7 +69,8 @@ public class AliasNamespace extends AbstractNamespace {
     final SqlValidatorNamespace childNs =
         validator.getNamespace(operands.get(0));
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-    for (final SqlNode operand : Util.skip(operands, 2)) {
+    final List<SqlNode> columnNames = Util.skip(operands, 2);
+    for (final SqlNode operand : columnNames) {
       String name = ((SqlIdentifier) operand).getSimple();
       if (nameList.contains(name)) {
         throw validator.newValidationError(operand,
@@ -76,8 +79,11 @@ public class AliasNamespace extends AbstractNamespace {
       nameList.add(name);
     }
     if (nameList.size() != rowType.getFieldCount()) {
-      // Position error at first name in list.
-      throw validator.newValidationError(operands.get(2),
+      // Position error over all column names
+      final SqlNode node = operands.size() == 3
+          ? operands.get(2)
+          : new SqlNodeList(columnNames, SqlParserPos.sum(columnNames));
+      throw validator.newValidationError(node,
           RESOURCE.aliasListDegree(rowType.getFieldCount(), getString(rowType),
               nameList.size()));
     }

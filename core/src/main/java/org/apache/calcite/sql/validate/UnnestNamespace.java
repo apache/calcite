@@ -19,7 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.type.MultisetSqlType;
 
 /**
@@ -40,7 +40,7 @@ class UnnestNamespace extends AbstractNamespace {
       SqlNode enclosingNode) {
     super(validator, enclosingNode);
     assert scope != null;
-    assert unnest.getOperator() == SqlStdOperatorTable.UNNEST;
+    assert unnest.getOperator() instanceof SqlUnnestOperator;
     this.unnest = unnest;
     this.scope = scope;
   }
@@ -53,12 +53,7 @@ class UnnestNamespace extends AbstractNamespace {
     RelDataType type =
         unnest.getOperator().validateOperands(validator, scope, unnest);
 
-    if (type.isStruct()) {
-      return type;
-    }
-    return validator.getTypeFactory().builder()
-        .add(validator.deriveAlias(unnest, 0), type)
-        .build();
+    return toStruct(type, unnest);
   }
 
   /**

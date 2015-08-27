@@ -112,6 +112,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
@@ -1013,6 +1014,7 @@ public class SqlToRelConverter {
 
     case MULTISET_QUERY_CONSTRUCTOR:
     case MULTISET_VALUE_CONSTRUCTOR:
+    case ARRAY_QUERY_CONSTRUCTOR:
       rel = convertMultisets(ImmutableList.of(subQuery.node), bb);
       subQuery.expr = bb.register(rel, JoinRelType.INNER);
       return;
@@ -1685,6 +1687,7 @@ public class SqlToRelConverter {
     case SELECT:
     case MULTISET_QUERY_CONSTRUCTOR:
     case MULTISET_VALUE_CONSTRUCTOR:
+    case ARRAY_QUERY_CONSTRUCTOR:
     case CURSOR:
     case SCALAR_QUERY:
       if (!registerOnlyScalarSubqueries
@@ -1886,7 +1889,7 @@ public class SqlToRelConverter {
   protected void convertFrom(
       Blackboard bb,
       SqlNode from) {
-    SqlCall call;
+    final SqlCall call;
     final SqlNode[] operands;
     switch (from.getKind()) {
     case AS:
@@ -2026,7 +2029,9 @@ public class SqlToRelConverter {
       return;
 
     case UNNEST:
-      final SqlNode node = ((SqlCall) from).operand(0);
+      call = (SqlCall) from;
+      final SqlNode node = call.operand(0);
+      final SqlUnnestOperator operator = (SqlUnnestOperator) call.getOperator();
       replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final RelNode childRel =
           RelOptUtil.createProject(
@@ -2037,7 +2042,7 @@ public class SqlToRelConverter {
 
       Uncollect uncollect =
           new Uncollect(cluster, cluster.traitSetOf(Convention.NONE),
-              childRel);
+              childRel, operator.withOrdinality);
       bb.setRoot(uncollect, true);
       return;
 
@@ -2046,8 +2051,8 @@ public class SqlToRelConverter {
 
       // Dig out real call; TABLE() wrapper is just syntactic.
       assert call.getOperandList().size() == 1;
-      call = call.operand(0);
-      convertCollectionTable(bb, call);
+      final SqlCall call2 = call.operand(0);
+      convertCollectionTable(bb, call2);
       return;
 
     default:
@@ -3348,14 +3353,10 @@ public class SqlToRelConverter {
       }
 
       final SqlCall call = (SqlCall) operand;
-      final SqlOperator op = call.getOperator();
-      if ((op != SqlStdOperatorTable.MULTISET_VALUE)
-          && (op != SqlStdOperatorTable.MULTISET_QUERY)) {
-        lastList.add(operand);
-        continue;
-      }
       final RelNode input;
-      if (op == SqlStdOperatorTable.MULTISET_VALUE) {
+      switch (call.getKind()) {
+      case MULTISET_VALUE_CONSTRUCTOR:
+      case ARRAY_VALUE_CONSTRUCTOR:
         final SqlNodeList list =
             new SqlNodeList(call.getOperandList(), call.getParserPosition());
         CollectNamespace nss =
@@ -3376,9 +3377,15 @@ public class SqlToRelConverter {
             list,
             multisetType.getComponentType());
         input = convertQueryOrInList(usedBb, list, null);
-      } else {
+        break;
+      case MULTISET_QUERY_CONSTRUCTOR:
+      case ARRAY_QUERY_CONSTRUCTOR:
         final RelRoot root = convertQuery(call.operand(0), false, true);
         input = root.rel;
+        break;
+      default:
+        lastList.add(operand);
+        continue;
       }
 
       if (lastList.size() > 0) {

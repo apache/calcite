@@ -76,6 +76,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
@@ -1675,6 +1676,7 @@ SqlNode TableRef() :
     boolean isRepeatable = false;
     int repeatableSeed = 0;
     SqlNodeList columnAliasList = null;
+    SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
 }
 {
     (
@@ -1713,10 +1715,13 @@ SqlNode TableRef() :
     |
         <UNNEST> { pos = getPos(); }
         args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUBQUERY)
+        [
+            <WITH> <ORDINALITY> {
+                unnestOp = SqlStdOperatorTable.UNNEST_WITH_ORDINALITY;
+            }
+        ]
         {
-            tableRef =
-                SqlStdOperatorTable.UNNEST.createCall(
-                    pos.plus(getPos()), args.toArray());
+            tableRef = unnestOp.createCall(pos.plus(getPos()), args.toArray());
         }
     |
         <TABLE> { pos = getPos(); } <LPAREN>

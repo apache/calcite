@@ -2176,11 +2176,18 @@ public class JdbcTest {
         .returnsUnordered("A=[{10}, {20}, {10}, {10}]");
   }
 
-  @Ignore("unnest does not apply to array. should it?")
   @Test public void testUnnestArray() {
     CalciteAssert.that()
         .query("select*from unnest(array[1,2])")
-        .returnsUnordered("xx");
+        .returnsUnordered("EXPR$0=1",
+            "EXPR$0=2");
+  }
+
+  @Test public void testUnnestArrayWithOrdinality() {
+    CalciteAssert.that()
+        .query("select*from unnest(array[10,20]) with ordinality as t(i, o)")
+        .returnsUnordered("I=10; O=1",
+            "I=20; O=2");
   }
 
   @Test public void testUnnestMultiset() {

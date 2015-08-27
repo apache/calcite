@@ -22,7 +22,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 /**
- * Definition of the SQL:2003 standard ARRAY constructor, <code>MULTISET
+ * Definition of the SQL:2003 standard ARRAY constructor, <code>ARRAY
  * [&lt;expr&gt;, ...]</code>.
  */
 public class SqlArrayValueConstructor extends SqlMultisetValueConstructor {

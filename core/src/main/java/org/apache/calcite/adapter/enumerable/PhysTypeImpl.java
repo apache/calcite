@@ -32,6 +32,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -483,6 +484,27 @@ public class PhysTypeImpl implements PhysType {
 
   public Type getJavaFieldType(int index) {
     return format.javaFieldClass(typeFactory, rowType, index);
+  }
+
+  public PhysType component(int fieldOrdinal) {
+    final RelDataTypeField field = rowType.getFieldList().get(fieldOrdinal);
+    return PhysTypeImpl.of(typeFactory,
+        toStruct(field.getType().getComponentType()), format, false);
+  }
+
+  public PhysType field(int ordinal) {
+    final RelDataTypeField field = rowType.getFieldList().get(ordinal);
+    final RelDataType type = field.getType();
+    return PhysTypeImpl.of(typeFactory, toStruct(type), format, false);
+  }
+
+  private RelDataType toStruct(RelDataType type) {
+    if (type.isStruct()) {
+      return type;
+    }
+    return typeFactory.builder()
+        .add(SqlUtil.deriveAliasFromOrdinal(0), type)
+        .build();
   }
 
   public Expression comparer() {

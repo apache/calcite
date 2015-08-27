@@ -48,6 +48,12 @@ public interface PhysType {
    * field type is {@code Object} even if the field is not nullable.</p> */
   Type getJavaFieldType(int field);
 
+  /** Returns the physical type of a field. */
+  PhysType field(int ordinal);
+
+  /** Returns the physical type of a given field's component type. */
+  PhysType component(int field);
+
   /** Returns the SQL row type. */
   RelDataType getRowType();
 

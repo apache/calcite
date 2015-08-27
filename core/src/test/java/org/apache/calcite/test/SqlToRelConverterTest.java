@@ -734,6 +734,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     check("select*from unnest(multiset(select*from dept))", "${plan}");
   }
 
+  @Test public void testUnnestArray() {
+    sql("select*from unnest(array(select*from dept))")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testUnnestWithOrdinality() {
+    sql("select*from unnest(array(select*from dept)) with ordinality")
+        .convertsTo("${plan}");
+  }
+
   @Test public void testMultisetSubquery() {
     check(
         "select multiset(select deptno from dept) from (values(true))",

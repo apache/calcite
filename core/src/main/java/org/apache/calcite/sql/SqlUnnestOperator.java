@@ -17,17 +17,26 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * The <code>UNNEST</code> operator.
  */
 public class SqlUnnestOperator extends SqlFunctionalOperator {
+  /** Whether {@code WITH ORDINALITY} was specified.
+   *
+   * <p>If so, the returned records include a column {@code ORDINALITY}. */
+  public final boolean withOrdinality;
+
+  public static final String ORDINALITY_COLUMN_NAME = "ORDINALITY";
+
   //~ Constructors -----------------------------------------------------------
 
-  public SqlUnnestOperator() {
+  public SqlUnnestOperator(boolean withOrdinality) {
     super(
         "UNNEST",
         SqlKind.UNNEST,
@@ -36,6 +45,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         null,
         null,
         OperandTypes.SCALAR_OR_RECORD_COLLECTION);
+    this.withOrdinality = withOrdinality;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -47,7 +57,28 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       type = type.getFieldList().get(0).getType();
     }
     assert type instanceof ArraySqlType || type instanceof MultisetSqlType;
-    return type.getComponentType();
+    if (withOrdinality) {
+      final RelDataTypeFactory.FieldInfoBuilder builder =
+          opBinding.getTypeFactory().builder();
+      if (type.getComponentType().isStruct()) {
+        builder.addAll(type.getComponentType().getFieldList());
+      } else {
+        builder.add(SqlUtil.deriveAliasFromOrdinal(0), type.getComponentType());
+      }
+      return builder
+          .add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER)
+          .build();
+    } else {
+      return type.getComponentType();
+    }
+  }
+
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    super.unparse(writer, call, leftPrec, rightPrec);
+    if (withOrdinality) {
+      writer.keyword("WITH ORDINALITY");
+    }
   }
 
   public boolean argumentMustBeScalar(int ordinal) {

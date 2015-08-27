@@ -21,37 +21,46 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.List;
 
 /**
- * Relational expression that unnests its input's sole column into a
- * relation.
+ * Relational expression that unnests its input's columns into a relation.
+ *
+ * <p>The input may have multiple columns, but each must be a multiset or
+ * array. If {@code withOrdinality}, the output contains an extra
+ * {@code ORDINALITY} column.
  *
  * <p>Like its inverse operation {@link Collect}, Uncollect is generally
  * invoked in a nested loop, driven by
  * {@link org.apache.calcite.rel.logical.LogicalCorrelate} or similar.
  */
 public class Uncollect extends SingleRel {
+  public final boolean withOrdinality;
+
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates an Uncollect.
-   *
-   * <p>The row type of the child relational expression must contain precisely
-   * one column, that column must be a multiset of records.
-   *
-   * @param cluster Cluster the relational expression belongs to
-   * @param traitSet Traits
-   * @param child   Child relational expression
-   */
+  @Deprecated // to be removed before 2.0
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child) {
-    super(cluster, traitSet, child);
+    this(cluster, traitSet, child, false);
+  }
+
+  /** Creates an Uncollect.
+   *
+   * <p>Use {@link #create} unless you know what you're doing. */
+  public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+      boolean withOrdinality) {
+    super(cluster, traitSet, input);
+    this.withOrdinality = withOrdinality;
     assert deriveRowType() != null : "invalid child rowtype";
   }
 
@@ -59,10 +68,32 @@ public class Uncollect extends SingleRel {
    * Creates an Uncollect by parsing serialized output.
    */
   public Uncollect(RelInput input) {
-    this(input.getCluster(), input.getTraitSet(), input.getInput());
+    this(input.getCluster(), input.getTraitSet(), input.getInput(),
+        input.getBoolean("withOrdinality", false));
+  }
+
+  /**
+   * Creates an Uncollect.
+   *
+   * <p>Each field of the input relational expression must be an array or
+   * multiset.
+   *
+   * @param traitSet Trait set
+   * @param input    Input relational expression
+   * @param withOrdinality Whether output should contain an ORDINALITY column
+   */
+  public static Uncollect create(RelTraitSet traitSet, RelNode input,
+      boolean withOrdinality) {
+    final RelOptCluster cluster = input.getCluster();
+    return new Uncollect(cluster, traitSet, input, withOrdinality);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .itemIf("withOrdinality", withOrdinality, withOrdinality);
+  }
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
@@ -71,35 +102,44 @@ public class Uncollect extends SingleRel {
 
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new Uncollect(getCluster(), traitSet, input);
+    return new Uncollect(getCluster(), traitSet, input, withOrdinality);
   }
 
   protected RelDataType deriveRowType() {
-    return deriveUncollectRowType(getInput());
+    return deriveUncollectRowType(input, withOrdinality);
   }
 
   /**
    * Returns the row type returned by applying the 'UNNEST' operation to a
-   * relational expression. The relational expression must have precisely one
-   * column, whose type must be a multiset of structs. The return type is the
-   * type of that column.
+   * relational expression.
+   *
+   * <p>Each column in the relational expression must be a multiset of structs
+   * or an array. The return type is the type of that column, plus an ORDINALITY
+   * column if {@code withOrdinality}.
    */
-  public static RelDataType deriveUncollectRowType(RelNode rel) {
+  public static RelDataType deriveUncollectRowType(RelNode rel,
+      boolean withOrdinality) {
     RelDataType inputType = rel.getRowType();
     assert inputType.isStruct() : inputType + " is not a struct";
     final List<RelDataTypeField> fields = inputType.getFieldList();
-    assert 1 == fields.size() : "expected 1 field";
-    RelDataType ret = fields.get(0).getType().getComponentType();
-    assert null != ret;
-    if (!ret.isStruct()) {
-      // Element type is not a record. It may be a scalar type, say
-      // "INTEGER". Wrap it in a struct type.
-      ret =
-          rel.getCluster().getTypeFactory().builder()
-              .add(SqlUtil.deriveAliasFromOrdinal(0), ret)
-              .build();
+    final RelDataTypeFactory.FieldInfoBuilder builder =
+        rel.getCluster().getTypeFactory().builder();
+    for (RelDataTypeField field : fields) {
+      RelDataType ret = field.getType().getComponentType();
+      assert null != ret;
+      if (ret.isStruct()) {
+        builder.addAll(ret.getFieldList());
+      } else {
+        // Element type is not a record. It may be a scalar type, say
+        // "INTEGER". Wrap it in a struct type.
+        builder.add(SqlUtil.deriveAliasFromOrdinal(field.getIndex()), ret);
+      }
     }
-    return ret;
+    if (withOrdinality) {
+      builder.add(SqlUnnestOperator.ORDINALITY_COLUMN_NAME,
+          SqlTypeName.INTEGER);
+    }
+    return builder.build();
   }
 }
 

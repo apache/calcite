@@ -37,11 +37,10 @@ class EnumerableUncollectRule extends ConverterRule {
     final RelTraitSet traitSet =
         uncollect.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode input = uncollect.getInput();
-    return new EnumerableUncollect(
-        rel.getCluster(),
-        traitSet,
-        convert(input,
-            input.getTraitSet().replace(EnumerableConvention.INSTANCE)));
+    final RelNode newInput = convert(input,
+        input.getTraitSet().replace(EnumerableConvention.INSTANCE));
+    return EnumerableUncollect.create(traitSet, newInput,
+        uncollect.withOrdinality);
   }
 }
 

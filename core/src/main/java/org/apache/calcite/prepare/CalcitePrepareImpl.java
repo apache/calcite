@@ -114,6 +114,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -598,7 +599,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   private <T> CalciteSignature<T> simplePrepare(Context context, String sql) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataType x =
-        typeFactory.builder().add("EXPR$0", SqlTypeName.INTEGER).build();
+        typeFactory.builder()
+            .add(SqlUtil.deriveAliasFromOrdinal(0), SqlTypeName.INTEGER)
+            .build();
     @SuppressWarnings("unchecked")
     final List<T> list = (List) ImmutableList.of(1);
     final List<String> origin = null;

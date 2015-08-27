@@ -145,6 +145,34 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
             <![CDATA[select*from unnest(multiset(select*from dept))]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUnnestArray">
+        <Resource name="sql">
+            <![CDATA[select*from unnest(array(select*from dept))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  Uncollect
+    Collect(field=[EXPR$0])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUnnestWithOrdinality">
+        <Resource name="sql">
+            <![CDATA[select*from unnest(array(select*from dept)) with ordinality]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], ORDINALITY=[$2])
+  Uncollect(withOrdinality=[true])
+    Collect(field=[EXPR$0])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testMultisetSubquery">
         <Resource name="plan">
             <![CDATA[

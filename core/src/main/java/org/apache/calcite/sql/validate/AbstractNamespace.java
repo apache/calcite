@@ -202,10 +202,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
       return type;
     }
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    final RelDataType structType =
-        typeFactory.builder()
-            .add(validator.deriveAlias(getNode(), 0), componentType)
-            .build();
+    final RelDataType structType = toStruct(componentType, getNode());
     final RelDataType collectionType;
     switch (type.getSqlTypeName()) {
     case ARRAY:
@@ -219,6 +216,16 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     }
     return typeFactory.createTypeWithNullability(collectionType,
         type.isNullable());
+  }
+
+  /** Converts a type to a struct if it is not already. */
+  protected RelDataType toStruct(RelDataType type, SqlNode unnest) {
+    if (type.isStruct()) {
+      return type;
+    }
+    return validator.getTypeFactory().builder()
+        .add(validator.deriveAlias(unnest, 0), type)
+        .build();
   }
 }
 

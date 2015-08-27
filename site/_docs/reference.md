@@ -128,7 +128,7 @@ tablePrimary:
       [ TABLE ] [ [ catalogName . ] schemaName . ] tableName
   |   '(' query ')'
   |   values
-  |   UNNEST '(' expression ')'
+  |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 
 values:

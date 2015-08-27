@@ -122,7 +122,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
       SqlCall call,
       int leftPrec,
       int rightPrec) {
-    writer.keyword("MULTISET");
+    writer.keyword(getName());
     final SqlWriter.Frame frame = writer.startList("(", ")");
     assert call.operandCount() == 1;
     call.operand(0).unparse(writer, leftPrec, rightPrec);
