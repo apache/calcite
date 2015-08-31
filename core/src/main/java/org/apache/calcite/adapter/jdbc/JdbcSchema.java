@@ -287,7 +287,9 @@ public class JdbcSchema implements Schema {
 
   private RelDataType sqlType(RelDataTypeFactory typeFactory, int dataType,
       int precision, int scale, String typeString) {
-    SqlTypeName sqlTypeName = SqlTypeName.getNameForJdbcType(dataType);
+    // Fall back to ANY if type is unknown
+    final SqlTypeName sqlTypeName =
+        Util.first(SqlTypeName.getNameForJdbcType(dataType), SqlTypeName.ANY);
     switch (sqlTypeName) {
     case ARRAY:
       RelDataType component = null;

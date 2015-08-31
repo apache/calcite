@@ -326,7 +326,7 @@ public enum SqlTypeName {
    * Gets the SqlTypeName corresponding to a JDBC type.
    *
    * @param jdbcType the JDBC type of interest
-   * @return corresponding SqlTypeName
+   * @return corresponding SqlTypeName, or null if the type is not known
    */
   public static SqlTypeName getNameForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_NAME.get(jdbcType);
