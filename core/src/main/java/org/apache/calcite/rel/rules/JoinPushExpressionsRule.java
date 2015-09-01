@@ -35,12 +35,13 @@ import org.apache.calcite.rex.RexNode;
  */
 public class JoinPushExpressionsRule extends RelOptRule {
 
-  public static final JoinPushExpressionsRule INSTANCE = new JoinPushExpressionsRule(
-          Join.class, RelFactories.DEFAULT_PROJECT_FACTORY);
+  public static final JoinPushExpressionsRule INSTANCE =
+      new JoinPushExpressionsRule(Join.class,
+          RelFactories.DEFAULT_PROJECT_FACTORY);
 
   private final RelFactories.ProjectFactory projectFactory;
 
-
+  /** Creates a JoinPushExpressionsRule. */
   public JoinPushExpressionsRule(Class<? extends Join> clazz,
       RelFactories.ProjectFactory projectFactory) {
     super(operand(clazz, any()));
@@ -63,5 +64,6 @@ public class JoinPushExpressionsRule extends RelOptRule {
 
     call.transformTo(newJoin);
   }
-
 }
+
+// End JoinPushExpressionsRule.java
