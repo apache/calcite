@@ -48,8 +48,7 @@ public abstract class CalciteStatement extends AvaticaStatement {
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == CalciteServerStatement.class) {
-      //noinspection unchecked
-      return (T) getConnection().server.getStatement(handle);
+      return iface.cast(getConnection().server.getStatement(handle));
     }
     return super.unwrap(iface);
   }

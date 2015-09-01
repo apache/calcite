@@ -37,10 +37,12 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
+import java.sql.PreparedStatement;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -737,6 +739,48 @@ public class RelBuilderTest {
                         builder.field("DEPTNO"), builder.literal(1))))
             .build();
     assertThat(str(root2), is(expected));
+  }
+
+  /** Tests {@link org.apache.calcite.tools.RelRunner} for a VALUES query. */
+  @Test public void testRunValues() throws Exception {
+    // Equivalent SQL:
+    //   VALUES (true, 1), (false, -50) AS t(a, b)
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.values(new String[]{"a", "b"}, true, 1, false, -50)
+            .build();
+    try (final PreparedStatement preparedStatement = RelRunners.run(root)) {
+      String s = CalciteAssert.toString(preparedStatement.executeQuery());
+      final String result = "a=true; b=1\n"
+          + "a=false; b=-50\n";
+      assertThat(s, is(result));
+    }
+  }
+
+  /** Tests {@link org.apache.calcite.tools.RelRunner} for a table scan + filter
+   * query. */
+  @Test public void testRun() throws Exception {
+    // Equivalent SQL:
+    //   SELECT * FROM EMP WHERE DEPTNO = 20
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.equals(builder.field("DEPTNO"), builder.literal(20)))
+            .build();
+
+    // Note that because the table has been resolved in the RelNode tree
+    // we do not need to supply a "schema" as context to the runner.
+    try (final PreparedStatement preparedStatement = RelRunners.run(root)) {
+      String s = CalciteAssert.toString(preparedStatement.executeQuery());
+      final String result = ""
+          + "EMPNO=7369; ENAME=SMITH; JOB=CLERK; MGR=7902; HIREDATE=1980-12-17; SAL=800.00; COMM=null; DEPTNO=20\n"
+          + "EMPNO=7566; ENAME=JONES; JOB=MANAGER; MGR=7839; HIREDATE=1981-02-04; SAL=2975.00; COMM=null; DEPTNO=20\n"
+          + "EMPNO=7788; ENAME=SCOTT; JOB=ANALYST; MGR=7566; HIREDATE=1987-04-19; SAL=3000.00; COMM=null; DEPTNO=20\n"
+          + "EMPNO=7876; ENAME=ADAMS; JOB=CLERK; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00; COMM=null; DEPTNO=20\n"
+          + "EMPNO=7902; ENAME=FORD; JOB=ANALYST; MGR=7566; HIREDATE=1981-12-03; SAL=3000.00; COMM=null; DEPTNO=20\n";
+      assertThat(s, is(result));
+    }
   }
 }
 

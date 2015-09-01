@@ -95,8 +95,7 @@ public interface CalcitePrepare {
 
   <T> CalciteSignature<T> prepareSql(
       Context context,
-      String sql,
-      Queryable<T> expression,
+      Query<T> query,
       Type elementType,
       long maxRowCount);
 
@@ -317,6 +316,37 @@ public interface CalcitePrepare {
 
     public List<RelCollation> getCollationList() {
       return collationList;
+    }
+  }
+
+  /** A union type of the three possible ways of expressing a query: as a SQL
+   * string, a {@link Queryable} or a {@link RelNode}. Exactly one must be
+   * provided. */
+  class Query<T> {
+    public final String sql;
+    public final Queryable<T> queryable;
+    public final RelNode rel;
+
+    private Query(String sql, Queryable<T> queryable, RelNode rel) {
+      this.sql = sql;
+      this.queryable = queryable;
+      this.rel = rel;
+
+      assert (sql == null ? 0 : 1)
+          + (queryable == null ? 0 : 1)
+          + (rel == null ? 0 : 1) == 1;
+    }
+
+    public static <T> Query<T> of(String sql) {
+      return new Query<>(sql, null, null);
+    }
+
+    public static <T> Query<T> of(Queryable<T> queryable) {
+      return new Query<>(null, queryable, null);
+    }
+
+    public static <T> Query<T> of(RelNode rel) {
+      return new Query<>(null, null, rel);
     }
   }
 }

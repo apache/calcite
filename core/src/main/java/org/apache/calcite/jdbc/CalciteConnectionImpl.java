@@ -41,6 +41,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -53,16 +54,20 @@ import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
@@ -143,6 +148,24 @@ abstract class CalciteConnectionImpl
     }
   }
 
+  @Override public <T> T unwrap(Class<T> iface) throws SQLException {
+    if (iface == RelRunner.class) {
+      return iface.cast(
+          new RelRunner() {
+            public PreparedStatement prepare(RelNode rel) {
+              try {
+                return prepareStatement_(CalcitePrepare.Query.of(rel),
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                    getHoldability());
+              } catch (SQLException e) {
+                throw Throwables.propagate(e);
+              }
+            }
+          });
+    }
+    return super.unwrap(iface);
+  }
+
   @Override public CalciteStatement createStatement(int resultSetType,
       int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     return (CalciteStatement) super.createStatement(resultSetType,
@@ -154,23 +177,34 @@ abstract class CalciteConnectionImpl
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
+    final CalcitePrepare.Query<Object> query = CalcitePrepare.Query.of(sql);
+    return prepareStatement_(query, resultSetType, resultSetConcurrency,
+        resultSetHoldability);
+  }
+
+  private CalcitePreparedStatement prepareStatement_(
+      CalcitePrepare.Query<?> query,
+      int resultSetType,
+      int resultSetConcurrency,
+      int resultSetHoldability) throws SQLException {
     try {
-      Meta.Signature signature =
-          parseQuery(sql, new ContextImpl(this), -1);
+      final Meta.Signature signature =
+          parseQuery(query, new ContextImpl(this), -1);
       return (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
           signature, resultSetType, resultSetConcurrency, resultSetHoldability);
     } catch (Exception e) {
       throw Helper.INSTANCE.createException(
-          "Error while preparing statement [" + sql + "]", e);
+          "Error while preparing statement [" + query.sql + "]", e);
     }
   }
 
-  <T> CalcitePrepare.CalciteSignature<T> parseQuery(String sql,
+  <T> CalcitePrepare.CalciteSignature<T>
+  parseQuery(CalcitePrepare.Query<T> query,
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
       final CalcitePrepare prepare = prepareFactory.apply();
-      return prepare.prepareSql(prepareContext, sql, null, Object[].class,
+      return prepare.prepareSql(prepareContext, query, Object[].class,
           maxRowCount);
     } finally {
       CalcitePrepare.Dummy.pop(prepareContext);
@@ -468,6 +502,7 @@ abstract class CalciteConnectionImpl
       this.iterator = iterator;
     }
   }
+
 }
 
 // End CalciteConnectionImpl.java

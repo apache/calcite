@@ -545,8 +545,8 @@ public class CalciteMetaImpl extends MetaImpl {
 
     CalciteServerStatement statement = calciteConnection.server.getStatement(h);
     h.signature =
-        calciteConnection.parseQuery(sql, statement.createPrepareContext(),
-            maxRowCount);
+        calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
+            statement.createPrepareContext(), maxRowCount);
     statement.setSignature(h.signature);
     return h;
   }
@@ -560,7 +560,7 @@ public class CalciteMetaImpl extends MetaImpl {
         final CalciteConnectionImpl calciteConnection = getConnection();
         CalciteServerStatement statement =
             calciteConnection.server.getStatement(h);
-        signature = calciteConnection.parseQuery(sql,
+        signature = calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
             statement.createPrepareContext(), maxRowCount);
         statement.setSignature(signature);
         callback.assign(signature, null, -1);

@@ -343,7 +343,8 @@ public final class Schemas {
         makeContext(connection, schema, schemaPath, map);
     CalcitePrepare.Dummy.push(context);
     try {
-      return prepare.prepareSql(context, sql, null, Object[].class, -1);
+      return prepare.prepareSql(context, CalcitePrepare.Query.of(sql),
+          Object[].class, -1);
     } finally {
       CalcitePrepare.Dummy.pop(context);
     }
