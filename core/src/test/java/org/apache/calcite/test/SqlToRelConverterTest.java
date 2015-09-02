@@ -1303,6 +1303,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-847">[CALCITE-847]
+   * window average with grouped aggregate</a>.
+   */
+  @Test public void testWindowAverageWithGroupBy() {
+    sql("select avg(deptno) over () \n"
+            + "from emp \n "
+            + "group by deptno"
+    ).convertsTo("${plan}");
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
    * variant involving joins</a>.
    */
