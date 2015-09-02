@@ -67,6 +67,7 @@ import java.util.TreeSet;
 import javax.annotation.Nullable;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.junit.Assert.assertEquals;
@@ -954,8 +955,20 @@ public class UtilTest {
     final List<String> anb0 = Arrays.asList("A", null, "B");
     assertEquals(anb, anb0);
     assertEquals(anb.hashCode(), anb0.hashCode());
-  }
 
+    // Comparisons
+    assertThat(emp, instanceOf(Comparable.class));
+    assertThat(ab, instanceOf(Comparable.class));
+    @SuppressWarnings("unchecked")
+    final Comparable<List> cemp = (Comparable) emp;
+    @SuppressWarnings("unchecked")
+    final Comparable<List> cab = (Comparable) ab;
+    assertThat(cemp.compareTo(emp), is(0));
+    assertThat(cemp.compareTo(ab) < 0, is(true));
+    assertThat(cab.compareTo(ab), is(0));
+    assertThat(cab.compareTo(emp) > 0, is(true));
+    assertThat(cab.compareTo(anb) > 0, is(true));
+  }
 
   /**
    * Unit test for {@link AvaticaUtils#toCamelCase(String)}.

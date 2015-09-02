@@ -324,13 +324,7 @@ public class FlatLists {
     }
 
     public int compareTo(List o) {
-      //noinspection unchecked
-      Flat2List<T> that = (Flat2List<T>) o;
-      int c = Utilities.compare((Comparable) t0, (Comparable) that.t0);
-      if (c != 0) {
-        return c;
-      }
-      return Utilities.compare((Comparable) t1, (Comparable) that.t1);
+      return ComparableListImpl.compare((List) this, o);
     }
   }
 
@@ -470,17 +464,7 @@ public class FlatLists {
     }
 
     public int compareTo(List o) {
-      //noinspection unchecked
-      Flat3List<T> that = (Flat3List<T>) o;
-      int c = Utilities.compare((Comparable) t0, (Comparable) that.t0);
-      if (c != 0) {
-        return c;
-      }
-      c = Utilities.compare((Comparable) t1, (Comparable) that.t1);
-      if (c != 0) {
-        return c;
-      }
-      return Utilities.compare((Comparable) t2, (Comparable) that.t2);
+      return ComparableListImpl.compare((List) this, o);
     }
   }
 
@@ -509,10 +493,7 @@ public class FlatLists {
     }
 
     public int compareTo(List o) {
-      if (o == this) {
-        return 0;
-      }
-      return o.size() == 0 ? 0 : -1;
+      return ComparableListImpl.compare((List) this, o);
     }
   }
 
@@ -564,17 +545,30 @@ public class FlatLists {
       return size0 - size1;
     }
 
-    static <T extends Comparable>
+    static <T extends Comparable<T>>
     int compare(List<T> list0, List<T> list1, int size) {
       for (int i = 0; i < size; i++) {
         Comparable o0 = list0.get(i);
         Comparable o1 = list1.get(i);
-        int c = o0.compareTo(o1);
+        int c = compare(o0, o1);
         if (c != 0) {
           return c;
         }
       }
       return 0;
+    }
+
+    static <T extends Comparable<T>> int compare(T a, T b) {
+      if (a == b) {
+        return 0;
+      }
+      if (a == null) {
+        return -1;
+      }
+      if (b == null) {
+        return 1;
+      }
+      return a.compareTo(b);
     }
   }
 }
