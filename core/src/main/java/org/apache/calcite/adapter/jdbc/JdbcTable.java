@@ -47,6 +47,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import java.sql.SQLException;
@@ -80,7 +81,7 @@ class JdbcTable extends AbstractQueryableTable
     this.jdbcCatalogName = jdbcCatalogName;
     this.jdbcSchemaName = jdbcSchemaName;
     this.jdbcTableName = tableName;
-    this.jdbcTableType = jdbcTableType;
+    this.jdbcTableType = Preconditions.checkNotNull(jdbcTableType);
   }
 
   public String toString() {

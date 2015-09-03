@@ -260,6 +260,10 @@ public interface Meta {
       this.s = s;
     }
 
+    @Override public String toString() {
+      return "Pat[" + s + "]";
+    }
+
     @JsonCreator
     public static Pat of(@JsonProperty("s") String name) {
       return new Pat(name);

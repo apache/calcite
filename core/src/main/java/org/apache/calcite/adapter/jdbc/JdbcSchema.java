@@ -201,6 +201,7 @@ public class JdbcSchema implements Schema {
         // returned by Phoenix among others, maps to TableType.SYSTEM_TABLE.
         // We know enum constants are upper-case without spaces, so we can't
         // make things worse.
+        //
         // PostgreSQL returns tableTypeName==null for pg_toast* tables
         // This can happen if you start JdbcSchema off a "public" PG schema
         // The tables are not designed to be queried by users, however we do
@@ -210,7 +211,10 @@ public class JdbcSchema implements Schema {
             ? null
             : tableTypeName.toUpperCase().replace(' ', '_');
         final TableType tableType =
-            Util.enumVal(TableType.class, tableTypeName2);
+            Util.enumVal(TableType.OTHER, tableTypeName2);
+        if (tableType == TableType.OTHER  && tableTypeName2 != null) {
+          System.out.println("Unknown table type: " + tableTypeName2);
+        }
         final JdbcTable table =
             new JdbcTable(this, catalogName, schemaName, tableName, tableType);
         builder.put(tableName, table);

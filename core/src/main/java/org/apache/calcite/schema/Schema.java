@@ -144,31 +144,30 @@ public interface Schema {
 
   /** Table type. */
   enum TableType {
-    /** A regular table. */
+    /** A regular table.
+     *
+     * <p>Used by PostgreSQL, MySQL and others. */
     TABLE,
 
     /** A relation whose contents are calculated by evaluating a SQL
-     * expression. */
+     * expression.
+     *
+     * <p>Used by PostgreSQL and others. */
     VIEW,
 
-    /** A table maintained by the system. Data dictionary tables, such as the
-     * "TABLES" and "COLUMNS" table in the "metamodel" schema, examples of
-     * system tables. */
-    SYSTEM_TABLE,
+    /** Foreign table.
+     *
+     * <p>Used by PostgreSQL. */
+    FOREIGN_TABLE,
 
-    /** A table that is only visible to one connection. */
-    LOCAL_TEMPORARY,
-
-    /** A structure, similar to a view, that is the basis for auto-generated
-     * materializations. It is either a single table or a collection of tables
-     * that are joined via many-to-one relationships from a central hub table.
-     * It is not available for queries, but is just used as an intermediate
-     * structure during query planning. */
-    STAR,
+    /** Materialized view.
+     *
+     * <p>Used by PostgreSQL. */
+    MATERIALIZED_VIEW,
 
     /** Index table.
      *
-     * <p>Used by Apache Phoenix. */
+     * <p>Used by Apache Phoenix, PostgreSQL. */
     INDEX,
 
     /** Join table.
@@ -178,12 +177,82 @@ public interface Schema {
 
     /** Sequence table.
      *
-     * <p>Used by Apache Phoenix, and others. Must have a single BIGINT column
-     * called "$seq". */
+     * <p>Used by Apache Phoenix, PostgreSQL and others.
+     * In Phoenix, must have a single BIGINT column called "$seq". */
     SEQUENCE,
+
+    /** A structure, similar to a view, that is the basis for auto-generated
+     * materializations. It is either a single table or a collection of tables
+     * that are joined via many-to-one relationships from a central hub table.
+     * It is not available for queries, but is just used as an intermediate
+     * structure during query planning. */
+    STAR,
 
     /** Stream. */
     STREAM,
+
+    /** Type.
+     *
+     * <p>Used by PostgreSQL. */
+    TYPE,
+
+    /** A table maintained by the system. Data dictionary tables, such as the
+     * "TABLES" and "COLUMNS" table in the "metamodel" schema, examples of
+     * system tables.
+     *
+     * <p>Used by PostgreSQL, MySQL and others. */
+    SYSTEM_TABLE,
+
+    /** System view.
+     *
+     * <p>Used by PostgreSQL, MySQL. */
+    SYSTEM_VIEW,
+
+    /** System index.
+     *
+     * <p>Used by PostgreSQL. */
+    SYSTEM_INDEX,
+
+    /** System TOAST index.
+     *
+     * <p>Used by PostgreSQL. */
+    SYSTEM_TOAST_INDEX,
+
+    /** System TOAST table.
+     *
+     * <p>Used by PostgreSQL. */
+    SYSTEM_TOAST_TABLE,
+
+    /** Temporary index.
+     *
+     * <p>Used by PostgreSQL. */
+    TEMPORARY_INDEX,
+
+    /** Temporary sequence.
+     *
+     * <p>Used by PostgreSQL. */
+    TEMPORARY_SEQUENCE,
+
+    /** Temporary table.
+     *
+     * <p>Used by PostgreSQL. */
+    TEMPORARY_TABLE,
+
+    /** Temporary view.
+     *
+     * <p>Used by PostgreSQL. */
+    TEMPORARY_VIEW,
+
+    /** A table that is only visible to one connection.
+     *
+     * <p>Used by PostgreSQL, MySQL. */
+    LOCAL_TEMPORARY,
+
+    /** Table type not known to Calcite.
+     *
+     * <p>If you get one of these, please fix the problem by adding an enum
+     * value. */
+    OTHER,
   }
 }
 

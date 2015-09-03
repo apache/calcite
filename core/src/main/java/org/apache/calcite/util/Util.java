@@ -1859,11 +1859,29 @@ public class Util {
    * @param <T>   Enum class type
    * @return Enum constant or null
    */
-  @SuppressWarnings({"unchecked" })
   public static synchronized <T extends Enum<T>> T enumVal(
       Class<T> clazz,
       String name) {
-    return (T) ENUM_CONSTANTS.getUnchecked(clazz).get(name);
+    return clazz.cast(ENUM_CONSTANTS.getUnchecked(clazz).get(name));
+  }
+
+  /**
+   * Returns the value of an enumeration with a particular or default value if
+   * not found.
+   *
+   * @param default_ Default value (not null)
+   * @param name     Name of enum constant
+   * @param <T>      Enum class type
+   * @return         Enum constant, never null
+   */
+  public static synchronized <T extends Enum<T>> T enumVal(T default_,
+      String name) {
+    final Class<T> clazz = default_.getDeclaringClass();
+    final T t = clazz.cast(ENUM_CONSTANTS.getUnchecked(clazz).get(name));
+    if (t == null) {
+      return default_;
+    }
+    return t;
   }
 
   /**

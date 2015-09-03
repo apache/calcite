@@ -16,17 +16,25 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.jdbc.CalciteConnection;
+
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+
 import org.hsqldb.jdbcDriver;
+
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -349,6 +357,33 @@ public class JdbcAdapterTest {
                 + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")")
         .explainContains("SINGLE_VALUE")
         .throws_(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-865">[CALCITE-865]
+   * Unknown table type causes NullPointerException in JdbcSchema</a>. The issue
+   * occurred because of the "SYSTEM_INDEX" table type when run against
+   * PostgreSQL. */
+  @Test public void testMetadataTables() throws Exception {
+    // The troublesome tables occur in PostgreSQL's system schema.
+    final String model =
+        JdbcTest.FOODMART_MODEL.replace("jdbcSchema: 'foodmart'",
+            "jdbcSchema: null");
+    CalciteAssert.model(
+        model)
+        .doWithConnection(
+            new Function<CalciteConnection, Void>() {
+              public Void apply(CalciteConnection connection) {
+                try {
+                  final ResultSet resultSet =
+                      connection.getMetaData().getTables(null, null, "%", null);
+                  assertFalse(CalciteAssert.toString(resultSet).isEmpty());
+                  return null;
+                } catch (SQLException e) {
+                  throw Throwables.propagate(e);
+                }
+              }
+            });
   }
 }
 
