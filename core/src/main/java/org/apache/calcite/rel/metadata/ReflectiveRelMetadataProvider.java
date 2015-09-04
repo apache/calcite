@@ -239,43 +239,47 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
-  @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
   public Function<RelNode, Metadata> apply(
       Class<? extends RelNode> relClass,
       Class<? extends Metadata> metadataClass) {
     if (metadataClass == metadataClass0) {
-      //noinspection SuspiciousMethodCalls
-      List<Class<? extends RelNode>> newSources = Lists.newArrayList();
-      Function<RelNode, Metadata> function;
-      while (relClass != null) {
-        function = map.get(relClass);
-        if (function != null) {
-          for (@SuppressWarnings("rawtypes") Class clazz : newSources) {
-            map.put(clazz, function);
-          }
-          return function;
-        } else {
-          newSources.add(relClass);
+      return apply(relClass);
+    } else {
+      return null;
+    }
+  }
+
+  @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
+  private synchronized Function<RelNode, Metadata> apply(
+      Class<? extends RelNode> relClass) {
+    List<Class<? extends RelNode>> newSources = Lists.newArrayList();
+    for (;;) {
+      final Function<RelNode, Metadata> function = map.get(relClass);
+      if (function != null) {
+        for (@SuppressWarnings("rawtypes") Class clazz : newSources) {
+          map.put(clazz, function);
         }
-        for (Class<?> interfaceClass : relClass.getInterfaces()) {
-          if (RelNode.class.isAssignableFrom(interfaceClass)) {
-            function = map.get(interfaceClass);
-            if (function != null) {
-              for (@SuppressWarnings("rawtypes") Class clazz : newSources) {
-                map.put(clazz, function);
-              }
-              return function;
+        return function;
+      } else {
+        newSources.add(relClass);
+      }
+      for (Class<?> interfaceClass : relClass.getInterfaces()) {
+        if (RelNode.class.isAssignableFrom(interfaceClass)) {
+          final Function<RelNode, Metadata> function2 = map.get(interfaceClass);
+          if (function2 != null) {
+            for (@SuppressWarnings("rawtypes") Class clazz : newSources) {
+              map.put(clazz, function2);
             }
+            return function2;
           }
-        }
-        if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
-          relClass = (Class<RelNode>) relClass.getSuperclass();
-        } else {
-          relClass = null;
         }
       }
+      if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
+        relClass = (Class<RelNode>) relClass.getSuperclass();
+      } else {
+        return null;
+      }
     }
-    return null;
   }
 }
 
