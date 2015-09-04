@@ -63,21 +63,21 @@ import java.util.List;
  */
 public abstract class Window extends SingleRel {
   public final ImmutableList<Group> groups;
-  public final List<RexLiteral> constants;
+  public final ImmutableList<RexLiteral> constants;
 
   /**
    * Creates a window relational expression.
    *
    * @param cluster Cluster
-   * @param child   Input relational expression
+   * @param traitSet Trait set
+   * @param input   Input relational expression
    * @param constants List of constants that are additional inputs
    * @param rowType Output row type
    * @param groups Windows
    */
-  public Window(
-      RelOptCluster cluster, RelTraitSet traits, RelNode child,
+  public Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
-    super(cluster, traits, child);
+    super(cluster, traitSet, input);
     this.constants = ImmutableList.copyOf(constants);
     assert rowType != null;
     this.rowType = rowType;
