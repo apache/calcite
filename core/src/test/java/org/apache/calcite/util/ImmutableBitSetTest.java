@@ -472,6 +472,29 @@ public class ImmutableBitSetTest {
     final ImmutableBitSet empty = ImmutableBitSet.of();
     assertThat(empty.shift(-100), is(empty));
   }
+
+  @Test public void testGet2() {
+    final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
+    assertThat(bitSet.get(0, 8), is(ImmutableBitSet.of(4)));
+    assertThat(bitSet.get(0, 5), is(ImmutableBitSet.of(4)));
+    assertThat(bitSet.get(0, 4), is(ImmutableBitSet.of()));
+    assertThat(bitSet.get(4, 4), is(ImmutableBitSet.of()));
+    assertThat(bitSet.get(5, 5), is(ImmutableBitSet.of()));
+    assertThat(bitSet.get(4, 5), is(ImmutableBitSet.of(4)));
+    assertThat(bitSet.get(4, 1000), is(ImmutableBitSet.of(4, 29)));
+    assertThat(bitSet.get(4, 32), is(ImmutableBitSet.of(4, 29)));
+    assertThat(bitSet.get(2000, 10000), is(ImmutableBitSet.of()));
+    assertThat(bitSet.get(1000, 10000), is(ImmutableBitSet.of(1969)));
+    assertThat(bitSet.get(5, 10000), is(ImmutableBitSet.of(29, 1969)));
+    assertThat(bitSet.get(65, 10000), is(ImmutableBitSet.of(1969)));
+
+    final ImmutableBitSet emptyBitSet = ImmutableBitSet.of();
+    assertThat(emptyBitSet.get(0, 4), is(ImmutableBitSet.of()));
+    assertThat(emptyBitSet.get(0, 0), is(ImmutableBitSet.of()));
+    assertThat(emptyBitSet.get(0, 10000), is(ImmutableBitSet.of()));
+    assertThat(emptyBitSet.get(7, 10000), is(ImmutableBitSet.of()));
+    assertThat(emptyBitSet.get(73, 10000), is(ImmutableBitSet.of()));
+  }
 }
 
 // End ImmutableBitSetTest.java

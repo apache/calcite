@@ -287,6 +287,45 @@ public class ImmutableBitSet
   }
 
   /**
+   * Returns a new {@code ImmutableBitSet}
+   * composed of bits from this {@code ImmutableBitSet}
+   * from {@code fromIndex} (inclusive) to {@code toIndex} (exclusive).
+   *
+   * @param  fromIndex index of the first bit to include
+   * @param  toIndex index after the last bit to include
+   * @return a new {@code ImmutableBitSet} from a range of
+   *         this {@code ImmutableBitSet}
+   * @throws IndexOutOfBoundsException if {@code fromIndex} is negative,
+   *         or {@code toIndex} is negative, or {@code fromIndex} is
+   *         larger than {@code toIndex}
+   */
+  public ImmutableBitSet get(int fromIndex, int toIndex) {
+    checkRange(fromIndex, toIndex);
+    final Builder builder = builder();
+    for (int i = nextSetBit(fromIndex); i >= 0 && i < toIndex;
+         i = nextSetBit(i + 1)) {
+      builder.set(i);
+    }
+    return builder.build();
+  }
+
+  /**
+   * Checks that fromIndex ... toIndex is a valid range of bit indices.
+   */
+  private static void checkRange(int fromIndex, int toIndex) {
+    if (fromIndex < 0) {
+      throw new IndexOutOfBoundsException("fromIndex < 0: " + fromIndex);
+    }
+    if (toIndex < 0) {
+      throw new IndexOutOfBoundsException("toIndex < 0: " + toIndex);
+    }
+    if (fromIndex > toIndex) {
+      throw new IndexOutOfBoundsException("fromIndex: " + fromIndex
+          + " > toIndex: " + toIndex);
+    }
+  }
+
+  /**
    * Returns a string representation of this bit set. For every index
    * for which this {@code BitSet} contains a bit in the set
    * state, the decimal representation of that index is included in
