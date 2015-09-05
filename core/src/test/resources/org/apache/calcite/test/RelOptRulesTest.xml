@@ -3061,6 +3061,32 @@ LogicalProject(EXPR$0=[COUNT($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNB
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectWindowTransposeRuleWithConstants">
+        <Resource name="sql">
+            <![CDATA[select col1, col2
+from (
+  select empno,
+    sum(100) over (partition by  deptno order by sal) as col1,
+  sum(1000) over(partition by deptno order by sal) as col2
+  from emp)]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(COL1=[$2], COL2=[$3])
+  LogicalWindow(window#0=[window(partition {1} order by [0] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($2), SUM($3)])])
+    LogicalProject(SAL=[$1], DEPTNO=[$2])
+      LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(COL1=[$1], COL2=[$2])
+  LogicalProject(EMPNO=[$0], COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], COL2=[SUM(1000) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterWithRank">
         <Resource name="sql">
             <![CDATA[select e1.ename, r
@@ -3446,11 +3472,10 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     </TestCase>
     <TestCase name="testExpressionInWindowFunction">
         <Resource name="sql">
-            <![CDATA[
-select sum(deptno) over(partition by deptno order by sal) as sum1,
+            <![CDATA[select
+ sum(deptno) over(partition by deptno order by sal) as sum1,
 sum(deptno + sal) over(partition by deptno order by sal) as sum2
-from emp
-]]>
+from emp]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[

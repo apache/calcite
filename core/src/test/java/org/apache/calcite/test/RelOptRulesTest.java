@@ -1612,11 +1612,28 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testProjectWindowTransposeRule() {
     HepProgram program = new HepProgramBuilder()
-      .addRuleInstance(ProjectToWindowRule.PROJECT)
-      .addRuleInstance(ProjectWindowTransposeRule.INSTANCE)
-      .build();
+        .addRuleInstance(ProjectToWindowRule.PROJECT)
+        .addRuleInstance(ProjectWindowTransposeRule.INSTANCE)
+        .build();
 
     final String sql = "select count(empno) over(), deptno from emp";
+    checkPlanning(program, sql);
+  }
+
+  @Test public void testProjectWindowTransposeRuleWithConstants() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectToWindowRule.PROJECT)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectWindowTransposeRule.INSTANCE)
+        .build();
+
+    final String sql = "select col1, col2\n"
+        + "from (\n"
+        + "  select empno,\n"
+        + "    sum(100) over (partition by  deptno order by sal) as col1,\n"
+        + "  sum(1000) over(partition by deptno order by sal) as col2\n"
+        + "  from emp)";
+
     checkPlanning(program, sql);
   }
 

@@ -64,6 +64,7 @@ public class ProjectWindowTransposeRule extends RelOptRule {
 
     // Record the window input columns which are actually referred
     // either in the LogicalProject above LogicalWindow or LogicalWindow itself
+    // (Note that the constants used in LogicalWindow are not considered here)
     final ImmutableBitSet beReferred = findReference(project, window);
 
     // If all the the window input columns are referred,
@@ -95,21 +96,27 @@ public class ProjectWindowTransposeRule extends RelOptRule {
     // the indices specified in LogicalWindow would need to be adjusted
     final RexShuttle indexAdjustment = new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        final int index = inputRef.getIndex();
-        final int newIndex = beReferred.get(0, index).cardinality();
+        final int newIndex =
+            getAdjustedIndex(inputRef.getIndex(), beReferred,
+                windowInputColumn);
         return new RexInputRef(newIndex, inputRef.getType());
       }
 
       @Override public RexNode visitCall(final RexCall call) {
-        final List<RexNode> clonedOperands = visitList(call.operands, new boolean[]{false});
         if (call instanceof Window.RexWinAggCall) {
-          return new Window.RexWinAggCall(
-              (SqlAggFunction) call.getOperator(),
-              call.getType(),
-              clonedOperands,
-              ((Window.RexWinAggCall) call).ordinal);
+          boolean[] update = {false};
+          final List<RexNode> clonedOperands = visitList(call.operands, update);
+          if (update[0]) {
+            return new Window.RexWinAggCall(
+                (SqlAggFunction) call.getOperator(),
+                call.getType(),
+                clonedOperands,
+                ((Window.RexWinAggCall) call).ordinal);
+          } else {
+            return call;
+          }
         } else {
-          return call;
+          return super.visitCall(call);
         }
       }
     };
@@ -125,13 +132,15 @@ public class ProjectWindowTransposeRule extends RelOptRule {
 
       // Adjust keys
       for (int index : group.keys) {
-        keys.set(beReferred.get(0, index).cardinality());
+        keys.set(getAdjustedIndex(index, beReferred, windowInputColumn));
       }
 
       // Adjust orderKeys
       for (RelFieldCollation relFieldCollation : group.orderKeys.getFieldCollations()) {
         final int index = relFieldCollation.getFieldIndex();
-        orderKeys.add(relFieldCollation.copy(beReferred.get(0, index).cardinality()));
+        orderKeys.add(
+            relFieldCollation.copy(
+                getAdjustedIndex(index, beReferred, windowInputColumn)));
       }
 
       // Adjust Window Functions
@@ -155,21 +164,8 @@ public class ProjectWindowTransposeRule extends RelOptRule {
 
     // Modify the top LogicalProject
     final List<RexNode> topProjExps = new ArrayList<>();
-    final RexShuttle topProjAdjustment = new RexShuttle() {
-      @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        final int index = inputRef.getIndex();
-        final int newIndex;
-        if (index >= windowInputColumn) {
-          newIndex = beReferred.cardinality() + (index - windowInputColumn);
-        } else {
-          newIndex = beReferred.get(0, index).cardinality();
-        }
-        return new RexInputRef(newIndex, inputRef.getType());
-      }
-    };
-
     for (RexNode rexNode : project.getChildExps()) {
-      topProjExps.add(rexNode.accept(topProjAdjustment));
+      topProjExps.add(rexNode.accept(indexAdjustment));
     }
 
     final LogicalProject newTopProj = project.copy(
@@ -227,6 +223,15 @@ public class ProjectWindowTransposeRule extends RelOptRule {
       }
     }
     return beReferred.build();
+  }
+
+  private int getAdjustedIndex(final int initIndex,
+      final ImmutableBitSet beReferred, final int windowInputColumn) {
+    if (initIndex >= windowInputColumn) {
+      return beReferred.cardinality() + (initIndex - windowInputColumn);
+    } else {
+      return beReferred.get(0, initIndex).cardinality();
+    }
   }
 }
 
