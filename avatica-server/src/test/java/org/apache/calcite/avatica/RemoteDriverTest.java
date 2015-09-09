@@ -74,10 +74,6 @@ public class RemoteDriverTest {
 
   private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
 
-  // see [CALCITE-687] Make RemoteDriverTest.testStatementLifecycle thread-safe
-  private static final boolean JDK17 =
-      System.getProperty("java.version").startsWith("1.7");
-
   private Connection mjs() throws SQLException {
     return DriverManager.getConnection("jdbc:avatica:remote:factory=" + MJS);
   }
@@ -228,9 +224,6 @@ public class RemoteDriverTest {
   }
 
   @Test public void testStatementExecuteQueryLocal() throws Exception {
-    if (JDK17) {
-      return;
-    }
     checkStatementExecuteQuery(ljs(), false);
   }
 
@@ -613,7 +606,6 @@ public class RemoteDriverTest {
     }
   }
 
-  @Ignore("[CALCITE-687] Make RemoteDriverTest.testStatementLifecycle thread-safe")
   @Test public void testConnectionIsolation() throws Exception {
     final String sql = "select * from (values (1, 'a'))";
     Connection conn1 = ljs();
@@ -644,9 +636,6 @@ public class RemoteDriverTest {
   }
 
   @Test public void testPrepareBindExecuteFetch() throws Exception {
-    if (JDK17) {
-      return;
-    }
     LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
     checkPrepareBindExecuteFetch(ljs());
     List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
