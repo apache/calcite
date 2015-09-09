@@ -21,7 +21,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * Refinement to {@link SqlShuttle} which maintains a stack of scopes.
@@ -32,8 +33,7 @@ import java.util.Stack;
 public abstract class SqlScopedShuttle extends SqlShuttle {
   //~ Instance fields --------------------------------------------------------
 
-  private final Stack<SqlValidatorScope> scopes =
-      new Stack<SqlValidatorScope>();
+  private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();
 
   //~ Constructors -----------------------------------------------------------
 

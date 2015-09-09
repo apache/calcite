@@ -36,13 +36,14 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -237,21 +238,19 @@ public class ConcurrentTestCommandScript
   private File scriptDirectory;
   private long scriptStartTime = 0;
 
-  private final List<ConcurrentTestPlugin> plugins =
-      new ArrayList<ConcurrentTestPlugin>();
+  private final List<ConcurrentTestPlugin> plugins = new ArrayList<>();
   private final Map<String, ConcurrentTestPlugin> pluginForCommand =
-      new HashMap<String, ConcurrentTestPlugin>();
+      new HashMap<>();
   private final Map<String, ConcurrentTestPlugin> preSetupPluginForCommand =
-      new HashMap<String, ConcurrentTestPlugin>();
-  private List<String> setupCommands = new ArrayList<String>();
-  private List<String> cleanupCommands = new ArrayList<String>();
+      new HashMap<>();
+  private final List<String> setupCommands = new ArrayList<>();
+  private final List<String> cleanupCommands = new ArrayList<>();
 
-  private Map<Integer, BufferedWriter> threadBufferedWriters =
-      new HashMap<Integer, BufferedWriter>();
-  private Map<Integer, StringWriter> threadStringWriters =
-      new HashMap<Integer, StringWriter>();
-  private Map<Integer, ResultsReader> threadResultsReaders =
-      new HashMap<Integer, ResultsReader>();
+  private final Map<Integer, BufferedWriter> threadBufferedWriters =
+      new HashMap<>();
+  private final Map<Integer, StringWriter> threadStringWriters = new HashMap<>();
+  private final Map<Integer, ResultsReader> threadResultsReaders =
+      new HashMap<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -328,11 +327,7 @@ public class ConcurrentTestCommandScript
 
 
   public boolean useLockstep() {
-    if (lockstep == null) {
-      return false;
-    }
-
-    return lockstep.booleanValue();
+    return lockstep != null && lockstep;
   }
 
   public boolean isDisabled() {
@@ -342,11 +337,7 @@ public class ConcurrentTestCommandScript
       }
     }
 
-    if (disabled == null) {
-      return false;
-    }
-
-    return disabled.booleanValue();
+    return disabled != null && disabled;
   }
 
   public void executeSetup() throws Exception {
@@ -396,24 +387,20 @@ public class ConcurrentTestCommandScript
         }
 
         if (isSelect(sql)) {
-          Statement stmt = connection.createStatement();
-          try {
+          try (Statement stmt = connection.createStatement()) {
             ResultSet rset = stmt.executeQuery(sql);
             storeResults(threadId, rset, -1);
-          } finally {
-            stmt.close();
           }
         } else if (sql.equalsIgnoreCase("commit")) {
           connection.commit();
         } else if (sql.equalsIgnoreCase("rollback")) {
           connection.rollback();
         } else {
-          Statement stmt = connection.createStatement();
-          try {
+          try (Statement stmt = connection.createStatement()) {
             int rows = stmt.executeUpdate(sql);
             if (rows != 1) {
-              storeMessage(threadId,
-                  String.valueOf(rows) + " rows affected.");
+              storeMessage(
+                  threadId, String.valueOf(rows) + " rows affected.");
             } else {
               storeMessage(threadId, "1 row affected.");
             }
@@ -423,8 +410,6 @@ public class ConcurrentTestCommandScript
             } else {
               throw ex;
             }
-          } finally {
-            stmt.close();
           }
         }
       }
@@ -496,10 +481,10 @@ public class ConcurrentTestCommandScript
    * @return the map.
    */
   private Map<Integer, String[]> collectResults() {
-    TreeMap<Integer, String[]> results = new TreeMap<Integer, String[]>();
+    final TreeMap<Integer, String[]> results = new TreeMap<>();
 
     // get all normal threads
-    TreeSet<Integer> threadIds = new TreeSet<Integer>(getThreadIds());
+    final TreeSet<Integer> threadIds = new TreeSet<>(getThreadIds());
     // add the "special threads"
     threadIds.add(SETUP_THREAD_ID);
     threadIds.add(CLEANUP_THREAD_ID);
@@ -694,7 +679,7 @@ public class ConcurrentTestCommandScript
         Pattern.compile("\\$((\\$)|([A-Za-z]\\w*)|\\{([A-Za-z]\\w*)\\})");
 
     public VariableTable() {
-      map = new HashMap<String, String>();
+      map = new HashMap<>();
     }
 
     /** Exception. */
@@ -740,13 +725,13 @@ public class ConcurrentTestCommandScript
 
     public String expand(String in) {
       if (in.contains("$")) {
-        StringBuffer out = new StringBuffer();
+        StringBuilder out = new StringBuilder();
         Matcher matcher = symbolPattern.matcher(in);
         int lastEnd = 0;
         while (matcher.find()) {
           int start = matcher.start();
           int end = matcher.end();
-          String val = null;
+          String val;
           if (null != matcher.group(2)) {
             val = "$";          // matched $$
           } else {
@@ -790,7 +775,7 @@ public class ConcurrentTestCommandScript
     private int order;
     private int repeatCount;
     private boolean scriptHasVars;
-    private Stack<File> currentDirectory = new Stack<File>();
+    private final Deque<File> currentDirectory = new ArrayDeque<>();
 
     /** Binding of a value to a variable. */
     private class Binding {
@@ -813,7 +798,7 @@ public class ConcurrentTestCommandScript
 
     // A list of Bindings that must be applied immediately after parsing
     // last @var.
-    private List<Binding> deferredBindings = new ArrayList<Binding>();
+    private final List<Binding> deferredBindings = new ArrayList<>();
 
     public CommandParser() {
       state = PRE_SETUP_STATE;
@@ -862,13 +847,12 @@ public class ConcurrentTestCommandScript
     private void load(String scriptFileName) throws IOException {
       File scriptFile = new File(currentDirectory.peek(), scriptFileName);
       currentDirectory.push(scriptDirectory = scriptFile.getParentFile());
-      BufferedReader in = new BufferedReader(new FileReader(scriptFile));
-      try {
+      try (BufferedReader in = new BufferedReader(new FileReader(scriptFile))) {
         String line;
         while ((line = in.readLine()) != null) {
           line = line.trim();
           Map<String, String> commandStateMap = lookupState(state);
-          String command = null;
+          final String command;
           boolean isSql = false;
           if (line.equals("") || line.startsWith("--")) {
             continue;
@@ -910,8 +894,6 @@ public class ConcurrentTestCommandScript
                 "Premature end of file in '" + state + "' state");
           }
         }
-      } finally {
-        in.close();
       }
     }
 
@@ -1242,8 +1224,8 @@ public class ConcurrentTestCommandScript
       for (int i = 0, n = STATE_TABLE.length; i < n; i++) {
         if (state.equals(STATE_TABLE[i].state)) {
           StateDatum[] stateData = STATE_TABLE[i].stateData;
-          ArrayList<StateDatum> stateDataList =
-              new ArrayList<StateDatum>(Arrays.asList(stateData));
+          final List<StateDatum> stateDataList =
+              new ArrayList<>(Arrays.asList(stateData));
           for (String cmd : commands) {
             stateDataList.add(new StateDatum(cmd, state));
           }
@@ -1263,13 +1245,13 @@ public class ConcurrentTestCommandScript
     private Map<String, String> lookupState(String state) {
       assert state != null;
 
-      for (int i = 0, n = STATE_TABLE.length; i < n; i++) {
-        if (state.equals(STATE_TABLE[i].state)) {
-          StateDatum[] stateData = STATE_TABLE[i].stateData;
+      for (StateAction a : STATE_TABLE) {
+        if (state.equals(a.state)) {
+          StateDatum[] stateData = a.stateData;
 
           Map<String, String> result = new HashMap<String, String>();
-          for (int j = 0, m = stateData.length; j < m; j++) {
-            result.put(stateData[j].x, stateData[j].y);
+          for (StateDatum datum : stateData) {
+            result.put(datum.x, datum.y);
           }
           return result;
         }
@@ -1306,7 +1288,7 @@ public class ConcurrentTestCommandScript
       boolean more = line.endsWith("\\");
       if (more) {
         line = line.substring(0, line.lastIndexOf('\\')); // snip
-        StringBuffer buf = new StringBuffer(line);        // save
+        StringBuilder buf = new StringBuilder(line);        // save
         while (more) {
           line = in.readLine();
           if (line == null) {
@@ -1337,7 +1319,7 @@ public class ConcurrentTestCommandScript
     private String readSql(String startOfSql, BufferedReader in)
         throws IOException {
       // REVIEW mb StringBuffer not always needed
-      StringBuffer sql = new StringBuffer(startOfSql);
+      StringBuilder sql = new StringBuilder(startOfSql);
       sql.append('\n');
 
       String line;
@@ -1484,7 +1466,7 @@ public class ConcurrentTestCommandScript
       this.command = command;
       boolean needShell = hasWildcard(command);
       if (needShell) {
-        argv = new ArrayList<String>();
+        argv = new ArrayList<>();
         argv.add("/bin/sh");
         argv.add("-c");
         argv.add(command);
@@ -1498,7 +1480,7 @@ public class ConcurrentTestCommandScript
     }
 
     private List<String> tokenize(String s) {
-      List<String> result = new ArrayList<String>();
+      List<String> result = new ArrayList<>();
       StringTokenizer tokenizer = new StringTokenizer(s);
       while (tokenizer.hasMoreTokens()) {
         result.add(tokenizer.nextToken());
@@ -2013,8 +1995,8 @@ public class ConcurrentTestCommandScript
     List<String> files;             // FILE
 
     public Tool() {
-      bindings = new ArrayList<String>();
-      files = new ArrayList<String>();
+      bindings = new ArrayList<>();
+      files = new ArrayList<>();
     }
 
     // returns 0 on success, 1 on error, 2 on bad invocation.

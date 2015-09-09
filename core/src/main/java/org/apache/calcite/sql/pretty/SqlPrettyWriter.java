@@ -29,12 +29,13 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Logger;
 
 /**
@@ -132,7 +133,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private final SqlDialect dialect;
   private final StringWriter sw = new StringWriter();
   protected final PrintWriter pw;
-  private final Stack<FrameImpl> listStack = new Stack<FrameImpl>();
+  private final Deque<FrameImpl> listStack = new ArrayDeque<>();
   protected FrameImpl frame;
   private boolean needWhitespace;
   protected String nextWhitespace;
