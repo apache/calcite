@@ -24,9 +24,14 @@
 - title: Advanced
   docs:
   - adapter
-  - avatica
   - stream
   - lattice
+
+- title: Avatica
+  docs:
+  - avatica_overview
+  - avatica_roadmap
+  - avatica_json_reference
 
 - title: Reference
   docs:

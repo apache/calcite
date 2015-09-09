@@ -1,7 +1,8 @@
 ---
 layout: docs
-title: Avatica
-permalink: /docs/avatica.html
+title: Avatica Overview
+sidebar_title: Overview
+permalink: /docs/avatica_overview.html
 ---
 
 <!--
