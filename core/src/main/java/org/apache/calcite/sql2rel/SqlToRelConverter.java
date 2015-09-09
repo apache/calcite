@@ -2461,11 +2461,12 @@ public class SqlToRelConverter {
     // build a map to remember the projections from the top scope to the
     // output of the current root.
     //
-    // Currently farrago allows expressions, not just column references in
-    // group by list. This is not SQL 2003 compliant.
+    // Calcite allows expressions, not just column references in
+    // group by list. This is not SQL 2003 compliant, but hey.
 
     final AggregatingSelectScope scope = aggConverter.aggregatingSelectScope;
-    for (SqlNode groupExpr : scope.groupExprList) {
+    final AggregatingSelectScope.Resolved r = scope.resolved.get();
+    for (SqlNode groupExpr : r.groupExprList) {
       aggConverter.addGroupExpr(groupExpr);
     }
 
@@ -2496,8 +2497,8 @@ public class SqlToRelConverter {
         // at all.  The rest of the system doesn't like 0-tuples, so we
         // select a dummy constant here.
         preExprs =
-            Collections.singletonList(
-                (RexNode) rexBuilder.makeExactLiteral(BigDecimal.ZERO));
+            ImmutableList.<RexNode>of(
+                rexBuilder.makeExactLiteral(BigDecimal.ZERO));
         preNames = Collections.singletonList(null);
       }
 
@@ -2511,7 +2512,7 @@ public class SqlToRelConverter {
               preNames,
               true),
           false);
-      bb.mapRootRelToFieldProjection.put(bb.root, scope.groupExprProjection);
+      bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
       // REVIEW jvs 31-Oct-2007:  doesn't the declaration of
       // monotonicity here assume sort-based aggregation at
@@ -2526,8 +2527,8 @@ public class SqlToRelConverter {
 
       // Add the aggregator
       bb.setRoot(
-          createAggregate(bb, aggConverter.aggregatingSelectScope.indicator,
-              scope.groupSet, scope.groupSets, aggConverter.getAggCalls()),
+          createAggregate(bb, r.indicator, r.groupSet, r.groupSets,
+              aggConverter.getAggCalls()),
           false);
 
       // Generate NULL values for rolled-up not-null fields.
@@ -2540,7 +2541,7 @@ public class SqlToRelConverter {
         for (RelDataTypeField field : aggregate.getRowType().getFieldList()) {
           final int i = field.getIndex();
           final RexNode rex;
-          if (i < groupCount && scope.isNullable(i)) {
+          if (i < groupCount && r.isNullable(i)) {
             ++converted;
 
             rex = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
@@ -2562,7 +2563,7 @@ public class SqlToRelConverter {
         }
       }
 
-      bb.mapRootRelToFieldProjection.put(bb.root, scope.groupExprProjection);
+      bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
       // Replace subqueries in having here and modify having to use
       // the replaced expressions
@@ -4498,11 +4499,13 @@ public class SqlToRelConverter {
               filterArg,
               type,
               nameMap.get(outerCall.toString()));
+      final AggregatingSelectScope.Resolved r =
+          aggregatingSelectScope.resolved.get();
       RexNode rex =
           rexBuilder.addAggCall(
               aggCall,
               groupExprs.size(),
-              aggregatingSelectScope.indicator,
+              r.indicator,
               aggCalls,
               aggCallMapping,
               argTypes);
@@ -4547,7 +4550,7 @@ public class SqlToRelConverter {
       case GROUPING_ID:
       case GROUP_ID:
         final RelDataType type = validator.getValidatedNodeType(call);
-        if (!aggregatingSelectScope.indicator) {
+        if (!aggregatingSelectScope.resolved.get().indicator) {
           return rexBuilder.makeExactLiteral(
               TWO.pow(effectiveArgCount(call)).subtract(BigDecimal.ONE), type);
         } else {
@@ -4590,9 +4593,10 @@ public class SqlToRelConverter {
 
     private RexNode bitValue(RexNode previous, RelDataType type, int x,
         int shift) {
+      final AggregatingSelectScope.Resolved r =
+          aggregatingSelectScope.resolved.get();
       RexNode node = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-          rexBuilder.makeInputRef(bb.root,
-              aggregatingSelectScope.groupExprList.size() + x),
+          rexBuilder.makeInputRef(bb.root, r.groupExprList.size() + x),
           rexBuilder.makeExactLiteral(BigDecimal.ONE, type),
           rexBuilder.makeExactLiteral(BigDecimal.ZERO, type));
       if (shift > 0) {

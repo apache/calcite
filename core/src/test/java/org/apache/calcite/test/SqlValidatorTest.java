@@ -4780,9 +4780,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Table 'SALES.BAD' not found");
   }
 
-  @Ignore("does not work yet")
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-881">[CALCITE-881]
+   * Allow schema.table.column references in GROUP BY</a>. */
   @Test public void testSchemaTableColumnInGroupBy() {
-    sql("select 1 from sales.emp group by sales.emp.deptno").ok(); // TODO:
+    sql("select 1 from sales.emp group by sales.emp.deptno").ok();
+    sql("select deptno from sales.emp group by sales.emp.deptno").ok();
+    sql("select deptno + 1 from sales.emp group by sales.emp.deptno").ok();
   }
 
   @Test public void testInvalidGroupBy() {
@@ -6043,14 +6047,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL DEPTNO, INTEGER EMPNO) NOT NULL");
   }
 
-  @Test public void testGroupByCorrelatedColumnFails() {
-    // -- this is not sql 2003 standard
-    // -- see sql2003 part2,  7.9
-    checkFails(
-        "select count(*)\n"
-            + "from emp\n"
-            + "where exists (select count(*) from dept group by ^emp^.empno)",
-        "Table 'EMP' not found");
+  @Test public void testGroupByCorrelatedColumn() {
+    // This is not sql 2003 standard; see sql2003 part2,  7.9
+    // But the extension seems harmless.
+    final String sql = "select count(*)\n"
+        + "from emp\n"
+        + "where exists (select count(*) from dept group by emp.empno)";
+    sql(sql).ok();
   }
 
   @Test public void testGroupExpressionEquivalence() {

@@ -33,6 +33,37 @@ from "hr"."emps";
 
 !ok
 
+# [CALCITE-881] Allow schema.table.column references in GROUP BY
+select "hr"."emps"."empid", count(*) as c
+from "hr"."emps"
+group by "hr"."emps"."empid";
++-------+---+
+| empid | C |
++-------+---+
+|   100 | 1 |
+|   110 | 1 |
+|   150 | 1 |
+|   200 | 1 |
++-------+---+
+(4 rows)
+
+!ok
+
+select distinct "hr"."emps"."empid" + 1 as e
+from "hr"."emps"
+group by "hr"."emps"."empid";
++-----+
+| E   |
++-----+
+| 101 |
+| 111 |
+| 151 |
+| 201 |
++-----+
+(4 rows)
+
+!ok
+
 # [CALCITE-307] CAST(timestamp AS DATE) gives ClassCastException
 # Based on [DRILL-1051]
 with data(c_row, c_timestamp) as (select * from (values

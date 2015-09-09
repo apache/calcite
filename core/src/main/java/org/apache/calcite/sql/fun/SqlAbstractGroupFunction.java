@@ -63,6 +63,7 @@ public class SqlAbstractGroupFunction extends SqlFunction {
     super.validateCall(call, validator, scope, operandScope);
     final SelectScope selectScope =
         SqlValidatorUtil.getEnclosingSelectScope(scope);
+    assert selectScope != null;
     final SqlSelect select = selectScope.getNode();
     if (!validator.isAggregate(select)) {
       throw validator.newValidationError(call,
@@ -81,7 +82,7 @@ public class SqlAbstractGroupFunction extends SqlFunction {
       } else {
         operand = validator.expand(operand, scope);
       }
-      if (!aggregatingSelectScope.isGroupingExpr(operand)) {
+      if (!aggregatingSelectScope.resolved.get().isGroupingExpr(operand)) {
         throw validator.newValidationError(operand,
             Static.RESOURCE.groupingArgument(getName()));
       }

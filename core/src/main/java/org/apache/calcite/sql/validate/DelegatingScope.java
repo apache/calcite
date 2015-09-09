@@ -198,6 +198,16 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         identifier = identifier.setName(j, field.getName());
         fromRowType = field.getType();
       }
+      if (i > 1) {
+        // Simplify overqualified identifiers.
+        // For example, schema.emp.deptno becomes emp.deptno.
+        //
+        // It is safe to convert schema.emp or database.schema.emp to emp
+        // because it would not have resolved if the FROM item had an alias. The
+        // following query is invalid:
+        //   SELECT schema.emp.deptno FROM schema.emp AS e
+        identifier = identifier.getComponent(i - 1, identifier.names.size());
+      }
       return SqlQualified.create(this, i, fromNs, identifier);
     }
   }

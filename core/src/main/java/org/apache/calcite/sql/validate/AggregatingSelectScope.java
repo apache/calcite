@@ -25,12 +25,14 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,15 +54,21 @@ public class AggregatingSelectScope
   private final boolean distinct;
 
   /** Use while under construction. */
-  private final List<SqlNode> temporaryGroupExprList = Lists.newArrayList();
+  private List<SqlNode> temporaryGroupExprList;
 
-  /** Use after construction is complete. Assigned from
-   * {@link #temporaryGroupExprList} towards the end of the constructor. */
-  public final ImmutableList<SqlNode> groupExprList;
-  public final ImmutableBitSet groupSet;
-  public final ImmutableList<ImmutableBitSet> groupSets;
-  public final boolean indicator;
-  public final Map<Integer, Integer> groupExprProjection;
+  public final Supplier<Resolved> resolved =
+      Suppliers.memoize(
+          new Supplier<Resolved>() {
+            public Resolved get() {
+              assert temporaryGroupExprList == null;
+              temporaryGroupExprList = new ArrayList<>();
+              try {
+                return resolve();
+              } finally {
+                temporaryGroupExprList = null;
+              }
+            }
+          });
 
   //~ Constructors -----------------------------------------------------------
 
@@ -81,7 +89,12 @@ public class AggregatingSelectScope
     super(selectScope);
     this.select = select;
     this.distinct = distinct;
-    final Map<Integer, Integer> groupExprProjection = Maps.newHashMap();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  private Resolved resolve() {
+    final Map<Integer, Integer> groupExprProjection = new HashMap<>();
     final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
         ImmutableList.builder();
     if (select.getGroup() != null) {
@@ -95,8 +108,6 @@ public class AggregatingSelectScope
             groupExprProjection, builder, groupExpr);
       }
     }
-    this.groupExprList = ImmutableList.copyOf(temporaryGroupExprList);
-    this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
 
     final Set<ImmutableBitSet> flatGroupSets =
         Sets.newTreeSet(ImmutableBitSet.COMPARATOR);
@@ -109,12 +120,9 @@ public class AggregatingSelectScope
       flatGroupSets.add(ImmutableBitSet.of());
     }
 
-    this.groupSet = ImmutableBitSet.range(groupExprList.size());
-    this.groupSets = ImmutableList.copyOf(flatGroupSets);
-    this.indicator = !groupSets.equals(ImmutableList.of(groupSet));
+    return new Resolved(temporaryGroupExprList, flatGroupSets,
+        groupExprProjection);
   }
-
-  //~ Methods ----------------------------------------------------------------
 
   /**
    * Returns the expressions that are in the GROUP BY clause (or the SELECT
@@ -141,10 +149,11 @@ public class AggregatingSelectScope
       }
       return groupExprs.build();
     } else if (select.getGroup() != null) {
-      if (groupExprList != null) {
-        return groupExprList;
-      } else {
+      if (temporaryGroupExprList != null) {
+        // we are in the middle of resolving
         return ImmutableList.copyOf(temporaryGroupExprList);
+      } else {
+        return resolved.get().groupExprList;
       }
     } else {
       return ImmutableList.of();
@@ -153,11 +162,6 @@ public class AggregatingSelectScope
 
   public SqlNode getNode() {
     return select;
-  }
-
-  /** Returns whether a field should be nullable due to grouping sets. */
-  public boolean isNullable(int i) {
-    return i < groupExprList.size() && !allContain(groupSets, i);
   }
 
   private static boolean allContain(List<ImmutableBitSet> bitSets, int bit) {
@@ -170,9 +174,10 @@ public class AggregatingSelectScope
   }
 
   @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
-    for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
+    final Resolved r = this.resolved.get();
+    for (Ord<SqlNode> groupExpr : Ord.zip(r.groupExprList)) {
       if (groupExpr.e.equalsDeep(node, false)) {
-        if (isNullable(groupExpr.i)) {
+        if (r.isNullable(groupExpr.i)) {
           return validator.getTypeFactory().createTypeWithNullability(type,
               true);
         }
@@ -235,19 +240,44 @@ public class AggregatingSelectScope
     checkAggregateExpr(expr, true);
   }
 
-  /** Returns whether a given expression is equal to one of the grouping
-   * expressions. Determines whether it is valid as an operand to GROUPING. */
-  public boolean isGroupingExpr(SqlNode operand) {
-    return lookupGroupingExpr(operand) >= 0;
-  }
+  /** Information about an aggregating scope that can only be determined
+   * after validation has occurred. Therefore it cannot be populated when
+   * the scope is created. */
+  public class Resolved {
+    public final ImmutableList<SqlNode> groupExprList;
+    public final ImmutableBitSet groupSet;
+    public final ImmutableList<ImmutableBitSet> groupSets;
+    public final boolean indicator;
+    public final Map<Integer, Integer> groupExprProjection;
 
-  public int lookupGroupingExpr(SqlNode operand) {
-    for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
-      if (operand.equalsDeep(groupExpr.e, false)) {
-        return groupExpr.i;
-      }
+    Resolved(List<SqlNode> groupExprList, Iterable<ImmutableBitSet> groupSets,
+        Map<Integer, Integer> groupExprProjection) {
+      this.groupExprList = ImmutableList.copyOf(groupExprList);
+      this.groupSet = ImmutableBitSet.range(groupExprList.size());
+      this.groupSets = ImmutableList.copyOf(groupSets);
+      this.indicator = !this.groupSets.equals(ImmutableList.of(groupSet));
+      this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
     }
-    return -1;
+
+    /** Returns whether a field should be nullable due to grouping sets. */
+    public boolean isNullable(int i) {
+      return i < groupExprList.size() && !allContain(groupSets, i);
+    }
+
+    /** Returns whether a given expression is equal to one of the grouping
+     * expressions. Determines whether it is valid as an operand to GROUPING. */
+    public boolean isGroupingExpr(SqlNode operand) {
+      return lookupGroupingExpr(operand) >= 0;
+    }
+
+    public int lookupGroupingExpr(SqlNode operand) {
+      for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
+        if (operand.equalsDeep(groupExpr.e, false)) {
+          return groupExpr.i;
+        }
+      }
+      return -1;
+    }
   }
 }
 
