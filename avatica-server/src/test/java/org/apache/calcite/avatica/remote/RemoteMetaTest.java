@@ -19,8 +19,8 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
+import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
-import org.apache.calcite.avatica.RemoteDriverTest;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
@@ -49,8 +49,7 @@ import static org.junit.Assert.assertTrue;
 
 /** Tests covering {@link RemoteMeta}. */
 public class RemoteMetaTest {
-  private static final RemoteDriverTest.ConnectionSpec CONNECTION_SPEC =
-      RemoteDriverTest.ConnectionSpec.HSQLDB;
+  private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
 
   private static HttpServer start;
   private static String url;
@@ -113,6 +112,7 @@ public class RemoteMetaTest {
   }
 
   @Test public void testRemoteExecuteMaxRowCount() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
     try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
       final AvaticaStatement statement = conn.createStatement();
       prepareAndExecuteInternal(conn, statement,
@@ -128,6 +128,8 @@ public class RemoteMetaTest {
       rs.close();
       statement.close();
       conn.close();
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 
@@ -135,12 +137,17 @@ public class RemoteMetaTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-780">[CALCITE-780]
    * HTTP error 413 when sending a long string to the Avatica server</a>. */
   @Test public void testRemoteExecuteVeryLargeQuery() throws Exception {
-    // Before the bug was fixed, a value over 7998 caused an HTTP 413.
-    // 16K bytes, I guess.
-    checkLargeQuery(8);
-    checkLargeQuery(240);
-    checkLargeQuery(8000);
-    checkLargeQuery(240000);
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      // Before the bug was fixed, a value over 7998 caused an HTTP 413.
+      // 16K bytes, I guess.
+      checkLargeQuery(8);
+      checkLargeQuery(240);
+      checkLargeQuery(8000);
+      checkLargeQuery(240000);
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
   }
 
   private void checkLargeQuery(int n) throws Exception {
@@ -179,6 +186,7 @@ public class RemoteMetaTest {
   }
 
   @Test public void testRemoteConnectionProperties() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
     try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
       String id = conn.id;
       final Map<String, ConnectionPropertiesImpl> m = ((RemoteMeta) getMeta(conn)).propsMap;
@@ -205,6 +213,8 @@ public class RemoteMetaTest {
         assertEquals(!defaultAutoCommit, remoteConn.getAutoCommit());
         assertFalse("local values should be clean", m.get(id).isDirty());
       }
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 }
