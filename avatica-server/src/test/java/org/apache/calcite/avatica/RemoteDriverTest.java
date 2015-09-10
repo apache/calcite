@@ -685,6 +685,9 @@ public class RemoteDriverTest {
       Cache<String, Connection> connectionMap =
           QuasiRemoteJdbcServiceFactory.getRemoteConnectionMap(
               (AvaticaConnection) conn1);
+      // Other tests being run might leave connections in the cache.
+      // The lock guards against more connections being cached during the test.
+      connectionMap.invalidateAll();
       assertEquals("connection cache should start empty",
           0, connectionMap.size());
       PreparedStatement conn1stmt1 = conn1.prepareStatement(sql);
