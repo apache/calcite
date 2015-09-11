@@ -2830,32 +2830,48 @@ SqlCall SequenceExpression() :
 }
 
 /**
- * Parses an expression for setting a option in SQL, such as QUOTED_IDENTIFIERS,
+ * Parses an expression for setting or resetting an option in SQL, such as QUOTED_IDENTIFIERS,
  * or explain plan level (physical/logical).
  */
 SqlSetOption SqlSetOption() :
 {
-    SqlParserPos pos;
-    String scope;
-    String name;
+    SqlParserPos pos = null;
+    String scope = null;
+    SqlIdentifier name;
     SqlNode val = null;
-    String keyword;
 }
 {
-    <ALTER> { pos = getPos(); }
-    scope = Scope()
-    <SET>
-    name = Identifier()
-    <EQ>
     (
-        val = Literal()
-    |
-        val = SimpleIdentifier()
-    |
-        <ON> {
-            // OFF is handled by SimpleIdentifier, ON handled here.
-            val = new SqlIdentifier(token.image.toUpperCase(), getPos());
+        <ALTER> { pos = getPos(); }
+        scope = Scope()
+    )?
+    (
+        <SET> {
+            pos = pos == null ? getPos() : pos;
         }
+        name = CompoundIdentifier()
+        <EQ>
+        (
+            val = Literal()
+        |
+            val = SimpleIdentifier()
+        |
+            <ON> {
+                // OFF is handled by SimpleIdentifier, ON handled here.
+                val = new SqlIdentifier(token.image.toUpperCase(), getPos());
+            }
+        )
+    |
+        <RESET> {
+            pos = pos == null ? getPos() : pos;
+        }
+        (
+            name = CompoundIdentifier()
+            |
+            <ALL> {
+                name = new SqlIdentifier(token.image.toUpperCase(), getPos());
+            }
+        )
     )
     {
         return new SqlSetOption(pos.plus(getPos()), scope, name, val);
@@ -4923,6 +4939,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < RELATIVE: "RELATIVE" >
     | < RELEASE: "RELEASE" >
     | < REPEATABLE: "REPEATABLE" >
+    | < RESET: "RESET" >
     | < RESTART: "RESTART" >
     | < RESTRICT: "RESTRICT" >
     | < RESULT: "RESULT" >
