@@ -47,6 +47,10 @@ public class ConnectionConfigImpl implements ConnectionConfig {
     return BuiltInConnectionProperty.URL.wrap(properties).getString();
   }
 
+  public String serialization() {
+    return BuiltInConnectionProperty.SERIALIZATION.wrap(properties).getString();
+  }
+
   /** Converts a {@link Properties} object containing (name, value)
    * pairs into a map whose keys are
    * {@link org.apache.calcite.avatica.InternalProperty} objects.

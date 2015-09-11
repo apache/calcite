@@ -16,25 +16,19 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.Meta;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of {@link org.apache.calcite.avatica.remote.Service}
  * that encodes requests and responses as JSON.
  */
-public abstract class JsonService implements Service {
-  protected static final ObjectMapper MAPPER;
+public abstract class JsonService extends AbstractService {
+  public static final ObjectMapper MAPPER;
   static {
     MAPPER = new ObjectMapper();
     MAPPER.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
@@ -48,96 +42,6 @@ public abstract class JsonService implements Service {
   /** Derived class should implement this method to transport requests and
    * responses to and from the peer service. */
   public abstract String apply(String request);
-
-  /** Modifies a signature, changing the representation of numeric columns
-   * within it. This deals with the fact that JSON transmits a small long value,
-   * or a float which is a whole number, as an integer. Thus the accessors need
-   * be prepared to accept any numeric type. */
-  private static Meta.Signature finagle(Meta.Signature signature) {
-    final List<ColumnMetaData> columns = new ArrayList<>();
-    for (ColumnMetaData column : signature.columns) {
-      columns.add(finagle(column));
-    }
-    if (columns.equals(signature.columns)) {
-      return signature;
-    }
-    return new Meta.Signature(columns, signature.sql,
-        signature.parameters, signature.internalParameters,
-        signature.cursorFactory);
-  }
-
-  private static ColumnMetaData finagle(ColumnMetaData column) {
-    switch (column.type.rep) {
-    case BYTE:
-    case PRIMITIVE_BYTE:
-    case DOUBLE:
-    case PRIMITIVE_DOUBLE:
-    case FLOAT:
-    case PRIMITIVE_FLOAT:
-    case INTEGER:
-    case PRIMITIVE_INT:
-    case SHORT:
-    case PRIMITIVE_SHORT:
-    case LONG:
-    case PRIMITIVE_LONG:
-      return column.setRep(ColumnMetaData.Rep.NUMBER);
-    }
-    switch (column.type.id) {
-    case Types.VARBINARY:
-    case Types.BINARY:
-      return column.setRep(ColumnMetaData.Rep.STRING);
-    case Types.DECIMAL:
-    case Types.NUMERIC:
-      return column.setRep(ColumnMetaData.Rep.NUMBER);
-    default:
-      return column;
-    }
-  }
-
-  private static PrepareResponse finagle(PrepareResponse response) {
-    final Meta.StatementHandle statement = finagle(response.statement);
-    if (statement == response.statement) {
-      return response;
-    }
-    return new PrepareResponse(statement);
-  }
-
-  private static Meta.StatementHandle finagle(Meta.StatementHandle h) {
-    final Meta.Signature signature = finagle(h.signature);
-    if (signature == h.signature) {
-      return h;
-    }
-    return new Meta.StatementHandle(h.connectionId, h.id, signature);
-  }
-
-  private static ResultSetResponse finagle(ResultSetResponse r) {
-    if (r.updateCount != -1) {
-      assert r.signature == null;
-      return r;
-    }
-    final Meta.Signature signature = finagle(r.signature);
-    if (signature == r.signature) {
-      return r;
-    }
-    return new ResultSetResponse(r.connectionId, r.statementId, r.ownStatement,
-        signature, r.firstFrame, r.updateCount);
-  }
-
-  private static ExecuteResponse finagle(ExecuteResponse r) {
-    final List<ResultSetResponse> results = new ArrayList<>();
-    int changeCount = 0;
-    for (ResultSetResponse result : r.results) {
-      ResultSetResponse result2 = finagle(result);
-      if (result2 != result) {
-        ++changeCount;
-      }
-      results.add(result2);
-    }
-    if (changeCount == 0) {
-      return r;
-    }
-    return new ExecuteResponse(results);
-  }
 
   //@VisibleForTesting
   protected static <T> T decode(String response, Class<T> valueType)

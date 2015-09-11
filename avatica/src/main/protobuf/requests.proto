@@ -1,0 +1,112 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+option java_package = "org.apache.calcite.avatica.proto";
+
+import "common.proto";
+
+// Request for Meta#getCatalogs()
+message CatalogsRequest {
+
+}
+
+// Request for Meta#getDatabaseProperties()
+message DatabasePropertyRequest {
+
+}
+
+// Request for Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}
+message SchemasRequest {
+  string catalog = 1;
+  string schema_pattern = 2;
+}
+
+// Request for Request for Meta#getTables(String, org.apache.calcite.avatica.Meta.Pat,
+//   org.apache.calcite.avatica.Meta.Pat, java.util.List)
+message TablesRequest {
+  string catalog = 1;
+  string schema_pattern = 2;
+  string table_name_pattern = 3;
+  repeated string type_list = 4;
+}
+
+// Request for Meta#getTableTypes()
+message TableTypesRequest {
+
+}
+
+// Request for Meta#getColumns(String, org.apache.calcite.avatica.Meta.Pat,
+//   org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat).
+message ColumnsRequest {
+  string catalog = 1;
+  string schema_pattern = 2;
+  string table_name_pattern = 3;
+  string column_name_pattern = 4;
+}
+
+// Request for Meta#getTypeInfo()
+message TypeInfoRequest {
+
+}
+
+// Request for Meta#prepareAndExecute(Meta.StatementHandle, String, long, Meta.PrepareCallback)
+message PrepareAndExecuteRequest {
+  string connection_id = 1;
+  string sql = 2;
+  uint64 max_row_count = 3;
+  uint32 statement_id = 4;
+}
+
+// Request for Meta.prepare(Meta.ConnectionHandle, String, long)
+message PrepareRequest {
+  string connection_id = 1;
+  string sql = 2;
+  uint64 max_row_count = 3;
+}
+
+// Request for Meta#fetch(Meta.StatementHandle, List, long, int)
+message FetchRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  uint64 offset = 3;
+  uint32 fetch_max_row_count = 4; // Maximum number of rows to be returned in the frame. Negative means no limit.
+  repeated TypedValue parameter_values = 5; // List of parameter values if statement is to be executed. Else, none.
+  bool has_parameter_values = 6; // Having an empty list of param values is distinct from a null param list
+}
+
+// Request for Meta#createStatement(Meta.ConnectionHandle)
+message CreateStatementRequest {
+  string connection_id = 1;
+}
+
+// Request for Meta#closeStatement(Meta.StatementHandle)
+message CloseStatementRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+}
+
+// Request for Meta#closeConnection(Meta.ConnectionHandle)
+message CloseConnectionRequest {
+  string connection_id = 1;
+}
+
+message ConnectionSyncRequest {
+  string connection_id = 1;
+  ConnectionProperties conn_props = 2;
+}
+

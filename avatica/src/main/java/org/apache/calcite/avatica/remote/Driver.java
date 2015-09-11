@@ -45,6 +45,14 @@ public class Driver extends UnregisteredDriver {
     super();
   }
 
+  /**
+   * Defines the method of message serialization used by the Driver
+   */
+  public static enum Serialization {
+    JSON,
+    PROTOBUF;
+  }
+
   @Override protected String getConnectStringPrefix() {
     return CONNECT_STRING_PREFIX;
   }
@@ -79,11 +87,38 @@ public class Driver extends UnregisteredDriver {
       } catch (MalformedURLException e) {
         throw new RuntimeException(e);
       }
-      service = new RemoteService(url);
+
+      Serialization serializationType = getSerialization(config);
+
+      switch (serializationType) {
+      case JSON:
+        service = new RemoteService(url);
+        break;
+      case PROTOBUF:
+        service = new RemoteProtobufService(url, new ProtobufTranslationImpl());
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled serialization type: " + serializationType);
+      }
     } else {
       service = new MockJsonService(Collections.<String, String>emptyMap());
     }
     return new RemoteMeta(connection, service);
+  }
+
+  private Serialization getSerialization(ConnectionConfig config) {
+    final String serializationStr = config.serialization();
+    Serialization serializationType = Serialization.JSON;
+    if (null != serializationStr) {
+      try {
+        serializationType = Serialization.valueOf(serializationStr.toUpperCase());
+      } catch (Exception e) {
+        // Log a warning instead of failing harshly? Intentionally no loggers available?
+        throw new RuntimeException(e);
+      }
+    }
+
+    return serializationType;
   }
 }
 

@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
@@ -328,6 +329,203 @@ public class TypedValue {
       list.add(typedValue.toLocal());
     }
     return list;
+  }
+
+  public Common.TypedValue toProto() {
+    final Common.TypedValue.Builder builder = Common.TypedValue.newBuilder();
+
+    Common.Rep protoRep = type.toProto();
+    builder.setType(protoRep);
+
+    // Serialize the type into the protobuf
+    switch (protoRep) {
+    case BOOLEAN:
+    case PRIMITIVE_BOOLEAN:
+      builder.setBoolValue((boolean) value);
+      break;
+    case BYTE_STRING:
+    case STRING:
+      builder.setStringValue((String) value);
+      break;
+    case PRIMITIVE_CHAR:
+    case CHARACTER:
+      builder.setStringValue(Character.toString((char) value));
+      break;
+    case BYTE:
+    case PRIMITIVE_BYTE:
+      builder.setNumberValue(Byte.valueOf((byte) value).longValue());
+      break;
+    case DOUBLE:
+    case PRIMITIVE_DOUBLE:
+      builder.setDoubleValue((double) value);
+      break;
+    case FLOAT:
+    case PRIMITIVE_FLOAT:
+      builder.setNumberValue(Float.floatToIntBits((float) value));
+      break;
+    case INTEGER:
+    case PRIMITIVE_INT:
+      builder.setNumberValue(Integer.valueOf((int) value).longValue());
+      break;
+    case PRIMITIVE_SHORT:
+    case SHORT:
+      builder.setNumberValue(Short.valueOf((short) value).longValue());
+      break;
+    case LONG:
+    case PRIMITIVE_LONG:
+      builder.setNumberValue((long) value);
+      break;
+    case JAVA_SQL_DATE:
+    case JAVA_SQL_TIME:
+      // Persisted as integers
+      builder.setNumberValue(Integer.valueOf((int) value).longValue());
+      break;
+    case JAVA_SQL_TIMESTAMP:
+    case JAVA_UTIL_DATE:
+      // Persisted as longs
+      builder.setNumberValue((long) value);
+      break;
+    case BIG_INTEGER:
+      byte[] bytes = ((BigInteger) value).toByteArray();
+      builder.setBytesValues(com.google.protobuf.ByteString.copyFrom(bytes));
+      break;
+    case BIG_DECIMAL:
+      final BigDecimal bigDecimal = (BigDecimal) value;
+      final int scale = bigDecimal.scale();
+      final BigInteger bigInt = bigDecimal.toBigInteger();
+      builder.setBytesValues(com.google.protobuf.ByteString.copyFrom(bigInt.toByteArray()))
+        .setNumberValue(scale);
+      break;
+    case NUMBER:
+      builder.setNumberValue(((Number) value).longValue());
+      break;
+    case OBJECT:
+      if (null == value) {
+        // We can persist a null value through easily
+        builder.setNull(true);
+        break;
+      }
+      // Intentional fall-through to RTE because we can't serialize something we have no type
+      // insight into.
+    case UNRECOGNIZED:
+      // Fail?
+      throw new RuntimeException("Unhandled value: " + protoRep + " " + value.getClass());
+    default:
+      // Fail?
+      throw new RuntimeException("Unknown serialized type: " + protoRep);
+    }
+
+    return builder.build();
+  }
+
+  public static TypedValue fromProto(Common.TypedValue proto) {
+    ColumnMetaData.Rep rep = ColumnMetaData.Rep.fromProto(proto.getType());
+
+    Object value = null;
+
+    // Deserialize the value again
+    switch (proto.getType()) {
+    case BOOLEAN:
+    case PRIMITIVE_BOOLEAN:
+      value = proto.getBoolValue();
+      break;
+    case BYTE_STRING:
+    case STRING:
+      value = proto.getStringValue();
+      break;
+    case PRIMITIVE_CHAR:
+    case CHARACTER:
+      value = proto.getStringValue().charAt(0);
+      break;
+    case BYTE:
+    case PRIMITIVE_BYTE:
+      value = Long.valueOf(proto.getNumberValue()).byteValue();
+      break;
+    case DOUBLE:
+    case PRIMITIVE_DOUBLE:
+      value = proto.getDoubleValue();
+      break;
+    case FLOAT:
+    case PRIMITIVE_FLOAT:
+      value = Float.intBitsToFloat((int) proto.getNumberValue());
+      break;
+    case INTEGER:
+    case PRIMITIVE_INT:
+      value = Long.valueOf(proto.getNumberValue()).intValue();
+      break;
+    case PRIMITIVE_SHORT:
+    case SHORT:
+      value = Long.valueOf(proto.getNumberValue()).shortValue();
+      break;
+    case LONG:
+    case PRIMITIVE_LONG:
+      value = Long.valueOf(proto.getNumberValue());
+      break;
+    case JAVA_SQL_DATE:
+    case JAVA_SQL_TIME:
+      value = Long.valueOf(proto.getNumberValue()).intValue();
+      break;
+    case JAVA_SQL_TIMESTAMP:
+    case JAVA_UTIL_DATE:
+      value = proto.getNumberValue();
+      break;
+    case BIG_INTEGER:
+      value = new BigInteger(proto.getBytesValues().toByteArray());
+      break;
+    case BIG_DECIMAL:
+      BigInteger bigInt = new BigInteger(proto.getBytesValues().toByteArray());
+      value = new BigDecimal(bigInt, (int) proto.getNumberValue());
+      break;
+    case NUMBER:
+      value = Long.valueOf(proto.getNumberValue());
+      break;
+    case OBJECT:
+      if (proto.getNull()) {
+        value = null;
+        break;
+      }
+      // Intentional fall through to RTE. If we sent an object over the wire, it could only
+      // possibly be null (at this point). Anything else has to be an error.
+    case UNRECOGNIZED:
+      // Fail?
+      throw new RuntimeException("Unhandled type: " + proto.getType());
+    default:
+      // Fail?
+      throw new RuntimeException("Unknown type: " + proto.getType());
+    }
+
+    return new TypedValue(rep, value);
+  }
+
+  @Override public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    result = prime * result + ((value == null) ? 0 : value.hashCode());
+    return result;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o instanceof TypedValue) {
+      TypedValue other = (TypedValue) o;
+
+      if (type != other.type) {
+        return false;
+      }
+
+      if (null == value) {
+        if (null != other.value) {
+          return false;
+        }
+      }
+
+      return value.equals(other.value);
+    }
+
+    return false;
   }
 }
 

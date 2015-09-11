@@ -1,0 +1,174 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+option java_package = "org.apache.calcite.avatica.proto";
+
+// Details about a connection
+message ConnectionProperties {
+  bool is_dirty = 1;
+  bool auto_commit = 2;
+  bool has_auto_commit = 7; // field is a Boolean, need to discern null and default value
+  bool read_only = 3;
+  bool has_read_only = 8; // field is a Boolean, need to discern null and default value
+  uint32 transaction_isolation = 4;
+  string catalog = 5;
+  string schema = 6;
+}
+
+// Statement handle
+message StatementHandle {
+  string connection_id = 1;
+  uint32 id = 2;
+  Signature signature = 3;
+}
+
+// Results of preparing a statement
+message Signature {
+  repeated ColumnMetaData columns = 1;
+  string sql = 2;
+  repeated AvaticaParameter parameters = 3;
+  CursorFactory cursor_factory = 4;
+}
+
+message ColumnMetaData {
+  uint32 ordinal = 1;
+  bool auto_increment = 2;
+  bool case_sensitive = 3;
+  bool searchable = 4;
+  bool currency = 5;
+  uint32 nullable = 6;
+  bool signed = 7;
+  uint32 display_size = 8;
+  string label = 9;
+  string column_name = 10;
+  string schema_name = 11;
+  uint32 precision = 12;
+  uint32 scale = 13;
+  string table_name = 14;
+  string catalog_name = 15;
+  bool read_only = 16;
+  bool writable = 17;
+  bool definitely_writable = 18;
+  string column_class_name = 19;
+  AvaticaType type = 20;
+}
+
+enum Rep {
+  PRIMITIVE_BOOLEAN = 0;
+  PRIMITIVE_BYTE = 1;
+  PRIMITIVE_CHAR = 2;
+  PRIMITIVE_SHORT = 3;
+  PRIMITIVE_INT = 4;
+  PRIMITIVE_LONG = 5;
+  PRIMITIVE_FLOAT = 6;
+  PRIMITIVE_DOUBLE = 7;
+  BOOLEAN = 8;
+  BYTE = 9;
+  CHARACTER = 10;
+  SHORT = 11;
+  INTEGER = 12;
+  LONG = 13;
+  FLOAT = 14;
+  DOUBLE = 15;
+  BIG_INTEGER = 25;
+  BIG_DECIMAL = 26;
+  JAVA_SQL_TIME = 16;
+  JAVA_SQL_TIMESTAMP = 17;
+  JAVA_SQL_DATE = 18;
+  JAVA_UTIL_DATE = 19;
+  BYTE_STRING = 20;
+  STRING = 21;
+  NUMBER = 22;
+  OBJECT = 23;
+  NULL = 24;
+}
+
+// Base class for a column type
+message AvaticaType {
+  uint32 id = 1;
+  string name = 2;
+  Rep rep = 3;
+
+  repeated ColumnMetaData columns = 4; // Only present when name = STRUCT
+  AvaticaType component = 5; // Only present when name = ARRAY
+}
+
+// Metadata for a parameter
+message AvaticaParameter {
+  bool signed = 1;
+  uint32 precision = 2;
+  uint32 scale = 3;
+  uint32 parameter_type = 4;
+  string type_name = 5;
+  string class_name = 6;
+  string name = 7;
+}
+
+// Information necessary to convert an Iterable into a Calcite Cursor
+message CursorFactory {
+  enum Style {
+    OBJECT = 0;
+    RECORD = 1;
+    RECORD_PROJECTION = 2;
+    ARRAY = 3;
+    LIST = 4;
+    MAP = 5;
+  }
+
+  Style style = 1;
+  string class_name = 2;
+  repeated string field_names = 3;
+}
+
+// A collection of rows
+message Frame {
+  uint64 offset = 1;
+  bool done = 2;
+  repeated Row rows = 3;
+}
+
+// A row is a collection of values
+message Row {
+  repeated TypedValue value = 1;
+}
+
+// Database property, list of functions the database provides for a certain operation
+message DatabaseProperty {
+  string name = 1;
+  repeated string functions = 2;
+}
+
+// Message which encapsulates another message to support a single RPC endpoint
+message WireMessage {
+  string name = 1;
+  bytes wrapped_message = 2;
+}
+
+// Generic wrapper to support any SQL type. Struct-like to work around no polymorphism construct.
+message TypedValue {
+  Rep type = 1; // The actual type that was serialized in the general attribute below
+
+  bool bool_value = 2; // boolean
+  string string_value = 3; // char/varchar
+  sint64 number_value = 4; // var-len encoding lets us shove anything from byte to long
+                           // includes numeric types and date/time types.
+  bytes bytes_values = 5; // binary/varbinary
+  double double_value = 6; // big numbers
+  bool null = 7; // a null object
+}

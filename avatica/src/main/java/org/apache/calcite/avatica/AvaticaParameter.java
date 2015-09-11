@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.proto.Common;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -49,6 +51,91 @@ public class AvaticaParameter {
     this.name = name;
   }
 
+  public Common.AvaticaParameter toProto() {
+    Common.AvaticaParameter.Builder builder = Common.AvaticaParameter.newBuilder();
+
+    builder.setSigned(signed);
+    builder.setPrecision(precision);
+    builder.setScale(scale);
+    builder.setParameterType(parameterType);
+    builder.setTypeName(typeName);
+    builder.setClassName(className);
+    builder.setName(name);
+
+    return builder.build();
+  }
+
+  public static AvaticaParameter fromProto(Common.AvaticaParameter proto) {
+    return new AvaticaParameter(proto.getSigned(), proto.getPrecision(),
+        proto.getScale(), proto.getParameterType(), proto.getTypeName(),
+        proto.getClassName(), proto.getName());
+  }
+
+  @Override public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((className == null) ? 0 : className.hashCode());
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + parameterType;
+    result = prime * result + precision;
+    result = prime * result + scale;
+    result = prime * result + (signed ? 1231 : 1237);
+    result = prime * result + ((typeName == null) ? 0 : typeName.hashCode());
+    return result;
+  }
+
+  @Override public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj instanceof AvaticaParameter) {
+      AvaticaParameter other = (AvaticaParameter) obj;
+
+      if (null == className) {
+        if (null != other.className) {
+          return false;
+        }
+      } else if (!className.equals(other.className)) {
+        return false;
+      }
+
+      if (null == name) {
+        if (null != other.name) {
+          return false;
+        }
+      } else if (!name.equals(other.name)) {
+        return false;
+      }
+
+      if (parameterType != other.parameterType) {
+        return false;
+      }
+
+      if (precision != other.precision) {
+        return false;
+      }
+
+      if (scale != other.scale) {
+        return false;
+      }
+
+      if (signed != other.signed) {
+        return false;
+      }
+
+      if (null == typeName) {
+        if (null != other.typeName) {
+          return false;
+        }
+      } else if (!typeName.equals(other.typeName)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
 }
 
 // End AvaticaParameter.java

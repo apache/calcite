@@ -17,9 +17,12 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
+import org.apache.calcite.avatica.remote.JsonService;
 import org.apache.calcite.avatica.remote.LocalJsonService;
+import org.apache.calcite.avatica.remote.LocalProtobufService;
 import org.apache.calcite.avatica.remote.LocalService;
-import org.apache.calcite.avatica.remote.MockJsonService;
+import org.apache.calcite.avatica.remote.ProtobufTranslation;
+import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
 import org.apache.calcite.avatica.remote.Service;
 
 import com.google.common.cache.Cache;
@@ -27,6 +30,9 @@ import com.google.common.cache.Cache;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -46,6 +52,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -60,24 +67,25 @@ import static org.junit.Assert.fail;
 /**
  * Unit test for Avatica Remote JDBC driver.
  */
+@RunWith(Parameterized.class)
 public class RemoteDriverTest {
-  public static final String MJS =
-      MockJsonService.Factory.class.getName();
-
   public static final String LJS =
       LocalJdbcServiceFactory.class.getName();
 
   public static final String QRJS =
       QuasiRemoteJdbcServiceFactory.class.getName();
 
+  public static final String QRPBS =
+      QuasiRemotePBJdbcServiceFactory.class.getName();
+
   private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
 
-  private Connection mjs() throws SQLException {
-    return DriverManager.getConnection("jdbc:avatica:remote:factory=" + MJS);
+  private static Connection ljs() throws SQLException {
+    return DriverManager.getConnection("jdbc:avatica:remote:factory=" + QRJS);
   }
 
-  private Connection ljs() throws SQLException {
-    return DriverManager.getConnection("jdbc:avatica:remote:factory=" + QRJS);
+  private static Connection lpbs() throws SQLException {
+    return DriverManager.getConnection("jdbc:avatica:remote:factory=" + QRPBS);
   }
 
   private Connection canon() throws SQLException {
@@ -85,11 +93,114 @@ public class RemoteDriverTest {
         CONNECTION_SPEC.username, CONNECTION_SPEC.password);
   }
 
+  /**
+   * Interface that allows for alternate ways to access internals to the Connection for testing
+   * purposes.
+   */
+  interface ConnectionInternals {
+    /**
+     * Reaches into the guts of a quasi-remote connection and pull out the
+     * statement map from the other side.
+     *
+     * <p>TODO: refactor tests to replace reflection with package-local access
+     */
+    Cache<Integer, Object> getRemoteStatementMap(AvaticaConnection connection) throws Exception;
+
+    /**
+     * Reaches into the guts of a quasi-remote connection and pull out the
+     * connection map from the other side.
+     *
+     * <p>TODO: refactor tests to replace reflection with package-local access
+     */
+    Cache<String, Connection> getRemoteConnectionMap(AvaticaConnection connection) throws Exception;
+  }
+
+  // Run each test with the LocalJsonService and LocalProtobufService
+  @Parameters
+  public static List<Object[]> parameters() {
+    List<Object[]> connections = new ArrayList<>();
+
+    // Json and Protobuf operations should be equivalent -- tests against one work on the other
+    // Each test needs to get a fresh Connection and also access some internals on that Connection.
+
+    connections.add(
+      new Object[] {
+        new Callable<Connection>() {
+          public Connection call() {
+            try {
+              return ljs();
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        },
+        new QuasiRemoteJdbcServiceInternals(),
+        new Callable<RequestInspection>() {
+          public RequestInspection call() throws Exception {
+            assert null != QuasiRemoteJdbcServiceFactory.requestInspection;
+            return QuasiRemoteJdbcServiceFactory.requestInspection;
+          }
+        } });
+
+    // TODO write the ConnectionInternals implementation
+    connections.add(
+      new Object[] {
+        new Callable<Connection>() {
+          public Connection call() {
+            try {
+              return lpbs();
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        },
+        new QuasiRemoteProtobufJdbcServiceInternals(),
+        new Callable<RequestInspection>() {
+          public RequestInspection call() throws Exception {
+            assert null != QuasiRemotePBJdbcServiceFactory.requestInspection;
+            return QuasiRemotePBJdbcServiceFactory.requestInspection;
+          }
+        } });
+
+    return connections;
+  }
+
+  private final Callable<Connection> localConnectionCallable;
+  private final ConnectionInternals localConnectionInternals;
+  private final Callable<RequestInspection> requestInspectionCallable;
+
+  public RemoteDriverTest(Callable<Connection> localConnectionCallable,
+      ConnectionInternals internals, Callable<RequestInspection> requestInspectionCallable) {
+    this.localConnectionCallable = localConnectionCallable;
+    this.localConnectionInternals = internals;
+    this.requestInspectionCallable = requestInspectionCallable;
+  }
+
+  private Connection getLocalConnection() {
+    try {
+      return localConnectionCallable.call();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private ConnectionInternals getLocalConnectionInternals() {
+    return localConnectionInternals;
+  }
+
+  private RequestInspection getRequestInspection() {
+    try {
+      return requestInspectionCallable.call();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /** Executes a lambda for the canonical connection and the local
    * connection. */
-  public void eachConnection(ConnectionFunction f) throws Exception {
+  public void eachConnection(ConnectionFunction f, Connection localConn) throws Exception {
     for (int i = 0; i < 2; i++) {
-      try (Connection connection = i == 0 ? canon() : ljs()) {
+      try (Connection connection = i == 0 ? canon() : localConn) {
         f.apply(connection);
       }
     }
@@ -98,6 +209,7 @@ public class RemoteDriverTest {
   @Before
   public void before() throws Exception {
     QuasiRemoteJdbcServiceFactory.initService();
+    QuasiRemotePBJdbcServiceFactory.initService();
   }
 
   @Test public void testRegister() throws Exception {
@@ -108,23 +220,10 @@ public class RemoteDriverTest {
     assertThat(connection.isClosed(), is(true));
   }
 
-  @Test public void testSchemas() throws Exception {
-    final Connection connection = mjs();
-    final ResultSet resultSet =
-        connection.getMetaData().getSchemas(null, null);
-    assertFalse(resultSet.next());
-    final ResultSetMetaData metaData = resultSet.getMetaData();
-    assertTrue(metaData.getColumnCount() >= 2);
-    assertEquals("TABLE_CATALOG", metaData.getColumnName(1));
-    assertEquals("TABLE_SCHEM", metaData.getColumnName(2));
-    resultSet.close();
-    connection.close();
-  }
-
   @Test public void testDatabaseProperties() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      final Connection connection = ljs();
+      final Connection connection = getLocalConnection();
       for (Meta.DatabaseProperty p : Meta.DatabaseProperty.values()) {
         switch (p) {
         case GET_NUMERIC_FUNCTIONS:
@@ -164,24 +263,10 @@ public class RemoteDriverTest {
     }
   }
 
-  @Test public void testTables() throws Exception {
-    final Connection connection = mjs();
-    final ResultSet resultSet =
-        connection.getMetaData().getTables(null, null, null, new String[0]);
-    assertFalse(resultSet.next());
-    final ResultSetMetaData metaData = resultSet.getMetaData();
-    assertTrue(metaData.getColumnCount() >= 3);
-    assertEquals("TABLE_CAT", metaData.getColumnName(1));
-    assertEquals("TABLE_SCHEM", metaData.getColumnName(2));
-    assertEquals("TABLE_NAME", metaData.getColumnName(3));
-    resultSet.close();
-    connection.close();
-  }
-
   @Test public void testTypeInfo() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      final Connection connection = ljs();
+      final Connection connection = getLocalConnection();
       final ResultSet resultSet =
           connection.getMetaData().getTypeInfo();
       assertTrue(resultSet.next());
@@ -194,6 +279,7 @@ public class RemoteDriverTest {
       assertEquals("SQL_DATETIME_SUB", metaData.getColumnName(17));
       assertEquals("NUM_PREC_RADIX", metaData.getColumnName(18));
       resultSet.close();
+      connection.close();
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -215,35 +301,10 @@ public class RemoteDriverTest {
     assertThat(connection.isClosed(), is(true));
   }
 
-  @Ignore
-  @Test public void testCatalogsMock() throws Exception {
-    final Connection connection = mjs();
-    assertThat(connection.isClosed(), is(false));
-    final ResultSet resultSet = connection.getMetaData().getSchemas();
-    assertFalse(resultSet.next());
-    final ResultSetMetaData metaData = resultSet.getMetaData();
-    assertEquals(2, metaData.getColumnCount());
-    assertEquals("TABLE_SCHEM", metaData.getColumnName(1));
-    assertEquals("TABLE_CATALOG", metaData.getColumnName(2));
-    resultSet.close();
-    connection.close();
-    assertThat(connection.isClosed(), is(true));
-  }
-
   @Test public void testStatementExecuteQueryLocal() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      checkStatementExecuteQuery(ljs(), false);
-    } finally {
-      ConnectionSpec.getDatabaseLock().unlock();
-    }
-  }
-
-  @Ignore
-  @Test public void testStatementExecuteQueryMock() throws Exception {
-    ConnectionSpec.getDatabaseLock().lock();
-    try {
-      checkStatementExecuteQuery(mjs(), false);
+      checkStatementExecuteQuery(getLocalConnection(), false);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -252,21 +313,12 @@ public class RemoteDriverTest {
   @Test public void testPrepareExecuteQueryLocal() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      checkStatementExecuteQuery(ljs(), true);
+      checkStatementExecuteQuery(getLocalConnection(), true);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 
-  @Ignore
-  @Test public void testPrepareExecuteQueryMock() throws Exception {
-    ConnectionSpec.getDatabaseLock().lock();
-    try {
-      checkStatementExecuteQuery(mjs(), true);
-    } finally {
-      ConnectionSpec.getDatabaseLock().unlock();
-    }
-  }
 
   private void checkStatementExecuteQuery(Connection connection,
       boolean prepare) throws SQLException {
@@ -304,7 +356,7 @@ public class RemoteDriverTest {
   @Test public void testStatementExecuteLocal() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      checkStatementExecute(ljs(), false);
+      checkStatementExecute(getLocalConnection(), false);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -315,11 +367,11 @@ public class RemoteDriverTest {
     try {
       // Creating a > 100 rows queries to enable fetch request
       String sql = "select * from emp cross join emp";
-      checkExecuteFetch(ljs(), sql, false, 1);
+      checkExecuteFetch(getLocalConnection(), sql, false, 1);
       // PreparedStatement needed an extra fetch, as the execute will
       // trigger the 1st fetch. Where statement execute will execute direct
       // with results back.
-      checkExecuteFetch(ljs(), sql, true, 2);
+      checkExecuteFetch(getLocalConnection(), sql, true, 2);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -329,7 +381,7 @@ public class RemoteDriverTest {
     int fetchCountMatch) throws SQLException {
     final Statement exeStatement;
     final ResultSet results;
-    LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
+    getRequestInspection().getRequestLogger().enableAndClear();
     if (isPrepare) {
       PreparedStatement statement = conn.prepareStatement(sql);
       exeStatement = statement;
@@ -346,20 +398,20 @@ public class RemoteDriverTest {
     }
     results.close();
     exeStatement.close();
-    List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
+    List<String[]> x = getRequestInspection().getRequestLogger().getAndDisable();
     for (String[] pair : x) {
       if (pair[0].contains("\"request\":\"fetch")) {
         fetchCount++;
       }
     }
     assertEquals(count, 196);
-    assertEquals(fetchCount, fetchCountMatch);
+    assertEquals(fetchCountMatch, fetchCount);
   }
 
   @Test public void testStatementExecuteLocalMaxRow() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      checkStatementExecute(ljs(), false, 2);
+      checkStatementExecute(getLocalConnection(), false, 2);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -369,7 +421,7 @@ public class RemoteDriverTest {
   @Test public void testStatementPrepareExecuteLocalMaxRow() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      checkStatementExecute(ljs(), true, 2);
+      checkStatementExecute(getLocalConnection(), true, 2);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -378,7 +430,7 @@ public class RemoteDriverTest {
   @Test public void testPrepareExecuteLocal() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      checkStatementExecute(ljs(), true);
+      checkStatementExecute(getLocalConnection(), true);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -433,7 +485,7 @@ public class RemoteDriverTest {
         + "msg varchar(3) not null)";
     final String insert = "insert into TEST_TABLE values(1, 'foo')";
     final String update = "update TEST_TABLE set msg='bar' where id=1";
-    try (Connection connection = ljs();
+    try (Connection connection = getLocalConnection();
         Statement statement = connection.createStatement();
         PreparedStatement pstmt = connection.prepareStatement("values 1")) {
       // drop
@@ -533,7 +585,7 @@ public class RemoteDriverTest {
     try {
       final String query = "select * from EMP";
       try (Connection cannon = canon();
-          Connection underTest = ljs();
+          Connection underTest = getLocalConnection();
           Statement s1 = cannon.createStatement();
           Statement s2 = underTest.createStatement()) {
         assertTrue(s1.execute(query));
@@ -656,10 +708,10 @@ public class RemoteDriverTest {
 
   @Test public void testStatementLifecycle() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
-    try (AvaticaConnection connection = (AvaticaConnection) ljs()) {
+    try (AvaticaConnection connection = (AvaticaConnection) getLocalConnection()) {
       Map<Integer, AvaticaStatement> clientMap = connection.statementMap;
-      Cache<Integer, Object> serverMap =
-          QuasiRemoteJdbcServiceFactory.getRemoteStatementMap(connection);
+      Cache<Integer, Object> serverMap = getLocalConnectionInternals()
+          .getRemoteStatementMap(connection);
       // Other tests being run might leave statements in the cache.
       // The lock guards against more statements being cached during the test.
       serverMap.invalidateAll();
@@ -680,11 +732,10 @@ public class RemoteDriverTest {
     ConnectionSpec.getDatabaseLock().lock();
     try {
       final String sql = "select * from (values (1, 'a'))";
-      Connection conn1 = ljs();
-      Connection conn2 = ljs();
-      Cache<String, Connection> connectionMap =
-          QuasiRemoteJdbcServiceFactory.getRemoteConnectionMap(
-              (AvaticaConnection) conn1);
+      Connection conn1 = getLocalConnection();
+      Connection conn2 = getLocalConnection();
+      Cache<String, Connection> connectionMap = getLocalConnectionInternals()
+          .getRemoteConnectionMap((AvaticaConnection) conn1);
       // Other tests being run might leave connections in the cache.
       // The lock guards against more connections being cached during the test.
       connectionMap.invalidateAll();
@@ -716,9 +767,9 @@ public class RemoteDriverTest {
   @Test public void testPrepareBindExecuteFetch() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      LoggingLocalJsonService.THREAD_LOG.get().enableAndClear();
-      checkPrepareBindExecuteFetch(ljs());
-      List<String[]> x = LoggingLocalJsonService.THREAD_LOG.get().getAndDisable();
+      getRequestInspection().getRequestLogger().enableAndClear();
+      checkPrepareBindExecuteFetch(getLocalConnection());
+      List<String[]> x = getRequestInspection().getRequestLogger().getAndDisable();
       for (String[] pair : x) {
         System.out.println(pair[0] + "=" + pair[1]);
       }
@@ -779,7 +830,7 @@ public class RemoteDriverTest {
   @Test public void testPrepareBindExecuteFetchVarbinary() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      final Connection connection = ljs();
+      final Connection connection = getLocalConnection();
       final String sql = "select x'de' || ? as c from (values (1, 'a'))";
       final PreparedStatement ps =
           connection.prepareStatement(sql);
@@ -807,7 +858,7 @@ public class RemoteDriverTest {
             public void apply(Connection c1) throws Exception {
               checkPrepareBindExecuteFetchDate(c1);
             }
-          });
+          }, getLocalConnection());
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -886,7 +937,7 @@ public class RemoteDriverTest {
             public void apply(Connection c1) throws Exception {
               checkDatabaseProperty(c1);
             }
-          });
+          }, getLocalConnection());
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -920,6 +971,70 @@ public class RemoteDriverTest {
   }
 
   /**
+   * Factory that creates a fully-local Protobuf service.
+   */
+  public static class QuasiRemotePBJdbcServiceFactory implements Service.Factory {
+    private static Service service;
+
+    private static RequestInspection requestInspection;
+
+    static void initService() {
+      try {
+        final JdbcMeta jdbcMeta = new JdbcMeta(CONNECTION_SPEC.url,
+            CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+        final LocalService localService = new LocalService(jdbcMeta);
+        service = new LoggingLocalProtobufService(localService, new ProtobufTranslationImpl());
+        requestInspection = (RequestInspection) service;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override public Service create(AvaticaConnection connection) {
+      assert null != service;
+      return service;
+    }
+  }
+
+  /**
+   * Proxy that logs all requests passed into the {@link LocalProtobufService}.
+   */
+  public static class LoggingLocalProtobufService extends LocalProtobufService
+      implements RequestInspection {
+    private static final ThreadLocal<RequestLogger> THREAD_LOG =
+        new ThreadLocal<RequestLogger>() {
+          @Override protected RequestLogger initialValue() {
+            return new RequestLogger();
+          }
+        };
+
+    public LoggingLocalProtobufService(Service service, ProtobufTranslation translation) {
+      super(service, translation);
+    }
+
+    @Override public RequestLogger getRequestLogger() {
+      return THREAD_LOG.get();
+    }
+
+    @Override public Response _apply(Request request) {
+      final RequestLogger logger = THREAD_LOG.get();
+      try {
+        String jsonRequest = JsonService.MAPPER.writeValueAsString(request);
+        logger.requestStart(jsonRequest);
+
+        Response response = super._apply(request);
+
+        String jsonResponse = JsonService.MAPPER.writeValueAsString(response);
+        logger.requestEnd(jsonRequest, jsonResponse);
+
+        return response;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  /**
    * Factory that creates a service based on a local JDBC connection.
    */
   public static class QuasiRemoteJdbcServiceFactory implements Service.Factory {
@@ -927,12 +1042,15 @@ public class RemoteDriverTest {
     /** a singleton instance that is recreated for each test */
     private static Service service;
 
+    private static RequestInspection requestInspection;
+
     static void initService() {
       try {
         final JdbcMeta jdbcMeta = new JdbcMeta(CONNECTION_SPEC.url,
             CONNECTION_SPEC.username, CONNECTION_SPEC.password);
         final LocalService localService = new LocalService(jdbcMeta);
         service = new LoggingLocalJsonService(localService);
+        requestInspection = (RequestInspection) service;
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -942,13 +1060,15 @@ public class RemoteDriverTest {
       assert service != null;
       return service;
     }
+  }
 
-    /**
-     * Reach into the guts of a quasi-remote connection and pull out the
-     * statement map from the other side.
-     * TODO: refactor tests to replace reflection with package-local access
-     */
-    static Cache<Integer, Object>
+  /**
+   * Implementation that reaches into current connection state via reflection to extract certain
+   * internal information.
+   */
+  public static class QuasiRemoteJdbcServiceInternals implements ConnectionInternals {
+
+    @Override public Cache<Integer, Object>
     getRemoteStatementMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -968,15 +1088,12 @@ public class RemoteDriverTest {
       Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementCache");
       jdbcMetaStatementMapF.setAccessible(true);
       //noinspection unchecked
-      return (Cache<Integer, Object>) jdbcMetaStatementMapF.get(serverMeta);
+      @SuppressWarnings("unchecked")
+      Cache<Integer, Object> cache = (Cache<Integer, Object>) jdbcMetaStatementMapF.get(serverMeta);
+      return cache;
     }
 
-    /**
-     * Reach into the guts of a quasi-remote connection and pull out the
-     * connection map from the other side.
-     * TODO: refactor tests to replace reflection with package-local access
-     */
-    static Cache<String, Connection>
+    @Override public Cache<String, Connection>
     getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -996,13 +1113,84 @@ public class RemoteDriverTest {
       Field jdbcMetaConnectionCacheF = JdbcMeta.class.getDeclaredField("connectionCache");
       jdbcMetaConnectionCacheF.setAccessible(true);
       //noinspection unchecked
-      return (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
+      @SuppressWarnings("unchecked")
+      Cache<String, Connection> cache =
+          (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
+      return cache;
     }
+  }
+
+  /**
+   * Implementation that reaches into current connection state via reflection to extract certain
+   * internal information.
+   */
+  public static class QuasiRemoteProtobufJdbcServiceInternals implements ConnectionInternals {
+
+    @Override public Cache<Integer, Object>
+    getRemoteStatementMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalProtobufService remoteMetaService =
+          (LocalProtobufService) remoteMetaServiceF.get(clientMeta);
+      // Use the explicitly class to avoid issues with LoggingLocalJsonService
+      Field remoteMetaServiceServiceF = LocalProtobufService.class.getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementCache");
+      jdbcMetaStatementMapF.setAccessible(true);
+      //noinspection unchecked
+      @SuppressWarnings("unchecked")
+      Cache<Integer, Object> cache = (Cache<Integer, Object>) jdbcMetaStatementMapF.get(serverMeta);
+      return cache;
+    }
+
+    @Override public Cache<String, Connection>
+    getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalProtobufService remoteMetaService =
+          (LocalProtobufService) remoteMetaServiceF.get(clientMeta);
+      // Get the field explicitly off the correct class to avoid LocalLoggingJsonService.class
+      Field remoteMetaServiceServiceF = LocalProtobufService.class.getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaConnectionCacheF = JdbcMeta.class.getDeclaredField("connectionCache");
+      jdbcMetaConnectionCacheF.setAccessible(true);
+      //noinspection unchecked
+      @SuppressWarnings("unchecked")
+      Cache<String, Connection> cache =
+          (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
+      return cache;
+    }
+  }
+
+  /**
+   * Provides access to a log of requests.
+   */
+  interface RequestInspection {
+    RequestLogger getRequestLogger();
   }
 
   /** Extension to {@link LocalJsonService} that writes requests and responses
    * into a thread-local. */
-  private static class LoggingLocalJsonService extends LocalJsonService {
+  private static class LoggingLocalJsonService extends LocalJsonService
+      implements RequestInspection {
     private static final ThreadLocal<RequestLogger> THREAD_LOG =
         new ThreadLocal<RequestLogger>() {
           @Override protected RequestLogger initialValue() {
@@ -1020,6 +1208,10 @@ public class RemoteDriverTest {
       final String response = super.apply(request);
       logger.requestEnd(request, response);
       return response;
+    }
+
+    @Override public RequestLogger getRequestLogger() {
+      return THREAD_LOG.get();
     }
   }
 

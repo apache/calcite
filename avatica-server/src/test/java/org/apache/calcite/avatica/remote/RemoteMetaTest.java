@@ -22,14 +22,20 @@ import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
+import org.apache.calcite.avatica.server.AvaticaHandler;
+import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
+import org.apache.calcite.avatica.server.Main.HandlerFactory;
 
 import com.google.common.cache.Cache;
 
+import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -38,6 +44,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -48,13 +55,14 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /** Tests covering {@link RemoteMeta}. */
+@RunWith(Parameterized.class)
 public class RemoteMetaTest {
   private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
 
-  private static HttpServer start;
-  private static String url;
+  // Keep a reference to the servers we start to clean them up after
+  private static final List<HttpServer> ACTIVE_SERVERS = new ArrayList<>();
 
-  /** Factory that provides a JMeta */
+  /** Factory that provides a {@link JdbcMeta}. */
   public static class FullyRemoteJdbcMetaFactory implements Meta.Factory {
 
     private static JdbcMeta instance = null;
@@ -76,15 +84,49 @@ public class RemoteMetaTest {
     }
   }
 
-  @BeforeClass public static void beforeClass() throws Exception {
-    start = Main.start(new String[] { FullyRemoteJdbcMetaFactory.class.getName() });
-    final int port = start.getPort();
-    url = "jdbc:avatica:remote:url=http://localhost:" + port;
+  @Parameters
+  public static List<Object[]> parameters() throws Exception {
+    List<Object[]> params = new ArrayList<>();
+
+    final String[] mainArgs = new String[] { FullyRemoteJdbcMetaFactory.class.getName() };
+
+    // Bind to '0' to pluck an ephemeral port instead of expecting a certain one to be free
+
+    final HttpServer jsonServer = Main.start(mainArgs, 0, new HandlerFactory() {
+      @Override public AbstractHandler createHandler(Service service) {
+        return new AvaticaHandler(service);
+      }
+    });
+    params.add(new Object[] {jsonServer, Driver.Serialization.JSON});
+    ACTIVE_SERVERS.add(jsonServer);
+
+    final HttpServer protobufServer = Main.start(mainArgs, 0, new HandlerFactory() {
+      @Override public AbstractHandler createHandler(Service service) {
+        return new AvaticaProtobufHandler(service);
+      }
+    });
+    params.add(new Object[] {protobufServer, Driver.Serialization.PROTOBUF});
+
+    ACTIVE_SERVERS.add(protobufServer);
+
+    return params;
+  }
+
+  private final HttpServer server;
+  private final String url;
+
+  public RemoteMetaTest(HttpServer server, Driver.Serialization serialization) {
+    this.server = server;
+    final int port = server.getPort();
+    url = "jdbc:avatica:remote:url=http://localhost:" + port + ";serialization="
+        + serialization.name();
   }
 
   @AfterClass public static void afterClass() throws Exception {
-    if (start != null) {
-      start.stop();
+    for (HttpServer server : ACTIVE_SERVERS) {
+      if (server != null) {
+        server.stop();
+      }
     }
   }
 

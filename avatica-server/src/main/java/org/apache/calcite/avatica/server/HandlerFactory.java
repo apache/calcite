@@ -14,19 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.avatica.server;
 
+import org.apache.calcite.avatica.remote.Driver;
 import org.apache.calcite.avatica.remote.Service;
 
+import org.eclipse.jetty.server.Handler;
+
 /**
- * Connection configuration.
+ * Factory that instantiates the desired implementation, typically differing on the method
+ * used to serialize messages, for use in the Avatica server.
  */
-public interface ConnectionConfig {
-  String schema();
-  String timeZone();
-  Service.Factory factory();
-  String url();
-  String serialization();
+public class HandlerFactory {
+
+  /**
+   * The desired implementation for the given serialization method.
+   *
+   * @param serialization The desired message serialization
+   */
+  public Handler getHandler(Service service, Driver.Serialization serialization) {
+    switch (serialization) {
+    case JSON:
+      return new AvaticaHandler(service);
+    case PROTOBUF:
+      return new AvaticaProtobufHandler(service);
+    default:
+      throw new IllegalArgumentException("Unknown Avatica handler for " + serialization.name());
+    }
+  }
+
 }
 
-// End ConnectionConfig.java
+// End HandlerFactory.java

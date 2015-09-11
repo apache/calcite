@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.remote.ProtobufService;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.protobuf.Descriptors.Descriptor;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -174,6 +178,149 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
 
   public String getSchema() {
     return this.schema;
+  }
+
+  @Override public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((autoCommit == null) ? 0 : autoCommit.hashCode());
+    result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
+    result = prime * result + (isDirty ? 1231 : 1237);
+    result = prime * result + ((readOnly == null) ? 0 : readOnly.hashCode());
+    result = prime * result + ((schema == null) ? 0 : schema.hashCode());
+    result = prime * result
+        + ((transactionIsolation == null) ? 0 : transactionIsolation.hashCode());
+    return result;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o instanceof ConnectionPropertiesImpl) {
+      ConnectionPropertiesImpl other = (ConnectionPropertiesImpl) o;
+
+      if (null == autoCommit) {
+        if (null != other.autoCommit) {
+          return false;
+        }
+      } else if (!autoCommit.equals(other.autoCommit)) {
+        return false;
+      }
+
+      if (null == catalog) {
+        if (null != other.catalog) {
+          return false;
+        }
+      } else if (!catalog.equals(other.catalog)) {
+        return false;
+      }
+
+      if (isDirty != other.isDirty) {
+        return false;
+      }
+
+      if (null == readOnly) {
+        if (null != other.readOnly) {
+          return false;
+        }
+      } else if (!readOnly.equals(other.readOnly)) {
+        return false;
+      }
+
+      if (null == schema) {
+        if (null != other.schema) {
+          return false;
+        }
+      } else if (!schema.equals(other.schema)) {
+        return false;
+      }
+
+      if (null == transactionIsolation) {
+        if (null != other.transactionIsolation) {
+          return false;
+        }
+      } else if (!transactionIsolation.equals(other.transactionIsolation)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  public Common.ConnectionProperties toProto() {
+    Common.ConnectionProperties.Builder builder = Common.ConnectionProperties.newBuilder();
+
+    if (null != autoCommit) {
+      builder.setHasAutoCommit(true);
+      builder.setAutoCommit(autoCommit.booleanValue());
+    } else {
+      // Be explicit to avoid default value confusion
+      builder.setHasAutoCommit(false);
+    }
+
+    if (null != catalog) {
+      builder.setCatalog(catalog);
+    }
+
+    builder.setIsDirty(isDirty);
+
+    if (null != readOnly) {
+      builder.setHasReadOnly(true);
+      builder.setReadOnly(readOnly.booleanValue());
+    } else {
+      // Be explicit to avoid default value confusion
+      builder.setHasReadOnly(false);
+    }
+
+    if (null != schema) {
+      builder.setSchema(schema);
+    }
+
+    if (null != transactionIsolation) {
+      builder.setTransactionIsolation(transactionIsolation.intValue());
+    }
+
+    return builder.build();
+  }
+
+  public static ConnectionPropertiesImpl fromProto(Common.ConnectionProperties proto) {
+    final Descriptor desc = proto.getDescriptorForType();
+
+    String catalog = null;
+    if (ProtobufService.hasField(proto, desc, Common.ConnectionProperties.CATALOG_FIELD_NUMBER)) {
+      catalog = proto.getCatalog();
+    }
+
+    String schema = null;
+    if (ProtobufService.hasField(proto, desc, Common.ConnectionProperties.SCHEMA_FIELD_NUMBER)) {
+      schema = proto.getSchema();
+    }
+
+    Boolean autoCommit = null;
+    if (proto.getHasAutoCommit()) {
+      autoCommit = Boolean.valueOf(proto.getAutoCommit());
+    }
+
+    Boolean readOnly = null;
+    if (proto.getHasReadOnly()) {
+      readOnly = Boolean.valueOf(proto.getReadOnly());
+    }
+
+    Integer transactionIsolation = null;
+    if (ProtobufService.hasField(proto, desc,
+        Common.ConnectionProperties.TRANSACTION_ISOLATION_FIELD_NUMBER)) {
+      transactionIsolation = Integer.valueOf(proto.getTransactionIsolation());
+    }
+
+    ConnectionPropertiesImpl impl = new ConnectionPropertiesImpl(autoCommit, readOnly,
+        transactionIsolation, catalog, schema);
+
+    impl.setDirty(proto.getIsDirty());
+
+    return impl;
   }
 }
 
