@@ -134,7 +134,7 @@ public class RemoteDriverTest {
           throw new RuntimeException(e);
         }
       }
-    }, null, new Callable<RequestInspection>() {
+    }, new QuasiRemoteProtobufJdbcServiceInternals(), new Callable<RequestInspection>() {
       public RequestInspection call() throws Exception {
         assert null != QuasiRemotePBJdbcServiceFactory.requestInspection;
         return QuasiRemotePBJdbcServiceFactory.requestInspection;
@@ -1097,6 +1097,78 @@ public class RemoteDriverTest {
       LocalJsonService remoteMetaService = (LocalJsonService) remoteMetaServiceF.get(clientMeta);
       // Get the field explicitly off the correct class to avoid LocalLoggingJsonService.class
       Field remoteMetaServiceServiceF = LocalJsonService.class.getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaConnectionCacheF = JdbcMeta.class.getDeclaredField("connectionCache");
+      jdbcMetaConnectionCacheF.setAccessible(true);
+      //noinspection unchecked
+      @SuppressWarnings("unchecked")
+      Cache<String, Connection> cache =
+          (Cache<String, Connection>) jdbcMetaConnectionCacheF.get(serverMeta);
+      return cache;
+    }
+  }
+
+  /**
+   * Implementation that reaches into current connection state via reflection to extract certain
+   * internal information.
+   */
+  public static class QuasiRemoteProtobufJdbcServiceInternals implements ConnectionInternals {
+
+    /**
+     * Reach into the guts of a quasi-remote connection and pull out the
+     * statement map from the other side.
+     * TODO: refactor tests to replace reflection with package-local access
+     */
+    @Override
+    public Cache<Integer, Object>
+    getRemoteStatementMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalProtobufService remoteMetaService =
+          (LocalProtobufService) remoteMetaServiceF.get(clientMeta);
+      // Use the explicitly class to avoid issues with LoggingLocalJsonService
+      Field remoteMetaServiceServiceF = LocalProtobufService.class.getDeclaredField("service");
+      remoteMetaServiceServiceF.setAccessible(true);
+      LocalService remoteMetaServiceService =
+          (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
+      Field remoteMetaServiceServiceMetaF =
+          remoteMetaServiceService.getClass().getDeclaredField("meta");
+      remoteMetaServiceServiceMetaF.setAccessible(true);
+      JdbcMeta serverMeta = (JdbcMeta) remoteMetaServiceServiceMetaF.get(remoteMetaServiceService);
+      Field jdbcMetaStatementMapF = JdbcMeta.class.getDeclaredField("statementCache");
+      jdbcMetaStatementMapF.setAccessible(true);
+      //noinspection unchecked
+      @SuppressWarnings("unchecked")
+      Cache<Integer, Object> cache = (Cache<Integer, Object>) jdbcMetaStatementMapF.get(serverMeta);
+      return cache;
+    }
+
+    /**
+     * Reach into the guts of a quasi-remote connection and pull out the
+     * connection map from the other side.
+     * TODO: refactor tests to replace reflection with package-local access
+     */
+    @Override
+    public Cache<String, Connection>
+    getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
+      Field metaF = AvaticaConnection.class.getDeclaredField("meta");
+      metaF.setAccessible(true);
+      Meta clientMeta = (Meta) metaF.get(connection);
+      Field remoteMetaServiceF = clientMeta.getClass().getDeclaredField("service");
+      remoteMetaServiceF.setAccessible(true);
+      LocalProtobufService remoteMetaService =
+          (LocalProtobufService) remoteMetaServiceF.get(clientMeta);
+      // Get the field explicitly off the correct class to avoid LocalLoggingJsonService.class
+      Field remoteMetaServiceServiceF = LocalProtobufService.class.getDeclaredField("service");
       remoteMetaServiceServiceF.setAccessible(true);
       LocalService remoteMetaServiceService =
           (LocalService) remoteMetaServiceServiceF.get(remoteMetaService);
