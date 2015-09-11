@@ -34,6 +34,8 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.Lists;
+
 import com.mongodb.AggregationOptions;
 import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBList;
@@ -76,7 +78,7 @@ public class MongoTable extends AbstractQueryableTable
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
-    return new MongoQueryable<T>(queryProvider, schema, this, tableName);
+    return new MongoQueryable<>(queryProvider, schema, this, tableName);
   }
 
   public RelNode toRel(
@@ -131,7 +133,7 @@ public class MongoTable extends AbstractQueryableTable
   public Enumerable<Object> aggregate(final DB mongoDb,
       final List<Map.Entry<String, Class>> fields,
       final List<String> operations) {
-    final List<DBObject> list = new ArrayList<DBObject>();
+    final List<DBObject> list = new ArrayList<>();
     final BasicDBList versionArray = (BasicDBList) mongoDb
         .command("buildInfo").get("versionArray");
     final Integer versionMajor = parseIntString(versionArray
@@ -165,10 +167,9 @@ public class MongoTable extends AbstractQueryableTable
                    .outputMode(AggregationOptions.OutputMode.CURSOR).build();
               // Warning - this can result in a very large ArrayList!
               // but you should know your data and aggregate accordingly
-              ArrayList<DBObject> resultAsArrayList
-                = new ArrayList<DBObject>(Util.toList(mongoDb.
-                      getCollection(collectionName)
-                       .aggregate(list, options)));
+              final List<DBObject> resultAsArrayList =
+                  Lists.newArrayList(mongoDb.getCollection(collectionName)
+                      .aggregate(list, options));
               resultIterator = resultAsArrayList.iterator();
             } else { // Pre MongoDB version 2.6
               AggregationOutput result = aggregateOldWay(mongoDb

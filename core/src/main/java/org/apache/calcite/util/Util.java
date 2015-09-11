@@ -52,6 +52,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -323,7 +324,7 @@ public class Util {
     } else if (set2.isEmpty()) {
       return set1;
     } else {
-      Set<T> set = new HashSet<T>(set1);
+      Set<T> set = new HashSet<>(set1);
       set.removeAll(set2);
       return set;
     }
@@ -432,7 +433,7 @@ public class Util {
       Field[] fields = clazz.getFields();
       int printed = 0;
       for (Field field : fields) {
-        if (isStatic(field)) {
+        if (Modifier.isStatic(field.getModifiers())) {
           continue;
         }
         if (printed++ > 0) {
@@ -469,8 +470,6 @@ public class Util {
     if (s == null) {
       if (nullMeansNull) {
         pw.print("null");
-      } else {
-        //pw.print("");
       }
     } else {
       String s1 = replace(s, "\\", "\\\\");
@@ -583,6 +582,7 @@ public class Util {
   /**
    * Creates a file-protocol URL for the given file.
    */
+  @Deprecated // to be removed before 2.0
   public static URL toURL(File file) throws MalformedURLException {
     String path = file.getAbsolutePath();
 
@@ -607,6 +607,7 @@ public class Util {
    * Gets a timestamp string for use in file names. The generated timestamp
    * string reflects the current time.
    */
+  @Deprecated // to be removed before 2.0
   public static String getFileTimestamp() {
     SimpleDateFormat sdf = new SimpleDateFormat(FILE_TIMESTAMP_FORMAT);
     return sdf.format(new java.util.Date());
@@ -700,17 +701,13 @@ public class Util {
    * @param iter iterator to materialize
    * @return materialized list
    */
+  @Deprecated // to be removed before 2.0
   public static <T> List<T> toList(Iterator<T> iter) {
-    List<T> list = new ArrayList<T>();
+    List<T> list = new ArrayList<>();
     while (iter.hasNext()) {
       list.add(iter.next());
     }
     return list;
-  }
-
-  static boolean isStatic(java.lang.reflect.Member member) {
-    int modifiers = member.getModifiers();
-    return java.lang.reflect.Modifier.isStatic(modifiers);
   }
 
   /**
@@ -800,6 +797,7 @@ public class Util {
    *
    * @return a non-null string containing all messages of the exception
    */
+  @Deprecated // to be removed before 2.0
   public static String getMessages(Throwable t) {
     StringBuilder sb = new StringBuilder();
     for (Throwable curr = t; curr != null; curr = curr.getCause()) {
@@ -820,7 +818,10 @@ public class Util {
    *
    * @param t Throwable
    * @return Stack trace
+   *
+   * @deprecated Use {@link com.google.common.base.Throwables#getStackTraceAsString(Throwable)}
    */
+  @Deprecated // to be removed before 2.0
   public static String getStackTrace(Throwable t) {
     final StringWriter sw = new StringWriter();
     final PrintWriter pw = new PrintWriter(sw);
@@ -1010,6 +1011,7 @@ public class Util {
    * @param reader reader to read from
    * @return reader contents as string
    */
+  @Deprecated // to be removed before 2.0
   public static String readAllAsString(Reader reader) throws IOException {
     StringBuilder sb = new StringBuilder();
     char[] buf = new char[4096];
@@ -1030,6 +1032,7 @@ public class Util {
    *
    * @param jar jar to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchJar(JarFile jar) {
     try {
       if (jar != null) {
@@ -1047,6 +1050,7 @@ public class Util {
    *
    * @param stream stream to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchStream(InputStream stream) {
     try {
       if (stream != null) {
@@ -1066,6 +1070,7 @@ public class Util {
    *
    * @param stream stream to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchStream(OutputStream stream) {
     try {
       if (stream != null) {
@@ -1083,6 +1088,7 @@ public class Util {
    *
    * @param reader reader to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchReader(Reader reader) {
     try {
       if (reader != null) {
@@ -1102,6 +1108,7 @@ public class Util {
    *
    * @param writer writer to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchWriter(Writer writer) {
     try {
       if (writer != null) {
@@ -1119,6 +1126,7 @@ public class Util {
    *
    * @param stmt stmt to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchStmt(Statement stmt) {
     try {
       if (stmt != null) {
@@ -1136,6 +1144,7 @@ public class Util {
    *
    * @param connection connection to close
    */
+  @Deprecated // to be removed before 2.0
   public static void squelchConnection(Connection connection) {
     try {
       if (connection != null) {
@@ -1152,6 +1161,7 @@ public class Util {
    * @param s string to be trimmed
    * @return trimmed string
    */
+  @Deprecated // to be removed before 2.0
   public static String rtrim(String s) {
     int n = s.length() - 1;
     if (n >= 0) {
@@ -1174,6 +1184,7 @@ public class Util {
    * @param len desired length
    * @return padded string
    */
+  @Deprecated // to be removed before 2.0
   public static String rpad(String s, int len) {
     if (s.length() >= len) {
       return s;
@@ -1509,6 +1520,7 @@ public class Util {
    * @throws IOException
    * @throws InterruptedException
    */
+  @Deprecated // to be removed before 2.0
   public static int runApplication(
       String[] cmdarray,
       Logger logger,
@@ -1527,6 +1539,7 @@ public class Util {
    * @param cmdarray command and arguments.
    * @return a ProcessBuilder.
    */
+  @Deprecated // to be removed before 2.0
   public static ProcessBuilder newAppProcess(String[] cmdarray) {
     // Concatenate quoted words from cmdarray.
     // REVIEW mb 2/24/09 Why is this needed?
@@ -1702,11 +1715,11 @@ public class Util {
    * @param includeFilter Class whose instances to include
    */
   public static <E> Iterable<E> filter(
-      final Iterable<? extends Object> iterable,
+      final Iterable<?> iterable,
       final Class<E> includeFilter) {
     return new Iterable<E>() {
       public Iterator<E> iterator() {
-        return new Filterator<E>(iterable.iterator(), includeFilter);
+        return new Filterator<>(iterable.iterator(), includeFilter);
       }
     };
   }
@@ -1718,7 +1731,7 @@ public class Util {
       private int size = -1;
 
       public Iterator<E> iterator() {
-        return new Filterator<E>(collection.iterator(), includeFilter);
+        return new Filterator<>(collection.iterator(), includeFilter);
       }
 
       public int size() {
@@ -1728,9 +1741,7 @@ public class Util {
           // filtering values.  (Some java.util algorithms
           // call next() on the result of iterator() size() times.)
           int s = 0;
-          Iterator<E> iter = iterator();
-          while (iter.hasNext()) {
-            iter.next();
+          for (E e : this) {
             s++;
           }
           size = s;
@@ -1753,7 +1764,7 @@ public class Util {
   public static <E> List<E> filter(
       final List<?> list,
       final Class<E> includeFilter) {
-    List<E> result = new ArrayList<E>();
+    List<E> result = new ArrayList<>();
     for (Object o : list) {
       if (includeFilter.isInstance(o)) {
         result.add(includeFilter.cast(o));
@@ -1784,6 +1795,7 @@ public class Util {
    */
   public static Map<String, String> toMap(
       final Properties properties) {
+    //noinspection unchecked
     return (Map) properties;
   }
 
@@ -1806,7 +1818,7 @@ public class Util {
    * @return Map with given contents
    */
   public static <K, V> Map<K, V> mapOf(K key, V value, Object... keyValues) {
-    final Map<K, V> map = new LinkedHashMap<K, V>(1 + keyValues.length);
+    final Map<K, V> map = new LinkedHashMap<>(1 + keyValues.length);
     map.put(key, value);
     for (int i = 0; i < keyValues.length;) {
       //noinspection unchecked
@@ -2071,7 +2083,7 @@ public class Util {
       }
       return -1;
     }
-    final Map<E, Object> set = new HashMap<E, Object>(size);
+    final Map<E, Object> set = new HashMap<>(size);
     for (E e : list) {
       if (set.put(e, "") != null) {
         return set.size();
@@ -2316,6 +2328,7 @@ public class Util {
     private final Object node;
 
     /** Singleton instance. Can be used if you don't care about node. */
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
     public static final FoundOne NULL = new FoundOne(null);
 
     public FoundOne(Object node) {

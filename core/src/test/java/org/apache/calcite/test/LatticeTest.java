@@ -25,6 +25,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -236,7 +237,8 @@ public class LatticeTest {
                       + "    StarTableScan(table=[[adhoc, star]])\n",
                   counter));
     } catch (RuntimeException e) {
-      assertThat(Util.getStackTrace(e), containsString("CannotPlanException"));
+      assertThat(Throwables.getStackTraceAsString(e),
+          containsString("CannotPlanException"));
     }
     assertThat(counter.get(), equalTo(1));
   }

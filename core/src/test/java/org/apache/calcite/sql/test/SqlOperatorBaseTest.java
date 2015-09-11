@@ -50,6 +50,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
 import org.junit.Before;
@@ -5274,7 +5275,7 @@ public abstract class SqlOperatorBaseTest {
       } catch (SQLException e) {
         thrown = e;
       }
-      final String stack = Util.getStackTrace(thrown);
+      final String stack = Throwables.getStackTraceAsString(thrown);
       for (Pattern pattern : patterns) {
         if (pattern.matcher(stack).matches()) {
           return;
@@ -5316,7 +5317,7 @@ public abstract class SqlOperatorBaseTest {
         thrown = e;
       }
       if (thrown != null) {
-        final String stack = Util.getStackTrace(thrown);
+        final String stack = Throwables.getStackTraceAsString(thrown);
         for (Pattern pattern : patterns) {
           if (pattern.matcher(stack).matches()) {
             return;

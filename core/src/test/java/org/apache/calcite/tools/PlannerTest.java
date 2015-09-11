@@ -38,6 +38,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
@@ -73,6 +74,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
@@ -102,7 +104,7 @@ public class PlannerTest {
     assertThat(Util.toLinux(parse.toString()), equalTo(queryFromParseTree));
 
     SqlNode validate = planner.validate(parse);
-    RelNode rel = planner.convert(validate);
+    RelNode rel = planner.rel(validate).project();
     assertThat(toString(rel), equalTo(expectedRelExpr));
   }
 
@@ -184,7 +186,7 @@ public class PlannerTest {
       SqlNode validate = planner.validate(parse);
       fail("expected error, got " + validate);
     } catch (ValidationException e) {
-      assertThat(Util.getStackTrace(e),
+      assertThat(Throwables.getStackTraceAsString(e),
           containsString("Column 'Xname' not found in any table"));
       // ok
     }
@@ -256,7 +258,7 @@ public class PlannerTest {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse("select * from \"emps\"");
     try {
-      RelNode rel = planner.convert(parse);
+      RelRoot rel = planner.rel(parse);
       fail("expected error, got " + rel);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
@@ -272,7 +274,7 @@ public class PlannerTest {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
-    RelNode rel = planner.convert(validate);
+    RelNode rel = planner.rel(validate).project();
     final RelOptPredicateList predicates =
         RelMetadataQuery.getPulledUpPredicates(rel);
     final String buf = predicates.pulledUpPredicates.toString();
@@ -327,7 +329,7 @@ public class PlannerTest {
     Planner planner = getPlanner(null, program);
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -350,7 +352,7 @@ public class PlannerTest {
         "select * from \"emps\" "
             + "order by \"emps\".\"deptno\"");
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
     RelTraitSet traitSet = convert.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -432,7 +434,7 @@ public class PlannerTest {
         Programs.of(ruleSet));
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     if (traitSet.getTrait(RelCollationTraitDef.INSTANCE) == null) {
@@ -458,7 +460,7 @@ public class PlannerTest {
             + "order by \"emps\".\"deptno\") "
             + "order by \"deptno\"");
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -486,7 +488,7 @@ public class PlannerTest {
 
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -506,7 +508,7 @@ public class PlannerTest {
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     SqlNode parse = planner.parse("select * from \"emps\"");
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -609,7 +611,7 @@ public class PlannerTest {
     SqlNode parse = planner.parse("select T1.\"name\" from \"emps\" as T1 ");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
 
     RelTraitSet traitSet0 = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
@@ -670,7 +672,7 @@ public class PlannerTest {
     SqlNode parse = planner.parse(buf.toString());
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -749,7 +751,7 @@ public class PlannerTest {
         Programs.heuristicJoinOrder(Programs.RULE_SET, false, 0));
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -877,7 +879,7 @@ public class PlannerTest {
     SqlNode parse = planner.parse(sql);
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).project();
     RelTraitSet traitSet = planner.getEmptyTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
@@ -992,7 +994,7 @@ public class PlannerTest {
     Planner p = Frameworks.getPlanner(config);
     SqlNode n = p.parse(tpchTestQuery);
     n = p.validate(n);
-    RelNode r = p.convert(n);
+    RelNode r = p.rel(n).project();
     String plan = RelOptUtil.toString(r);
     p.close();
     return plan;
@@ -1050,7 +1052,7 @@ public class PlannerTest {
             .build());
     SqlNode n = p.parse(query);
     n = p.validate(n);
-    RelNode r = p.convert(n);
+    RelNode r = p.rel(n).project();
     String plan = RelOptUtil.toString(r);
     plan = Util.toLinux(plan);
     p.close();

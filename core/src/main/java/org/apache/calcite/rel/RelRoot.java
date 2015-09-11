@@ -109,6 +109,14 @@ public class RelRoot {
         RelCollations.EMPTY);
   }
 
+  @Override public String toString() {
+    return "Root {kind: " + kind
+        + ", rel: " + rel
+        + ", rowType: " + validatedRowType
+        + ", fields: " + fields
+        + ", collation: " + collation + "}";
+  }
+
   /** Creates a copy of this RelRoot, assigning a {@link RelNode}. */
   public RelRoot withRel(RelNode rel) {
     if (rel == this.rel) {
