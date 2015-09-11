@@ -32,6 +32,7 @@ form.
 {% highlight sql %}
 statement:
       setStatement
+  |   resetStatement
   |   explain
   |   insert
   |   update
@@ -40,7 +41,11 @@ statement:
   |   query
 
 setStatement:
-      ALTER ( SYSTEM | SESSION ) SET identifier = expression
+      [ ALTER ( SYSTEM | SESSION ) ] SET identifier '=' expression
+
+resetStatement:
+      [ ALTER ( SYSTEM | SESSION ) ] RESET identifier
+  |   [ ALTER ( SYSTEM | SESSION ) ] RESET ALL
 
 explain:
       EXPLAIN PLAN

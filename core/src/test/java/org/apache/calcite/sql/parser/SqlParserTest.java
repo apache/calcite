@@ -5749,8 +5749,9 @@ public class SqlParserTest {
         SqlParser.create("alter system set schema = true").parseStmt();
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
-    assertThat(opt.getName(), equalTo("SCHEMA"));
     SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
+    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
     assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
     writer = new SqlPrettyWriter(SqlDialect.CALCITE);
     assertThat(writer.format(opt),
@@ -5768,6 +5769,33 @@ public class SqlParserTest {
         "ALTER SYSTEM SET `ONOFF` = `OFF`");
     check("alter system set baz = foo",
         "ALTER SYSTEM SET `BAZ` = `FOO`");
+
+
+    check("alter system set \"a\".\"number\" = 1",
+      "ALTER SYSTEM SET `a`.`number` = 1");
+    check("set approx = -12.3450",
+      "SET `APPROX` = -12.3450");
+
+    node = SqlParser.create("reset schema").parseStmt();
+    opt = (SqlSetOption) node;
+    assertThat(opt.getScope(), equalTo(null));
+    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
+    assertThat(opt.getValue(), equalTo(null));
+    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    assertThat(writer.format(opt),
+        equalTo("RESET \"SCHEMA\""));
+
+    check("alter system RESET flag",
+        "ALTER SYSTEM RESET `FLAG`");
+    check("reset onOff",
+        "RESET `ONOFF`");
+    check("reset \"this\".\"is\".\"sparta\"",
+        "RESET `this`.`is`.`sparta`");
+    check("alter system reset all",
+        "ALTER SYSTEM RESET `ALL`");
+    check("reset all",
+        "RESET `ALL`");
 
     // expressions not allowed
     checkFails("alter system set aString = 'abc' ^||^ 'def' ",
