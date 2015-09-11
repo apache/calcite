@@ -1,32 +1,27 @@
 [
 {
-  id: "19990101",
-  dow: "Friday",
-  longDate: "New Years Day",
-  title: "Washday blues.",
-  characters: [ "Helen", "Pat", "Sid", "Kathy", "Eddie", "Clarrie", "Joe " ],
-  script: "Louise Page",
-  summary: "",
-  lines: [
-    "It would have been John's birthday yesterday and the family celebrated New Year together.",
-    "Sid's determined to get fit in the New Year, starting by jogging around the green a few times! He even wants Kathy to join him in a joint membership at Grey Gables' gym! They could even do Clarrie a favour by paying her to mind Jamie while they are out. She, though, is less convinced by his resolve.",
-    "Helen seems more than a little unsure about Tommy and Hayley's pig business, complaining about everything from her perception that a 50-50 split in the profits is harsh on Tommy (after all, Hayley is still living in Birmingham) to the way that the problems over the Christmas pork would reflect badly on Pat and Tony's carefully crafted Bridge Farm reputation. She seems to think that absorbing it into the farm would make proper business sense.",
-    "Still no new washing machine at Grange Farm, but Eddie, at least is not feeling too down. He's even dreaming of next year's New Year's Eve party - only Clarrie isn't confident that they'll still be there."
+  "id": "19990101",
+  "dow": "Friday",
+  "longDate": "New Years Day",
+  "title": "Tractor trouble.",
+  "characters": [ "Alice", "Bob", "Xavier" ],
+  "script": "Julian Hyde",
+  "summary": "",
+  "lines": [
+    "Bob's tractor got stuck in a field.",
+    "Alice and Xavier hatch a plan to surprise Charlie."
   ]
 },
 {
-  id: "19990103",
-  dow: "Sunday",
-  longDate: "Sunday 3rd January",
-  title: "Daniel creates a drama.",
-  characters: [ "Neil", "Susan", "Clarrie", "Debbie", "Brian", "Phil", "Jill" ],
-  script: "Christopher Hawes",
-  summary: "",
-  lines: [
-    "Neil and Susan are a little nervous about their finances, especially given Neil's lack of casual work from Home Farm. Fortunately Debbie has had a word with Brian about their lack of co-ordination and has got a promise from him to liase more closely in future. She plans to offer Neil some work in the lambing sheds - it's not much, but she hopes it might placate him. Susan, of course, just points at the mistake as another way that Brian has let them down.",
-    "Clarrie's washing machine is still unfixed and she borrows Susan's to do some spinning of her wet washing. She uses the opportunity to have a well-deserved (and rare) moan at her situation - especially at the recently received electricity and telephone bills and the cost of teenage sons!",
-    "The whole village seems to have enjoyed the panto, although Phil's not sure whether the shambling production will escape some Snellish vitriol when she writes her review for the Echo. Elsewhere, Baggy and Snatch's hilarious Pantomime Cow (in a horse's costume) seems to have surprised many people with its lack of crudeness!",
-    "Phil and Jill are still appreciating having Daniel to stay, but he's playing up a little, using his illness to excuse some late night crying and whinging. Jill's expecting Shula to phone but doesn't plan on worrying her with this news, but will take him to the doctor in the morning, just in case it's not a ruse."
+  "id": "19990103",
+  "dow": "Sunday",
+  "longDate": "Sunday 3rd January",
+  "title": "Charlie's surprise.",
+  "characters": [ "Alice", "Zebedee", "Charlie", "Xavier" ],
+  "script": "William Shakespeare",
+  "summary": "",
+  "lines": [
+    "Charlie is very surprised by Alice and Xavier's surprise plan."
   ]
 }
 ]
