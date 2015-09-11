@@ -2837,7 +2837,7 @@ SqlSetOption SqlSetOption() :
 {
     SqlParserPos pos = null;
     String scope = null;
-    SqlNode name;
+    SqlIdentifier name;
     SqlNode val = null;
 }
 {

@@ -57,7 +57,7 @@ public class SqlSetOption extends SqlCall {
 
   /** Name of the option as a {@link org.apache.calcite.sql.SqlIdentifier}
    *  with one or more parts.*/
-  SqlNode name;
+  SqlIdentifier name;
 
   /** Value of the option. May be a {@link org.apache.calcite.sql.SqlLiteral} or
    * a {@link org.apache.calcite.sql.SqlIdentifier} with one
@@ -69,11 +69,12 @@ public class SqlSetOption extends SqlCall {
    * Creates a node.
    *
    * @param pos Parser position, must not be null.
-   * @param scope Scope (generally "SYSTEM" or "SESSION")
-   * @param name Name of option, as an identifier.
-   * @param value Value of option, as an identifier or literal.
+   * @param scope Scope (generally "SYSTEM" or "SESSION"), may be null.
+   * @param name Name of option, as an identifier, must not be null.
+   * @param value Value of option, as an identifier or literal, may be null.
+   *              If null, assume RESET command, else assume SET command.
    */
-  public SqlSetOption(SqlParserPos pos, String scope, SqlNode name,
+  public SqlSetOption(SqlParserPos pos, String scope, SqlIdentifier name,
       SqlNode value) {
     super(pos);
     this.scope = scope;
@@ -107,10 +108,12 @@ public class SqlSetOption extends SqlCall {
     case 0:
       if (operand != null) {
         scope = ((SqlIdentifier) operand).getSimple();
+      } else {
+        scope = null;
       }
       break;
     case 1:
-      name = operand;
+      name = (SqlIdentifier) operand;
       break;
     case 2:
       value = operand;
@@ -146,11 +149,11 @@ public class SqlSetOption extends SqlCall {
     validator.validate(value);
   }
 
-  public SqlNode getName() {
+  public SqlIdentifier getName() {
     return name;
   }
 
-  public void setName(SqlNode name) {
+  public void setName(SqlIdentifier name) {
     this.name = name;
   }
 

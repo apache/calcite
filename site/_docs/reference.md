@@ -40,7 +40,11 @@ statement:
   |   query
 
 setStatement:
-      ALTER ( SYSTEM | SESSION ) SET identifier = expression
+      [ ALTER ( SYSTEM | SESSION ) ]
+      {
+          SET assign
+      |   RESET { identifier | ALL }
+      }
 
 explain:
       EXPLAIN PLAN
