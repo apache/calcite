@@ -214,7 +214,7 @@ public abstract class MetaImpl implements Meta {
         Frame.EMPTY);
   }
 
-  protected static ColumnMetaData columnMetaData(String name, int index,
+  public static ColumnMetaData columnMetaData(String name, int index,
       Class<?> type) {
     TypeInfo pair = TypeInfo.m.get(type);
     ColumnMetaData.Rep rep =

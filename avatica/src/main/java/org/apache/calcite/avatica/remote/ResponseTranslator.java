@@ -14,19 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.remote.Service;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
 
 /**
- * Connection configuration.
+ * Encapsulate the logic of transforming a protobuf Response message into the Avatica POJO Response.
  */
-public interface ConnectionConfig {
-  String schema();
-  String timeZone();
-  Service.Factory factory();
-  String url();
-  String serialization();
-}
+public class ResponseTranslator {
 
-// End ConnectionConfig.java
+  private final Parser<? extends Message> parser;
+  private final Service.Response impl;
+
+  public ResponseTranslator(Parser<? extends Message> parser, Service.Response impl) {
+    this.parser = parser;
+    this.impl = impl;
+  }
+
+  public Service.Response transform(ByteString serializedMessage) throws
+      InvalidProtocolBufferException {
+    Message msg = parser.parseFrom(serializedMessage);
+    return impl.deserialize(msg);
+  }
+}

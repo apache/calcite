@@ -196,6 +196,15 @@ public class AvaticaUtils {
 
   /** Reads the contents of an input stream and returns as a string. */
   public static String readFully(InputStream inputStream) throws IOException {
+    return _readFully(inputStream).toString();
+  }
+
+  public static byte[] readFullyToBytes(InputStream inputStream) throws IOException {
+    return _readFully(inputStream).toByteArray();
+  }
+
+  /** Reads the contents of an input stream and returns a ByteArrayOutputStrema. */
+  static ByteArrayOutputStream _readFully(InputStream inputStream) throws IOException {
     final byte[] bytes = new byte[4096];
     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
     for (;;) {
@@ -205,7 +214,7 @@ public class AvaticaUtils {
       }
       baos.write(bytes, 0, count);
     }
-    return baos.toString();
+    return baos;
   }
 
   /** Invokes {@code Statement#setLargeMaxRows}, falling back on

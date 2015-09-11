@@ -36,8 +36,7 @@ public enum AvaticaRemoteConnectionProperty implements ConnectionProperty {
   private final Type type;
   private final Object defaultValue;
 
-  private static final Map<String, AvaticaRemoteConnectionProperty>
-  NAME_TO_PROPS;
+  private static final Map<String, AvaticaRemoteConnectionProperty> NAME_TO_PROPS;
 
   static {
     NAME_TO_PROPS = new HashMap<String, AvaticaRemoteConnectionProperty>();

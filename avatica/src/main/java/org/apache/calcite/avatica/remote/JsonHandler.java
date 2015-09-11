@@ -28,7 +28,7 @@ import java.io.StringWriter;
  *
  * @see org.apache.calcite.avatica.remote.JsonService
  */
-public class JsonHandler implements Handler {
+public class JsonHandler implements Handler<String> {
   private final Service service;
 
   protected static final ObjectMapper MAPPER = JsonService.MAPPER;
