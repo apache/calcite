@@ -18,9 +18,11 @@ package org.apache.calcite.avatica.remote;
 
 /**
  * API for text request-response calls to an Avatica server.
+ *
+ * @param <T> The type this handler accepts and returns
  */
-public interface Handler {
-  String apply(String request);
+public interface Handler<T> {
+  T apply(T request);
 }
 
 // End Handler.java

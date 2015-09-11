@@ -20,7 +20,6 @@ import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
-import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
 
 import java.sql.SQLException;
@@ -168,8 +167,7 @@ class RemoteMeta extends MetaImpl {
   @Override public ExecuteResult prepareAndExecute(StatementHandle h,
       String sql, long maxRowCount, PrepareCallback callback) {
     // sync connection state if necessary
-    connectionSync(new ConnectionHandle(h.connectionId),
-      new ConnectionPropertiesImpl());
+    connectionSync(new ConnectionHandle(h.connectionId), new ConnectionPropertiesImpl());
     final Service.ExecuteResponse response;
     try {
       synchronized (callback.getMonitor()) {

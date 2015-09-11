@@ -765,6 +765,13 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     @Override public byte[] getBytes() {
+      // JSON sends this as a base64-enc string, protobuf can do binary.
+      Object obj = getObject();
+      if (obj instanceof byte[]) {
+        // If we already have bytes, just send them back.
+        return (byte[]) obj;
+      }
+
       final String string = getString();
       if (string == null) {
         return null;
