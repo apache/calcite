@@ -400,6 +400,13 @@ public class TypedValue {
       builder.setNumberValue(((Number) value).longValue());
       break;
     case OBJECT:
+      if (null == value) {
+        // We can persist a null value through easily
+        builder.setNull(true);
+        break;
+      }
+      // Intentional fall-through to RTE because we can't serialize something we have no type
+      // insight into.
     case UNRECOGNIZED:
       // Fail?
       throw new RuntimeException("Unhandled value: " + protoRep + " " + value.getClass());
@@ -473,6 +480,12 @@ public class TypedValue {
       value = Long.valueOf(proto.getNumberValue());
       break;
     case OBJECT:
+      if (proto.getNull()) {
+        value = null;
+        break;
+      }
+      // Intentional fall through to RTE. If we sent an object over the wire, it could only
+      // possibly be null (at this point). Anything else has to be an error.
     case UNRECOGNIZED:
       // Fail?
       throw new RuntimeException("Unhandled type: " + proto.getType());

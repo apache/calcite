@@ -170,4 +170,5 @@ message TypedValue {
                            // includes numeric types and date/time types.
   bytes bytes_values = 5; // binary/varbinary
   double double_value = 6; // big numbers
+  bool null = 7; // a null object
 }
