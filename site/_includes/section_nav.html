@@ -19,7 +19,7 @@ next, lets build a link to it.
             <span class="prev disabled">Previous</span>
           {% else %}
             {% assign previous = forloop.index0 | minus: 1 %}
-            {% assign previous_page = docs[previous] | prepend:"/docs/" | append:".html" %}
+            {% capture previous_page %}{{ site.baseurl }}{{docs[previous] | prepend:"/docs/" | append:".html" }}{% endcapture %}
             <a href="{{ previous_page }}" class="prev">Previous</a>
           {% endif %}
       </div>
@@ -28,7 +28,7 @@ next, lets build a link to it.
             <span class="next disabled">Next</span>
           {% else %}
             {% assign next = forloop.index0 | plus: 1 %}
-            {% assign next_page = docs[next] | prepend:"/docs/" | append:".html" %}
+            {% capture next_page %}{{ site.baseurl }}{{ docs[next] | prepend:"/docs/" | append:".html" }}{% endcapture %}
             <a href="{{ next_page }}" class="next">Next</a>
           {% endif %}
       </div>

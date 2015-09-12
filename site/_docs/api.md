@@ -1,8 +1,12 @@
 ---
 title: API
 layout: external
-external_url: /apidocs
+external_url: http://calcite.incubator.apache.org/apidocs
 ---
+{% comment %}
+Ideally, we want to use {{ site.apiRoot }} instead of hardcoding
+the above external_url value, but I don't believe there's a way to do that
+{% endcomment %}
 
 <!--
 {% comment %}
