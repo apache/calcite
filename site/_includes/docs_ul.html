@@ -2,17 +2,20 @@
 
 <ul>
 {% for item in items %}
-  {% assign item_url = item | prepend:"/docs/" | append:".html" %}
+  {% comment %} Account for the baseurl to make sure we compare the full URI. {% endcomment %}
+  {% capture item_url %}{{site.baseurl}}{{ item | prepend:"/docs/" | append:".html" }}{% endcapture %}
+  {% capture current_url %}{{ site.baseurl }}{{ page.url }}{% endcapture %}
 
-  {% if item_url == page.url %}
+  {% if item_url == current_url %}
     {% assign c = "current" %}
   {% else %}
     {% assign c = "" %}
   {% endif %}
 
   {% for p in site.docs %}
-    {% if p.url == item_url %}
-      <li class="{{ c }}"><a href="{{ site.url }}{{ p.url }}">{{ p.title }}</a></li>
+    {% capture p_url %}{{site.baseurl}}{{p.url}}{% endcapture %}
+    {% if p_url == item_url %}
+      <li class="{{ c }}"><a href="{{ p_url }}">{{ p.title }}</a></li>
       {% break %}
     {% endif %}
   {% endfor %}

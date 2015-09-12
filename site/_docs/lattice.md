@@ -116,7 +116,7 @@ Examples:
 
 A "tile" is a materialized table in a lattice, with a particular
 dimensionality. (What Kylin calls a "cuboid".) The "tiles" attribute
-of the <a href="model.html#lattice">lattice JSON element</a>
+of the <a href="{{ site.baseurl }}/model.html#lattice">lattice JSON element</a>
 defines an initial set of tiles to materialize.
 
 If you run the algorithm, you can omit the tiles attribute. Calcite

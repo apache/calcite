@@ -26,7 +26,7 @@ Want to learn more about Calcite?
 Watch some presentations and read through some slide decks about Calcite.
 
 ## Apache Calcite: One planner fits all
- 
+
 Voted [Best Lightning Talk at XLDB-2015](http://www.xldb.org/archives/2015/05/best-lightning-talks-selected/);
 [[video](https://www.youtube.com/watch?v=5_MyORYjq3w)],
 [[slides](http://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)].

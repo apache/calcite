@@ -16,7 +16,7 @@ limitations under the License.
 {% endcomment %}
 <article>
   <h2>
-    <a href="{{ post.url }}">
+    <a href="{{ site.baseurl }}{{ post.url }}">
       {{ post.title }}
     </a>
   </h2>
@@ -55,7 +55,7 @@ limitations under the License.
   <div class="post-content">
     {{ post.content }}
     {% if post.categories contains 'release' %}
-    <p>See the <a href="/docs/history.html#{{ post.tag }}">release notes</a>.</p>
+    <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">release notes</a>.</p>
     {% endif %}
   </div>
 </article>

@@ -22,9 +22,6 @@ limitations under the License.
 {% endcomment %}
 -->
 
-{% assign sourceRoot = "http://github.com/apache/incubator-calcite/blob/master" %}
-{% assign apiRoot = "http://calcite.hydromatic.net/apidocs" %}
-
 Relational algebra is at the heart of Calcite. Every query is
 represented as a tree of relational operators. You can translate from
 SQL to relational algebra, or you can build the tree directly.
@@ -45,7 +42,7 @@ operators, planner rules, cost model, and statistics.
 ## Algebra builder
 
 The simplest way to build a relational expression is to use the algebra builder,
-[RelBuilder]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder.html).
+[RelBuilder]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.html).
 Here is an example:
 
 ### TableScan
@@ -60,7 +57,7 @@ System.out.println(RelOptUtil.toString(node));
 {% endhighlight %}
 
 (You can find the full code for this and other examples in
-[RelBuilderExample.java]({{ sourceRoot }}/core/src/test/java/org/apache/calcite/examples/RelBuilderExample.java).)
+[RelBuilderExample.java]({{ site.sourceRoot }}/core/src/test/java/org/apache/calcite/examples/RelBuilderExample.java).)
 
 The code prints
 
@@ -136,7 +133,7 @@ GROUP BY deptno
 HAVING count(*) > 10
 {% endhighlight %}
 
-and produces 
+and produces
 
 {% highlight text %}
 LogicalFilter(condition=[>($1, 10)])
@@ -161,7 +158,7 @@ building a bushy join:
 .
                join
              /      \
-        join          join 
+        join          join
       /      \      /      \
 CUSTOMERS ORDERS LINE_ITEMS PRODUCTS
 {% endhighlight %}
@@ -219,7 +216,7 @@ If you have a particular `RelNode` instance, you can rely on the field names not
 changing. In fact, the whole relational expression is immutable.
 
 But if a relational expression has passed through several rewrite rules (see
-([RelOptRule]({{ apiRoot }}/org/apache/calcite/plan/RelOptRule.html)), the field
+([RelOptRule]({{ site.apiRoot }}/org/apache/calcite/plan/RelOptRule.html)), the field
 names of the resulting expression might not look much like the originals.
 At that point it is better to reference fields by ordinal.
 
@@ -255,42 +252,42 @@ or `builder.field(2, 1, 1)`.
 #### Relational operators
 
 The following methods create a relational expression
-([RelNode]({{ apiRoot }}/org/apache/calcite/rel/RelNode.html)),
+([RelNode]({{ site.apiRoot }}/org/apache/calcite/rel/RelNode.html)),
 push it onto the stack, and
 return the `RelBuilder`.
 
 | Method              | Description
 |:------------------- |:-----------
-| `scan(tableName)` | Creates a [TableScan]({{ apiRoot }}/org/apache/calcite/rel/core/TableScan.html).
-| `values(fieldNames, value...)`<br/>`values(rowType, tupleList)` | Creates a [Values]({{ apiRoot }}/org/apache/calcite/rel/core/Values.html).
-| `filter(expr...)`<br/>`filter(exprList)` | Creates a [Filter]({{ apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates.
-| `project(expr...)`<br/>`project(exprList)` | Creates a [Project]({{ apiRoot }}/org/apache/calcite/rel/core/Project.html). To override the default name, wrap expressions using `alias`.
-| `aggregate(groupKey, aggCall...)`<br/>`aggregate(groupKey, aggCallList)` | Creates an [Aggregate]({{ apiRoot }}/org/apache/calcite/rel/core/Aggregate.html).
-| `distinct()` | Creates an [Aggregate]({{ apiRoot }}/org/apache/calcite/rel/core/Aggregate.html) that eliminates duplicate records.
-| `sort(fieldOrdinal...)`<br/>`sort(expr...)`<br/>`sort(exprList)` | Creates a [Sort]({{ apiRoot }}/org/apache/calcite/rel/core/Sort.html).<br/><br/>In the first form, field ordinals are 0-based, and a negative ordinal indicates descending; for example, -2 means field 1 descending.<br/><br/>In the other forms, you can wrap expressions in `as`, `nullsFirst` or `nullsLast`.
-| `sortLimit(offset, fetch, expr...)`<br/>`sortLimit(offset, fetch, exprList)` | Creates a [Sort]({{ apiRoot }}/org/apache/calcite/rel/core/Sort.html) with offset and limit.
-| `limit(offset, fetch)` | Creates a [Sort]({{ apiRoot }}/org/apache/calcite/rel/core/Sort.html) that does not sort, only applies with offset and limit.
-| `join(joinType, expr)`<br/>`join(joinType, fieldName...)` | Creates a [Join]({{ apiRoot }}/org/apache/calcite/rel/core/Join.html) of the two most recent relational expressions.<br/><br/>The first form joins on an boolean expression.<br/><br/>The second form joins on named fields; each side must have a field of each name.
-| `union(all)` | Creates a [Union]({{ apiRoot }}/org/apache/calcite/rel/core/Union.html) of the two most recent relational expressions.
-| `intersect(all)` | Creates an [Intersect]({{ apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the two most recent relational expressions.
-| `minus(all)` | Creates a [Minus]({{ apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
+| `scan(tableName)` | Creates a [TableScan]({{ site.apiRoot }}/org/apache/calcite/rel/core/TableScan.html).
+| `values(fieldNames, value...)`<br/>`values(rowType, tupleList)` | Creates a [Values]({{ site.apiRoot }}/org/apache/calcite/rel/core/Values.html).
+| `filter(expr...)`<br/>`filter(exprList)` | Creates a [Filter]({{ site.apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates.
+| `project(expr...)`<br/>`project(exprList)` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html). To override the default name, wrap expressions using `alias`.
+| `aggregate(groupKey, aggCall...)`<br/>`aggregate(groupKey, aggCallList)` | Creates an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html).
+| `distinct()` | Creates an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html) that eliminates duplicate records.
+| `sort(fieldOrdinal...)`<br/>`sort(expr...)`<br/>`sort(exprList)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html).<br/><br/>In the first form, field ordinals are 0-based, and a negative ordinal indicates descending; for example, -2 means field 1 descending.<br/><br/>In the other forms, you can wrap expressions in `as`, `nullsFirst` or `nullsLast`.
+| `sortLimit(offset, fetch, expr...)`<br/>`sortLimit(offset, fetch, exprList)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) with offset and limit.
+| `limit(offset, fetch)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) that does not sort, only applies with offset and limit.
+| `join(joinType, expr)`<br/>`join(joinType, fieldName...)` | Creates a [Join]({{ site.apiRoot }}/org/apache/calcite/rel/core/Join.html) of the two most recent relational expressions.<br/><br/>The first form joins on an boolean expression.<br/><br/>The second form joins on named fields; each side must have a field of each name.
+| `union(all)` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the two most recent relational expressions.
+| `intersect(all)` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the two most recent relational expressions.
+| `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
 
 Argument types:
 
-* `expr`  [RexNode]({{ apiRoot }}/org/apache/calcite/rex/RexNode.html)
-* `expr...` Array of [RexNode]({{ apiRoot }}/org/apache/calcite/rex/RexNode.html)
-* `exprList` Iterable of [RexNode]({{ apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `expr`  [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `expr...` Array of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `exprList` Iterable of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `fieldOrdinal` Ordinal of a field within its row (starting from 0)
 * `fieldName` Name of a field, unique within its row
 * `fieldName...` Array of String
 * `fieldNames` Iterable of String
-* `rowType` [RelDataType]({{ apiRoot }}/org/apache/calcite/rel/type/RelDataType.html)
-* `groupKey` [RelBuilder.GroupKey]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder/GroupKey.html)
-* `aggCall...` Array of [RelBuilder.AggCall]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html)
-* `aggCallList` Iterable of [RelBuilder.AggCall]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html)
+* `rowType` [RelDataType]({{ site.apiRoot }}/org/apache/calcite/rel/type/RelDataType.html)
+* `groupKey` [RelBuilder.GroupKey]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/GroupKey.html)
+* `aggCall...` Array of [RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html)
+* `aggCallList` Iterable of [RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html)
 * `value...` Array of Object
 * `value` Object
-* `tupleList` Iterable of List of [RexLiteral]({{ apiRoot }}/org/apache/calcite/rex/RexLiteral.html)
+* `tupleList` Iterable of List of [RexLiteral]({{ site.apiRoot }}/org/apache/calcite/rex/RexLiteral.html)
 * `all` boolean
 * `distinct` boolean
 * `alias` String
@@ -307,7 +304,7 @@ Argument types:
 #### Scalar expression methods
 
 The following methods return a scalar expression
-([RexNode]({{ apiRoot }}/org/apache/calcite/rex/RexNode.html)).
+([RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)).
 
 Many of them use the contents of the stack. For example, `field("DEPTNO")`
 returns a reference to the "DEPTNO" field of the relational expression just
@@ -321,7 +318,7 @@ added to the stack.
 | `field(inputCount, inputOrdinal, fieldName)` | Reference, by name, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
 | `field(inputCount, inputOrdinal, fieldOrdinal)` | Reference, by ordinal, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
 | `call(op, expr...)`<br/>`call(op, exprList)` | Call to a function or operator
-| `and(expr...)`<br/>`and(exprList)` | Logical AND. Flattens nested ANDs, and optimizes cases involving TRUE and FALSE. 
+| `and(expr...)`<br/>`and(exprList)` | Logical AND. Flattens nested ANDs, and optimizes cases involving TRUE and FALSE.
 | `or(expr...)`<br/>`or(exprList)` | Logical OR. Flattens nested ORs, and optimizes cases involving TRUE and FALSE.
 | `not(expr)` | Logical NOT
 | `equals(expr, expr)` | Equals
@@ -336,7 +333,7 @@ added to the stack.
 ### Group key methods
 
 The following methods return a
-[RelBuilder.GroupKey]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder/GroupKey.html).
+[RelBuilder.GroupKey]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/GroupKey.html).
 
 | Method              | Description
 |:------------------- |:-----------
@@ -345,7 +342,7 @@ The following methods return a
 ### Aggregate call methods
 
 The following methods return an
-[RelBuilder.AggCall]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html).
+[RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html).
 
 | Method              | Description
 |:------------------- |:-----------
