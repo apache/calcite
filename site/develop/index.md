@@ -67,5 +67,5 @@ $ cd incubator-calcite
 $ mvn install
 {% endhighlight %}
 
-Please check our [contributing guidelines](/docs/howto.html#contributing).
+Please check our [contributing guidelines]({{ site.baseurl }}/docs/howto.html#contributing).
 

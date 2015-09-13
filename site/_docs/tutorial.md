@@ -22,8 +22,6 @@ limitations under the License.
 {% endcomment %}
 -->
 
-{% assign sourceRoot = "http://github.com/apache/incubator-calcite/blob/master" %}
-
 This is a step-by-step tutorial that shows how to build and connect to
 Calcite. It uses a simple adapter that makes a directory of CSV files
 appear to be a schema containing tables. Calcite does the rest, and
@@ -190,10 +188,10 @@ format. Here is the model:
 
 The model defines a single schema called 'SALES'. The schema is
 powered by a plugin class,
-<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchemaFactory.java">org.apache.calcite.adapter.csv.CsvSchemaFactory</a>,
+<a href="{{ site.sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchemaFactory.java">org.apache.calcite.adapter.csv.CsvSchemaFactory</a>,
 which is part of the
 calcite-example-csv project and implements the Calcite interface
-<a href="/apidocs/org/apache/calcite/schema/SchemaFactory.html">SchemaFactory</a>.
+<a href="{{ site.apiRoot }}/org/apache/calcite/schema/SchemaFactory.html">SchemaFactory</a>.
 Its <code>create</code> method instantiates a
 schema, passing in the <code>directory</code> argument from the model file:
 
@@ -216,20 +214,20 @@ public Schema create(SchemaPlus parentSchema, String name,
 
 Driven by the model, the schema factory instantiates a single schema
 called 'SALES'.  The schema is an instance of
-<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchema.java">org.apache.calcite.adapter.csv.CsvSchema</a>
+<a href="{{ site.sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvSchema.java">org.apache.calcite.adapter.csv.CsvSchema</a>
 and implements the Calcite interface
-<a href="/calcite/apidocs/org/apache/calcite/schema/Schema.html">Schema</a>.
+<a href="{{ site.apiRoot }}/org/apache/calcite/schema/Schema.html">Schema</a>.
 
 A schema's job is to produce a list of tables. (It can also list sub-schemas and
 table-functions, but these are advanced features and calcite-example-csv does
 not support them.) The tables implement Calcite's
-<a href="/apidocs/org/apache/calcite/schema/Table.html">Table</a>
+<a href="{{ site.apiRoot }}/org/apache/calcite/schema/Table.html">Table</a>
 interface. <code>CsvSchema</code> produces tables that are instances of
-<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTable.java">CsvTable</a>
+<a href="{{ site.sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTable.java">CsvTable</a>
 and its sub-classes.
 
 Here is the relevant code from <code>CsvSchema</code>, overriding the
-<code><a href="/apidocs/org/apache/calcite/schema/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
+<code><a href="{{ site.apiRoot }}/org/apache/calcite/schema/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
 method in the <code>AbstractSchema</code> base class.
 
 {% highlight java %}
@@ -408,9 +406,9 @@ sqlline> SELECT empno, name FROM custom_table.emps;
 {% endhighlight %}
 
 The schema is a regular one, and contains a custom table powered by
-<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableFactory.java">org.apache.calcite.adapter.csv.CsvTableFactory</a>,
+<a href="{{ site.sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableFactory.java">org.apache.calcite.adapter.csv.CsvTableFactory</a>,
 which implements the Calcite interface
-<a href="/apidocs/org/apache/calcite/schema/TableFactory.html">TableFactory</a>.
+<a href="{{ site.apiRoot }}/org/apache/calcite/schema/TableFactory.html">TableFactory</a>.
 Its <code>create</code> method instantiates a <code>CsvScannableTable</code>,
 passing in the <code>file</code> argument from the model file:
 
@@ -505,16 +503,16 @@ flavor: "translatable"
 This causes a <code>CsvSchema</code> to be created with
 <code>flavor = TRANSLATABLE</code>,
 and its <code>createTable</code> method creates instances of
-<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTranslatableTable.java">CsvTranslatableTable</a>
+<a href="{{ site.sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTranslatableTable.java">CsvTranslatableTable</a>
 rather than a <code>CsvScannableTable</code>.
 
 <code>CsvTranslatableTable</code> implements the
-<code><a href="/apidocs/org/apache/calcite/schema/TranslatableTable.html#toRel()">TranslatableTable.toRel()</a></code>
+<code><a href="{{ site.apiRoot }}/org/apache/calcite/schema/TranslatableTable.html#toRel()">TranslatableTable.toRel()</a></code>
 method to create
-<a href="{{ sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java">CsvTableScan</a>.
+<a href="{{ site.sourceRoot }}/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java">CsvTableScan</a>.
 Table scans are the leaves of a query operator tree.
 The usual implementation is
-<code><a href="/apidocs/org/apache/calcite/adapter/enumerable/EnumerableTableScan.html">EnumerableTableScan</a></code>,
+<code><a href="{{ site.apiRoot }}/org/apache/calcite/adapter/enumerable/EnumerableTableScan.html">EnumerableTableScan</a></code>,
 but we have created a distinctive sub-type that will cause rules to fire.
 
 Here is the rule in its entirety:
@@ -567,7 +565,7 @@ The constructor declares the pattern of relational expressions that will cause
 the rule to fire.
 
 The <code>onMatch</code> method generates a new relational expression and calls
-<code><a href="/apidocs/org/apache/calcite/plan/RelOptRuleCall.html#transformTo(org.apache.calcite.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
+<code><a href="{{ site.apiRoot }}/org/apache/calcite/plan/RelOptRuleCall.html#transformTo(org.apache.calcite.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
 to indicate that the rule has fired successfully.
 
 ## The query optimization process

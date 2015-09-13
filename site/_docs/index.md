@@ -116,7 +116,7 @@ The subproject under example/csv provides a CSV adapter, which is
 fully functional for use in applications but is also simple enough to
 serve as a good template if you are writing your own adapter.
 
-See the <a href="tutorial.html">tutorial</a> for information on using
+See the <a href="{{ site.baseurl }}/tutorial.html">tutorial</a> for information on using
 the CSV adapter and writing other adapters.
 
 See the <a href="howto.html">HOWTO</a> for more information about
