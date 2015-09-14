@@ -25,4 +25,15 @@ keep_files: [".git", ".svn", "apidocs"]
 collections:
   docs:
     output: true
+
+# The URL where the code can be found
+sourceRoot: https://github.com/apache/incubator-calcite/blob/master
+
+# The URL where Javadocs are located
+apiRoot: /apidocs
+# apiRoot: http://calcite.incubator.apache.org/apidocs
+
+# The base path where the website is deployed
+baseurl:
+
 # End _config.yml

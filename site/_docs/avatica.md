@@ -73,10 +73,10 @@ At some point Avatica could become a separate project.
 
 Packages:
 
-* [org.apache.calcite.avatica](/apidocs/org/apache/calcite/avatica/package-summary.html) Core framework
-* [org.apache.calcite.avatica.remote](/apidocs/org/apache/calcite/avatica/remote/package-summary.html) JDBC driver that uses remote procedure calls
-* [org.apache.calcite.avatica.server](/apidocs/org/apache/calcite/avatica/server/package-summary.html) HTTP server
-* [org.apache.calcite.avatica.util](/apidocs/org/apache/calcite/avatica/util/package-summary.html) Utilities
+* [org.apache.calcite.avatica]({{ site.apiRoot }}/org/apache/calcite/avatica/package-summary.html) Core framework
+* [org.apache.calcite.avatica.remote]({{ site.apiRoot }}/org/apache/calcite/avatica/remote/package-summary.html) JDBC driver that uses remote procedure calls
+* [org.apache.calcite.avatica.server]({{ site.apiRoot }}/org/apache/calcite/avatica/server/package-summary.html) HTTP server
+* [org.apache.calcite.avatica.util]({{ site.apiRoot }}/org/apache/calcite/avatica/util/package-summary.html) Utilities
 
 ## Status
 

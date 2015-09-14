@@ -61,3 +61,5 @@ public class AvaticaProtobufHandler extends AbstractHandler {
   }
 
 }
+
+// End AvaticaProtobufHandler.java

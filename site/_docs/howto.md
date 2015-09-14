@@ -22,7 +22,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
 -->
-{% assign sourceRoot = "http://github.com/apache/incubator-calcite/blob/master" %}
 
 Here's some miscellaneous documentation about using Calcite and its various
 adapters.
@@ -70,7 +69,7 @@ The test suite will run by default when you build, unless you specify
 
 {% highlight bash %}
 # Note: "mvn clean install" does not work; use "mvn clean" then "mvn install"
-$ mvn clean 
+$ mvn clean
 $ mvn -DskipTests install
 {% endhighlight %}
 
@@ -269,7 +268,7 @@ bye
 {% endhighlight %}
 
 Connect using the
-[mongo-zips-model.json]({{ sourceRoot }}/mongodb/src/test/resources/mongo-zips-model.json)
+[mongo-zips-model.json]({{ site.sourceRoot }}/mongodb/src/test/resources/mongo-zips-model.json)
 Calcite model:
 
 {% highlight bash %}
@@ -803,7 +802,7 @@ The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/incubator/calcite/).
 
 Add a release note by copying
-[site/_posts/2015-03-13-release-1.1.0-incubating.md]({{ sourceRoot }}/site/_posts/2015-03-13-release-1.1.0-incubating.md),
+[site/_posts/2015-03-13-release-1.1.0-incubating.md]({{ site.sourceRoot }}/site/_posts/2015-03-13-release-1.1.0-incubating.md),
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 
@@ -811,4 +810,4 @@ and check that it appears in the contents in [news](http://localhost:4000/news/)
 {: #publish-the-web-site}
 
 See instructions in
-[site/README.md]({{ sourceRoot }}/site/README.md).
+[site/README.md]({{ site.sourceRoot }}/site/README.md).

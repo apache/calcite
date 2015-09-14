@@ -32,8 +32,7 @@ public class LocalProtobufService extends ProtobufService {
     this.translation = translation;
   }
 
-  @Override
-  public Response _apply(Request request) {
+  @Override public Response _apply(Request request) {
     try {
       // Serialize the request to "send to the server"
       byte[] serializedRequest = translation.serializeRequest(request);
@@ -55,3 +54,5 @@ public class LocalProtobufService extends ProtobufService {
     }
   }
 }
+
+// End LocalProtobufService.java

@@ -51,3 +51,5 @@ public class ConnectionSpec {
     return HSQLDB_LOCK;
   }
 }
+
+// End ConnectionSpec.java

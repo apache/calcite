@@ -60,3 +60,5 @@ public interface ProtobufTranslation {
    */
   Response parseResponse(byte[] bytes) throws InvalidProtocolBufferException;
 }
+
+// End ProtobufTranslation.java

@@ -71,8 +71,7 @@ public class AvaticaParameter {
         proto.getClassName(), proto.getName());
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((className == null) ? 0 : className.hashCode());
@@ -85,8 +84,7 @@ public class AvaticaParameter {
     return result;
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (obj instanceof AvaticaParameter) {
       AvaticaParameter other = (AvaticaParameter) obj;
 

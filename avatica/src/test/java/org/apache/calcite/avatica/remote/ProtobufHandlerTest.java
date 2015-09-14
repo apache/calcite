@@ -118,3 +118,5 @@ public class ProtobufHandlerTest {
   }
 
 }
+
+// End ProtobufHandlerTest.java

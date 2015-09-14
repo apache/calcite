@@ -24,14 +24,12 @@ limitations under the License.
 {% endcomment %}
 -->
 
-{% assign apiRoot = "http://calcite.hydromatic.net/apidocs" %}
-
 Calcite's foundation is a comprehensive implementation of relational
 algebra (together with transformation rules, cost model, and metadata)
 but to create algebra expressions you had to master a complex API.
 
 We're solving this problem by introducing an
-[algebra builder]({{ apiRoot }}/org/apache/calcite/tools/RelBuilder.html),
+[algebra builder]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.html),
 a single class with all the methods you need to build any relational
 expression.
 
@@ -70,7 +68,7 @@ GROUP BY deptno
 HAVING count(*) > 10
 {% endhighlight %}
 
-The [algebra builder documentation](/docs/algebra.html) describes the
+The [algebra builder documentation]({{ site.baseurl }}/docs/algebra.html) describes the
 full API and has lots of examples.
 
 We're still working on the algebra builder, but plan to release it
@@ -86,4 +84,4 @@ Hive-on-Tez, Drill, MongoDB, Splunk, Spark, JDBC data sources) and
 extensive set of query-optimization rules.
 
 If you have questions or comments, please post to the
-[mailing list](/develop).
+[mailing list]({{ site.baseurl }}/develop).

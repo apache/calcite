@@ -42,7 +42,7 @@ layout: news
   <div class="post-content">
     {{ content }}
     {% if page.categories contains 'release' %}
-    <p>See the <a href="/docs/history.html#{{ page.tag }}">release notes</a>.</p>
+    <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ page.tag }}">release notes</a>.</p>
     {% endif %}
   </div>
 </article>

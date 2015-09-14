@@ -166,16 +166,14 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     return translator;
   }
 
-  @Override
-  public byte[] serializeResponse(Response response) throws IOException {
+  @Override public byte[] serializeResponse(Response response) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     Message responseMsg = response.serialize();
     serializeMessage(out, responseMsg);
     return out.toByteArray();
   }
 
-  @Override
-  public byte[] serializeRequest(Request request) throws IOException {
+  @Override public byte[] serializeRequest(Request request) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     Message requestMsg = request.serialize();
     serializeMessage(out, requestMsg);
@@ -194,8 +192,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     wireMsg.writeTo(out);
   }
 
-  @Override
-  public Request parseRequest(byte[] bytes) throws InvalidProtocolBufferException {
+  @Override public Request parseRequest(byte[] bytes) throws InvalidProtocolBufferException {
     WireMessage wireMsg = WireMessage.parseFrom(bytes);
 
     String serializedMessageClassName = wireMsg.getName();
@@ -204,8 +201,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     return translator.transform(wireMsg.getWrappedMessage());
   }
 
-  @Override
-  public Response parseResponse(byte[] bytes) throws InvalidProtocolBufferException {
+  @Override public Response parseResponse(byte[] bytes) throws InvalidProtocolBufferException {
     WireMessage wireMsg = WireMessage.parseFrom(bytes);
 
     String serializedMessageClassName = wireMsg.getName();
@@ -214,3 +210,5 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     return translator.transform(wireMsg.getWrappedMessage());
   }
 }
+
+// End ProtobufTranslationImpl.java

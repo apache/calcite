@@ -40,8 +40,9 @@ public class MockProtobufService extends ProtobufService {
     // Add in mappings
 
     // Get the schema, no.. schema..?
-    mappings.put(new SchemasRequest(null, null), new ResultSetResponse(null, 1, true, null,
-        Meta.Frame.EMPTY, -1));
+    mappings.put(
+        new SchemasRequest(null, null),
+        new ResultSetResponse(null, 1, true, null, Meta.Frame.EMPTY, -1));
 
     // Get the tables, no tables exist
     mappings.put(new TablesRequest(null, null, null, Collections.<String>emptyList()),
@@ -51,28 +52,36 @@ public class MockProtobufService extends ProtobufService {
     mappings.put(new CreateStatementRequest("0"), new CreateStatementResponse("0", 1));
 
     // Prepare and execute a query. Values and schema are returned
-    mappings.put(new PrepareAndExecuteRequest("0", 1,
-        "select * from (\\n values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)", -1),
-        new ResultSetResponse("0", 1, true, Meta.Signature.create(
-            Arrays.<ColumnMetaData>asList(MetaImpl.columnMetaData("C1", 0, Integer.class),
-                MetaImpl.columnMetaData("C2", 1, String.class)), null, null,
-                Meta.CursorFactory.ARRAY),
-            Meta.Frame.create(0, true, Arrays.<Object>asList(new Object[] {1, "a"},
-                new Object[] {null, "b"}, new Object[] {3, "c"})), -1));
+    mappings.put(
+        new PrepareAndExecuteRequest("0", 1,
+            "select * from (\\n values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)", -1),
+        new ResultSetResponse("0", 1, true,
+            Meta.Signature.create(
+                Arrays.<ColumnMetaData>asList(
+                    MetaImpl.columnMetaData("C1", 0, Integer.class),
+                    MetaImpl.columnMetaData("C2", 1, String.class)),
+                null, null, Meta.CursorFactory.ARRAY),
+            Meta.Frame.create(0, true,
+                Arrays.<Object>asList(new Object[] {1, "a"},
+                    new Object[] {null, "b"}, new Object[] {3, "c"})), -1));
 
     // Prepare a query. Schema for results are returned, but no values
-    mappings.put(new PrepareRequest("0",
-        "select * from (\\n values(1, 'a'), (null, 'b'), (3, 'c')), as t (c1, c2)", -1),
-        new ResultSetResponse("0", 1, true, Meta.Signature.create(
-            Arrays.<ColumnMetaData>asList(MetaImpl.columnMetaData("C1", 0, Integer.class),
-                MetaImpl.columnMetaData("C2", 1, String.class)), null,
-            Collections.<AvaticaParameter>emptyList(), Meta.CursorFactory.ARRAY), null, -1));
+    mappings.put(
+        new PrepareRequest("0",
+            "select * from (\\n values(1, 'a'), (null, 'b'), (3, 'c')), as t (c1, c2)", -1),
+        new ResultSetResponse("0", 1, true,
+            Meta.Signature.create(
+                Arrays.<ColumnMetaData>asList(
+                    MetaImpl.columnMetaData("C1", 0, Integer.class),
+                    MetaImpl.columnMetaData("C2", 1, String.class)),
+                null, Collections.<AvaticaParameter>emptyList(),
+                Meta.CursorFactory.ARRAY),
+            null, -1));
 
     MAPPING = Collections.unmodifiableMap(mappings);
   }
 
-  @Override
-  public Response _apply(Request request) {
+  @Override public Response _apply(Request request) {
     if (request instanceof CloseConnectionRequest) {
       return new CloseConnectionResponse();
     }
@@ -100,9 +109,10 @@ public class MockProtobufService extends ProtobufService {
    * A factory which instantiates the mock protobuf service.
    */
   public static class MockProtobufServiceFactory implements Service.Factory {
-    @Override
-    public Service create(AvaticaConnection connection) {
+    @Override public Service create(AvaticaConnection connection) {
       return new MockProtobufService();
     }
   }
 }
+
+// End MockProtobufService.java
