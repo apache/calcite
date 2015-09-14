@@ -210,8 +210,7 @@ public class ColumnMetaData {
         proto.getDefinitelyWritable(), columnClassName);
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + (autoIncrement ? 1231 : 1237);
@@ -237,8 +236,7 @@ public class ColumnMetaData {
     return result;
   }
 
-  @Override
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (obj instanceof ColumnMetaData) {
       ColumnMetaData other = (ColumnMetaData) obj;
 
@@ -589,8 +587,7 @@ public class ColumnMetaData {
       return type;
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + id;
@@ -599,8 +596,7 @@ public class ColumnMetaData {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof AvaticaType) {
         AvaticaType other = (AvaticaType) o;
 
@@ -651,8 +647,7 @@ public class ColumnMetaData {
       this.columns = columns;
     }
 
-    @Override
-    public Common.AvaticaType toProto() {
+    @Override public Common.AvaticaType toProto() {
       Common.AvaticaType.Builder builder = Common.AvaticaType.newBuilder(super.toProto());
       for (ColumnMetaData valueType : columns) {
         builder.addColumns(valueType.toProto());
@@ -660,13 +655,11 @@ public class ColumnMetaData {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 31 * (super.hashCode() + (null == columns ? 0 : columns.hashCode()));
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (!super.equals(o)) {
         return false;
       }
@@ -697,8 +690,7 @@ public class ColumnMetaData {
       this.component = component;
     }
 
-    @Override
-    public Common.AvaticaType toProto() {
+    @Override public Common.AvaticaType toProto() {
       Common.AvaticaType.Builder builder = Common.AvaticaType.newBuilder(super.toProto());
 
       builder.setComponent(component.toProto());
@@ -706,13 +698,11 @@ public class ColumnMetaData {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 31 * (super.hashCode() + (null == component ? 0 : component.hashCode()));
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (!super.equals(o)) {
         return false;
       }

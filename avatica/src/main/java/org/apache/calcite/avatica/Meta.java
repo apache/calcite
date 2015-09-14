@@ -530,8 +530,7 @@ public interface Meta {
           proto.getFieldNamesList());
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((clazz == null) ? 0 : clazz.hashCode());
@@ -541,8 +540,7 @@ public interface Meta {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof CursorFactory) {
         CursorFactory other = (CursorFactory) o;
 
@@ -705,8 +703,7 @@ public interface Meta {
       return Signature.create(metadata, sql, parameters, cursorFactory);
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((columns == null) ? 0 : columns.hashCode());
@@ -716,8 +713,7 @@ public interface Meta {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof Signature) {
         Signature other = (Signature) o;
 
@@ -926,8 +922,7 @@ public interface Meta {
       return new Frame(proto.getOffset(), proto.getDone(), parsedRows);
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + (done ? 1231 : 1237);
@@ -936,8 +931,7 @@ public interface Meta {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof Frame) {
         Frame other = (Frame) o;
 
@@ -1048,8 +1042,7 @@ public interface Meta {
           Signature.fromProto(protoHandle.getSignature()));
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -1058,8 +1051,7 @@ public interface Meta {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof StatementHandle) {
         StatementHandle other = (StatementHandle) o;
 

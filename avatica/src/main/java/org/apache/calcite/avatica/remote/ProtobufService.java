@@ -30,73 +30,59 @@ public abstract class ProtobufService extends AbstractService {
    */
   public abstract Response _apply(Request request);
 
-  @Override
-  public ResultSetResponse apply(CatalogsRequest request) {
+  @Override public ResultSetResponse apply(CatalogsRequest request) {
     return (ResultSetResponse) _apply(request);
   }
 
-  @Override
-  public ResultSetResponse apply(SchemasRequest request) {
+  @Override public ResultSetResponse apply(SchemasRequest request) {
     return (ResultSetResponse) _apply(request);
   }
 
-  @Override
-  public ResultSetResponse apply(TablesRequest request) {
+  @Override public ResultSetResponse apply(TablesRequest request) {
     return (ResultSetResponse) _apply(request);
   }
 
-  @Override
-  public ResultSetResponse apply(TableTypesRequest request) {
+  @Override public ResultSetResponse apply(TableTypesRequest request) {
     return (ResultSetResponse) _apply(request);
   }
 
-  @Override
-  public ResultSetResponse apply(TypeInfoRequest request) {
+  @Override public ResultSetResponse apply(TypeInfoRequest request) {
     return (ResultSetResponse) _apply(request);
   }
 
-  @Override
-  public ResultSetResponse apply(ColumnsRequest request) {
+  @Override public ResultSetResponse apply(ColumnsRequest request) {
     return (ResultSetResponse) _apply(request);
   }
 
-  @Override
-  public PrepareResponse apply(PrepareRequest request) {
+  @Override public PrepareResponse apply(PrepareRequest request) {
     return finagle((PrepareResponse) _apply(request));
   }
 
-  @Override
-  public ExecuteResponse apply(PrepareAndExecuteRequest request) {
+  @Override public ExecuteResponse apply(PrepareAndExecuteRequest request) {
     return finagle((ExecuteResponse) _apply(request));
   }
 
-  @Override
-  public FetchResponse apply(FetchRequest request) {
+  @Override public FetchResponse apply(FetchRequest request) {
     return (FetchResponse) _apply(request);
   }
 
-  @Override
-  public CreateStatementResponse apply(CreateStatementRequest request) {
+  @Override public CreateStatementResponse apply(CreateStatementRequest request) {
     return (CreateStatementResponse) _apply(request);
   }
 
-  @Override
-  public CloseStatementResponse apply(CloseStatementRequest request) {
+  @Override public CloseStatementResponse apply(CloseStatementRequest request) {
     return (CloseStatementResponse) _apply(request);
   }
 
-  @Override
-  public CloseConnectionResponse apply(CloseConnectionRequest request) {
+  @Override public CloseConnectionResponse apply(CloseConnectionRequest request) {
     return (CloseConnectionResponse) _apply(request);
   }
 
-  @Override
-  public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
+  @Override public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
     return (ConnectionSyncResponse) _apply(request);
   }
 
-  @Override
-  public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
+  @Override public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
     return (DatabasePropertyResponse) _apply(request);
   }
 
@@ -111,3 +97,5 @@ public abstract class ProtobufService extends AbstractService {
     return msg.hasField(desc.findFieldByNumber(fieldNum));
   }
 }
+
+// End ProtobufService.java

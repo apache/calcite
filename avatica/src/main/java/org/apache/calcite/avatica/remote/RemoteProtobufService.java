@@ -37,8 +37,7 @@ public class RemoteProtobufService extends ProtobufService {
     this.translation = translation;
   }
 
-  @Override
-  public Response _apply(Request request) {
+  @Override public Response _apply(Request request) {
     try {
       final HttpURLConnection connection =
           (HttpURLConnection) url.openConnection();
@@ -62,5 +61,6 @@ public class RemoteProtobufService extends ProtobufService {
       throw new RuntimeException(e);
     }
   }
-
 }
+
+// End RemoteProtobufService.java

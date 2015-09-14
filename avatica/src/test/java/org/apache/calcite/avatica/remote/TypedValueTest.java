@@ -92,33 +92,35 @@ public class TypedValueTest {
 
   @Test
   public void testByteString() {
-    serializeAndEqualityCheck(TypedValue.ofLocal(Rep.BYTE_STRING,
-        new ByteString("qwertyasdf".getBytes(StandardCharsets.UTF_8))));
+    serializeAndEqualityCheck(
+        TypedValue.ofLocal(Rep.BYTE_STRING,
+            new ByteString("qwertyasdf".getBytes(StandardCharsets.UTF_8))));
   }
 
   @Test
   public void testSqlDate() {
     // days since epoch
-    serializeAndEqualityCheck(TypedValue.ofLocal(Rep.JAVA_SQL_DATE,
-        25));
+    serializeAndEqualityCheck(TypedValue.ofLocal(Rep.JAVA_SQL_DATE, 25));
   }
 
   @Test
   public void testUtilDate() {
-    serializeAndEqualityCheck(TypedValue.ofLocal(Rep.JAVA_UTIL_DATE,
-        System.currentTimeMillis()));
+    serializeAndEqualityCheck(
+        TypedValue.ofLocal(Rep.JAVA_UTIL_DATE, System.currentTimeMillis()));
   }
 
   @Test
   public void testSqlTime() {
     // millis since epoch
-    serializeAndEqualityCheck(TypedValue.ofLocal(Rep.JAVA_SQL_TIME,
-        42 * 1024 * 1024));
+    serializeAndEqualityCheck(
+        TypedValue.ofLocal(Rep.JAVA_SQL_TIME, 42 * 1024 * 1024));
   }
 
   @Test
   public void testSqlTimestamp() {
-    serializeAndEqualityCheck(TypedValue.ofLocal(Rep.JAVA_SQL_TIMESTAMP,
-        (long) 42 * 1024 * 1024 * 1024));
+    serializeAndEqualityCheck(
+        TypedValue.ofLocal(Rep.JAVA_SQL_TIMESTAMP, 42L * 1024 * 1024 * 1024));
   }
 }
+
+// End TypedValueTest.java

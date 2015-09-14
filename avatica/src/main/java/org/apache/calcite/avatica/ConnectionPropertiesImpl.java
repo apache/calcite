@@ -180,8 +180,7 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
     return this.schema;
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((autoCommit == null) ? 0 : autoCommit.hashCode());
@@ -194,8 +193,7 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
     return result;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (o instanceof ConnectionPropertiesImpl) {
       ConnectionPropertiesImpl other = (ConnectionPropertiesImpl) o;
 

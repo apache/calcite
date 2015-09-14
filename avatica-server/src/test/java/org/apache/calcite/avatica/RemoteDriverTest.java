@@ -969,8 +969,7 @@ public class RemoteDriverTest {
       }
     }
 
-    @Override
-    public Service create(AvaticaConnection connection) {
+    @Override public Service create(AvaticaConnection connection) {
       assert null != service;
       return service;
     }
@@ -992,13 +991,11 @@ public class RemoteDriverTest {
       super(service, translation);
     }
 
-    @Override
-    public RequestLogger getRequestLogger() {
+    @Override public RequestLogger getRequestLogger() {
       return THREAD_LOG.get();
     }
 
-    @Override
-    public Response _apply(Request request) {
+    @Override public Response _apply(Request request) {
       final RequestLogger logger = THREAD_LOG.get();
       try {
         String jsonRequest = JsonService.MAPPER.writeValueAsString(request);
@@ -1055,8 +1052,7 @@ public class RemoteDriverTest {
      * statement map from the other side.
      * TODO: refactor tests to replace reflection with package-local access
      */
-    @Override
-    public Cache<Integer, Object>
+    @Override public Cache<Integer, Object>
     getRemoteStatementMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -1086,8 +1082,7 @@ public class RemoteDriverTest {
      * connection map from the other side.
      * TODO: refactor tests to replace reflection with package-local access
      */
-    @Override
-    public Cache<String, Connection>
+    @Override public Cache<String, Connection>
     getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -1125,8 +1120,7 @@ public class RemoteDriverTest {
      * statement map from the other side.
      * TODO: refactor tests to replace reflection with package-local access
      */
-    @Override
-    public Cache<Integer, Object>
+    @Override public Cache<Integer, Object>
     getRemoteStatementMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -1157,8 +1151,7 @@ public class RemoteDriverTest {
      * connection map from the other side.
      * TODO: refactor tests to replace reflection with package-local access
      */
-    @Override
-    public Cache<String, Connection>
+    @Override public Cache<String, Connection>
     getRemoteConnectionMap(AvaticaConnection connection) throws Exception {
       Field metaF = AvaticaConnection.class.getDeclaredField("meta");
       metaF.setAccessible(true);
@@ -1216,8 +1209,7 @@ public class RemoteDriverTest {
       return response;
     }
 
-    @Override
-    public RequestLogger getRequestLogger() {
+    @Override public RequestLogger getRequestLogger() {
       return THREAD_LOG.get();
     }
   }

@@ -93,8 +93,7 @@ public class RemoteMetaTest {
     // Bind to '0' to pluck an ephemeral port instead of expecting a certain one to be free
 
     final HttpServer jsonServer = Main.start(mainArgs, 0, new HandlerFactory() {
-      @Override
-      public AbstractHandler createHandler(Service service) {
+      @Override public AbstractHandler createHandler(Service service) {
         return new AvaticaHandler(service);
       }
     });
@@ -102,8 +101,7 @@ public class RemoteMetaTest {
     ACTIVE_SERVERS.add(jsonServer);
 
     final HttpServer protobufServer = Main.start(mainArgs, 0, new HandlerFactory() {
-      @Override
-      public AbstractHandler createHandler(Service service) {
+      @Override public AbstractHandler createHandler(Service service) {
         return new AvaticaProtobufHandler(service);
       }
     });

@@ -37,8 +37,7 @@ public class ProtobufHandler implements Handler<byte[]> {
     this.translation = translation;
   }
 
-  @Override
-  public byte[] apply(byte[] requestBytes) {
+  @Override public byte[] apply(byte[] requestBytes) {
     // Transform the protocol buffer bytes into a POJO
     // Encapsulate the task of transforming this since
     // the bytes also contain the PB request class name.
@@ -59,6 +58,6 @@ public class ProtobufHandler implements Handler<byte[]> {
       throw new RuntimeException(e);
     }
   }
-
-
 }
+
+// End ProtobufHandler.java

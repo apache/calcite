@@ -54,3 +54,5 @@ public class HandlerFactoryTest {
         + "but got " + handler.getClass(), handler instanceof AvaticaProtobufHandler);
   }
 }
+
+// End HandlerFactoryTest.java

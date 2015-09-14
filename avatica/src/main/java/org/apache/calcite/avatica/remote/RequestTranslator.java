@@ -40,3 +40,5 @@ public class RequestTranslator {
     return impl.deserialize(msg);
   }
 }
+
+// End RequestTranslator.java

@@ -119,8 +119,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    CatalogsRequest deserialize(Message genericMsg) {
+    @Override CatalogsRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.CatalogsRequest)) {
         throw new IllegalArgumentException(
             "Expected CatalogsRequest, but got " + genericMsg.getClass().getName());
@@ -130,18 +129,15 @@ public interface Service {
       return new CatalogsRequest();
     }
 
-    @Override
-    Requests.CatalogsRequest serialize() {
+    @Override Requests.CatalogsRequest serialize() {
       return Requests.CatalogsRequest.newBuilder().build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       return o instanceof CatalogsRequest;
     }
   }
@@ -157,8 +153,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    DatabasePropertyRequest deserialize(Message genericMsg) {
+    @Override DatabasePropertyRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.DatabasePropertyRequest)) {
         throw new IllegalArgumentException(
             "Expected DatabasePropertyRequest, but got " + genericMsg.getClass().getName());
@@ -167,18 +162,15 @@ public interface Service {
       return new DatabasePropertyRequest();
     }
 
-    @Override
-    Requests.DatabasePropertyRequest serialize() {
+    @Override Requests.DatabasePropertyRequest serialize() {
       return Requests.DatabasePropertyRequest.newBuilder().build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       return o instanceof DatabasePropertyRequest;
     }
   }
@@ -204,8 +196,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    SchemasRequest deserialize(Message genericMsg) {
+    @Override SchemasRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.SchemasRequest)) {
         throw new IllegalArgumentException(
             "Expected SchemasRequest, but got" + genericMsg.getClass().getName());
@@ -228,8 +219,7 @@ public interface Service {
       return new SchemasRequest(catalog, schemaPattern);
     }
 
-    @Override
-    Requests.SchemasRequest serialize() {
+    @Override Requests.SchemasRequest serialize() {
       Requests.SchemasRequest.Builder builder = Requests.SchemasRequest.newBuilder();
       if (null != catalog) {
         builder.setCatalog(catalog);
@@ -241,8 +231,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
@@ -250,8 +239,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof SchemasRequest) {
         SchemasRequest other = (SchemasRequest) o;
 
@@ -311,8 +299,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    Request deserialize(Message genericMsg) {
+    @Override Request deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.TablesRequest)) {
         throw new IllegalArgumentException(
             "Expected TablesRequest, but got " + genericMsg.getClass().getName());
@@ -340,8 +327,7 @@ public interface Service {
       return new TablesRequest(catalog, schemaPattern, tableNamePattern, msg.getTypeListList());
     }
 
-    @Override
-    Requests.TablesRequest serialize() {
+    @Override Requests.TablesRequest serialize() {
       Requests.TablesRequest.Builder builder = Requests.TablesRequest.newBuilder();
 
       if (null != catalog) {
@@ -360,8 +346,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
@@ -371,8 +356,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof TablesRequest) {
         TablesRequest other = (TablesRequest) o;
 
@@ -419,13 +403,11 @@ public interface Service {
    * Request for {@link Meta#getTableTypes()}.
    */
   class TableTypesRequest extends Request {
-    @Override
-    ResultSetResponse accept(Service service) {
+    @Override ResultSetResponse accept(Service service) {
       return service.apply(this);
     }
 
-    @Override
-    TableTypesRequest deserialize(Message genericMsg) {
+    @Override TableTypesRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.TableTypesRequest)) {
         throw new IllegalArgumentException(
             "Expected TableTypesRequest, but got " + genericMsg.getClass().getName());
@@ -434,18 +416,15 @@ public interface Service {
       return new TableTypesRequest();
     }
 
-    @Override
-    Requests.TableTypesRequest serialize() {
+    @Override Requests.TableTypesRequest serialize() {
       return Requests.TableTypesRequest.newBuilder().build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       return o instanceof TableTypesRequest;
     }
   }
@@ -481,8 +460,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    ColumnsRequest deserialize(Message genericMsg) {
+    @Override ColumnsRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.ColumnsRequest)) {
         throw new IllegalArgumentException(
             "Expected ColumnsRequest, but got" + genericMsg.getClass().getName());
@@ -517,8 +495,7 @@ public interface Service {
       return new ColumnsRequest(catalog, schemaPattern, tableNamePattern, columnNamePattern);
     }
 
-    @Override
-    Requests.ColumnsRequest serialize() {
+    @Override Requests.ColumnsRequest serialize() {
       Requests.ColumnsRequest.Builder builder = Requests.ColumnsRequest.newBuilder();
 
       if (null != catalog) {
@@ -537,8 +514,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
@@ -548,8 +524,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof ColumnsRequest) {
         ColumnsRequest other = (ColumnsRequest) o;
 
@@ -599,8 +574,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    TypeInfoRequest deserialize(Message genericMsg) {
+    @Override TypeInfoRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.TypeInfoRequest)) {
         throw new IllegalArgumentException(
             "Expected TypeInfoRequest, but got " + genericMsg.getClass().getName());
@@ -609,18 +583,15 @@ public interface Service {
       return new TypeInfoRequest();
     }
 
-    @Override
-    Requests.TypeInfoRequest serialize() {
+    @Override Requests.TypeInfoRequest serialize() {
       return Requests.TypeInfoRequest.newBuilder().build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       return o instanceof TypeInfoRequest;
     }
   }
@@ -670,8 +641,7 @@ public interface Service {
       this.updateCount = updateCount;
     }
 
-    @Override
-    ResultSetResponse deserialize(Message genericMsg) {
+    @Override ResultSetResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.ResultSetResponse)) {
         throw new IllegalArgumentException(
             "Expected ResultSetResponse, but got " + genericMsg.getClass().getName());
@@ -704,8 +674,7 @@ public interface Service {
           signature, frame, msg.getUpdateCount());
     }
 
-    @Override
-    Responses.ResultSetResponse serialize() {
+    @Override Responses.ResultSetResponse serialize() {
       Responses.ResultSetResponse.Builder builder = Responses.ResultSetResponse.newBuilder();
 
       builder.setStatementId(statementId).setOwnStatement(ownStatement).setUpdateCount(updateCount);
@@ -725,8 +694,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -738,8 +706,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof ResultSetResponse) {
         ResultSetResponse other = (ResultSetResponse) o;
 
@@ -806,8 +773,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    PrepareAndExecuteRequest deserialize(Message genericMsg) {
+    @Override PrepareAndExecuteRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.PrepareAndExecuteRequest)) {
         throw new IllegalArgumentException(
             "Expected PrepareAndExecuteRequest, but got " + genericMsg.getClass().getName());
@@ -831,8 +797,7 @@ public interface Service {
           msg.getMaxRowCount());
     }
 
-    @Override
-    Requests.PrepareAndExecuteRequest serialize() {
+    @Override Requests.PrepareAndExecuteRequest serialize() {
       Requests.PrepareAndExecuteRequest.Builder builder = Requests.PrepareAndExecuteRequest
           .newBuilder();
 
@@ -848,8 +813,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -859,8 +823,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof PrepareAndExecuteRequest) {
         PrepareAndExecuteRequest other = (PrepareAndExecuteRequest) o;
 
@@ -902,8 +865,7 @@ public interface Service {
       this.results = results;
     }
 
-    @Override
-    ExecuteResponse deserialize(Message genericMsg) {
+    @Override ExecuteResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.ExecuteResponse)) {
         throw new IllegalArgumentException(
             "Expected ExecuteResponse, but got " + genericMsg.getClass().getName());
@@ -921,8 +883,7 @@ public interface Service {
       return new ExecuteResponse(copiedResults);
     }
 
-    @Override
-    Responses.ExecuteResponse serialize() {
+    @Override Responses.ExecuteResponse serialize() {
       Responses.ExecuteResponse.Builder builder = Responses.ExecuteResponse.newBuilder();
 
       for (ResultSetResponse result : results) {
@@ -932,8 +893,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       if (null == results) {
         return 0;
       }
@@ -941,8 +901,7 @@ public interface Service {
       return results.hashCode();
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof ExecuteResponse) {
         ExecuteResponse other = (ExecuteResponse) o;
 
@@ -988,8 +947,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    PrepareRequest deserialize(Message genericMsg) {
+    @Override PrepareRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.PrepareRequest)) {
         throw new IllegalArgumentException(
             "Expected PrepareRequest, but got " + genericMsg.getClass().getName());
@@ -1011,8 +969,7 @@ public interface Service {
       return new PrepareRequest(connectionId, sql, msg.getMaxRowCount());
     }
 
-    @Override
-    Requests.PrepareRequest serialize() {
+    @Override Requests.PrepareRequest serialize() {
       Requests.PrepareRequest.Builder builder = Requests.PrepareRequest.newBuilder();
 
       if (null != connectionId) {
@@ -1026,8 +983,7 @@ public interface Service {
       return builder.setMaxRowCount(maxRowCount).build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -1036,8 +992,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof PrepareRequest) {
         PrepareRequest other = (PrepareRequest) o;
 
@@ -1079,8 +1034,7 @@ public interface Service {
       this.statement = statement;
     }
 
-    @Override
-    PrepareResponse deserialize(Message genericMsg) {
+    @Override PrepareResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.PrepareResponse)) {
         throw new IllegalArgumentException(
             "Expected PrepareResponse, but got " + genericMsg.getClass().getName());
@@ -1091,8 +1045,7 @@ public interface Service {
       return new PrepareResponse(Meta.StatementHandle.fromProto(msg.getStatement()));
     }
 
-    @Override
-    Responses.PrepareResponse serialize() {
+    @Override Responses.PrepareResponse serialize() {
       Responses.PrepareResponse.Builder builder = Responses.PrepareResponse.newBuilder();
 
       if (null != statement) {
@@ -1102,16 +1055,14 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((statement == null) ? 0 : statement.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof PrepareResponse) {
         PrepareResponse other = (PrepareResponse) o;
 
@@ -1169,8 +1120,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    FetchRequest deserialize(Message genericMsg) {
+    @Override FetchRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.FetchRequest)) {
         throw new IllegalArgumentException(
             "Expected FetchRequest, but got " + genericMsg.getClass().getName());
@@ -1198,8 +1148,7 @@ public interface Service {
           msg.getFetchMaxRowCount());
     }
 
-    @Override
-    Requests.FetchRequest serialize() {
+    @Override Requests.FetchRequest serialize() {
       Requests.FetchRequest.Builder builder = Requests.FetchRequest.newBuilder();
 
       if (null != parameterValues) {
@@ -1222,8 +1171,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -1234,8 +1182,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof FetchRequest) {
         FetchRequest other = (FetchRequest) o;
 
@@ -1278,8 +1225,7 @@ public interface Service {
       this.frame = frame;
     }
 
-    @Override
-    FetchResponse deserialize(Message genericMsg) {
+    @Override FetchResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.FetchResponse)) {
         throw new IllegalArgumentException(
             "Expected FetchResponse, but got" + genericMsg.getClass().getName());
@@ -1290,8 +1236,7 @@ public interface Service {
       return new FetchResponse(Meta.Frame.fromProto(msg.getFrame()));
     }
 
-    @Override
-    Responses.FetchResponse serialize() {
+    @Override Responses.FetchResponse serialize() {
       Responses.FetchResponse.Builder builder = Responses.FetchResponse.newBuilder();
 
       if (null != frame) {
@@ -1301,16 +1246,14 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((frame == null) ? 0 : frame.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof FetchResponse) {
         FetchResponse other = (FetchResponse) o;
 
@@ -1348,8 +1291,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    CreateStatementRequest deserialize(Message genericMsg) {
+    @Override CreateStatementRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.CreateStatementRequest)) {
         throw new IllegalArgumentException(
             "Expected CreateStatementRequest, but got" + genericMsg.getClass().getName());
@@ -1367,8 +1309,7 @@ public interface Service {
       return new CreateStatementRequest(connectionId);
     }
 
-    @Override
-    Requests.CreateStatementRequest serialize() {
+    @Override Requests.CreateStatementRequest serialize() {
       Requests.CreateStatementRequest.Builder builder = Requests.CreateStatementRequest
           .newBuilder();
 
@@ -1379,16 +1320,14 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof CreateStatementRequest) {
         CreateStatementRequest other = (CreateStatementRequest) o;
 
@@ -1426,8 +1365,7 @@ public interface Service {
       this.statementId = statementId;
     }
 
-    @Override
-    CreateStatementResponse deserialize(Message genericMsg) {
+    @Override CreateStatementResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.CreateStatementResponse)) {
         throw new IllegalArgumentException(
             "Expected CreateStatementResponse, but got " + genericMsg.getClass().getName());
@@ -1445,8 +1383,7 @@ public interface Service {
       return new CreateStatementResponse(connectionId, msg.getStatementId());
     }
 
-    @Override
-    Responses.CreateStatementResponse serialize() {
+    @Override Responses.CreateStatementResponse serialize() {
       Responses.CreateStatementResponse.Builder builder = Responses.CreateStatementResponse
           .newBuilder();
 
@@ -1459,8 +1396,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -1468,8 +1404,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof CreateStatementResponse) {
         CreateStatementResponse other = (CreateStatementResponse) o;
 
@@ -1511,8 +1446,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    CloseStatementRequest deserialize(Message genericMsg) {
+    @Override CloseStatementRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.CloseStatementRequest)) {
         throw new IllegalArgumentException(
             "Expected CloseStatementRequest, but got " + genericMsg.getClass().getName());
@@ -1530,8 +1464,7 @@ public interface Service {
       return new CloseStatementRequest(connectionId, msg.getStatementId());
     }
 
-    @Override
-    Requests.CloseStatementRequest serialize() {
+    @Override Requests.CloseStatementRequest serialize() {
       Requests.CloseStatementRequest.Builder builder = Requests.CloseStatementRequest.newBuilder();
 
       if (null != connectionId) {
@@ -1541,8 +1474,7 @@ public interface Service {
       return builder.setStatementId(statementId).build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
@@ -1550,8 +1482,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof CloseStatementRequest) {
         CloseStatementRequest other = (CloseStatementRequest) o;
 
@@ -1576,8 +1507,7 @@ public interface Service {
     @JsonCreator
     public CloseStatementResponse() {}
 
-    @Override
-    CloseStatementResponse deserialize(Message genericMsg) {
+    @Override CloseStatementResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.CloseStatementResponse)) {
         throw new IllegalArgumentException(
             "Expected CloseStatementResponse, but got " + genericMsg.getClass().getName());
@@ -1586,18 +1516,15 @@ public interface Service {
       return new CloseStatementResponse();
     }
 
-    @Override
-    Responses.CloseStatementResponse serialize() {
+    @Override Responses.CloseStatementResponse serialize() {
       return Responses.CloseStatementResponse.newBuilder().build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       return o instanceof CloseStatementResponse;
     }
   }
@@ -1621,8 +1548,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    CloseConnectionRequest deserialize(Message genericMsg) {
+    @Override CloseConnectionRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.CloseConnectionRequest)) {
         throw new IllegalArgumentException(
             "Expected CloseConnectionRequest, but got " + genericMsg.getClass().getName());
@@ -1640,8 +1566,7 @@ public interface Service {
       return new CloseConnectionRequest(connectionId);
     }
 
-    @Override
-    Requests.CloseConnectionRequest serialize() {
+    @Override Requests.CloseConnectionRequest serialize() {
       Requests.CloseConnectionRequest.Builder builder = Requests.CloseConnectionRequest
           .newBuilder();
 
@@ -1652,16 +1577,14 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof CloseConnectionRequest) {
         CloseConnectionRequest other = (CloseConnectionRequest) o;
 
@@ -1686,8 +1609,7 @@ public interface Service {
     @JsonCreator
     public CloseConnectionResponse() {}
 
-    @Override
-    CloseConnectionResponse deserialize(Message genericMsg) {
+    @Override CloseConnectionResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.CloseConnectionResponse)) {
         throw new IllegalArgumentException(
             "Expected CloseConnectionResponse, but got " + genericMsg.getClass().getName());
@@ -1696,18 +1618,15 @@ public interface Service {
       return new CloseConnectionResponse();
     }
 
-    @Override
-    Responses.CloseConnectionResponse serialize() {
+    @Override Responses.CloseConnectionResponse serialize() {
       return Responses.CloseConnectionResponse.newBuilder().build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       return o instanceof CloseConnectionResponse;
     }
   }
@@ -1734,8 +1653,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    ConnectionSyncRequest deserialize(Message genericMsg) {
+    @Override ConnectionSyncRequest deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.ConnectionSyncRequest)) {
         throw new IllegalArgumentException(
             "Expected ConnectionSyncRequest, but got " + genericMsg.getClass().getName());
@@ -1759,8 +1677,7 @@ public interface Service {
       return new ConnectionSyncRequest(connectionId, connProps);
     }
 
-    @Override
-    Requests.ConnectionSyncRequest serialize() {
+    @Override Requests.ConnectionSyncRequest serialize() {
       Requests.ConnectionSyncRequest.Builder builder = Requests.ConnectionSyncRequest.newBuilder();
 
       if (null != connectionId) {
@@ -1774,8 +1691,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connProps == null) ? 0 : connProps.hashCode());
@@ -1783,8 +1699,7 @@ public interface Service {
       return result;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof ConnectionSyncRequest) {
         ConnectionSyncRequest other = (ConnectionSyncRequest) o;
 
@@ -1825,8 +1740,7 @@ public interface Service {
       this.connProps = connProps;
     }
 
-    @Override
-    ConnectionSyncResponse deserialize(Message genericMsg) {
+    @Override ConnectionSyncResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.ConnectionSyncResponse)) {
         throw new IllegalArgumentException(
             "Expected ConnectionSyncResponse, but got " + genericMsg.getClass().getName());
@@ -1837,8 +1751,7 @@ public interface Service {
       return new ConnectionSyncResponse(ConnectionPropertiesImpl.fromProto(msg.getConnProps()));
     }
 
-    @Override
-    Responses.ConnectionSyncResponse serialize() {
+    @Override Responses.ConnectionSyncResponse serialize() {
       Responses.ConnectionSyncResponse.Builder builder = Responses.ConnectionSyncResponse
           .newBuilder();
 
@@ -1849,8 +1762,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       if (null == connProps) {
         return 0;
       }
@@ -1858,8 +1770,7 @@ public interface Service {
       return connProps.hashCode();
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof ConnectionSyncResponse) {
         ConnectionSyncResponse other = (ConnectionSyncResponse) o;
 
@@ -1892,8 +1803,7 @@ public interface Service {
       this.map = map;
     }
 
-    @Override
-    DatabasePropertyResponse deserialize(Message genericMsg) {
+    @Override DatabasePropertyResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.DatabasePropertyResponse)) {
         throw new IllegalArgumentException(
             "Expected DatabasePropertyResponse, but got " + genericMsg.getClass().getName());
@@ -1939,8 +1849,7 @@ public interface Service {
       return new DatabasePropertyResponse(properties);
     }
 
-    @Override
-    Responses.DatabasePropertyResponse serialize() {
+    @Override Responses.DatabasePropertyResponse serialize() {
       Responses.DatabasePropertyResponse.Builder builder = Responses.DatabasePropertyResponse
           .newBuilder();
 
@@ -1983,8 +1892,7 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       if (null == map) {
         return 0;
       }
@@ -1992,8 +1900,7 @@ public interface Service {
       return map.hashCode();
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
       if (o instanceof DatabasePropertyResponse) {
         DatabasePropertyResponse other = (DatabasePropertyResponse) o;
 

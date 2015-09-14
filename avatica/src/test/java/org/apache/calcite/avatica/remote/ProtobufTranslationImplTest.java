@@ -76,7 +76,8 @@ public class ProtobufTranslationImplTest<T> {
 
   /**
    * Simple function definition that acts as an identity.
-   * @param <A>
+   *
+   * @param <A> Argument type
    */
   private interface IdentityFunction<A> {
     A apply(A obj) throws IOException;
@@ -157,18 +158,22 @@ public class ProtobufTranslationImplTest<T> {
     requests.add(new CatalogsRequest());
     requests.add(new DatabasePropertyRequest());
     requests.add(new SchemasRequest("catalog", "schemaPattern"));
-    requests.add(new TablesRequest("catalog", "schemaPattern", "tableNamePattern",
-        Arrays.asList("STRING", "BOOLEAN", "INT")));
+    requests.add(
+        new TablesRequest("catalog", "schemaPattern", "tableNamePattern",
+            Arrays.asList("STRING", "BOOLEAN", "INT")));
     requests.add(new TableTypesRequest());
-    requests.add(new ColumnsRequest("catalog", "schemaPattern", "tableNamePattern",
-        "columnNamePattern"));
+    requests.add(
+        new ColumnsRequest("catalog", "schemaPattern", "tableNamePattern",
+            "columnNamePattern"));
     requests.add(new TypeInfoRequest());
-    requests.add(new PrepareAndExecuteRequest("connectionId", Integer.MAX_VALUE, "sql",
-        Long.MAX_VALUE));
+    requests.add(
+        new PrepareAndExecuteRequest("connectionId", Integer.MAX_VALUE, "sql",
+            Long.MAX_VALUE));
     requests.add(new PrepareRequest("connectionId", "sql", Long.MAX_VALUE));
 
-    List<TypedValue> paramValues = Arrays.asList(TypedValue.create(Rep.BOOLEAN.name(),
-        Boolean.TRUE), TypedValue.create(Rep.STRING.name(), "string"));
+    List<TypedValue> paramValues =
+        Arrays.asList(TypedValue.create(Rep.BOOLEAN.name(), Boolean.TRUE),
+            TypedValue.create(Rep.STRING.name(), "string"));
     FetchRequest fetchRequest = new FetchRequest("connectionId", Integer.MAX_VALUE, paramValues,
         Long.MAX_VALUE, Integer.MAX_VALUE);
     requests.add(fetchRequest);
@@ -176,8 +181,10 @@ public class ProtobufTranslationImplTest<T> {
     requests.add(new CreateStatementRequest("connectionId"));
     requests.add(new CloseStatementRequest("connectionId", Integer.MAX_VALUE));
     requests.add(new CloseConnectionRequest("connectionId"));
-    requests.add(new ConnectionSyncRequest("connectionId", new ConnectionPropertiesImpl(
-        Boolean.FALSE, Boolean.FALSE, Integer.MAX_VALUE, "catalog", "schema")));
+    requests.add(
+        new ConnectionSyncRequest("connectionId",
+            new ConnectionPropertiesImpl(Boolean.FALSE, Boolean.FALSE,
+                Integer.MAX_VALUE, "catalog", "schema")));
 
     return requests;
   }
@@ -209,11 +216,13 @@ public class ProtobufTranslationImplTest<T> {
     // Nested classes (Signature, ColumnMetaData, CursorFactory, etc) are implicitly getting tested)
 
     // Stub out the metadata for a row
-    List<ColumnMetaData> columns = Arrays
-        .<ColumnMetaData>asList(MetaImpl.columnMetaData("str", 0, String.class),
+    List<ColumnMetaData> columns =
+        Arrays.<ColumnMetaData>asList(MetaImpl.columnMetaData("str", 0, String.class),
             MetaImpl.columnMetaData("count", 1, Integer.class));
-    List<AvaticaParameter> params = Arrays.asList(new AvaticaParameter(false, 10, 0, Types.VARCHAR,
-        "VARCHAR", String.class.getName(), "str"));
+    List<AvaticaParameter> params =
+        Arrays.asList(
+            new AvaticaParameter(false, 10, 0, Types.VARCHAR, "VARCHAR",
+                String.class.getName(), "str"));
     Meta.CursorFactory cursorFactory = Meta.CursorFactory.create(Style.LIST, Object.class,
         Arrays.asList("str", "count"));
     // The row values
@@ -245,8 +254,10 @@ public class ProtobufTranslationImplTest<T> {
 
     responses.add(new ExecuteResponse(Arrays.asList(results1, results1, results1)));
     responses.add(new FetchResponse(frame));
-    responses.add(new PrepareResponse(new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
-        signature)));
+    responses.add(
+        new PrepareResponse(
+            new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
+                signature)));
 
     return responses;
   }
@@ -269,3 +280,5 @@ public class ProtobufTranslationImplTest<T> {
     assertEquals(object, this.function.apply(object));
   }
 }
+
+// End ProtobufTranslationImplTest.java
