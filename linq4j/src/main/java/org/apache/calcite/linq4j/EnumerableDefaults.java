@@ -50,10 +50,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.Set;
 import java.util.TreeMap;
 
+import static org.apache.calcite.linq4j.Linq4j.CollectionEnumerable;
+import static org.apache.calcite.linq4j.Linq4j.ListEnumerable;
 import static org.apache.calcite.linq4j.function.Functions.adapt;
 
 /**
@@ -67,15 +70,12 @@ public abstract class EnumerableDefaults {
   public static <TSource> TSource aggregate(Enumerable<TSource> source,
       Function2<TSource, TSource, TSource> func) {
     TSource result = null;
-    final Enumerator<TSource> os = source.enumerator();
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         result = func.apply(result, o);
       }
       return result;
-    } finally {
-      os.close();
     }
   }
 
@@ -88,15 +88,12 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source, TAccumulate seed,
       Function2<TAccumulate, TSource, TAccumulate> func) {
     TAccumulate result = seed;
-    final Enumerator<TSource> os = source.enumerator();
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         result = func.apply(result, o);
       }
       return result;
-    } finally {
-      os.close();
     }
   }
 
@@ -111,15 +108,12 @@ public abstract class EnumerableDefaults {
       Function2<TAccumulate, TSource, TAccumulate> func,
       Function1<TAccumulate, TResult> selector) {
     TAccumulate accumulate = seed;
-    final Enumerator<TSource> os = source.enumerator();
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         accumulate = func.apply(accumulate, o);
       }
       return selector.apply(accumulate);
-    } finally {
-      os.close();
     }
   }
 
@@ -127,14 +121,17 @@ public abstract class EnumerableDefaults {
    * Determines whether all elements of a sequence
    * satisfy a condition.
    */
-  public static <TSource> boolean all(Enumerable<?> enumerable,
+  public static <TSource> boolean all(Enumerable<TSource> enumerable,
       Predicate1<TSource> predicate) {
-    for (Object o : enumerable) {
-      if (!predicate.apply((TSource) o)) {
-        return false;
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
+      while (os.moveNext()) {
+        TSource o = os.current();
+        if (!predicate.apply(o)) {
+          return false;
+        }
       }
+      return true;
     }
-    return true;
   }
 
   /**
@@ -151,8 +148,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> boolean any(Enumerable<TSource> enumerable,
       Predicate1<TSource> predicate) {
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         if (predicate.apply(o)) {
@@ -160,8 +156,6 @@ public abstract class EnumerableDefaults {
         }
       }
       return false;
-    } finally {
-      os.close();
     }
   }
 
@@ -319,7 +313,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source, final Class<T2> clazz) {
     return new AbstractEnumerable<T2>() {
       public Enumerator<T2> enumerator() {
-        return new CastingEnumerator<T2>(source.enumerator(), clazz);
+        return new CastingEnumerator<>(source.enumerator(), clazz);
       }
     };
   }
@@ -331,7 +325,7 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> enumerable0, Enumerable<TSource> enumerable1) {
     //noinspection unchecked
     return Linq4j.concat(
-        Arrays.<Enumerable<TSource>>asList(enumerable0, enumerable1));
+        Arrays.asList(enumerable0, enumerable1));
   }
 
   /**
@@ -342,8 +336,7 @@ public abstract class EnumerableDefaults {
       TSource element) {
     // Implementations of Enumerable backed by a Collection call
     // Collection.contains, which may be more efficient, not this method.
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         if (o.equals(element)) {
@@ -351,8 +344,6 @@ public abstract class EnumerableDefaults {
         }
       }
       return false;
-    } finally {
-      os.close();
     }
   }
 
@@ -361,7 +352,7 @@ public abstract class EnumerableDefaults {
    * element by using a specified {@code EqualityComparer<TSource>}.
    */
   public static <TSource> boolean contains(Enumerable<TSource> enumerable,
-      TSource element, EqualityComparer comparer) {
+      TSource element, EqualityComparer<TSource> comparer) {
     for (TSource o : enumerable) {
       if (comparer.equal(o, element)) {
         return true;
@@ -394,7 +385,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> defaultIfEmpty(
       Enumerable<TSource> enumerable) {
-    throw Extensions.todo();
+    return defaultIfEmpty(enumerable, null);
   }
 
   /**
@@ -402,9 +393,45 @@ public abstract class EnumerableDefaults {
    * the specified value in a singleton collection if the sequence
    * is empty.
    */
-  public static <TSource> TSource defaultIfEmpty(Enumerable<TSource> enumerable,
+  public static <TSource> Enumerable<TSource> defaultIfEmpty(
+      Enumerable<TSource> enumerable,
       TSource value) {
-    throw Extensions.todo();
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
+      if (os.moveNext()) {
+        return Linq4j.asEnumerable(
+            new Iterable<TSource>() {
+              public Iterator<TSource> iterator() {
+                return new Iterator<TSource>() {
+
+                  private boolean nonFirst;
+
+                  private Iterator<TSource> rest;
+
+                  public boolean hasNext() {
+                    return !nonFirst || rest.hasNext();
+                  }
+
+                  public TSource next() {
+                    if (nonFirst) {
+                      return rest.next();
+                    } else {
+                      final TSource first = os.current();
+                      nonFirst = true;
+                      rest = Linq4j.enumeratorIterator(os);
+                      return first;
+                    }
+                  }
+
+                  public void remove() {
+                    throw new UnsupportedOperationException("remove");
+                  }
+                };
+              }
+            });
+      } else {
+        return Linq4j.singletonEnumerable(value);
+      }
+    }
   }
 
   /**
@@ -414,7 +441,7 @@ public abstract class EnumerableDefaults {
   public static <TSource> Enumerable<TSource> distinct(
       Enumerable<TSource> enumerable) {
     final Enumerator<TSource> os = enumerable.enumerator();
-    final Set<TSource> set = new HashSet<TSource>();
+    final Set<TSource> set = new HashSet<>();
     while (os.moveNext()) {
       set.add(os.current());
     }
@@ -431,7 +458,7 @@ public abstract class EnumerableDefaults {
     if (comparer == Functions.identityComparer()) {
       return distinct(enumerable);
     }
-    final Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
+    final Set<Wrapped<TSource>> set = new HashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
     enumerable.select(wrapper).into(set);
@@ -444,7 +471,26 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> TSource elementAt(Enumerable<TSource> enumerable,
       int index) {
-    throw Extensions.todo();
+    final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
+        ? ((ListEnumerable<TSource>) enumerable)
+        : null;
+    if (list != null) {
+      return list.toList().get(index);
+    }
+    if (index < 0) {
+      throw new IndexOutOfBoundsException();
+    }
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
+      while (true) {
+        if (!os.moveNext()) {
+          throw new IndexOutOfBoundsException();
+        }
+        if (index == 0) {
+          return os.current();
+        }
+        index--;
+      }
+    }
   }
 
   /**
@@ -454,7 +500,30 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> TSource elementAtOrDefault(
       Enumerable<TSource> enumerable, int index) {
-    throw Extensions.todo();
+    final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
+        ? ((ListEnumerable<TSource>) enumerable)
+        : null;
+    if (index >= 0) {
+      if (list != null) {
+        final List<TSource> rawList = list.toList();
+        if (index < rawList.size()) {
+          return rawList.get(index);
+        }
+      } else {
+        try (Enumerator<TSource> os = enumerable.enumerator()) {
+          while (true) {
+            if (!os.moveNext()) {
+              break;
+            }
+            if (index == 0) {
+              return os.current();
+            }
+            index--;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -464,17 +533,14 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
-    Set<TSource> set = new HashSet<TSource>();
+    Set<TSource> set = new HashSet<>();
     source0.into(set);
-    final Enumerator<TSource> os = source1.enumerator();
-    try {
+    try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         set.remove(o);
       }
       return Linq4j.asEnumerable(set);
-    } finally {
-      os.close();
     }
   }
 
@@ -486,18 +552,15 @@ public abstract class EnumerableDefaults {
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer) {
-    Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
+    Set<Wrapped<TSource>> set = new HashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     source0.select(wrapper).into(set);
-    final Enumerator<Wrapped<TSource>> os =
-        source1.select(wrapper).enumerator();
-    try {
+    try (Enumerator<Wrapped<TSource>> os =
+             source1.select(wrapper).enumerator()) {
       while (os.moveNext()) {
         Wrapped<TSource> o = os.current();
         set.remove(o);
       }
-    } finally {
-      os.close();
     }
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
     return Linq4j.asEnumerable(set).select(unwrapper);
@@ -508,14 +571,11 @@ public abstract class EnumerableDefaults {
    * by Enumerable.)
    */
   public static <TSource> TSource first(Enumerable<TSource> enumerable) {
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       if (os.moveNext()) {
         return os.current();
       }
       throw new NoSuchElementException();
-    } finally {
-      os.close();
     }
   }
 
@@ -539,14 +599,11 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> TSource firstOrDefault(
         Enumerable<TSource> enumerable) {
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       if (os.moveNext()) {
         return os.current();
       }
       return null;
-    } finally {
-      os.close();
     }
   }
 
@@ -594,18 +651,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement> Enumerable<Grouping<TKey, TElement>>
   groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Groups the elements of a sequence according to a
-   * specified key selector function and creates a result value from
-   * each group and its key.
-   */
-  public static <TSource, TKey, TResult> Enumerable<Grouping<TKey, TResult>>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
-      Function2<TKey, Enumerable<TSource>, TResult> elementSelector) {
-    throw Extensions.todo();
+    return enumerable.toLookup(keySelector, elementSelector);
   }
 
   /**
@@ -618,7 +664,23 @@ public abstract class EnumerableDefaults {
   groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    return enumerable.toLookup(keySelector, elementSelector, comparer);
+  }
+
+  /**
+   * Groups the elements of a sequence according to a
+   * specified key selector function and creates a result value from
+   * each group and its key.
+   */
+  public static <TSource, TKey, TResult> Enumerable<TResult>
+  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+      final Function2<TKey, Enumerable<TSource>, TResult> resultSelector) {
+    return enumerable.toLookup(keySelector)
+        .select(new Function1<Grouping<TKey, TSource>, TResult>() {
+          public TResult apply(Grouping<TKey, TSource> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -627,11 +689,16 @@ public abstract class EnumerableDefaults {
    * each group and its key. The keys are compared by using a
    * specified comparer.
    */
-  public static <TSource, TKey, TResult> Enumerable<TResult> groupBy(
-      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
-      Function2<TKey, Enumerable<TSource>, TResult> elementSelector,
-      EqualityComparer comparer) {
-    throw Extensions.todo();
+  public static <TSource, TKey, TResult> Enumerable<TResult>
+  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+      final Function2<TKey, Enumerable<TSource>, TResult> resultSelector,
+      EqualityComparer<TKey> comparer) {
+    return enumerable.toLookup(keySelector, comparer)
+        .select(new Function1<Grouping<TKey, TSource>, TResult>() {
+          public TResult apply(Grouping<TKey, TSource> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -643,8 +710,13 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement, TResult> Enumerable<TResult> groupBy(
       Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
-      Function2<TKey, Enumerable<TElement>, TResult> resultSelector) {
-    throw Extensions.todo();
+      final Function2<TKey, Enumerable<TElement>, TResult> resultSelector) {
+    return enumerable.toLookup(keySelector, elementSelector)
+        .select(new Function1<Grouping<TKey, TElement>, TResult>() {
+          public TResult apply(Grouping<TKey, TElement> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -657,9 +729,14 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement, TResult> Enumerable<TResult> groupBy(
       Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
-      Function2<TKey, Enumerable<TElement>, TResult> resultSelector,
+      final Function2<TKey, Enumerable<TElement>, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    return enumerable.toLookup(keySelector, elementSelector, comparer)
+        .select(new Function1<Grouping<TKey, TElement>, TResult>() {
+          public TResult apply(Grouping<TKey, TElement> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -718,7 +795,13 @@ public abstract class EnumerableDefaults {
       Function2<TKey, TAccumulate, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
     return groupBy_(
-        new WrapMap<TKey, TAccumulate>(comparer),
+        new WrapMap<>(
+          new Function0<Map<Wrapped<TKey>, TAccumulate>>() {
+            public Map<Wrapped<TKey>, TAccumulate> apply() {
+              return new HashMap<>();
+            }
+          },
+          comparer),
         enumerable,
         keySelector,
         accumulatorInitializer,
@@ -732,8 +815,7 @@ public abstract class EnumerableDefaults {
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         TKey key = keySelector.apply(o);
@@ -750,11 +832,8 @@ public abstract class EnumerableDefaults {
           }
         }
       }
-    } finally {
-      os.close();
     }
-    return new LookupResultEnumerable<TResult, TKey, TAccumulate>(map,
-        resultSelector);
+    return new LookupResultEnumerable<>(map, resultSelector);
   }
 
   private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
@@ -764,8 +843,7 @@ public abstract class EnumerableDefaults {
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
         for (Function1<TSource, TKey> keySelector : keySelectors) {
           TSource o = os.current();
@@ -784,26 +862,20 @@ public abstract class EnumerableDefaults {
           }
         }
       }
-    } finally {
-      os.close();
     }
-    return new LookupResultEnumerable<TResult, TKey, TAccumulate>(map,
-        resultSelector);
+    return new LookupResultEnumerable<>(map, resultSelector);
   }
 
   private static <TSource, TKey, TResult> Enumerable<TResult>
   groupBy_(final Set<TKey> map, Enumerable<TSource> enumerable,
       Function1<TSource, TKey> keySelector,
       final Function1<TKey, TResult> resultSelector) {
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         TKey key = keySelector.apply(o);
         map.add(key);
       }
-    } finally {
-      os.close();
     }
     return Linq4j.asEnumerable(map).select(resultSelector);
   }
@@ -854,12 +926,39 @@ public abstract class EnumerableDefaults {
    * {@code EqualityComparer<TSource>} is used to compare keys.
    */
   public static <TSource, TInner, TKey, TResult> Enumerable<TResult> groupJoin(
-      Enumerable<TSource> outer, Enumerable<TInner> inner,
-      Function1<TSource, TKey> outerKeySelector,
-      Function1<TInner, TKey> innerKeySelector,
-      Function2<TSource, Enumerable<TInner>, TResult> resultSelector,
-      EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Function2<TSource, Enumerable<TInner>, TResult> resultSelector,
+      final EqualityComparer<TKey> comparer) {
+    return new AbstractEnumerable<TResult>() {
+      final Map<TKey, TSource> outerMap = outer.toMap(outerKeySelector, comparer);
+      final Lookup<TKey, TInner> innerLookup = inner.toLookup(innerKeySelector, comparer);
+      final Enumerator<Map.Entry<TKey, TSource>> entries =
+          Linq4j.enumerator(outerMap.entrySet());
+
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          public TResult current() {
+            final Map.Entry<TKey, TSource> entry = entries.current();
+            final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
+            return resultSelector.apply(entry.getValue(),
+                inners == null ? Linq4j.<TInner>emptyEnumerable() : inners);
+          }
+
+          public boolean moveNext() {
+            return entries.moveNext();
+          }
+
+          public void reset() {
+            entries.reset();
+          }
+
+          public void close() {
+          }
+        };
+      }
+    };
   }
 
   /**
@@ -869,19 +968,16 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
-    Set<TSource> set0 = new HashSet<TSource>();
+    Set<TSource> set0 = new HashSet<>();
     source0.into(set0);
-    Set<TSource> set1 = new HashSet<TSource>();
-    final Enumerator<TSource> os = source1.enumerator();
-    try {
+    Set<TSource> set1 = new HashSet<>();
+    try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         if (set0.contains(o)) {
           set1.add(o);
         }
       }
-    } finally {
-      os.close();
     }
     return Linq4j.asEnumerable(set1);
   }
@@ -894,21 +990,17 @@ public abstract class EnumerableDefaults {
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer) {
-    Set<Wrapped<TSource>> set0 = new HashSet<Wrapped<TSource>>();
+    Set<Wrapped<TSource>> set0 = new HashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     source0.select(wrapper).into(set0);
-    Set<Wrapped<TSource>> set1 = new HashSet<Wrapped<TSource>>();
-    final Enumerator<Wrapped<TSource>> os =
-        source1.select(wrapper).enumerator();
-    try {
+    Set<Wrapped<TSource>> set1 = new HashSet<>();
+    try (Enumerator<Wrapped<TSource>> os = source1.select(wrapper).enumerator()) {
       while (os.moveNext()) {
         Wrapped<TSource> o = os.current();
         if (set0.contains(o)) {
           set1.add(o);
         }
       }
-    } finally {
-      os.close();
     }
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
     return Linq4j.asEnumerable(set1).select(unwrapper);
@@ -1001,7 +1093,7 @@ public abstract class EnumerableDefaults {
           Enumerator<TInner> inners = Linq4j.emptyEnumerator();
           Set<TKey> unmatchedKeys =
               generateNullsOnLeft
-                  ? new HashSet<TKey>(innerLookup.keySet())
+                  ? new HashSet<>(innerLookup.keySet())
                   : null;
 
           public TResult current() {
@@ -1018,7 +1110,7 @@ public abstract class EnumerableDefaults {
                   // We've seen everything else. If we are doing a RIGHT or FULL
                   // join (leftNull = true) there are any keys which right but
                   // not the left.
-                  List<TInner> list = new ArrayList<TInner>();
+                  List<TInner> list = new ArrayList<>();
                   for (TKey key : unmatchedKeys) {
                     for (TInner tInner : innerLookup.get(key)) {
                       list.add(tInner);
@@ -1176,7 +1268,27 @@ public abstract class EnumerableDefaults {
    * by Enumerable.)
    */
   public static <TSource> TSource last(Enumerable<TSource> enumerable) {
-    throw Extensions.todo();
+    final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
+        ? ((ListEnumerable<TSource>) enumerable)
+        : null;
+    if (list != null) {
+      final List<TSource> rawList = list.toList();
+      final int count = rawList.size();
+      if (count > 0) {
+        return rawList.get(count - 1);
+      }
+    } else {
+      try (Enumerator<TSource> os = enumerable.enumerator()) {
+        if (os.moveNext()) {
+          TSource result;
+          do {
+            result = os.current();
+          } while (os.moveNext());
+          return result;
+        }
+      }
+    }
+    throw new NoSuchElementException();
   }
 
   /**
@@ -1185,7 +1297,35 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> TSource last(Enumerable<TSource> enumerable,
       Predicate1<TSource> predicate) {
-    throw Extensions.todo();
+    final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
+        ? ((ListEnumerable<TSource>) enumerable)
+        : null;
+    if (list != null) {
+      final List<TSource> rawList = list.toList();
+      final int count = rawList.size();
+      for (int i = count - 1; i >= 0; --i) {
+        TSource result = rawList.get(i);
+        if (predicate.apply(result)) {
+          return result;
+        }
+      }
+    } else {
+      try (Enumerator<TSource> os = enumerable.enumerator()) {
+        while (os.moveNext()) {
+          TSource result = os.current();
+          if (predicate.apply(result)) {
+            while (os.moveNext()) {
+              TSource element = os.current();
+              if (predicate.apply(element)) {
+                result = element;
+              }
+            }
+            return result;
+          }
+        }
+      }
+    }
+    throw new NoSuchElementException();
   }
 
   /**
@@ -1194,7 +1334,27 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> TSource lastOrDefault(
       Enumerable<TSource> enumerable) {
-    throw Extensions.todo();
+    final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
+        ? ((ListEnumerable<TSource>) enumerable)
+        : null;
+    if (list != null) {
+      final List<TSource> rawList = list.toList();
+      final int count = rawList.size();
+      if (count > 0) {
+        return rawList.get(count - 1);
+      }
+    } else {
+      try (Enumerator<TSource> os = enumerable.enumerator()) {
+        if (os.moveNext()) {
+          TSource result;
+          do {
+            result = os.current();
+          } while (os.moveNext());
+          return result;
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -1204,7 +1364,35 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> TSource lastOrDefault(Enumerable<TSource> enumerable,
       Predicate1<TSource> predicate) {
-    throw Extensions.todo();
+    final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
+        ? ((ListEnumerable<TSource>) enumerable)
+        : null;
+    if (list != null) {
+      final List<TSource> rawList = list.toList();
+      final int count = rawList.size();
+      for (int i = count - 1; i >= 0; --i) {
+        TSource result = rawList.get(i);
+        if (predicate.apply(result)) {
+          return result;
+        }
+      }
+    } else {
+      try (Enumerator<TSource> os = enumerable.enumerator()) {
+        while (os.moveNext()) {
+          TSource result = os.current();
+          if (predicate.apply(result)) {
+            while (os.moveNext()) {
+              TSource element = os.current();
+              if (predicate.apply(element)) {
+                result = element;
+              }
+            }
+            return result;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -1226,16 +1414,13 @@ public abstract class EnumerableDefaults {
       return ((Collection) enumerable).size();
     }
     int n = 0;
-    final Enumerator<TSource> os = enumerable.enumerator();
-    try {
+    try (Enumerator<TSource> os = enumerable.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         if (predicate.apply(o)) {
           ++n;
         }
       }
-    } finally {
-      os.close();
     }
     return n;
   }
@@ -1531,8 +1716,7 @@ public abstract class EnumerableDefaults {
     // NOTE: TreeMap allows null comparator. But the caller of this method
     // must supply a comparator if the key does not extend Comparable.
     // Otherwise there will be a ClassCastException while retrieving.
-    final Map<TKey, List<TSource>> map = new TreeMap<TKey, List<TSource>>(
-        comparator);
+    final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
     LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
         Functions.<TSource>identitySelector());
     return lookup.valuesEnumerable();
@@ -1703,9 +1887,45 @@ public abstract class EnumerableDefaults {
    * projected form of that element.
    */
   public static <TSource, TResult> Enumerable<TResult> selectMany(
-      Enumerable<TSource> source,
-      Function2<TSource, Integer, Enumerable<TResult>> selector) {
-    throw Extensions.todo();
+      final Enumerable<TSource> source,
+      final Function2<TSource, Integer, Enumerable<TResult>> selector) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          int index = -1;
+          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
+
+          public TResult current() {
+            return resultEnumerator.current();
+          }
+
+          public boolean moveNext() {
+            for (;;) {
+              if (resultEnumerator.moveNext()) {
+                return true;
+              }
+              if (!sourceEnumerator.moveNext()) {
+                return false;
+              }
+              index += 1;
+              resultEnumerator = selector.apply(sourceEnumerator.current(), index)
+                  .enumerator();
+            }
+          }
+
+          public void reset() {
+            sourceEnumerator.reset();
+            resultEnumerator = Linq4j.emptyEnumerator();
+          }
+
+          public void close() {
+            sourceEnumerator.close();
+            resultEnumerator.close();
+          }
+        };
+      }
+    };
   }
 
   /**
@@ -1716,10 +1936,54 @@ public abstract class EnumerableDefaults {
    * the intermediate projected form of that element.
    */
   public static <TSource, TCollection, TResult> Enumerable<TResult> selectMany(
-      Enumerable<TSource> source,
-      Function2<TSource, Integer, Enumerable<TCollection>> collectionSelector,
-      Function2<TSource, TCollection, TResult> resultSelector) {
-    throw Extensions.todo();
+      final Enumerable<TSource> source,
+      final Function2<TSource, Integer, Enumerable<TCollection>> collectionSelector,
+      final Function2<TSource, TCollection, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          int index = -1;
+          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          Enumerator<TCollection> collectionEnumerator = Linq4j.emptyEnumerator();
+          Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
+
+          public TResult current() {
+            return resultEnumerator.current();
+          }
+
+          public boolean moveNext() {
+            for (;;) {
+              if (resultEnumerator.moveNext()) {
+                return true;
+              }
+              if (!sourceEnumerator.moveNext()) {
+                return false;
+              }
+              index += 1;
+              final TSource sourceElement = sourceEnumerator.current();
+              collectionEnumerator = collectionSelector.apply(sourceElement, index)
+                  .enumerator();
+              resultEnumerator =
+                  new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
+                    protected TResult transform(TCollection collectionElement) {
+                      return resultSelector.apply(sourceElement, collectionElement);
+                    }
+                  };
+            }
+          }
+
+          public void reset() {
+            sourceEnumerator.reset();
+            resultEnumerator = Linq4j.emptyEnumerator();
+          }
+
+          public void close() {
+            sourceEnumerator.close();
+            resultEnumerator.close();
+          }
+        };
+      }
+    };
   }
 
   /**
@@ -1729,10 +1993,53 @@ public abstract class EnumerableDefaults {
    * element therein.
    */
   public static <TSource, TCollection, TResult> Enumerable<TResult> selectMany(
-      Enumerable<TSource> source,
-      Function1<TSource, Enumerable<TCollection>> collectionSelector,
-      Function2<TSource, TCollection, TResult> resultSelector) {
-    throw Extensions.todo();
+      final Enumerable<TSource> source,
+      final Function1<TSource, Enumerable<TCollection>> collectionSelector,
+      final Function2<TSource, TCollection, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          Enumerator<TCollection> collectionEnumerator = Linq4j.emptyEnumerator();
+          Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
+
+          public TResult current() {
+            return resultEnumerator.current();
+          }
+
+          public boolean moveNext() {
+            boolean incremented = false;
+            for (;;) {
+              if (resultEnumerator.moveNext()) {
+                return true;
+              }
+              if (!sourceEnumerator.moveNext()) {
+                return false;
+              }
+              final TSource sourceElement = sourceEnumerator.current();
+              collectionEnumerator = collectionSelector.apply(sourceElement)
+                  .enumerator();
+              resultEnumerator =
+                  new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
+                    protected TResult transform(TCollection collectionElement) {
+                      return resultSelector.apply(sourceElement, collectionElement);
+                    }
+                  };
+            }
+          }
+
+          public void reset() {
+            sourceEnumerator.reset();
+            resultEnumerator = Linq4j.emptyEnumerator();
+          }
+
+          public void close() {
+            sourceEnumerator.close();
+            resultEnumerator.close();
+          }
+        };
+      }
+    };
   }
 
   /**
@@ -1740,9 +2047,9 @@ public abstract class EnumerableDefaults {
    * comparing the elements by using the default equality comparer
    * for their type.
    */
-  public static <TSource> boolean sequenceEqual(Enumerable<TSource> enumerable0,
-      Enumerable<TSource> enumerable1) {
-    throw Extensions.todo();
+  public static <TSource> boolean sequenceEqual(Enumerable<TSource> first,
+      Enumerable<TSource> second) {
+    return sequenceEqual(first, second, null);
   }
 
   /**
@@ -1750,9 +2057,44 @@ public abstract class EnumerableDefaults {
    * comparing their elements by using a specified
    * {@code EqualityComparer<TSource>}.
    */
-  public static <TSource> boolean sequenceEqual(Enumerable<TSource> enumerable0,
-      Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer) {
-    throw Extensions.todo();
+  public static <TSource> boolean sequenceEqual(Enumerable<TSource> first,
+      Enumerable<TSource> second, EqualityComparer<TSource> comparer) {
+    Objects.requireNonNull(first);
+    Objects.requireNonNull(second);
+    if (comparer == null) {
+      comparer = new EqualityComparer<TSource>() {
+        public boolean equal(TSource v1, TSource v2) {
+          return Objects.equals(v1, v2);
+        }
+        public int hashCode(TSource tSource) {
+          return Objects.hashCode(tSource);
+        }
+      };
+    }
+
+    final CollectionEnumerable<TSource> firstCollection = first instanceof CollectionEnumerable
+        ? ((CollectionEnumerable<TSource>) first)
+        : null;
+    if (firstCollection != null) {
+      final CollectionEnumerable<TSource> secondCollection = second instanceof CollectionEnumerable
+          ? ((CollectionEnumerable<TSource>) second)
+          : null;
+      if (secondCollection != null) {
+        if (firstCollection.getCollection().size() != secondCollection.getCollection().size()) {
+          return false;
+        }
+      }
+    }
+
+    try (Enumerator<TSource> os1 = first.enumerator();
+         Enumerator<TSource> os2 = second.enumerator()) {
+      while (os1.moveNext()) {
+        if (!(os2.moveNext() && comparer.equal(os1.current(), os2.current()))) {
+          return false;
+        }
+      }
+      return !os2.moveNext();
+    }
   }
 
   /**
@@ -1761,9 +2103,8 @@ public abstract class EnumerableDefaults {
    * sequence.
    */
   public static <TSource> TSource single(Enumerable<TSource> source) {
-    final Enumerator<TSource> os = source.enumerator();
     TSource toRet = null;
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       if (os.moveNext()) {
         toRet = os.current();
 
@@ -1775,8 +2116,6 @@ public abstract class EnumerableDefaults {
         return toRet;
       }
       throw new IllegalStateException();
-    } finally {
-      os.close();
     }
   }
 
@@ -1786,10 +2125,9 @@ public abstract class EnumerableDefaults {
    * more than one such element exists.
    */
   public static <TSource> TSource single(Enumerable<TSource> source,
-                                         Predicate1<TSource> predicate) {
-    final Enumerator<TSource> os = source.enumerator();
+      Predicate1<TSource> predicate) {
     TSource toRet = null;
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         if (predicate.apply(os.current())) {
           if (toRet == null) {
@@ -1803,8 +2141,6 @@ public abstract class EnumerableDefaults {
         return toRet;
       }
       throw new IllegalStateException();
-    } finally {
-      os.close();
     }
   }
 
@@ -1815,9 +2151,8 @@ public abstract class EnumerableDefaults {
    * sequence.
    */
   public static <TSource> TSource singleOrDefault(Enumerable<TSource> source) {
-    final Enumerator<TSource> os = source.enumerator();
     TSource toRet = null;
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       if (os.moveNext()) {
         toRet = os.current();
       }
@@ -1827,8 +2162,6 @@ public abstract class EnumerableDefaults {
       }
 
       return toRet;
-    } finally {
-      os.close();
     }
   }
 
@@ -1889,7 +2222,7 @@ public abstract class EnumerableDefaults {
       final Predicate2<TSource, Integer> predicate) {
     return new AbstractEnumerable<TSource>() {
       public Enumerator<TSource> enumerator() {
-        return new SkipWhileEnumerator<TSource>(source.enumerator(), predicate);
+        return new SkipWhileEnumerator<>(source.enumerator(), predicate);
       }
     };
   }
@@ -2139,7 +2472,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey> Map<TKey, TSource> toMap(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    return toMap(source, keySelector, Functions.<TSource>identitySelector(), comparer);
   }
 
   /**
@@ -2152,15 +2485,12 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TElement> elementSelector) {
     // Use LinkedHashMap because groupJoin requires order of keys to be
     // preserved.
-    final Map<TKey, TElement> map = new LinkedHashMap<TKey, TElement>();
-    final Enumerator<TSource> os = source.enumerator();
-    try {
+    final Map<TKey, TElement> map = new LinkedHashMap<>();
+    try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         map.put(keySelector.apply(o), elementSelector.apply(o));
       }
-    } finally {
-      os.close();
     }
     return map;
   }
@@ -2174,7 +2504,21 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    // Use LinkedHashMap because groupJoin requires order of keys to be
+    // preserved.
+    final Map<TKey, TElement> map = new WrapMap<>(
+        new Function0<Map<Wrapped<TKey>, TElement>>() {
+          public Map<Wrapped<TKey>, TElement> apply() {
+            return new LinkedHashMap<>();
+          }
+        }, comparer);
+    try (Enumerator<TSource> os = source.enumerator()) {
+      while (os.moveNext()) {
+        TSource o = os.current();
+        map.put(keySelector.apply(o), elementSelector.apply(o));
+      }
+    }
+    return map;
   }
 
   /**
@@ -2222,7 +2566,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement> Lookup<TKey, TElement> toLookup(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector) {
-    final Map<TKey, List<TElement>> map = new HashMap<TKey, List<TElement>>();
+    final Map<TKey, List<TElement>> map = new HashMap<>();
     return toLookup_(map, source, keySelector, elementSelector);
   }
 
@@ -2230,8 +2574,7 @@ public abstract class EnumerableDefaults {
       Map<TKey, List<TElement>> map, Enumerable<TSource> source,
       Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector) {
-    final Enumerator<TSource> os = source.enumerator();
-    try {
+    try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
         final TKey key = keySelector.apply(o);
@@ -2243,17 +2586,15 @@ public abstract class EnumerableDefaults {
           if (list.size() == 1) {
             // when we go from 1 to 2 elements, switch to array list
             TElement element = list.get(0);
-            list = new ArrayList<TElement>();
+            list = new ArrayList<>();
             list.add(element);
           }
           list.add(elementSelector.apply(o));
         }
         map.put(key, list);
       }
-    } finally {
-      os.close();
     }
-    return new LookupImpl<TKey, TElement>(map);
+    return new LookupImpl<>(map);
   }
 
   /**
@@ -2266,7 +2607,13 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
     return toLookup_(
-        new WrapMap<TKey, List<TElement>>(comparer),
+        new WrapMap<>(
+          new Function0<Map<Wrapped<TKey>, List<TElement>>>() {
+            public Map<Wrapped<TKey>, List<TElement>> apply() {
+              return new HashMap<>();
+            }
+          },
+          comparer),
         source,
         keySelector,
         elementSelector);
@@ -2278,7 +2625,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> union(Enumerable<TSource> source0,
       Enumerable<TSource> source1) {
-    Set<TSource> set = new HashSet<TSource>();
+    Set<TSource> set = new HashSet<>();
     source0.into(set);
     source1.into(set);
     return Linq4j.asEnumerable(set);
@@ -2293,7 +2640,7 @@ public abstract class EnumerableDefaults {
     if (comparer == Functions.identityComparer()) {
       return union(source0, source1);
     }
-    Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
+    Set<Wrapped<TSource>> set = new HashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
     source0.select(wrapper).into(set);
@@ -2401,9 +2748,31 @@ public abstract class EnumerableDefaults {
    * results.
    */
   public static <T0, T1, TResult> Enumerable<TResult> zip(
-      Enumerable<T0> source0, Enumerable<T1> source1,
-      Function2<T0, T1, TResult> resultSelector) {
-    throw Extensions.todo();
+      final Enumerable<T0> first, final Enumerable<T1> second,
+      final Function2<T0, T1, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          final Enumerator<T0> e1 = first.enumerator();
+          final Enumerator<T1> e2 = second.enumerator();
+
+          public TResult current() {
+            return resultSelector.apply(e1.current(), e2.current());
+          }
+          public boolean moveNext() {
+            return e1.moveNext() && e2.moveNext();
+          }
+          public void reset() {
+            e1.reset();
+            e2.reset();
+          }
+          public void close() {
+            e1.close();
+            e2.close();
+          }
+        };
+      }
+    };
   }
 
   public static <T> OrderedQueryable<T> asOrderedQueryable(
@@ -2411,20 +2780,17 @@ public abstract class EnumerableDefaults {
     //noinspection unchecked
     return source instanceof OrderedQueryable
         ? ((OrderedQueryable<T>) source)
-        : new EnumerableOrderedQueryable<T>(
+        : new EnumerableOrderedQueryable<>(
             source, (Class) Object.class, null, null);
   }
 
   public static <T, C extends Collection<? super T>> C into(
       Enumerable<T> source, C sink) {
-    final Enumerator<T> enumerator = source.enumerator();
-    try {
+    try (Enumerator<T> enumerator = source.enumerator()) {
       while (enumerator.moveNext()) {
         T t = enumerator.current();
         sink.add(t);
       }
-    } finally {
-      enumerator.close();
     }
     return sink;
   }
@@ -2593,7 +2959,7 @@ public abstract class EnumerableDefaults {
     }
 
     static <T> Wrapped<T> upAs(EqualityComparer<T> comparer, T element) {
-      return new Wrapped<T>(comparer, element);
+      return new Wrapped<>(comparer, element);
     }
 
     @Override public int hashCode() {
@@ -2613,10 +2979,11 @@ public abstract class EnumerableDefaults {
 
   /** Map that wraps each value. */
   private static class WrapMap<K, V> extends AbstractMap<K, V> {
-    private final Map<Wrapped<K>, V> map = new HashMap<Wrapped<K>, V>();
+    private final Map<Wrapped<K>, V> map;
     private final EqualityComparer<K> comparer;
 
-    protected WrapMap(EqualityComparer<K> comparer) {
+    protected WrapMap(Function0<Map<Wrapped<K>, V>> mapProvider, EqualityComparer<K> comparer) {
+      this.map = mapProvider.apply();
       this.comparer = comparer;
     }
 
@@ -2633,8 +3000,7 @@ public abstract class EnumerableDefaults {
 
             public Entry<K, V> next() {
               Entry<Wrapped<K>, V> next = iterator.next();
-              return new SimpleEntry<K, V>(next.getKey().element,
-                  next.getValue());
+              return new SimpleEntry<>(next.getKey().element, next.getValue());
             }
 
             public void remove() {

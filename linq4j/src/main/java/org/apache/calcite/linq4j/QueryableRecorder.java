@@ -384,18 +384,6 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
 
-  public <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
-      final Queryable<T> source,
-      final FunctionExpression<Function1<T, TKey>> keySelector,
-      final FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
-        elementSelector) {
-    return new NonLeafReplayableQueryable<T>(source) {
-      public void replay(QueryableFactory<T> factory) {
-        factory.groupByK(source, keySelector, elementSelector);
-      }
-    }.castQueryable(); // CHECKSTYLE: IGNORE 0
-  }
-
   public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
       final Queryable<T> source,
       final FunctionExpression<Function1<T, TKey>> keySelector,
@@ -408,14 +396,24 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
 
+  public <TKey, TResult> Queryable<TResult> groupByK(
+      final Queryable<T> source,
+      final FunctionExpression<Function1<T, TKey>> keySelector,
+      final FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> resultSelector) {
+    return new NonLeafReplayableQueryable<T>(source) {
+      public void replay(QueryableFactory<T> factory) {
+        factory.groupByK(source, keySelector, resultSelector);
+      }
+    }.castQueryable(); // CHECKSTYLE: IGNORE 0
+  }
+
   public <TKey, TResult> Queryable<TResult> groupByK(final Queryable<T> source,
       final FunctionExpression<Function1<T, TKey>> keySelector,
-      final FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
-        elementSelector,
+      final FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> resultSelector,
       final EqualityComparer<TKey> comparer) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
-        factory.groupByK(source, keySelector, elementSelector, comparer);
+        factory.groupByK(source, keySelector, resultSelector, comparer);
       }
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
@@ -424,8 +422,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
       final Queryable<T> source,
       final FunctionExpression<Function1<T, TKey>> keySelector,
       final FunctionExpression<Function1<T, TElement>> elementSelector,
-      final FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
-        resultSelector) {
+      final FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
         factory.groupBy(source, keySelector, elementSelector, resultSelector);
@@ -437,8 +434,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
       final Queryable<T> source,
       final FunctionExpression<Function1<T, TKey>> keySelector,
       final FunctionExpression<Function1<T, TElement>> elementSelector,
-      final FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
-        resultSelector,
+      final FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector,
       final EqualityComparer<TKey> comparer) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
@@ -452,8 +448,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
       final Queryable<T> source, final Enumerable<TInner> inner,
       final FunctionExpression<Function1<T, TKey>> outerKeySelector,
       final FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
-      final FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
-        resultSelector) {
+      final FunctionExpression<Function2<T, Enumerable<TInner>, TResult>> resultSelector) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
         factory.groupJoin(source, inner, outerKeySelector, innerKeySelector,
@@ -466,8 +461,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
       final Queryable<T> source, final Enumerable<TInner> inner,
       final FunctionExpression<Function1<T, TKey>> outerKeySelector,
       final FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
-      final FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
-        resultSelector,
+      final FunctionExpression<Function2<T, Enumerable<TInner>, TResult>> resultSelector,
       final EqualityComparer<TKey> comparer) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {

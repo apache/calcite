@@ -244,7 +244,7 @@ public interface ExtendedEnumerable<TSource> {
    * Determines whether a sequence contains a specified
    * element by using a specified {@code EqualityComparer<TSource>}.
    */
-  boolean contains(TSource element, EqualityComparer comparer);
+  boolean contains(TSource element, EqualityComparer<TSource> comparer);
 
   /**
    * Returns the number of elements in a
@@ -270,7 +270,7 @@ public interface ExtendedEnumerable<TSource> {
    * the specified value in a singleton collection if the sequence
    * is empty.
    */
-  TSource defaultIfEmpty(TSource value);
+  Enumerable<TSource> defaultIfEmpty(TSource value);
 
   /**
    * Returns distinct elements from a sequence by using
@@ -363,22 +363,22 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Groups the elements of a sequence according to a
-   * specified key selector function and creates a result value from
-   * each group and its key.
-   */
-  <TKey, TResult> Enumerable<Grouping<TKey, TResult>> groupBy(
-      Function1<TSource, TKey> keySelector,
-      Function2<TKey, Enumerable<TSource>, TResult> elementSelector);
-
-  /**
-   * Groups the elements of a sequence according to a
    * key selector function. The keys are compared by using a
    * comparer and each group's elements are projected by using a
    * specified function.
    */
   <TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(
       Function1<TSource, TKey> keySelector,
-      Function1<TSource, TElement> elementSelector, EqualityComparer comparer);
+      Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer);
+
+  /**
+   * Groups the elements of a sequence according to a
+   * specified key selector function and creates a result value from
+   * each group and its key.
+   */
+  <TKey, TResult> Enumerable<TResult> groupBy(
+      Function1<TSource, TKey> keySelector,
+      Function2<TKey, Enumerable<TSource>, TResult> resultSelector);
 
   /**
    * Groups the elements of a sequence according to a
@@ -388,8 +388,8 @@ public interface ExtendedEnumerable<TSource> {
    */
   <TKey, TResult> Enumerable<TResult> groupBy(
       Function1<TSource, TKey> keySelector,
-      Function2<TKey, Enumerable<TSource>, TResult> elementSelector,
-      EqualityComparer comparer);
+      Function2<TKey, Enumerable<TSource>, TResult> resultSelector,
+      EqualityComparer<TKey> comparer);
 
   /**
    * Groups the elements of a sequence according to a
