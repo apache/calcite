@@ -506,6 +506,9 @@ public class TypedValue {
   }
 
   @Override public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
     if (o instanceof TypedValue) {
       TypedValue other = (TypedValue) o;
 

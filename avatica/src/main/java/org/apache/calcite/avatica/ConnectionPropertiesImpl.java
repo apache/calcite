@@ -194,6 +194,9 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
   }
 
   @Override public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
     if (o instanceof ConnectionPropertiesImpl) {
       ConnectionPropertiesImpl other = (ConnectionPropertiesImpl) o;
 

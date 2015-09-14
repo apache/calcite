@@ -237,6 +237,9 @@ public class ColumnMetaData {
   }
 
   @Override public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
     if (obj instanceof ColumnMetaData) {
       ColumnMetaData other = (ColumnMetaData) obj;
 
@@ -597,6 +600,9 @@ public class ColumnMetaData {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (o instanceof AvaticaType) {
         AvaticaType other = (AvaticaType) o;
 
@@ -660,6 +666,9 @@ public class ColumnMetaData {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (!super.equals(o)) {
         return false;
       }
@@ -703,6 +712,9 @@ public class ColumnMetaData {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (!super.equals(o)) {
         return false;
       }

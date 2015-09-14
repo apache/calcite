@@ -541,6 +541,9 @@ public interface Meta {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (o instanceof CursorFactory) {
         CursorFactory other = (CursorFactory) o;
 
@@ -714,6 +717,9 @@ public interface Meta {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (o instanceof Signature) {
         Signature other = (Signature) o;
 
@@ -932,6 +938,9 @@ public interface Meta {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (o instanceof Frame) {
         Frame other = (Frame) o;
 
@@ -1052,6 +1061,9 @@ public interface Meta {
     }
 
     @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
       if (o instanceof StatementHandle) {
         StatementHandle other = (StatementHandle) o;
 
