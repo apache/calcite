@@ -198,7 +198,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.defaultIfEmpty(getThis());
   }
 
-  public T defaultIfEmpty(T value) {
+  public Enumerable<T>  defaultIfEmpty(T value) {
     return EnumerableDefaults.defaultIfEmpty(getThis(), value);
   }
 

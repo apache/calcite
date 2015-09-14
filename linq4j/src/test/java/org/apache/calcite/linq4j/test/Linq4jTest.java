@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import com.example.Linq4jExample;
+import com.google.common.collect.Lists;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
@@ -37,11 +39,6 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-
-import com.example.Linq4jExample;
-
-import com.google.common.collect.Lists;
-
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -49,23 +46,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.TreeSet;
 
-import static org.hamcrest.CoreMatchers.endsWith;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * Tests for LINQ4J.
@@ -550,10 +539,10 @@ public class Linq4jTest {
     assertEquals(people[1], Linq4j.asEnumerable(people)
           .firstOrDefault(startWithS));
     assertEquals(numbers[3], Linq4j.asEnumerable(numbers)
-          .firstOrDefault(numberGT15));
+        .firstOrDefault(numberGT15));
 
     assertNull(Linq4j.asEnumerable(peopleWithoutCharS)
-          .firstOrDefault(startWithS));
+        .firstOrDefault(startWithS));
   }
 
   @Test public void testSingle() {
@@ -676,16 +665,16 @@ public class Linq4jTest {
           .singleOrDefault(numberGT15));
 
     assertNull(Linq4j.asEnumerable(twoPeopleWithCharS)
-          .singleOrDefault(startWithS));
+        .singleOrDefault(startWithS));
 
     assertNull(Linq4j.asEnumerable(numbersWithTwoGT15)
-          .singleOrDefault(numberGT15));
+        .singleOrDefault(numberGT15));
 
     assertNull(Linq4j.asEnumerable(peopleWithoutCharS)
-          .singleOrDefault(startWithS));
+        .singleOrDefault(startWithS));
 
     assertNull(Linq4j.asEnumerable(numbersWithoutGT15)
-          .singleOrDefault(numberGT15));
+        .singleOrDefault(numberGT15));
   }
 
   @SuppressWarnings("UnnecessaryBoxing")
@@ -1668,6 +1657,394 @@ public class Linq4jTest {
     assertThat(iterableEnumerator.getClass().getName(),
         endsWith("IterableEnumerator"));
     assertThat(count(iterableEnumerator), equalTo(3));
+  }
+
+  @Test public void testDefaultIfEmpty() {
+    final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
+    final Enumerable<String> notEmptyEnumerable = Linq4j.asEnumerable(experience).defaultIfEmpty();
+    final Enumerator<String> notEmptyEnumerator = notEmptyEnumerable.enumerator();
+    notEmptyEnumerator.moveNext();
+    assertEquals("jimi", notEmptyEnumerator.current());
+    notEmptyEnumerator.moveNext();
+    assertEquals("mitch", notEmptyEnumerator.current());
+    notEmptyEnumerator.moveNext();
+    assertEquals("noel", notEmptyEnumerator.current());
+
+    final Enumerable<String> emptyEnumerable = Linq4j.asEnumerable(Linq4j.<String>emptyEnumerable()).defaultIfEmpty();
+    final Enumerator<String> emptyEnumerator = emptyEnumerable.enumerator();
+    assertTrue(emptyEnumerator.moveNext());
+    assertNull(emptyEnumerator.current());
+    assertFalse(emptyEnumerator.moveNext());
+  }
+
+  @Test public void testDefaultIfEmpty2() {
+    final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
+    final Enumerable<String> notEmptyEnumerable = Linq4j.asEnumerable(experience).defaultIfEmpty("dummy");
+    final Enumerator<String> notEmptyEnumerator = notEmptyEnumerable.enumerator();
+    notEmptyEnumerator.moveNext();
+    assertEquals("jimi", notEmptyEnumerator.current());
+    notEmptyEnumerator.moveNext();
+    assertEquals("mitch", notEmptyEnumerator.current());
+    notEmptyEnumerator.moveNext();
+    assertEquals("noel", notEmptyEnumerator.current());
+
+    final Enumerable<String> emptyEnumerable = Linq4j.asEnumerable(Linq4j.<String>emptyEnumerable()).defaultIfEmpty("N/A");
+    final Enumerator<String> emptyEnumerator = emptyEnumerable.enumerator();
+    assertTrue(emptyEnumerator.moveNext());
+    assertEquals("N/A", emptyEnumerator.current());
+    assertFalse(emptyEnumerator.moveNext());
+  }
+
+  @Test public void testElementAt() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
+    assertEquals("jimi", enumerable.elementAt(0));
+    try {
+      enumerable.elementAt(2);
+      fail();
+    } catch (Exception ignored) {
+    }
+    try {
+      enumerable.elementAt(-1);
+      fail();
+    } catch (Exception ignored) {
+    }
+  }
+
+  @Test public void testElementAtWithoutList() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
+    assertEquals("jimi", enumerable.elementAt(0));
+    try {
+      enumerable.elementAt(2);
+      fail();
+    } catch (Exception ignored) {
+    }
+    try {
+      enumerable.elementAt(-1);
+      fail();
+    } catch (Exception ignored) {
+    }
+  }
+
+  @Test public void testElementAtOrDefault() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
+    assertEquals("jimi", enumerable.elementAtOrDefault(0));
+    assertNull(enumerable.elementAtOrDefault(2));
+    assertNull(enumerable.elementAtOrDefault(-1));
+  }
+
+  @Test public void testElementAtOrDefaultWithoutList() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
+    assertEquals("jimi", enumerable.elementAt(0));
+    try {
+      enumerable.elementAt(2);
+      fail();
+    } catch (Exception ignored) {
+    }
+    try {
+      enumerable.elementAt(-1);
+      fail();
+    } catch (Exception ignored) {
+    }
+  }
+
+  @Test public void testLast() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
+    assertEquals("mitch", enumerable.last());
+
+    final Enumerable<?> emptyEnumerable = Linq4j.asEnumerable(Collections.EMPTY_LIST);
+    try {
+      emptyEnumerable.last();
+      fail();
+    } catch (Exception ignored) {
+    }
+  }
+
+  @Test public void testLastWithoutList() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
+    assertEquals("mitch", enumerable.last());
+  }
+
+  @Test public void testLastOrDefault() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
+    assertEquals("mitch", enumerable.lastOrDefault());
+
+    final Enumerable<?> emptyEnumerable = Linq4j.asEnumerable(Collections.EMPTY_LIST);
+    assertNull(emptyEnumerable.lastOrDefault());
+  }
+
+  @Test public void testLastWithPredicate() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
+    assertEquals("mitch", enumerable.last(new Predicate1<String>() {
+      @Override
+      public boolean apply(String x) {
+        return x.startsWith("mit");
+      }
+    }));
+    try {
+      enumerable.last(new Predicate1<String>() {
+        @Override
+        public boolean apply(String x) {
+          return false;
+        }
+      });
+      fail();
+    } catch (Exception ignored) {
+    }
+
+    @SuppressWarnings("unchecked")
+    final Enumerable<String> emptyEnumerable = Linq4j.asEnumerable(Collections.EMPTY_LIST);
+    try {
+      emptyEnumerable.last(new Predicate1<String>() {
+        @Override
+        public boolean apply(String x) {
+          fail();
+          return false;
+        }
+      });
+      fail();
+    } catch (Exception ignored) {
+    }
+  }
+
+  @Test public void testLastOrDefaultWithPredicate() {
+    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
+    assertEquals("mitch", enumerable.lastOrDefault(new Predicate1<String>() {
+      @Override
+      public boolean apply(String x) {
+        return x.startsWith("mit");
+      }
+    }));
+    assertNull(enumerable.lastOrDefault(new Predicate1<String>() {
+      @Override
+      public boolean apply(String x) {
+        return false;
+      }
+    }));
+
+    @SuppressWarnings("unchecked")
+    final Enumerable<String> emptyEnumerable = Linq4j.asEnumerable(Collections.EMPTY_LIST);
+    assertNull(emptyEnumerable.lastOrDefault(new Predicate1<String>() {
+      @Override
+      public boolean apply(String x) {
+        fail();
+        return false;
+      }
+    }));
+  }
+
+  @Test public void testSelectManyWithIndexableSelector() {
+    final int[] indexRef = new int[]{0};
+    final List<String> nameSeqs =
+        Linq4j.asEnumerable(depts)
+            .selectMany(new Function2<Department, Integer, Enumerable<Employee>>() {
+              @Override
+              public Enumerable<Employee> apply(Department element, Integer index) {
+                assertEquals(indexRef[0], index.longValue());
+                indexRef[0] = index + 1;
+                return Linq4j.asEnumerable(element.employees);
+              }
+            })
+            .select(
+                new Function2<Employee, Integer, String>() {
+                  public String apply(Employee v1, Integer v2) {
+                    return "#" + v2 + ": " + v1.name;
+                  }
+                })
+            .toList();
+    assertEquals(
+        "[#0: Fred, #1: Eric, #2: Janet, #3: Bill]", nameSeqs.toString());
+  }
+
+  @Test public void testSelectManyWithResultSelector() {
+    final List<String> nameSeqs =
+        Linq4j.asEnumerable(depts)
+            .selectMany(DEPT_EMPLOYEES_SELECTOR,
+                new Function2<Department, Employee, String>() {
+                  @Override
+                  public String apply(Department element, Employee subElement) {
+                    return subElement.name + "@" + element.name;
+                  }
+                })
+            .select(new Function2<String, Integer, String>() {
+              @Override
+              public String apply(String v0, Integer v1) {
+                return "#" + v1 + ": " + v0;
+              }
+            })
+            .toList();
+    assertEquals(
+        "[#0: Fred@Sales, #1: Eric@Sales, #2: Janet@Sales, #3: Bill@Marketing]", nameSeqs.toString());
+  }
+
+  @Test public void testSelectManyWithIndexableSelectorAndResultSelector() {
+    final int[] indexRef = new int[]{0};
+    final List<String> nameSeqs =
+        Linq4j.asEnumerable(depts)
+            .selectMany(
+                new Function2<Department, Integer, Enumerable<Employee>>() {
+                  @Override
+                  public Enumerable<Employee> apply(Department element, Integer index) {
+                    assertEquals(indexRef[0], index.longValue());
+                    indexRef[0] = index + 1;
+                    return Linq4j.asEnumerable(element.employees);
+                  }
+                },
+                new Function2<Department, Employee, String>() {
+                  @Override
+                  public String apply(Department element, Employee subElement) {
+                    return subElement.name + "@" + element.name;
+                  }
+                })
+            .select(new Function2<String, Integer, String>() {
+              @Override
+              public String apply(String v0, Integer v1) {
+                return "#" + v1 + ": " + v0;
+              }
+            })
+            .toList();
+    assertEquals(
+        "[#0: Fred@Sales, #1: Eric@Sales, #2: Janet@Sales, #3: Bill@Marketing]", nameSeqs.toString());
+  }
+
+  @Test public void testSequenceEqual() {
+    final Enumerable<String> enumerable1 = Linq4j.asEnumerable(
+        Collections.unmodifiableCollection(Arrays.asList("ming", "foo", "bar")));
+    final Enumerable<String> enumerable2 = Linq4j.asEnumerable(
+        Collections.unmodifiableCollection(Arrays.asList("ming", "foo", "bar")));
+    assertTrue(enumerable1.sequenceEqual(enumerable2));
+    assertFalse(enumerable1.sequenceEqual(Linq4j.asEnumerable(new String[]{"ming", "foo", "far"})));
+
+    try {
+      EnumerableDefaults.sequenceEqual(null, enumerable2);
+      fail();
+    } catch (NullPointerException ignored) {
+    }
+    try {
+      EnumerableDefaults.sequenceEqual(enumerable1, null);
+      fail();
+    } catch (NullPointerException ignored) {
+    }
+
+    assertFalse(Linq4j.asEnumerable(enumerable1.skip(1).toList()) // Keep as collection
+        .sequenceEqual(enumerable2));
+    assertFalse(enumerable1.sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
+  }
+
+  @Test public void testSequenceEqualWithoutCollection() {
+    final Enumerable<String> enumerable1 = Linq4j.asEnumerable(new Iterable<String>() {
+      @Override
+      public Iterator<String> iterator() {
+        return Arrays.asList("ming", "foo", "bar").iterator();
+      }
+    });
+    final Enumerable<String> enumerable2 = Linq4j.asEnumerable(new Iterable<String>() {
+      @Override
+      public Iterator<String> iterator() {
+        return Arrays.asList("ming", "foo", "bar").iterator();
+      }
+    });
+    assertTrue(enumerable1.sequenceEqual(enumerable2));
+    assertFalse(enumerable1.sequenceEqual(Linq4j.asEnumerable(new Iterable<String>() {
+      @Override
+      public Iterator<String> iterator() {
+        return Arrays.asList("ming", "foo", "far").iterator();
+      }
+    })));
+
+    try {
+      EnumerableDefaults.sequenceEqual(null, enumerable2);
+      fail();
+    } catch (NullPointerException ignored) {
+    }
+    try {
+      EnumerableDefaults.sequenceEqual(enumerable1, null);
+      fail();
+    } catch (NullPointerException ignored) {
+    }
+
+    assertFalse(enumerable1.skip(1).sequenceEqual(enumerable2));
+    assertFalse(enumerable1.sequenceEqual(enumerable2.skip(1)));
+  }
+
+  @Test public void testSequenceEqualWithComparer() {
+    final Enumerable<String> enumerable1 = Linq4j.asEnumerable(
+        Collections.unmodifiableCollection(Arrays.asList("ming", "foo", "bar")));
+    final Enumerable<String> enumerable2 = Linq4j.asEnumerable(
+        Collections.unmodifiableCollection(Arrays.asList("ming", "foo", "bar")));
+    final EqualityComparer<String> equalityComparer = new EqualityComparer<String>() {
+      @Override
+      public boolean equal(String v1, String v2) {
+        return !Objects.equals(v1, v2); // reverse the equality.
+      }
+
+      @Override
+      public int hashCode(String s) {
+        return Objects.hashCode(s);
+      }
+    };
+    assertFalse(enumerable1.sequenceEqual(enumerable2, equalityComparer));
+    assertTrue(enumerable1.sequenceEqual(Linq4j.asEnumerable(Arrays.asList("fun", "lol", "far")), equalityComparer));
+
+    try {
+      EnumerableDefaults.sequenceEqual(null, enumerable2);
+      fail();
+    } catch(NullPointerException ignored) {
+    }
+    try {
+      EnumerableDefaults.sequenceEqual(enumerable1, null);
+      fail();
+    } catch(NullPointerException ignored) {
+    }
+
+    assertFalse(Linq4j.asEnumerable(enumerable1.skip(1).toList()) // Keep as collection
+        .sequenceEqual(enumerable2));
+    assertFalse(enumerable1.sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
+  }
+
+  @Test public void testSequenceEqualWithComparerWithoutCollection() {
+    final Enumerable<String> enumerable1 = Linq4j.asEnumerable(new Iterable<String>() {
+      @Override
+      public Iterator<String> iterator() {
+        return Arrays.asList("ming", "foo", "bar").iterator();
+      }
+    });
+    final Enumerable<String> enumerable2 = Linq4j.asEnumerable(new Iterable<String>() {
+      @Override
+      public Iterator<String> iterator() {
+        return Arrays.asList("ming", "foo", "bar").iterator();
+      }
+    });
+    final EqualityComparer<String> equalityComparer = new EqualityComparer<String>() {
+      @Override
+      public boolean equal(String v1, String v2) {
+        return !Objects.equals(v1, v2); // reverse the equality.
+      }
+      @Override
+      public int hashCode(String s) {
+        return Objects.hashCode(s);
+      }
+    };
+    assertFalse(enumerable1.sequenceEqual(enumerable2, equalityComparer));
+    assertTrue(enumerable1.sequenceEqual(Linq4j.asEnumerable(new Iterable<String>() {
+      @Override
+      public Iterator<String> iterator() {
+        return Arrays.asList("fun", "lol", "far").iterator();
+      }
+    }), equalityComparer));
+
+    try {
+      EnumerableDefaults.sequenceEqual(null, enumerable2);
+      fail();
+    } catch(NullPointerException ignored) {
+    }
+    try {
+      EnumerableDefaults.sequenceEqual(enumerable1, null);
+      fail();
+    } catch(NullPointerException ignored) {
+    }
+
+    assertFalse(enumerable1.skip(1).sequenceEqual(enumerable2));
+    assertFalse(enumerable1.sequenceEqual(enumerable2.skip(1)));
   }
 
   private static int count(Enumerator<String> enumerator) {

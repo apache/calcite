@@ -270,7 +270,7 @@ public interface ExtendedEnumerable<TSource> {
    * the specified value in a singleton collection if the sequence
    * is empty.
    */
-  TSource defaultIfEmpty(TSource value);
+  Enumerable<TSource>  defaultIfEmpty(TSource value);
 
   /**
    * Returns distinct elements from a sequence by using
