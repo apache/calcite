@@ -2047,6 +2047,194 @@ public class Linq4jTest {
     assertFalse(enumerable1.sequenceEqual(enumerable2.skip(1)));
   }
 
+  @Test public void testGroupByWithKeySelector() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR)
+            .select(new Function1<Grouping<Integer,Employee>, String>() {
+              @Override
+              public String apply(Grouping<Integer, Employee> group) {
+                return String.format("%s: %s", group.getKey(), String.join("+", group.select(new Function1<Employee, String>() {
+                  @Override
+                  public String apply(Employee element) {
+                    return element.name;
+                  }
+                })));
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Eric+Janet, 30: Bill]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndComparer() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, new EqualityComparer<Integer>() {
+              @Override
+              public boolean equal(Integer v1, Integer v2) {
+                return true;
+              }
+              @Override
+              public int hashCode(Integer integer) {
+                return 0;
+              }
+            })
+            .select(new Function1<Grouping<Integer,Employee>, String>() {
+              @Override
+              public String apply(Grouping<Integer, Employee> group) {
+                return String.format("%s: %s", group.getKey(), String.join("+", group.select(new Function1<Employee, String>() {
+                  @Override
+                  public String apply(Employee element) {
+                    return element.name;
+                  }
+                })));
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Bill+Eric+Janet]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndElementSelector() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR)
+            .select(new Function1<Grouping<Integer,String>, String>() {
+              @Override
+              public String apply(Grouping<Integer, String> group) {
+                return String.format("%s: %s", group.getKey(), String.join("+", group));
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Eric+Janet, 30: Bill]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndElementSelectorAndComparer() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,  new EqualityComparer<Integer>() {
+              @Override
+              public boolean equal(Integer v1, Integer v2) {
+                return true;
+              }
+              @Override
+              public int hashCode(Integer integer) {
+                return 0;
+              }
+            })
+            .select(new Function1<Grouping<Integer,String>, String>() {
+              @Override
+              public String apply(Grouping<Integer, String> group) {
+                return String.format("%s: %s", group.getKey(), String.join("+", group));
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Bill+Eric+Janet]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndResultSelector() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, new Function2<Integer, Enumerable<Employee>, String>() {
+              @Override
+              public String apply(Integer key, Enumerable<Employee> group) {
+                return String.format("%s: %s", key, String.join("+", group.select(new Function1<Employee, String>() {
+                  @Override
+                  public String apply(Employee element) {
+                    return element.name;
+                  }
+                })));
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Eric+Janet, 30: Bill]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndResultSelectorAndComparer() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, new Function2<Integer, Enumerable<Employee>, String>() {
+              @Override
+              public String apply(Integer key, Enumerable<Employee> group) {
+                return String.format("%s: %s", key, String.join("+", group.select(new Function1<Employee, String>() {
+                  @Override
+                  public String apply(Employee element) {
+                    return element.name;
+                  }
+                })));
+              }
+            }, new EqualityComparer<Integer>() {
+              @Override
+              public boolean equal(Integer v1, Integer v2) {
+                return true;
+              }
+              @Override
+              public int hashCode(Integer integer) {
+                return 0;
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Bill+Eric+Janet]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndElementSelectorAndResultSelector() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR, new Function2<Integer, Enumerable<String>, String>() {
+              @Override
+              public String apply(Integer key, Enumerable<String> group) {
+                return String.format("%s: %s", key, String.join("+", group));
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Eric+Janet, 30: Bill]",
+        s);
+  }
+
+  @Test public void testGroupByWithKeySelectorAndElementSelectorAndResultSelectorAndComparer() {
+    String s =
+        Linq4j.asEnumerable(emps)
+            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR, new Function2<Integer, Enumerable<String>, String>() {
+              @Override
+              public String apply(Integer key, Enumerable<String> group) {
+                return String.format("%s: %s", key, String.join("+", group));
+              }
+            }, new EqualityComparer<Integer>() {
+              @Override
+              public boolean equal(Integer v1, Integer v2) {
+                return true;
+              }
+              @Override
+              public int hashCode(Integer integer) {
+                return 0;
+              }
+            })
+            .toList()
+            .toString();
+    assertEquals(
+        "[10: Fred+Bill+Eric+Janet]",
+        s);
+  }
+
   private static int count(Enumerator<String> enumerator) {
     int n = 0;
     while (enumerator.moveNext()) {

@@ -682,18 +682,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement> Enumerable<Grouping<TKey, TElement>>
   groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Groups the elements of a sequence according to a
-   * specified key selector function and creates a result value from
-   * each group and its key.
-   */
-  public static <TSource, TKey, TResult> Enumerable<Grouping<TKey, TResult>>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
-      Function2<TKey, Enumerable<TSource>, TResult> elementSelector) {
-    throw Extensions.todo();
+    return enumerable.toLookup(keySelector, elementSelector);
   }
 
   /**
@@ -706,7 +695,24 @@ public abstract class EnumerableDefaults {
   groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    return enumerable.toLookup(keySelector, elementSelector, comparer);
+  }
+
+  /**
+   * Groups the elements of a sequence according to a
+   * specified key selector function and creates a result value from
+   * each group and its key.
+   */
+  public static <TSource, TKey, TResult> Enumerable<TResult>
+  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+      final Function2<TKey, Enumerable<TSource>, TResult> resultSelector) {
+    return enumerable.toLookup(keySelector)
+        .select(new Function1<Grouping<TKey, TSource>, TResult>() {
+          @Override
+          public TResult apply(Grouping<TKey, TSource> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -715,11 +721,17 @@ public abstract class EnumerableDefaults {
    * each group and its key. The keys are compared by using a
    * specified comparer.
    */
-  public static <TSource, TKey, TResult> Enumerable<TResult> groupBy(
-      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
-      Function2<TKey, Enumerable<TSource>, TResult> elementSelector,
-      EqualityComparer comparer) {
-    throw Extensions.todo();
+  public static <TSource, TKey, TResult> Enumerable<TResult>
+  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+      final Function2<TKey, Enumerable<TSource>, TResult> resultSelector,
+      EqualityComparer<TKey> comparer) {
+    return enumerable.toLookup(keySelector, comparer)
+        .select(new Function1<Grouping<TKey, TSource>, TResult>() {
+          @Override
+          public TResult apply(Grouping<TKey, TSource> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -731,8 +743,14 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement, TResult> Enumerable<TResult> groupBy(
       Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
-      Function2<TKey, Enumerable<TElement>, TResult> resultSelector) {
-    throw Extensions.todo();
+      final Function2<TKey, Enumerable<TElement>, TResult> resultSelector) {
+    return enumerable.toLookup(keySelector, elementSelector)
+        .select(new Function1<Grouping<TKey, TElement>, TResult>() {
+          @Override
+          public TResult apply(Grouping<TKey, TElement> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**
@@ -745,9 +763,15 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey, TElement, TResult> Enumerable<TResult> groupBy(
       Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
-      Function2<TKey, Enumerable<TElement>, TResult> resultSelector,
+      final Function2<TKey, Enumerable<TElement>, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    return enumerable.toLookup(keySelector, elementSelector, comparer)
+        .select(new Function1<Grouping<TKey, TElement>, TResult>() {
+          @Override
+          public TResult apply(Grouping<TKey, TElement> group) {
+            return resultSelector.apply(group.getKey(), group);
+          }
+        });
   }
 
   /**

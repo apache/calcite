@@ -267,14 +267,6 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         elementSelector.getFunction()).asQueryable();
   }
 
-  public <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
-      FunctionExpression<Function1<T, TKey>> keySelector,
-      FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
-        elementSelector) {
-    return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
-        elementSelector.getFunction()).asQueryable();
-  }
-
   public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector,
@@ -285,18 +277,23 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
 
   public <TKey, TResult> Queryable<TResult> groupByK(
       FunctionExpression<Function1<T, TKey>> keySelector,
-      FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
-        elementSelector,
+      FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> resultSelector) {
+    return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
+        resultSelector.getFunction()).asQueryable();
+  }
+
+  public <TKey, TResult> Queryable<TResult> groupByK(
+      FunctionExpression<Function1<T, TKey>> keySelector,
+      FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> resultSelector,
       EqualityComparer<TKey> comparer) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
-        elementSelector.getFunction(), comparer).asQueryable();
+        resultSelector.getFunction(), comparer).asQueryable();
   }
 
   public <TKey, TElement, TResult> Queryable<TResult> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector,
-      FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
-        resultSelector) {
+      FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
         elementSelector.getFunction(), resultSelector.getFunction())
         .asQueryable();
@@ -305,8 +302,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
   public <TKey, TElement, TResult> Queryable<TResult> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector,
-      FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
-        resultSelector,
+      FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector,
       EqualityComparer<TKey> comparer) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
         elementSelector.getFunction(), resultSelector.getFunction(), comparer)
@@ -317,8 +313,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
       Enumerable<TInner> inner,
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
-      FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
-        resultSelector) {
+      FunctionExpression<Function2<T, Enumerable<TInner>, TResult>> resultSelector) {
     return EnumerableDefaults.groupJoin(getThis(), inner,
         outerKeySelector.getFunction(), innerKeySelector.getFunction(),
         resultSelector.getFunction()).asQueryable();
@@ -328,8 +323,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
       Enumerable<TInner> inner,
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
-      FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
-        resultSelector,
+      FunctionExpression<Function2<T, Enumerable<TInner>, TResult>> resultSelector,
       EqualityComparer<TKey> comparer) {
     return EnumerableDefaults.groupJoin(getThis(), inner,
         outerKeySelector.getFunction(), innerKeySelector.getFunction(),
