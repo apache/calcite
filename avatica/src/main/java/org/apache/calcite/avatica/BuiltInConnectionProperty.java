@@ -37,7 +37,10 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   TIMEZONE("timezone", Type.STRING, null, false),
 
   /** Remote URL. */
-  URL("url", Type.STRING, null, false);
+  URL("url", Type.STRING, null, false),
+
+  /** Serialization used over remote connections */
+  SERIALIZATION("serialization", Type.STRING, "json", false);
 
   private final String camelName;
   private final Type type;

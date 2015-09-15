@@ -27,6 +27,7 @@ limitations under the License.
   <suppress checks=".*" files="git.properties"/>
   <suppress checks=".*" files="trace.properties"/>
   <suppress checks=".*" files="release.properties"/>
+  <suppress checks=".*" files="avatica/src/main/java/org/apache/calcite/avatica/proto"/>
 
   <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
        through no fault of its own. -->

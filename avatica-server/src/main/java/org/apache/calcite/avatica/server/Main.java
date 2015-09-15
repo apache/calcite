@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.remote.LocalService;
 import org.apache.calcite.avatica.remote.Service;
 
+import org.eclipse.jetty.server.handler.AbstractHandler;
+
 import java.util.Arrays;
 
 /**
@@ -36,7 +38,20 @@ public class Main {
   }
 
   /**
-   * Creates and starts an {@link HttpServer}.
+   * Factory that instantiates Jetty Handlers
+   */
+  public interface HandlerFactory {
+    AbstractHandler createHandler(Service service);
+  }
+
+  private static final HandlerFactory JSON_HANDLER_FACTORY = new HandlerFactory() {
+    public AbstractHandler createHandler(Service service) {
+      return new AvaticaHandler(service);
+    }
+  };
+
+  /**
+   * Creates and starts an {@link HttpServer} using JSON POJO serialization of requests/responses.
    *
    * <p>Arguments are as follows:
    * <ul>
@@ -48,15 +63,35 @@ public class Main {
    *
    * @param args Command-line arguments
    */
-  public static HttpServer start(String[] args)
+  public static HttpServer start(String[] args) throws ClassNotFoundException,
+         InstantiationException, IllegalAccessException {
+    return start(args, 8765, JSON_HANDLER_FACTORY);
+  }
+
+  /**
+   * Creates and starts an {@link HttpServer} using the given factory to create the Handler.
+   *
+   * <p>Arguments are as follows:
+   * <ul>
+   *   <li>args[0]: the {@link org.apache.calcite.avatica.Meta.Factory} class
+   *       name
+   *   <li>args[1+]: arguments passed along to
+   *   {@link org.apache.calcite.avatica.Meta.Factory#create(java.util.List)}
+   * </ul>
+   *
+   * @param args Command-line arguments
+   * @param port Server port to bind
+   * @param handlerFactory Factory to create the handler used by the server
+   */
+  public static HttpServer start(String[] args, int port, HandlerFactory handlerFactory)
       throws ClassNotFoundException, InstantiationException,
       IllegalAccessException {
     String factoryClassName = args[0];
-    Class factoryClass = Class.forName(factoryClassName);
+    Class<?> factoryClass = Class.forName(factoryClassName);
     Meta.Factory factory = (Meta.Factory) factoryClass.newInstance();
     Meta meta = factory.create(Arrays.asList(args).subList(1, args.length));
     Service service = new LocalService(meta);
-    HttpServer server = new HttpServer(8765, new AvaticaHandler(service));
+    HttpServer server = new HttpServer(port, handlerFactory.createHandler(service));
     server.start();
     return server;
   }

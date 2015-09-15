@@ -16,13 +16,29 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
+
 /**
- * API for text request-response calls to an Avatica server.
- *
- * @param <T> The type this handler accepts and returns
+ * Encapsulate the logic of transforming a protobuf Response message into the Avatica POJO Response.
  */
-public interface Handler<T> {
-  T apply(T request);
+public class ResponseTranslator {
+
+  private final Parser<? extends Message> parser;
+  private final Service.Response impl;
+
+  public ResponseTranslator(Parser<? extends Message> parser, Service.Response impl) {
+    this.parser = parser;
+    this.impl = impl;
+  }
+
+  public Service.Response transform(ByteString serializedMessage) throws
+      InvalidProtocolBufferException {
+    Message msg = parser.parseFrom(serializedMessage);
+    return impl.deserialize(msg);
+  }
 }
 
-// End Handler.java
+// End ResponseTranslator.java
