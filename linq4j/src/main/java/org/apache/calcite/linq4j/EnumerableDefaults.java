@@ -502,7 +502,7 @@ public abstract class EnumerableDefaults {
         if (index == 0) {
           return os.current();
         }
-        index --;
+        index--;
       }
     } finally {
       os.close();
@@ -535,7 +535,7 @@ public abstract class EnumerableDefaults {
             if (index == 0) {
               return os.current();
             }
-            index --;
+            index--;
           }
         } finally {
           os.close();
@@ -831,13 +831,13 @@ public abstract class EnumerableDefaults {
       EqualityComparer<TKey> comparer) {
     return groupBy_(
         new WrapMap<TKey, TAccumulate>(
-            new Function0<Map<Wrapped<TKey>, TAccumulate>>() {
-              @Override
-              public Map<Wrapped<TKey>, TAccumulate> apply() {
-                return new HashMap<Wrapped<TKey>, TAccumulate>();
-              }
-            },
-            comparer),
+          new Function0<Map<Wrapped<TKey>, TAccumulate>>() {
+            @Override
+            public Map<Wrapped<TKey>, TAccumulate> apply() {
+              return new HashMap<Wrapped<TKey>, TAccumulate>();
+            }
+          },
+          comparer),
         enumerable,
         keySelector,
         accumulatorInitializer,
@@ -1360,8 +1360,7 @@ public abstract class EnumerableDefaults {
     if (list != null) {
       final List<TSource> rawList = list.toList();
       final int count = rawList.size();
-      for (int i = count - 1; i >= 0; --i)
-      {
+      for (int i = count - 1; i >= 0; --i) {
         TSource result = rawList.get(i);
         if (predicate.apply(result)) {
           return result;
@@ -1434,8 +1433,7 @@ public abstract class EnumerableDefaults {
     if (list != null) {
       final List<TSource> rawList = list.toList();
       final int count = rawList.size();
-      for (int i = count - 1; i >= 0; --i)
-      {
+      for (int i = count - 1; i >= 0; --i) {
         TSource result = rawList.get(i);
         if (predicate.apply(result)) {
           return result;
@@ -2035,12 +2033,13 @@ public abstract class EnumerableDefaults {
               final TSource sourceElement = sourceEnumerator.current();
               collectionEnumerator = collectionSelector.apply(sourceElement, index)
                   .enumerator();
-              resultEnumerator = new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
-                @Override
-                protected TResult transform(TCollection collectionElement) {
-                  return resultSelector.apply(sourceElement, collectionElement);
-                }
-              };
+              resultEnumerator =
+                  new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
+                    @Override
+                    protected TResult transform(TCollection collectionElement) {
+                      return resultSelector.apply(sourceElement, collectionElement);
+                    }
+                  };
             }
           }
 
@@ -2091,12 +2090,13 @@ public abstract class EnumerableDefaults {
               final TSource sourceElement = sourceEnumerator.current();
               collectionEnumerator = collectionSelector.apply(sourceElement)
                   .enumerator();
-              resultEnumerator = new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
-                @Override
-                protected TResult transform(TCollection collectionElement) {
-                  return resultSelector.apply(sourceElement, collectionElement);
-                }
-              };
+              resultEnumerator =
+                  new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
+                    @Override
+                    protected TResult transform(TCollection collectionElement) {
+                      return resultSelector.apply(sourceElement, collectionElement);
+                    }
+                  };
             }
           }
 
@@ -2153,8 +2153,10 @@ public abstract class EnumerableDefaults {
       final CollectionEnumerable<TSource> secondCollection = second instanceof CollectionEnumerable
           ? ((CollectionEnumerable<TSource>) second)
           : null;
-      if (secondCollection != null && firstCollection.getCollection().size() != secondCollection.getCollection().size()) {
-        return false;
+      if (secondCollection != null) {
+        if (firstCollection.getCollection().size() != secondCollection.getCollection().size()) {
+          return false;
+        }
       }
     }
 
@@ -2704,13 +2706,13 @@ public abstract class EnumerableDefaults {
       EqualityComparer<TKey> comparer) {
     return toLookup_(
         new WrapMap<TKey, List<TElement>>(
-            new Function0<Map<Wrapped<TKey>, List<TElement>>>() {
-              @Override
-              public Map<Wrapped<TKey>, List<TElement>> apply() {
-                return new HashMap<Wrapped<TKey>, List<TElement>>();
-              }
-            },
-            comparer),
+          new Function0<Map<Wrapped<TKey>, List<TElement>>>() {
+            @Override
+            public Map<Wrapped<TKey>, List<TElement>> apply() {
+              return new HashMap<Wrapped<TKey>, List<TElement>>();
+            }
+          },
+          comparer),
         source,
         keySelector,
         elementSelector);

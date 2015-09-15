@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.test;
 
-import com.example.Linq4jExample;
-import com.google.common.collect.Lists;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
@@ -39,6 +37,11 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+
+import com.example.Linq4jExample;
+
+import com.google.common.collect.Lists;
+
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -53,8 +56,18 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.TreeSet;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.endsWith;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for LINQ4J.
@@ -1753,7 +1766,8 @@ public class Linq4jTest {
     notEmptyEnumerator.moveNext();
     assertEquals("noel", notEmptyEnumerator.current());
 
-    final Enumerable<String> emptyEnumerable = Linq4j.asEnumerable(Linq4j.<String>emptyEnumerable()).defaultIfEmpty();
+    final Enumerable<String> emptyEnumerable =
+        Linq4j.asEnumerable(Linq4j.<String>emptyEnumerable()).defaultIfEmpty();
     final Enumerator<String> emptyEnumerator = emptyEnumerable.enumerator();
     assertTrue(emptyEnumerator.moveNext());
     assertNull(emptyEnumerator.current());
@@ -1762,7 +1776,8 @@ public class Linq4jTest {
 
   @Test public void testDefaultIfEmpty2() {
     final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
-    final Enumerable<String> notEmptyEnumerable = Linq4j.asEnumerable(experience).defaultIfEmpty("dummy");
+    final Enumerable<String> notEmptyEnumerable =
+        Linq4j.asEnumerable(experience).defaultIfEmpty("dummy");
     final Enumerator<String> notEmptyEnumerator = notEmptyEnumerable.enumerator();
     notEmptyEnumerator.moveNext();
     assertEquals("jimi", notEmptyEnumerator.current());
@@ -1771,7 +1786,8 @@ public class Linq4jTest {
     notEmptyEnumerator.moveNext();
     assertEquals("noel", notEmptyEnumerator.current());
 
-    final Enumerable<String> emptyEnumerable = Linq4j.asEnumerable(Linq4j.<String>emptyEnumerable()).defaultIfEmpty("N/A");
+    final Enumerable<String> emptyEnumerable =
+        Linq4j.asEnumerable(Linq4j.<String>emptyEnumerable()).defaultIfEmpty("N/A");
     final Enumerator<String> emptyEnumerator = emptyEnumerable.enumerator();
     assertTrue(emptyEnumerator.moveNext());
     assertEquals("N/A", emptyEnumerator.current());
@@ -1785,26 +1801,31 @@ public class Linq4jTest {
       enumerable.elementAt(2);
       fail();
     } catch (Exception ignored) {
+      // ok
     }
     try {
       enumerable.elementAt(-1);
       fail();
     } catch (Exception ignored) {
+      // ok
     }
   }
 
   @Test public void testElementAtWithoutList() {
-    final Enumerable<String> enumerable = Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
+    final Enumerable<String> enumerable =
+        Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
     assertEquals("jimi", enumerable.elementAt(0));
     try {
       enumerable.elementAt(2);
       fail();
     } catch (Exception ignored) {
+      // ok
     }
     try {
       enumerable.elementAt(-1);
       fail();
     } catch (Exception ignored) {
+      // ok
     }
   }
 
@@ -1816,17 +1837,20 @@ public class Linq4jTest {
   }
 
   @Test public void testElementAtOrDefaultWithoutList() {
-    final Enumerable<String> enumerable = Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
+    final Enumerable<String> enumerable =
+        Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
     assertEquals("jimi", enumerable.elementAt(0));
     try {
       enumerable.elementAt(2);
       fail();
     } catch (Exception ignored) {
+      // ok
     }
     try {
       enumerable.elementAt(-1);
       fail();
     } catch (Exception ignored) {
+      // ok
     }
   }
 
@@ -1839,11 +1863,13 @@ public class Linq4jTest {
       emptyEnumerable.last();
       fail();
     } catch (Exception ignored) {
+      // ok
     }
   }
 
   @Test public void testLastWithoutList() {
-    final Enumerable<String> enumerable = Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
+    final Enumerable<String> enumerable =
+        Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
     assertEquals("mitch", enumerable.last());
   }
 
@@ -1856,7 +1882,8 @@ public class Linq4jTest {
   }
 
   @Test public void testLastWithPredicate() {
-    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
+    final Enumerable<String> enumerable =
+        Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
     assertEquals("mitch", enumerable.last(new Predicate1<String>() {
       @Override
       public boolean apply(String x) {
@@ -1872,6 +1899,7 @@ public class Linq4jTest {
       });
       fail();
     } catch (Exception ignored) {
+      // ok
     }
 
     @SuppressWarnings("unchecked")
@@ -1886,11 +1914,13 @@ public class Linq4jTest {
       });
       fail();
     } catch (Exception ignored) {
+      // ok
     }
   }
 
   @Test public void testLastOrDefaultWithPredicate() {
-    final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
+    final Enumerable<String> enumerable =
+        Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
     assertEquals("mitch", enumerable.lastOrDefault(new Predicate1<String>() {
       @Override
       public boolean apply(String x) {
@@ -1956,7 +1986,8 @@ public class Linq4jTest {
             })
             .toList();
     assertEquals(
-        "[#0: Fred@Sales, #1: Eric@Sales, #2: Janet@Sales, #3: Bill@Marketing]", nameSeqs.toString());
+        "[#0: Fred@Sales, #1: Eric@Sales, #2: Janet@Sales, #3: Bill@Marketing]",
+        nameSeqs.toString());
   }
 
   @Test public void testSelectManyWithIndexableSelectorAndResultSelector() {
@@ -1986,7 +2017,8 @@ public class Linq4jTest {
             })
             .toList();
     assertEquals(
-        "[#0: Fred@Sales, #1: Eric@Sales, #2: Janet@Sales, #3: Bill@Marketing]", nameSeqs.toString());
+        "[#0: Fred@Sales, #1: Eric@Sales, #2: Janet@Sales, #3: Bill@Marketing]",
+        nameSeqs.toString());
   }
 
   @Test public void testSequenceEqual() {
@@ -2001,16 +2033,19 @@ public class Linq4jTest {
       EnumerableDefaults.sequenceEqual(null, enumerable2);
       fail();
     } catch (NullPointerException ignored) {
+      // ok
     }
     try {
       EnumerableDefaults.sequenceEqual(enumerable1, null);
       fail();
     } catch (NullPointerException ignored) {
+      // ok
     }
 
     assertFalse(Linq4j.asEnumerable(enumerable1.skip(1).toList()) // Keep as collection
         .sequenceEqual(enumerable2));
-    assertFalse(enumerable1.sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
+    assertFalse(enumerable1
+        .sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
   }
 
   @Test public void testSequenceEqualWithoutCollection() {
@@ -2038,11 +2073,13 @@ public class Linq4jTest {
       EnumerableDefaults.sequenceEqual(null, enumerable2);
       fail();
     } catch (NullPointerException ignored) {
+      // ok
     }
     try {
       EnumerableDefaults.sequenceEqual(enumerable1, null);
       fail();
     } catch (NullPointerException ignored) {
+      // ok
     }
 
     assertFalse(enumerable1.skip(1).sequenceEqual(enumerable2));
@@ -2066,22 +2103,26 @@ public class Linq4jTest {
       }
     };
     assertFalse(enumerable1.sequenceEqual(enumerable2, equalityComparer));
-    assertTrue(enumerable1.sequenceEqual(Linq4j.asEnumerable(Arrays.asList("fun", "lol", "far")), equalityComparer));
+    assertTrue(enumerable1
+        .sequenceEqual(Linq4j.asEnumerable(Arrays.asList("fun", "lol", "far")), equalityComparer));
 
     try {
       EnumerableDefaults.sequenceEqual(null, enumerable2);
       fail();
-    } catch(NullPointerException ignored) {
+    } catch (NullPointerException ignored) {
+      // ok
     }
     try {
       EnumerableDefaults.sequenceEqual(enumerable1, null);
       fail();
-    } catch(NullPointerException ignored) {
+    } catch (NullPointerException ignored) {
+      // ok
     }
 
     assertFalse(Linq4j.asEnumerable(enumerable1.skip(1).toList()) // Keep as collection
         .sequenceEqual(enumerable2));
-    assertFalse(enumerable1.sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
+    assertFalse(enumerable1
+        .sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
   }
 
   @Test public void testSequenceEqualWithComparerWithoutCollection() {
@@ -2118,12 +2159,14 @@ public class Linq4jTest {
     try {
       EnumerableDefaults.sequenceEqual(null, enumerable2);
       fail();
-    } catch(NullPointerException ignored) {
+    } catch (NullPointerException ignored) {
+      // ok
     }
     try {
       EnumerableDefaults.sequenceEqual(enumerable1, null);
       fail();
-    } catch(NullPointerException ignored) {
+    } catch (NullPointerException ignored) {
+      // ok
     }
 
     assertFalse(enumerable1.skip(1).sequenceEqual(enumerable2));
@@ -2134,15 +2177,17 @@ public class Linq4jTest {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR)
-            .select(new Function1<Grouping<Integer,Employee>, String>() {
+            .select(new Function1<Grouping<Integer, Employee>, String>() {
               @Override
               public String apply(Grouping<Integer, Employee> group) {
-                return String.format("%s: %s", group.getKey(), String.join("+", group.select(new Function1<Employee, String>() {
-                  @Override
-                  public String apply(Employee element) {
-                    return element.name;
-                  }
-                })));
+                return String.format("%s: %s",
+                    group.getKey(),
+                    String.join("+", group.select(new Function1<Employee, String>() {
+                      @Override
+                      public String apply(Employee element) {
+                        return element.name;
+                      }
+                    })));
               }
             })
             .toList()
@@ -2165,15 +2210,17 @@ public class Linq4jTest {
                 return 0;
               }
             })
-            .select(new Function1<Grouping<Integer,Employee>, String>() {
+            .select(new Function1<Grouping<Integer, Employee>, String>() {
               @Override
               public String apply(Grouping<Integer, Employee> group) {
-                return String.format("%s: %s", group.getKey(), String.join("+", group.select(new Function1<Employee, String>() {
-                  @Override
-                  public String apply(Employee element) {
-                    return element.name;
-                  }
-                })));
+                return String.format("%s: %s",
+                    group.getKey(),
+                    String.join("+", group.select(new Function1<Employee, String>() {
+                      @Override
+                      public String apply(Employee element) {
+                        return element.name;
+                      }
+                    })));
               }
             })
             .toList()
@@ -2187,7 +2234,7 @@ public class Linq4jTest {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR)
-            .select(new Function1<Grouping<Integer,String>, String>() {
+            .select(new Function1<Grouping<Integer, String>, String>() {
               @Override
               public String apply(Grouping<Integer, String> group) {
                 return String.format("%s: %s", group.getKey(), String.join("+", group));
@@ -2213,7 +2260,7 @@ public class Linq4jTest {
                 return 0;
               }
             })
-            .select(new Function1<Grouping<Integer,String>, String>() {
+            .select(new Function1<Grouping<Integer, String>, String>() {
               @Override
               public String apply(Grouping<Integer, String> group) {
                 return String.format("%s: %s", group.getKey(), String.join("+", group));
@@ -2232,12 +2279,14 @@ public class Linq4jTest {
             .groupBy(EMP_DEPTNO_SELECTOR, new Function2<Integer, Enumerable<Employee>, String>() {
               @Override
               public String apply(Integer key, Enumerable<Employee> group) {
-                return String.format("%s: %s", key, String.join("+", group.select(new Function1<Employee, String>() {
-                  @Override
-                  public String apply(Employee element) {
-                    return element.name;
-                  }
-                })));
+                return String.format("%s: %s",
+                    key,
+                    String.join("+", group.select(new Function1<Employee, String>() {
+                      @Override
+                      public String apply(Employee element) {
+                        return element.name;
+                      }
+                    })));
               }
             })
             .toList()
@@ -2253,12 +2302,14 @@ public class Linq4jTest {
             .groupBy(EMP_DEPTNO_SELECTOR, new Function2<Integer, Enumerable<Employee>, String>() {
               @Override
               public String apply(Integer key, Enumerable<Employee> group) {
-                return String.format("%s: %s", key, String.join("+", group.select(new Function1<Employee, String>() {
-                  @Override
-                  public String apply(Employee element) {
-                    return element.name;
-                  }
-                })));
+                return String.format("%s: %s",
+                    key,
+                    String.join("+", group.select(new Function1<Employee, String>() {
+                      @Override
+                      public String apply(Employee element) {
+                        return element.name;
+                      }
+                    })));
               }
             }, new EqualityComparer<Integer>() {
               @Override
@@ -2280,12 +2331,13 @@ public class Linq4jTest {
   @Test public void testGroupByWithKeySelectorAndElementSelectorAndResultSelector() {
     String s =
         Linq4j.asEnumerable(emps)
-            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR, new Function2<Integer, Enumerable<String>, String>() {
-              @Override
-              public String apply(Integer key, Enumerable<String> group) {
-                return String.format("%s: %s", key, String.join("+", group));
-              }
-            })
+            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
+                new Function2<Integer, Enumerable<String>, String>() {
+                  @Override
+                  public String apply(Integer key, Enumerable<String> group) {
+                    return String.format("%s: %s", key, String.join("+", group));
+                  }
+                })
             .toList()
             .toString();
     assertEquals(
@@ -2296,21 +2348,24 @@ public class Linq4jTest {
   @Test public void testGroupByWithKeySelectorAndElementSelectorAndResultSelectorAndComparer() {
     String s =
         Linq4j.asEnumerable(emps)
-            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR, new Function2<Integer, Enumerable<String>, String>() {
-              @Override
-              public String apply(Integer key, Enumerable<String> group) {
-                return String.format("%s: %s", key, String.join("+", group));
-              }
-            }, new EqualityComparer<Integer>() {
-              @Override
-              public boolean equal(Integer v1, Integer v2) {
-                return true;
-              }
-              @Override
-              public int hashCode(Integer integer) {
-                return 0;
-              }
-            })
+            .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
+                new Function2<Integer, Enumerable<String>, String>() {
+                  @Override
+                  public String apply(Integer key, Enumerable<String> group) {
+                    return String.format("%s: %s", key, String.join("+", group));
+                  }
+                },
+                new EqualityComparer<Integer>() {
+                  @Override
+                  public boolean equal(Integer v1, Integer v2) {
+                    return true;
+                  }
+
+                  @Override
+                  public int hashCode(Integer integer) {
+                    return 0;
+                  }
+                })
             .toList()
             .toString();
     assertEquals(
