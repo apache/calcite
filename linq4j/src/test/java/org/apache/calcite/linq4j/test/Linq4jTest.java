@@ -314,12 +314,55 @@ public class Linq4jTest {
     assertTrue(map.get(110).name.equals("Bill"));
   }
 
+  @Test public void testToMapWithComparer() {
+    final Map<String, String> map =
+        Linq4j.asEnumerable(Arrays.asList("foo", "bar", "far"))
+            .toMap(Functions.<String>identitySelector(), new EqualityComparer<String>() {
+              @Override
+              public boolean equal(String v1, String v2) {
+                return String.CASE_INSENSITIVE_ORDER.compare(v1, v2) == 0;
+              }
+              @Override
+              public int hashCode(String s) {
+                return s == null ? Objects.hashCode(null) : s.toLowerCase().hashCode();
+              }
+            });
+    assertEquals(3, map.size());
+    assertTrue(map.get("foo").equals("foo"));
+    assertTrue(map.get("Foo").equals("foo"));
+    assertTrue(map.get("FOO").equals("foo"));
+  }
+
   @Test public void testToMap2() {
     final Map<Integer, Integer> map =
         Linq4j.asEnumerable(emps)
             .toMap(EMP_EMPNO_SELECTOR, EMP_DEPTNO_SELECTOR);
     assertEquals(4, map.size());
     assertTrue(map.get(110) == 30);
+  }
+
+  @Test public void testToMap2WithComparer() {
+    final Map<String, String> map =
+        Linq4j.asEnumerable(Arrays.asList("foo", "bar", "far"))
+            .toMap(Functions.<String>identitySelector(), new Function1<String, String>() {
+              @Override
+              public String apply(String x) {
+                return x == null ? null : x.toUpperCase();
+              }
+            }, new EqualityComparer<String>() {
+              @Override
+              public boolean equal(String v1, String v2) {
+                return String.CASE_INSENSITIVE_ORDER.compare(v1, v2) == 0;
+              }
+              @Override
+              public int hashCode(String s) {
+                return s == null ? Objects.hashCode(null) : s.toLowerCase().hashCode();
+              }
+            });
+    assertEquals(3, map.size());
+    assertTrue(map.get("foo").equals("FOO"));
+    assertTrue(map.get("Foo").equals("FOO"));
+    assertTrue(map.get("FOO").equals("FOO"));
   }
 
   @Test public void testToLookup() {
@@ -1043,6 +1086,46 @@ public class Linq4jTest {
             + "[] work(s) in HR, "
             + "[Bill] work(s) in Marketing]",
         s);
+  }
+
+  @Test public void testGroupJoinWithComparer() {
+    // Note #1: Group join is a "left join": "bad employees" are filtered
+    //   out, but empty departments are not.
+    // Note #2: Order of departments is preserved.
+    String s =
+        Linq4j.asEnumerable(depts)
+            .groupJoin(
+                Linq4j.asEnumerable(emps)
+                    .concat(Linq4j.asEnumerable(badEmps)),
+                DEPT_DEPTNO_SELECTOR,
+                EMP_DEPTNO_SELECTOR,
+                new Function2<Department, Enumerable<Employee>, String>() {
+                  public String apply(Department v1, Enumerable<Employee> v2) {
+                    final StringBuilder buf = new StringBuilder("[");
+                    int n = 0;
+                    for (Employee employee : v2) {
+                      if (n++ > 0) {
+                        buf.append(", ");
+                      }
+                      buf.append(employee.name);
+                    }
+                    return buf.append("] work(s) in ").append(v1.name)
+                        .toString();
+                  }
+                },
+                new EqualityComparer<Integer>() {
+                  @Override
+                  public boolean equal(Integer v1, Integer v2) {
+                    return true;
+                  }
+                  @Override
+                  public int hashCode(Integer integer) {
+                    return 0;
+                  }
+                })
+            .toList()
+            .toString();
+    assertEquals("[[Fred, Bill, Eric, Janet, Cedric] work(s) in Marketing]", s);
   }
 
   @Test public void testJoin() {

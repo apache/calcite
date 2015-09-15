@@ -830,7 +830,14 @@ public abstract class EnumerableDefaults {
       Function2<TKey, TAccumulate, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
     return groupBy_(
-        new WrapMap<TKey, TAccumulate>(comparer),
+        new WrapMap<TKey, TAccumulate>(
+            new Function0<Map<Wrapped<TKey>, TAccumulate>>() {
+              @Override
+              public Map<Wrapped<TKey>, TAccumulate> apply() {
+                return new HashMap<Wrapped<TKey>, TAccumulate>();
+              }
+            },
+            comparer),
         enumerable,
         keySelector,
         accumulatorInitializer,
@@ -966,12 +973,39 @@ public abstract class EnumerableDefaults {
    * {@code EqualityComparer<TSource>} is used to compare keys.
    */
   public static <TSource, TInner, TKey, TResult> Enumerable<TResult> groupJoin(
-      Enumerable<TSource> outer, Enumerable<TInner> inner,
-      Function1<TSource, TKey> outerKeySelector,
-      Function1<TInner, TKey> innerKeySelector,
-      Function2<TSource, Enumerable<TInner>, TResult> resultSelector,
-      EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Function2<TSource, Enumerable<TInner>, TResult> resultSelector,
+      final EqualityComparer<TKey> comparer) {
+    return new AbstractEnumerable<TResult>() {
+      final Map<TKey, TSource> outerMap = outer.toMap(outerKeySelector, comparer);
+      final Lookup<TKey, TInner> innerLookup = inner.toLookup(innerKeySelector, comparer);
+      final Enumerator<Map.Entry<TKey, TSource>> entries =
+          Linq4j.enumerator(outerMap.entrySet());
+
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          public TResult current() {
+            final Map.Entry<TKey, TSource> entry = entries.current();
+            final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
+            return resultSelector.apply(entry.getValue(),
+                inners == null ? Linq4j.<TInner>emptyEnumerable() : inners);
+          }
+
+          public boolean moveNext() {
+            return entries.moveNext();
+          }
+
+          public void reset() {
+            entries.reset();
+          }
+
+          public void close() {
+          }
+        };
+      }
+    };
   }
 
   /**
@@ -2523,7 +2557,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey> Map<TKey, TSource> toMap(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    return toMap(source, keySelector, Functions.<TSource>identitySelector(), comparer);
   }
 
   /**
@@ -2558,7 +2592,26 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
-    throw Extensions.todo();
+    // Use LinkedHashMap because groupJoin requires order of keys to be
+    // preserved.
+    final Map<TKey, TElement> map = new WrapMap<TKey, TElement>(
+        new Function0<Map<Wrapped<TKey>, TElement>>() {
+          @Override
+          public Map<Wrapped<TKey>, TElement> apply() {
+            return new LinkedHashMap<Wrapped<TKey>, TElement>();
+          }
+        },
+        comparer);
+    final Enumerator<TSource> os = source.enumerator();
+    try {
+      while (os.moveNext()) {
+        TSource o = os.current();
+        map.put(keySelector.apply(o), elementSelector.apply(o));
+      }
+    } finally {
+      os.close();
+    }
+    return map;
   }
 
   /**
@@ -2650,7 +2703,14 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
     return toLookup_(
-        new WrapMap<TKey, List<TElement>>(comparer),
+        new WrapMap<TKey, List<TElement>>(
+            new Function0<Map<Wrapped<TKey>, List<TElement>>>() {
+              @Override
+              public Map<Wrapped<TKey>, List<TElement>> apply() {
+                return new HashMap<Wrapped<TKey>, List<TElement>>();
+              }
+            },
+            comparer),
         source,
         keySelector,
         elementSelector);
@@ -2997,10 +3057,11 @@ public abstract class EnumerableDefaults {
 
   /** Map that wraps each value. */
   private static class WrapMap<K, V> extends AbstractMap<K, V> {
-    private final Map<Wrapped<K>, V> map = new HashMap<Wrapped<K>, V>();
+    private final Map<Wrapped<K>, V> map;
     private final EqualityComparer<K> comparer;
 
-    protected WrapMap(EqualityComparer<K> comparer) {
+    protected WrapMap(Function0<Map<Wrapped<K>, V>> mapProvider, EqualityComparer<K> comparer) {
+      this.map = mapProvider.apply();
       this.comparer = comparer;
     }
 
