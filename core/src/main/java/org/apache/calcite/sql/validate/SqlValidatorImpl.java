@@ -3227,7 +3227,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope groupScope = getGroupScope(select);
     inferUnknownTypes(unknownType, groupScope, groupList);
 
-    groupList.validate(this, groupScope);
+    // Nodes in the GROUP BY clause are expressions except if they are calls
+    // to the GROUPING SETS, ROLLUP or CUBE operators; this operators are not
+    // expressions, because they do not have a type.
+    for (SqlNode node : groupList) {
+      switch (node.getKind()) {
+      case GROUPING_SETS:
+      case ROLLUP:
+      case CUBE:
+        node.validate(this, groupScope);
+        break;
+      default:
+        node.validateExpr(this, groupScope);
+      }
+    }
 
     // Derive the type of each GROUP BY item. We don't need the type, but
     // it resolves functions, and that is necessary for deducing
