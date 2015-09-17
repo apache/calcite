@@ -1212,4 +1212,30 @@ having count(*) > 1;
 
 !ok
 
+# [CALCITE-886] Group by a system function which does not have "()".
+select CURRENT_USER as CUSER
+from jdbc_scott.emp
+group by CURRENT_USER;
++-------+
+| CUSER |
++-------+
+| SCOTT |
++-------+
+(1 row)
+
+!ok
+
+# [CALCITE-886] grouping set has a system function which does not have "()"
+select CURRENT_USER as CUSER
+from jdbc_scott.emp
+group by grouping sets(CURRENT_USER);
++-------+
+| CUSER |
++-------+
+| SCOTT |
++-------+
+(1 row)
+
+!ok
+
 # End agg.oq

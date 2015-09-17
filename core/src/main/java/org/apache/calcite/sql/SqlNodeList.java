@@ -144,7 +144,11 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
     for (SqlNode child : list) {
-      child.validate(validator, scope);
+      if (child instanceof SqlIdentifier) {
+        child.validateExpr(validator, scope);
+      } else {
+        child.validate(validator, scope);
+      }
     }
   }
 
