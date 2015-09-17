@@ -240,20 +240,6 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
       FunctionExpression<Function1<TSource, TElement>> elementSelector);
 
   /**
-   * Groups the elements of a sequence according to a
-   * specified key selector function and creates a result value from
-   * each group and its key.
-   *
-   * <p>NOTE: Renamed from {@code groupBy} to distinguish from
-   * {@link #groupBy(org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)},
-   * which has the same erasure.</p>
-   */
-  <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
-      FunctionExpression<Function1<TSource, TKey>> keySelector,
-      FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>>
-        elementSelector);
-
-  /**
    * Groups the elements of a sequence and projects the
    * elements for each group by using a specified function. Key
    * values are compared by using a specified comparer.
@@ -266,13 +252,25 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Groups the elements of a sequence according to a
    * specified key selector function and creates a result value from
+   * each group and its key.
+   *
+   * <p>NOTE: Renamed from {@code groupBy} to distinguish from
+   * {@link #groupBy(org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)},
+   * which has the same erasure.</p>
+   */
+  <TKey, TResult> Queryable<TResult> groupByK(
+      FunctionExpression<Function1<TSource, TKey>> keySelector,
+      FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>> resultSelector);
+
+  /**
+   * Groups the elements of a sequence according to a
+   * specified key selector function and creates a result value from
    * each group and its key. Keys are compared by using a specified
    * comparer.
    */
   <TKey, TResult> Queryable<TResult> groupByK(
       FunctionExpression<Function1<TSource, TKey>> keySelector,
-      FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>>
-        elementSelector,
+      FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>> resultSelector,
       EqualityComparer<TKey> comparer);
 
   /**

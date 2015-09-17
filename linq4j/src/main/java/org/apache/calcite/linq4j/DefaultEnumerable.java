@@ -198,7 +198,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.defaultIfEmpty(getThis());
   }
 
-  public T defaultIfEmpty(T value) {
+  public Enumerable<T>  defaultIfEmpty(T value) {
     return EnumerableDefaults.defaultIfEmpty(getThis(), value);
   }
 
@@ -258,24 +258,25 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.groupBy(getThis(), keySelector, elementSelector);
   }
 
-  public <TKey, TResult> Enumerable<Grouping<TKey, TResult>> groupBy(
-      Function1<T, TKey> keySelector,
-      Function2<TKey, Enumerable<T>, TResult> elementSelector) {
-    return EnumerableDefaults.groupBy(getThis(), keySelector, elementSelector);
-  }
-
   public <TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(
       Function1<T, TKey> keySelector, Function1<T, TElement> elementSelector,
-      EqualityComparer comparer) {
-    return EnumerableDefaults.groupBy(getThis(), keySelector, elementSelector);
+      EqualityComparer<TKey> comparer) {
+    return EnumerableDefaults.groupBy(getThis(), keySelector, elementSelector,
+        comparer);
   }
 
   public <TKey, TResult> Enumerable<TResult> groupBy(
       Function1<T, TKey> keySelector,
       Function2<TKey, Enumerable<T>, TResult> elementSelector,
-      EqualityComparer comparer) {
+      EqualityComparer<TKey> comparer) {
     return EnumerableDefaults.groupBy(getThis(), keySelector, elementSelector,
         comparer);
+  }
+
+  public <TKey, TResult> Enumerable<TResult> groupBy(
+      Function1<T, TKey> keySelector,
+      Function2<TKey, Enumerable<T>, TResult> resultSelector) {
+    return EnumerableDefaults.groupBy(getThis(), keySelector, resultSelector);
   }
 
   public <TKey, TElement, TResult> Enumerable<TResult> groupBy(
