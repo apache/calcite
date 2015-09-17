@@ -435,7 +435,7 @@ public class SqlWindow extends SqlCall {
     refNameNew = null;
 
     // Overlay other parameters.
-    if (setOperand(partitionListNew, partitionList, validator)) {
+    if (setOperand(partitionListNew, that.partitionList, validator)) {
       partitionListNew = that.partitionList;
     }
     if (setOperand(orderListNew, that.orderList, validator)) {

@@ -142,6 +142,21 @@ public class RelOptRulesTest extends RelOptTestBase {
     return DiffRepository.lookup(RelOptRulesTest.class);
   }
 
+  @Test public void testWindowInParenthesis() {
+    HepProgram preProgram =  new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ProjectToWindowRule.PROJECT);
+
+    final String sql = "select count(*) over (w)\n"
+        + "from emp \n"
+        + "window w as (partition by empno order by empno)";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
   @Test public void testProjectToWindowRuleForMultipleWindows() {
     HepProgram preProgram =  new HepProgramBuilder()
         .build();
