@@ -1679,6 +1679,24 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, hepPlanner, sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-888">[CALCITE-888],
+   * Overlay window loses PARTITION BY list</a>. */
+  @Test public void testWindowInParenthesis() {
+    HepProgram preProgram =  new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ProjectToWindowRule.PROJECT);
+
+    final String sql = "select count(*) over (w), count(*) over w\n"
+        + "from emp\n"
+        + "window w as (partition by empno order by empno)";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
   @Test public void testPushAggregateThroughJoin1() throws Exception {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
