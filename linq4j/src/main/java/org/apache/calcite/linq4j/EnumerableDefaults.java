@@ -2847,9 +2847,35 @@ public abstract class EnumerableDefaults {
    * results.
    */
   public static <T0, T1, TResult> Enumerable<TResult> zip(
-      Enumerable<T0> source0, Enumerable<T1> source1,
-      Function2<T0, T1, TResult> resultSelector) {
-    throw Extensions.todo();
+      final Enumerable<T0> first, final Enumerable<T1> second,
+      final Function2<T0, T1, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      @Override
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          final Enumerator<T0> e1 = first.enumerator();
+          final Enumerator<T1> e2 = second.enumerator();
+          @Override
+          public TResult current() {
+            return resultSelector.apply(e1.current(), e2.current());
+          }
+          @Override
+          public boolean moveNext() {
+            return e1.moveNext() && e2.moveNext();
+          }
+          @Override
+          public void reset() {
+            e1.reset();
+            e2.reset();
+          }
+          @Override
+          public void close() {
+            e1.close();
+            e2.close();
+          }
+        };
+      }
+    };
   }
 
   public static <T> OrderedQueryable<T> asOrderedQueryable(

@@ -2373,6 +2373,50 @@ public class Linq4jTest {
         s);
   }
 
+  @Test public void testZip() {
+    final Enumerable<String> e1 = Linq4j.asEnumerable(Arrays.asList("a", "b", "c"));
+    final Enumerable<String> e2 = Linq4j.asEnumerable(Arrays.asList("1", "2", "3"));
+
+    final Enumerable<String> zipped = e1.zip(e2, new Function2<String, String, String>() {
+      @Override
+      public String apply(String v0, String v1) {
+        return v0 + v1;
+      }
+    });
+    assertEquals(3, zipped.count());
+    zipped.enumerator().reset();
+    for (int i = 0; i < 3; i++) {
+      assertEquals("" + (char) ('a' + i) + (char) ('1' + i), zipped.elementAt(i));
+    }
+  }
+
+  @Test public void testZipLengthNotMatch() {
+    final Enumerable<String> e1 = Linq4j.asEnumerable(Arrays.asList("a", "b"));
+    final Enumerable<String> e2 = Linq4j.asEnumerable(Arrays.asList("1", "2", "3"));
+
+    final Function2<String, String, String> resultSelector =
+        new Function2<String, String, String>() {
+          @Override
+          public String apply(String v0, String v1) {
+            return v0 + v1;
+          }
+        };
+
+    final Enumerable<String> zipped1 = e1.zip(e2, resultSelector);
+    assertEquals(2, zipped1.count());
+    zipped1.enumerator().reset();
+    for (int i = 0; i < 2; i++) {
+      assertEquals("" + (char) ('a' + i) + (char) ('1' + i), zipped1.elementAt(i));
+    }
+
+    final Enumerable<String> zipped2 = e2.zip(e1, resultSelector);
+    assertEquals(2, zipped2.count());
+    zipped2.enumerator().reset();
+    for (int i = 0; i < 2; i++) {
+      assertEquals("" + (char) ('1' + i) + (char) ('a' + i), zipped2.elementAt(i));
+    }
+  }
+
   private static int count(Enumerator<String> enumerator) {
     int n = 0;
     while (enumerator.moveNext()) {
