@@ -165,7 +165,6 @@ limitations under the License.
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
         <version>1.4.185</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
@@ -236,7 +235,6 @@ limitations under the License.
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
         <version>9.3-1102-jdbc3</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>

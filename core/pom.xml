@@ -233,6 +233,7 @@ limitations under the License.
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>com.oracle:ojdbc6</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>mysql:mysql-connector-java</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:scott-data-hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:foodmart-data-hsqldb</ignoredUnusedDeclaredDependency>
@@ -338,6 +339,57 @@ limitations under the License.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>it-oracle</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>failsafe-integration-test</id>
+                <!-- Disable the integration test inherited from the parent pom
+                     so that we can run multiple tests, one per database. -->
+                <phase>none</phase>
+              </execution>
+              <execution>
+                <id>failsafe-test-oracle</id>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <phase>integration-test</phase>
+                <configuration>
+                  <includes>
+                    <include>org/apache/calcite/test/JdbcAdapterTest.java</include>
+                    <include>org/apache/calcite/test/JdbcTest.java</include>
+                  </includes>
+                  <systemPropertyVariables>
+                    <calcite.test.db>oracle</calcite.test.db>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <!-- Oracle's driver is not open source. Install the jar in your
+               local maven repository as follows:
+
+               $ cd $ORACLE_HOME/jdbc/lib
+               $ mvn install:install-file -DgroupId=com.oracle
+                 -DartifactId=ojdbc6 -Dversion=11.2.0.2.0 -Dpackaging=jar
+                 -Dfile=ojdbc6.jar -DgeneratePom=true
+          -->
+          <groupId>com.oracle</groupId>
+          <artifactId>ojdbc6</artifactId>
+          <version>11.2.0.2.0</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
     </profile>
     <profile>
       <!-- CALCITE-539: workaround for MSHARED-394: Avoid rewrite of

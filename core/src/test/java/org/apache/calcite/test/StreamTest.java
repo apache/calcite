@@ -217,15 +217,15 @@ public class StreamTest {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet input) {
         try {
-          final StringBuilder buf = new StringBuilder();
+          final CalciteAssert.ResultSetFormatter formatter =
+              new CalciteAssert.ResultSetFormatter();
           final ResultSetMetaData metaData = input.getMetaData();
           for (String expectedRow : rowList) {
             if (!input.next()) {
               throw new AssertionError("input ended too soon");
             }
-            CalciteAssert.rowToString(input, buf, metaData);
-            String actualRow = buf.toString();
-            buf.setLength(0);
+            formatter.rowToString(input, metaData);
+            String actualRow = formatter.string();
             assertThat(actualRow, equalTo(expectedRow));
           }
           return null;

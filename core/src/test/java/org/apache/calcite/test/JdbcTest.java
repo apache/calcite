@@ -196,12 +196,12 @@ public class JdbcTest {
   public static final String FOODMART_SCHEMA = "     {\n"
       + "       type: 'jdbc',\n"
       + "       name: 'foodmart',\n"
-      + "       jdbcDriver: '" + CalciteAssert.DB.foodmart.driver + "',\n"
-      + "       jdbcUser: '" + CalciteAssert.DB.foodmart.username + "',\n"
-      + "       jdbcPassword: '" + CalciteAssert.DB.foodmart.password + "',\n"
-      + "       jdbcUrl: '" + CalciteAssert.DB.foodmart.url + "',\n"
-      + "       jdbcCatalog: null,\n"
-      + "       jdbcSchema: 'foodmart'\n"
+      + "       jdbcDriver: " + q(CalciteAssert.DB.foodmart.driver) + ",\n"
+      + "       jdbcUser: " + q(CalciteAssert.DB.foodmart.username) + ",\n"
+      + "       jdbcPassword: " + q(CalciteAssert.DB.foodmart.password) + ",\n"
+      + "       jdbcUrl: " + q(CalciteAssert.DB.foodmart.url) + ",\n"
+      + "       jdbcCatalog: " + q(CalciteAssert.DB.foodmart.catalog) + ",\n"
+      + "       jdbcSchema: " + q(CalciteAssert.DB.foodmart.schema) + "\n"
       + "     }\n";
 
   public static final String FOODMART_MODEL = "{\n"
@@ -219,12 +219,12 @@ public class JdbcTest {
   public static final String SCOTT_SCHEMA = "     {\n"
       + "       type: 'jdbc',\n"
       + "       name: 'SCOTT',\n"
-      + "       jdbcDriver: '" + SCOTT.driver + "',\n"
-      + "       jdbcUser: '" + SCOTT.username + "',\n"
-      + "       jdbcPassword: '" + SCOTT.password + "',\n"
-      + "       jdbcUrl: '" + SCOTT.url + "',\n"
-      + "       jdbcCatalog: null,\n"
-      + "       jdbcSchema: 'SCOTT'\n"
+      + "       jdbcDriver: " + q(SCOTT.driver) + ",\n"
+      + "       jdbcUser: " + q(SCOTT.username) + ",\n"
+      + "       jdbcPassword: " + q(SCOTT.password) + ",\n"
+      + "       jdbcUrl: " + q(SCOTT.url) + ",\n"
+      + "       jdbcCatalog: " + q(SCOTT.catalog) + ",\n"
+      + "       jdbcSchema: " + q(SCOTT.schema) + "\n"
       + "     }\n";
 
   public static final String SCOTT_MODEL = "{\n"
@@ -264,6 +264,10 @@ public class JdbcTest {
       + "(7,1,4),\n"
       + "(8,1,4))\n"
       + " as t(rn,val,expected)";
+
+  private static String q(String s) {
+    return s == null ? "null" : "'" + s + "'";
+  }
 
   public static List<Pair<String, String>> getFoodmartQueries() {
     return FOODMART_QUERIES;
@@ -1742,7 +1746,8 @@ public class JdbcTest {
             + "  where \"position_title\" = 'VP Country Manager'\n"
             + "  and \"birth_date\" < DATE '1950-01-01'\n"
             + "  and \"gender\" = 'F')")
-        .returns("C=1\n");
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
+        .returns2("C=1\n");
   }
 
   /** Tests a timestamp literal against JDBC data source. */
@@ -2456,8 +2461,8 @@ public class JdbcTest {
         .with(config)
         .query(
             "select \"hire_date\", \"end_date\", \"birth_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1")
-        .returns(
-            "hire_date=1994-12-01 00:00:00; end_date=null; birth_date=1961-08-26\n");
+        .returns2(
+            "hire_date=1994-12-01; end_date=null; birth_date=1961-08-26\n");
   }
 
   @Test public void testReuseExpressionWhenNullChecking() {
@@ -2763,6 +2768,7 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(s)
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .explainContains(""
             + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
             + "  EnumerableAggregate(group=[{1, 3}])\n"
@@ -4308,11 +4314,13 @@ public class JdbcTest {
     CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where \"lname\" = 'this string is longer than 30 characters'")
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returns("C=0\n");
 
     CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where cast(\"customer_id\" as char(20)) = 'this string is longer than 30 characters'")
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returns("C=0\n");
   }
 
@@ -4577,6 +4585,12 @@ public class JdbcTest {
   }
 
   @Test public void testRunMisc() throws Exception {
+    switch (CalciteAssert.DB) {
+    case ORACLE:
+      // There are formatting differences (e.g. "4.000" vs "4") when using
+      // Oracle as the JDBC data source.
+      return;
+    }
     checkRun("sql/misc.oq");
   }
 
@@ -5832,12 +5846,11 @@ public class JdbcTest {
   }
 
   /** Tests accessing a date as a string in a JDBC source whose type is DATE. */
-  @Test
-  public void testGetDateAsString() throws Exception {
+  @Test public void testGetDateAsString() throws Exception {
     CalciteAssert.that()
       .with(CalciteAssert.Config.JDBC_FOODMART)
       .query("select min(\"date\") mindate from \"foodmart\".\"currency\"")
-      .returns("MINDATE=1997-01-01\n");
+      .returns2("MINDATE=1997-01-01\n");
   }
 
   @Test

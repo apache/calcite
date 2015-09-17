@@ -24,13 +24,17 @@ public class ConnectionSpec {
   public final String username;
   public final String password;
   public final String driver;
+  public final String schema;
+  public final String catalog;
 
   public ConnectionSpec(String url, String username, String password,
-      String driver) {
+      String driver, String schema) {
     this.url = url;
     this.username = username;
     this.password = password;
     this.driver = driver;
+    this.schema = schema;
+    this.catalog = null;
   }
 }
 

@@ -34,8 +34,11 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -48,6 +51,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
@@ -69,6 +73,13 @@ import java.util.Set;
  */
 public class JdbcImplementor {
   public static final SqlParserPos POS = SqlParserPos.ZERO;
+
+  /** Oracle's {@code SUBSTR} function.
+   * Oracle does not support {@link SqlStdOperatorTable#SUBSTRING}. */
+  public static final SqlFunction ORACLE_SUBSTR =
+      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+          SqlFunctionCategory.STRING);
 
   final SqlDialect dialect;
   private final Set<String> aliasSet = new LinkedHashSet<String>();
@@ -218,6 +229,12 @@ public class JdbcImplementor {
           // In RexNode trees, OR and AND have any number of children;
           // SqlCall requires exactly 2. So, convert to a left-deep binary tree.
           return createLeftCall(op, nodeList);
+        }
+        if (op == SqlStdOperatorTable.SUBSTRING) {
+          switch (dialect.getDatabaseProduct()) {
+          case ORACLE:
+            return ORACLE_SUBSTR.createCall(new SqlNodeList(nodeList, POS));
+          }
         }
         return op.createCall(new SqlNodeList(nodeList, POS));
       }

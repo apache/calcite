@@ -158,8 +158,8 @@ public class JdbcFrontJdbcBackTest {
             + "from \"sales_fact_1997\" as \"sales_fact_1997\""
             + "where \"product_id\" = 1\n"
             + "and \"time_id\" < 400")
-        .returns("c0=11.4000\n"
-            + "c0=8.5500\n");
+        .returns2("c0=11.4\n"
+            + "c0=8.55\n");
   }
 }
 

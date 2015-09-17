@@ -357,13 +357,14 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n"
             + "group by t.\"the_year\"")
-      .enableMaterializations(true)
-      .explainContains(""
-          + "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
-          + "  EnumerableAggregate(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
-          + "    EnumerableTableScan(table=[[adhoc, m{27, 31}")
-      .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
-      .sameResultWithMaterializationsDisabled();
+        .enableMaterializations(true)
+        .explainContains(""
+            + "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
+            + "    EnumerableTableScan(table=[[adhoc, m{27, 31}")
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
+        .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
+        .sameResultWithMaterializationsDisabled();
   }
 
   /** Tests a model that uses an algorithm to generate an initial set of
@@ -467,6 +468,7 @@ public class LatticeTest {
         .query("select sum(\"unit_sales\") as s\n"
             + "from \"foodmart\".\"sales_fact_1997\"")
         .enableMaterializations(true)
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000");
   }
 
@@ -487,6 +489,7 @@ public class LatticeTest {
         .withHook(Hook.CREATE_MATERIALIZATION, handler)
         .enableMaterializations(true)
         .explainContains("EnumerableTableScan(table=[[adhoc, m{}]])")
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000; C=86837");
     assertThat(mats.toString(), mats.size(), equalTo(2));
 
@@ -495,6 +498,7 @@ public class LatticeTest {
         + "from \"foodmart\".\"sales_fact_1997\"")
         .withHook(Hook.CREATE_MATERIALIZATION, handler)
         .enableMaterializations(true)
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000");
     assertThat(mats.toString(), mats.size(), equalTo(2));
   }
@@ -507,6 +511,7 @@ public class LatticeTest {
             + "group by \"product_id\"\n"
             + "order by 1 desc limit 1")
         .enableMaterializations(true)
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("C=267.0000");
   }
 

@@ -365,7 +365,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
               int precision = dout + scale;
               assert precision <= maxPrecision;
-              assert precision > 0;
+              assert precision > 0
+                  || (resultType.getSqlTypeName() == SqlTypeName.DECIMAL
+                      && precision == 0
+                      && scale == 0);
 
               resultType =
                   createSqlType(
