@@ -315,11 +315,11 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  public <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
+  public <TKey, TResult> Queryable<TResult> groupByK(
       Queryable<T> source,
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
-          elementSelector) {
+          resultSelector) {
     throw new UnsupportedOperationException();
   }
 
