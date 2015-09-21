@@ -16,6 +16,51 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <Root>
+    <TestCase name="testReduceNestedCaseWhen">
+        <Resource name="sql">
+            <![CDATA[select sal
+from emp
+where case when (sal = 1000) then
+(case when sal = 1000 then null else 1 end is null) else
+(case when sal = 2000 then null else 1 end is null) end is true]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[CASE(=($5, 1000), =($5, 1000), =($5, 2000))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[IS TRUE(CASE(=($5, 1000), IS NULL(CASE(=($5, 1000), null, 1)), IS NULL(CASE(=($5, 2000), null, 1))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceORCaseWhen">
+        <Resource name="sql">
+            <![CDATA[select sal
+from emp
+where case when sal = 1000 then null else 1 end is null
+OR case when sal = 2000 then null else 1 end is null]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[OR(=($5, 1000), =($5, 2000))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[OR(IS NULL(CASE(=($5, 1000), null, 1)), IS NULL(CASE(=($5, 2000), null, 1)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWindowInParenthesis">
         <Resource name="sql">
             <![CDATA[select count(*) over (w), count(*) over w
@@ -583,7 +628,7 @@ LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[3], EXPR$1=[+($0, 7)], EXPR$2=[+(11, $0)], EXPR$3=[null], EXPR$4=[CAST(2):INTEGER], EXPR$5=[ROW(15)])
-  LogicalFilter(condition=[AND(=($0, 15), =($0, CAST(2):INTEGER))])
+  LogicalFilter(condition=[AND(=($0, 15), =($0, 2))])
     LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
       LogicalJoin(condition=[=($0, $11)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
