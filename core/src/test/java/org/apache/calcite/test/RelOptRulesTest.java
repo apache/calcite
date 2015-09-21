@@ -1766,7 +1766,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select e.empno,\n"
         + "  min(sal) as min_sal, min(e.deptno) as min_deptno,\n"
         + "  sum(sal) + 1 as sum_sal_plus, max(sal) as max_sal,\n"
-        + "  sum(sal) as sum_sal_2, count(sal) as count_sal\n"
+        + "  sum(sal) as sum_sal_2, count(sal) as count_sal,\n"
+        + "  count(mgr) as count_mgr\n"
         + "from sales.emp as e\n"
         + "join sales.dept as d on e.empno = d.deptno\n"
         + "group by e.empno,d.deptno";

@@ -1080,6 +1080,22 @@ from "scott".emp e join "scott".emp m on e.mgr = m.empno;
 
 !ok
 
+# Push sum, self-join, cartesian product over nullable and non-nullable columns
+select sum(e.sal) as ss, count(e.sal) as cs, count(e.mgr) as cm
+from "scott".emp e
+join "scott".emp m on e.deptno = m.deptno
+group by e.deptno, m.deptno;
++----------+----+----+
+| SS       | CS | CM |
++----------+----+----+
+| 26250.00 |  9 |  6 |
+| 54375.00 | 25 | 25 |
+| 56400.00 | 36 | 36 |
++----------+----+----+
+(3 rows)
+
+!ok
+
 # Push sum, self-join, aggregate by column on "many" side
 select sum(e.sal) as s
 from "scott".emp e join "scott".emp m on e.mgr = m.empno
