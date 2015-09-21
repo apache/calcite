@@ -142,8 +142,41 @@ public class RelOptRulesTest extends RelOptTestBase {
     return DiffRepository.lookup(RelOptRulesTest.class);
   }
 
+  @Test public void testReduceNestedCaseWhen() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+
+    final String sql = "select sal\n"
+            + "from emp\n"
+            + "where case when (sal = 1000) then\n"
+            + "(case when sal = 1000 then null else 1 end is null) else\n"
+            + "(case when sal = 2000 then null else 1 end is null) end is true";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
+  @Test public void testReduceORCaseWhen() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+
+    final String sql = "select sal\n"
+        + "from emp\n"
+        + "where case when sal = 1000 then null else 1 end is null\n"
+        + "OR case when sal = 2000 then null else 1 end is null";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
   @Test public void testProjectToWindowRuleForMultipleWindows() {
-    HepProgram preProgram =  new HepProgramBuilder()
+    HepProgram preProgram = new HepProgramBuilder()
         .build();
 
     HepProgramBuilder builder = new HepProgramBuilder();

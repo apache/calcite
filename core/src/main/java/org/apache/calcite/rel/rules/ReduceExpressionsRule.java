@@ -479,36 +479,77 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     return ImmutableMap.copyOf(builder);
   }
 
+  /** Return if a given operator can be pushed into Case */
+  private static boolean isPushableIntoCase(RexNode node) {
+    if (!(node instanceof RexCall)) {
+      return false;
+    }
+
+    final RexCall call = (RexCall) node;
+    return call.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+        && (SqlKind.COMPARISON.contains(call.getKind()) || call.getOperands().size() == 1);
+  }
+
   private static RexCall pushPredicateIntoCase(RexCall call) {
     if (call.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
       return call;
     }
-    int caseOrdinal = -1;
-    final List<RexNode> operands = call.getOperands();
-    for (int i = 0; i < operands.size(); i++) {
-      RexNode operand = operands.get(i);
-      switch (operand.getKind()) {
-      case CASE:
-        caseOrdinal = i;
+    final RexShuttle rexShuttle = new RexShuttle() {
+      @Override
+      public RexNode visitCall(RexCall call) {
+        final List<RexNode> newOperands = new ArrayList<>();
+        for (RexNode operand : call.getOperands()) {
+          newOperands.add(operand.accept(this));
+        }
+
+        call = call.clone(call.getType(), newOperands);
+        if (!isPushableIntoCase(call)) {
+          return call;
+        }
+
+        final List<RexNode> operands = call.getOperands();
+        int caseOrdinal = -1;
+        for (int i = 0; i < operands.size(); i++) {
+          RexNode operand = operands.get(i);
+          switch (operand.getKind()) {
+          case CASE:
+            caseOrdinal = i;
+          }
+        }
+        if (caseOrdinal < 0) {
+          return call;
+        }
+
+        // Convert
+        //   f(CASE WHEN p1 THEN v1 ... END, arg)
+        // to
+        //   CASE WHEN p1 THEN f(v1, arg) ... END
+        final RexCall case_ = (RexCall) operands.get(caseOrdinal);
+        final List<RexNode> nodes = new ArrayList<>();
+        for (int i = 0; i < case_.getOperands().size(); i++) {
+          RexNode node = case_.getOperands().get(i);
+          if (!RexUtil.isCasePredicate(case_, i)) {
+            node = substitute(call, caseOrdinal, node);
+
+            // For nested Case-When, the function should be pushed further deeper
+            // For example,
+            // Convert
+            //   f(CASE WHEN p1 THEN (CASE WHEN p2 THEN v2 ... END) ... END, arg)
+            // to
+            //   CASE WHEN p1 THEN f((CASE WHEN p2 THEN v2 ... END), arg) ... END
+            // further to
+            //   CASE WHEN p1 THEN (CASE WHEN p2 THEN f(v2, arg) ... END) ... END
+            if (isPushableIntoCase(node)) {
+              node = node.accept(this);
+            }
+          }
+          nodes.add(node);
+        }
+        return case_.clone(call.getType(), nodes);
       }
-    }
-    if (caseOrdinal < 0) {
-      return call;
-    }
-    // Convert
-    //   f(CASE WHEN p1 THEN v1 ... END, arg)
-    // to
-    //   CASE WHEN p1 THEN f(v1, arg) ... END
-    final RexCall case_ = (RexCall) operands.get(caseOrdinal);
-    final List<RexNode> nodes = new ArrayList<>();
-    for (int i = 0; i < case_.getOperands().size(); i++) {
-      RexNode node = case_.getOperands().get(i);
-      if (!RexUtil.isCasePredicate(case_, i)) {
-        node = substitute(call, caseOrdinal, node);
-      }
-      nodes.add(node);
-    }
-    return case_.clone(call.getType(), nodes);
+    };
+
+    return (RexCall) call.accept(rexShuttle);
   }
 
   /** Converts op(arg0, ..., argOrdinal, ..., argN) to op(arg0,..., node, ..., argN). */
