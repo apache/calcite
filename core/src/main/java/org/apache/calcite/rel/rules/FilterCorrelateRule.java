@@ -27,7 +27,8 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -41,25 +42,28 @@ import java.util.List;
 public class FilterCorrelateRule extends RelOptRule {
 
   public static final FilterCorrelateRule INSTANCE =
-      new FilterCorrelateRule(RelFactories.DEFAULT_FILTER_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY);
-
-  private final RelFactories.FilterFactory filterFactory;
+      new FilterCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a FilterCorrelateRule.
+   */
+  public FilterCorrelateRule(RelBuilderFactory builderFactory) {
+    super(
+        operand(Filter.class,
+            operand(Correlate.class, RelOptRule.any())),
+        builderFactory, "FilterCorrelateRule");
+  }
 
   /**
    * Creates a FilterCorrelateRule with an explicit root operand and
    * factories.
    */
+  @Deprecated // to be removed before 2.0
   public FilterCorrelateRule(RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory) {
-    super(
-        operand(Filter.class,
-            operand(Correlate.class, RelOptRule.any())),
-        "FilterCorrelateRule");
-    this.filterFactory = filterFactory;
-    Util.discard(projectFactory); // for future use
+    this(RelBuilder.proto(filterFactory, projectFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -97,10 +101,11 @@ public class FilterCorrelateRule extends RelOptRule {
     // Create Filters on top of the children if any filters were
     // pushed to them.
     final RexBuilder rexBuilder = corr.getCluster().getRexBuilder();
-    RelNode leftRel =
-        RelOptUtil.createFilter(corr.getLeft(), leftFilters, filterFactory);
-    RelNode rightRel =
-        RelOptUtil.createFilter(corr.getRight(), rightFilters, filterFactory);
+    final RelBuilder relBuilder = call.builder();
+    final RelNode leftRel =
+        relBuilder.push(corr.getLeft()).filter(leftFilters).build();
+    final RelNode rightRel =
+        relBuilder.push(corr.getRight()).filter(rightFilters).build();
 
     // Create the new Correlate
     RelNode newCorrRel =
@@ -117,9 +122,10 @@ public class FilterCorrelateRule extends RelOptRule {
 
     // Create a Filter on top of the join if needed
     RelNode newRel =
-        RelOptUtil.createFilter(newCorrRel,
-            RexUtil.fixUp(rexBuilder, aboveFilters, newCorrRel.getRowType()),
-            filterFactory);
+        relBuilder.push(newCorrRel)
+        .filter(
+            RexUtil.fixUp(rexBuilder, aboveFilters, newCorrRel.getRowType()))
+        .build();
 
     call.transformTo(newRel);
   }

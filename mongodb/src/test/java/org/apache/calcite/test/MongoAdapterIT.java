@@ -658,9 +658,9 @@ public class MongoAdapterIT {
             + "STATE=CA; CDC=1072\n")
         .queryContains(
             mongoChecker(
-                "{$project: {STATE: '$state', CITY: '$city'}}",
-                "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}}}",
-                "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY'}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$group: {_id: {CITY: '$CITY', STATE: '$STATE'}}}",
+                "{$project: {_id: 0, CITY: '$_id.CITY', STATE: '$_id.STATE'}}",
                 "{$group: {_id: '$STATE', CDC: {$sum: {$cond: [ {$eq: ['CITY', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', CDC: '$CDC'}}",
                 "{$sort: {CDC: -1}}",

@@ -21,13 +21,11 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -40,6 +38,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -104,7 +103,8 @@ public abstract class ProjectToWindowRule extends RelOptRule {
         public void onMatch(RelOptRuleCall call) {
           Calc calc = call.rel(0);
           assert RexOver.containsOver(calc.getProgram());
-          CalcRelSplitter transform = new WindowedAggRelSplitter(calc);
+          final CalcRelSplitter transform =
+              new WindowedAggRelSplitter(calc, call.builder());
           RelNode newRel = transform.execute();
           call.transformTo(newRel);
         }
@@ -133,31 +133,30 @@ public abstract class ProjectToWindowRule extends RelOptRule {
                   project.getCluster().getRexBuilder());
           // temporary LogicalCalc, never registered
           final LogicalCalc calc = LogicalCalc.create(input, program);
-          CalcRelSplitter transform = new WindowedAggRelSplitter(calc) {
+          final CalcRelSplitter transform = new WindowedAggRelSplitter(calc,
+              call.builder()) {
             @Override protected RelNode handle(RelNode rel) {
-              if (rel instanceof LogicalCalc) {
-                LogicalCalc calc = (LogicalCalc) rel;
-                final RexProgram program = calc.getProgram();
-                rel = calc.getInput();
-                if (program.getCondition() != null) {
-                  rel = LogicalFilter.create(rel,
-                      program.expandLocalRef(
-                          program.getCondition()));
-                }
-                if (!program.projectsOnlyIdentity()) {
-                  rel = RelOptUtil.createProject(
-                      rel,
-                      Lists.transform(
-                          program.getProjectList(),
-                          new Function<RexLocalRef, RexNode>() {
-                            public RexNode apply(RexLocalRef a0) {
-                              return program.expandLocalRef(a0);
-                            }
-                          }),
-                      calc.getRowType().getFieldNames());
-                }
+              if (!(rel instanceof LogicalCalc)) {
+                return rel;
               }
-              return rel;
+              final LogicalCalc calc = (LogicalCalc) rel;
+              final RexProgram program = calc.getProgram();
+              relBuilder.push(calc.getInput());
+              if (program.getCondition() != null) {
+                relBuilder.filter(
+                    program.expandLocalRef(program.getCondition()));
+              }
+              if (!program.projectsOnlyIdentity()) {
+                relBuilder.project(
+                    Lists.transform(program.getProjectList(),
+                        new Function<RexLocalRef, RexNode>() {
+                          public RexNode apply(RexLocalRef a0) {
+                            return program.expandLocalRef(a0);
+                          }
+                        }),
+                    calc.getRowType().getFieldNames());
+              }
+              return relBuilder.build();
             }
           };
           RelNode newRel = transform.execute();
@@ -175,80 +174,69 @@ public abstract class ProjectToWindowRule extends RelOptRule {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Splitter which distinguishes between windowed aggregation expressions
+   * Splitter that distinguishes between windowed aggregation expressions
    * (calls to {@link RexOver}) and ordinary expressions.
    */
   static class WindowedAggRelSplitter extends CalcRelSplitter {
-    WindowedAggRelSplitter(Calc calc) {
-      super(
-          calc,
-          new RelType[]{
-            new CalcRelSplitter.RelType("CalcRelType") {
-              protected boolean canImplement(RexFieldAccess field) {
-                return true;
-              }
+    private static final RelType[] REL_TYPES = {
+      new RelType("CalcRelType") {
+        protected boolean canImplement(RexFieldAccess field) {
+          return true;
+        }
 
-              protected boolean canImplement(RexDynamicParam param) {
-                return true;
-              }
+        protected boolean canImplement(RexDynamicParam param) {
+          return true;
+        }
 
-              protected boolean canImplement(RexLiteral literal) {
-                return true;
-              }
+        protected boolean canImplement(RexLiteral literal) {
+          return true;
+        }
 
-              protected boolean canImplement(RexCall call) {
-                return !(call instanceof RexOver);
-              }
+        protected boolean canImplement(RexCall call) {
+          return !(call instanceof RexOver);
+        }
 
-              protected RelNode makeRel(
-                  RelOptCluster cluster,
-                  RelTraitSet traits,
-                  RelNode child,
-                  RexProgram program) {
-                assert !program.containsAggs();
-                program = RexProgramBuilder.normalize(cluster.getRexBuilder(),
-                    program);
-                return super.makeRel(
-                    cluster,
-                    traits,
-                    child,
-                    program);
-              }
-            },
-            new CalcRelSplitter.RelType("WinAggRelType") {
-              protected boolean canImplement(RexFieldAccess field) {
-                return false;
-              }
+        protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
+            RelBuilder relBuilder, RelNode input, RexProgram program) {
+          assert !program.containsAggs();
+          program = RexProgramBuilder.normalize(cluster.getRexBuilder(),
+              program);
+          return super.makeRel(cluster, traitSet, relBuilder, input, program);
+        }
+      },
+      new RelType("WinAggRelType") {
+        protected boolean canImplement(RexFieldAccess field) {
+          return false;
+        }
 
-              protected boolean canImplement(RexDynamicParam param) {
-                return false;
-              }
+        protected boolean canImplement(RexDynamicParam param) {
+          return false;
+        }
 
-              protected boolean canImplement(RexLiteral literal) {
-                return false;
-              }
+        protected boolean canImplement(RexLiteral literal) {
+          return false;
+        }
 
-              protected boolean canImplement(RexCall call) {
-                return call instanceof RexOver;
-              }
+        protected boolean canImplement(RexCall call) {
+          return call instanceof RexOver;
+        }
 
-              protected boolean supportsCondition() {
-                return false;
-              }
+        protected boolean supportsCondition() {
+          return false;
+        }
 
-              protected RelNode makeRel(
-                  RelOptCluster cluster,
-                  RelTraitSet traits,
-                  RelNode child,
-                  RexProgram program) {
-                Util.permAssert(
-                    program.getCondition() == null,
-                    "WindowedAggregateRel cannot accept a condition");
-                return LogicalWindow.create(
-                    cluster, traits, child, program);
-              }
-            }
-          });
+        protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
+            RelBuilder relBuilder, RelNode input, RexProgram program) {
+          Util.permAssert(program.getCondition() == null,
+              "WindowedAggregateRel cannot accept a condition");
+          return LogicalWindow.create(cluster, traitSet, relBuilder, input,
+              program);
+        }
+      }
+    };
+
+    WindowedAggRelSplitter(Calc calc, RelBuilder relBuilder) {
+      super(calc, relBuilder, REL_TYPES);
     }
 
     @Override protected List<Set<Integer>> getCohorts() {

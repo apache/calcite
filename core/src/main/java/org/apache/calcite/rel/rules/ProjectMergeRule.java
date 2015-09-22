@@ -24,6 +24,8 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Permutation;
 
 import java.util.List;
@@ -35,14 +37,12 @@ import java.util.List;
  */
 public class ProjectMergeRule extends RelOptRule {
   public static final ProjectMergeRule INSTANCE =
-      new ProjectMergeRule(true, RelFactories.DEFAULT_PROJECT_FACTORY);
+      new ProjectMergeRule(true, RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 
   /** Whether to always merge projects. */
   private final boolean force;
-
-  private final ProjectFactory projectFactory;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,13 +51,18 @@ public class ProjectMergeRule extends RelOptRule {
    *
    * @param force Whether to always merge projects
    */
-  public ProjectMergeRule(boolean force, ProjectFactory projectFactory) {
+  public ProjectMergeRule(boolean force, RelBuilderFactory relBuilderFactory) {
     super(
         operand(Project.class,
             operand(Project.class, any())),
+        relBuilderFactory,
         "ProjectMergeRule" + (force ? ":force_mode" : ""));
     this.force = force;
-    this.projectFactory = projectFactory;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public ProjectMergeRule(boolean force, ProjectFactory projectFactory) {
+    this(force, RelBuilder.proto(projectFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -65,6 +70,7 @@ public class ProjectMergeRule extends RelOptRule {
   public void onMatch(RelOptRuleCall call) {
     final Project topProject = call.rel(0);
     final Project bottomProject = call.rel(1);
+    final RelBuilder relBuilder = call.builder();
 
     // If one or both projects are permutations, short-circuit the complex logic
     // of building a RexProgram.
@@ -81,10 +87,10 @@ public class ProjectMergeRule extends RelOptRule {
           return;
         }
         final Permutation product = topPermutation.product(bottomPermutation);
-        call.transformTo(
-            RelOptUtil.projectMapping(bottomProject.getInput(),
-                product.inverse(), topProject.getRowType().getFieldNames(),
-                projectFactory));
+        relBuilder.push(bottomProject.getInput());
+        relBuilder.project(relBuilder.fields(product),
+            topProject.getRowType().getFieldNames());
+        call.transformTo(relBuilder.build());
         return;
       }
     }
@@ -111,11 +117,9 @@ public class ProjectMergeRule extends RelOptRule {
     }
 
     // replace the two projects with a combined projection
-    RelNode newProjectRel = projectFactory.createProject(
-        bottomProject.getInput(), newProjects,
-        topProject.getRowType().getFieldNames());
-
-    call.transformTo(newProjectRel);
+    relBuilder.push(bottomProject.getInput());
+    relBuilder.project(newProjects, topProject.getRowType().getFieldNames());
+    call.transformTo(relBuilder.build());
   }
 }
 

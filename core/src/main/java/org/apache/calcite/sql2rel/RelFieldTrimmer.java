@@ -36,7 +36,6 @@ import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
@@ -47,6 +46,7 @@ import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -59,7 +59,6 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -99,13 +98,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
   private final ReflectUtil.MethodDispatcher<TrimResult> trimFieldsDispatcher;
-  private final RelFactories.ProjectFactory projectFactory;
-  private final RelFactories.FilterFactory filterFactory;
-  private final RelFactories.JoinFactory joinFactory;
-  private final RelFactories.SemiJoinFactory semiJoinFactory;
-  private final RelFactories.SortFactory sortFactory;
-  private final RelFactories.AggregateFactory aggregateFactory;
-  private final RelFactories.SetOpFactory setOpFactory;
+  private final RelBuilder relBuilder;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -114,31 +107,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    *
    * @param validator Validator
    */
-  public RelFieldTrimmer(SqlValidator validator) {
-    this(validator,
-        RelFactories.DEFAULT_PROJECT_FACTORY,
-        RelFactories.DEFAULT_FILTER_FACTORY,
-        RelFactories.DEFAULT_JOIN_FACTORY,
-        RelFactories.DEFAULT_SEMI_JOIN_FACTORY,
-        RelFactories.DEFAULT_SORT_FACTORY,
-        RelFactories.DEFAULT_AGGREGATE_FACTORY,
-        RelFactories.DEFAULT_SET_OP_FACTORY);
-  }
-
-  /**
-   * Creates a RelFieldTrimmer.
-   *
-   * @param validator Validator
-   */
-  public RelFieldTrimmer(SqlValidator validator,
-      RelFactories.ProjectFactory projectFactory,
-      RelFactories.FilterFactory filterFactory,
-      RelFactories.JoinFactory joinFactory,
-      RelFactories.SemiJoinFactory semiJoinFactory,
-      RelFactories.SortFactory sortFactory,
-      RelFactories.AggregateFactory aggregateFactory,
-      RelFactories.SetOpFactory setOpFactory) {
+  public RelFieldTrimmer(SqlValidator validator, RelBuilder relBuilder) {
     Util.discard(validator); // may be useful one day
+    this.relBuilder = relBuilder;
     this.trimFieldsDispatcher =
         ReflectUtil.createMethodDispatcher(
             TrimResult.class,
@@ -147,13 +118,22 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             RelNode.class,
             ImmutableBitSet.class,
             Set.class);
-    this.projectFactory = Preconditions.checkNotNull(projectFactory);
-    this.filterFactory = Preconditions.checkNotNull(filterFactory);
-    this.joinFactory = Preconditions.checkNotNull(joinFactory);
-    this.semiJoinFactory = Preconditions.checkNotNull(semiJoinFactory);
-    this.sortFactory = Preconditions.checkNotNull(sortFactory);
-    this.aggregateFactory = Preconditions.checkNotNull(aggregateFactory);
-    this.setOpFactory = Preconditions.checkNotNull(setOpFactory);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RelFieldTrimmer(SqlValidator validator,
+      RelOptCluster cluster,
+      RelFactories.ProjectFactory projectFactory,
+      RelFactories.FilterFactory filterFactory,
+      RelFactories.JoinFactory joinFactory,
+      RelFactories.SemiJoinFactory semiJoinFactory,
+      RelFactories.SortFactory sortFactory,
+      RelFactories.AggregateFactory aggregateFactory,
+      RelFactories.SetOpFactory setOpFactory) {
+    this(validator,
+        RelBuilder.proto(projectFactory, filterFactory, joinFactory,
+            semiJoinFactory, sortFactory, aggregateFactory, setOpFactory)
+        .create(cluster, null));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -245,11 +225,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
               ? rexBuilder.makeZeroLiteral(field.getType())
               : rexBuilder.makeInputRef(field.getType(), source));
     }
-    RelNode project =
-        projectFactory.createProject(
-            trimResult.left, exprList, nameList);
+    relBuilder.push(trimResult.left)
+        .project(exprList, nameList);
     return new TrimResult(
-        project,
+        relBuilder.build(),
         Mappings.createIdentity(fieldList.size()));
   }
 
@@ -383,17 +362,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelOptUtil.permute(project.getCluster().getTypeFactory(), rowType,
             mapping);
 
-    final RelNode newProject;
-    if (ProjectRemoveRule.isIdentity(newProjects, newInput.getRowType())) {
-      // The new project would be the identity. It is equivalent to return
-      // its child.
-      newProject = newInput;
-    } else {
-      newProject = projectFactory.createProject(newInput, newProjects,
-          newRowType.getFieldNames());
-      assert newProject.getClass() == project.getClass();
-    }
-    return new TrimResult(newProject, mapping);
+    relBuilder.push(newInput);
+    relBuilder.project(newProjects, newRowType.getFieldNames());
+    return new TrimResult(relBuilder.build(), mapping);
   }
 
   /** Creates a project with a dummy column, to protect the parts of the system
@@ -414,9 +385,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
     final RexLiteral expr =
         cluster.getRexBuilder().makeExactLiteral(BigDecimal.ZERO);
-    final RelNode newProject = projectFactory.createProject(input,
-        ImmutableList.<RexNode>of(expr), ImmutableList.of("DUMMY"));
-    return new TrimResult(newProject, mapping);
+    relBuilder.push(input);
+    relBuilder.project(ImmutableList.<RexNode>of(expr), ImmutableList.of("DUMMY"));
+    return new TrimResult(relBuilder.build(), mapping);
   }
 
   /**
@@ -463,13 +434,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final RelNode newFilter = filterFactory.createFilter(
-        newInput, newConditionExpr);
+    relBuilder.push(newInput);
+    relBuilder.filter(newConditionExpr);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
     // needs them for its condition.
-    return new TrimResult(newFilter, inputMapping);
+    return new TrimResult(relBuilder.build(), inputMapping);
   }
 
   /**
@@ -510,15 +481,19 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           Mappings.createIdentity(fieldCount));
     }
 
-    final RelCollation newCollation =
-        sort.getTraitSet().canonize(RexUtil.apply(inputMapping, collation));
-    final RelNode newSort =
-        sortFactory.createSort(newInput, newCollation, sort.offset, sort.fetch);
+    relBuilder.push(newInput);
+    final int offset =
+        sort.offset == null ? 0 : RexLiteral.intValue(sort.offset);
+    final int fetch =
+        sort.fetch == null ? -1 : RexLiteral.intValue(sort.fetch);
+    final ImmutableList<RexNode> fields =
+        relBuilder.fields(RexUtil.apply(inputMapping, collation));
+    relBuilder.sortLimit(offset, fetch, fields);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
     // needs them for its condition.
-    return new TrimResult(newSort, inputMapping);
+    return new TrimResult(relBuilder.build(), inputMapping);
   }
 
   /**
@@ -636,10 +611,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    final RelNode newJoin;
+    relBuilder.push(newInputs.get(0));
+    relBuilder.push(newInputs.get(1));
+
     if (join instanceof SemiJoin) {
-      newJoin = semiJoinFactory.createSemiJoin(newInputs.get(0),
-          newInputs.get(1), newConditionExpr);
+      relBuilder.semiJoin(newConditionExpr);
       // For SemiJoins only map fields from the left-side
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
@@ -654,12 +630,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
     } else {
-      newJoin = joinFactory.createJoin(newInputs.get(0), newInputs.get(1),
-          newConditionExpr, join.getJoinType(), join.getVariablesStopped(),
-          join.isSemiJoinDone());
+      relBuilder.join(join.getJoinType(), newConditionExpr);
     }
 
-    return new TrimResult(newJoin, mapping);
+    return new TrimResult(relBuilder.build(), mapping);
   }
 
   /**
@@ -686,12 +660,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
 
     // Create input with trimmed columns.
-    final List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : setOp.getInputs()) {
       TrimResult trimResult =
           trimChild(setOp, input, fieldsUsed, extraFields);
-      RelNode newInput = trimResult.left;
-      final Mapping inputMapping = trimResult.right;
 
       // We want "mapping", the input gave us "inputMapping", compute
       // "remaining" mapping.
@@ -704,30 +675,44 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       // the consumer asked for mapping = [b, d],
       // and the transformed input has columns inputMapping = [d, a, b].
       // remaining will permute [b, d] to [d, a, b].
-      Mapping remaining = Mappings.divide(mapping, inputMapping);
+      Mapping remaining = Mappings.divide(mapping, trimResult.right);
 
       // Create a projection; does nothing if remaining is identity.
-      newInput = RelOptUtil.projectMapping(newInput, remaining, null,
-          projectFactory);
+      relBuilder.push(trimResult.left);
+      relBuilder.permute(remaining);
 
-      if (input != newInput) {
+      if (input != relBuilder.peek()) {
         ++changeCount;
       }
-      newInputs.add(newInput);
     }
 
     // If the input is unchanged, and we need to project all columns,
     // there's to do.
     if (changeCount == 0
         && mapping.isIdentity()) {
+      for (RelNode input : setOp.getInputs()) {
+        relBuilder.build();
+      }
       return new TrimResult(
           setOp,
           mapping);
     }
 
-    RelNode newSetOp =
-        setOpFactory.createSetOp(setOp.kind, newInputs, setOp.all);
-    return new TrimResult(newSetOp, mapping);
+    switch (setOp.kind) {
+    case UNION:
+      relBuilder.union(setOp.all, setOp.getInputs().size());
+      break;
+    case INTERSECT:
+      relBuilder.intersect(setOp.all, setOp.getInputs().size());
+      break;
+    case EXCEPT:
+      assert setOp.getInputs().size() == 2;
+      relBuilder.minus(setOp.all);
+      break;
+    default:
+      throw new AssertionError("unknown setOp " + setOp);
+    }
+    return new TrimResult(relBuilder.build(), mapping);
   }
 
   /**
@@ -831,28 +816,29 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Now create new agg calls, and populate mapping for them.
-    final List<AggregateCall> newAggCallList = new ArrayList<>();
+    relBuilder.push(newInput);
+    final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
     j = groupCount + indicatorCount;
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (fieldsUsed.get(j)) {
-        AggregateCall newAggCall =
-            aggCall.copy(Mappings.apply2(inputMapping, aggCall.getArgList()),
-                Mappings.apply(inputMapping, aggCall.filterArg));
-        if (newAggCall.equals(aggCall)) {
-          newAggCall = aggCall; // immutable -> canonize to save space
-        }
+        final ImmutableList<RexNode> args =
+            relBuilder.fields(
+                Mappings.apply2(inputMapping, aggCall.getArgList()));
+        final RexNode filterArg = aggCall.filterArg < 0 ? null
+            : relBuilder.field(Mappings.apply(inputMapping, aggCall.filterArg));
+        RelBuilder.AggCall newAggCall =
+            relBuilder.aggregateCall(aggCall.getAggregation(),
+                aggCall.isDistinct(), filterArg, aggCall.name, args);
         mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
         newAggCallList.add(newAggCall);
       }
       ++j;
     }
 
-    RelNode newAggregate = aggregateFactory.createAggregate(newInput,
-        aggregate.indicator, newGroupSet, newGroupSets, newAggCallList);
+    final RelBuilder.GroupKey groupKey = relBuilder.groupKey(newGroupSet, newGroupSets);
+    relBuilder.aggregate(groupKey, newAggCallList);
 
-    assert newAggregate.getClass() == aggregate.getClass();
-
-    return new TrimResult(newAggregate, mapping);
+    return new TrimResult(relBuilder.build(), mapping);
   }
 
   /**
@@ -1015,7 +1001,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           (RelNode) tableAccessRel, fieldsUsed, extraFields);
     }
     final RelNode newTableAccessRel =
-        tableAccessRel.project(fieldsUsed, extraFields, this.projectFactory);
+        tableAccessRel.project(fieldsUsed, extraFields, relBuilder);
 
     // Some parts of the system can't handle rows with zero fields, so
     // pretend that one field is used.

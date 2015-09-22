@@ -214,10 +214,10 @@ public abstract class RelOptRuleCall {
   }
 
   /** Creates a {@link org.apache.calcite.tools.RelBuilder} to be used by
-   * code within the call. The {@code protoBuilder} argument contains policies
+   * code within the call. The {@link RelOptRule#relBuilderFactory} argument contains policies
    * such as what implementation of {@link Filter} to create. */
-  public RelBuilder builder(RelBuilder.ProtoRelBuilder protoBuilder) {
-    return protoBuilder.create(rel(0).getCluster(), null);
+  public RelBuilder builder() {
+    return rule.relBuilderFactory.create(rel(0).getCluster(), null);
   }
 }
 

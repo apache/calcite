@@ -36,9 +36,10 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Sort} past a
- * {@link org.apache.calcite.rel.core.Join}. At the moment, we only consider
- * left/right outer joins.
- * However, an extesion for full outer joins for this rule could be envision.
+ * {@link org.apache.calcite.rel.core.Join}.
+ *
+ * <p>At the moment, we only consider left/right outer joins.
+ * However, an extension for full outer joins for this rule could be envisioned.
  * Special attention should be paid to null values for correctness issues.
  */
 public class SortJoinTransposeRule extends RelOptRule {
@@ -59,8 +60,7 @@ public class SortJoinTransposeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public boolean matches(RelOptRuleCall call) {
+  @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
 
@@ -95,8 +95,7 @@ public class SortJoinTransposeRule extends RelOptRule {
     return true;
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
 
@@ -150,8 +149,7 @@ public class SortJoinTransposeRule extends RelOptRule {
     if (rowCount != null && fetch != null) {
       final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
       final int limit = RexLiteral.intValue(fetch);
-      final Double offsetLimit = new Double(offsetVal + limit);
-      if (offsetLimit < rowCount) {
+      if ((double) offsetVal + (double) limit < rowCount) {
         alreadySmaller = false;
       }
     }
@@ -159,3 +157,5 @@ public class SortJoinTransposeRule extends RelOptRule {
   }
 
 }
+
+// End SortJoinTransposeRule.java

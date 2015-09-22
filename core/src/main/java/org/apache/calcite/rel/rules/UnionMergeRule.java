@@ -22,11 +22,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * UnionMergeRule implements the rule for combining two
@@ -35,38 +33,37 @@ import java.util.List;
  */
 public class UnionMergeRule extends RelOptRule {
   public static final UnionMergeRule INSTANCE =
-      new UnionMergeRule(LogicalUnion.class,
-          RelFactories.DEFAULT_SET_OP_FACTORY);
-
-  private final RelFactories.SetOpFactory setOpFactory;
+      new UnionMergeRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a UnionMergeRule.
-   */
-  public UnionMergeRule(Class<? extends Union> clazz,
-      RelFactories.SetOpFactory setOpFactory) {
+  /** Creates a UnionMergeRule. */
+  public UnionMergeRule(Class<? extends Union> unionClazz,
+      RelBuilderFactory relBuilderFactory) {
     super(
-        operand(
-            clazz,
+        operand(unionClazz,
             operand(RelNode.class, any()),
-            operand(RelNode.class, any())));
-    this.setOpFactory = setOpFactory;
+            operand(RelNode.class, any())),
+        relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public UnionMergeRule(Class<? extends Union> unionClazz,
+      RelFactories.SetOpFactory setOpFactory) {
+    this(unionClazz, RelBuilder.proto(setOpFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    Union topUnion = call.rel(0);
-    Union bottomUnion;
+    final Union topUnion = call.rel(0);
 
     // We want to combine the Union that's in the second input first.
     // Hence, that's why the rule pattern matches on generic RelNodes
     // rather than explicit UnionRels.  By doing so, and firing this rule
     // in a bottom-up order, it allows us to only specify a single
     // pattern for this rule.
+    final Union bottomUnion;
     if (call.rel(2) instanceof Union) {
       bottomUnion = call.rel(2);
     } else if (call.rel(1) instanceof Union) {
@@ -82,22 +79,20 @@ public class UnionMergeRule extends RelOptRule {
 
     // Combine the inputs from the bottom union with the other inputs from
     // the top union
-    List<RelNode> unionInputs = new ArrayList<RelNode>();
+    final RelBuilder relBuilder = call.builder();
     if (call.rel(2) instanceof Union) {
       assert topUnion.getInputs().size() == 2;
-      unionInputs.add(topUnion.getInput(0));
-      unionInputs.addAll(bottomUnion.getInputs());
+      relBuilder.push(topUnion.getInput(0));
+      relBuilder.pushAll(bottomUnion.getInputs());
     } else {
-      unionInputs.addAll(bottomUnion.getInputs());
-      unionInputs.addAll(Util.skip(topUnion.getInputs()));
+      relBuilder.pushAll(bottomUnion.getInputs());
+      relBuilder.pushAll(Util.skip(topUnion.getInputs()));
     }
-    assert unionInputs.size()
-        == bottomUnion.getInputs().size()
+    int n = bottomUnion.getInputs().size()
         + topUnion.getInputs().size()
         - 1;
-    RelNode newUnion = setOpFactory.createSetOp(SqlKind.UNION,
-        unionInputs, true);
-    call.transformTo(newUnion);
+    relBuilder.union(true, n);
+    call.transformTo(relBuilder.build());
   }
 }
 

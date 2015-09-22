@@ -639,11 +639,10 @@ public class PlannerTest {
             + "  EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], x=[$10], y=[$11], empid0=[$0], name1=[$1])\n"
             + "    EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[hr, dependents]])\n"
-            + "      EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], x=[$8], y=[$9])\n"
-            + "        EnumerableJoin(condition=[=($1, $5)], joinType=[left])\n"
-            + "          EnumerableTableScan(table=[[hr, emps]])\n"
-            + "          EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-            + "            EnumerableTableScan(table=[[hr, depts]])");
+            + "      EnumerableJoin(condition=[=($1, $5)], joinType=[left])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n"
+            + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+            + "          EnumerableTableScan(table=[[hr, depts]])");
   }
 
   /** It would probably be OK to transform
@@ -679,11 +678,10 @@ public class PlannerTest {
             + "  EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], x=[$10], y=[$11], empid0=[$0], name1=[$1])\n"
             + "    EnumerableJoin(condition=[=($0, $2)], joinType=[left])\n"
             + "      EnumerableTableScan(table=[[hr, dependents]])\n"
-            + "      EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], x=[$8], y=[$9])\n"
-            + "        EnumerableJoin(condition=[=($1, $5)], joinType=[inner])\n"
-            + "          EnumerableTableScan(table=[[hr, emps]])\n"
-            + "          EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-            + "            EnumerableTableScan(table=[[hr, depts]])");
+            + "      EnumerableJoin(condition=[=($1, $5)], joinType=[inner])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n"
+            + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+            + "          EnumerableTableScan(table=[[hr, depts]])");
   }
 
   private void checkHeuristic(String sql, String expected) throws Exception {

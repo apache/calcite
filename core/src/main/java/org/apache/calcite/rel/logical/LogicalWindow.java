@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
@@ -99,10 +100,8 @@ public final class LogicalWindow extends Window {
   /**
    * Creates a LogicalWindow by parsing a {@link RexProgram}.
    */
-  public static RelNode create(
-      RelOptCluster cluster,
-      RelTraitSet traitSet,
-      RelNode child,
+  public static RelNode create(RelOptCluster cluster,
+      RelTraitSet traitSet, RelBuilder relBuilder, RelNode child,
       final RexProgram program) {
     final RelDataType outRowType = program.getOutputRowType();
     // Build a list of distinct groups, partitions and aggregate
@@ -277,10 +276,9 @@ public final class LogicalWindow extends Window {
       projectList.add(ref);
     }
 
-    return RelOptUtil.createProject(
-        window,
-        projectList,
-        outRowType.getFieldNames());
+    return relBuilder.push(window)
+        .project(projectList, outRowType.getFieldNames())
+        .build();
   }
 
   private static List<RexNode> toInputRefs(

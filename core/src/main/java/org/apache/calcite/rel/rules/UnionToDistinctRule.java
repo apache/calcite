@@ -18,12 +18,11 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that translates a distinct
@@ -35,32 +34,36 @@ import org.apache.calcite.sql.SqlKind;
  */
 public class UnionToDistinctRule extends RelOptRule {
   public static final UnionToDistinctRule INSTANCE =
-      new UnionToDistinctRule(LogicalUnion.class,
-          RelFactories.DEFAULT_SET_OP_FACTORY);
-
-  private final RelFactories.SetOpFactory setOpFactory;
+      new UnionToDistinctRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a UnionToDistinctRule.
    */
-  public UnionToDistinctRule(Class<? extends Union> clazz,
+  public UnionToDistinctRule(Class<? extends Union> unionClazz,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand(unionClazz, any()), relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public UnionToDistinctRule(Class<? extends Union> unionClazz,
       RelFactories.SetOpFactory setOpFactory) {
-    super(operand(clazz, any()));
-    this.setOpFactory = setOpFactory;
+    this(unionClazz, RelBuilder.proto(setOpFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    Union union = call.rel(0);
+    final Union union = call.rel(0);
     if (union.all) {
       return; // nothing to do
     }
-    RelNode unionAll = setOpFactory.createSetOp(SqlKind.UNION,
-        union.getInputs(), true);
-    call.transformTo(RelOptUtil.createDistinctRel(unionAll));
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.pushAll(union.getInputs());
+    relBuilder.union(true, union.getInputs().size());
+    relBuilder.distinct();
+    call.transformTo(relBuilder.build());
   }
 }
 

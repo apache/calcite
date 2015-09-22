@@ -19,10 +19,10 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -35,6 +35,8 @@ import org.apache.calcite.sql.fun.SqlAvgAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -82,12 +84,14 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
   /** The singleton. */
   public static final AggregateReduceFunctionsRule INSTANCE =
-      new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()));
+      new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()),
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  protected AggregateReduceFunctionsRule(RelOptRuleOperand operand) {
-    super(operand);
+  protected AggregateReduceFunctionsRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand, relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -152,9 +156,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     // List of input expressions. If a particular aggregate needs more, it
     // will add an expression to the end, and we will create an extra
     // project.
-    RelNode input = oldAggRel.getInput();
-    final List<RexNode> inputExprs =
-        new ArrayList<>(rexBuilder.identityProjects(input.getRowType()));
+    final RelBuilder relBuilder = ruleCall.builder();
+    relBuilder.push(oldAggRel.getInput());
+    final List<RexNode> inputExprs = new ArrayList<>(relBuilder.fields());
 
     // create new agg function calls and rest of project list together
     for (AggregateCall oldCall : oldCalls) {
@@ -164,29 +168,16 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     }
 
     final int extraArgCount =
-        inputExprs.size() - input.getRowType().getFieldCount();
+        inputExprs.size() - relBuilder.peek().getRowType().getFieldCount();
     if (extraArgCount > 0) {
-      input =
-          RelOptUtil.createProject(
-              input,
-              inputExprs,
-              CompositeList.of(
-                  input.getRowType().getFieldNames(),
-                  Collections.<String>nCopies(
-                      extraArgCount,
-                      null)));
+      relBuilder.project(inputExprs,
+          CompositeList.of(
+              relBuilder.peek().getRowType().getFieldNames(),
+              Collections.<String>nCopies(extraArgCount, null)));
     }
-    Aggregate newAggRel =
-        newAggregateRel(
-            oldAggRel, input, newCalls);
-
-    RelNode projectRel =
-        RelOptUtil.createProject(
-            newAggRel,
-            projList,
-            oldAggRel.getRowType().getFieldNames());
-
-    ruleCall.transformTo(projectRel);
+    newAggregateRel(relBuilder, oldAggRel, newCalls);
+    relBuilder.project(projList, oldAggRel.getRowType().getFieldNames());
+    ruleCall.transformTo(relBuilder.build());
   }
 
   private RexNode reduceAgg(
@@ -206,38 +197,33 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       switch (subtype) {
       case AVG:
         // replace original AVG(x) with SUM(x) / COUNT(x)
-        return reduceAvg(
-            oldAggRel, oldCall, newCalls, aggCallMapping);
+        return reduceAvg(oldAggRel, oldCall, newCalls, aggCallMapping);
       case STDDEV_POP:
         // replace original STDDEV_POP(x) with
         //   SQRT(
         //     (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
         //     / COUNT(x))
-        return reduceStddev(
-            oldAggRel, oldCall, true, true, newCalls, aggCallMapping,
-            inputExprs);
+        return reduceStddev(oldAggRel, oldCall, true, true, newCalls,
+            aggCallMapping, inputExprs);
       case STDDEV_SAMP:
         // replace original STDDEV_POP(x) with
         //   SQRT(
         //     (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
         //     / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END)
-        return reduceStddev(
-            oldAggRel, oldCall, false, true, newCalls, aggCallMapping,
-            inputExprs);
+        return reduceStddev(oldAggRel, oldCall, false, true, newCalls,
+            aggCallMapping, inputExprs);
       case VAR_POP:
         // replace original VAR_POP(x) with
         //     (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
         //     / COUNT(x)
-        return reduceStddev(
-            oldAggRel, oldCall, true, false, newCalls, aggCallMapping,
-            inputExprs);
+        return reduceStddev(oldAggRel, oldCall, true, false, newCalls,
+            aggCallMapping, inputExprs);
       case VAR_SAMP:
         // replace original VAR_POP(x) with
         //     (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
         //     / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END
-        return reduceStddev(
-            oldAggRel, oldCall, false, false, newCalls, aggCallMapping,
-            inputExprs);
+        return reduceStddev(oldAggRel, oldCall, false, false, newCalls,
+            aggCallMapping, inputExprs);
       default:
         throw Util.unexpected(subtype);
       }
@@ -541,17 +527,17 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
    * into Aggregate and subclasses - but it's only needed for some
    * subclasses.
    *
+   * @param relBuilder Builder of relational expressions; at the top of its
+   *                   stack is its input
    * @param oldAggregate LogicalAggregate to clone.
-   * @param input  Input relational expression
    * @param newCalls  New list of AggregateCalls
-   * @return shallow clone with new list of AggregateCalls.
    */
-  protected Aggregate newAggregateRel(
+  protected void newAggregateRel(RelBuilder relBuilder,
       Aggregate oldAggregate,
-      RelNode input,
       List<AggregateCall> newCalls) {
-    return LogicalAggregate.create(input, oldAggregate.indicator,
-        oldAggregate.getGroupSet(), oldAggregate.getGroupSets(),
+    relBuilder.aggregate(
+        relBuilder.groupKey(oldAggregate.getGroupSet(),
+            oldAggregate.getGroupSets()),
         newCalls);
   }
 

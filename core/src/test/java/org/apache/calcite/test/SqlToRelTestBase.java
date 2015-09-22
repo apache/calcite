@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -51,6 +52,7 @@ import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
@@ -598,7 +600,9 @@ public abstract class SqlToRelTestBase {
       assertValid(rel);
 
       if (trim) {
-        final RelFieldTrimmer trimmer = createFieldTrimmer();
+        final RelBuilder relBuilder =
+            RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+        final RelFieldTrimmer trimmer = createFieldTrimmer(relBuilder);
         rel = trimmer.trim(rel);
         assertTrue(rel != null);
         assertValid(rel);
@@ -614,10 +618,11 @@ public abstract class SqlToRelTestBase {
     /**
      * Creates a RelFieldTrimmer.
      *
+     * @param relBuilder Builder
      * @return Field trimmer
      */
-    public RelFieldTrimmer createFieldTrimmer() {
-      return new RelFieldTrimmer(getValidator());
+    public RelFieldTrimmer createFieldTrimmer(RelBuilder relBuilder) {
+      return new RelFieldTrimmer(getValidator(), relBuilder);
     }
 
     /**

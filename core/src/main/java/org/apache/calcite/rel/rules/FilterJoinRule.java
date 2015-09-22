@@ -29,7 +29,10 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -54,27 +57,22 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
-      new FilterIntoJoinRule(true, RelFactories.DEFAULT_FILTER_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY, TRUE_PREDICATE);
+      new FilterIntoJoinRule(true, RelFactories.LOGICAL_BUILDER,
+          TRUE_PREDICATE);
 
   /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
    * smart. */
   public static final FilterJoinRule DUMB_FILTER_ON_JOIN =
-      new FilterIntoJoinRule(false, RelFactories.DEFAULT_FILTER_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY, TRUE_PREDICATE);
+      new FilterIntoJoinRule(false, RelFactories.LOGICAL_BUILDER,
+          TRUE_PREDICATE);
 
   /** Rule that pushes predicates in a Join into the inputs to the join. */
   public static final FilterJoinRule JOIN =
-      new JoinConditionPushRule(RelFactories.DEFAULT_FILTER_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY, TRUE_PREDICATE);
+      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, TRUE_PREDICATE);
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;
-
-  private final RelFactories.FilterFactory filterFactory;
-
-  private final RelFactories.ProjectFactory projectFactory;
 
   /** Predicate that returns whether a filter is valid in the ON clause of a
    * join for this particular kind of join. If not, Calcite will push it back to
@@ -84,28 +82,39 @@ public abstract class FilterJoinRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a FilterJoinRule with an explicit root operand and
+   * Creates a FilterProjectTransposeRule with an explicit root operand and
    * factories.
    */
   protected FilterJoinRule(RelOptRuleOperand operand, String id,
+      boolean smart, RelBuilderFactory relBuilderFactory, Predicate predicate) {
+    super(operand, relBuilderFactory, "FilterJoinRule:" + id);
+    this.smart = smart;
+    this.predicate = Preconditions.checkNotNull(predicate);
+  }
+
+  /**
+   * Creates a FilterJoinRule with an explicit root operand and
+   * factories.
+   */
+  @Deprecated // to be removed before 2.0
+  protected FilterJoinRule(RelOptRuleOperand operand, String id,
       boolean smart, RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory) {
-    this(operand, id, smart, filterFactory, projectFactory, TRUE_PREDICATE);
+    this(operand, id, smart, RelBuilder.proto(filterFactory, projectFactory),
+        TRUE_PREDICATE);
   }
 
   /**
    * Creates a FilterProjectTransposeRule with an explicit root operand and
    * factories.
    */
+  @Deprecated // to be removed before 2.0
   protected FilterJoinRule(RelOptRuleOperand operand, String id,
       boolean smart, RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory,
       Predicate predicate) {
-    super(operand, "FilterJoinRule:" + id);
-    this.smart = smart;
-    this.filterFactory = filterFactory;
-    this.projectFactory = projectFactory;
-    this.predicate = predicate;
+    this(operand, id, smart, RelBuilder.proto(filterFactory, projectFactory),
+        predicate);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -139,8 +148,8 @@ public abstract class FilterJoinRule extends RelOptRule {
       joinType = RelOptUtil.simplifyJoin(join, origAboveFilters, joinType);
     }
 
-    List<RexNode> leftFilters = new ArrayList<RexNode>();
-    List<RexNode> rightFilters = new ArrayList<RexNode>();
+    final List<RexNode> leftFilters = new ArrayList<>();
+    final List<RexNode> rightFilters = new ArrayList<>();
 
     // TODO - add logic to derive additional filters.  E.g., from
     // (t1.a = 1 AND t2.a = 2) OR (t1.b = 3 AND t2.b = 4), you can
@@ -204,13 +213,14 @@ public abstract class FilterJoinRule extends RelOptRule {
       return;
     }
 
-    // create FilterRels on top of the children if any filters were
+    // create Filters on top of the children if any filters were
     // pushed to them
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
-    RelNode leftRel =
-        RelOptUtil.createFilter(join.getLeft(), leftFilters, filterFactory);
-    RelNode rightRel =
-        RelOptUtil.createFilter(join.getRight(), rightFilters, filterFactory);
+    final RelBuilder relBuilder = call.builder();
+    final RelNode leftRel =
+        relBuilder.push(join.getLeft()).filter(leftFilters).build();
+    final RelNode rightRel =
+        relBuilder.push(join.getRight()).filter(rightFilters).build();
 
     // create the new join node referencing the new children and
     // containing its new join filters (if there are any)
@@ -242,18 +252,17 @@ public abstract class FilterJoinRule extends RelOptRule {
       call.getPlanner().onCopy(filter, rightRel);
     }
 
+    relBuilder.push(newJoinRel);
+
     // Create a project on top of the join if some of the columns have become
     // NOT NULL due to the join-type getting stricter.
-    newJoinRel = RelOptUtil.createCastRel(newJoinRel, join.getRowType(),
-        false, projectFactory);
+    relBuilder.convert(join.getRowType(), false);
 
     // create a FilterRel on top of the join if needed
-    RelNode newRel =
-        RelOptUtil.createFilter(newJoinRel,
-            RexUtil.fixUp(rexBuilder, aboveFilters, newJoinRel.getRowType()),
-            filterFactory);
+    relBuilder.filter(
+        RexUtil.fixUp(rexBuilder, aboveFilters, newJoinRel.getRowType()));
 
-    call.transformTo(newRel);
+    call.transformTo(relBuilder.build());
   }
 
   /**
@@ -286,11 +295,17 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   /** Rule that pushes parts of the join condition to its inputs. */
   public static class JoinConditionPushRule extends FilterJoinRule {
+    public JoinConditionPushRule(RelBuilderFactory relBuilderFactory,
+        Predicate predicate) {
+      super(RelOptRule.operand(Join.class, RelOptRule.any()),
+          "FilterJoinRule:no-filter", true, relBuilderFactory,
+          predicate);
+    }
+
+    @Deprecated // to be removed before 2.0
     public JoinConditionPushRule(RelFactories.FilterFactory filterFactory,
         RelFactories.ProjectFactory projectFactory, Predicate predicate) {
-      super(RelOptRule.operand(Join.class, RelOptRule.any()),
-          "FilterJoinRule:no-filter", true, filterFactory, projectFactory,
-          predicate);
+      this(RelBuilder.proto(filterFactory, projectFactory), predicate);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -303,14 +318,20 @@ public abstract class FilterJoinRule extends RelOptRule {
    * condition and into the inputs of the join. */
   public static class FilterIntoJoinRule extends FilterJoinRule {
     public FilterIntoJoinRule(boolean smart,
-        RelFactories.FilterFactory filterFactory,
-        RelFactories.ProjectFactory projectFactory,
-        Predicate predicate) {
+        RelBuilderFactory relBuilderFactory, Predicate predicate) {
       super(
           operand(Filter.class,
               operand(Join.class, RelOptRule.any())),
-          "FilterJoinRule:filter", smart, filterFactory, projectFactory,
+          "FilterJoinRule:filter", smart, relBuilderFactory,
           predicate);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public FilterIntoJoinRule(boolean smart,
+        RelFactories.FilterFactory filterFactory,
+        RelFactories.ProjectFactory projectFactory,
+        Predicate predicate) {
+      this(smart, RelBuilder.proto(filterFactory, projectFactory), predicate);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {

@@ -18,10 +18,10 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -32,6 +32,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 
@@ -52,17 +54,18 @@ import java.util.List;
  */
 public class SemiJoinProjectTransposeRule extends RelOptRule {
   public static final SemiJoinProjectTransposeRule INSTANCE =
-      new SemiJoinProjectTransposeRule();
+      new SemiJoinProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SemiJoinProjectTransposeRule.
    */
-  private SemiJoinProjectTransposeRule() {
+  private SemiJoinProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(SemiJoin.class,
-            some(operand(LogicalProject.class, any()))));
+            some(operand(LogicalProject.class, any()))),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -71,9 +74,9 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
     SemiJoin semiJoin = call.rel(0);
     LogicalProject project = call.rel(1);
 
-    // convert the LHS semijoin keys to reference the child projection
+    // Convert the LHS semi-join keys to reference the child projection
     // expression; all projection expressions must be RexInputRefs,
-    // otherwise, we wouldn't have created this semijoin
+    // otherwise, we wouldn't have created this semi-join.
     final List<Integer> newLeftKeys = new ArrayList<>();
     final List<Integer> leftKeys = semiJoin.getLeftKeys();
     final List<RexNode> projExprs = project.getProjects();
@@ -93,13 +96,11 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
     // Create the new projection.  Note that the projection expressions
     // are the same as the original because they only reference the LHS
     // of the semijoin and the semijoin only projects out the LHS
-    RelNode newProject =
-        RelOptUtil.createProject(
-            newSemiJoin,
-            projExprs,
-            project.getRowType().getFieldNames());
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(newSemiJoin);
+    relBuilder.project(projExprs, project.getRowType().getFieldNames());
 
-    call.transformTo(newProject);
+    call.transformTo(relBuilder.build());
   }
 
   /**

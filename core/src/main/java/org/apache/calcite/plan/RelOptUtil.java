@@ -71,6 +71,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
@@ -2990,44 +2992,28 @@ public abstract class RelOptUtil {
    * of AND, equals, and input fields, plus the remaining non-equal conditions.
    *
    * @param originalJoin Join whose condition is to be pushed down
-   */
-  public static RelNode pushDownJoinConditions(Join originalJoin) {
-    return pushDownJoinConditions(originalJoin, RelFactories.DEFAULT_PROJECT_FACTORY);
-  }
-
-  /**
-   * Pushes down expressions in "equal" join condition.
-   *
-   * <p>For example, given
-   * "emp JOIN dept ON emp.deptno + 1 = dept.deptno", adds a project above
-   * "emp" that computes the expression
-   * "emp.deptno + 1". The resulting join condition is a simple combination
-   * of AND, equals, and input fields, plus the remaining non-equal conditions.
-   *
-   * @param originalJoin Join whose condition is to be pushed down
-   * @param projectFactory Factory to create project operator
+   * @param relBuilder Factory to create project operator
    */
   public static RelNode pushDownJoinConditions(Join originalJoin,
-          RelFactories.ProjectFactory projectFactory) {
+      RelBuilder relBuilder) {
     RexNode joinCond = originalJoin.getCondition();
     final JoinRelType joinType = originalJoin.getJoinType();
-    RelNode leftRel = originalJoin.getLeft();
-    RelNode rightRel = originalJoin.getRight();
 
     final List<RexNode> extraLeftExprs = new ArrayList<>();
     final List<RexNode> extraRightExprs = new ArrayList<>();
-    final int leftCount = leftRel.getRowType().getFieldCount();
-    final int rightCount = rightRel.getRowType().getFieldCount();
+    final int leftCount = originalJoin.getLeft().getRowType().getFieldCount();
+    final int rightCount = originalJoin.getRight().getRowType().getFieldCount();
 
     if (!containsGet(joinCond)) {
       joinCond = pushDownEqualJoinConditions(
           joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
     }
+
+    relBuilder.push(originalJoin.getLeft());
     if (!extraLeftExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
-          leftRel.getRowType().getFieldList();
-      leftRel = RelOptUtil.createProject(
-          leftRel,
+          relBuilder.peek().getRowType().getFieldList();
+      final List<Pair<RexNode, String>> pairs =
           new AbstractList<Pair<RexNode, String>>() {
             public int size() {
               return leftCount + extraLeftExprs.size();
@@ -3037,21 +3023,21 @@ public abstract class RelOptUtil {
               if (index < leftCount) {
                 RelDataTypeField field = fields.get(index);
                 return Pair.<RexNode, String>of(
-                    new RexInputRef(index, field.getType()),
-                    field.getName());
+                    new RexInputRef(index, field.getType()), field.getName());
               } else {
                 return Pair.of(extraLeftExprs.get(index - leftCount), null);
               }
             }
-          },
-          true, projectFactory);
+          };
+      relBuilder.project(Pair.left(pairs), Pair.right(pairs));
     }
+
+    relBuilder.push(originalJoin.getRight());
     if (!extraRightExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
-          rightRel.getRowType().getFieldList();
+          relBuilder.peek().getRowType().getFieldList();
       final int newLeftCount = leftCount + extraLeftExprs.size();
-      rightRel = RelOptUtil.createProject(
-          rightRel,
+      final List<Pair<RexNode, String>> pairs =
           new AbstractList<Pair<RexNode, String>>() {
             public int size() {
               return rightCount + extraRightExprs.size();
@@ -3071,12 +3057,15 @@ public abstract class RelOptUtil {
                     null);
               }
             }
-          },
-          true, projectFactory);
+          };
+      relBuilder.project(Pair.left(pairs), Pair.right(pairs));
     }
 
-    RelNode join = originalJoin.copy(originalJoin.getTraitSet(),
-        joinCond, leftRel, rightRel, joinType, originalJoin.isSemiJoinDone());
+    final RelNode right = relBuilder.build();
+    final RelNode left = relBuilder.build();
+    relBuilder.push(
+        originalJoin.copy(originalJoin.getTraitSet(),
+            joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
 
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
       Mappings.TargetMapping mapping =
@@ -3085,9 +3074,32 @@ public abstract class RelOptUtil {
                   + rightCount + extraRightExprs.size(),
               0, 0, leftCount,
               leftCount, leftCount + extraLeftExprs.size(), rightCount);
-      return RelOptUtil.createProject(join, mapping, projectFactory);
+      relBuilder.project(relBuilder.fields(mapping.inverse()));
     }
-    return join;
+    return relBuilder.build();
+  }
+
+  /**
+   * Pushes down expressions in "equal" join condition, using the default
+   * builder.
+   *
+   * @see #pushDownJoinConditions(Join, RelBuilder)
+   */
+  public static RelNode pushDownJoinConditions(Join originalJoin) {
+    return pushDownJoinConditions(originalJoin, RelFactories.LOGICAL_BUILDER);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static RelNode pushDownJoinConditions(Join originalJoin,
+      RelFactories.ProjectFactory projectFactory) {
+    return pushDownJoinConditions(
+        originalJoin, RelBuilder.proto(projectFactory));
+  }
+
+  private static RelNode pushDownJoinConditions(Join originalJoin,
+      RelBuilderFactory relBuilderFactory) {
+    return pushDownJoinConditions(originalJoin,
+        relBuilderFactory.create(originalJoin.getCluster(), null));
   }
 
   private static boolean containsGet(RexNode node) {

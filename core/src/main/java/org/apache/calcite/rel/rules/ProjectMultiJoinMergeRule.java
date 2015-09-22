@@ -19,7 +19,10 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that pushes
@@ -31,18 +34,15 @@ import org.apache.calcite.rel.logical.LogicalProject;
  */
 public class ProjectMultiJoinMergeRule extends RelOptRule {
   public static final ProjectMultiJoinMergeRule INSTANCE =
-      new ProjectMultiJoinMergeRule();
+      new ProjectMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a ProjectMultiJoinMergeRule.
-   */
-  private ProjectMultiJoinMergeRule() {
+  /** Creates a ProjectMultiJoinMergeRule. */
+  private ProjectMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
-        operand(
-            LogicalProject.class,
-            operand(MultiJoin.class, any())));
+        operand(LogicalProject.class,
+            operand(MultiJoin.class, any())), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -66,15 +66,13 @@ public class ProjectMultiJoinMergeRule extends RelOptRule {
 
     // create a new MultiJoin that reflects the columns in the projection
     // above the MultiJoin
+    final RelBuilder relBuilder = call.builder();
     MultiJoin newMultiJoin =
         RelOptUtil.projectMultiJoin(multiJoin, project);
-    LogicalProject newProject =
-        (LogicalProject) RelOptUtil.createProject(
-            newMultiJoin,
-            project.getProjects(),
-            project.getRowType().getFieldNames());
+    relBuilder.push(newMultiJoin)
+        .project(project.getProjects(), project.getRowType().getFieldNames());
 
-    call.transformTo(newProject);
+    call.transformTo(relBuilder.build());
   }
 }
 

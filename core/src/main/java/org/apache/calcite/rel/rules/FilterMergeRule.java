@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Filter;
@@ -24,7 +25,8 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that combines two
@@ -32,25 +34,27 @@ import org.apache.calcite.rex.RexUtil;
  */
 public class FilterMergeRule extends RelOptRule {
   public static final FilterMergeRule INSTANCE =
-      new FilterMergeRule(RelFactories.DEFAULT_FILTER_FACTORY);
-
-  private final RelFactories.FilterFactory filterFactory;
+      new FilterMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a FilterMergeRule.
    */
-  public FilterMergeRule(RelFactories.FilterFactory filterFactory) {
+  public FilterMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(Filter.class,
-            operand(Filter.class, any())));
-    this.filterFactory = filterFactory;
+            operand(Filter.class, any())),
+        relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public FilterMergeRule(RelFactories.FilterFactory filterFactory) {
+    this(RelBuilder.proto(Contexts.of(filterFactory)));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     final Filter topFilter = call.rel(0);
     final Filter bottomFilter = call.rel(1);
@@ -72,12 +76,11 @@ public class FilterMergeRule extends RelOptRule {
         mergedProgram.expandLocalRef(
             mergedProgram.getCondition());
 
-    Filter newFilterRel =
-        (Filter) filterFactory.createFilter(
-            bottomFilter.getInput(),
-            RexUtil.flatten(rexBuilder, newCondition));
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(bottomFilter.getInput())
+        .filter(newCondition);
 
-    call.transformTo(newFilterRel);
+    call.transformTo(relBuilder.build());
   }
 
   /**

@@ -20,12 +20,14 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -33,6 +35,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -50,10 +53,13 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -64,7 +70,11 @@ import com.google.common.collect.Lists;
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Builder for relational expressions.
@@ -98,6 +108,7 @@ public class RelBuilder {
   private final RelFactories.SortFactory sortFactory;
   private final RelFactories.SetOpFactory setOpFactory;
   private final RelFactories.JoinFactory joinFactory;
+  private final RelFactories.SemiJoinFactory semiJoinFactory;
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
   private final List<Frame> stack = new ArrayList<>();
@@ -127,6 +138,9 @@ public class RelBuilder {
     this.joinFactory =
         Util.first(context.unwrap(RelFactories.JoinFactory.class),
             RelFactories.DEFAULT_JOIN_FACTORY);
+    this.semiJoinFactory =
+        Util.first(context.unwrap(RelFactories.SemiJoinFactory.class),
+            RelFactories.DEFAULT_SEMI_JOIN_FACTORY);
     this.valuesFactory =
         Util.first(context.unwrap(RelFactories.ValuesFactory.class),
             RelFactories.DEFAULT_VALUES_FACTORY);
@@ -156,14 +170,19 @@ public class RelBuilder {
     return cluster.getTypeFactory();
   }
 
-  /** Creates a {@link ProtoRelBuilder}, a partially-created RelBuilder.
+  /** Creates a {@link RelBuilderFactory}, a partially-created RelBuilder.
    * Just add a {@link RelOptCluster} and a {@link RelOptSchema} */
-  public static ProtoRelBuilder proto(final Context context) {
-    return new ProtoRelBuilder() {
+  public static RelBuilderFactory proto(final Context context) {
+    return new RelBuilderFactory() {
       public RelBuilder create(RelOptCluster cluster, RelOptSchema schema) {
         return new RelBuilder(context, cluster, schema);
       }
     };
+  }
+
+  /** Creates a {@link RelBuilderFactory} that uses a given set of factories. */
+  public static RelBuilderFactory proto(Object... factories) {
+    return proto(Contexts.of(factories));
   }
 
   // Methods for manipulating the stack
@@ -177,6 +196,14 @@ public class RelBuilder {
    * {@link #build()} to pop those inputs. */
   public RelBuilder push(RelNode node) {
     Stacks.push(stack, new Frame(node));
+    return this;
+  }
+
+  /** Pushes a collection of relational expressions. */
+  public RelBuilder pushAll(Iterable<? extends RelNode> nodes) {
+    for (RelNode node : nodes) {
+      push(node);
+    }
     return this;
   }
 
@@ -328,6 +355,52 @@ public class RelBuilder {
     return nodes.build();
   }
 
+  /** Returns references to fields for a given collation. */
+  public ImmutableList<RexNode> fields(RelCollation collation) {
+    final ImmutableList.Builder<RexNode> nodes = ImmutableList.builder();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      RexNode node = field(fieldCollation.getFieldIndex());
+      switch (fieldCollation.direction) {
+      case DESCENDING:
+        node = desc(node);
+      }
+      switch (fieldCollation.nullDirection) {
+      case FIRST:
+        node = nullsFirst(node);
+        break;
+      case LAST:
+        node = nullsLast(node);
+        break;
+      }
+      nodes.add(node);
+    }
+    return nodes.build();
+  }
+
+  /** Returns references to fields for a given list of input ordinals. */
+  public ImmutableList<RexNode> fields(List<? extends Number> ordinals) {
+    final ImmutableList.Builder<RexNode> nodes = ImmutableList.builder();
+    for (Number ordinal : ordinals) {
+      RexNode node = field(ordinal.intValue());
+      nodes.add(node);
+    }
+    return nodes.build();
+  }
+
+  /** Returns references to fields identified by name. */
+  public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (String fieldName : fieldNames) {
+      builder.add(field(fieldName));
+    }
+    return builder.build();
+  }
+
+  /** Returns references to fields identified by a mapping. */
+  public ImmutableList<RexNode> fields(Mappings.TargetMapping mapping) {
+    return fields(Mappings.asList(mapping));
+  }
+
   /** Creates a call to a scalar operator. */
   public RexNode call(SqlOperator operator, RexNode... operands) {
     final RexBuilder builder = cluster.getRexBuilder();
@@ -448,69 +521,101 @@ public class RelBuilder {
 
   /** Creates a group key. */
   public GroupKey groupKey(Iterable<? extends RexNode> nodes) {
-    return new GroupKeyImpl(ImmutableList.copyOf(nodes));
+    return new GroupKeyImpl(ImmutableList.copyOf(nodes), null);
+  }
+
+  /** Creates a group key with grouping sets. */
+  public GroupKey groupKey(Iterable<? extends RexNode> nodes,
+      Iterable<? extends Iterable<? extends RexNode>> nodeLists) {
+    final ImmutableList.Builder<ImmutableList<RexNode>> builder =
+        ImmutableList.builder();
+    for (Iterable<? extends RexNode> nodeList : nodeLists) {
+      builder.add(ImmutableList.copyOf(nodeList));
+    }
+    return new GroupKeyImpl(ImmutableList.copyOf(nodes), builder.build());
   }
 
   /** Creates a group key of fields identified by ordinal. */
   public GroupKey groupKey(int... fieldOrdinals) {
-    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (int fieldOrdinal : fieldOrdinals) {
-      builder.add(field(fieldOrdinal));
-    }
-    return groupKey(builder.build());
+    return groupKey(fields(ImmutableIntList.of(fieldOrdinals)));
   }
 
   /** Creates a group key of fields identified by name. */
   public GroupKey groupKey(String... fieldNames) {
-    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (String fieldName : fieldNames) {
-      builder.add(field(fieldName));
+    return groupKey(fields(ImmutableList.copyOf(fieldNames)));
+  }
+
+  /** Creates a group key with grouping sets, both identified by field positions
+   * in the underlying relational expression.
+   *
+   * <p>This method of creating a group key does not allow you to group on new
+   * expressions, only column projections, but is efficient, especially when you
+   * are coming from an existing {@link Aggregate}. */
+  public GroupKey groupKey(ImmutableBitSet groupSet,
+      ImmutableList<ImmutableBitSet> groupSets) {
+    if (groupSet.length() > peek().getRowType().getFieldCount()) {
+      throw new IllegalArgumentException("out of bounds: " + groupSet);
     }
-    return groupKey(builder.build());
+    if (groupSets == null) {
+      groupSets = ImmutableList.of(groupSet);
+    }
+    final ImmutableList<RexNode> nodes =
+        fields(ImmutableIntList.of(groupSet.toArray()));
+    final List<ImmutableList<RexNode>> nodeLists =
+        Lists.transform(groupSets,
+            new Function<ImmutableBitSet, ImmutableList<RexNode>>() {
+              public ImmutableList<RexNode> apply(ImmutableBitSet input) {
+                return fields(ImmutableIntList.of(input.toArray()));
+              }
+            });
+    return groupKey(nodes, nodeLists);
   }
 
   /** Creates a call to an aggregate function. */
-  public AggCall aggregateCall(SqlAggFunction aggFunction,
-      boolean distinct, String alias, RexNode... operands) {
-    return aggregateCall(aggFunction, distinct, alias,
+  public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      RexNode filter, String alias, RexNode... operands) {
+    return aggregateCall(aggFunction, distinct, filter, alias,
         ImmutableList.copyOf(operands));
   }
 
   /** Creates a call to an aggregate function. */
-  public AggCall aggregateCall(SqlAggFunction aggFunction,
-      boolean distinct, String alias, Iterable<? extends RexNode> operands) {
-    return new AggCallImpl(aggFunction, distinct, alias,
+  public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      RexNode filter, String alias, Iterable<? extends RexNode> operands) {
+    return new AggCallImpl(aggFunction, distinct, filter, alias,
         ImmutableList.copyOf(operands));
   }
 
   /** Creates a call to the COUNT aggregate function. */
   public AggCall count(boolean distinct, String alias, RexNode... operands) {
-    return aggregateCall(SqlStdOperatorTable.COUNT, distinct, alias, operands);
+    return aggregateCall(SqlStdOperatorTable.COUNT, distinct, null, alias,
+        operands);
   }
 
   /** Creates a call to the COUNT(*) aggregate function. */
   public AggCall countStar(String alias) {
-    return aggregateCall(SqlStdOperatorTable.COUNT, false, alias);
+    return aggregateCall(SqlStdOperatorTable.COUNT, false, null, alias);
   }
 
   /** Creates a call to the SUM aggregate function. */
   public AggCall sum(boolean distinct, String alias, RexNode operand) {
-    return aggregateCall(SqlStdOperatorTable.SUM, distinct, alias, operand);
+    return aggregateCall(SqlStdOperatorTable.SUM, distinct, null, alias,
+        operand);
   }
 
   /** Creates a call to the AVG aggregate function. */
   public AggCall avg(boolean distinct, String alias, RexNode operand) {
-    return aggregateCall(SqlStdOperatorTable.AVG, distinct, alias, operand);
+    return aggregateCall(
+        SqlStdOperatorTable.AVG, distinct, null, alias, operand);
   }
 
   /** Creates a call to the MIN aggregate function. */
   public AggCall min(String alias, RexNode operand) {
-    return aggregateCall(SqlStdOperatorTable.MIN, false, alias, operand);
+    return aggregateCall(SqlStdOperatorTable.MIN, false, null, alias, operand);
   }
 
   /** Creates a call to the MAX aggregate function. */
   public AggCall max(String alias, RexNode operand) {
-    return aggregateCall(SqlStdOperatorTable.MAX, false, alias, operand);
+    return aggregateCall(SqlStdOperatorTable.MAX, false, null, alias, operand);
   }
 
   // Methods that create relational expressions
@@ -562,21 +667,49 @@ public class RelBuilder {
   /** Creates a {@link org.apache.calcite.rel.core.Project} of the given list
    * of expressions.
    *
-   * <p>Infers all field names.
-   * If an expression projects an input field,
-   * or is a cast an input field,
-   * uses the input field name.
-   * If an expression is a call to
-   * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#AS}
-   * (see {@link #alias}), removes the
-   * call but uses the intended alias.
-   * After the field names have been inferred, makes the
-   * field names unique by appending numeric suffixes. */
+   * <p>Infers names as would {@link #project(Iterable, Iterable)} if all
+   * suggested names were null.
+   *
+   * @param nodes Expressions
+   */
   public RelBuilder project(Iterable<? extends RexNode> nodes) {
+    return project(nodes, ImmutableList.<String>of());
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Project} of the given list
+   * of expressions, using the given names.
+   *
+   * <p>Names are deduced as follows:
+   * <ul>
+   *   <li>If the length of {@code fieldNames} is greater than the index of
+   *     the current entry in {@code nodes}, and the entry in
+   *     {@code fieldNames} is not null, uses it; otherwise
+   *   <li>If an expression projects an input field,
+   *     or is a cast an input field,
+   *     uses the input field name; otherwise
+   *   <li>If an expression is a call to
+   *     {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#AS}
+   *     (see {@link #alias}), removes the call but uses the intended alias.
+   * </ul>
+   *
+   * <p>After the field names have been inferred, makes the
+   * field names unique by appending numeric suffixes.
+   *
+   * @param nodes Expressions
+   * @param fieldNames Suggested field names
+   */
+  public RelBuilder project(Iterable<? extends RexNode> nodes,
+      Iterable<String> fieldNames) {
     final List<String> names = new ArrayList<>();
     final List<RexNode> exprList = Lists.newArrayList(nodes);
+    final Iterator<String> nameIterator = fieldNames.iterator();
     for (RexNode node : nodes) {
-      names.add(inferAlias(exprList, node));
+      final String name = nameIterator.hasNext() ? nameIterator.next() : null;
+      final String name2 = inferAlias(exprList, node);
+      names.add(Util.first(name, name2));
+    }
+    if (ProjectRemoveRule.isIdentity(exprList, peek().getRowType())) {
+      return this;
     }
     final RelNode project =
         projectFactory.createProject(build(), ImmutableList.copyOf(exprList),
@@ -634,17 +767,41 @@ public class RelBuilder {
   /** Creates an {@link org.apache.calcite.rel.core.Aggregate} with a list of
    * calls. */
   public RelBuilder aggregate(GroupKey groupKey, Iterable<AggCall> aggCalls) {
-    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     final RelDataType inputRowType = peek().getRowType();
     final List<RexNode> extraNodes = projects(inputRowType);
-    for (RexNode node : ((GroupKeyImpl) groupKey).nodes) {
-      builder.set(registerExpression(extraNodes, node));
+    final GroupKeyImpl groupKey_ = (GroupKeyImpl) groupKey;
+    final ImmutableBitSet groupSet =
+        ImmutableBitSet.of(registerExpressions(extraNodes, groupKey_.nodes));
+    final ImmutableList<ImmutableBitSet> groupSets;
+    if (groupKey_.nodeLists != null) {
+      final int sizeBefore = extraNodes.size();
+      final SortedSet<ImmutableBitSet> groupSetSet =
+          new TreeSet<>(ImmutableBitSet.ORDERING);
+      for (ImmutableList<RexNode> nodeList : groupKey_.nodeLists) {
+        final ImmutableBitSet groupSet2 =
+            ImmutableBitSet.of(registerExpressions(extraNodes, nodeList));
+        if (!groupSet.contains(groupSet2)) {
+          throw new IllegalArgumentException("group set element " + nodeList
+              + " must be a subset of group key");
+        }
+        groupSetSet.add(groupSet2);
+      }
+      groupSets = ImmutableList.copyOf(groupSetSet);
+      if (extraNodes.size() > sizeBefore) {
+        throw new IllegalArgumentException(
+            "group sets contained expressions not in group key: "
+                + extraNodes.subList(sizeBefore, extraNodes.size()));
+      }
+    } else {
+      groupSets = ImmutableList.of(groupSet);
     }
-    final ImmutableBitSet groupSet = builder.build();
     for (AggCall aggCall : aggCalls) {
-      final AggCallImpl aggCall1 = (AggCallImpl) aggCall;
-      for (RexNode operand : aggCall1.operands) {
-        registerExpression(extraNodes, operand);
+      if (aggCall instanceof AggCallImpl) {
+        final AggCallImpl aggCall1 = (AggCallImpl) aggCall;
+        registerExpressions(extraNodes, aggCall1.operands);
+        if (aggCall1.filter != null) {
+          registerExpression(extraNodes, aggCall1.filter);
+        }
       }
     }
     if (extraNodes.size() > inputRowType.getFieldCount()) {
@@ -653,18 +810,27 @@ public class RelBuilder {
     final RelNode r = build();
     final List<AggregateCall> aggregateCalls = new ArrayList<>();
     for (AggCall aggCall : aggCalls) {
-      final List<Integer> args = new ArrayList<>();
-      final AggCallImpl aggCall1 = (AggCallImpl) aggCall;
-      for (RexNode operand : aggCall1.operands) {
-        args.add(registerExpression(extraNodes, operand));
+      final AggregateCall aggregateCall;
+      if (aggCall instanceof AggCallImpl) {
+        final AggCallImpl aggCall1 = (AggCallImpl) aggCall;
+        final List<Integer> args = registerExpressions(extraNodes, aggCall1.operands);
+        final int filterArg = aggCall1.filter == null ? -1
+            : registerExpression(extraNodes, aggCall1.filter);
+        aggregateCall =
+            AggregateCall.create(aggCall1.aggFunction, aggCall1.distinct, args,
+                filterArg, groupSet.cardinality(), r, null, aggCall1.alias);
+      } else {
+        aggregateCall = ((AggCallImpl2) aggCall).aggregateCall;
       }
-      aggregateCalls.add(
-          AggregateCall.create(aggCall1.aggFunction, aggCall1.distinct,
-              args, -1, groupSet.cardinality(), r, null, aggCall1.alias));
+      aggregateCalls.add(aggregateCall);
     }
 
-    RelNode aggregate = aggregateFactory.createAggregate(r, false, groupSet,
-        ImmutableList.of(groupSet), aggregateCalls);
+    assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
+    for (ImmutableBitSet set : groupSets) {
+      assert groupSet.contains(set);
+    }
+    RelNode aggregate = aggregateFactory.createAggregate(r,
+        groupSets.size() > 1, groupSet, groupSets, aggregateCalls);
     push(aggregate);
     return this;
   }
@@ -687,18 +853,60 @@ public class RelBuilder {
     return i;
   }
 
+  private static List<Integer> registerExpressions(List<RexNode> extraNodes,
+      Iterable<? extends RexNode> nodes) {
+    final List<Integer> builder = new ArrayList<>();
+    for (RexNode node : nodes) {
+      builder.add(registerExpression(extraNodes, node));
+    }
+    return builder;
+  }
+
+  private RelBuilder setOp(boolean all, SqlKind kind, int n) {
+    List<RelNode> inputs = new LinkedList<>();
+    for (int i = 0; i < n; i++) {
+      inputs.add(0, build());
+    }
+    switch (kind) {
+    case UNION:
+    case INTERSECT:
+      if (n < 1) {
+        throw new IllegalArgumentException("bad INTERSECT/UNION input count");
+      }
+      break;
+    case EXCEPT:
+      if (n != 2) {
+        throw new AssertionError("bad EXCEPT input count");
+      }
+      break;
+    default:
+      throw new AssertionError("bad setOp " + kind);
+    }
+    switch (n) {
+    case 1:
+      return push(inputs.get(0));
+    default:
+      return push(setOpFactory.createSetOp(kind, inputs, all));
+    }
+  }
+
   /** Creates a {@link org.apache.calcite.rel.core.Union} of the two most recent
    * relational expressions on the stack.
    *
    * @param all Whether to create UNION ALL
    */
   public RelBuilder union(boolean all) {
-    final RelNode left = build();
-    final RelNode right = build();
-    final RelNode union = setOpFactory.createSetOp(SqlKind.UNION,
-        ImmutableList.of(left, right), all);
-    push(union);
-    return this;
+    return union(all, 2);
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Union} of the {@code n}
+   * most recent relational expressions on the stack.
+   *
+   * @param all Whether to create UNION ALL
+   * @param n Number of inputs to the UNION operator
+   */
+  public RelBuilder union(boolean all, int n) {
+    return setOp(all, SqlKind.UNION, n);
   }
 
   /** Creates an {@link org.apache.calcite.rel.core.Intersect} of the two most
@@ -707,12 +915,17 @@ public class RelBuilder {
    * @param all Whether to create INTERSECT ALL
    */
   public RelBuilder intersect(boolean all) {
-    final RelNode left = build();
-    final RelNode right = build();
-    final RelNode intersect = setOpFactory.createSetOp(SqlKind.INTERSECT,
-        ImmutableList.of(left, right), all);
-    push(intersect);
-    return this;
+    return intersect(all, 2);
+  }
+
+  /** Creates an {@link org.apache.calcite.rel.core.Intersect} of the {@code n}
+   * most recent relational expressions on the stack.
+   *
+   * @param all Whether to create INTERSECT ALL
+   * @param n Number of inputs to the INTERSECT operator
+   */
+  public RelBuilder intersect(boolean all, int n) {
+    return setOp(all, SqlKind.INTERSECT, n);
   }
 
   /** Creates a {@link org.apache.calcite.rel.core.Minus} of the two most recent
@@ -721,19 +934,23 @@ public class RelBuilder {
    * @param all Whether to create EXCEPT ALL
    */
   public RelBuilder minus(boolean all) {
-    final RelNode left = build();
-    final RelNode right = build();
-    final RelNode except = setOpFactory.createSetOp(SqlKind.EXCEPT,
-        ImmutableList.of(left, right), all);
-    push(except);
-    return this;
+    return setOp(all, SqlKind.EXCEPT, 2);
   }
 
   /** Creates a {@link org.apache.calcite.rel.core.Join}. */
-  public RelBuilder join(JoinRelType joinType, RexNode condition) {
+  public RelBuilder join(JoinRelType joinType, RexNode condition0,
+      RexNode... conditions) {
+    return join(joinType, Lists.asList(condition0, conditions));
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Join} with multiple
+   * conditions. */
+  public RelBuilder join(JoinRelType joinType,
+      Iterable<? extends RexNode> conditions) {
     final Frame right = Stacks.pop(stack);
     final Frame left = Stacks.pop(stack);
-    final RelNode join = joinFactory.createJoin(left.rel, right.rel, condition,
+    final RelNode join = joinFactory.createJoin(left.rel, right.rel,
+        RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, false),
         joinType, ImmutableSet.<String>of(), false);
     final List<Pair<String, RelDataType>> pairs = new ArrayList<>();
     pairs.addAll(left.right);
@@ -759,9 +976,24 @@ public class RelBuilder {
               field(2, 0, fieldName),
               field(2, 1, fieldName)));
     }
-    final RexNode condition =
-        RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, false);
-    return join(joinType, condition);
+    return join(joinType, conditions);
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.SemiJoin}. */
+  public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
+    final Frame right = Stacks.pop(stack);
+    final Frame left = Stacks.pop(stack);
+    final RelNode semiJoin =
+        semiJoinFactory.createSemiJoin(left.rel, right.rel,
+            RexUtil.composeConjunction(cluster.getRexBuilder(), conditions,
+                false));
+    Stacks.push(stack, new Frame(semiJoin, left.right));
+    return this;
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.SemiJoin}. */
+  public RelBuilder semiJoin(RexNode... conditions) {
+    return semiJoin(ImmutableList.copyOf(conditions));
   }
 
   /** Assigns a table alias to the top entry on the stack. */
@@ -1007,6 +1239,46 @@ public class RelBuilder {
     }
   }
 
+  /**
+   * Creates a projection that converts the current relational expression's
+   * output to a desired row type.
+   *
+   * @param castRowType row type after cast
+   * @param rename      if true, use field names from castRowType; if false,
+   *                    preserve field names from rel
+   */
+  public RelBuilder convert(RelDataType castRowType, boolean rename) {
+    final RelNode r = build();
+    final RelNode r2 =
+        RelOptUtil.createCastRel(r, castRowType, rename, projectFactory);
+    push(r2);
+    return this;
+  }
+
+  public RelBuilder permute(Mapping mapping) {
+    assert mapping.getMappingType().isSingleSource();
+    assert mapping.getMappingType().isMandatorySource();
+    if (mapping.isIdentity()) {
+      return this;
+    }
+    final List<RexNode> exprList = Lists.newArrayList();
+    for (int i = 0; i < mapping.getTargetCount(); i++) {
+      exprList.add(field(mapping.getSource(i)));
+    }
+    return project(exprList);
+  }
+
+  public RelBuilder aggregate(GroupKey groupKey,
+      List<AggregateCall> aggregateCalls) {
+    return aggregate(groupKey,
+        Lists.transform(
+            aggregateCalls, new Function<AggregateCall, AggCall>() {
+              public AggCall apply(AggregateCall input) {
+                return new AggCallImpl2(input);
+              }
+            }));
+  }
+
   /** Information necessary to create a call to an aggregate function.
    *
    * @see RelBuilder#aggregateCall */
@@ -1021,10 +1293,13 @@ public class RelBuilder {
 
   /** Implementation of {@link RelBuilder.GroupKey}. */
   private static class GroupKeyImpl implements GroupKey {
-    private final ImmutableList<RexNode> nodes;
+    final ImmutableList<RexNode> nodes;
+    final ImmutableList<ImmutableList<RexNode>> nodeLists;
 
-    GroupKeyImpl(ImmutableList<RexNode> nodes) {
-      this.nodes = nodes;
+    GroupKeyImpl(ImmutableList<RexNode> nodes,
+        ImmutableList<ImmutableList<RexNode>> nodeLists) {
+      this.nodes = Preconditions.checkNotNull(nodes);
+      this.nodeLists = nodeLists;
     }
   }
 
@@ -1032,32 +1307,28 @@ public class RelBuilder {
   private static class AggCallImpl implements AggCall {
     private final SqlAggFunction aggFunction;
     private final boolean distinct;
+    private final RexNode filter;
     private final String alias;
     private final ImmutableList<RexNode> operands;
 
-    AggCallImpl(SqlAggFunction aggFunction, boolean distinct,
+    AggCallImpl(SqlAggFunction aggFunction, boolean distinct, RexNode filter,
         String alias, ImmutableList<RexNode> operands) {
       this.aggFunction = aggFunction;
       this.distinct = distinct;
+      this.filter = filter;
       this.alias = alias;
       this.operands = operands;
     }
   }
 
-  /** A partially-created RelBuilder.
-   *
-   * <p>Add a cluster, and optionally a schema,
-   * when you want to create a builder.
-   *
-   * <p>A {@code ProtoRelBuilder} can be shared among queries, and thus can
-   * be inside a {@link RelOptRule}. It is a nice way to encapsulate the policy
-   * that this particular rule instance should create {@code DrillFilter}
-   * and {@code DrillProject} versus {@code HiveFilter} and {@code HiveProject}.
-   *
-   * @see RelFactories#DEFAULT_PROTO
-   */
-  public interface ProtoRelBuilder {
-    RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
+  /** Implementation of {@link RelBuilder.AggCall} that wraps an
+   * {@link AggregateCall}. */
+  private static class AggCallImpl2 implements AggCall {
+    private final AggregateCall aggregateCall;
+
+    AggCallImpl2(AggregateCall aggregateCall) {
+      this.aggregateCall = Preconditions.checkNotNull(aggregateCall);
+    }
   }
 
   /** Builder stack frame.
@@ -1079,8 +1350,10 @@ public class RelBuilder {
 
     private static String deriveAlias(RelNode rel) {
       if (rel instanceof TableScan) {
-        TableScan scan = (TableScan) rel;
-        return Util.last(scan.getTable().getQualifiedName());
+        final List<String> names = rel.getTable().getQualifiedName();
+        if (!names.isEmpty()) {
+          return Util.last(names);
+        }
       }
       return null;
     }

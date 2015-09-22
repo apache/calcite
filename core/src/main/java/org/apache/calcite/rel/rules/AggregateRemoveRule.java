@@ -18,9 +18,9 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Planner rule that removes
@@ -67,15 +67,13 @@ public class AggregateRemoveRule extends RelOptRule {
 
     // If aggregate was projecting a subset of columns, add a project for the
     // same effect.
-    RelNode rel;
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(newInput);
     if (newInput.getRowType().getFieldCount()
         > aggregate.getRowType().getFieldCount()) {
-      rel = RelOptUtil.createProject(newInput,
-          aggregate.getGroupSet().toList());
-    } else {
-      rel = newInput;
+      relBuilder.project(relBuilder.fields(aggregate.getGroupSet().toList()));
     }
-    call.transformTo(rel);
+    call.transformTo(relBuilder.build());
   }
 }
 

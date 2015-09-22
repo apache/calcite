@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -31,6 +32,8 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -56,7 +59,6 @@ public class JoinCommuteRule extends RelOptRule {
   /** Instance of the rule that swaps outer joins as well as inner joins. */
   public static final JoinCommuteRule SWAP_OUTER = new JoinCommuteRule(true);
 
-  private final ProjectFactory projectFactory;
   private final boolean swapOuter;
 
   //~ Constructors -----------------------------------------------------------
@@ -64,21 +66,26 @@ public class JoinCommuteRule extends RelOptRule {
   /**
    * Creates a JoinCommuteRule.
    */
+  public JoinCommuteRule(Class<? extends Join> clazz,
+      RelBuilderFactory relBuilderFactory, boolean swapOuter) {
+    super(operand(clazz, any()), relBuilderFactory, null);
+    this.swapOuter = swapOuter;
+  }
+
   private JoinCommuteRule(boolean swapOuter) {
-    this(LogicalJoin.class, RelFactories.DEFAULT_PROJECT_FACTORY, swapOuter);
+    this(LogicalJoin.class, RelFactories.LOGICAL_BUILDER, swapOuter);
   }
 
   @Deprecated // to be removed before 2.0
   public JoinCommuteRule(Class<? extends Join> clazz,
       ProjectFactory projectFactory) {
-    this(clazz, projectFactory, false);
+    this(clazz, RelBuilder.proto(Contexts.of(projectFactory)), false);
   }
 
+  @Deprecated // to be removed before 2.0
   public JoinCommuteRule(Class<? extends Join> clazz,
       ProjectFactory projectFactory, boolean swapOuter) {
-    super(operand(clazz, any()));
-    this.projectFactory = projectFactory;
-    this.swapOuter = swapOuter;
+    this(clazz, RelBuilder.proto(Contexts.of(projectFactory)), swapOuter);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -154,14 +161,13 @@ public class JoinCommuteRule extends RelOptRule {
     // b0,b1,a0,a1,a2 from (select a0,a1,a2,b0,b1 from b join a)' is the
     // same as 'b join a'. If we didn't do this, the swap join rule
     // would fire on the new join, ad infinitum.
+    final RelBuilder relBuilder = call.builder();
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, false);
-    RelNode project =
-        projectFactory.createProject(swapped, exps,
-            newJoin.getRowType().getFieldNames());
+    relBuilder.push(swapped)
+        .project(exps, newJoin.getRowType().getFieldNames());
 
-    RelNode rel = call.getPlanner().ensureRegistered(project, newJoin);
-    Util.discard(rel);
+    call.getPlanner().ensureRegistered(relBuilder.build(), newJoin);
   }
 
   //~ Inner Classes ----------------------------------------------------------

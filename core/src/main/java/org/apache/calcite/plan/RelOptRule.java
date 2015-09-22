@@ -17,8 +17,11 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -52,10 +55,15 @@ public abstract class RelOptRule {
    */
   private final RelOptRuleOperand operand;
 
+  /** Factory for a builder for relational expressions.
+   *
+   * <p>The actual builder is available via {@link RelOptRuleCall#builder()}. */
+  public final RelBuilderFactory relBuilderFactory;
+
   /**
    * Flattened list of operands.
    */
-  public List<RelOptRuleOperand> operands;
+  public final List<RelOptRuleOperand> operands;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -65,7 +73,7 @@ public abstract class RelOptRule {
    * @param operand root operand, must not be null
    */
   public RelOptRule(RelOptRuleOperand operand) {
-    this(operand, null);
+    this(operand, RelFactories.LOGICAL_BUILDER, null);
   }
 
   /**
@@ -75,8 +83,20 @@ public abstract class RelOptRule {
    * @param description Description, or null to guess description
    */
   public RelOptRule(RelOptRuleOperand operand, String description) {
-    assert operand != null;
-    this.operand = operand;
+    this(operand, RelFactories.LOGICAL_BUILDER, description);
+  }
+
+  /**
+   * Creates a rule with an explicit description.
+   *
+   * @param operand     root operand, must not be null
+   * @param description Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public RelOptRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    this.operand = Preconditions.checkNotNull(operand);
+    this.relBuilderFactory = Preconditions.checkNotNull(relBuilderFactory);
     if (description == null) {
       description = guessDescription(getClass().getName());
     }
@@ -282,8 +302,7 @@ public abstract class RelOptRule {
    */
   private List<RelOptRuleOperand> flattenOperands(
       RelOptRuleOperand rootOperand) {
-    List<RelOptRuleOperand> operandList =
-        new ArrayList<RelOptRuleOperand>();
+    final List<RelOptRuleOperand> operandList = new ArrayList<>();
 
     // Flatten the operands into a list.
     rootOperand.setRule(this);

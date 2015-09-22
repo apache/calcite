@@ -261,15 +261,18 @@ return the `RelBuilder`.
 | `scan(tableName)` | Creates a [TableScan]({{ site.apiRoot }}/org/apache/calcite/rel/core/TableScan.html).
 | `values(fieldNames, value...)`<br/>`values(rowType, tupleList)` | Creates a [Values]({{ site.apiRoot }}/org/apache/calcite/rel/core/Values.html).
 | `filter(expr...)`<br/>`filter(exprList)` | Creates a [Filter]({{ site.apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates.
-| `project(expr...)`<br/>`project(exprList)` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html). To override the default name, wrap expressions using `alias`.
+| `project(expr...)`<br/>`project(exprList [, fieldNames])` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html). To override the default name, wrap expressions using `alias`, or specify the `fieldNames` argument.
+| `permute(mapping)` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html) that permutes the fields using `mapping`.
+| `convert(rowType [, rename])` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html) that converts the fields to the given types, optionally also renaming them.
 | `aggregate(groupKey, aggCall...)`<br/>`aggregate(groupKey, aggCallList)` | Creates an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html).
 | `distinct()` | Creates an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html) that eliminates duplicate records.
 | `sort(fieldOrdinal...)`<br/>`sort(expr...)`<br/>`sort(exprList)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html).<br/><br/>In the first form, field ordinals are 0-based, and a negative ordinal indicates descending; for example, -2 means field 1 descending.<br/><br/>In the other forms, you can wrap expressions in `as`, `nullsFirst` or `nullsLast`.
 | `sortLimit(offset, fetch, expr...)`<br/>`sortLimit(offset, fetch, exprList)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) with offset and limit.
 | `limit(offset, fetch)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) that does not sort, only applies with offset and limit.
-| `join(joinType, expr)`<br/>`join(joinType, fieldName...)` | Creates a [Join]({{ site.apiRoot }}/org/apache/calcite/rel/core/Join.html) of the two most recent relational expressions.<br/><br/>The first form joins on an boolean expression.<br/><br/>The second form joins on named fields; each side must have a field of each name.
-| `union(all)` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the two most recent relational expressions.
-| `intersect(all)` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the two most recent relational expressions.
+| `join(joinType, expr...)`<br/>`join(joinType, exprList)`<br/>`join(joinType, fieldName...)` | Creates a [Join]({{ site.apiRoot }}/org/apache/calcite/rel/core/Join.html) of the two most recent relational expressions.<br/><br/>The first form joins on a boolean expression (multiple conditions are combined using AND).<br/><br/>The last form joins on named fields; each side must have a field of each name.
+| `semiJoin(expr)` | Creates a [SemiJoin]({{ site.apiRoot }}/org/apache/calcite/rel/core/SemiJoin.html) of the two most recent relational expressions.
+| `union(all [, n])` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the `n` (default two) most recent relational expressions.
+| `intersect(all [, n])` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the `n` (default two) most recent relational expressions.
 | `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
 
 Argument types:
@@ -292,6 +295,12 @@ Argument types:
 * `distinct` boolean
 * `alias` String
 
+The builder methods perform various optimizations, including:
+* `project` returns its input if asked to project all columns in order
+* `filter` flattens the condition (so an `AND` and `OR` may have more than 2 children),
+  simplifies (converting say `x = 1 AND TRUE` to `x = 1`)
+* If you apply `sort` then `limit`, the effect is as if you had called `sortLimit`
+
 ### Stack methods
 
 
@@ -299,6 +308,7 @@ Argument types:
 |:------------------- |:-----------
 | `build()`           | Pops the most recently created relational expression off the stack
 | `push(rel)`         | Pushes a relational expression onto the stack. Relational methods such as `scan`, above, call this method, but user code generally does not
+| `pushAll(collection)` | Pushes a collection of relational expressions onto the stack
 | `peek()`            | Returns the relational expression most recently put onto the stack, but does not remove it
 
 #### Scalar expression methods
@@ -317,6 +327,9 @@ added to the stack.
 | `field(fieldOrdinal)` | Reference, by ordinal, to a field of the top-most relational expression
 | `field(inputCount, inputOrdinal, fieldName)` | Reference, by name, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
 | `field(inputCount, inputOrdinal, fieldOrdinal)` | Reference, by ordinal, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
+| `fields(fieldOrdinalList)` | List of expressions referencing input fields by ordinal
+| `fields(mapping)` | List of expressions referencing input fields by a given mapping
+| `fields(collation)` | List of expressions, `exprList`, such that `sort(exprList)` would replicate collation
 | `call(op, expr...)`<br/>`call(op, exprList)` | Call to a function or operator
 | `and(expr...)`<br/>`and(exprList)` | Logical AND. Flattens nested ANDs, and optimizes cases involving TRUE and FALSE.
 | `or(expr...)`<br/>`or(exprList)` | Logical OR. Flattens nested ORs, and optimizes cases involving TRUE and FALSE.
@@ -338,6 +351,8 @@ The following methods return a
 | Method              | Description
 |:------------------- |:-----------
 | `groupKey(fieldName...)`<br/>`groupKey(fieldOrdinal...)`<br/>`groupKey(expr...)`<br/>`groupKey(exprList)` | Creates a group key of the given expressions
+| `groupKey(exprList, exprListList)` | Creates a group key of the given expressions with grouping sets
+| `groupKey(bitSet, bitSets)` | Creates a group key of the given input columns with grouping sets
 
 ### Aggregate call methods
 
@@ -346,7 +361,7 @@ The following methods return an
 
 | Method              | Description
 |:------------------- |:-----------
-| `aggregateCall(op, distinct, alias, expr...)`<br/>`aggregateCall(op, distinct, alias, exprList)` | Creates a call to a given aggregate function
+| `aggregateCall(op, distinct, filter, alias, expr...)`<br/>`aggregateCall(op, distinct, filter, alias, exprList)` | Creates a call to a given aggregate function, with an optional filter expression
 | `count(distinct, alias, expr...)` | Creates a call to the COUNT aggregate function
 | `countStar(alias)` | Creates a call to the COUNT(*) aggregate function
 | `sum(distinct, alias, expr)` | Creates a call to the SUM aggregate function

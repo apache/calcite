@@ -35,6 +35,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -85,6 +86,7 @@ public abstract class CalcRelSplitter {
   private final RelOptCluster cluster;
   private final RelTraitSet traits;
   private final RelNode child;
+  protected final RelBuilder relBuilder;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -95,7 +97,8 @@ public abstract class CalcRelSplitter {
    * @param relTypes Array of rel types, e.g. {Java, Fennel}. Must be
    *                 distinct.
    */
-  CalcRelSplitter(Calc calc, RelType[] relTypes) {
+  CalcRelSplitter(Calc calc, RelBuilder relBuilder, RelType[] relTypes) {
+    this.relBuilder = relBuilder;
     for (int i = 0; i < relTypes.length; i++) {
       assert relTypes[i] != null;
       for (int j = 0; j < i; j++) {
@@ -220,11 +223,7 @@ public abstract class CalcRelSplitter {
               conditionExprOrdinal,
               outputRowType);
       rel =
-          relType.makeRel(
-              cluster,
-              traits,
-              rel,
-              program1);
+          relType.makeRel(cluster, traits, relBuilder, rel, program1);
 
       // Sometimes a level's program merely projects its inputs. We don't
       // want these. They cause an explosion in the search space.
@@ -452,8 +451,8 @@ public abstract class CalcRelSplitter {
           });
     }
     TopologicalOrderIterator<Integer, DefaultEdge> iter =
-        new TopologicalOrderIterator<Integer, DefaultEdge>(graph);
-    final List<Integer> permutation = new ArrayList<Integer>();
+        new TopologicalOrderIterator<>(graph);
+    final List<Integer> permutation = new ArrayList<>();
     while (iter.hasNext()) {
       permutation.add(iter.next());
     }
@@ -522,7 +521,7 @@ public abstract class CalcRelSplitter {
       int conditionExprOrdinal,
       RelDataType outputRowType) {
     // Build a list of expressions to form the calc.
-    List<RexNode> exprs = new ArrayList<RexNode>();
+    List<RexNode> exprs = new ArrayList<>();
 
     // exprInverseOrdinals describes where an expression in allExprs comes
     // from -- from an input, from a calculated expression, or -1 if not
@@ -569,9 +568,9 @@ public abstract class CalcRelSplitter {
     // ordinals are offsets into allExprs, so we need to map them into
     // exprs.
     final List<RexLocalRef> projectRefs =
-        new ArrayList<RexLocalRef>(projectExprOrdinals.length);
+        new ArrayList<>(projectExprOrdinals.length);
     final List<String> fieldNames =
-        new ArrayList<String>(projectExprOrdinals.length);
+        new ArrayList<>(projectExprOrdinals.length);
     for (int i = 0; i < projectExprOrdinals.length; i++) {
       final int projectExprOrdinal = projectExprOrdinals[i];
       final int index = exprInverseOrdinals[projectExprOrdinal];
@@ -768,12 +767,10 @@ public abstract class CalcRelSplitter {
       return true;
     }
 
-    protected RelNode makeRel(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelNode child,
+    protected RelNode makeRel(RelOptCluster cluster,
+        RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
         RexProgram program) {
-      return LogicalCalc.create(child, program);
+      return LogicalCalc.create(input, program);
     }
 
     /**
@@ -865,6 +862,7 @@ public abstract class CalcRelSplitter {
    * Control exception for {@link ImplementTester}.
    */
   private static class CannotImplement extends RuntimeException {
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
     static final CannotImplement INSTANCE = new CannotImplement();
   }
 

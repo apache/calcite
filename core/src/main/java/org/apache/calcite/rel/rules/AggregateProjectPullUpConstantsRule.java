@@ -18,20 +18,17 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.mapping.Mapping;
@@ -79,10 +76,9 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    LogicalAggregate aggregate = call.rel(0);
-    LogicalProject input = call.rel(1);
+    final LogicalAggregate aggregate = call.rel(0);
+    final LogicalProject input = call.rel(1);
 
     final int groupCount = aggregate.getGroupCount();
     if (groupCount == 1) {
@@ -99,8 +95,8 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           input.getCluster().getRexBuilder());
 
     final RelDataType childRowType = input.getRowType();
-    IntList constantList = new IntList();
-    Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
+    final List<Integer> constantList = new ArrayList<>();
+    final Map<Integer, RexNode> constants = new HashMap<>();
     for (int i : aggregate.getGroupSet()) {
       final RexLocalRef ref = program.getProjectList().get(i);
       if (program.isConstant(ref)) {
@@ -126,22 +122,22 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     }
 
     final int newGroupCount = groupCount - constantList.size();
-    final RelNode newAggregate;
 
     // If the constants are on the trailing edge of the group list, we just
     // reduce the group count.
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(input);
     if (constantList.get(0) == newGroupCount) {
       // Clone aggregate calls.
-      final List<AggregateCall> newAggCalls =
-          new ArrayList<AggregateCall>();
+      final List<AggregateCall> newAggCalls = new ArrayList<>();
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         newAggCalls.add(
             aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
                 groupCount, newGroupCount));
       }
-      newAggregate =
-          LogicalAggregate.create(input, false,
-              ImmutableBitSet.range(newGroupCount), null, newAggCalls);
+      relBuilder.aggregate(
+          relBuilder.groupKey(ImmutableBitSet.range(newGroupCount), null),
+          newAggCalls);
     } else {
       // Create the mapping from old field positions to new field
       // positions.
@@ -164,14 +160,13 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
       }
 
       // Create a projection to permute fields into these positions.
-      final RelNode project = createProjection(mapping, input);
+      createProjection(relBuilder, mapping);
 
       // Adjust aggregate calls for new field positions.
-      final List<AggregateCall> newAggCalls =
-          new ArrayList<AggregateCall>();
+      final List<AggregateCall> newAggCalls = new ArrayList<>();
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         final int argCount = aggCall.getArgList().size();
-        final List<Integer> args = new ArrayList<Integer>(argCount);
+        final List<Integer> args = new ArrayList<>(argCount);
         for (int j = 0; j < argCount; j++) {
           final Integer arg = aggCall.getArgList().get(j);
           args.add(mapping.getTarget(arg));
@@ -179,43 +174,38 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
         final int filterArg = aggCall.filterArg < 0 ? aggCall.filterArg
             : mapping.getTarget(aggCall.filterArg);
         newAggCalls.add(
-            aggCall.adaptTo(project, args, filterArg, groupCount,
+            aggCall.adaptTo(relBuilder.peek(), args, filterArg, groupCount,
                 newGroupCount));
       }
 
       // Aggregate on projection.
-      newAggregate =
-          LogicalAggregate.create(project, false,
-              ImmutableBitSet.range(newGroupCount), null, newAggCalls);
+      relBuilder.aggregate(
+          relBuilder.groupKey(ImmutableBitSet.range(newGroupCount), null),
+              newAggCalls);
     }
 
-    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
-
     // Create a projection back again.
-    List<Pair<RexNode, String>> projects =
-        new ArrayList<Pair<RexNode, String>>();
+    List<Pair<RexNode, String>> projects = new ArrayList<>();
     int source = 0;
     for (RelDataTypeField field : aggregate.getRowType().getFieldList()) {
       RexNode expr;
       final int i = field.getIndex();
       if (i >= groupCount) {
         // Aggregate expressions' names and positions are unchanged.
-        expr = rexBuilder.makeInputRef(newAggregate, i - constantList.size());
+        expr = relBuilder.field(i - constantList.size());
       } else if (constantList.contains(i)) {
         // Re-generate the constant expression in the project.
         expr = constants.get(i);
       } else {
         // Project the aggregation expression, in its original
         // position.
-        expr = rexBuilder.makeInputRef(newAggregate, source);
+        expr = relBuilder.field(source);
         ++source;
       }
       projects.add(Pair.of(expr, field.getName()));
     }
-    final RelNode inverseProject =
-        RelOptUtil.createProject(newAggregate, projects, false);
-
-    call.transformTo(inverseProject);
+    relBuilder.project(Pair.left(projects), Pair.right(projects)); // inverse
+    call.transformTo(relBuilder.build());
   }
 
   /**
@@ -225,29 +215,25 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
    * <p>For example, given a relational expression [A, B, C, D] and a mapping
    * [2:1, 3:0], returns a projection [$3 AS C, $2 AS B].
    *
+   * @param relBuilder Relational expression builder
    * @param mapping Mapping to apply to source columns
-   * @param child   Relational expression
-   * @return Relational expressions with permutation applied
    */
-  private static RelNode createProjection(
-      final Mapping mapping,
-      RelNode child) {
+  private static RelBuilder createProjection(RelBuilder relBuilder,
+      Mapping mapping) {
     // Every target has precisely one source; every source has at most
     // one target.
     assert mapping.getMappingType().isA(MappingType.INVERSE_SURJECTION);
-    final RelDataType childRowType = child.getRowType();
+    final RelDataType childRowType = relBuilder.peek().getRowType();
     assert mapping.getSourceCount() == childRowType.getFieldCount();
-    List<Pair<RexNode, String>> projects =
-        new ArrayList<Pair<RexNode, String>>();
+    final List<Pair<RexNode, String>> projects = new ArrayList<>();
     for (int target = 0; target < mapping.getTargetCount(); ++target) {
       int source = mapping.getSource(target);
-      final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
       projects.add(
-          Pair.of(
-              (RexNode) rexBuilder.makeInputRef(child, source),
+          Pair.<RexNode, String>of(
+              relBuilder.field(source),
               childRowType.getFieldList().get(source).getName()));
     }
-    return RelOptUtil.createProject(child, projects, false);
+    return relBuilder.project(Pair.left(projects), Pair.right(projects));
   }
 }
 

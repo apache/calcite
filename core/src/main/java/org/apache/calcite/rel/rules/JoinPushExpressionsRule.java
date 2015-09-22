@@ -23,6 +23,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that pushes down expressions in "equal" join condition.
@@ -36,23 +38,25 @@ import org.apache.calcite.rex.RexNode;
 public class JoinPushExpressionsRule extends RelOptRule {
 
   public static final JoinPushExpressionsRule INSTANCE =
-      new JoinPushExpressionsRule(Join.class,
-          RelFactories.DEFAULT_PROJECT_FACTORY);
-
-  private final RelFactories.ProjectFactory projectFactory;
+      new JoinPushExpressionsRule(Join.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates a JoinPushExpressionsRule. */
   public JoinPushExpressionsRule(Class<? extends Join> clazz,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand(clazz, any()), relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public JoinPushExpressionsRule(Class<? extends Join> clazz,
       RelFactories.ProjectFactory projectFactory) {
-    super(operand(clazz, any()));
-    this.projectFactory = projectFactory;
+    this(clazz, RelBuilder.proto(projectFactory));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     Join join = call.rel(0);
 
     // Push expression in join condition into Project below Join.
-    RelNode newJoin = RelOptUtil.pushDownJoinConditions(join, projectFactory);
+    RelNode newJoin = RelOptUtil.pushDownJoinConditions(join, call.builder());
 
     // If the join is the same, we bail out
     if (newJoin instanceof Join) {

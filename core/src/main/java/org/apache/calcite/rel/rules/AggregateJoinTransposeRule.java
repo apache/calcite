@@ -36,6 +36,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -60,76 +62,72 @@ import java.util.TreeMap;
  */
 public class AggregateJoinTransposeRule extends RelOptRule {
   public static final AggregateJoinTransposeRule INSTANCE =
-      new AggregateJoinTransposeRule(LogicalAggregate.class,
-          RelFactories.DEFAULT_AGGREGATE_FACTORY,
-          LogicalJoin.class,
-          RelFactories.DEFAULT_JOIN_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY);
+      new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
+          RelFactories.LOGICAL_BUILDER, false);
 
   /** Extended instance of the rule that can push down aggregate functions. */
   public static final AggregateJoinTransposeRule EXTENDED =
-      new AggregateJoinTransposeRule(LogicalAggregate.class,
-          RelFactories.DEFAULT_AGGREGATE_FACTORY,
-          LogicalJoin.class,
-          RelFactories.DEFAULT_JOIN_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY, true);
-
-  private final RelFactories.AggregateFactory aggregateFactory;
-
-  private final RelFactories.JoinFactory joinFactory;
-
-  private final RelFactories.ProjectFactory projectFactory;
+      new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
+          RelFactories.LOGICAL_BUILDER, true);
 
   private final boolean allowFunctions;
 
-  @Deprecated
+  /** Creates an AggregateJoinTransposeRule. */
+  public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
+      Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory,
+      boolean allowFunctions) {
+    super(
+        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
+            operand(joinClass, any())), relBuilderFactory, null);
+    this.allowFunctions = allowFunctions;
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
       RelFactories.AggregateFactory aggregateFactory,
       Class<? extends Join> joinClass,
       RelFactories.JoinFactory joinFactory) {
-    this(aggregateClass, aggregateFactory, joinClass, joinFactory,
-            RelFactories.DEFAULT_PROJECT_FACTORY, false);
+    this(aggregateClass, joinClass,
+        RelBuilder.proto(aggregateFactory, joinFactory), false);
   }
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
       RelFactories.AggregateFactory aggregateFactory,
       Class<? extends Join> joinClass,
       RelFactories.JoinFactory joinFactory,
       boolean allowFunctions) {
-    this(aggregateClass, aggregateFactory, joinClass, joinFactory,
-            RelFactories.DEFAULT_PROJECT_FACTORY, allowFunctions);
+    this(aggregateClass, joinClass,
+        RelBuilder.proto(aggregateFactory, joinFactory), allowFunctions);
   }
 
-  /** Creates an AggregateJoinTransposeRule. */
+  @Deprecated // to be removed before 2.0
   public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
       RelFactories.AggregateFactory aggregateFactory,
       Class<? extends Join> joinClass,
       RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory) {
-    this(aggregateClass, aggregateFactory, joinClass, joinFactory, projectFactory, false);
+    this(aggregateClass, joinClass,
+        RelBuilder.proto(aggregateFactory, joinFactory, projectFactory), false);
   }
 
-  /** Creates an AggregateJoinTransposeRule that may push down functions. */
+  @Deprecated // to be removed before 2.0
   public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
       RelFactories.AggregateFactory aggregateFactory,
       Class<? extends Join> joinClass,
       RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory,
       boolean allowFunctions) {
-    super(
-        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
-            operand(joinClass, any())));
-    this.aggregateFactory = aggregateFactory;
-    this.joinFactory = joinFactory;
-    this.projectFactory = projectFactory;
-    this.allowFunctions = allowFunctions;
+    this(aggregateClass, joinClass,
+        RelBuilder.proto(aggregateFactory, joinFactory, projectFactory),
+        allowFunctions);
   }
 
   public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Join join = call.rel(1);
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+    final RelBuilder relBuilder = call.builder();
 
     // If any aggregate functions do not support splitting, bail out
     // If any aggregate call has a filter, bail out
@@ -248,8 +246,10 @@ public class AggregateJoinTransposeRule extends RelOptRule {
                     + belowAggCallRegistry.register(call1));
           }
         }
-        side.newInput = aggregateFactory.createAggregate(joinInput, false,
-            belowAggregateKey, null, belowAggCalls);
+        side.newInput = relBuilder.push(joinInput)
+            .aggregate(relBuilder.groupKey(belowAggregateKey, null),
+                belowAggCalls)
+            .build();
       }
       offset += fieldCount;
       belowOffset += side.newInput.getRowType().getFieldCount();
@@ -276,9 +276,9 @@ public class AggregateJoinTransposeRule extends RelOptRule {
         RexUtil.apply(mapping, join.getCondition());
 
     // Create new join
-    RelNode newJoin = joinFactory.createJoin(sides.get(0).newInput,
-        sides.get(1).newInput, newCondition, join.getJoinType(),
-        join.getVariablesStopped(), join.isSemiJoinDone());
+    relBuilder.push(sides.get(0).newInput)
+        .push(sides.get(1).newInput)
+        .join(join.getJoinType(), newCondition);
 
     // Aggregate above to sum up the sub-totals
     final List<AggregateCall> newAggCalls = new ArrayList<>();
@@ -286,7 +286,8 @@ public class AggregateJoinTransposeRule extends RelOptRule {
         aggregate.getGroupCount() + aggregate.getIndicatorCount();
     final int newLeftWidth = sides.get(0).newInput.getRowType().getFieldCount();
     final List<RexNode> projects =
-        new ArrayList<>(rexBuilder.identityProjects(newJoin.getRowType()));
+        new ArrayList<>(
+            rexBuilder.identityProjects(relBuilder.peek().getRowType()));
     for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
       final SqlAggFunction aggregation = aggCall.e.getAggregation();
       final SqlSplittableAggFunction splitter =
@@ -296,21 +297,20 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       final Integer rightSubTotal = sides.get(1).split.get(aggCall.i);
       newAggCalls.add(
           splitter.topSplit(rexBuilder, registry(projects),
-              groupIndicatorCount, newJoin.getRowType(), aggCall.e,
+              groupIndicatorCount, relBuilder.peek().getRowType(), aggCall.e,
               leftSubTotal == null ? -1 : leftSubTotal,
               rightSubTotal == null ? -1 : rightSubTotal + newLeftWidth));
     }
-    RelNode r = newJoin;
   b:
     if (allColumnsInAggregate && newAggCalls.isEmpty()) {
       // no need to aggregate
     } else {
-      r = RelOptUtil.createProject(r, projects, null, true, projectFactory);
+      relBuilder.project(projects);
       if (allColumnsInAggregate) {
         // let's see if we can convert
         List<RexNode> projects2 = new ArrayList<>();
         for (int key : Mappings.apply(mapping, aggregate.getGroupSet())) {
-          projects2.add(rexBuilder.makeInputRef(r, key));
+          projects2.add(relBuilder.field(key));
         }
         for (AggregateCall newAggCall : newAggCalls) {
           final SqlSplittableAggFunction splitter =
@@ -318,21 +318,22 @@ public class AggregateJoinTransposeRule extends RelOptRule {
                   .unwrap(SqlSplittableAggFunction.class);
           if (splitter != null) {
             projects2.add(
-                splitter.singleton(rexBuilder, r.getRowType(), newAggCall));
+                splitter.singleton(rexBuilder, relBuilder.peek().getRowType(),
+                    newAggCall));
           }
         }
         if (projects2.size()
             == aggregate.getGroupSet().cardinality() + newAggCalls.size()) {
           // We successfully converted agg calls into projects.
-          r = RelOptUtil.createProject(r, projects2, null, true, projectFactory);
+          relBuilder.project(projects2);
           break b;
         }
       }
-      r = aggregateFactory.createAggregate(r, aggregate.indicator,
-          Mappings.apply(mapping, aggregate.getGroupSet()),
-          Mappings.apply2(mapping, aggregate.getGroupSets()), newAggCalls);
+      relBuilder.aggregate(
+          relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
+              Mappings.apply2(mapping, aggregate.getGroupSets())), newAggCalls);
     }
-    call.transformTo(r);
+    call.transformTo(relBuilder.build());
   }
 
   /** Computes the closure of a set of columns according to a given list of

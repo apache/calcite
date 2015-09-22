@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -24,7 +25,8 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that infers predicates from on a
@@ -38,17 +40,21 @@ import org.apache.calcite.rex.RexUtil;
  * and applies them appropriately.
  */
 public class JoinPushTransitivePredicatesRule extends RelOptRule {
-  private final RelFactories.FilterFactory filterFactory;
-
   /** The singleton. */
   public static final JoinPushTransitivePredicatesRule INSTANCE =
       new JoinPushTransitivePredicatesRule(Join.class,
-          RelFactories.DEFAULT_FILTER_FACTORY);
+          RelFactories.LOGICAL_BUILDER);
 
+  /** Creates a JoinPushTransitivePredicatesRule. */
+  public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand(clazz, any()), relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
   public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,
       RelFactories.FilterFactory filterFactory) {
-    super(operand(clazz, any()));
-    this.filterFactory = filterFactory;
+    this(clazz, RelBuilder.proto(Contexts.of(filterFactory)));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -60,21 +66,22 @@ public class JoinPushTransitivePredicatesRule extends RelOptRule {
       return;
     }
 
-    RexBuilder rB = join.getCluster().getRexBuilder();
-    RelNode lChild = join.getLeft();
-    RelNode rChild = join.getRight();
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
+    final RelBuilder relBuilder = call.builder();
 
+    RelNode lChild = join.getLeft();
     if (preds.leftInferredPredicates.size() > 0) {
       RelNode curr = lChild;
-      lChild = filterFactory.createFilter(lChild,
-          RexUtil.composeConjunction(rB, preds.leftInferredPredicates, false));
+      lChild = relBuilder.push(lChild)
+          .filter(preds.leftInferredPredicates).build();
       call.getPlanner().onCopy(curr, lChild);
     }
 
+    RelNode rChild = join.getRight();
     if (preds.rightInferredPredicates.size() > 0) {
       RelNode curr = rChild;
-      rChild = filterFactory.createFilter(rChild,
-          RexUtil.composeConjunction(rB, preds.rightInferredPredicates, false));
+      rChild = relBuilder.push(rChild)
+          .filter(preds.rightInferredPredicates).build();
       call.getPlanner().onCopy(curr, rChild);
     }
 

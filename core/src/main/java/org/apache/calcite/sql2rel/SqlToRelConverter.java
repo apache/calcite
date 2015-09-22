@@ -142,6 +142,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.NlsString;
@@ -543,7 +544,9 @@ public class SqlToRelConverter {
    * @return Field trimmer
    */
   protected RelFieldTrimmer newFieldTrimmer() {
-    return new RelFieldTrimmer(validator);
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    return new RelFieldTrimmer(validator, relBuilder);
   }
 
   /**

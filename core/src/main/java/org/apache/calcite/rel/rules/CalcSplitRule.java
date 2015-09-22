@@ -18,11 +18,12 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -38,21 +39,22 @@ import com.google.common.collect.ImmutableList;
  * {@link org.apache.calcite.interpreter.Interpreter}.
  */
 public class CalcSplitRule extends RelOptRule {
-  public static final CalcSplitRule INSTANCE = new CalcSplitRule();
+  public static final CalcSplitRule INSTANCE =
+      new CalcSplitRule(RelFactories.LOGICAL_BUILDER);
 
-  private CalcSplitRule() {
-    super(operand(Calc.class, any()));
+  private CalcSplitRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(Calc.class, any()), relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Calc calc = call.rel(0);
     final Pair<ImmutableList<RexNode>, ImmutableList<RexNode>> projectFilter =
         calc.getProgram().split();
-    final RelNode rel = calc.getInput();
-    final RelNode rel2 = RelOptUtil.createFilter(rel, projectFilter.right);
-    final RelNode rel3 = RelOptUtil.createProject(rel2, projectFilter.left,
-        calc.getRowType().getFieldNames());
-    call.transformTo(rel3);
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(calc.getInput());
+    relBuilder.filter(projectFilter.right);
+    relBuilder.project(projectFilter.left, calc.getRowType().getFieldNames());
+    call.transformTo(relBuilder.build());
   }
 }
 

@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
@@ -116,9 +117,9 @@ public abstract class TableScan extends AbstractRelNode {
    * fields that were not included in the table's official type.
    *
    * <p>The default implementation assumes that tables cannot do either of
-   * these operations, therefore it adds a
-   * {@link org.apache.calcite.rel.logical.LogicalProject}, projecting
-   * {@code NULL} values for the extra fields.</p>
+   * these operations, therefore it adds a {@link Project} that projects
+   * {@code NULL} values for the extra fields, using the
+   * {@link RelBuilder#project(Iterable)} method.
    *
    * <p>Sub-classes, representing table types that have these capabilities,
    * should override.</p>
@@ -126,19 +127,20 @@ public abstract class TableScan extends AbstractRelNode {
    * @param fieldsUsed  Bitmap of the fields desired by the consumer
    * @param extraFields Extra fields, not advertised in the table's row-type,
    *                    wanted by the consumer
+   * @param relBuilder Builder used to create a Project
    * @return Relational expression that projects the desired fields
    */
   public RelNode project(ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields,
-      RelFactories.ProjectFactory projectFactory) {
+      RelBuilder relBuilder) {
     final int fieldCount = getRowType().getFieldCount();
     if (fieldsUsed.equals(ImmutableBitSet.range(fieldCount))
         && extraFields.isEmpty()) {
       return this;
     }
-    List<RexNode> exprList = new ArrayList<RexNode>();
-    List<String> nameList = new ArrayList<String>();
-    RexBuilder rexBuilder = getCluster().getRexBuilder();
+    final List<RexNode> exprList = new ArrayList<>();
+    final List<String> nameList = new ArrayList<>();
+    final RexBuilder rexBuilder = getCluster().getRexBuilder();
     final List<RelDataTypeField> fields = getRowType().getFieldList();
 
     // Project the subset of fields.
@@ -159,7 +161,7 @@ public abstract class TableScan extends AbstractRelNode {
       nameList.add(extraField.getName());
     }
 
-    return projectFactory.createProject(this, exprList, nameList);
+    return relBuilder.push(this).project(exprList, nameList).build();
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

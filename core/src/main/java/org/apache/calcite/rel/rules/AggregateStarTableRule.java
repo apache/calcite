@@ -37,6 +37,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.AbstractSourceMapping;
@@ -71,7 +72,7 @@ public class AggregateStarTableRule extends RelOptRule {
           final Project project = call.rel(1);
           final StarTable.StarTableScan scan = call.rel(2);
           final RelNode rel =
-              AggregateProjectMergeRule.apply(aggregate, project);
+              AggregateProjectMergeRule.apply(call, aggregate, project);
           final Aggregate aggregate2;
           final Project project2;
           if (rel instanceof Aggregate) {
@@ -106,11 +107,12 @@ public class AggregateStarTableRule extends RelOptRule {
     final List<Lattice.Measure> measures =
         lattice.lattice.toMeasures(aggregate.getAggCallList());
     final Pair<CalciteSchema.TableEntry, TileKey> pair =
-        lattice.getAggregate(call.getPlanner(), aggregate.getGroupSet(),
-            measures);
+        lattice.getAggregate(
+            call.getPlanner(), aggregate.getGroupSet(), measures);
     if (pair == null) {
       return;
     }
+    final RelBuilder relBuilder = call.builder();
     final CalciteSchema.TableEntry tableEntry = pair.left;
     final TileKey tileKey = pair.right;
     final double rowCount = aggregate.getRows();
@@ -118,9 +120,12 @@ public class AggregateStarTableRule extends RelOptRule {
     final RelDataType aggregateTableRowType =
         aggregateTable.getRowType(cluster.getTypeFactory());
     final RelOptTable aggregateRelOptTable =
-        RelOptTableImpl.create(table.getRelOptSchema(), aggregateTableRowType,
-            tableEntry, rowCount);
-    RelNode rel = aggregateRelOptTable.toRel(RelOptUtil.getContext(cluster));
+        RelOptTableImpl.create(
+            table.getRelOptSchema(),
+            aggregateTableRowType,
+            tableEntry,
+            rowCount);
+    relBuilder.push(aggregateRelOptTable.toRel(RelOptUtil.getContext(cluster)));
     if (tileKey == null) {
       if (CalcitePrepareImpl.DEBUG) {
         System.out.println("Using materialization "
@@ -143,44 +148,50 @@ public class AggregateStarTableRule extends RelOptRule {
       }
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         final AggregateCall copy =
-            rollUp(groupSet.cardinality(), rel, aggCall, tileKey);
+            rollUp(groupSet.cardinality(), relBuilder, aggCall, tileKey);
         if (copy == null) {
           return;
         }
         aggCalls.add(copy);
       }
-      rel = aggregate.copy(aggregate.getTraitSet(), rel, false,
-          groupSet.build(), null, aggCalls);
+      relBuilder.push(
+          aggregate.copy(aggregate.getTraitSet(), relBuilder.build(), false,
+              groupSet.build(), null, aggCalls));
     } else if (!tileKey.measures.equals(measures)) {
-      System.out.println("Using materialization "
-          + aggregateRelOptTable.getQualifiedName()
-          + ", right granularity, but different measures "
-          + aggregate.getAggCallList());
-      rel = RelOptUtil.createProject(rel,
-          new AbstractSourceMapping(
-              tileKey.dimensions.cardinality() + tileKey.measures.size(),
-              aggregate.getRowType().getFieldCount()) {
-            public int getSourceOpt(int source) {
-              assert aggregate.getIndicatorCount() == 0;
-              if (source < aggregate.getGroupCount()) {
-                int in = tileKey.dimensions.nth(source);
-                return aggregate.getGroupSet().indexOf(in);
-              }
-              Lattice.Measure measure =
-                  measures.get(source - aggregate.getGroupCount());
-              int i = tileKey.measures.indexOf(measure);
-              assert i >= 0;
-              return tileKey.dimensions.cardinality() + i;
-            }
-          });
+      if (CalcitePrepareImpl.DEBUG) {
+        System.out.println("Using materialization "
+            + aggregateRelOptTable.getQualifiedName()
+            + ", right granularity, but different measures "
+            + aggregate.getAggCallList());
+      }
+      relBuilder.project(
+          relBuilder.fields(
+              new AbstractSourceMapping(
+                  tileKey.dimensions.cardinality() + tileKey.measures.size(),
+                  aggregate.getRowType().getFieldCount()) {
+                public int getSourceOpt(int source) {
+                  assert aggregate.getIndicatorCount() == 0;
+                  if (source < aggregate.getGroupCount()) {
+                    int in = tileKey.dimensions.nth(source);
+                    return aggregate.getGroupSet().indexOf(in);
+                  }
+                  Lattice.Measure measure =
+                      measures.get(source - aggregate.getGroupCount());
+                  int i = tileKey.measures.indexOf(measure);
+                  assert i >= 0;
+                  return tileKey.dimensions.cardinality() + i;
+                }
+              } .inverse()));
     }
     if (postProject != null) {
-      rel = postProject.copy(postProject.getTraitSet(), ImmutableList.of(rel));
+      relBuilder.push(
+          postProject.copy(postProject.getTraitSet(),
+              ImmutableList.of(relBuilder.peek())));
     }
-    call.transformTo(rel);
+    call.transformTo(relBuilder.build());
   }
 
-  private static AggregateCall rollUp(int groupCount, RelNode input,
+  private static AggregateCall rollUp(int groupCount, RelBuilder relBuilder,
       AggregateCall aggregateCall, TileKey tileKey) {
     if (aggregateCall.isDistinct()) {
       return null;
@@ -201,7 +212,7 @@ public class AggregateStarTableRule extends RelOptRule {
         break tryRoll;
       }
       return AggregateCall.create(roll, false, ImmutableList.of(offset + i), -1,
-          groupCount, input, null, aggregateCall.name);
+          groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 
     // Second, try to satisfy the aggregation based on group set columns.
@@ -216,7 +227,7 @@ public class AggregateStarTableRule extends RelOptRule {
         newArgs.add(z);
       }
       return AggregateCall.create(aggregation, false, newArgs, -1,
-          groupCount, input, null, aggregateCall.name);
+          groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 
     // No roll up possible.

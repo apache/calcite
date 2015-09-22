@@ -57,11 +57,13 @@ public class Contexts {
     return new WrapContext(o);
   }
 
-  /** Returns a context that wraps an array of objects. */
+  /** Returns a context that wraps an array of objects, ignoring any nulls. */
   public static Context of(Object... os) {
     final List<Context> contexts = new ArrayList<>();
     for (Object o : os) {
-      contexts.add(of(o));
+      if (o != null) {
+        contexts.add(of(o));
+      }
     }
     return chain(contexts);
   }

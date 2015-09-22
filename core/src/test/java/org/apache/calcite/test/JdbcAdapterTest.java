@@ -206,7 +206,7 @@ public class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"MGR\" = \"t0\".\"EMPNO\" AND (\"t\".\"SAL\" > \"t0\".\"SAL\" OR \"t\".\"HIREDATE\" < \"t0\".\"HIREDATE\")");
   }
 
-  @Test public void tesJoin3TablesPlan() {
+  @Test public void testJoin3TablesPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select  empno, ename, dname, grade \n"
             + "from scott.emp e inner join scott.dept d \n"

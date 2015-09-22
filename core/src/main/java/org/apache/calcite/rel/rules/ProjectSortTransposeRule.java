@@ -19,14 +19,14 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.logical.LogicalProject;
 
 import com.google.common.collect.ImmutableList;
 
 /**
  * Planner rule that pushes
- * a {@link org.apache.calcite.rel.logical.LogicalProject}
+ * a {@link org.apache.calcite.rel.core.Project}
  * past a {@link org.apache.calcite.rel.core.Sort}.
  *
  * @see org.apache.calcite.rel.rules.SortProjectTransposeRule
@@ -42,15 +42,15 @@ public class ProjectSortTransposeRule extends RelOptRule {
    */
   private ProjectSortTransposeRule() {
     super(
-        operand(LogicalProject.class,
+        operand(Project.class,
             operand(Sort.class, any())));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalProject project = call.rel(0);
-    Sort sort = call.rel(1);
+    final Project project = call.rel(0);
+    final Sort sort = call.rel(1);
     if (sort.getClass() != Sort.class) {
       return;
     }

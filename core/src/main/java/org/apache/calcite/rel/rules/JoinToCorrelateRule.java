@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.RelFactories;
@@ -29,8 +29,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SemiJoinType;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
@@ -60,19 +61,20 @@ public class JoinToCorrelateRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final JoinToCorrelateRule INSTANCE =
-      new JoinToCorrelateRule(RelFactories.DEFAULT_FILTER_FACTORY);
-
-  protected final RelFactories.FilterFactory filterFactory;
+      new JoinToCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Private constructor; use singleton {@link #INSTANCE}.
    */
+  protected JoinToCorrelateRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(LogicalJoin.class, any()), relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
   protected JoinToCorrelateRule(RelFactories.FilterFactory filterFactory) {
-    super(operand(LogicalJoin.class, any()));
-    this.filterFactory = filterFactory;
-    assert filterFactory != null : "Filter factory should not be null";
+    this(RelBuilder.proto(Contexts.of(filterFactory)));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -99,15 +101,15 @@ public class JoinToCorrelateRule extends RelOptRule {
     final int leftFieldCount = left.getRowType().getFieldCount();
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelBuilder relBuilder = call.builder();
     final int dynInId = cluster.createCorrel();
     final CorrelationId correlationId = new CorrelationId(dynInId);
     final RexNode corrVar =
         rexBuilder.makeCorrel(left.getRowType(), correlationId.getName());
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
-    RexNode joinCondition = join.getCondition();
 
     // Replace all references of left input with FieldAccess(corrVar, field)
-    joinCondition = joinCondition.accept(new RexShuttle() {
+    final RexNode joinCondition = join.getCondition().accept(new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef input) {
         int field = input.getIndex();
         if (field >= leftFieldCount) {
@@ -119,12 +121,11 @@ public class JoinToCorrelateRule extends RelOptRule {
       }
     });
 
-    joinCondition = RexUtil.flatten(rexBuilder, joinCondition);
-    final RelNode filteredRight =
-        RelOptUtil.createFilter(right, joinCondition, filterFactory);
+    relBuilder.push(right).filter(joinCondition);
+
     RelNode newRel =
         LogicalCorrelate.create(left,
-            filteredRight,
+            relBuilder.build(),
             correlationId,
             requiredColumns.build(),
             SemiJoinType.of(join.getJoinType()));

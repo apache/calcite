@@ -28,6 +28,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that pushes
@@ -39,15 +41,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
    * <p>It matches any kind of join or filter, and generates the same kind of
-   * join and filter. It uses null values for {@code filterFactory} and
-   * {@code projectFactory} to achieve this. */
+   * join and filter. */
   public static final FilterProjectTransposeRule INSTANCE =
-      new FilterProjectTransposeRule(
-          Filter.class, null,
-          Project.class, null);
+      new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
+          RelFactories.LOGICAL_BUILDER);
 
-  private final RelFactories.FilterFactory filterFactory;
-  private final RelFactories.ProjectFactory projectFactory;
+  private final boolean copyFilter;
+  private final boolean copyProject;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -59,19 +59,30 @@ public class FilterProjectTransposeRule extends RelOptRule {
    */
   public FilterProjectTransposeRule(
       Class<? extends Filter> filterClass,
+      Class<? extends Project> projectClass,
+      boolean copyFilter, boolean copyProject,
+      RelBuilderFactory relBuilderFactory) {
+    super(
+        operand(filterClass,
+            operand(projectClass, any())),
+        relBuilderFactory, null);
+    this.copyFilter = copyFilter;
+    this.copyProject = copyProject;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public FilterProjectTransposeRule(
+      Class<? extends Filter> filterClass,
       RelFactories.FilterFactory filterFactory,
       Class<? extends Project> projectClass,
       RelFactories.ProjectFactory projectFactory) {
-    super(
-        operand(filterClass,
-            operand(projectClass, any())));
-    this.filterFactory = filterFactory;
-    this.projectFactory = projectFactory;
+    this(filterClass, projectClass, filterFactory == null,
+        projectFactory == null,
+        RelBuilder.proto(filterFactory, projectFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     final Filter filter = call.rel(0);
     final Project project = call.rel(1);
@@ -105,18 +116,20 @@ public class FilterProjectTransposeRule extends RelOptRule {
       newCondition = ((RexCall) newCondition).getOperands().get(0);
     }
 
+    final RelBuilder relBuilder = call.builder();
     RelNode newFilterRel =
-        filterFactory == null
+        copyFilter
             ? filter.copy(filter.getTraitSet(), project.getInput(),
                 newCondition)
-            : filterFactory.createFilter(project.getInput(), newCondition);
+            : relBuilder.push(project.getInput()).filter(newCondition).build();
 
     RelNode newProjRel =
-        projectFactory == null
+        copyProject
             ? project.copy(project.getTraitSet(), newFilterRel,
                 project.getProjects(), project.getRowType())
-            : projectFactory.createProject(newFilterRel, project.getProjects(),
-                project.getRowType().getFieldNames());
+            : relBuilder.push(newFilterRel)
+                .project(project.getProjects(), project.getRowType().getFieldNames())
+                .build();
 
     call.transformTo(newProjRel);
   }

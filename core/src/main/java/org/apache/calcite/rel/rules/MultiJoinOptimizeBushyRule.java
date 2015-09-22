@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -30,6 +29,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -37,7 +38,6 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.io.PrintWriter;
@@ -67,25 +67,26 @@ import java.util.List;
  */
 public class MultiJoinOptimizeBushyRule extends RelOptRule {
   public static final MultiJoinOptimizeBushyRule INSTANCE =
-      new MultiJoinOptimizeBushyRule(RelFactories.DEFAULT_JOIN_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY);
+      new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
 
-  private final RelFactories.JoinFactory joinFactory;
-  private final RelFactories.ProjectFactory projectFactory;
   private final PrintWriter pw =
       CalcitePrepareImpl.DEBUG ? new PrintWriter(System.out, true) : null;
 
   /** Creates an MultiJoinOptimizeBushyRule. */
+  public MultiJoinOptimizeBushyRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(MultiJoin.class, any()), relBuilderFactory, null);
+  }
+
+  @Deprecated // to be removed before 2.0
   public MultiJoinOptimizeBushyRule(RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory) {
-    super(operand(MultiJoin.class, any()));
-    this.joinFactory = joinFactory;
-    this.projectFactory = projectFactory;
+    this(RelBuilder.proto(joinFactory, projectFactory));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final MultiJoin multiJoinRel = call.rel(0);
     final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
+    final RelBuilder relBuilder = call.builder();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
 
@@ -254,11 +255,12 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
         final RexNode condition =
             RexUtil.composeConjunction(rexBuilder, joinVertex.conditions,
                 false);
-        relNodes.add(
-            Pair.of(
-                joinFactory.createJoin(left, right, condition.accept(shuttle),
-                    JoinRelType.INNER, ImmutableSet.<String>of(), false),
-                mapping));
+
+        final RelNode join = relBuilder.push(left)
+            .push(right)
+            .join(JoinRelType.INNER, condition.accept(shuttle))
+            .build();
+        relNodes.add(Pair.of(join, mapping));
       }
       if (pw != null) {
         pw.println(Util.last(relNodes));
@@ -266,11 +268,9 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     }
 
     final Pair<RelNode, Mappings.TargetMapping> top = Util.last(relNodes);
-    final RelNode project =
-        RelOptUtil.createProject(projectFactory, top.left,
-            Mappings.asList(top.right));
-
-    call.transformTo(project);
+    relBuilder.push(top.left)
+        .project(relBuilder.fields(top.right));
+    call.transformTo(relBuilder.build());
   }
 
   private void trace(List<Vertex> vertexes,

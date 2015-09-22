@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -26,6 +27,8 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,20 +39,23 @@ import java.util.List;
  */
 public class FilterSetOpTransposeRule extends RelOptRule {
   public static final FilterSetOpTransposeRule INSTANCE =
-      new FilterSetOpTransposeRule(RelFactories.DEFAULT_FILTER_FACTORY);
-
-  private final RelFactories.FilterFactory filterFactory;
+      new FilterSetOpTransposeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a FilterSetOpTransposeRule.
    */
-  public FilterSetOpTransposeRule(RelFactories.FilterFactory filterFactory) {
+  public FilterSetOpTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(Filter.class,
-            operand(SetOp.class, any())));
-    this.filterFactory = filterFactory;
+            operand(SetOp.class, any())),
+        relBuilderFactory, null);
+  }
+
+  @Deprecated // to  be removed before 2.0
+  public FilterSetOpTransposeRule(RelFactories.FilterFactory filterFactory) {
+    this(RelBuilder.proto(Contexts.of(filterFactory)));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -64,10 +70,11 @@ public class FilterSetOpTransposeRule extends RelOptRule {
     // create filters on top of each setop child, modifying the filter
     // condition to reference each setop child
     RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
+    final RelBuilder relBuilder = call.builder();
     List<RelDataTypeField> origFields =
         setOp.getRowType().getFieldList();
     int[] adjustments = new int[origFields.size()];
-    List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
+    final List<RelNode> newSetOpInputs = new ArrayList<>();
     for (RelNode input : setOp.getInputs()) {
       RexNode newCondition =
           condition.accept(
@@ -76,7 +83,7 @@ public class FilterSetOpTransposeRule extends RelOptRule {
                   origFields,
                   input.getRowType().getFieldList(),
                   adjustments));
-      newSetOpInputs.add(filterFactory.createFilter(input, newCondition));
+      newSetOpInputs.add(relBuilder.push(input).filter(newCondition).build());
     }
 
     // create a new setop whose children are the filters created above

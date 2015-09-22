@@ -30,6 +30,8 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -65,31 +67,34 @@ public class JoinPushThroughJoinRule extends RelOptRule {
   public static final RelOptRule RIGHT =
       new JoinPushThroughJoinRule(
           "JoinPushThroughJoinRule:right", true, LogicalJoin.class,
-          RelFactories.DEFAULT_PROJECT_FACTORY);
+          RelFactories.LOGICAL_BUILDER);
 
   /** Instance of the rule that works on logical joins only, and pushes to the
    * left. */
   public static final RelOptRule LEFT =
       new JoinPushThroughJoinRule(
           "JoinPushThroughJoinRule:left", false, LogicalJoin.class,
-          RelFactories.DEFAULT_PROJECT_FACTORY);
+          RelFactories.LOGICAL_BUILDER);
 
   private final boolean right;
-
-  private final ProjectFactory projectFactory;
 
   /**
    * Creates a JoinPushThroughJoinRule.
    */
   public JoinPushThroughJoinRule(String description, boolean right,
-      Class<? extends Join> clazz, ProjectFactory projectFactory) {
+      Class<? extends Join> clazz, RelBuilderFactory relBuilderFactory) {
     super(
         operand(clazz,
             operand(clazz, any()),
             operand(RelNode.class, any())),
-        description);
+        relBuilderFactory, description);
     this.right = right;
-    this.projectFactory = projectFactory;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public JoinPushThroughJoinRule(String description, boolean right,
+      Class<? extends Join> clazz, ProjectFactory projectFactory) {
+    this(description, right, clazz, RelBuilder.proto(projectFactory));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -137,8 +142,8 @@ public class JoinPushThroughJoinRule extends RelOptRule {
 
     // Split the condition of topJoin into a conjunction. Each of the
     // parts that does not use columns from B can be pushed down.
-    final List<RexNode> intersecting = new ArrayList<RexNode>();
-    final List<RexNode> nonIntersecting = new ArrayList<RexNode>();
+    final List<RexNode> intersecting = new ArrayList<>();
+    final List<RexNode> nonIntersecting = new ArrayList<>();
     split(topJoin.getCondition(), bBitSet, intersecting, nonIntersecting);
 
     // If there's nothing to push down, it's not worth proceeding.
@@ -148,8 +153,8 @@ public class JoinPushThroughJoinRule extends RelOptRule {
 
     // Split the condition of bottomJoin into a conjunction. Each of the
     // parts that use columns from B will need to be pulled up.
-    final List<RexNode> bottomIntersecting = new ArrayList<RexNode>();
-    final List<RexNode> bottomNonIntersecting = new ArrayList<RexNode>();
+    final List<RexNode> bottomIntersecting = new ArrayList<>();
+    final List<RexNode> bottomNonIntersecting = new ArrayList<>();
     split(
         bottomJoin.getCondition(), bBitSet, bottomIntersecting,
         bottomNonIntersecting);
@@ -161,7 +166,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
             aCount + bCount + cCount,
             0, 0, aCount,
             aCount, aCount + bCount, cCount);
-    List<RexNode> newBottomList = new ArrayList<RexNode>();
+    final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relA, relC)
         .visitList(nonIntersecting, newBottomList);
     final Mappings.TargetMapping bottomBottomMapping =
@@ -185,7 +190,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
             0, 0, aCount,
             aCount + cCount, aCount, bCount,
             aCount, aCount + bCount, cCount);
-    List<RexNode> newTopList = new ArrayList<RexNode>();
+    final List<RexNode> newTopList = new ArrayList<>();
     new RexPermuteInputsShuttle(topMapping, newBottomJoin, relB)
         .visitList(intersecting, newTopList);
     new RexPermuteInputsShuttle(topMapping, newBottomJoin, relB)
@@ -198,10 +203,10 @@ public class JoinPushThroughJoinRule extends RelOptRule {
             relB, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
     assert !Mappings.isIdentity(topMapping);
-    final RelNode newProject = RelOptUtil.createProject(projectFactory,
-        newTopJoin, Mappings.asList(topMapping));
-
-    call.transformTo(newProject);
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(newTopJoin);
+    relBuilder.project(relBuilder.fields(topMapping));
+    call.transformTo(relBuilder.build());
   }
 
   /**
@@ -244,8 +249,8 @@ public class JoinPushThroughJoinRule extends RelOptRule {
 
     // Split the condition of topJoin into a conjunction. Each of the
     // parts that does not use columns from A can be pushed down.
-    final List<RexNode> intersecting = new ArrayList<RexNode>();
-    final List<RexNode> nonIntersecting = new ArrayList<RexNode>();
+    final List<RexNode> intersecting = new ArrayList<>();
+    final List<RexNode> nonIntersecting = new ArrayList<>();
     split(topJoin.getCondition(), aBitSet, intersecting, nonIntersecting);
 
     // If there's nothing to push down, it's not worth proceeding.
@@ -255,8 +260,8 @@ public class JoinPushThroughJoinRule extends RelOptRule {
 
     // Split the condition of bottomJoin into a conjunction. Each of the
     // parts that use columns from B will need to be pulled up.
-    final List<RexNode> bottomIntersecting = new ArrayList<RexNode>();
-    final List<RexNode> bottomNonIntersecting = new ArrayList<RexNode>();
+    final List<RexNode> bottomIntersecting = new ArrayList<>();
+    final List<RexNode> bottomNonIntersecting = new ArrayList<>();
     split(
         bottomJoin.getCondition(), aBitSet, bottomIntersecting,
         bottomNonIntersecting);
@@ -268,7 +273,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
             aCount + bCount + cCount,
             cCount, aCount, bCount,
             0, aCount + bCount, cCount);
-    List<RexNode> newBottomList = new ArrayList<RexNode>();
+    final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relC, relB)
         .visitList(nonIntersecting, newBottomList);
     final Mappings.TargetMapping bottomBottomMapping =
@@ -293,7 +298,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
             cCount + bCount, 0, aCount,
             cCount, aCount, bCount,
             0, aCount + bCount, cCount);
-    List<RexNode> newTopList = new ArrayList<RexNode>();
+    final List<RexNode> newTopList = new ArrayList<>();
     new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA)
         .visitList(intersecting, newTopList);
     new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA)
@@ -305,10 +310,10 @@ public class JoinPushThroughJoinRule extends RelOptRule {
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, newBottomJoin,
             relA, topJoin.getJoinType(), topJoin.isSemiJoinDone());
 
-    final RelNode newProject = RelOptUtil.createProject(projectFactory,
-        newTopJoin, Mappings.asList(topMapping));
-
-    call.transformTo(newProject);
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(newTopJoin);
+    relBuilder.project(relBuilder.fields(topMapping));
+    call.transformTo(relBuilder.build());
   }
 
   /**

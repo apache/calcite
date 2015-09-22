@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -48,10 +49,8 @@ public class FilterAggregateTransposeRule extends RelOptRule {
    *
    * <p>It matches any kind of agg. or filter */
   public static final FilterAggregateTransposeRule INSTANCE =
-      new FilterAggregateTransposeRule(Filter.class, RelFactories.DEFAULT_PROTO,
-          Aggregate.class);
-
-  private final RelBuilder.ProtoRelBuilder protoBuilder;
+      new FilterAggregateTransposeRule(Filter.class,
+          RelFactories.LOGICAL_BUILDER, Aggregate.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -63,12 +62,12 @@ public class FilterAggregateTransposeRule extends RelOptRule {
    */
   public FilterAggregateTransposeRule(
       Class<? extends Filter> filterClass,
-      RelBuilder.ProtoRelBuilder protoBuilder,
+      RelBuilderFactory builderFactory,
       Class<? extends Aggregate> aggregateClass) {
     super(
         operand(filterClass,
-            operand(aggregateClass, any())));
-    this.protoBuilder = protoBuilder;
+            operand(aggregateClass, any())),
+        builderFactory, null);
   }
 
   @Deprecated // to be removed before 2.0
@@ -108,7 +107,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       }
     }
 
-    final RelBuilder builder = call.builder(protoBuilder);
+    final RelBuilder builder = call.builder();
     RelNode rel =
         builder.push(aggRel.getInput()).filter(pushedConditions).build();
     if (rel == aggRel.getInput(0)) {
