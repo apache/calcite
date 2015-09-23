@@ -127,3 +127,10 @@ message ExecuteRequest {
 }
 
 
+message SyncResultsRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  QueryState state = 3;
+  uint64 offset = 4;
+}
+ 

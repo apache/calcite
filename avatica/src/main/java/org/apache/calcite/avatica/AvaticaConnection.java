@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.AvaticaConnection.CallableWithoutException;
 import org.apache.calcite.avatica.Meta.MetaResultSet;
+import org.apache.calcite.avatica.remote.Service.ErrorResponse;
+import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import java.sql.Array;
@@ -57,6 +60,9 @@ public abstract class AvaticaConnection implements Connection {
    * the number of rows modified. */
   public static final String ROWCOUNT_COLUMN_NAME = "ROWCOUNT";
 
+  public static final String NUM_EXECUTE_RETRIES_KEY = "avatica.statement.retries";
+  public static final String NUM_EXECUTE_RETRIES_DEFAULT = "5";
+
   /** The name of the sole column returned by an EXPLAIN statement.
    *
    * <p>Actually Avatica does not care what this column is called, but here is
@@ -80,6 +86,7 @@ public abstract class AvaticaConnection implements Connection {
   public final Map<InternalProperty, Object> properties = new HashMap<>();
   public final Map<Integer, AvaticaStatement> statementMap =
       new ConcurrentHashMap<>();
+  protected final long maxRetriesPerExecute;
 
   /**
    * Creates an AvaticaConnection.
@@ -105,6 +112,14 @@ public abstract class AvaticaConnection implements Connection {
     this.meta = driver.createMeta(this);
     this.metaData = factory.newDatabaseMetaData(this);
     this.holdability = metaData.getResultSetHoldability();
+    this.maxRetriesPerExecute = getNumStatementRetries(info);
+  }
+
+  /** Computes the number of retries
+   * {@link #executeInternal(String)} should retry before failing. */
+  long getNumStatementRetries(Properties props) {
+    return Long.valueOf(Objects.requireNonNull(props)
+        .getProperty(NUM_EXECUTE_RETRIES_KEY, NUM_EXECUTE_RETRIES_DEFAULT));
   }
 
   /** Returns a view onto this connection's configuration properties. Code
@@ -114,6 +129,14 @@ public abstract class AvaticaConnection implements Connection {
    * properties. */
   public ConnectionConfig config() {
     return new ConnectionConfigImpl(info);
+  }
+
+  /**
+   * Opens the connection on the server.
+   */
+  public void openConnection() {
+    // Open the connection on the server
+    this.meta.openConnection(handle, OpenConnectionRequest.serializeProperties(info));
   }
 
   // Connection methods
@@ -412,11 +435,12 @@ public abstract class AvaticaConnection implements Connection {
    * @param statement     Statement
    * @param signature     Prepared query
    * @param firstFrame    First frame of rows, or null if we need to execute
+   * @param state         The state used to create the given result
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs
    */
   protected ResultSet executeQueryInternal(AvaticaStatement statement,
-      Meta.Signature signature, Meta.Frame firstFrame) throws SQLException {
+      Meta.Signature signature, Meta.Frame firstFrame, QueryState state) throws SQLException {
     // Close the previous open result set, if there is one.
     Meta.Frame frame = firstFrame;
     Meta.Signature signature2 = signature;
@@ -453,8 +477,9 @@ public abstract class AvaticaConnection implements Connection {
       if (frame == null && signature2 == null && statement.updateCount != -1) {
         statement.openResultSet = null;
       } else {
+        // Duplicative SQL, for support non-prepared statements
         statement.openResultSet =
-            factory.newResultSet(statement, signature2, timeZone, frame);
+            factory.newResultSet(statement, state, signature2, timeZone, frame);
       }
     }
     // Release the monitor before executing, to give another thread the
@@ -502,8 +527,8 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   protected Meta.ExecuteResult prepareAndExecuteInternal(
-      final AvaticaStatement statement, String sql, long maxRowCount)
-      throws SQLException {
+      final AvaticaStatement statement, final String sql, long maxRowCount)
+      throws SQLException, NoSuchStatementException {
     final Meta.PrepareCallback callback =
         new Meta.PrepareCallback() {
           public Object getMonitor() {
@@ -531,7 +556,7 @@ public abstract class AvaticaConnection implements Connection {
               statement.updateCount = updateCount;
             } else {
               final TimeZone timeZone = getTimeZone();
-              statement.openResultSet = factory.newResultSet(statement,
+              statement.openResultSet = factory.newResultSet(statement, new QueryState(sql),
                   signature, timeZone, firstFrame);
             }
           }
@@ -546,13 +571,13 @@ public abstract class AvaticaConnection implements Connection {
     return meta.prepareAndExecute(statement.handle, sql, maxRowCount, callback);
   }
 
-  protected ResultSet createResultSet(Meta.MetaResultSet metaResultSet)
+  protected ResultSet createResultSet(Meta.MetaResultSet metaResultSet, QueryState state)
       throws SQLException {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         metaResultSet.connectionId, metaResultSet.statementId, null);
     final AvaticaStatement statement = lookupStatement(h);
     ResultSet resultSet = executeQueryInternal(statement, metaResultSet.signature.sanitize(),
-        metaResultSet.firstFrame);
+        metaResultSet.firstFrame, state);
     if (metaResultSet.ownStatement) {
       resultSet.getStatement().closeOnCompletion();
     }
@@ -615,6 +640,44 @@ public abstract class AvaticaConnection implements Connection {
      * {@link org.apache.calcite.avatica.AvaticaConnection#meta}. */
     public Meta getMeta(AvaticaConnection connection) {
       return connection.meta;
+    }
+  }
+
+  /**
+   * A Callable-like interface but without a "throws Exception".
+   *
+   * @param <T> The return type from {@code call}.
+   */
+  public interface CallableWithoutException<T> {
+    T call();
+  }
+
+  /**
+   * Invokes the given "callable", retrying the call when the server responds with an error
+   * denoting that the connection is missing on the server.
+   *
+   * @param callable The function to invoke.
+   * @return The value from the result of the callable.
+   */
+  public <T> T invokeWithRetries(CallableWithoutException<T> callable) {
+    RuntimeException lastException = null;
+    for (int i = 0; i < maxRetriesPerExecute; i++) {
+      try {
+        return callable.call();
+      } catch (AvaticaClientRuntimeException e) {
+        lastException = e;
+        if (ErrorResponse.MISSING_CONNECTION_ERROR_CODE == e.getErrorCode()) {
+          this.openConnection();
+          continue;
+        }
+        throw e;
+      }
+    }
+    if (null != lastException) {
+      throw lastException;
+    } else {
+      // Shouldn't ever happen.
+      throw new IllegalStateException();
     }
   }
 }

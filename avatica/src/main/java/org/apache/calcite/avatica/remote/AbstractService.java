@@ -130,6 +130,9 @@ public abstract class AbstractService implements Service {
   }
 
   ExecuteResponse finagle(ExecuteResponse r) {
+    if (r.missingStatement) {
+      return r;
+    }
     final List<ResultSetResponse> results = new ArrayList<>();
     int changeCount = 0;
     for (ResultSetResponse result : r.results) {
@@ -142,7 +145,7 @@ public abstract class AbstractService implements Service {
     if (changeCount == 0) {
       return r;
     }
-    return new ExecuteResponse(results);
+    return new ExecuteResponse(results, r.missingStatement);
   }
 }
 

@@ -31,9 +31,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -85,27 +83,28 @@ public class Driver extends UnregisteredDriver {
     return new RemoteMeta(connection, service);
   }
 
-  private Service createService(AvaticaConnection connection, ConnectionConfig config) {
+  /**
+   * Creates a {@link Service} with the given {@link AvaticaConnection} and configuration.
+   *
+   * @param connection The {@link AvaticaConnection} to use.
+   * @param config Configuration properties
+   * @return A Service implementation.
+   */
+  Service createService(AvaticaConnection connection, ConnectionConfig config) {
     final Service.Factory metaFactory = config.factory();
     final Service service;
     if (metaFactory != null) {
       service = metaFactory.create(connection);
     } else if (config.url() != null) {
-      final URL url;
-      try {
-        url = new URL(config.url());
-      } catch (MalformedURLException e) {
-        throw new RuntimeException(e);
-      }
-
-      Serialization serializationType = getSerialization(config);
+      final AvaticaHttpClient httpClient = getHttpClient(connection, config);
+      final Serialization serializationType = getSerialization(config);
 
       switch (serializationType) {
       case JSON:
-        service = new RemoteService(url);
+        service = new RemoteService(httpClient);
         break;
       case PROTOBUF:
-        service = new RemoteProtobufService(url, new ProtobufTranslationImpl());
+        service = new RemoteProtobufService(httpClient, new ProtobufTranslationImpl());
         break;
       default:
         throw new IllegalArgumentException("Unhandled serialization type: " + serializationType);
@@ -114,6 +113,24 @@ public class Driver extends UnregisteredDriver {
       service = new MockJsonService(Collections.<String, String>emptyMap());
     }
     return service;
+  }
+
+  /**
+   * Creates the HTTP client that communicates with the Avatica server.
+   *
+   * @param connection The {@link AvaticaConnection}.
+   * @param config The configuration.
+   * @return An {@link AvaticaHttpClient} implementation.
+   */
+  AvaticaHttpClient getHttpClient(AvaticaConnection connection, ConnectionConfig config) {
+    URL url;
+    try {
+      url = new URL(config.url());
+    } catch (MalformedURLException e) {
+      throw new RuntimeException(e);
+    }
+
+    return new AvaticaHttpClientImpl(url);
   }
 
   @Override public Connection connect(String url, Properties info)
@@ -128,28 +145,14 @@ public class Driver extends UnregisteredDriver {
     ConnectionConfig config = conn.config();
     Service service = createService(conn, config);
 
-    Map<String, String> infoAsString = new HashMap<>();
-    for (Map.Entry<Object, Object> entry : info.entrySet()) {
-      // Determine if this is a property we want to forward to the server
-      boolean localProperty = false;
-      for (BuiltInConnectionProperty prop : BuiltInConnectionProperty.values()) {
-        if (prop.camelName().equals(entry.getKey())) {
-          localProperty = true;
-          break;
-        }
-      }
-
-      if (!localProperty) {
-        infoAsString.put(entry.getKey().toString(), entry.getValue().toString());
-      }
-    }
-
-    service.apply(new Service.OpenConnectionRequest(conn.id, infoAsString));
+    service.apply(
+        new Service.OpenConnectionRequest(conn.id,
+            Service.OpenConnectionRequest.serializeProperties(info)));
 
     return conn;
   }
 
-  private Serialization getSerialization(ConnectionConfig config) {
+  Serialization getSerialization(ConnectionConfig config) {
     final String serializationStr = config.serialization();
     Serialization serializationType = Serialization.JSON;
     if (null != serializationStr) {

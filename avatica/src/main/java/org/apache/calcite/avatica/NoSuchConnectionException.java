@@ -14,26 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.remote;
-
-import java.nio.charset.StandardCharsets;
+package org.apache.calcite.avatica;
 
 /**
- * Implementation of {@link org.apache.calcite.avatica.remote.Service}
- * that translates requests into JSON and sends them to a remote server,
- * usually an HTTP server.
+ * An Exception that denotes that the given Connection is not cached.
  */
-public class RemoteService extends JsonService {
-  private final AvaticaHttpClient client;
+public class NoSuchConnectionException extends RuntimeException {
 
-  public RemoteService(AvaticaHttpClient client) {
-    this.client = client;
+  private static final long serialVersionUID = 1L;
+
+  private final String connectionId;
+
+  public NoSuchConnectionException(String connectionId) {
+    this.connectionId = connectionId;
   }
 
-  @Override public String apply(String request) {
-    byte[] response = client.send(request.getBytes(StandardCharsets.UTF_8));
-    return new String(response, StandardCharsets.UTF_8);
+  public String getConnectionId() {
+    return connectionId;
   }
 }
 
-// End RemoteService.java
+// End NoSuchConnectionException.java

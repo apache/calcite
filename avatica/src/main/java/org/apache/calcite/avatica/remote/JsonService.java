@@ -198,6 +198,14 @@ public abstract class JsonService extends AbstractService {
       throw handle(e);
     }
   }
+
+  public SyncResultsResponse apply(SyncResultsRequest request) {
+    try {
+      return decode(apply(encode(request)), SyncResultsResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
 }
 
 // End JsonService.java

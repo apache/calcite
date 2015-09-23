@@ -18,6 +18,8 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
+import org.apache.calcite.avatica.MissingResultsException;
+import org.apache.calcite.avatica.NoSuchStatementException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -103,7 +105,7 @@ public class LocalService implements Service {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         resultSet.connectionId, resultSet.statementId, null);
     final List<TypedValue> parameterValues = Collections.emptyList();
-    final Iterable<Object> iterable = meta.createIterable(h,
+    final Iterable<Object> iterable = meta.createIterable(h, null,
         resultSet.signature, parameterValues, resultSet.firstFrame);
     final List<List<Object>> list = new ArrayList<>();
     return MetaImpl.collect(resultSet.signature.cursorFactory, iterable, list);
@@ -173,49 +175,65 @@ public class LocalService implements Service {
   public ExecuteResponse apply(PrepareAndExecuteRequest request) {
     final Meta.StatementHandle sh =
         new Meta.StatementHandle(request.connectionId, request.statementId, null);
-    final Meta.ExecuteResult executeResult =
-        meta.prepareAndExecute(sh, request.sql, request.maxRowCount,
-            new Meta.PrepareCallback() {
-              @Override public Object getMonitor() {
-                return LocalService.class;
-              }
+    try {
+      final Meta.ExecuteResult executeResult =
+          meta.prepareAndExecute(sh, request.sql, request.maxRowCount,
+              new Meta.PrepareCallback() {
+                @Override public Object getMonitor() {
+                  return LocalService.class;
+                }
 
-              @Override public void clear() {
-              }
+                @Override public void clear() {
+                }
 
-              @Override public void assign(Meta.Signature signature,
-                  Meta.Frame firstFrame, long updateCount) {
-              }
+                @Override public void assign(Meta.Signature signature,
+                    Meta.Frame firstFrame, long updateCount) {
+                }
 
-              @Override public void execute() {
-              }
-            });
-    final List<ResultSetResponse> results = new ArrayList<>();
-    for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
-      results.add(toResponse(metaResultSet));
+                @Override public void execute() {
+                }
+              });
+      final List<ResultSetResponse> results = new ArrayList<>();
+      for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
+        results.add(toResponse(metaResultSet));
+      }
+      return new ExecuteResponse(results, false);
+    } catch (NoSuchStatementException e) {
+      // The Statement doesn't exist anymore, bubble up this information
+      return new ExecuteResponse(null, true);
     }
-    return new ExecuteResponse(results);
   }
 
   public FetchResponse apply(FetchRequest request) {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         request.connectionId, request.statementId, null);
-    final Meta.Frame frame =
-        meta.fetch(h,
-            request.offset,
-            request.fetchMaxRowCount);
-    return new FetchResponse(frame);
+    try {
+      final Meta.Frame frame =
+          meta.fetch(h,
+              request.offset,
+              request.fetchMaxRowCount);
+      return new FetchResponse(frame, false, false);
+    } catch (NullPointerException | NoSuchStatementException e) {
+      // The Statement doesn't exist anymore, bubble up this information
+      return new FetchResponse(null, true, true);
+    } catch (MissingResultsException e) {
+      return new FetchResponse(null, false, true);
+    }
   }
 
   public ExecuteResponse apply(ExecuteRequest request) {
-    final Meta.ExecuteResult executeResult = meta.execute(request.statementHandle,
-        request.parameterValues, request.maxRowCount);
+    try {
+      final Meta.ExecuteResult executeResult = meta.execute(request.statementHandle,
+          request.parameterValues, request.maxRowCount);
 
-    final List<ResultSetResponse> results = new ArrayList<>();
-    for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
-      results.add(toResponse(metaResultSet));
+      final List<ResultSetResponse> results = new ArrayList<>();
+      for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
+        results.add(toResponse(metaResultSet));
+      }
+      return new ExecuteResponse(results, false);
+    } catch (NoSuchStatementException e) {
+      return new ExecuteResponse(null, true);
     }
-    return new ExecuteResponse(results);
   }
 
   public CreateStatementResponse apply(CreateStatementRequest request) {
@@ -258,6 +276,21 @@ public class LocalService implements Service {
     final Meta.ConnectionHandle ch =
         new Meta.ConnectionHandle(request.connectionId);
     return new DatabasePropertyResponse(meta.getDatabaseProperties(ch));
+  }
+
+  public SyncResultsResponse apply(SyncResultsRequest request) {
+    final Meta.StatementHandle h = new Meta.StatementHandle(
+        request.connectionId, request.statementId, null);
+    SyncResultsResponse response;
+    try {
+      // Set success on the cached statement
+      response = new SyncResultsResponse(meta.syncResults(h, request.state, request.offset), false);
+    } catch (NoSuchStatementException e) {
+      // Tried to sync results on a statement which wasn't cached
+      response = new SyncResultsResponse(false, true);
+    }
+
+    return response;
   }
 }
 

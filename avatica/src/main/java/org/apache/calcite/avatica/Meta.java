@@ -34,6 +34,7 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -204,7 +205,7 @@ public interface Meta {
    * <p>The default implementation just returns {@code iterable}, which it
    * requires to be not null; derived classes may instead choose to execute the
    * relational expression in {@code signature}. */
-  Iterable<Object> createIterable(StatementHandle handle, Signature signature,
+  Iterable<Object> createIterable(StatementHandle stmt, QueryState state, Signature signature,
       List<TypedValue> parameterValues, Frame firstFrame);
 
   /** Prepares a statement.
@@ -227,7 +228,7 @@ public interface Meta {
    *     first frame of data
    */
   ExecuteResult prepareAndExecute(StatementHandle h, String sql,
-      long maxRowCount, PrepareCallback callback);
+      long maxRowCount, PrepareCallback callback) throws NoSuchStatementException;
 
   /** Returns a frame of rows.
    *
@@ -243,7 +244,8 @@ public interface Meta {
    * no limit
    * @return Frame, or null if there are no more
    */
-  Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount);
+  Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) throws
+      NoSuchStatementException, MissingResultsException;
 
   /** Executes a prepared statement.
    *
@@ -254,7 +256,7 @@ public interface Meta {
    * @return Frame, or null if there are no more
    */
   ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
-      long maxRowCount);
+      long maxRowCount) throws NoSuchStatementException;
 
   /** Called during the creation of a statement to allocate a new handle.
    *
@@ -279,6 +281,13 @@ public interface Meta {
 
   /** Closes a connection */
   void closeConnection(ConnectionHandle ch);
+
+  /**
+   * Re-set the {@link ResultSet} on a Statement. Not a JDBC method.
+   * @return True if there are results to fetch after resetting to the given offset. False otherwise
+   */
+  boolean syncResults(StatementHandle sh, QueryState state, long offset)
+      throws NoSuchStatementException;
 
   /** Sync client and server view of connection properties.
    *

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.Meta.Signature;
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import java.io.InputStream;
@@ -106,7 +107,9 @@ public abstract class AvaticaPreparedStatement
 
   public ResultSet executeQuery() throws SQLException {
     this.updateCount = -1;
-    return getConnection().executeQueryInternal(this, getSignature(), null);
+    final Signature sig = getSignature();
+    return getConnection().executeQueryInternal(this, sig, null,
+        new QueryState(sig.sql));
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
@@ -118,7 +121,8 @@ public abstract class AvaticaPreparedStatement
   }
 
   public long executeLargeUpdate() throws SQLException {
-    getConnection().executeQueryInternal(this, getSignature(), null);
+    getConnection().executeQueryInternal(this, getSignature(), null,
+        new QueryState(getSignature().sql));
     return updateCount;
   }
 
@@ -199,7 +203,8 @@ public abstract class AvaticaPreparedStatement
 
   public boolean execute() throws SQLException {
     this.updateCount = -1;
-    getConnection().executeQueryInternal(this, getSignature(), null);
+    getConnection().executeQueryInternal(this, getSignature(), null,
+        new QueryState(getSignature().sql));
     // Result set is null for DML or DDL.
     // Result set is closed if user cancelled the query.
     return openResultSet != null && !openResultSet.isClosed();

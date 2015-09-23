@@ -16,24 +16,19 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import java.nio.charset.StandardCharsets;
-
 /**
- * Implementation of {@link org.apache.calcite.avatica.remote.Service}
- * that translates requests into JSON and sends them to a remote server,
- * usually an HTTP server.
+ * An interface which defines how requests are sent to the Avatica server.
  */
-public class RemoteService extends JsonService {
-  private final AvaticaHttpClient client;
+public interface AvaticaHttpClient {
 
-  public RemoteService(AvaticaHttpClient client) {
-    this.client = client;
-  }
+  /**
+   * Sends a serialized request to the Avatica server.
+   *
+   * @param request The serialized request.
+   * @return The serialized response.
+   */
+  byte[] send(byte[] request);
 
-  @Override public String apply(String request) {
-    byte[] response = client.send(request.getBytes(StandardCharsets.UTF_8));
-    return new String(response, StandardCharsets.UTF_8);
-  }
 }
 
-// End RemoteService.java
+// End AvaticaHttpClient.java

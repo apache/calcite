@@ -84,7 +84,7 @@ public class ProtobufHandlerTest {
     frameRows.add(new Object[] {true, "my_string"});
 
     Meta.Frame frame = Frame.create(0, true, frameRows);
-    FetchResponse response = new FetchResponse(frame);
+    FetchResponse response = new FetchResponse(frame, false, false);
 
     when(translation.parseRequest(serializedRequest)).thenReturn(request);
     when(service.apply(request)).thenReturn(response);

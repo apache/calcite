@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.remote;
+package org.apache.calcite.avatica;
 
-import java.nio.charset.StandardCharsets;
+import org.apache.calcite.avatica.Meta.StatementHandle;
 
 /**
- * Implementation of {@link org.apache.calcite.avatica.remote.Service}
- * that translates requests into JSON and sends them to a remote server,
- * usually an HTTP server.
+ * An Exception that denotes that the given Statement is not cached.
  */
-public class RemoteService extends JsonService {
-  private final AvaticaHttpClient client;
+public class NoSuchStatementException extends Exception {
 
-  public RemoteService(AvaticaHttpClient client) {
-    this.client = client;
+  private static final long serialVersionUID = 1L;
+
+  private final StatementHandle stmtHandle;
+
+  public NoSuchStatementException(StatementHandle stmtHandle) {
+    this.stmtHandle = stmtHandle;
   }
 
-  @Override public String apply(String request) {
-    byte[] response = client.send(request.getBytes(StandardCharsets.UTF_8));
-    return new String(response, StandardCharsets.UTF_8);
+  public StatementHandle getStatementHandle() {
+    return stmtHandle;
   }
 }
 
-// End RemoteService.java
+// End NoSuchStatementException.java

@@ -16,24 +16,22 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import java.nio.charset.StandardCharsets;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
- * Implementation of {@link org.apache.calcite.avatica.remote.Service}
- * that translates requests into JSON and sends them to a remote server,
- * usually an HTTP server.
+ * Tests for {@link MetaDataOperation}
  */
-public class RemoteService extends JsonService {
-  private final AvaticaHttpClient client;
+public class MetaDataOperationTest {
 
-  public RemoteService(AvaticaHttpClient client) {
-    this.client = client;
+  @Test
+  public void testProtobufSerialization() {
+    for (MetaDataOperation metadataOp : MetaDataOperation.values()) {
+      assertEquals(metadataOp, MetaDataOperation.fromProto(metadataOp.toProto()));
+    }
   }
 
-  @Override public String apply(String request) {
-    byte[] response = client.send(request.getBytes(StandardCharsets.UTF_8));
-    return new String(response, StandardCharsets.UTF_8);
-  }
 }
 
-// End RemoteService.java
+// End MetaDataOperationTest.java

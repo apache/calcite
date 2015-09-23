@@ -19,8 +19,10 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaClientRuntimeException;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaSeverity;
+import org.apache.calcite.avatica.BuiltInConnectionProperty;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.proto.Requests;
 import org.apache.calcite.avatica.proto.Responses;
@@ -29,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Message;
 
@@ -42,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Properties;
 
 /**
  * API for request-response calls to an Avatica server.
@@ -56,6 +60,7 @@ public interface Service {
   PrepareResponse apply(PrepareRequest request);
   ExecuteResponse apply(ExecuteRequest request);
   ExecuteResponse apply(PrepareAndExecuteRequest request);
+  SyncResultsResponse apply(SyncResultsRequest request);
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
   CloseStatementResponse apply(CloseStatementRequest request);
@@ -95,7 +100,8 @@ public interface Service {
       @JsonSubTypes.Type(value = CloseConnectionRequest.class,
           name = "closeConnection"),
       @JsonSubTypes.Type(value = ConnectionSyncRequest.class, name = "connectionSync"),
-      @JsonSubTypes.Type(value = DatabasePropertyRequest.class, name = "databaseProperties") })
+      @JsonSubTypes.Type(value = DatabasePropertyRequest.class, name = "databaseProperties"),
+      @JsonSubTypes.Type(value = SyncResultsRequest.class, name = "syncResults") })
   abstract class Request {
     abstract Response accept(Service service);
     abstract Request deserialize(Message genericMsg);
@@ -121,7 +127,8 @@ public interface Service {
       @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync"),
       @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties"),
       @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults"),
-      @JsonSubTypes.Type(value = ErrorResponse.class, name = "error") })
+      @JsonSubTypes.Type(value = ErrorResponse.class, name = "error"),
+      @JsonSubTypes.Type(value = SyncResultsResponse.class, name = "syncResults") })
   abstract class Response {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
@@ -1242,15 +1249,17 @@ public interface Service {
    * {@link org.apache.calcite.avatica.remote.Service.PrepareAndExecuteRequest}. */
   class ExecuteResponse extends Response {
     public final List<ResultSetResponse> results;
+    public boolean missingStatement = false;
 
     ExecuteResponse() {
       results = null;
     }
 
     @JsonCreator
-    public ExecuteResponse(
-        @JsonProperty("resultSets") List<ResultSetResponse> results) {
+    public ExecuteResponse(@JsonProperty("resultSets") List<ResultSetResponse> results,
+        @JsonProperty("missingStatement") boolean missingStatement) {
       this.results = results;
+      this.missingStatement = missingStatement;
     }
 
     @Override ExecuteResponse deserialize(Message genericMsg) {
@@ -1268,7 +1277,7 @@ public interface Service {
         copiedResults.add(ResultSetResponse.fromProto(msgResult));
       }
 
-      return new ExecuteResponse(copiedResults);
+      return new ExecuteResponse(copiedResults, msg.getMissingStatement());
     }
 
     @Override Responses.ExecuteResponse serialize() {
@@ -1278,7 +1287,7 @@ public interface Service {
         builder.addResults(result.serialize());
       }
 
-      return builder.build();
+      return builder.setMissingStatement(missingStatement).build();
     }
 
     @Override public int hashCode() {
@@ -1581,14 +1590,20 @@ public interface Service {
    * {@link org.apache.calcite.avatica.remote.Service.FetchRequest}. */
   class FetchResponse extends Response {
     public final Meta.Frame frame;
+    public boolean missingStatement = false;
+    public boolean missingResults = false;
 
     FetchResponse() {
       frame = null;
     }
 
     @JsonCreator
-    public FetchResponse(@JsonProperty("frame") Meta.Frame frame) {
+    public FetchResponse(@JsonProperty("frame") Meta.Frame frame,
+        @JsonProperty("missingStatement") boolean missingStatement,
+        @JsonProperty("missingResults") boolean missingResults) {
       this.frame = frame;
+      this.missingStatement = missingStatement;
+      this.missingResults = missingResults;
     }
 
     @Override FetchResponse deserialize(Message genericMsg) {
@@ -1599,7 +1614,8 @@ public interface Service {
 
       Responses.FetchResponse msg = (Responses.FetchResponse) genericMsg;
 
-      return new FetchResponse(Meta.Frame.fromProto(msg.getFrame()));
+      return new FetchResponse(Meta.Frame.fromProto(msg.getFrame()), msg.getMissingStatement(),
+          msg.getMissingResults());
     }
 
     @Override Responses.FetchResponse serialize() {
@@ -1609,7 +1625,8 @@ public interface Service {
         builder.setFrame(frame.toProto());
       }
 
-      return builder.build();
+      return builder.setMissingStatement(missingStatement)
+          .setMissingResults(missingResults).build();
     }
 
     @Override public int hashCode() {
@@ -1634,7 +1651,7 @@ public interface Service {
           return false;
         }
 
-        return true;
+        return missingStatement == other.missingStatement;
       }
 
       return false;
@@ -1930,6 +1947,31 @@ public interface Service {
 
     @Override OpenConnectionResponse accept(Service service) {
       return service.apply(this);
+    }
+
+    /**
+     * Serializes the necessary properties into a Map.
+     *
+     * @param props The properties to serialize.
+     * @return A representation of the Properties as a Map.
+     */
+    public static Map<String, String> serializeProperties(Properties props) {
+      Map<String, String> infoAsString = new HashMap<>();
+      for (Map.Entry<Object, Object> entry : props.entrySet()) {
+        // Determine if this is a property we want to forward to the server
+        boolean localProperty = false;
+        for (BuiltInConnectionProperty prop : BuiltInConnectionProperty.values()) {
+          if (prop.camelName().equals(entry.getKey())) {
+            localProperty = true;
+            break;
+          }
+        }
+
+        if (!localProperty) {
+          infoAsString.put(entry.getKey().toString(), entry.getValue().toString());
+        }
+      }
+      return infoAsString;
     }
 
     @Override Request deserialize(Message genericMsg) {
@@ -2452,6 +2494,8 @@ public interface Service {
    */
   public class ErrorResponse extends Response {
     public static final int UNKNOWN_ERROR_CODE = -1;
+    public static final int MISSING_CONNECTION_ERROR_CODE = 1;
+
     public static final String UNKNOWN_SQL_STATE = "00000";
 
     public final List<String> exceptions;
@@ -2588,6 +2632,169 @@ public interface Service {
     public AvaticaClientRuntimeException toException() {
       return new AvaticaClientRuntimeException("Remote driver error: " + errorMessage, errorCode,
           sqlState, severity, exceptions);
+    }
+  }
+
+  /**
+   * Request for {@link Service#apply(SyncResultsRequest)}
+   */
+  class SyncResultsRequest extends Request {
+    public final String connectionId;
+    public final int statementId;
+    public final QueryState state;
+    public final long offset;
+
+    SyncResultsRequest() {
+      this.connectionId = null;
+      this.statementId = 0;
+      this.state = null;
+      this.offset = 0L;
+    }
+
+    public SyncResultsRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId, @JsonProperty("state") QueryState state,
+        @JsonProperty("offset") long offset) {
+      this.connectionId = connectionId;
+      this.statementId = statementId;
+      this.state = state;
+      this.offset = offset;
+    }
+
+    SyncResultsResponse accept(Service service) {
+      return service.apply(this);
+    }
+
+    Request deserialize(Message genericMsg) {
+      if (!(genericMsg instanceof Requests.SyncResultsRequest)) {
+        throw new IllegalArgumentException(
+            "Expected SyncResultsRequest, but got " + genericMsg.getClass().getName());
+      }
+
+      Requests.SyncResultsRequest msg = (Requests.SyncResultsRequest) genericMsg;
+
+      return new SyncResultsRequest(msg.getConnectionId(), msg.getStatementId(),
+          QueryState.fromProto(msg.getState()), msg.getOffset());
+    }
+
+    Requests.SyncResultsRequest serialize() {
+      Requests.SyncResultsRequest.Builder builder = Requests.SyncResultsRequest.newBuilder();
+
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      if (null != state) {
+        builder.setState(state.toProto());
+      }
+
+      builder.setStatementId(statementId);
+      builder.setOffset(offset);
+
+      return builder.build();
+    }
+
+    @Override public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = prime * result + (int) (offset ^ (offset >>> 32));
+      result = prime * result + ((state == null) ? 0 : state.hashCode());
+      result = prime * result + statementId;
+      return result;
+    }
+
+    @Override public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (null == obj || !(obj instanceof SyncResultsRequest)) {
+        return false;
+      }
+
+      SyncResultsRequest other = (SyncResultsRequest) obj;
+
+      if (connectionId == null) {
+        if (other.connectionId != null) {
+          return false;
+        }
+      } else if (!connectionId.equals(other.connectionId)) {
+        return false;
+      }
+
+      if (offset != other.offset) {
+        return false;
+      }
+
+      if (state == null) {
+        if (other.state != null) {
+          return false;
+        }
+      } else if (!state.equals(other.state)) {
+        return false;
+      }
+
+      if (statementId != other.statementId) {
+        return false;
+      }
+
+      return true;
+    }
+  }
+
+  /**
+   * Response for {@link Service#apply(SyncResultsRequest)}.
+   */
+  class SyncResultsResponse extends Response {
+    public boolean missingStatement = false;
+    public final boolean moreResults;
+
+    SyncResultsResponse() {
+      this.moreResults = false;
+    }
+
+    public SyncResultsResponse(@JsonProperty("moreResults") boolean moreResults,
+        @JsonProperty("missingStatement") boolean missingStatement) {
+      this.moreResults = moreResults;
+      this.missingStatement = missingStatement;
+    }
+
+    SyncResultsResponse deserialize(Message genericMsg) {
+      if (!(genericMsg instanceof Responses.SyncResultsResponse)) {
+        throw new IllegalArgumentException(
+            "Expected SyncResultsResponse, but got " + genericMsg.getClass().getName());
+      }
+
+      Responses.SyncResultsResponse msg = (Responses.SyncResultsResponse) genericMsg;
+
+      return new SyncResultsResponse(msg.getMoreResults(), msg.getMissingStatement());
+    }
+
+    Responses.SyncResultsResponse serialize() {
+      Responses.SyncResultsResponse.Builder builder = Responses.SyncResultsResponse.newBuilder();
+
+      return builder.setMoreResults(moreResults).setMissingStatement(missingStatement).build();
+    }
+
+    @Override public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + (missingStatement ? 1231 : 1237);
+      result = prime * result + (moreResults ? 1231 : 1237);
+      return result;
+    }
+
+    @Override public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || !(obj instanceof SyncResultsResponse)) {
+        return false;
+      }
+
+      SyncResultsResponse other = (SyncResultsResponse) obj;
+
+      return missingStatement == other.missingStatement && moreResults == other.moreResults;
     }
   }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.AvaticaConnection.CallableWithoutException;
+import org.apache.calcite.avatica.remote.MetaDataOperation;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 
@@ -182,28 +184,53 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getSQLKeywords() throws SQLException {
-    return Meta.DatabaseProperty.GET_S_Q_L_KEYWORDS
-        .getProp(connection.meta, connection.handle, String.class);
+    return connection.invokeWithRetries(
+        new CallableWithoutException<String>() {
+          public String call() {
+            return Meta.DatabaseProperty.GET_S_Q_L_KEYWORDS
+                .getProp(connection.meta, connection.handle, String.class);
+          }
+        });
   }
 
   public String getNumericFunctions() throws SQLException {
-    return Meta.DatabaseProperty.GET_NUMERIC_FUNCTIONS
-        .getProp(connection.meta, connection.handle, String.class);
+    return connection.invokeWithRetries(
+        new CallableWithoutException<String>() {
+          public String call() {
+            return Meta.DatabaseProperty.GET_NUMERIC_FUNCTIONS
+                .getProp(connection.meta, connection.handle, String.class);
+          }
+        });
   }
 
   public String getStringFunctions() throws SQLException {
-    return Meta.DatabaseProperty.GET_STRING_FUNCTIONS
-        .getProp(connection.meta, connection.handle, String.class);
+    return connection.invokeWithRetries(
+        new CallableWithoutException<String>() {
+          public String call() {
+            return Meta.DatabaseProperty.GET_STRING_FUNCTIONS
+                .getProp(connection.meta, connection.handle, String.class);
+          }
+        });
   }
 
   public String getSystemFunctions() throws SQLException {
-    return Meta.DatabaseProperty.GET_SYSTEM_FUNCTIONS
-        .getProp(connection.meta, connection.handle, String.class);
+    return connection.invokeWithRetries(
+        new CallableWithoutException<String>() {
+          public String call() {
+            return Meta.DatabaseProperty.GET_SYSTEM_FUNCTIONS
+                .getProp(connection.meta, connection.handle, String.class);
+          }
+        });
   }
 
   public String getTimeDateFunctions() throws SQLException {
-    return Meta.DatabaseProperty.GET_TIME_DATE_FUNCTIONS
-        .getProp(connection.meta, connection.handle, String.class);
+    return connection.invokeWithRetries(
+        new CallableWithoutException<String>() {
+          public String call() {
+            return Meta.DatabaseProperty.GET_TIME_DATE_FUNCTIONS
+                .getProp(connection.meta, connection.handle, String.class);
+          }
+        });
   }
 
   public String getSearchStringEscape() throws SQLException {
@@ -234,8 +261,7 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  public boolean supportsConvert(
-      int fromType, int toType) throws SQLException {
+  public boolean supportsConvert(int fromType, int toType) throws SQLException {
     return false; // TODO: more detail
   }
 
@@ -528,8 +554,13 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() throws SQLException {
-    return Meta.DatabaseProperty.GET_DEFAULT_TRANSACTION_ISOLATION
-        .getProp(connection.meta, connection.handle, Integer.class);
+    return connection.invokeWithRetries(
+        new CallableWithoutException<Integer>() {
+          public Integer call() {
+            return Meta.DatabaseProperty.GET_DEFAULT_TRANSACTION_ISOLATION
+                .getProp(connection.meta, connection.handle, Integer.class);
+          }
+        });
   }
 
   public boolean supportsTransactions() throws SQLException {
@@ -560,33 +591,90 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getProcedures(
-      String catalog,
-      String schemaPattern,
-      String procedureNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getProcedures(connection.handle, catalog, pat(schemaPattern),
-            pat(procedureNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String procedureNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getProcedures(connection.handle, catalog, pat(schemaPattern),
+                        pat(procedureNamePattern)),
+                    new QueryState(MetaDataOperation.GET_PROCEDURES, catalog, schemaPattern,
+                        procedureNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getProcedureColumns(
-      String catalog,
-      String schemaPattern,
-      String procedureNamePattern,
-      String columnNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getProcedureColumns(connection.handle, catalog, pat(schemaPattern),
-            pat(procedureNamePattern), pat(columnNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String procedureNamePattern,
+      final String columnNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getProcedureColumns(connection.handle, catalog,
+                        pat(schemaPattern), pat(procedureNamePattern), pat(columnNamePattern)),
+                    new QueryState(MetaDataOperation.GET_PROCEDURE_COLUMNS, catalog, schemaPattern,
+                        procedureNamePattern, columnNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getTables(
-      String catalog,
+      final String catalog,
       final String schemaPattern,
-      String tableNamePattern,
-      String[] types) throws SQLException {
-    List<String> typeList = types == null ? null : Arrays.asList(types);
-    return connection.createResultSet(
-        connection.meta.getTables(connection.handle, catalog, pat(schemaPattern),
-            pat(tableNamePattern), typeList));
+      final String tableNamePattern,
+      final String[] types) throws SQLException {
+    final List<String> typeList = types == null ? null : Arrays.asList(types);
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getTables(connection.handle, catalog, pat(schemaPattern),
+                        pat(tableNamePattern), typeList),
+                    new QueryState(MetaDataOperation.GET_TABLES, catalog, schemaPattern,
+                        tableNamePattern, types));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   private static Meta.Pat pat(String schemaPattern) {
@@ -594,11 +682,30 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getSchemas(
-      String catalog, String schemaPattern) throws SQLException {
+      final String catalog, final String schemaPattern) throws SQLException {
     // TODO: add a 'catch ... throw new SQLException' logic to this and other
     // getXxx methods. Right now any error will throw a RuntimeException
-    return connection.createResultSet(
-        connection.meta.getSchemas(connection.handle, catalog, pat(schemaPattern)));
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getSchemas(connection.handle, catalog, pat(schemaPattern)),
+                    new QueryState(MetaDataOperation.GET_SCHEMAS_WITH_ARGS, catalog,
+                        schemaPattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getSchemas() throws SQLException {
@@ -606,103 +713,342 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getCatalogs() throws SQLException {
-    return connection.createResultSet(connection.meta.getCatalogs(connection.handle));
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(connection.meta.getCatalogs(connection.handle),
+                    new QueryState(MetaDataOperation.GET_CATALOGS));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getTableTypes() throws SQLException {
-    return connection.createResultSet(connection.meta.getTableTypes(connection.handle));
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(connection.meta.getTableTypes(connection.handle),
+                    new QueryState(MetaDataOperation.GET_TABLE_TYPES));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getColumns(
-      String catalog,
-      String schemaPattern,
-      String tableNamePattern,
-      String columnNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getColumns(connection.handle,
-            catalog, pat(schemaPattern),
-            pat(tableNamePattern), pat(columnNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String tableNamePattern,
+      final String columnNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getColumns(connection.handle, catalog, pat(schemaPattern),
+                        pat(tableNamePattern), pat(columnNamePattern)),
+                    new QueryState(MetaDataOperation.GET_COLUMNS, catalog, schemaPattern,
+                        tableNamePattern, columnNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getColumnPrivileges(
-      String catalog,
-      String schema,
-      String table,
-      String columnNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getColumnPrivileges(connection.handle, catalog, schema, table,
-            pat(columnNamePattern)));
+      final String catalog,
+      final String schema,
+      final String table,
+      final String columnNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getColumnPrivileges(connection.handle, catalog, schema, table,
+                        pat(columnNamePattern)),
+                    new QueryState(MetaDataOperation.GET_COLUMN_PRIVILEGES, catalog, schema, table,
+                        columnNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getTablePrivileges(
-      String catalog,
-      String schemaPattern,
-      String tableNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getTablePrivileges(connection.handle, catalog, pat(schemaPattern),
-            pat(tableNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String tableNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getTablePrivileges(connection.handle, catalog,
+                        pat(schemaPattern), pat(tableNamePattern)),
+                    new QueryState(MetaDataOperation.GET_TABLE_PRIVILEGES, catalog, schemaPattern,
+                        tableNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getBestRowIdentifier(
-      String catalog,
-      String schema,
-      String table,
-      int scope,
-      boolean nullable) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getBestRowIdentifier(connection.handle, catalog, schema, table, scope,
-            nullable));
+      final String catalog,
+      final String schema,
+      final String table,
+      final int scope,
+      final boolean nullable) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getBestRowIdentifier(connection.handle, catalog, schema, table,
+                        scope, nullable),
+                    new QueryState(MetaDataOperation.GET_BEST_ROW_IDENTIFIER, catalog, table, scope,
+                        nullable));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getVersionColumns(
-      String catalog, String schema, String table) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getVersionColumns(connection.handle, catalog, schema, table));
+      final String catalog, final String schema, final String table) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getVersionColumns(connection.handle, catalog, schema, table),
+                    new QueryState(MetaDataOperation.GET_VERSION_COLUMNS, catalog, schema, table));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getPrimaryKeys(
-      String catalog, String schema, String table) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getPrimaryKeys(connection.handle, catalog, schema, table));
+      final String catalog, final String schema, final String table) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getPrimaryKeys(connection.handle, catalog, schema, table),
+                    new QueryState(MetaDataOperation.GET_PRIMARY_KEYS, catalog, schema, table));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getImportedKeys(
-      String catalog, String schema, String table) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getImportedKeys(connection.handle, catalog, schema, table));
+      final String catalog, final String schema, final String table) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getImportedKeys(connection.handle, catalog, schema, table),
+                    new QueryState(MetaDataOperation.GET_IMPORTED_KEYS, catalog, schema, table));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getExportedKeys(
-      String catalog, String schema, String table) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getExportedKeys(connection.handle, catalog, schema, table));
+      final String catalog, final String schema, final String table) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getExportedKeys(connection.handle, catalog, schema, table),
+                    new QueryState(MetaDataOperation.GET_EXPORTED_KEYS, catalog, schema, table));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getCrossReference(
-      String parentCatalog,
-      String parentSchema,
-      String parentTable,
-      String foreignCatalog,
-      String foreignSchema,
-      String foreignTable) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getCrossReference(connection.handle, parentCatalog, parentSchema,
-            parentTable, foreignCatalog, foreignSchema, foreignTable));
+      final String parentCatalog,
+      final String parentSchema,
+      final String parentTable,
+      final String foreignCatalog,
+      final String foreignSchema,
+      final String foreignTable) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getCrossReference(connection.handle, parentCatalog,
+                        parentSchema, parentTable, foreignCatalog, foreignSchema, foreignTable),
+                    new QueryState(MetaDataOperation.GET_CROSS_REFERENCE, parentCatalog,
+                        parentSchema, parentTable, foreignCatalog, foreignSchema, foreignTable));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getTypeInfo() throws SQLException {
-    return connection.createResultSet(connection.meta.getTypeInfo(connection.handle));
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(connection.meta.getTypeInfo(connection.handle),
+                    new QueryState(MetaDataOperation.GET_TYPE_INFO));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getIndexInfo(
-      String catalog,
-      String schema,
-      String table,
-      boolean unique,
-      boolean approximate) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getIndexInfo(connection.handle, catalog, schema, table, unique,
-            approximate));
+      final String catalog,
+      final String schema,
+      final String table,
+      final boolean unique,
+      final boolean approximate) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getIndexInfo(connection.handle, catalog, schema, table, unique,
+                        approximate),
+                    new QueryState(MetaDataOperation.GET_INDEX_INFO, catalog, schema, table, unique,
+                        approximate));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public boolean supportsResultSetType(int type) throws SQLException {
@@ -756,13 +1102,32 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getUDTs(
-      String catalog,
-      String schemaPattern,
-      String typeNamePattern,
-      int[] types) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getUDTs(connection.handle, catalog, pat(schemaPattern),
-            pat(typeNamePattern), types));
+      final String catalog,
+      final String schemaPattern,
+      final String typeNamePattern,
+      final int[] types) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getUDTs(connection.handle, catalog, pat(schemaPattern),
+                        pat(typeNamePattern), types),
+                    new QueryState(MetaDataOperation.GET_UDTS, catalog, schemaPattern,
+                        typeNamePattern, types));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public Connection getConnection() throws SQLException {
@@ -786,31 +1151,88 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getSuperTypes(
-      String catalog,
-      String schemaPattern,
-      String typeNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getSuperTypes(connection.handle, catalog, pat(schemaPattern),
-            pat(typeNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String typeNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getSuperTypes(connection.handle, catalog, pat(schemaPattern),
+                        pat(typeNamePattern)),
+                    new QueryState(MetaDataOperation.GET_SUPER_TYPES, catalog, schemaPattern,
+                        typeNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getSuperTables(
-      String catalog,
-      String schemaPattern,
-      String tableNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getSuperTables(connection.handle, catalog, pat(schemaPattern),
-            pat(tableNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String tableNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getSuperTables(connection.handle, catalog, pat(schemaPattern),
+                        pat(tableNamePattern)),
+                    new QueryState(MetaDataOperation.GET_SUPER_TABLES, catalog, schemaPattern,
+                        tableNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getAttributes(
-      String catalog,
-      String schemaPattern,
-      String typeNamePattern,
-      String attributeNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getAttributes(connection.handle, catalog, pat(schemaPattern),
-            pat(typeNamePattern), pat(attributeNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String typeNamePattern,
+      final String attributeNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getAttributes(connection.handle, catalog, pat(schemaPattern),
+                        pat(typeNamePattern), pat(attributeNamePattern)),
+                    new QueryState(MetaDataOperation.GET_ATTRIBUTES, catalog, schemaPattern,
+                        typeNamePattern, attributeNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public boolean supportsResultSetHoldability(int holdability)
@@ -864,37 +1286,112 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public ResultSet getClientInfoProperties() throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getClientInfoProperties(connection.handle));
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getClientInfoProperties(connection.handle),
+                    new QueryState(MetaDataOperation.GET_CLIENT_INFO_PROPERTIES));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getFunctions(
-      String catalog,
-      String schemaPattern,
-      String functionNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getFunctions(connection.handle, catalog, pat(schemaPattern),
-            pat(functionNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String functionNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getFunctions(connection.handle, catalog, pat(schemaPattern),
+                        pat(functionNamePattern)),
+                    new QueryState(MetaDataOperation.GET_FUNCTIONS, catalog, schemaPattern,
+                        functionNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getFunctionColumns(
-      String catalog,
-      String schemaPattern,
-      String functionNamePattern,
-      String columnNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getFunctionColumns(connection.handle, catalog, pat(schemaPattern),
-            pat(functionNamePattern), pat(columnNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String functionNamePattern,
+      final String columnNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getFunctionColumns(connection.handle, catalog,
+                        pat(schemaPattern), pat(functionNamePattern), pat(columnNamePattern)),
+                    new QueryState(MetaDataOperation.GET_FUNCTION_COLUMNS, catalog,
+                        schemaPattern, functionNamePattern, columnNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public ResultSet getPseudoColumns(
-      String catalog,
-      String schemaPattern,
-      String tableNamePattern,
-      String columnNamePattern) throws SQLException {
-    return connection.createResultSet(
-        connection.meta.getPseudoColumns(connection.handle, catalog, pat(schemaPattern),
-            pat(tableNamePattern), pat(columnNamePattern)));
+      final String catalog,
+      final String schemaPattern,
+      final String tableNamePattern,
+      final String columnNamePattern) throws SQLException {
+    try {
+      return connection.invokeWithRetries(
+          new CallableWithoutException<ResultSet>() {
+            public ResultSet call() {
+              try {
+                return connection.createResultSet(
+                    connection.meta.getPseudoColumns(connection.handle, catalog, pat(schemaPattern),
+                        pat(tableNamePattern), pat(columnNamePattern)),
+                    new QueryState(MetaDataOperation.GET_PSEUDO_COLUMNS, catalog, schemaPattern,
+                        tableNamePattern, columnNamePattern));
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+    } catch (RuntimeException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof SQLException) {
+        throw (SQLException) cause;
+      }
+      throw e;
+    }
   }
 
   public boolean generatedKeyAlwaysReturned() throws SQLException {

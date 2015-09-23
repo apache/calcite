@@ -25,6 +25,8 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
+import org.apache.calcite.avatica.NoSuchStatementException;
+import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -528,7 +530,13 @@ public class CalciteMetaImpl extends MetaImpl {
         "TABLE_TYPE");
   }
 
-  @Override public Iterable<Object> createIterable(StatementHandle handle,
+  @Override public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
+      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
+    // Drop QueryState
+    return _createIterable(handle, signature, parameterValues, firstFrame);
+  }
+
+  Iterable<Object> _createIterable(StatementHandle handle,
       Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
     try {
       //noinspection unchecked
@@ -584,7 +592,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Iterator<Object> iterator;
     if (stmt.getResultSet() == null) {
       final Iterable<Object> iterable =
-          createIterable(h, signature, null, null);
+          _createIterable(h, signature, null, null);
       iterator = iterable.iterator();
       stmt.setResultSet(iterator);
     } else {
@@ -606,7 +614,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Iterator<Object> iterator;
 
     final Iterable<Object> iterable =
-        createIterable(h, signature, parameterValues, null);
+        _createIterable(h, signature, parameterValues, null);
     iterator = iterable.iterator();
     stmt.setResultSet(iterator);
 
@@ -642,6 +650,12 @@ public class CalciteMetaImpl extends MetaImpl {
   public static CalciteConnection connect(CalciteRootSchema schema,
       JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
+  }
+
+  public boolean syncResults(StatementHandle h, QueryState state, long offset)
+      throws NoSuchStatementException {
+    // Doesn't have application in Calcite itself.
+    throw new UnsupportedOperationException();
   }
 
   /** Metadata describing a Calcite table. */

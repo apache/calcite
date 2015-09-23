@@ -16,56 +16,26 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.AvaticaUtils;
-
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 /**
  * ProtobufService implementation that queries against a remote implementation, using
  * protocol buffers as the serialized form.
  */
 public class RemoteProtobufService extends ProtobufService {
-  private final URL url;
+  private final AvaticaHttpClient client;
   private final ProtobufTranslation translation;
 
-  public RemoteProtobufService(URL url, ProtobufTranslation translation) {
-    this.url = url;
+  public RemoteProtobufService(AvaticaHttpClient client, ProtobufTranslation translation) {
+    this.client = client;
     this.translation = translation;
   }
 
   @Override public Response _apply(Request request) {
-    final InputStream inputStream;
-
+    final Response resp;
     try {
-      final HttpURLConnection connection =
-          (HttpURLConnection) url.openConnection();
-      connection.setRequestMethod("POST");
-      connection.setDoInput(true);
-      connection.setDoOutput(true);
-      try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-        // Convert the Request to a protobuf and send it over the wire
-        wr.write(translation.serializeRequest(request));
-        wr.flush();
-        wr.close();
-      }
-      final int responseCode = connection.getResponseCode();
-      if (responseCode != HttpURLConnection.HTTP_OK) {
-        inputStream = connection.getErrorStream();
-      } else {
-        inputStream = connection.getInputStream();
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    Response resp;
-    try {
-      // Read the (serialized protobuf) response off the wire and convert it back to a Response
-      resp = translation.parseResponse(AvaticaUtils.readFullyToBytes(inputStream));
+      byte[] response = client.send(translation.serializeRequest(request));
+      resp = translation.parseResponse(response);
     } catch (IOException e) {
       // Not a protobuf that we could parse.
       throw new RuntimeException(e);

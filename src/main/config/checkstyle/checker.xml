@@ -90,10 +90,6 @@ limitations under the License.
     </module>
       <!-- Switch statements should be complete and with independent cases -->
     <module name="FallThrough"/>
-    <!-- For hadoop_yarn profile, some YARN exceptions aren't loading in checkstyle -->
-    <module name="RedundantThrows">
-        <property name="suppressLoadErrors" value="true" />
-    </module>
     <module name="SimplifyBooleanExpression"/>
     <module name="SimplifyBooleanReturn"/>
       <!-- Only one statement per line allowed -->

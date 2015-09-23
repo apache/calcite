@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.Meta.Frame;
 import org.apache.calcite.avatica.Meta.Signature;
 import org.apache.calcite.avatica.Meta.Style;
 import org.apache.calcite.avatica.MetaImpl;
+import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.remote.Service.CatalogsRequest;
 import org.apache.calcite.avatica.remote.Service.CloseConnectionRequest;
 import org.apache.calcite.avatica.remote.Service.CloseConnectionResponse;
@@ -51,6 +52,8 @@ import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 import org.apache.calcite.avatica.remote.Service.ResultSetResponse;
 import org.apache.calcite.avatica.remote.Service.SchemasRequest;
+import org.apache.calcite.avatica.remote.Service.SyncResultsRequest;
+import org.apache.calcite.avatica.remote.Service.SyncResultsResponse;
 import org.apache.calcite.avatica.remote.Service.TableTypesRequest;
 import org.apache.calcite.avatica.remote.Service.TablesRequest;
 import org.apache.calcite.avatica.remote.Service.TypeInfoRequest;
@@ -198,7 +201,28 @@ public class ProtobufTranslationImplTest<T> {
             new ConnectionPropertiesImpl(Boolean.FALSE, Boolean.FALSE,
                 Integer.MAX_VALUE, "catalog", "schema")));
 
+    requests.add(new SyncResultsRequest("connectionId", 12345, getSqlQueryState(), 150));
+    requests.add(new SyncResultsRequest("connectionId2", 54321, getMetadataQueryState1(), 0));
+    requests.add(new SyncResultsRequest("connectionId3", 5, getMetadataQueryState2(), 10));
+
     return requests;
+  }
+
+  private static QueryState getSqlQueryState() {
+    return new QueryState("SELECT * from TABLE");
+  }
+
+  private static QueryState getMetadataQueryState1() {
+    return new QueryState(MetaDataOperation.GET_COLUMNS, new Object[] {
+      "",
+      null,
+      "%",
+      "%"
+    });
+  }
+
+  private static QueryState getMetadataQueryState2() {
+    return new QueryState(MetaDataOperation.GET_CATALOGS, new Object[0]);
   }
 
   private static List<Request> getRequestsWithNulls() {
@@ -269,8 +293,10 @@ public class ProtobufTranslationImplTest<T> {
     }
     responses.add(new DatabasePropertyResponse(propertyMap));
 
-    responses.add(new ExecuteResponse(Arrays.asList(results1, results1, results1)));
-    responses.add(new FetchResponse(frame));
+    responses.add(new ExecuteResponse(Arrays.asList(results1, results1, results1), false));
+    responses.add(new FetchResponse(frame, false, false));
+    responses.add(new FetchResponse(frame, true, true));
+    responses.add(new FetchResponse(frame, false, true));
     responses.add(
         new PrepareResponse(
             new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
@@ -282,6 +308,13 @@ public class ProtobufTranslationImplTest<T> {
         new ErrorResponse(Collections.singletonList(sw.toString()), "Test Error Message",
             ErrorResponse.UNKNOWN_ERROR_CODE, ErrorResponse.UNKNOWN_SQL_STATE,
             AvaticaSeverity.WARNING));
+
+    // No more results, statement not missing
+    responses.add(new SyncResultsResponse(false, false));
+    // Missing statement, no results
+    responses.add(new SyncResultsResponse(false, true));
+    // More results, no missing statement
+    responses.add(new SyncResultsResponse(true, false));
 
     return responses;
   }

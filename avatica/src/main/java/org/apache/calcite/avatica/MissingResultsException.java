@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.remote;
+package org.apache.calcite.avatica;
 
-import java.nio.charset.StandardCharsets;
+import org.apache.calcite.avatica.Meta.StatementHandle;
+
+import java.sql.ResultSet;
 
 /**
- * Implementation of {@link org.apache.calcite.avatica.remote.Service}
- * that translates requests into JSON and sends them to a remote server,
- * usually an HTTP server.
+ * An Exception which denotes that a cached Statement is present but has no {@link ResultSet}.
  */
-public class RemoteService extends JsonService {
-  private final AvaticaHttpClient client;
+public class MissingResultsException extends Exception {
 
-  public RemoteService(AvaticaHttpClient client) {
-    this.client = client;
+  private static final long serialVersionUID = 1L;
+
+  private final StatementHandle handle;
+
+  public MissingResultsException(StatementHandle handle) {
+    this.handle = handle;
   }
 
-  @Override public String apply(String request) {
-    byte[] response = client.send(request.getBytes(StandardCharsets.UTF_8));
-    return new String(response, StandardCharsets.UTF_8);
+  public StatementHandle getHandle() {
+    return handle;
   }
 }
 
-// End RemoteService.java
+// End MissingResultsException.java

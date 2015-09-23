@@ -30,6 +30,7 @@ import org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareRequest;
 import org.apache.calcite.avatica.proto.Requests.SchemasRequest;
+import org.apache.calcite.avatica.proto.Requests.SyncResultsRequest;
 import org.apache.calcite.avatica.proto.Requests.TableTypesRequest;
 import org.apache.calcite.avatica.proto.Requests.TablesRequest;
 import org.apache.calcite.avatica.proto.Requests.TypeInfoRequest;
@@ -44,6 +45,7 @@ import org.apache.calcite.avatica.proto.Responses.FetchResponse;
 import org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse;
 import org.apache.calcite.avatica.proto.Responses.PrepareResponse;
 import org.apache.calcite.avatica.proto.Responses.ResultSetResponse;
+import org.apache.calcite.avatica.proto.Responses.SyncResultsResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 
@@ -106,6 +108,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new RequestTranslator(TypeInfoRequest.parser(), new Service.TypeInfoRequest()));
     reqParsers.put(ExecuteRequest.class.getName(),
         new RequestTranslator(ExecuteRequest.parser(), new Service.ExecuteRequest()));
+    reqParsers.put(SyncResultsRequest.class.getName(),
+        new RequestTranslator(SyncResultsRequest.parser(), new Service.SyncResultsRequest()));
 
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 
@@ -138,6 +142,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new ResponseTranslator(ResultSetResponse.parser(), new Service.ResultSetResponse()));
     respParsers.put(ErrorResponse.class.getName(),
         new ResponseTranslator(ErrorResponse.parser(), new Service.ErrorResponse()));
+    respParsers.put(SyncResultsResponse.class.getName(),
+        new ResponseTranslator(SyncResultsResponse.parser(), new Service.SyncResultsResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
   }
