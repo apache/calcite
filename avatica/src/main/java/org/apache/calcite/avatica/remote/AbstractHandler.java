@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaSeverity;
+import org.apache.calcite.avatica.NoSuchConnectionException;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
@@ -68,6 +69,10 @@ public abstract class AbstractHandler<T> implements Handler<T> {
       sqlState = rte.getSqlState();
       severity = rte.getSeverity();
       errorMsg = rte.getErrorMessage();
+    } else if (e instanceof NoSuchConnectionException) {
+      errorCode = ErrorResponse.MISSING_CONNECTION_ERROR_CODE;
+      severity = AvaticaSeverity.ERROR;
+      errorMsg = e.getMessage();
     } else {
       // Try to construct a meaningful error message when the server impl doesn't provide one.
       errorMsg = getCausalChain(e);

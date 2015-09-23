@@ -751,15 +751,23 @@ public abstract class MetaImpl implements Meta {
     return createEmptyResultSet(MetaPseudoColumn.class);
   }
 
-  public Iterable<Object> createIterable(StatementHandle handle,
+  @Override public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
       Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
     if (firstFrame != null && firstFrame.done) {
       return firstFrame.rows;
     }
-    return new FetchIterable(handle, firstFrame, parameterValues);
+    AvaticaStatement stmt;
+    try {
+      stmt = connection.lookupStatement(handle);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    return new FetchIterable(stmt, state,
+        firstFrame, parameterValues);
   }
 
-  public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) {
+  public Frame fetch(AvaticaStatement stmt, List<TypedValue> parameterValues,
+      long offset, int fetchMaxRowCount) throws NoSuchStatementException, MissingResultsException {
     return null;
   }
 
@@ -824,33 +832,40 @@ public abstract class MetaImpl implements Meta {
   /** Iterable that yields an iterator over rows coming from a sequence of
    * {@link Frame}s. */
   private class FetchIterable implements Iterable<Object> {
-    private final StatementHandle handle;
+    private final AvaticaStatement stmt;
+    private final QueryState state;
     private final Frame firstFrame;
     private final List<TypedValue> parameterValues;
 
-    public FetchIterable(StatementHandle handle, Frame firstFrame,
+    public FetchIterable(AvaticaStatement stmt, QueryState state, Frame firstFrame,
         List<TypedValue> parameterValues) {
-      this.handle = handle;
+      this.stmt = stmt;
+      this.state = state;
       this.firstFrame = firstFrame;
       this.parameterValues = parameterValues;
     }
 
     public Iterator<Object> iterator() {
-      return new FetchIterator(handle, firstFrame, parameterValues);
+      return new FetchIterator(stmt, state, firstFrame, parameterValues);
     }
   }
 
   /** Iterator over rows coming from a sequence of {@link Frame}s. */
   private class FetchIterator implements Iterator<Object> {
-    private final StatementHandle handle;
+    private final AvaticaStatement stmt;
+    private final QueryState state;
     private Frame frame;
     private Iterator<Object> rows;
     private List<TypedValue> parameterValues;
+    private List<TypedValue> originalParameterValues;
+    private long currentOffset = 0;
 
-    public FetchIterator(StatementHandle handle, Frame firstFrame,
+    public FetchIterator(AvaticaStatement stmt, QueryState state, Frame firstFrame,
         List<TypedValue> parameterValues) {
-      this.handle = handle;
+      this.stmt = stmt;
+      this.state = state;
       this.parameterValues = parameterValues;
+      this.originalParameterValues = parameterValues;
       if (firstFrame == null) {
         frame = Frame.MORE;
         rows = EmptyIterator.INSTANCE;
@@ -874,6 +889,7 @@ public abstract class MetaImpl implements Meta {
         throw new NoSuchElementException();
       }
       final Object o = rows.next();
+      currentOffset++;
       moveNext();
       return o;
     }
@@ -887,7 +903,31 @@ public abstract class MetaImpl implements Meta {
           rows = null;
           break;
         }
-        frame = fetch(handle, frame.offset, AvaticaStatement.DEFAULT_FETCH_SIZE);
+        try {
+          // currentOffset updated after element is read from `rows` iterator
+          frame = fetch(stmt.handle, currentOffset, AvaticaStatement.DEFAULT_FETCH_SIZE);
+        } catch (NoSuchStatementException e) {
+          resetStatement();
+          // re-fetch the batch where we left off
+          continue;
+        } catch (MissingResultsException e) {
+          try {
+            // We saw the statement, but it didnt' have a resultset initialized. So, reset it.
+            if (!stmt.syncResults(state, currentOffset)) {
+              // This returned false, so there aren't actually any more results to iterate over
+              frame = null;
+              rows = null;
+              break;
+            }
+            // syncResults returning true means we need to fetch those results
+          } catch (NoSuchStatementException e1) {
+            // Tried to reset the result set, but lost the statement, save a loop before retrying.
+            resetStatement();
+            // Will just loop back around to a MissingResultsException, but w/e recursion
+          }
+          // Kick back to the top to try to fetch again (in both branches)
+          continue;
+        }
         parameterValues = null; // don't execute next time
         if (frame == null) {
           rows = null;
@@ -897,6 +937,13 @@ public abstract class MetaImpl implements Meta {
         // check
         rows = frame.rows.iterator();
       }
+    }
+
+    private void resetStatement() {
+      // If we have to reset the statement, we need to reset the parameterValues too
+      parameterValues = originalParameterValues;
+      // Defer to the statement to reset itself
+      stmt.resetStatement();
     }
   }
 

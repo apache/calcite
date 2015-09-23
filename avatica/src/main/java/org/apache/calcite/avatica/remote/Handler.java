@@ -46,6 +46,10 @@ public interface Handler<T> {
     public int getStatusCode() {
       return statusCode;
     }
+
+    @Override public String toString() {
+      return "Response: " + response + ", Status:" + statusCode;
+    }
   }
 
   HandlerResponse<T> apply(T request);

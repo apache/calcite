@@ -206,3 +206,67 @@ enum Severity {
   ERROR_SEVERITY = 2;
   WARNING_SEVERITY = 3;
 }
+
+// Enumeration corresponding to DatabaseMetaData operations
+enum MetaDataOperation {
+  GET_ATTRIBUTES = 0;
+  GET_BEST_ROW_IDENTIFIER = 1;
+  GET_CATALOGS = 2;
+  GET_CLIENT_INFO_PROPERTIES = 3;
+  GET_COLUMN_PRIVILEGES = 4;
+  GET_COLUMNS = 5;
+  GET_CROSS_REFERENCE = 6;
+  GET_EXPORTED_KEYS = 7;
+  GET_FUNCTION_COLUMNS = 8;
+  GET_FUNCTIONS = 9;
+  GET_IMPORTED_KEYS = 10;
+  GET_INDEX_INFO = 11;
+  GET_PRIMARY_KEYS = 12;
+  GET_PROCEDURE_COLUMNS = 13;
+  GET_PROCEDURES = 14;
+  GET_PSEUDO_COLUMNS = 15;
+  GET_SCHEMAS = 16;
+  GET_SCHEMAS_WITH_ARGS = 17;
+  GET_SUPER_TABLES = 18;
+  GET_SUPER_TYPES = 19;
+  GET_TABLE_PRIVILEGES = 20;
+  GET_TABLES = 21;
+  GET_TABLE_TYPES = 22;
+  GET_TYPE_INFO = 23;
+  GET_UDTS = 24;
+  GET_VERSION_COLUMNS = 25;
+}
+
+// Represents the breadth of arguments to DatabaseMetaData functions
+message MetaDataOperationArgument {
+  enum ArgumentType {
+    STRING = 0;
+    BOOL = 1;
+    INT = 2;
+    REPEATED_STRING = 3;
+    REPEATED_INT = 4;
+    NULL = 5;
+  }
+    
+  string string_value = 1;
+  bool bool_value = 2;
+  sint32 int_value = 3;
+  repeated string string_array_values = 4;
+  repeated sint32 int_array_values = 5;
+  ArgumentType type = 6;
+}
+
+enum StateType {
+  SQL = 0;
+  METADATA = 1;
+}
+
+message QueryState {
+  StateType type = 1;
+  string sql = 2;
+  MetaDataOperation op = 3;
+  repeated MetaDataOperationArgument args = 4;
+  bool has_args = 5;
+  bool has_sql = 6;
+  bool has_op = 7;
+}

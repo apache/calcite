@@ -51,13 +51,14 @@ public interface AvaticaFactory {
    * {@link AvaticaResultSet#execute()} on it.
    *
    * @param statement Statement
+   * @param state The state used to create this result set
    * @param signature Prepared statement
    * @param timeZone Time zone
    * @param firstFrame Frame containing the first (or perhaps only) rows in the
    *                   result, or null if an execute/fetch is required
    * @return Result set
    */
-  AvaticaResultSet newResultSet(AvaticaStatement statement,
+  AvaticaResultSet newResultSet(AvaticaStatement statement, QueryState state,
       Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame)
       throws SQLException;
 

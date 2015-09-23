@@ -35,6 +35,7 @@ import com.google.common.cache.Cache;
 
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -344,6 +345,7 @@ public class RemoteMetaTest {
     }
   }
 
+  @Ignore("[CALCITE-942] AvaticaConnection should fail-fast when closed.")
   @Test public void testRemoteConnectionClosing() throws Exception {
     AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
     // Verify connection is usable
@@ -354,9 +356,9 @@ public class RemoteMetaTest {
     try {
       conn.createStatement();
       fail("expected exception");
-    } catch (RuntimeException e) {
+    } catch (SQLException e) {
       assertThat(e.getMessage(),
-          containsString("Connection not found: invalid id, closed, or expired"));
+          containsString("Connection is closed"));
     }
   }
 

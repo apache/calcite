@@ -23,6 +23,10 @@ import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
+import org.apache.calcite.avatica.MissingResultsException;
+import org.apache.calcite.avatica.NoSuchConnectionException;
+import org.apache.calcite.avatica.NoSuchStatementException;
+import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.remote.TypedValue;
 
@@ -51,7 +55,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -290,7 +293,7 @@ public class JdbcMeta implements Meta {
   private int registerMetaStatement(ResultSet rs) throws SQLException {
     final int id = statementIdGenerator.getAndIncrement();
     StatementInfo statementInfo = new StatementInfo(rs.getStatement());
-    statementInfo.resultSet = rs;
+    statementInfo.setResultSet(rs);
     statementCache.put(id, statementInfo);
     return id;
   }
@@ -508,7 +511,7 @@ public class JdbcMeta implements Meta {
     return null;
   }
 
-  public Iterable<Object> createIterable(StatementHandle handle,
+  public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
       Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
     return null;
   }
@@ -519,7 +522,8 @@ public class JdbcMeta implements Meta {
     }
     Connection conn = connectionCache.getIfPresent(id);
     if (conn == null) {
-      throw new RuntimeException("Connection not found: invalid id, closed, or expired: " + id);
+      throw new NoSuchConnectionException("Connection not found: invalid id, closed, or expired: "
+          + id);
     }
     return conn;
   }
@@ -550,8 +554,9 @@ public class JdbcMeta implements Meta {
       LOG.trace("closing statement " + h);
     }
     try {
-      if (info.resultSet != null) {
-        info.resultSet.close();
+      ResultSet results = info.getResultSet();
+      if (info.isResultSetInitialized() && null != results) {
+        results.close();
       }
       info.statement.close();
     } catch (SQLException e) {
@@ -674,12 +679,11 @@ public class JdbcMeta implements Meta {
   }
 
   public ExecuteResult prepareAndExecute(StatementHandle h, String sql,
-      long maxRowCount, PrepareCallback callback) {
+      long maxRowCount, PrepareCallback callback) throws NoSuchStatementException {
     try {
       final StatementInfo info = statementCache.getIfPresent(h.id);
       if (info == null) {
-        throw new RuntimeException("Statement not found, potentially expired. "
-            + h);
+        throw new NoSuchStatementException(h);
       }
       final Statement statement = info.statement;
       // Special handling of maxRowCount as JDBC 0 is unlimited, our meta 0 row
@@ -689,18 +693,18 @@ public class JdbcMeta implements Meta {
         statement.setMaxRows(0);
       }
       boolean ret = statement.execute(sql);
-      info.resultSet = statement.getResultSet();
-      assert ret || info.resultSet == null;
+      info.setResultSet(statement.getResultSet());
+      // Either execute(sql) returned true or the resultSet was null
+      assert ret || null == info.getResultSet();
       final List<MetaResultSet> resultSets = new ArrayList<>();
-      if (info.resultSet == null) {
+      if (null == info.getResultSet()) {
         // Create a special result set that just carries update count
         resultSets.add(
             JdbcResultSet.count(h.connectionId, h.id,
                 AvaticaUtils.getLargeUpdateCount(statement)));
       } else {
         resultSets.add(
-            JdbcResultSet.create(h.connectionId, h.id, info.resultSet,
-                maxRowCount));
+            JdbcResultSet.create(h.connectionId, h.id, info.getResultSet(), maxRowCount));
       }
       if (LOG.isTraceEnabled()) {
         LOG.trace("prepAndExec statement " + h);
@@ -712,19 +716,51 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) {
+  public boolean syncResults(StatementHandle sh, QueryState state, long offset)
+      throws NoSuchStatementException {
+    try {
+      final Connection conn = getConnection(sh.connectionId);
+      final StatementInfo info = statementCache.getIfPresent(sh.id);
+      if (null == info) {
+        throw new NoSuchStatementException(sh);
+      }
+      final Statement statement = info.statement;
+      // Let the state recreate the necessary ResultSet on the Statement
+      info.setResultSet(state.invoke(conn, statement));
+
+      if (null != info.getResultSet()) {
+        // If it is non-null, try to advance to the requested offset.
+        return info.advanceResultSetToOffset(info.getResultSet(), offset);
+      }
+
+      // No results, nothing to do. Client can move on.
+      return false;
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
+  public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) throws
+      NoSuchStatementException, MissingResultsException {
     if (LOG.isTraceEnabled()) {
       LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:"
           + fetchMaxRowCount);
     }
     try {
-      final StatementInfo statementInfo = Objects.requireNonNull(
-          statementCache.getIfPresent(h.id),
-          "Statement not found, potentially expired. " + h);
-      if (statementInfo.resultSet == null) {
+      final StatementInfo statementInfo = statementCache.getIfPresent(h.id);
+      if (null == statementInfo) {
+        // Statement might have expired, or never existed on this server.
+        throw new NoSuchStatementException(h);
+      }
+
+      if (!statementInfo.isResultSetInitialized()) {
+        // The Statement exists, but the results are missing. Need to call syncResults(...)
+        throw new MissingResultsException(h);
+      }
+      if (statementInfo.getResultSet() == null) {
         return Frame.EMPTY;
       } else {
-        return JdbcResultSet.frame(statementInfo.resultSet, offset,
+        return JdbcResultSet.frame(statementInfo, statementInfo.getResultSet(), offset,
             fetchMaxRowCount, calendar);
       }
     } catch (SQLException e) {
@@ -740,15 +776,16 @@ public class JdbcMeta implements Meta {
   }
 
   @Override public ExecuteResult execute(StatementHandle h,
-      List<TypedValue> parameterValues, long maxRowCount) {
+      List<TypedValue> parameterValues, long maxRowCount) throws NoSuchStatementException {
     try {
       if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
         throw new SQLException("exception while executing query: unbound parameter");
       }
 
-      final StatementInfo statementInfo = Objects.requireNonNull(
-          statementCache.getIfPresent(h.id),
-          "Statement not found, potentially expired. " + h);
+      final StatementInfo statementInfo = statementCache.getIfPresent(h.id);
+      if (null == statementInfo) {
+        throw new NoSuchStatementException(h);
+      }
       final List<MetaResultSet> resultSets = new ArrayList<>();
       final PreparedStatement preparedStatement =
           (PreparedStatement) statementInfo.statement;
@@ -772,14 +809,16 @@ public class JdbcMeta implements Meta {
           signature2 = h.signature;
         }
 
-        statementInfo.resultSet = preparedStatement.getResultSet();
-        if (statementInfo.resultSet == null) {
+        // Make sure we set this for subsequent fetch()'s to find the result set.
+        statementInfo.setResultSet(preparedStatement.getResultSet());
+
+        if (statementInfo.getResultSet() == null) {
           frame = Frame.EMPTY;
           resultSets.add(JdbcResultSet.empty(h.connectionId, h.id, signature2));
         } else {
           resultSets.add(
               JdbcResultSet.create(h.connectionId, h.id,
-                  statementInfo.resultSet, maxRowCount, signature2));
+                  statementInfo.getResultSet(), maxRowCount, signature2));
         }
       } else {
         resultSets.add(
@@ -790,16 +829,6 @@ public class JdbcMeta implements Meta {
       return new ExecuteResult(resultSets);
     } catch (SQLException e) {
       throw propagate(e);
-    }
-  }
-
-  /** All we know about a statement. */
-  private static class StatementInfo {
-    final Statement statement; // sometimes a PreparedStatement
-    ResultSet resultSet;
-
-    private StatementInfo(Statement statement) {
-      this.statement = Objects.requireNonNull(statement);
     }
   }
 
@@ -917,8 +946,8 @@ public class JdbcMeta implements Meta {
                 + notification.getCause());
       }
       try {
-        if (doomed.resultSet != null) {
-          doomed.resultSet.close();
+        if (doomed.getResultSet() != null) {
+          doomed.getResultSet().close();
         }
         if (doomed.statement != null) {
           doomed.statement.close();

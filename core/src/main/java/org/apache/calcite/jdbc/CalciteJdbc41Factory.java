@@ -24,6 +24,7 @@ import org.apache.calcite.avatica.AvaticaPreparedStatement;
 import org.apache.calcite.avatica.AvaticaResultSetMetaData;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.UnregisteredDriver;
 
 import java.io.InputStream;
@@ -90,7 +91,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
         resultSetConcurrency, resultSetHoldability);
   }
 
-  public CalciteResultSet newResultSet(AvaticaStatement statement,
+  public CalciteResultSet newResultSet(AvaticaStatement statement, QueryState state,
       Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame) {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, signature);
