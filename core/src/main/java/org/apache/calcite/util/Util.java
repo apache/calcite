@@ -2176,6 +2176,20 @@ public class Util {
     }
   }
 
+  /** Returns the value of a system property as a boolean.
+   *
+   * <p>For example, the property "foo" is considered true if you supply
+   * {@code -Dfoo} or {@code -Dfoo=true} or {@code -Dfoo=TRUE},
+   * false if you omit the flag or supply {@code -Dfoo=false}.
+   *
+   * @param property Property name
+   * @return Whether property is true
+   */
+  public static boolean getBooleanProperty(String property) {
+    final String v = System.getProperties().getProperty(property);
+    return v != null && ("".equals(v) || "true".equalsIgnoreCase(v));
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**

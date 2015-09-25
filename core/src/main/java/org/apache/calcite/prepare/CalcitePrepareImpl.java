@@ -154,12 +154,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class CalcitePrepareImpl implements CalcitePrepare {
 
-  public static final boolean DEBUG =
-      "true".equals(System.getProperties().getProperty("calcite.debug"));
+  public static final boolean DEBUG = Util.getBooleanProperty("calcite.debug");
 
   public static final boolean COMMUTE =
-      "true".equals(
-          System.getProperties().getProperty("calcite.enable.join.commute"));
+      Util.getBooleanProperty("calcite.enable.join.commute");
 
   /** Whether to enable the collation trait. Some extra optimizations are
    * possible if enabled, but queries should work either way. At some point
