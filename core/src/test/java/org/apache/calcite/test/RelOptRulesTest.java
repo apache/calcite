@@ -72,6 +72,8 @@ import org.apache.calcite.rel.rules.SemiJoinJoinTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinProjectTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinRemoveRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.rules.SortJoinTransposeRule;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -1805,6 +1807,46 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program,
         "select d.deptno, e.deptno from sales.dept d, sales.emp e"
             + " where d.deptno + 10 = e.deptno * 2");
+  }
+
+  @Test public void testSortJoinTranspose1() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    final String sql = "select * from sales.emp e left join (\n"
+            + "select * from sales.dept d) using (deptno)\n"
+            + "order by sal limit 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  @Test public void testSortJoinTranspose2() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    final String sql = "select * from sales.emp e right join (\n"
+            + "select * from sales.dept d) using (deptno)\n"
+            + "order by name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  @Test public void testSortJoinTranspose3() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    // This one cannot be pushed down
+    final String sql = "select * from sales.emp left join (\n"
+            + "select * from sales.dept) using (deptno)\n"
+            + "order by sal, name limit 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
 }

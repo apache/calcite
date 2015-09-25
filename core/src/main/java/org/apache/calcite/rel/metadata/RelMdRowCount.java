@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -65,7 +66,18 @@ public class RelMdRowCount {
   }
 
   public Double getRowCount(Sort rel) {
-    return RelMetadataQuery.getRowCount(rel.getInput());
+    final Double rowCount = RelMetadataQuery.getRowCount(rel.getInput());
+    if (rowCount != null && rel.fetch != null) {
+      final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+      final int limit = RexLiteral.intValue(rel.fetch);
+      final Double offsetLimit = new Double(offset + limit);
+      // offsetLimit is smaller than rowCount of the input operator
+      // thus, we return the offsetLimit
+      if (offsetLimit < rowCount) {
+        return offsetLimit;
+      }
+    }
+    return rowCount;
   }
 
   public Double getRowCount(SemiJoin rel) {
