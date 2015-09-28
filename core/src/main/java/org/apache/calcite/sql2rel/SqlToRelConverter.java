@@ -3723,12 +3723,16 @@ public class SqlToRelConverter {
 
         final List<Integer> leftJoinKeys = Lists.newArrayList();
         for (RexNode leftKey : leftKeys) {
-          newLeftInputExpr.add(leftKey);
-          leftJoinKeys.add(origLeftInputCount + leftJoinKeys.size());
+          int index = newLeftInputExpr.indexOf(leftKey);
+          if (index < 0 || joinType == JoinRelType.LEFT) {
+            index = newLeftInputExpr.size();
+            newLeftInputExpr.add(leftKey);
+          }
+          leftJoinKeys.add(index);
         }
 
-        LogicalProject newLeftInput =
-            (LogicalProject) RelOptUtil.createProject(
+        RelNode newLeftInput =
+            RelOptUtil.createProject(
                 root,
                 newLeftInputExpr,
                 null,
@@ -3747,7 +3751,7 @@ public class SqlToRelConverter {
         final int rightOffset = root.getRowType().getFieldCount()
             - newLeftInput.getRowType().getFieldCount();
         final List<Integer> rightKeys =
-            Util.range(rightOffset, rightOffset + leftJoinKeys.size());
+            Util.range(rightOffset, rightOffset + leftKeys.size());
 
         joinCond =
             RelOptUtil.createEquiJoinCondition(newLeftInput, leftJoinKeys,

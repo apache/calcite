@@ -361,24 +361,20 @@ LogicalProject(EXPR$0=[1])
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1])
   LogicalFilter(condition=[<=($0, 10)])
-    LogicalProject(DEPTNO=[$0], NAME=[$1])
-      SemiJoin(condition=[=($2, $3)], joinType=[inner])
-        LogicalProject($f0=[$0], $f1=[$1], $f2=[$0])
-          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-        LogicalProject(DEPTNO=[$7])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    SemiJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1])
-  LogicalProject(DEPTNO=[$0], NAME=[$1])
-    SemiJoin(condition=[=($2, $3)], joinType=[inner])
-      LogicalFilter(condition=[<=($0, 10)])
-        LogicalProject($f0=[$0], $f1=[$1], $f2=[$0])
-          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalProject(DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalFilter(condition=[<=($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

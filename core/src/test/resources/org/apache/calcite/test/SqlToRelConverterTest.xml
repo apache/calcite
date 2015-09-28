@@ -545,9 +545,8 @@ LogicalProject(EMPNO=[$0])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[=($9, $10)], joinType=[inner])
-    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
       LogicalValues(tuples=[[{ 10 }, { 20 }, { 30 }, { 40 }, { 50 }, { 60 }, { 70 }, { 80 }, { 90 }, { 100 }, { 110 }, { 120 }, { 130 }, { 140 }, { 150 }, { 160 }, { 170 }, { 180 }, { 190 }, { 200 }, { 210 }, { 220 }, { 230 }]])
 ]]>
@@ -560,9 +559,8 @@ LogicalProject(EMPNO=[$0])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[=($9, $10)], joinType=[inner])
-    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
       LogicalProject(DEPTNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -2217,11 +2215,10 @@ having sal in (
         <Resource name="plan">
             <![CDATA[
 LogicalProject(SAL=[$0])
-  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
-    LogicalProject($f0=[$0], $f1=[$0])
-      LogicalAggregate(group=[{0}])
-        LogicalProject(SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
       LogicalProject(DEPTNO=[$0])
         LogicalFilter(condition=[>($1, 0)])
