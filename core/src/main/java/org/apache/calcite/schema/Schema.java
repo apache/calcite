@@ -146,13 +146,13 @@ public interface Schema {
   enum TableType {
     /** A regular table.
      *
-     * <p>Used by PostgreSQL, MySQL and others. */
+     * <p>Used by DB2, MySQL, PostgreSQL and others. */
     TABLE,
 
     /** A relation whose contents are calculated by evaluating a SQL
      * expression.
      *
-     * <p>Used by PostgreSQL and others. */
+     * <p>Used by DB2, PostgreSQL and others. */
     VIEW,
 
     /** Foreign table.
@@ -177,7 +177,7 @@ public interface Schema {
 
     /** Sequence table.
      *
-     * <p>Used by Apache Phoenix, PostgreSQL and others.
+     * <p>Used by Apache Phoenix, Oracle, PostgreSQL and others.
      * In Phoenix, must have a single BIGINT column called "$seq". */
     SEQUENCE,
 
@@ -200,7 +200,8 @@ public interface Schema {
      * "TABLES" and "COLUMNS" table in the "metamodel" schema, examples of
      * system tables.
      *
-     * <p>Used by PostgreSQL, MySQL and others. */
+     * <p>Specified by the JDBC standard and used by DB2, MySQL, Oracle,
+     * PostgreSQL and others. */
     SYSTEM_TABLE,
 
     /** System view.
@@ -245,8 +246,77 @@ public interface Schema {
 
     /** A table that is only visible to one connection.
      *
-     * <p>Used by PostgreSQL, MySQL. */
+     * <p>Specified by the JDBC standard and used by PostgreSQL, MySQL. */
     LOCAL_TEMPORARY,
+
+    /** A synonym.
+     *
+     * <p>Used by DB2, Oracle. */
+    SYNONYM,
+
+    /** An alias.
+     *
+     * <p>Specified by the JDBC standard. */
+    ALIAS,
+
+    /** A global temporary table.
+     *
+     * <p>Specified by the JDBC standard. */
+    GLOBAL_TEMPORARY,
+
+    /** An accel-only table.
+     *
+     * <p>Used by DB2.
+     */
+    ACCEL_ONLY_TABLE,
+
+    /** An auxiliary table.
+     *
+     * <p>Used by DB2.
+     */
+    AUXILIARY_TABLE,
+
+    /** A global temporary table.
+     *
+     * <p>Used by DB2.
+     */
+    GLOBAL_TEMPORARY_TABLE,
+
+    /** A hierarchy table.
+     *
+     * <p>Used by DB2.
+     */
+    HIERARCHY_TABLE,
+
+    /** An inoperative view.
+     *
+     * <p>Used by DB2.
+     */
+    INOPERATIVE_VIEW,
+
+    /** A materialized query table.
+     *
+     * <p>Used by DB2.
+     */
+    MATERIALIZED_QUERY_TABLE,
+
+    /** A nickname.
+     *
+     * <p>Used by DB2.
+     */
+    NICKNAME,
+
+    /** A typed table.
+     *
+     * <p>Used by DB2.
+     */
+    TYPED_TABLE,
+
+    /** A typed view.
+     *
+     * <p>Used by DB2.
+     */
+    TYPED_VIEW,
 
     /** Table type not known to Calcite.
      *
