@@ -296,7 +296,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * FilterAggregateTransposeRule loses conditions that cannot be pushed</a>. */
   @Test public void testPushFilterPastAggTwo() {
     checkPlanning(FilterAggregateTransposeRule.INSTANCE,
@@ -307,7 +307,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-799">[CALCITE-799],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-799">[CALCITE-799]
    * Incorrect result for {@code HAVING count(*) > 1}</a>. */
   @Test public void testPushFilterPastAggThree() {
     checkPlanning(FilterAggregateTransposeRule.INSTANCE,
@@ -315,7 +315,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-448">[CALCITE-448],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-448">[CALCITE-448]
    * FilterIntoJoinRule creates filters containing invalid RexInputRef</a>. */
   @Test public void testPushFilterPastProject() {
     final HepProgram preProgram =
@@ -396,7 +396,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-438">[CALCITE-438],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-438">[CALCITE-438]
    * Push predicates through SemiJoin</a>. */
   @Test public void testPushFilterThroughSemiJoin() {
     final HepProgram preProgram =
@@ -418,7 +418,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-571">[CALCITE-571],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-571">[CALCITE-571]
    * ReduceExpressionsRule tries to reduce SemiJoin condition to non-equi
    * condition</a>. */
   @Test public void testSemiJoinReduceConstants() {
@@ -785,7 +785,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-570">[CALCITE-570],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-570">[CALCITE-570]
    * ReduceExpressionsRule throws "duplicate key" exception</a>. */
   @Test public void testReduceConstantsDup() throws Exception {
     HepProgram program = new HepProgramBuilder()
@@ -812,7 +812,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-902">[CALCITE-902],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-902">[CALCITE-902]
    * Match nullability when reducing expressions in a Project</a>. */
   @Test public void testReduceConstantsProjectNullable() throws Exception {
     HepProgram program = new HepProgramBuilder()
@@ -900,7 +900,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-566">[CALCITE-566],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-566">[CALCITE-566]
    * ReduceExpressionsRule requires planner to have an Executor</a>. */
   @Test public void testReduceConstantsRequiresExecutor() throws Exception {
     HepProgram program = new HepProgramBuilder()
@@ -1625,7 +1625,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
   @Test public void testTransitiveInferenceUnionAlwaysTrue() throws Exception {
     transitiveInference();
@@ -1709,7 +1709,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841]
    * Redundant windows when window function arguments are expressions</a>. */
   @Test public void testExpressionInWindowFunction() {
     HepProgram preProgram =  new HepProgramBuilder().build();
@@ -1728,7 +1728,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-888">[CALCITE-888],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-888">[CALCITE-888]
    * Overlay window loses PARTITION BY list</a>. */
   @Test public void testWindowInParenthesis() {
     HepProgram preProgram =  new HepProgramBuilder()

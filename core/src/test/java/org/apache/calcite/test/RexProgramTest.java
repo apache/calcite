@@ -461,9 +461,9 @@ public class RexProgramTest {
   }
 
   /** Unit test for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-394">CALCITE-394,
-   * "Add RexUtil.toCnf, to convert expressions to conjunctive normal form
-   * (CNF)"</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-394">[CALCITE-394]
+   * Add RexUtil.toCnf, to convert expressions to conjunctive normal form
+   * (CNF)</a>. */
   @Test public void testCnf2() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()

@@ -1710,7 +1710,7 @@ public class JdbcTest {
       querify(QUERIES);
 
   /** Janino bug
-   * <a href="https://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>
+   * <a href="https://jira.codehaus.org/browse/JANINO-169">[JANINO-169]</a>
    * running queries against the JDBC adapter. As of janino-2.7.3 bug is
    * open but we have a workaround in EnumerableRelImplementor. */
   @Test public void testJanino169() {

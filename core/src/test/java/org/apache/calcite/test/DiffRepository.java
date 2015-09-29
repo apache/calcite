@@ -102,7 +102,7 @@ import javax.xml.parsers.ParserConfigurationException;
  *
  * <p>(Maven sometimes removes this file; if it is not present, run maven with
  * an extra {@code -X} flag.
- * See <a href="http://jira.codehaus.org/browse/SUREFIRE-846">SUREFIRE-846</a>
+ * See <a href="http://jira.codehaus.org/browse/SUREFIRE-846">[SUREFIRE-846]</a>
  * for details.)</p>
  *
  * <p>The log

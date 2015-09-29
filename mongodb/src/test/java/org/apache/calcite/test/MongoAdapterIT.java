@@ -774,8 +774,8 @@ public class MongoAdapterIT {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-286">CALCITE-286</a>,
-   * "Error casting MongoDB date". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-286">[CALCITE-286]
+   * Error casting MongoDB date</a>. */
   @Test public void testDate() {
     // Assumes that you have created the following collection before running
     // this test:

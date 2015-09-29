@@ -186,8 +186,8 @@ public class JdbcFrontLinqBackTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-9">CALCITE-9</a>,
-   * "RexToLixTranslator not incrementing local variable name counter". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-9">[CALCITE-9]
+   * RexToLixTranslator not incrementing local variable name counter</a>. */
   @Test public void testWhereOr() {
     hr()
         .query("select * from \"hr\".\"emps\"\n"

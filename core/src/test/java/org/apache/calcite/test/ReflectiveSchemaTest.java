@@ -454,8 +454,9 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-119">CALCITE-119</a>,
-   * "Comparing a Java type long with a SQL type INTEGER gives wrong answer". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-119">[CALCITE-119]
+   * Comparing a Java type long with a SQL type INTEGER gives wrong
+   * answer</a>. */
   @Test public void testCompareJavaAndSqlTypes() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
@@ -548,8 +549,8 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-580">CALCITE-580</a>,
-   * "Average aggregation on an Integer column throws ClassCastException". */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-580">[CALCITE-580]
+   * Average aggregation on an Integer column throws ClassCastException</a>. */
   @Test public void testAvgInt() throws Exception {
     CalciteAssert.that().withSchema("s", CATCHALL).with(Lex.JAVA)
         .query("select primitiveLong, avg(primitiveInt)\n"

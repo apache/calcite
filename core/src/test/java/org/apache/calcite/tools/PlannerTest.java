@@ -283,7 +283,7 @@ public class PlannerTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
   @Test public void testMetadataUnionPredicates2() throws Exception {
     checkMetadataUnionPredicates(
@@ -620,8 +620,8 @@ public class PlannerTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-435">CALCITE-435</a>,
-   * "LoptOptimizeJoinRule incorrectly re-orders outer joins".
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-435">[CALCITE-435]
+   * LoptOptimizeJoinRule incorrectly re-orders outer joins</a>.
    *
    * <p>Checks the
    * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule} on a query with a
@@ -965,7 +965,7 @@ public class PlannerTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-569">[CALCITE-569],
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-569">[CALCITE-569]
    * ArrayIndexOutOfBoundsException when deducing collation</a>. */
   @Test public void testOrderByNonSelectColumn() throws Exception {
     final SchemaPlus schema = Frameworks.createRootSchema(true)

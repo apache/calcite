@@ -131,9 +131,9 @@ public class FrameworksTest {
    * that allows a larger maximum precision for decimals.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-413">CALCITE-413</a>,
-   * "Add RelDataTypeSystem plugin, allowing different max precision of a
-   * DECIMAL".
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-413">[CALCITE-413]
+   * Add RelDataTypeSystem plugin, allowing different max precision of a
+   * DECIMAL</a>.
    *
    * <p>Also tests the plugin system, by specifying implementations of a
    * plugin interface with public and private constructors. */
@@ -169,8 +169,8 @@ public class FrameworksTest {
   /** Tests that the validator expands identifiers by default.
    *
    * <p>Test case for
-   * [<a href="https://issues.apache.org/jira/browse/CALCITE-593">CALCITE-593</a>]
-   * "Validator in Frameworks should expand identifiers".
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-593">[CALCITE-593]
+   * Validator in Frameworks should expand identifiers</a>.
    */
   @Test public void testFrameworksValidatorWithIdentifierExpansion()
       throws Exception {
