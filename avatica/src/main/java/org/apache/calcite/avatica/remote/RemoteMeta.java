@@ -30,7 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Implementation of {@link Meta} for the remote driver.
+ * Implementation of {@link org.apache.calcite.avatica.Meta} for the remote
+ * driver.
  */
 class RemoteMeta extends MetaImpl {
   final Service service;

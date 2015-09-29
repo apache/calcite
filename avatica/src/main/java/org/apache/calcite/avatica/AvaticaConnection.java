@@ -134,7 +134,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public boolean getAutoCommit() throws SQLException {
-    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).isAutoCommit();
+    return unbox(sync().isAutoCommit(), true);
   }
 
   public void commit() throws SQLException {
@@ -173,7 +173,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public boolean isReadOnly() throws SQLException {
-    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).isReadOnly();
+    return unbox(sync().isReadOnly(), true);
   }
 
   public void setCatalog(String catalog) throws SQLException {
@@ -181,7 +181,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public String getCatalog() {
-    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getCatalog();
+    return sync().getCatalog();
   }
 
   public void setTransactionIsolation(int level) throws SQLException {
@@ -190,7 +190,7 @@ public abstract class AvaticaConnection implements Connection {
 
   public int getTransactionIsolation() throws SQLException {
     //noinspection MagicConstant
-    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getTransactionIsolation();
+    return unbox(sync().getTransactionIsolation(), TRANSACTION_NONE);
   }
 
   public SQLWarning getWarnings() throws SQLException {
@@ -358,7 +358,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public String getSchema() {
-    return meta.connectionSync(handle, new ConnectionPropertiesImpl()).getSchema();
+    return sync().getSchema();
   }
 
   public void abort(Executor executor) throws SQLException {
@@ -501,6 +501,20 @@ public abstract class AvaticaConnection implements Connection {
   // do not make public
   protected static Trojan createTrojan() {
     return new Trojan();
+  }
+
+  /** Converts a {@link Boolean} to a {@code boolean}, with a default value. */
+  private boolean unbox(Boolean b, boolean defaultValue) {
+    return b == null ? defaultValue : b;
+  }
+
+  /** Converts an {@link Integer} to an {@code int}, with a default value. */
+  private int unbox(Integer i, int defaultValue) {
+    return i == null ? defaultValue : i;
+  }
+
+  private Meta.ConnectionProperties sync() {
+    return meta.connectionSync(handle, new ConnectionPropertiesImpl());
   }
 
   /** A way to call package-protected methods. But only a sub-class of
