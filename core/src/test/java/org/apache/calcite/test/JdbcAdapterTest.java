@@ -294,6 +294,22 @@ public class JdbcAdapterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-893">[CALCITE-893]
+   * Theta join in JdbcAdapter</a>. */
+  @Test public void testJoinPlan() {
+    final String sql = "SELECT T1.\"brand_name\"\n"
+        + "FROM \"foodmart\".\"product\" AS T1\n"
+        + " INNER JOIN \"foodmart\".\"product_class\" AS T2\n"
+        + " ON T1.\"product_class_id\" = T2.\"product_class_id\"\n"
+        + "WHERE T2.\"product_department\" = 'Frozen Foods'\n"
+        + " OR T2.\"product_department\" = 'Baking Goods'\n"
+        + " AND T1.\"brand_name\" <> 'King'";
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        .query(sql).runs()
+        .returnsCount(275);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-657">[CALCITE-657]
    * NullPointerException when executing JdbcAggregate implement method</a>. */
   @Test public void testJdbcAggregate() throws Exception {
