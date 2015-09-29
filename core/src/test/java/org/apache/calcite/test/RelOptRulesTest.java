@@ -161,7 +161,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, hepPlanner, sql);
   }
 
-  @Test public void testReduceORCaseWhen() {
+  @Test public void testReduceOrCaseWhen() {
     HepProgram preProgram = new HepProgramBuilder()
         .build();
 
@@ -809,6 +809,19 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     checkPlanning(program,
         "select p1 is not distinct from p0 from (values (2, cast(null as integer))) as t(p0, p1)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-902">[CALCITE-902],
+   * Match nullability when reducing expressions in a Project</a>. */
+  @Test public void testReduceConstantsProjectNullable() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    checkPlanning(program, "select mgr from emp where mgr=10");
   }
 
   // see HIVE-9645

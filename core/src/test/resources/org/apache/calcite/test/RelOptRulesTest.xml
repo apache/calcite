@@ -39,7 +39,7 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testReduceORCaseWhen">
+    <TestCase name="testReduceOrCaseWhen">
         <Resource name="sql">
             <![CDATA[select sal
 from emp
@@ -916,6 +916,25 @@ LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL(
 LogicalProject(EXPR$0=[CASE(IS NULL($1), IS NULL($0), CAST(=($1, $0)):BOOLEAN NOT NULL)])
   LogicalProject(EXPR$0=[2], EXPR$1=[null])
     LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsProjectNullable">
+        <Resource name="sql">
+            <![CDATA[select mgr from emp where mgr=10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(MGR=[$3])
+  LogicalFilter(condition=[=($3, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(MGR=[CAST(10):INTEGER])
+  LogicalFilter(condition=[=($3, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

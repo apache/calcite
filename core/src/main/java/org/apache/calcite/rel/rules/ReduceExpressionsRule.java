@@ -580,10 +580,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         // If we make 'abc' of type VARCHAR(4), we may later encounter
         // the same expression in a Project's digest where it has
         // type VARCHAR(3), and that's wrong.
-        replacement =
-            rexBuilder.makeCast(
-                call.getType(),
-                replacement);
+        replacement = rexBuilder.makeCast(call.getType(), replacement, true);
       }
       return replacement;
     }
