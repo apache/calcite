@@ -965,4 +965,81 @@ select * from "scott".emp where '7369' between empno and '7876';
 
 !ok
 
+# [CALCITE-546] Allow table, column and field called "*"
+# See [DRILL-3859], [DRILL-3860].
+SELECT * FROM (VALUES (0, 0)) AS T(A, "*");
++---+---+
+| A | * |
++---+---+
+| 0 | 0 |
++---+---+
+(1 row)
+
+!ok
+
+SELECT a FROM (VALUES (0, 0)) AS T(A, "*");
++---+
+| A |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+SELECT b FROM (VALUES (0, 0)) AS T(A, "*");
+Column 'B' not found in any table
+!error
+
+# See [DRILL-3860].
+SELECT "a" FROM (VALUES (1, 2, 3, 4)) AS T("a", "A", ".", "*");
++---+
+| a |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+SELECT "A" FROM (VALUES (1, 2, 3, 4)) AS T("a", "A", ".", "*");
++---+
+| A |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+SELECT "." FROM (VALUES (1, 2, 3, 4)) AS T("a", "A", ".", "*");
++---+
+| . |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+SELECT "*" FROM (VALUES (1, 2, 3, 4)) AS T("a", "A", ".", "*");
++---+
+| * |
++---+
+| 4 |
++---+
+(1 row)
+
+!ok
+
+SELECT * FROM (VALUES (1, 2, 3, 4)) AS T("a", "A", ".", "*");
++---+---+---+---+
+| a | A | . | * |
++---+---+---+---+
+| 1 | 2 | 3 | 4 |
++---+---+---+---+
+(1 row)
+
+!ok
+
 # End misc.oq

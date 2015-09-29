@@ -2520,4 +2520,15 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testFakeStar">
+        <Resource name="sql">
+            <![CDATA[SELECT * FROM (VALUES (0, 0)) AS T(A, "*")]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(A=[$0], *=[$1])
+  LogicalValues(tuples=[[{ 0, 0 }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

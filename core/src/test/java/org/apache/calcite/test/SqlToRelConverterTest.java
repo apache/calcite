@@ -369,6 +369,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "group by deptno").ok();
   }
 
+  @Test public void testFakeStar() {
+    sql("SELECT * FROM (VALUES (0, 0)) AS T(A, \"*\")").ok();
+  }
+
   @Test public void testSelectDistinct() {
     sql("select distinct sal + 5 from emp").ok();
   }

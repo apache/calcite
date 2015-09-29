@@ -129,8 +129,7 @@ class JdbcTable extends AbstractQueryableTable
   SqlString generateSql() {
     final SqlNodeList selectList =
         new SqlNodeList(
-            Collections.singletonList(
-                new SqlIdentifier("*", SqlParserPos.ZERO)),
+            Collections.singletonList(SqlIdentifier.star(SqlParserPos.ZERO)),
             SqlParserPos.ZERO);
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,

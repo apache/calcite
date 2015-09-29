@@ -4550,6 +4550,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Unknown identifier 'EMPNO'");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-546">[CALCITE-546]
+   * Allow table, column and field called '*'</a>.
+   */
+  @Test public void testStarIdentifier() {
+    sql("SELECT * FROM (VALUES (0, 0)) AS T(A, \"*\")")
+        .type("RecordType(INTEGER NOT NULL A, INTEGER NOT NULL *) NOT NULL");
+  }
+
   @Test public void testStarAliasFails() {
     sql("select emp.^*^ AS x from emp")
         .fails("Unknown field '\\*'");
@@ -4566,9 +4576,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * Parser allows "*" in FROM clause because "*" can occur in any identifier.
    * But validator must not.
    *
-   * <p>See also
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-546">[CALCITE-546]
-   * Allow table, column and field called '*'</a> (not yet fixed).
+   * @see #testStarIdentifier()
    */
   @Test public void testStarInFromFails() {
     sql("select emp.empno AS x from ^sales.*^")

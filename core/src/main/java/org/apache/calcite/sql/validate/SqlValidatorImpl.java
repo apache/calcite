@@ -1054,7 +1054,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
-      selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+      selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
       final SqlNodeList orderList;
       if (getInnerSelect(node) != null && isAggregate(getInnerSelect(node))) {
         orderList =
@@ -1084,7 +1084,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // (TABLE t) is equivalent to (SELECT * FROM t)
       SqlCall call = (SqlCall) node;
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
-      selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+      selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, call.operand(0),
           null, null, null, null, null, null, null);
     }
@@ -4269,7 +4269,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Resolve rest of identifier
       for (; i < id.names.size(); i++) {
         String name = id.names.get(i);
-        final RelDataTypeField field = catalogReader.field(type, name);
+        final RelDataTypeField field;
+        if (name.equals("")) {
+          // The wildcard "*" is represented as an empty name. It never
+          // resolves to a field.
+          name = "*";
+          field = null;
+        } else {
+          field = catalogReader.field(type, name);
+        }
         if (field == null) {
           throw newValidationError(id.getComponent(i),
               RESOURCE.unknownField(name));

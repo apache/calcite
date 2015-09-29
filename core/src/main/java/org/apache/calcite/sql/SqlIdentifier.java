@@ -24,7 +24,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -32,10 +34,27 @@ import java.util.List;
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
  */
 public class SqlIdentifier extends SqlNode {
+  private static final Function<String, String> STAR_TO_EMPTY =
+      new Function<String, String>() {
+        public String apply(String s) {
+          return s.equals("*") ? "" : s;
+        }
+      };
+
+  private static final Function<String, String> EMPTY_TO_STAR =
+      new Function<String, String>() {
+        public String apply(String s) {
+          return s.equals("") ? "*" : s.equals("*") ? "\"*\"" : s;
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
   /**
    * Array of the components of this compound identifier.
+   *
+   * <p>The empty string represents the wildcard "*",
+   * to distinguish it from a real "*" (presumably specified using quotes).
    *
    * <p>It's convenient to have this member public, and it's convenient to
    * have this member not-final, but it's a shame it's public and not-final.
@@ -53,7 +72,7 @@ public class SqlIdentifier extends SqlNode {
   /**
    * A list of the positions of the components of compound identifiers.
    */
-  private ImmutableList<SqlParserPos> componentPositions;
+  protected ImmutableList<SqlParserPos> componentPositions;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -101,6 +120,18 @@ public class SqlIdentifier extends SqlNode {
     this(ImmutableList.of(name), null, pos, null);
   }
 
+  /** Creates an identifier that is a singleton wildcard star. */
+  public static SqlIdentifier star(SqlParserPos pos) {
+    return star(ImmutableList.of(""), pos, ImmutableList.of(pos));
+  }
+
+  /** Creates an identifier that ends in a wildcard star. */
+  public static SqlIdentifier star(List<String> names, SqlParserPos pos,
+      List<SqlParserPos> componentPositions) {
+    return new SqlIdentifier(Lists.transform(names, STAR_TO_EMPTY), null, pos,
+        componentPositions);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   public SqlKind getKind() {
@@ -112,7 +143,7 @@ public class SqlIdentifier extends SqlNode {
   }
 
   public String toString() {
-    return Util.sepList(names, ".");
+    return Util.sepList(Lists.transform(names, EMPTY_TO_STAR), ".");
   }
 
   /**
@@ -194,11 +225,18 @@ public class SqlIdentifier extends SqlNode {
   public SqlIdentifier plus(String name, SqlParserPos pos) {
     final ImmutableList<String> names =
         ImmutableList.<String>builder().addAll(this.names).add(name).build();
-    final ImmutableList.Builder<SqlParserPos> builder = ImmutableList.builder();
-    final ImmutableList<SqlParserPos> componentPositions =
-        builder.addAll(this.componentPositions).add(pos).build();
-    final SqlParserPos pos2 =
-        SqlParserPos.sum(builder.add(this.pos).build());
+    final ImmutableList<SqlParserPos> componentPositions;
+    final SqlParserPos pos2;
+    if (this.componentPositions != null) {
+      final ImmutableList.Builder<SqlParserPos> builder =
+          ImmutableList.builder();
+      componentPositions =
+          builder.addAll(this.componentPositions).add(pos).build();
+      pos2 = SqlParserPos.sum(builder.add(this.pos).build());
+    } else {
+      componentPositions = null;
+      pos2 = pos;
+    }
     return new SqlIdentifier(names, collation, pos2, componentPositions);
   }
 
@@ -216,8 +254,8 @@ public class SqlIdentifier extends SqlNode {
         writer.startList(SqlWriter.FrameTypeEnum.IDENTIFIER);
     for (String name : names) {
       writer.sep(".");
-      if (name.equals("*")) {
-        writer.print(name);
+      if (name.equals("")) {
+        writer.print("*");
       } else {
         writer.identifier(name);
       }
@@ -284,7 +322,7 @@ public class SqlIdentifier extends SqlNode {
    * Returns whether this identifier is a star, such as "*" or "foo.bar.*".
    */
   public boolean isStar() {
-    return Util.last(names).equals("*");
+    return Util.last(names).equals("");
   }
 
   /**
@@ -292,7 +330,7 @@ public class SqlIdentifier extends SqlNode {
    * "FOO.*" and "FOO.BAR" are not.
    */
   public boolean isSimple() {
-    return (names.size() == 1) && !names.get(0).equals("*");
+    return names.size() == 1 && !isStar();
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {

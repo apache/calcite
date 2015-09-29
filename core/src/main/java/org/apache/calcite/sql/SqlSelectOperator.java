@@ -144,10 +144,7 @@ public class SqlSelectOperator extends SqlOperator {
     }
     SqlNode selectClause = select.selectList;
     if (selectClause == null) {
-      selectClause =
-          new SqlIdentifier(
-              "*",
-              SqlParserPos.ZERO);
+      selectClause = SqlIdentifier.star(SqlParserPos.ZERO);
     }
     final SqlWriter.Frame selectListFrame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT_LIST);

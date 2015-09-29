@@ -1422,13 +1422,11 @@ SqlNode SelectItem() :
 SqlNode SelectExpression() :
 {
     SqlNode e;
-    SqlParserPos pos;
 }
 {
     <STAR>
     {
-        pos = getPos();
-        return new SqlIdentifier("*", pos);
+        return SqlIdentifier.star(getPos());
     }
     |
     e = Expression(ExprContext.ACCEPT_SUBQUERY)
@@ -3520,6 +3518,7 @@ SqlIdentifier CompoundIdentifier() :
     List<String> list = new ArrayList<String>();
     List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
     String p;
+    boolean star = false;
 }
 {
     p = Identifier()
@@ -3531,11 +3530,13 @@ SqlIdentifier CompoundIdentifier() :
         <DOT>
         (
             p = Identifier() {
+                star = false;
                 list.add(p);
                 posList.add(getPos());
             }
         |
             <STAR> {
+                star = true;
                 list.add("*");
                 posList.add(getPos());
             }
@@ -3543,6 +3544,9 @@ SqlIdentifier CompoundIdentifier() :
     ) *
     {
         SqlParserPos pos = SqlParserPos.sum(posList);
+        if (star) {
+            return SqlIdentifier.star(list, pos, posList);
+        }
         return new SqlIdentifier(list, null, pos, posList);
     }
 }
@@ -4140,7 +4144,7 @@ SqlNode NamedFunctionCall() :
         (
             LOOKAHEAD(2) <LPAREN> <STAR> { starPos = getPos(); } <RPAREN>
             {
-                args = startList(new SqlIdentifier("*", starPos));
+                args = startList(SqlIdentifier.star(starPos));
                 pos = pos.plus(getPos());
             }
             | LOOKAHEAD(2) <LPAREN> <RPAREN>
@@ -4394,7 +4398,7 @@ SqlNode JdbcFunctionCall() :
             LOOKAHEAD(2) <LPAREN> <STAR> {starPos = getPos();} <RPAREN>
             {
                 args = new SqlNodeList(starPos);
-                args.add(new SqlIdentifier("*", starPos));
+                args.add(SqlIdentifier.star(starPos));
             }
             | LOOKAHEAD(2) <LPAREN> <RPAREN>
             { args = new SqlNodeList(pos); }
