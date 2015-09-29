@@ -19,6 +19,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
+import com.google.common.base.Throwables;
+
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -35,6 +37,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test of the Calcite adapter for CSV.
@@ -125,6 +130,28 @@ public class CsvTest {
 
   @Test public void testSelectSingleProject() throws SQLException {
     checkSql("smart", "select name from DEPTS");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-898">[CALCITE-898]
+   * Type inference multiplying Java long by SQL INTEGER</a>. */
+  @Test public void testSelectLongMultiplyInteger() throws SQLException {
+    final String sql = "select empno * 3 as e3\n"
+        + "from long_emps where empno = 100";
+
+    checkSql(sql, "bug", new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          assertThat(resultSet.next(), is(true));
+          Long o = (Long) resultSet.getObject(1);
+          assertThat(o, is(300L));
+          assertThat(resultSet.next(), is(false));
+          return null;
+        } catch (SQLException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+    });
   }
 
   @Test public void testCustomTable() throws SQLException {

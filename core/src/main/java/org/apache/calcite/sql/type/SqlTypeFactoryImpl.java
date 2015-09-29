@@ -216,23 +216,45 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   private RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
-    boolean anyNullable = false;
+    int nullCount = 0;
+    int nullableCount = 0;
+    int javaCount = 0;
+
+    for (RelDataType type : types) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      if (typeName == null) {
+        return null;
+      }
+      if (type.isNullable()) {
+        ++nullableCount;
+      }
+      if (typeName == SqlTypeName.NULL) {
+        ++nullCount;
+      }
+      if (isJavaType(type)) {
+        ++javaCount;
+      }
+    }
 
     for (int i = 0; i < types.size(); ++i) {
       RelDataType type = types.get(i);
       RelDataTypeFamily family = type.getFamily();
 
-      SqlTypeName typeName = type.getSqlTypeName();
-      if (typeName == null) {
-        return null;
-      }
-
-      if (type.isNullable()) {
-        anyNullable = true;
-      }
-
+      final SqlTypeName typeName = type.getSqlTypeName();
       if (typeName == SqlTypeName.NULL) {
         continue;
+      }
+
+      // Convert Java types; for instance, JavaType(int) becomes INTEGER.
+      // Except if all types are either NULL or Java types.
+      if (isJavaType(type) && javaCount + nullCount < types.size()) {
+        final RelDataType originalType = type;
+        type = typeName.allowsPrecScale(true, true)
+            ? createSqlType(typeName, type.getPrecision(), type.getScale())
+            : typeName.allowsPrecScale(true, false)
+            ? createSqlType(typeName, type.getPrecision())
+            : createSqlType(typeName);
+        type = createTypeWithNullability(type, originalType.isNullable());
       }
 
       if (resultType == null) {
@@ -442,7 +464,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         return null;
       }
     }
-    if (resultType != null && anyNullable) {
+    if (resultType != null && nullableCount > 0) {
       resultType = createTypeWithNullability(resultType, true);
     }
     return resultType;
