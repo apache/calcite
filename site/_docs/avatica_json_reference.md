@@ -1,6 +1,7 @@
 ---
 layout: docs
-title: Reference
+title: Avatica JSON Reference
+sidebar_title: JSON Reference
 permalink: /docs/avatica_json_reference.html
 requests:
   - { name: "CatalogsRequest" }

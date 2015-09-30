@@ -1,6 +1,7 @@
 ---
 layout: docs
-title: Overview
+title: Avatica Overview
+sidebar_title: Overview
 permalink: /docs/avatica_overview.html
 ---
 

@@ -1,6 +1,7 @@
 ---
 layout: docs
-title: Roadmap
+title: Avatica Roadmap
+sidebar_title: Roadmap
 permalink: /docs/avatica_roadmap.html
 ---
 
