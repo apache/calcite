@@ -93,21 +93,25 @@ instead are underway that will provide native objects in many languages.
 
 ## Requests
 
-The collection of all JSON objects accepted as requests to Avatica.
+The collection of all JSON objects accepted as requests to Avatica. All Requests include a `request` attribute
+which uniquely identifies the concrete Request from all other Requests.
 
 ### CatalogsRequest
 
 {% highlight json %}
-{}
+{
+  "request": "getCatalogs",
+}
 {% endhighlight %}
 
-There are no attributes on this request.
+There are no extra attributes on this Request.
 
 ### CloseConnectionRequest
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000"
+  "request": "closeConnection",
+  "connectionId": "000000-0000-0000-00000000"
 }
 {% endhighlight %}
 
@@ -117,8 +121,9 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  statementId: 12345
+  "request": "closeStatement",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345
 }
 {% endhighlight %}
 
@@ -130,10 +135,11 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  catalog: "catalog",
-  schemaPattern: "schema_pattern.*",
-  tableNamePattern: "table_pattern.*",
-  columnNamePattern: "column_pattern.*"
+  "request": "getColumns",
+  "catalog": "catalog",
+  "schemaPattern": "schema_pattern.*",
+  "tableNamePattern": "table_pattern.*",
+  "columnNamePattern": "column_pattern.*"
 }
 {% endhighlight %}
 
@@ -149,8 +155,9 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  connProps: ConnectionProperties
+  "request": "connectionSync",
+  "connectionId": "000000-0000-0000-00000000",
+  "connProps": ConnectionProperties
 }
 {% endhighlight %}
 
@@ -162,7 +169,8 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000"
+  "request": "createStatement",
+  "connectionId": "000000-0000-0000-00000000"
 }
 {% endhighlight %}
 
@@ -171,20 +179,23 @@ There are no attributes on this request.
 ### DatabasePropertyRequest
 
 {% highlight json %}
-{}
+{
+  "request": "databaseProperties",
+}
 {% endhighlight %}
 
-There are no attributes on this request.
+There are no extra attributes on this Request.
 
 ### FetchRequest
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  statementId: 12345,
-  offset: 0,
-  fetchMaxRowCount: 100,
-  parametersValues: [TypedValue, TypedValue, ...]
+  "request": "fetch",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "offset": 0,
+  "fetchMaxRowCount": 100,
+  "parameterValues": [TypedValue, TypedValue, ...]
 }
 {% endhighlight %}
 
@@ -202,10 +213,11 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  statementId: 12345,
-  sql: "SELECT * FROM table",
-  maxRowCount: 100,
+  "request": "prepareAndExecute",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "sql": "SELECT * FROM table",
+  "maxRowCount": 100,
 }
 {% endhighlight %}
 
@@ -221,9 +233,10 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  sql: "SELECT * FROM table",
-  maxRowCount: 100,
+  "request": "prepare",
+  "connectionId": "000000-0000-0000-00000000",
+  "sql": "SELECT * FROM table",
+  "maxRowCount": 100,
 }
 {% endhighlight %}
 
@@ -237,8 +250,9 @@ There are no attributes on this request.
 
 {% highlight json %}
 {
-  catalog: "name",
-  schemaPattern: "pattern.*"
+  "request": "getSchemas",
+  "catalog": "name",
+  "schemaPattern": "pattern.*"
 }
 {% endhighlight %}
 
@@ -249,19 +263,22 @@ There are no attributes on this request.
 ### TableTypesRequest
 
 {% highlight json %}
-{}
+{
+  "request": "getTableTypes",
+}
 {% endhighlight %}
 
-This request has no attributes.
+There are no extra attributes on this Request.
 
 ### TablesRequest
 
 {% highlight json %}
 {
-  catalog: "catalog_name",
-  schemaPattern: "schema_pattern.*",
-  tableNamePattern: "table_name_pattern.*",
-  typeList: [ "TABLE", "VIEW", ... ]
+  "request": "getTables",
+  "catalog": "catalog_name",
+  "schemaPattern": "schema_pattern.*",
+  "tableNamePattern": "table_name_pattern.*",
+  "typeList": [ "TABLE", "VIEW", ... ]
 }
 {% endhighlight %}
 
@@ -276,25 +293,29 @@ This request has no attributes.
 ### TypeInfoRequest
 
 {% highlight json %}
-{}
+{
+  "request": "getTypeInfo",
+}
 {% endhighlight %}
 
-This request has no attributes.
+There are no extra attributes on this Request.
 
 ## Responses
 
-The collection of all JSON objects returned as responses from Avatica.
+The collection of all JSON objects returned as responses from Avatica. All Responses include a `response` attribute
+which uniquely identifies the concrete Response from all other Responses.
 
 ### ResultSetResponse
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  statementId: 12345,
-  ownStatement: true,
-  signature: Signature,
-  firstFrame: Frame,
-  updateCount: 10
+  "response": "resultSet",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "ownStatement": true,
+  "signature": Signature,
+  "firstFrame": Frame,
+  "updateCount": 10
 }
 {% endhighlight %}
 
@@ -302,7 +323,8 @@ The collection of all JSON objects returned as responses from Avatica.
 
 `statementId` The identifier for the statement used to generate this response.
 
-`ownStatement` TODO
+`ownStatement` Whether the result set has its own dedicated statement. If true, the server must automatically close the
+statement when the result set is closed. This is used for JDBC metadata result sets, for instance.
 
 `signature` A non-optional nested object <a href="#signature">Signature</a>
 
@@ -315,7 +337,8 @@ that only contains this count and no additional data.
 
 {% highlight json %}
 {
-  resultSets: [ ResultSetResponse, ResultSetResponse, ... ]
+  "response": "Service$ExecuteResponse",
+  "resultSets": [ ResultSetResponse, ResultSetResponse, ... ]
 }
 {% endhighlight %}
 
@@ -325,7 +348,8 @@ that only contains this count and no additional data.
 
 {% highlight json %}
 {
-  statement: StatementHandle
+  "response": "prepare",
+  "statement": StatementHandle
 }
 {% endhighlight %}
 
@@ -335,7 +359,8 @@ that only contains this count and no additional data.
 
 {% highlight json %}
 {
-  frame: Frame
+  "response": "fetch",
+  "frame": Frame
 }
 {% endhighlight %}
 
@@ -345,8 +370,9 @@ that only contains this count and no additional data.
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  statementId: 12345
+  "response": "createStatement",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345
 }
 {% endhighlight %}
 
@@ -357,7 +383,9 @@ that only contains this count and no additional data.
 ### CloseStatementResponse
 
 {% highlight json %}
-{}
+{
+  "response": "closeStatement",
+}
 {% endhighlight %}
 
 This response has no attributes.
@@ -365,16 +393,19 @@ This response has no attributes.
 ### CloseConnectionResponse
 
 {% highlight json %}
-{}
+{
+  "response": "closeConnection",
+}
 {% endhighlight %}
 
-This response has no attributes.
+There are no extra attributes on this Response.
 
 ### ConnectionSyncResponse
 
 {% highlight json %}
 {
-  connProps: ConnectionProperties
+  "response": "connectionSync",
+  "connProps": ConnectionProperties
 }
 {% endhighlight %}
 
@@ -384,7 +415,8 @@ This response has no attributes.
 
 {% highlight json %}
 {
-  map: { DatabaseProperty: Object, DatabaseProperty: Object, ... }
+  "response": "databaseProperties",
+  "map": { DatabaseProperty: Object, DatabaseProperty: Object, ... }
 }
 {% endhighlight %}
 
@@ -397,11 +429,12 @@ primitive type or an array of primitive types.
 
 {% highlight json %}
 {
-  autoCommit: true,
-  readOnly: true,
-  transactionIsolation: 0,
-  catalog: "catalog",
-  schema: "schema"
+  "connProps": "connPropsImpl",
+  "autoCommit": true,
+  "readOnly": true,
+  "transactionIsolation": 0,
+  "catalog": "catalog",
+  "schema": "schema"
 }
 {% endhighlight %}
 
@@ -422,8 +455,8 @@ specification. This value is analogous to the values define in `java.sql.Connect
 
 {% highlight json %}
 {
-  type: "type_name",
-  value: object
+  "type": "type_name",
+  "value": object
 }
 {% endhighlight %}
 
@@ -435,10 +468,10 @@ specification. This value is analogous to the values define in `java.sql.Connect
 
 {% highlight json %}
 {
-  columns: [ ColumnMetaData, ColumnMetaData, ... ],
-  sql: "SELECT * FROM table",
-  parameters: [ AvaticaParameter, AvaticaParameter, ... ],
-  cursorFactory: CursorFactory
+  "columns": [ ColumnMetaData, ColumnMetaData, ... ],
+  "sql": "SELECT * FROM table",
+  "parameters": [ AvaticaParameter, AvaticaParameter, ... ],
+  "cursorFactory": CursorFactory
 }
 {% endhighlight %}
 
@@ -454,9 +487,9 @@ specification. This value is analogous to the values define in `java.sql.Connect
 
 {% highlight json %}
 {
-  offset: 100,
-  done: true,
-  rows: [ [ val1, val2, ... ], ... ]
+  "offset": 100,
+  "done": true,
+  "rows": [ [ val1, val2, ... ], ... ]
 }
 {% endhighlight %}
 
@@ -470,9 +503,9 @@ specification. This value is analogous to the values define in `java.sql.Connect
 
 {% highlight json %}
 {
-  connectionId: "000000-0000-0000-00000000",
-  id: 12345,
-  signature: Signature
+  "connectionId": "000000-0000-0000-00000000",
+  "id": 12345,
+  "signature": Signature
 }
 {% endhighlight %}
 
@@ -497,26 +530,26 @@ One of:
 
 {% highlight json %}
 {
-  ordinal: 0,
-  autoIncrement: true,
-  caseSensitive: true,
-  searchable: false,
-  currency: false,
-  nullable: 0,
-  signed: true,
-  displaySize: 20,
-  label: "Description",
-  columnName: "col1",
-  schemaName: "schema",
-  precision: 10,
-  scale: 2,
-  tableName: "table",
-  catalogName: "catalog",
-  type: AvaticaType,
-  readOnly: false,
-  writable: true,
-  definitelyWritable: true,
-  columnClassName: "java.lang.String"
+  "ordinal": 0,
+  "autoIncrement": true,
+  "caseSensitive": true,
+  "searchable": false,
+  "currency": false,
+  "nullable": 0,
+  "signed": true,
+  "displaySize": 20,
+  "label": "Description",
+  "columnName": "col1",
+  "schemaName": "schema",
+  "precision": 10,
+  "scale": 2,
+  "tableName": "table",
+  "catalogName": "catalog",
+  "type": AvaticaType,
+  "readOnly": false,
+  "writable": true,
+  "definitelyWritable": true,
+  "columnClassName": "java.lang.String"
 }
 {% endhighlight %}
 
@@ -568,13 +601,13 @@ One of:
 
 {% highlight json %}
 {
-  signed: true,
-  precision: 10,
-  scale: 2,
-  parameterType: 8,
-  typeName: "integer",
-  className: "java.lang.Integer",
-  name: "number"
+  "signed": true,
+  "precision": 10,
+  "scale": 2,
+  "parameterType": 8,
+  "typeName": "integer",
+  "className": "java.lang.Integer",
+  "name": "number"
 }
 {% endhighlight %}
 
@@ -596,13 +629,16 @@ One of:
 
 {% highlight json %}
 {
-  id: "identifier",
-  name: "column",
-  rep: Rep,
-  columns: [ ColumnMetaData, ColumnMetaData, ... ],
-  component: AvaticaType
+  "type": "scalar",
+  "id": "identifier",
+  "name": "column",
+  "rep": Rep,
+  "columns": [ ColumnMetaData, ColumnMetaData, ... ],
+  "component": AvaticaType
 }
 {% endhighlight %}
+
+`type` One of: `scalar`, `array`, `struct`.
 
 `id` A numeric value corresponding to the type of the object per the JDBC Types class.
 
@@ -647,9 +683,9 @@ One of:
 
 {% highlight json %}
 {
-  style: Style,
-  clazz: "java.lang.String",
-  fieldNames: [ "column1", "column2", ... ]
+  "style": Style,
+  "clazz": "java.lang.String",
+  "fieldNames": [ "column1", "column2", ... ]
 }
 {% endhighlight %}
 
