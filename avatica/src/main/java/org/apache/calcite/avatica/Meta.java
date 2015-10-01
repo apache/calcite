@@ -405,7 +405,9 @@ public interface Meta {
 
     public static MetaResultSet count(String connectionId, int statementId,
         long updateCount) {
-      assert updateCount >= 0;
+      assert updateCount >= 0
+          : "Meta.count(" + connectionId + ", " + statementId + ", "
+          + updateCount + ")";
       return new MetaResultSet(connectionId, statementId, false, null, null,
           updateCount);
     }

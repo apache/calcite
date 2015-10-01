@@ -52,6 +52,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
@@ -60,6 +61,10 @@ public class JdbcMeta implements Meta {
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
 
   final Calendar calendar = Calendar.getInstance();
+
+  /** Generates ids for statements. The ids are unique across all connections
+   * created by this JdbcMeta. */
+  private final AtomicInteger statementIdGenerator = new AtomicInteger();
 
   /** Configurable connection cache settings. */
   public enum ConnectionCacheSettings {
@@ -606,7 +611,7 @@ public class JdbcMeta implements Meta {
     try {
       final Connection conn = getConnection(ch.id);
       final Statement statement = conn.createStatement();
-      final int id = System.identityHashCode(statement);
+      final int id = statementIdGenerator.getAndIncrement();
       statementCache.put(id, new StatementInfo(statement));
       StatementHandle h = new StatementHandle(ch.id, id, null);
       if (LOG.isTraceEnabled()) {
@@ -709,7 +714,7 @@ public class JdbcMeta implements Meta {
     try {
       final Connection conn = getConnection(ch.id);
       final PreparedStatement statement = conn.prepareStatement(sql);
-      final int id = System.identityHashCode(statement);
+      final int id = statementIdGenerator.getAndIncrement();
       statementCache.put(id, new StatementInfo(statement));
       StatementHandle h = new StatementHandle(ch.id, id,
           signature(statement.getMetaData(), statement.getParameterMetaData(),
