@@ -60,94 +60,18 @@ public class JdbcMeta implements Meta {
 
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
 
+  private static final String STMT_CACHE_KEY_BASE = "avatica.statementcache";
+
+  private static final String DEFAULT_CONN_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000000").toString();
+
+  // End of constants, start of member variables
+
   final Calendar calendar = Calendar.getInstance();
 
   /** Generates ids for statements. The ids are unique across all connections
    * created by this JdbcMeta. */
   private final AtomicInteger statementIdGenerator = new AtomicInteger();
-
-  /** Configurable connection cache settings. */
-  public enum ConnectionCacheSettings {
-    /** JDBC connection property for setting connection cache concurrency level. */
-    CONCURRENCY_LEVEL(CONN_CACHE_KEY_BASE + ".concurrency", "10"),
-
-    /** JDBC connection property for setting connection cache initial capacity. */
-    INITIAL_CAPACITY(CONN_CACHE_KEY_BASE + ".initialcapacity", "100"),
-
-    /** JDBC connection property for setting connection cache maximum capacity. */
-    MAX_CAPACITY(CONN_CACHE_KEY_BASE + ".maxcapacity", "1000"),
-
-    /** JDBC connection property for setting connection cache expiration duration. */
-    EXPIRY_DURATION(CONN_CACHE_KEY_BASE + ".expiryduration", "10"),
-
-    /** JDBC connection property for setting connection cache expiration unit. */
-    EXPIRY_UNIT(CONN_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
-
-    private final String key;
-    private final String defaultValue;
-
-    ConnectionCacheSettings(String key, String defaultValue) {
-      this.key = key;
-      this.defaultValue = defaultValue;
-    }
-
-    /** The configuration key for specifying this setting. */
-    public String key() {
-      return key;
-    }
-
-    /** The default value for this setting. */
-    public String defaultValue() {
-      return defaultValue;
-    }
-  }
-
-  private static final String STMT_CACHE_KEY_BASE = "avatica.statementcache";
-
-  /** Configurable statement cache settings. */
-  public enum StatementCacheSettings {
-    /** JDBC connection property for setting connection cache concurrency level. */
-    CONCURRENCY_LEVEL(STMT_CACHE_KEY_BASE + ".concurrency", "100"),
-
-    /** JDBC connection property for setting connection cache initial capacity. */
-    INITIAL_CAPACITY(STMT_CACHE_KEY_BASE + ".initialcapacity", "1000"),
-
-    /** JDBC connection property for setting connection cache maximum capacity. */
-    MAX_CAPACITY(STMT_CACHE_KEY_BASE + ".maxcapacity", "10000"),
-
-    /** JDBC connection property for setting connection cache expiration duration.
-     *
-     * <p>Used in conjunction with {@link #EXPIRY_UNIT}.</p>
-     */
-    EXPIRY_DURATION(STMT_CACHE_KEY_BASE + ".expirydiration", "5"),
-
-    /** JDBC connection property for setting connection cache expiration unit.
-     *
-     * <p>Used in conjunction with {@link #EXPIRY_DURATION}.</p>
-     */
-    EXPIRY_UNIT(STMT_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
-
-    private final String key;
-    private final String defaultValue;
-
-    StatementCacheSettings(String key, String defaultValue) {
-      this.key = key;
-      this.defaultValue = defaultValue;
-    }
-
-    /** The configuration key for specifying this setting. */
-    public String key() {
-      return key;
-    }
-
-    /** The default value for this setting. */
-    public String defaultValue() {
-      return defaultValue;
-    }
-  }
-
-  private static final String DEFAULT_CONN_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000000").toString();
 
   private final String url;
   private final Properties info;
@@ -156,119 +80,8 @@ public class JdbcMeta implements Meta {
   private final Cache<Integer, StatementInfo> statementCache;
 
   /**
-   * Convert from JDBC metadata to Avatica columns.
-   */
-  protected static List<ColumnMetaData>
-  columns(ResultSetMetaData metaData) throws SQLException {
-    if (metaData == null) {
-      return Collections.emptyList();
-    }
-    final List<ColumnMetaData> columns = new ArrayList<>();
-    for (int i = 1; i <= metaData.getColumnCount(); i++) {
-      final SqlType sqlType = SqlType.valueOf(metaData.getColumnType(i));
-      final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(sqlType.internal);
-      ColumnMetaData.AvaticaType t =
-          ColumnMetaData.scalar(metaData.getColumnType(i),
-              metaData.getColumnTypeName(i), rep);
-      ColumnMetaData md =
-          new ColumnMetaData(i - 1, metaData.isAutoIncrement(i),
-              metaData.isCaseSensitive(i), metaData.isSearchable(i),
-              metaData.isCurrency(i), metaData.isNullable(i),
-              metaData.isSigned(i), metaData.getColumnDisplaySize(i),
-              metaData.getColumnLabel(i), metaData.getColumnName(i),
-              metaData.getSchemaName(i), metaData.getPrecision(i),
-              metaData.getScale(i), metaData.getTableName(i),
-              metaData.getCatalogName(i), t, metaData.isReadOnly(i),
-              metaData.isWritable(i), metaData.isDefinitelyWritable(i),
-              metaData.getColumnClassName(i));
-      columns.add(md);
-    }
-    return columns;
-  }
-
-  /**
-   * Converts from JDBC metadata to AvaticaParameters
-   */
-  protected static List<AvaticaParameter> parameters(ParameterMetaData metaData)
-      throws SQLException {
-    if (metaData == null) {
-      return Collections.emptyList();
-    }
-    final List<AvaticaParameter> params = new ArrayList<>();
-    for (int i = 1; i <= metaData.getParameterCount(); i++) {
-      params.add(
-          new AvaticaParameter(metaData.isSigned(i), metaData.getPrecision(i),
-              metaData.getScale(i), metaData.getParameterType(i),
-              metaData.getParameterTypeName(i),
-              metaData.getParameterClassName(i), "?" + i));
-    }
-    return params;
-  }
-
-  protected static Signature signature(ResultSetMetaData metaData,
-      ParameterMetaData parameterMetaData, String sql) throws  SQLException {
-    return new Signature(columns(metaData), sql, parameters(parameterMetaData),
-        null, CursorFactory.LIST /* LIST because JdbcResultSet#frame */);
-  }
-
-  protected static Signature signature(ResultSetMetaData metaData)
-      throws SQLException {
-    return signature(metaData, null, null);
-  }
-
-  /** Callback for {@link #connectionCache} member expiration. */
-  private class ConnectionExpiryHandler
-      implements RemovalListener<String, Connection> {
-
-    public void onRemoval(RemovalNotification<String, Connection> notification) {
-      String connectionId = notification.getKey();
-      Connection doomed = notification.getValue();
-      // is String.equals() more efficient?
-      if (notification.getValue() == connection) {
-        return;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Expiring connection " + connectionId + " because "
-            + notification.getCause());
-      }
-      try {
-        if (doomed != null) {
-          doomed.close();
-        }
-      } catch (Throwable t) {
-        LOG.info("Exception thrown while expiring connection " + connectionId, t);
-      }
-    }
-  }
-
-  /** Callback for {@link #statementCache} member expiration. */
-  private class StatementExpiryHandler
-      implements RemovalListener<Integer, StatementInfo> {
-    public void onRemoval(RemovalNotification<Integer, StatementInfo> notification) {
-      Integer stmtId = notification.getKey();
-      StatementInfo doomed = notification.getValue();
-      if (doomed == null) {
-        // log/throw?
-        return;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Expiring statement " + stmtId + " because "
-            + notification.getCause());
-      }
-      try {
-        if (doomed.resultSet != null) {
-          doomed.resultSet.close();
-        }
-        if (doomed.statement != null) {
-          doomed.statement.close();
-        }
-      } catch (Throwable t) {
-        LOG.info("Exception thrown while expiring statement " + stmtId);
-      }
-    }
-  }
-
-  /**
+   * Creates a JdbcMeta.
+   *
    * @param url a database url of the form
    *  <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
    */
@@ -277,6 +90,8 @@ public class JdbcMeta implements Meta {
   }
 
   /**
+   * Creates a JdbcMeta.
+   *
    * @param url a database url of the form
    * <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
    * @param user the database user on whose behalf the connection is being
@@ -294,6 +109,8 @@ public class JdbcMeta implements Meta {
   }
 
   /**
+   * Creates a JdbcMeta.
+   *
    * @param url a database url of the form
    * <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
    * @param info a list of arbitrary string tag/value pairs as
@@ -356,6 +173,67 @@ public class JdbcMeta implements Meta {
     if (LOG.isDebugEnabled()) {
       LOG.debug("instantiated statement cache: " + statementCache.stats());
     }
+  }
+
+  /**
+   * Converts from JDBC metadata to Avatica columns.
+   */
+  protected static List<ColumnMetaData>
+  columns(ResultSetMetaData metaData) throws SQLException {
+    if (metaData == null) {
+      return Collections.emptyList();
+    }
+    final List<ColumnMetaData> columns = new ArrayList<>();
+    for (int i = 1; i <= metaData.getColumnCount(); i++) {
+      final SqlType sqlType = SqlType.valueOf(metaData.getColumnType(i));
+      final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(sqlType.internal);
+      ColumnMetaData.AvaticaType t =
+          ColumnMetaData.scalar(metaData.getColumnType(i),
+              metaData.getColumnTypeName(i), rep);
+      ColumnMetaData md =
+          new ColumnMetaData(i - 1, metaData.isAutoIncrement(i),
+              metaData.isCaseSensitive(i), metaData.isSearchable(i),
+              metaData.isCurrency(i), metaData.isNullable(i),
+              metaData.isSigned(i), metaData.getColumnDisplaySize(i),
+              metaData.getColumnLabel(i), metaData.getColumnName(i),
+              metaData.getSchemaName(i), metaData.getPrecision(i),
+              metaData.getScale(i), metaData.getTableName(i),
+              metaData.getCatalogName(i), t, metaData.isReadOnly(i),
+              metaData.isWritable(i), metaData.isDefinitelyWritable(i),
+              metaData.getColumnClassName(i));
+      columns.add(md);
+    }
+    return columns;
+  }
+
+  /**
+   * Converts from JDBC metadata to Avatica parameters.
+   */
+  protected static List<AvaticaParameter> parameters(ParameterMetaData metaData)
+      throws SQLException {
+    if (metaData == null) {
+      return Collections.emptyList();
+    }
+    final List<AvaticaParameter> params = new ArrayList<>();
+    for (int i = 1; i <= metaData.getParameterCount(); i++) {
+      params.add(
+          new AvaticaParameter(metaData.isSigned(i), metaData.getPrecision(i),
+              metaData.getScale(i), metaData.getParameterType(i),
+              metaData.getParameterTypeName(i),
+              metaData.getParameterClassName(i), "?" + i));
+    }
+    return params;
+  }
+
+  protected static Signature signature(ResultSetMetaData metaData,
+      ParameterMetaData parameterMetaData, String sql) throws  SQLException {
+    return new Signature(columns(metaData), sql, parameters(parameterMetaData),
+        null, CursorFactory.LIST /* LIST because JdbcResultSet#frame */);
+  }
+
+  protected static Signature signature(ResultSetMetaData metaData)
+      throws SQLException {
+    return signature(metaData, null, null);
   }
 
   public Map<DatabaseProperty, Object> getDatabaseProperties() {
@@ -817,6 +695,136 @@ public class JdbcMeta implements Meta {
 
     private StatementInfo(Statement statement) {
       this.statement = Objects.requireNonNull(statement);
+    }
+  }
+
+  /** Configurable statement cache settings. */
+  public enum StatementCacheSettings {
+    /** JDBC connection property for setting connection cache concurrency level. */
+    CONCURRENCY_LEVEL(STMT_CACHE_KEY_BASE + ".concurrency", "100"),
+
+    /** JDBC connection property for setting connection cache initial capacity. */
+    INITIAL_CAPACITY(STMT_CACHE_KEY_BASE + ".initialcapacity", "1000"),
+
+    /** JDBC connection property for setting connection cache maximum capacity. */
+    MAX_CAPACITY(STMT_CACHE_KEY_BASE + ".maxcapacity", "10000"),
+
+    /** JDBC connection property for setting connection cache expiration duration.
+     *
+     * <p>Used in conjunction with {@link #EXPIRY_UNIT}.</p>
+     */
+    EXPIRY_DURATION(STMT_CACHE_KEY_BASE + ".expirydiration", "5"),
+
+    /** JDBC connection property for setting connection cache expiration unit.
+     *
+     * <p>Used in conjunction with {@link #EXPIRY_DURATION}.</p>
+     */
+    EXPIRY_UNIT(STMT_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
+
+    private final String key;
+    private final String defaultValue;
+
+    StatementCacheSettings(String key, String defaultValue) {
+      this.key = key;
+      this.defaultValue = defaultValue;
+    }
+
+    /** The configuration key for specifying this setting. */
+    public String key() {
+      return key;
+    }
+
+    /** The default value for this setting. */
+    public String defaultValue() {
+      return defaultValue;
+    }
+  }
+
+  /** Configurable connection cache settings. */
+  public enum ConnectionCacheSettings {
+    /** JDBC connection property for setting connection cache concurrency level. */
+    CONCURRENCY_LEVEL(CONN_CACHE_KEY_BASE + ".concurrency", "10"),
+
+    /** JDBC connection property for setting connection cache initial capacity. */
+    INITIAL_CAPACITY(CONN_CACHE_KEY_BASE + ".initialcapacity", "100"),
+
+    /** JDBC connection property for setting connection cache maximum capacity. */
+    MAX_CAPACITY(CONN_CACHE_KEY_BASE + ".maxcapacity", "1000"),
+
+    /** JDBC connection property for setting connection cache expiration duration. */
+    EXPIRY_DURATION(CONN_CACHE_KEY_BASE + ".expiryduration", "10"),
+
+    /** JDBC connection property for setting connection cache expiration unit. */
+    EXPIRY_UNIT(CONN_CACHE_KEY_BASE + ".expiryunit", TimeUnit.MINUTES.name());
+
+    private final String key;
+    private final String defaultValue;
+
+    ConnectionCacheSettings(String key, String defaultValue) {
+      this.key = key;
+      this.defaultValue = defaultValue;
+    }
+
+    /** The configuration key for specifying this setting. */
+    public String key() {
+      return key;
+    }
+
+    /** The default value for this setting. */
+    public String defaultValue() {
+      return defaultValue;
+    }
+  }
+
+  /** Callback for {@link #connectionCache} member expiration. */
+  private class ConnectionExpiryHandler
+      implements RemovalListener<String, Connection> {
+
+    public void onRemoval(RemovalNotification<String, Connection> notification) {
+      String connectionId = notification.getKey();
+      Connection doomed = notification.getValue();
+      // is String.equals() more efficient?
+      if (notification.getValue() == connection) {
+        return;
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Expiring connection " + connectionId + " because "
+                + notification.getCause());
+      }
+      try {
+        if (doomed != null) {
+          doomed.close();
+        }
+      } catch (Throwable t) {
+        LOG.info("Exception thrown while expiring connection " + connectionId, t);
+      }
+    }
+  }
+
+  /** Callback for {@link #statementCache} member expiration. */
+  private class StatementExpiryHandler
+      implements RemovalListener<Integer, StatementInfo> {
+    public void onRemoval(RemovalNotification<Integer, StatementInfo> notification) {
+      Integer stmtId = notification.getKey();
+      StatementInfo doomed = notification.getValue();
+      if (doomed == null) {
+        // log/throw?
+        return;
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Expiring statement " + stmtId + " because "
+                + notification.getCause());
+      }
+      try {
+        if (doomed.resultSet != null) {
+          doomed.resultSet.close();
+        }
+        if (doomed.statement != null) {
+          doomed.statement.close();
+        }
+      } catch (Throwable t) {
+        LOG.info("Exception thrown while expiring statement " + stmtId);
+      }
     }
   }
 }
