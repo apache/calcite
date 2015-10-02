@@ -164,6 +164,13 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(node2, node1);
   }
 
+  @Test public void testSimpleString() {
+    final Fixture f = new Fixture();
+    final RexNode node1 = f.eq(f.str, f.rexBuilder.makeLiteral("en"));
+
+    f.checkImplies(node1, node1);
+  }
+
   @Ignore("work in progress")
   @Test public void testSimpleDate() {
     final Fixture f = new Fixture();
@@ -250,6 +257,7 @@ public class RexImplicationCheckerTest {
     private final RexNode ch;
     private final RexNode ts;
     private final RexNode t;
+    private final RexNode str;
 
     private final RelDataType boolRelDataType;
     private final RelDataType intRelDataType;
@@ -262,6 +270,7 @@ public class RexImplicationCheckerTest {
     private final RelDataType dateDataType;
     private final RelDataType timeStampDataType;
     private final RelDataType timeDataType;
+    private final RelDataType stringDataType;
     private final RelDataTypeFactory typeFactory;
     private final RexImplicationChecker checker;
     private final RelDataType rowType;
@@ -281,6 +290,7 @@ public class RexImplicationCheckerTest {
       dateDataType = typeFactory.createJavaType(Date.class);
       timeStampDataType = typeFactory.createJavaType(Timestamp.class);
       timeDataType = typeFactory.createJavaType(Time.class);
+      stringDataType = typeFactory.createJavaType(String.class);
 
       bl = ref(0, this.boolRelDataType);
       i = ref(1, intRelDataType);
@@ -293,6 +303,7 @@ public class RexImplicationCheckerTest {
       dt = ref(8, dateDataType);
       ts = ref(9, timeStampDataType);
       t = ref(10, timeDataType);
+      str = ref(11, stringDataType);
 
       rowType = typeFactory.builder()
           .add("bool", this.boolRelDataType)
@@ -306,6 +317,7 @@ public class RexImplicationCheckerTest {
           .add("date", dateDataType)
           .add("timestamp", timeStampDataType)
           .add("time", timeDataType)
+          .add("string", stringDataType)
           .build();
 
       final Holder<RexExecutorImpl> holder = Holder.of(null);
