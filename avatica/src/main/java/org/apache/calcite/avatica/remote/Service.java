@@ -333,7 +333,14 @@ public interface Service {
         tableNamePattern = msg.getTableNamePattern();
       }
 
-      return new TablesRequest(catalog, schemaPattern, tableNamePattern, msg.getTypeListList());
+      // Cannot determine if a value was set for a repeated field. Must use an extra boolean
+      // parameter to distinguish an empty and null typeList.
+      List<String> typeList = null;
+      if (msg.getHasTypeList()) {
+        typeList = msg.getTypeListList();
+      }
+
+      return new TablesRequest(catalog, schemaPattern, tableNamePattern, typeList);
     }
 
     @Override Requests.TablesRequest serialize() {
@@ -349,7 +356,10 @@ public interface Service {
         builder.setTableNamePattern(tableNamePattern);
       }
       if (null != typeList) {
+        builder.setHasTypeList(true);
         builder.addAllTypeList(typeList);
+      } else {
+        builder.setHasTypeList(false);
       }
 
       return builder.build();

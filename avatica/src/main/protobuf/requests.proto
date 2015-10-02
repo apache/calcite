@@ -43,6 +43,7 @@ message TablesRequest {
   string schema_pattern = 2;
   string table_name_pattern = 3;
   repeated string type_list = 4;
+  bool has_type_list = 6; // Having an empty type_list is distinct from a null type_list
 }
 
 // Request for Meta#getTableTypes()

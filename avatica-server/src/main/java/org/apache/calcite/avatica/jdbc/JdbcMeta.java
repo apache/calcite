@@ -805,7 +805,7 @@ public class JdbcMeta implements Meta {
 
   private static String[] toArray(List<String> typeList) {
     if (typeList == null) {
-      return new String[0];
+      return null;
     }
     return typeList.toArray(new String[typeList.size()]);
   }

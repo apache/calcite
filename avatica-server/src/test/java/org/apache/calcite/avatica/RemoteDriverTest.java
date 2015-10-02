@@ -285,6 +285,28 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testGetTables() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      final Connection connection = getLocalConnection();
+      final ResultSet resultSet =
+              connection.getMetaData().getTables(null, "SCOTT", null, null);
+      assertEquals(13, resultSet.getMetaData().getColumnCount());
+      assertTrue(resultSet.next());
+      assertEquals("DEPT", resultSet.getString(3));
+      assertTrue(resultSet.next());
+      assertEquals("EMP", resultSet.getString(3));
+      assertTrue(resultSet.next());
+      assertEquals("BONUS", resultSet.getString(3));
+      assertTrue(resultSet.next());
+      assertEquals("SALGRADE", resultSet.getString(3));
+      resultSet.close();
+      connection.close();
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
   @Ignore
   @Test public void testNoFactory() throws Exception {
     final Connection connection =
