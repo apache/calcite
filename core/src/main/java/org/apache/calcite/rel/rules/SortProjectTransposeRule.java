@@ -44,17 +44,16 @@ import java.util.Map;
  */
 public class SortProjectTransposeRule extends RelOptRule {
   public static final SortProjectTransposeRule INSTANCE =
-      new SortProjectTransposeRule();
+      new SortProjectTransposeRule(Sort.class, LogicalProject.class);
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a SortProjectTransposeRule.
-   */
-  private SortProjectTransposeRule() {
+  public SortProjectTransposeRule(
+      Class<? extends Sort> sortClass,
+      Class<? extends Project> projectClass) {
     super(
-        operand(Sort.class,
-            operand(LogicalProject.class, any())));
+        operand(sortClass,
+            operand(projectClass, any())));
   }
 
   //~ Methods ----------------------------------------------------------------

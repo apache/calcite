@@ -22,9 +22,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -47,13 +49,16 @@ import java.util.Map;
  */
 public class AggregateProjectMergeRule extends RelOptRule {
   public static final AggregateProjectMergeRule INSTANCE =
-      new AggregateProjectMergeRule();
+      new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.LOGICAL_BUILDER);
 
-  /** Private constructor. */
-  private AggregateProjectMergeRule() {
+  public AggregateProjectMergeRule(
+      Class<? extends Aggregate> aggregateClass,
+      Class<? extends Project> projectClass,
+      RelBuilderFactory relBuilderFactory) {
     super(
-        operand(Aggregate.class,
-            operand(Project.class, any())));
+        operand(aggregateClass,
+            operand(projectClass, any())),
+        relBuilderFactory, null);
   }
 
   public void onMatch(RelOptRuleCall call) {

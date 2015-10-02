@@ -19,18 +19,23 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
  * past a {@link org.apache.calcite.rel.core.Filter}.
  */
 public class ProjectFilterTransposeRule extends RelOptRule {
-  public static final ProjectFilterTransposeRule INSTANCE =
-      new ProjectFilterTransposeRule(PushProjector.ExprCondition.FALSE);
+  public static final ProjectFilterTransposeRule INSTANCE = new ProjectFilterTransposeRule(
+      LogicalProject.class, LogicalFilter.class, RelFactories.LOGICAL_BUILDER,
+      PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -47,12 +52,16 @@ public class ProjectFilterTransposeRule extends RelOptRule {
    * @param preserveExprCondition Condition for expressions that should be
    *                              preserved in the projection
    */
-  private ProjectFilterTransposeRule(
+  public ProjectFilterTransposeRule(
+      Class<? extends Project> projectClass,
+      Class<? extends Filter> filterClass,
+      RelBuilderFactory relBuilderFactory,
       PushProjector.ExprCondition preserveExprCondition) {
     super(
         operand(
-            LogicalProject.class,
-            operand(LogicalFilter.class, any())));
+            projectClass,
+            operand(filterClass, any())),
+        relBuilderFactory, null);
     this.preserveExprCondition = preserveExprCondition;
   }
 
