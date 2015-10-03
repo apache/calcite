@@ -20,15 +20,17 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.EquiJoin;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -53,6 +55,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
@@ -91,223 +94,271 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   /**
    * Singleton rule that reduces constants inside a
-   * {@link org.apache.calcite.rel.logical.LogicalFilter}. If the condition is a
-   * constant, the filter is removed (if TRUE) or replaced with an empty
-   * {@link org.apache.calcite.rel.core.Values} (if FALSE or NULL).
+   * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
-      new ReduceExpressionsRule(LogicalFilter.class,
-          "ReduceExpressionsRule(Filter)") {
-        public void onMatch(RelOptRuleCall call) {
-          final LogicalFilter filter = call.rel(0);
-          final List<RexNode> expList =
-              Lists.newArrayList(filter.getCondition());
-          RexNode newConditionExp;
-          boolean reduced;
-          final RelOptPredicateList predicates =
-              RelMetadataQuery.getPulledUpPredicates(filter.getInput());
-          if (reduceExpressions(filter, expList, predicates)) {
-            assert expList.size() == 1;
-            newConditionExp = expList.get(0);
-            reduced = true;
-          } else {
-            // No reduction, but let's still test the original
-            // predicate to see if it was already a constant,
-            // in which case we don't need any runtime decision
-            // about filtering.
-            newConditionExp = filter.getCondition();
-            reduced = false;
+      new FilterReduceExpressionsRule(LogicalFilter.class, RelFactories.LOGICAL_BUILDER);
+
+  /**
+   * Singleton rule that reduces constants inside a
+   * {@link org.apache.calcite.rel.logical.LogicalProject}.
+   */
+  public static final ReduceExpressionsRule PROJECT_INSTANCE =
+      new ProjectReduceExpressionsRule(LogicalProject.class, RelFactories.LOGICAL_BUILDER);
+
+  /**
+   * Singleton rule that reduces constants inside a
+   * {@link org.apache.calcite.rel.core.Join}.
+   */
+  public static final ReduceExpressionsRule JOIN_INSTANCE =
+      new JoinReduceExpressionsRule(Join.class, RelFactories.LOGICAL_BUILDER);
+
+  /**
+   * Singleton rule that reduces constants inside a
+   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
+   */
+  public static final ReduceExpressionsRule CALC_INSTANCE =
+      new CalcReduceExpressionsRule(LogicalCalc.class, RelFactories.LOGICAL_BUILDER);
+
+  /**
+   * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Filter}.
+   * If the condition is a constant, the filter is removed (if TRUE) or replaced with
+   * an empty {@link org.apache.calcite.rel.core.Values} (if FALSE or NULL).
+   */
+  public static class FilterReduceExpressionsRule extends ReduceExpressionsRule {
+
+    public FilterReduceExpressionsRule(Class<? extends Filter> filterClass,
+        RelBuilderFactory relBuilderFactory) {
+      super(filterClass, relBuilderFactory, "ReduceExpressionsRule(Filter)");
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Filter filter = call.rel(0);
+      final List<RexNode> expList =
+          Lists.newArrayList(filter.getCondition());
+      RexNode newConditionExp;
+      boolean reduced;
+      final RelOptPredicateList predicates =
+          RelMetadataQuery.getPulledUpPredicates(filter.getInput());
+      if (reduceExpressions(filter, expList, predicates)) {
+        assert expList.size() == 1;
+        newConditionExp = expList.get(0);
+        reduced = true;
+      } else {
+        // No reduction, but let's still test the original
+        // predicate to see if it was already a constant,
+        // in which case we don't need any runtime decision
+        // about filtering.
+        newConditionExp = filter.getCondition();
+        reduced = false;
+      }
+      if (newConditionExp.isAlwaysTrue()) {
+        call.transformTo(
+            filter.getInput());
+      } else if (newConditionExp instanceof RexLiteral
+          || RexUtil.isNullLiteral(newConditionExp, true)) {
+        call.transformTo(call.builder().values(filter.getRowType()).build());
+      } else if (reduced) {
+        call.transformTo(call.builder().
+            push(filter.getInput()).filter(expList.get(0)).build());
+      } else {
+        if (newConditionExp instanceof RexCall) {
+          RexCall rexCall = (RexCall) newConditionExp;
+          boolean reverse =
+              rexCall.getOperator()
+                  == SqlStdOperatorTable.NOT;
+          if (reverse) {
+            rexCall = (RexCall) rexCall.getOperands().get(0);
           }
+          reduceNotNullableFilter(call, filter, rexCall, reverse);
+        }
+        return;
+      }
+
+      // New plan is absolutely better than old plan.
+      call.getPlanner().setImportance(filter, 0.0);
+    }
+
+    private void reduceNotNullableFilter(
+        RelOptRuleCall call,
+        Filter filter,
+        RexCall rexCall,
+        boolean reverse) {
+      // If the expression is a IS [NOT] NULL on a non-nullable
+      // column, then we can either remove the filter or replace
+      // it with an Empty.
+      boolean alwaysTrue;
+      switch (rexCall.getKind()) {
+      case IS_NULL:
+      case IS_UNKNOWN:
+        alwaysTrue = false;
+        break;
+      case IS_NOT_NULL:
+        alwaysTrue = true;
+        break;
+      default:
+        return;
+      }
+      if (reverse) {
+        alwaysTrue = !alwaysTrue;
+      }
+      RexNode operand = rexCall.getOperands().get(0);
+      if (operand instanceof RexInputRef) {
+        RexInputRef inputRef = (RexInputRef) operand;
+        if (!inputRef.getType().isNullable()) {
+          if (alwaysTrue) {
+            call.transformTo(filter.getInput());
+          } else {
+            call.transformTo(call.builder().values(filter.getRowType()).build());
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Project}.
+   */
+  public static class ProjectReduceExpressionsRule extends ReduceExpressionsRule {
+
+    public ProjectReduceExpressionsRule(Class<? extends Project> projectClass,
+        RelBuilderFactory relBuilderFactory) {
+      super(projectClass, relBuilderFactory, "ReduceExpressionsRule(Project)");
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      Project project = call.rel(0);
+      final RelOptPredicateList predicates =
+          RelMetadataQuery.getPulledUpPredicates(project.getInput());
+      final List<RexNode> expList =
+          Lists.newArrayList(project.getProjects());
+      if (reduceExpressions(project, expList, predicates)) {
+        call.transformTo(
+            call.builder()
+                .push(project.getInput())
+                .project(expList, project.getRowType().getFieldNames())
+                .build());
+
+        // New plan is absolutely better than old plan.
+        call.getPlanner().setImportance(project, 0.0);
+      }
+    }
+  }
+
+  /**
+   * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Join}.
+   */
+  public static class JoinReduceExpressionsRule extends ReduceExpressionsRule {
+
+    public JoinReduceExpressionsRule(Class<? extends Join> joinClass,
+        RelBuilderFactory relBuilderFactory) {
+      super(joinClass, relBuilderFactory, "ReduceExpressionsRule(Join)");
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Join join = call.rel(0);
+      final List<RexNode> expList = Lists.newArrayList(join.getCondition());
+      final int fieldCount = join.getLeft().getRowType().getFieldCount();
+      final RelOptPredicateList leftPredicates =
+          RelMetadataQuery.getPulledUpPredicates(join.getLeft());
+      final RelOptPredicateList rightPredicates =
+          RelMetadataQuery.getPulledUpPredicates(join.getRight());
+      final RelOptPredicateList predicates =
+          leftPredicates.union(rightPredicates.shift(fieldCount));
+      if (!reduceExpressions(join, expList, predicates)) {
+        return;
+      }
+      if (join instanceof EquiJoin) {
+        final JoinInfo joinInfo =
+            JoinInfo.of(join.getLeft(), join.getRight(), expList.get(0));
+        if (!joinInfo.isEqui()) {
+          // This kind of join must be an equi-join, and the condition is
+          // no longer an equi-join. SemiJoin is an example of this.
+          return;
+        }
+      }
+      call.transformTo(
+          join.copy(
+              join.getTraitSet(),
+              expList.get(0),
+              join.getLeft(),
+              join.getRight(),
+              join.getJoinType(),
+              join.isSemiJoinDone()));
+
+      // New plan is absolutely better than old plan.
+      call.getPlanner().setImportance(join, 0.0);
+    }
+  }
+
+  /**
+   * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Calc}.
+   */
+  public static class CalcReduceExpressionsRule extends ReduceExpressionsRule {
+
+    public CalcReduceExpressionsRule(Class<? extends Calc> calcClass,
+        RelBuilderFactory relBuilderFactory) {
+      super(calcClass, relBuilderFactory, "ReduceExpressionsRule(Calc)");
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      Calc calc = call.rel(0);
+      RexProgram program = calc.getProgram();
+      final List<RexNode> exprList = program.getExprList();
+
+      // Form a list of expressions with sub-expressions fully expanded.
+      final List<RexNode> expandedExprList = Lists.newArrayList();
+      final RexShuttle shuttle =
+          new RexShuttle() {
+            public RexNode visitLocalRef(RexLocalRef localRef) {
+              return expandedExprList.get(localRef.getIndex());
+            }
+          };
+      for (RexNode expr : exprList) {
+        expandedExprList.add(expr.accept(shuttle));
+      }
+      final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
+      if (reduceExpressions(calc, expandedExprList, predicates)) {
+        final RexProgramBuilder builder =
+            new RexProgramBuilder(
+                calc.getInput().getRowType(),
+                calc.getCluster().getRexBuilder());
+        final List<RexLocalRef> list = Lists.newArrayList();
+        for (RexNode expr : expandedExprList) {
+          list.add(builder.registerInput(expr));
+        }
+        if (program.getCondition() != null) {
+          final int conditionIndex =
+              program.getCondition().getIndex();
+          final RexNode newConditionExp =
+              expandedExprList.get(conditionIndex);
           if (newConditionExp.isAlwaysTrue()) {
-            call.transformTo(
-                filter.getInput());
+            // condition is always TRUE - drop it
           } else if (newConditionExp instanceof RexLiteral
               || RexUtil.isNullLiteral(newConditionExp, true)) {
-            call.transformTo(
-                LogicalValues.createEmpty(filter.getCluster(),
-                    filter.getRowType()));
-          } else if (reduced) {
-            call.transformTo(
-                RelOptUtil.createFilter(filter.getInput(), expList.get(0)));
+            // condition is always NULL or FALSE - replace calc
+            // with empty
+            call.transformTo(call.builder().values(calc.getRowType()).build());
+            return;
           } else {
-            if (newConditionExp instanceof RexCall) {
-              RexCall rexCall = (RexCall) newConditionExp;
-              boolean reverse =
-                  rexCall.getOperator()
-                      == SqlStdOperatorTable.NOT;
-              if (reverse) {
-                rexCall = (RexCall) rexCall.getOperands().get(0);
-              }
-              reduceNotNullableFilter(call, filter, rexCall, reverse);
-            }
-            return;
-          }
-
-          // New plan is absolutely better than old plan.
-          call.getPlanner().setImportance(filter, 0.0);
-        }
-
-        private void reduceNotNullableFilter(
-            RelOptRuleCall call,
-            LogicalFilter filter,
-            RexCall rexCall,
-            boolean reverse) {
-          // If the expression is a IS [NOT] NULL on a non-nullable
-          // column, then we can either remove the filter or replace
-          // it with an Empty.
-          boolean alwaysTrue;
-          switch (rexCall.getKind()) {
-          case IS_NULL:
-          case IS_UNKNOWN:
-            alwaysTrue = false;
-            break;
-          case IS_NOT_NULL:
-            alwaysTrue = true;
-            break;
-          default:
-            return;
-          }
-          if (reverse) {
-            alwaysTrue = !alwaysTrue;
-          }
-          RexNode operand = rexCall.getOperands().get(0);
-          if (operand instanceof RexInputRef) {
-            RexInputRef inputRef = (RexInputRef) operand;
-            if (!inputRef.getType().isNullable()) {
-              if (alwaysTrue) {
-                call.transformTo(filter.getInput());
-              } else {
-                call.transformTo(
-                    LogicalValues.createEmpty(filter.getCluster(),
-                        filter.getRowType()));
-              }
-            }
+            builder.addCondition(list.get(conditionIndex));
           }
         }
-      };
-
-  public static final ReduceExpressionsRule PROJECT_INSTANCE =
-      new ReduceExpressionsRule(LogicalProject.class,
-          "ReduceExpressionsRule(Project)") {
-        public void onMatch(RelOptRuleCall call) {
-          LogicalProject project = call.rel(0);
-          final RelOptPredicateList predicates =
-              RelMetadataQuery.getPulledUpPredicates(project.getInput());
-          final List<RexNode> expList =
-              Lists.newArrayList(project.getProjects());
-          if (reduceExpressions(project, expList, predicates)) {
-            call.transformTo(
-                LogicalProject.create(project.getInput(), expList,
-                    project.getRowType()));
-
-            // New plan is absolutely better than old plan.
-            call.getPlanner().setImportance(project, 0.0);
-          }
+        int k = 0;
+        for (RexLocalRef projectExpr : program.getProjectList()) {
+          final int index = projectExpr.getIndex();
+          builder.addProject(
+              list.get(index).getIndex(),
+              program.getOutputRowType().getFieldNames().get(k++));
         }
-      };
+        call.transformTo(
+            calc.copy(calc.getTraitSet(), calc.getInput(), builder.getProgram()));
 
-  public static final ReduceExpressionsRule JOIN_INSTANCE =
-      new ReduceExpressionsRule(Join.class,
-          "ReduceExpressionsRule(Join)") {
-        public void onMatch(RelOptRuleCall call) {
-          final Join join = call.rel(0);
-          final List<RexNode> expList = Lists.newArrayList(join.getCondition());
-          final int fieldCount = join.getLeft().getRowType().getFieldCount();
-          final RelOptPredicateList leftPredicates =
-              RelMetadataQuery.getPulledUpPredicates(join.getLeft());
-          final RelOptPredicateList rightPredicates =
-              RelMetadataQuery.getPulledUpPredicates(join.getRight());
-          final RelOptPredicateList predicates =
-              leftPredicates.union(rightPredicates.shift(fieldCount));
-          if (!reduceExpressions(join, expList, predicates)) {
-            return;
-          }
-          if (join instanceof EquiJoin) {
-            final JoinInfo joinInfo =
-                JoinInfo.of(join.getLeft(), join.getRight(), expList.get(0));
-            if (!joinInfo.isEqui()) {
-              // This kind of join must be an equi-join, and the condition is
-              // no longer an equi-join. SemiJoin is an example of this.
-              return;
-            }
-          }
-          call.transformTo(
-              join.copy(
-                  join.getTraitSet(),
-                  expList.get(0),
-                  join.getLeft(),
-                  join.getRight(),
-                  join.getJoinType(),
-                  join.isSemiJoinDone()));
-
-          // New plan is absolutely better than old plan.
-          call.getPlanner().setImportance(join, 0.0);
-        }
-      };
-
-  public static final ReduceExpressionsRule CALC_INSTANCE =
-      new ReduceExpressionsRule(LogicalCalc.class,
-          "ReduceExpressionsRule(Calc)") {
-        public void onMatch(RelOptRuleCall call) {
-          LogicalCalc calc = call.rel(0);
-          RexProgram program = calc.getProgram();
-          final List<RexNode> exprList = program.getExprList();
-
-          // Form a list of expressions with sub-expressions fully expanded.
-          final List<RexNode> expandedExprList = Lists.newArrayList();
-          final RexShuttle shuttle =
-              new RexShuttle() {
-                public RexNode visitLocalRef(RexLocalRef localRef) {
-                  return expandedExprList.get(localRef.getIndex());
-                }
-              };
-          for (RexNode expr : exprList) {
-            expandedExprList.add(expr.accept(shuttle));
-          }
-          final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
-          if (reduceExpressions(calc, expandedExprList, predicates)) {
-            final RexProgramBuilder builder =
-                new RexProgramBuilder(
-                    calc.getInput().getRowType(),
-                    calc.getCluster().getRexBuilder());
-            final List<RexLocalRef> list = Lists.newArrayList();
-            for (RexNode expr : expandedExprList) {
-              list.add(builder.registerInput(expr));
-            }
-            if (program.getCondition() != null) {
-              final int conditionIndex =
-                  program.getCondition().getIndex();
-              final RexNode newConditionExp =
-                  expandedExprList.get(conditionIndex);
-              if (newConditionExp.isAlwaysTrue()) {
-                // condition is always TRUE - drop it
-              } else if (newConditionExp instanceof RexLiteral
-                  || RexUtil.isNullLiteral(newConditionExp, true)) {
-                // condition is always NULL or FALSE - replace calc
-                // with empty
-                call.transformTo(
-                    LogicalValues.createEmpty(calc.getCluster(),
-                        calc.getRowType()));
-                return;
-              } else {
-                builder.addCondition(list.get(conditionIndex));
-              }
-            }
-            int k = 0;
-            for (RexLocalRef projectExpr : program.getProjectList()) {
-              final int index = projectExpr.getIndex();
-              builder.addProject(
-                  list.get(index).getIndex(),
-                  program.getOutputRowType().getFieldNames().get(k++));
-            }
-            call.transformTo(
-                LogicalCalc.create(calc.getInput(), builder.getProgram()));
-
-            // New plan is absolutely better than old plan.
-            call.getPlanner().setImportance(calc, 0.0);
-          }
-        }
-      };
+        // New plan is absolutely better than old plan.
+        call.getPlanner().setImportance(calc, 0.0);
+      }
+    }
+  }
 
   //~ Constructors -----------------------------------------------------------
 
@@ -316,8 +367,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    *
    * @param clazz class of rels to which this rule should apply
    */
-  private ReduceExpressionsRule(Class<? extends RelNode> clazz, String desc) {
-    super(operand(clazz, any()), desc);
+  protected ReduceExpressionsRule(Class<? extends RelNode> clazz,
+      RelBuilderFactory relBuilderFactory, String desc) {
+    super(operand(clazz, any()), relBuilderFactory, desc);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -330,7 +382,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * @param predicates Constraints known to hold on input expressions
    * @return whether reduction found something to change, and succeeded
    */
-  static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
+  protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
       RelOptPredicateList predicates) {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
@@ -411,7 +463,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     // analysis, which require bare literals.  But there are special cases,
     // like when the expression is a UDR argument, that need to be
     // handled as special cases.
-    if (rel instanceof LogicalProject) {
+    if (rel instanceof Project) {
       addCasts = Collections.nCopies(reducedValues.size(), true);
     }
 
@@ -440,7 +492,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    *                       expression is potentially necessary
    * @param removableCasts returns the list of cast expressions where the cast
    */
-  private static void findReducibleExps(RelDataTypeFactory typeFactory,
+  protected static void findReducibleExps(RelDataTypeFactory typeFactory,
       List<RexNode> exps, ImmutableMap<RexNode, RexLiteral> constants,
       List<RexNode> constExps, List<Boolean> addCasts,
       List<RexNode> removableCasts) {
@@ -453,7 +505,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     assert constExps.size() == addCasts.size();
   }
 
-  private static ImmutableMap<RexNode, RexLiteral> predicateConstants(
+  protected static ImmutableMap<RexNode, RexLiteral> predicateConstants(
       RelOptPredicateList predicates) {
     // We cannot use an ImmutableMap.Builder here. If there are multiple entries
     // with the same key (e.g. "WHERE deptno = 1 AND deptno = 2"), it doesn't
@@ -476,7 +528,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * <p>We have a loose definition of 'predicate': any boolean expression will
    * do, except CASE. For example '(CASE ...) = 5' or '(CASE ...) IS NULL'.
    */
-  private static RexCall pushPredicateIntoCase(RexCall call) {
+  protected static RexCall pushPredicateIntoCase(RexCall call) {
     if (call.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
       return call;
     }
@@ -515,7 +567,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   }
 
   /** Converts op(arg0, ..., argOrdinal, ..., argN) to op(arg0,..., node, ..., argN). */
-  private static RexNode substitute(RexCall call, int ordinal, RexNode node) {
+  protected static RexNode substitute(RexCall call, int ordinal, RexNode node) {
     final List<RexNode> newOperands = Lists.newArrayList(call.getOperands());
     newOperands.set(ordinal, node);
     return call.clone(call.getType(), newOperands);
@@ -527,7 +579,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * Replaces expressions with their reductions. Note that we only have to
    * look for RexCall, since nothing else is reducible in the first place.
    */
-  private static class RexReplacer extends RexShuttle {
+  protected static class RexReplacer extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final List<RexNode> reducibleExps;
     private final List<RexNode> reducedValues;
@@ -590,7 +642,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * Helper class used to locate expressions that either can be reduced to
    * literals or contain redundant casts.
    */
-  private static class ReducibleExprLocator extends RexVisitorImpl<Void> {
+  protected static class ReducibleExprLocator extends RexVisitorImpl<Void> {
     /** Whether an expression is constant, and if so, whether it can be
      * reduced to a simpler constant. */
     enum Constancy {
@@ -820,7 +872,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   }
 
   /** Shuttle that pushes predicates into a CASE. */
-  private static class CaseShuttle extends RexShuttle {
+  protected static class CaseShuttle extends RexShuttle {
     @Override public RexNode visitCall(RexCall call) {
       for (;;) {
         call = (RexCall) super.visitCall(call);

@@ -1117,6 +1117,15 @@ public class RelBuilder {
     return this;
   }
 
+  /** Creates a {@link Values} with a specified row type and
+   * zero rows.
+   *
+   * @param rowType Row type
+   */
+  public RelBuilder values(RelDataType rowType) {
+    return values(rowType, ImmutableList.<ImmutableList<RexLiteral>>of());
+  }
+
   /** Creates a limit without a sort. */
   public RelBuilder limit(int offset, int fetch) {
     return sortLimit(offset, fetch, ImmutableList.<RexNode>of());
