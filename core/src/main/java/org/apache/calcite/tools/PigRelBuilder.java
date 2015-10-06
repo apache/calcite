@@ -132,9 +132,13 @@ public class PigRelBuilder extends RelBuilder {
         r = build();
       }
       String alias = getAlias();
+      // Create a ROW to pass to COLLECT. Interestingly, this is not allowed
+      // by standard SQL; see [CALCITE-877] Allow ROW as argument to COLLECT.
+      final RexNode row =
+          cluster.getRexBuilder().makeCall(peek(1, 0).getRowType(),
+              SqlStdOperatorTable.ROW, fields());
       aggregate(groupKey.e,
-          aggregateCall(SqlStdOperatorTable.COLLECT, false, alias,
-              fields()));
+          aggregateCall(SqlStdOperatorTable.COLLECT, false, null, alias, row));
       if (groupKey.i < n - 1) {
         push(r);
         List<RexNode> predicates = new ArrayList<>();

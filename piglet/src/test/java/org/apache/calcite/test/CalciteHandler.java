@@ -25,9 +25,11 @@ import com.google.common.base.Throwables;
 
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.sql.Array;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 
 /**
  * Extension to {@link org.apache.calcite.piglet.Handler} that can execute
@@ -44,22 +46,60 @@ class CalciteHandler extends Handler {
   @Override protected void dump(RelNode rel) {
     try (final PreparedStatement preparedStatement = RelRunners.run(rel)) {
       final ResultSet resultSet = preparedStatement.executeQuery();
-      final int columnCount = resultSet.getMetaData().getColumnCount();
-      while (resultSet.next()) {
-        if (columnCount == 0) {
-          writer.println("()");
-        } else {
-          writer.print('(');
-          writer.print(resultSet.getObject(1));
-          for (int i = 1; i < columnCount; i++) {
-            writer.print(',');
-            writer.print(resultSet.getString(i + 1));
-          }
-          writer.println(')');
-        }
-      }
+      dump(resultSet, true);
     } catch (SQLException e) {
       throw Throwables.propagate(e);
+    }
+  }
+
+  private void dump(ResultSet resultSet, boolean newline) throws SQLException {
+    final int columnCount = resultSet.getMetaData().getColumnCount();
+    int r = 0;
+    while (resultSet.next()) {
+      if (!newline && r++ > 0) {
+        writer.print(",");
+      }
+      if (columnCount == 0) {
+        if (newline) {
+          writer.println("()");
+        } else {
+          writer.print("()");
+        }
+      } else {
+        writer.print('(');
+        dumpColumn(resultSet, 1);
+        for (int i = 2; i <= columnCount; i++) {
+          writer.print(',');
+          dumpColumn(resultSet, i);
+        }
+        if (newline) {
+          writer.println(')');
+        } else {
+          writer.print(")");
+        }
+      }
+    }
+  }
+
+  /** Dumps a column value.
+   *
+   * @param i Column ordinal, 1-based
+   */
+  private void dumpColumn(ResultSet resultSet, int i) throws SQLException {
+    final int t = resultSet.getMetaData().getColumnType(i);
+    switch (t) {
+    case Types.ARRAY:
+      final Array array = resultSet.getArray(i);
+      writer.print("{");
+      dump(array.getResultSet(), false);
+      writer.print("}");
+      return;
+    case Types.REAL:
+      writer.print(resultSet.getString(i));
+      writer.print("F");
+      return;
+    default:
+      writer.print(resultSet.getString(i));
     }
   }
 }
