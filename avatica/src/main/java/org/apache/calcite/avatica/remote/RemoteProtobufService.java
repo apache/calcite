@@ -38,6 +38,8 @@ public class RemoteProtobufService extends ProtobufService {
   }
 
   @Override public Response _apply(Request request) {
+    final InputStream inputStream;
+
     try {
       final HttpURLConnection connection =
           (HttpURLConnection) url.openConnection();
@@ -52,21 +54,29 @@ public class RemoteProtobufService extends ProtobufService {
       }
       final int responseCode = connection.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) {
-        InputStream errorStream = connection.getErrorStream();
-        if (errorStream != null) {
-          byte[] errorResponse = AvaticaUtils.readFullyToBytes(errorStream);
-          ErrorResponse response = (ErrorResponse) translation.parseResponse(errorResponse);
-          throw new RuntimeException("Remote driver error: " + response.message);
-        } else {
-          throw new RuntimeException("response code " + responseCode);
-        }
+        inputStream = connection.getErrorStream();
+      } else {
+        inputStream = connection.getInputStream();
       }
-      final InputStream inputStream = connection.getInputStream();
-      // Read the (serialized protobuf) response off the wire and convert it back to a Response
-      return translation.parseResponse(AvaticaUtils.readFullyToBytes(inputStream));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
+    Response resp;
+    try {
+      // Read the (serialized protobuf) response off the wire and convert it back to a Response
+      resp = translation.parseResponse(AvaticaUtils.readFullyToBytes(inputStream));
+    } catch (IOException e) {
+      // Not a protobuf that we could parse.
+      throw new RuntimeException(e);
+    }
+
+    // The server had an error, throw an Exception for that.
+    if (resp instanceof ErrorResponse) {
+      throw ((ErrorResponse) resp).toException();
+    }
+
+    return resp;
   }
 }
 

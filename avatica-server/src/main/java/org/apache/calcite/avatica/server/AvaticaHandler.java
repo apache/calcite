@@ -17,16 +17,12 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -68,35 +64,16 @@ public class AvaticaHandler extends AbstractHandler {
       if (LOG.isTraceEnabled()) {
         LOG.trace("request: " + jsonRequest);
       }
-      String jsonResponse;
-      try {
-        jsonResponse = jsonHandler.apply(jsonRequest);
-      } catch (Throwable t) {
-        LOG.error("Error handling request: " + jsonRequest, t);
-        response.setStatus(500);
-        jsonResponse = createErrorResponse(t);
-      }
+
+      final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
       if (LOG.isTraceEnabled()) {
         LOG.trace("response: " + jsonResponse);
       }
       baseRequest.setHandled(true);
-      response.getWriter().println(jsonResponse);
+      // Set the status code and write out the response.
+      response.setStatus(jsonResponse.getStatusCode());
+      response.getWriter().println(jsonResponse.getResponse());
     }
-  }
-
-  private String createErrorResponse(Throwable t) throws IOException {
-    return jsonHandler.encode(new Service.ErrorResponse(getErrorMessage(t)));
-  }
-
-  public static String getErrorMessage(Throwable t) {
-    return Joiner.on(" -> ").join(
-        Iterables.transform(Throwables.getCausalChain(t), new Function<Throwable, String>() {
-          @Override
-          public String apply(Throwable input) {
-            return input.getMessage() == null
-                ? "(null exception message)" : input.getMessage();
-          }
-        }));
   }
 }
 

@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.ProtobufHandler;
 import org.apache.calcite.avatica.remote.ProtobufTranslation;
 import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
@@ -59,26 +60,13 @@ public class AvaticaProtobufHandler extends AbstractHandler {
         requestBytes = AvaticaUtils.readFullyToBytes(inputStream);
       }
 
-      byte[] responseBytes;
-      try {
-        responseBytes = pbHandler.apply(requestBytes);
-      } catch (Throwable t) {
-        LOG.error("Error handling request", t);
-        response.setStatus(500);
-        responseBytes = createErrorResponse(t);
-      }
+      HandlerResponse<byte[]> handlerResponse = pbHandler.apply(requestBytes);
 
       baseRequest.setHandled(true);
-      response.getOutputStream().write(responseBytes);
+      response.setStatus(handlerResponse.getStatusCode());
+      response.getOutputStream().write(handlerResponse.getResponse());
     }
   }
-
-  private byte[] createErrorResponse(Throwable t) throws IOException {
-    Service.ErrorResponse errorResponse = new Service.ErrorResponse(
-        AvaticaHandler.getErrorMessage(t));
-    return protobufTranslation.serializeResponse(errorResponse);
-  }
-
 }
 
 // End AvaticaProtobufHandler.java
