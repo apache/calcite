@@ -1,0 +1,1112 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+options {
+  STATIC = false;
+  IGNORE_CASE = true;
+  UNICODE_INPUT = true;
+}
+
+PARSER_BEGIN(PigletParser)
+
+package org.apache.calcite.piglet.parser;
+
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.piglet.Ast.*;
+import org.apache.calcite.util.trace.CalciteTrace;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static org.apache.calcite.util.Static.RESOURCE;
+
+/**
+ * Parser Piglet, a Pig-like language, generated from PigletParser.jj by JavaCC.
+ */
+public class PigletParser
+{
+  private static final Logger LOGGER = CalciteTrace.getParserTracer();
+
+  public void setTabSize(int tabSize) {
+    jj_input_stream.setTabSize(tabSize);
+  }
+}
+
+PARSER_END(PigletParser)
+
+/* For Debug */
+JAVACODE
+void debug_message1()
+{
+  LOGGER.log(Level.INFO, getToken(0).image + " , " + getToken(1).image);
+}
+
+JAVACODE String unquotedIdentifier() {
+  return SqlParserUtil.strip(getToken(0).image, null, null, null,
+    Casing.UNCHANGED);
+}
+
+String nonReservedKeyWord() :
+{
+  String kw;
+}
+{
+  kw = commonNonReservedKeyWord() {
+    return kw;
+  }
+}
+
+/* Epsilon */
+JAVACODE
+void e() {}
+
+JAVACODE SqlParserPos pos() {
+  return new SqlParserPos(token.beginLine, token.beginColumn,
+    token.endLine, token.endColumn);
+}
+
+JAVACODE SqlParserPos pos2(SqlParserPos p) {
+  return pos().plus(p);
+}
+
+JAVACODE SqlParserPos pos3(Node n) {
+  return pos().plus(n.pos);
+}
+
+/**
+ * Converts a ParseException (local to this particular instantiation
+ * of the parser) into a SqlParseException (common to all parsers).
+ */
+JAVACODE SqlParseException convertException(Throwable ex) {
+  if (ex instanceof SqlParseException) {
+    return (SqlParseException) ex;
+  }
+  SqlParserPos pos = null;
+  int[][] expectedTokenSequences = null;
+  String[] tokenImage = null;
+  if (ex instanceof ParseException) {
+    ParseException pex = (ParseException) ex;
+    expectedTokenSequences = pex.expectedTokenSequences;
+    tokenImage = pex.tokenImage;
+    if (pex.currentToken != null) {
+      final Token token = pex.currentToken.next;
+      pos = new SqlParserPos(token.beginLine, token.beginColumn,
+          token.endLine, token.endColumn);
+    }
+  } else if (ex instanceof TokenMgrError) {
+    TokenMgrError tme = (TokenMgrError) ex;
+    expectedTokenSequences = null;
+    tokenImage = null;
+    // Example:
+    //    Lexical error at line 3, column 24.  Encountered "#" after "a".
+    final java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+        "(?s)Lexical error at line ([0-9]+), column ([0-9]+).*");
+    java.util.regex.Matcher matcher = pattern.matcher(ex.getMessage());
+    if (matcher.matches()) {
+      int line = Integer.parseInt(matcher.group(1));
+      int column = Integer.parseInt(matcher.group(2));
+      pos = new SqlParserPos(line, column, line, column);
+    }
+  } else if (ex instanceof CalciteContextException) {
+    // CalciteContextException is the standard wrapper for exceptions
+    // produced by the validator, but in the parser, the standard is
+    // SqlParseException; so, strip it away. In case you were wondering,
+    // the CalciteContextException appears because the parser
+    // occasionally calls into validator-style code such as
+    // SqlSpecialOperator.reduceExpr.
+    CalciteContextException ece =
+        (CalciteContextException) ex;
+    pos = new SqlParserPos(
+        ece.getPosLine(),
+        ece.getPosColumn(),
+        ece.getEndPosLine(),
+        ece.getEndPosColumn());
+    ex = ece.getCause();
+  }
+
+  return new SqlParseException(ex.getMessage(), pos, expectedTokenSequences,
+      tokenImage, ex);
+}
+
+/*****************************************
+ * Syntactical Descriptions              *
+ *****************************************/
+
+/**
+ * Parses a list of statements (LOAD, DUMP, etc.) followed by
+ * the end-of-file symbol.
+ */
+Program stmtListEof() :
+{
+  final List<Stmt> list = Lists.newArrayList();
+  Stmt s;
+}
+{
+  (
+    s = stmt() {
+      list.add(s);
+    }
+  )*
+  <EOF> {
+    SqlParserPos p = SqlParserPos.ZERO;
+    for (Stmt s2 : list) {
+      p = p.plus(s2.pos);
+    }
+    return new Program(p, list);
+  }
+}
+
+Stmt stmt() :
+{
+  final Identifier target;
+  final Stmt s;
+}
+{
+  (
+    target = simpleIdentifier() <EQ>
+    (
+      s = loadStmt(target)
+    |
+      s = valuesStmt(target)
+    |
+      s = distinctStmt(target)
+    |
+      s = limitStmt(target)
+    |
+      s = orderStmt(target)
+    |
+      s = foreachStmt(target)
+    |
+      s = filterStmt(target)
+    |
+      s = groupStmt(target)
+    )
+  |
+    s = describeStmt()
+  |
+    s = dumpStmt()
+  ) {
+    return s;
+  }
+}
+
+Assignment1 nestedStmt() :
+{
+  final Identifier target;
+  final Assignment1 s;
+}
+{
+  target = simpleIdentifier() <EQ>
+  (
+    s = distinctStmt(target)
+  |
+    s = limitStmt(target)
+  |
+    s = orderStmt(target)
+  |
+    s = filterStmt(target)
+  /* or sample */
+  ) {
+    return s;
+  }
+}
+
+LoadStmt loadStmt(final Identifier target) :
+{
+  final Literal name;
+}
+{
+  <LOAD> name = stringLiteral() <SEMICOLON> {
+    return new LoadStmt(pos3(target), target, name);
+  }
+}
+
+ValuesStmt valuesStmt(final Identifier target) :
+{
+  final List<List<Node>> tupleList;
+  final Schema schema;
+}
+{
+  <VALUES> tupleList = tupleListMaybeEmpty()
+  <AS> schema = schema() <SEMICOLON> {
+    return new ValuesStmt(pos3(target), target, schema, tupleList);
+  }
+}
+
+/** Parses a tuple list.
+ * The list may be empty.
+ * Each tuple is a list of at least one expression. */
+List<List<Node>> tupleListMaybeEmpty() :
+{
+  final ImmutableList.Builder<List<Node>> tupleList = ImmutableList.builder();
+  List<Node> tuple;
+}
+{
+  [
+    tuple = tuple() {
+      tupleList.add(tuple);
+    }
+    (
+      <COMMA> tuple = tuple() {
+        tupleList.add(tuple);
+      }
+    )*
+  ] {
+    return tupleList.build();
+  }
+}
+
+DescribeStmt describeStmt() :
+{
+  final SqlParserPos p;
+  final Identifier id;
+}
+{
+  <DESCRIBE> { p = pos(); } id = simpleIdentifier() <SEMICOLON> {
+    return new DescribeStmt(pos2(p), id);
+  }
+}
+
+DumpStmt dumpStmt() :
+{
+  final SqlParserPos p;
+  final Identifier id;
+}
+{
+  <DUMP> { p = pos(); } id = simpleIdentifier() <SEMICOLON> {
+    return new DumpStmt(pos2(p), id);
+  }
+}
+
+Assignment foreachStmt(final Identifier target) :
+{
+  final Identifier id;
+  final List<Node> expList;
+  final List<Stmt> nestedStmtList;
+  final Schema schema = null; // TODO:
+}
+{
+  <FOREACH> id = simpleIdentifier()
+  (
+    LOOKAHEAD(1)
+    <GENERATE> expList = expCommaList() <SEMICOLON> {
+      return new ForeachStmt(pos3(target), target, id, expList, schema);
+    }
+  | <LBRACE> nestedStmtList = nestedStmtList()
+    <GENERATE> expList = expCommaList() <SEMICOLON> <RBRACE> {
+      return new ForeachNestedStmt(pos3(target), target, id, nestedStmtList,
+          expList, schema);
+    }
+  )
+}
+
+List<Stmt> nestedStmtList() :
+{
+  Assignment s;
+  final List<Stmt> list = Lists.newArrayList();
+}
+{
+  s = nestedStmt() {
+    list.add(s);
+  }
+  (
+    s = nestedStmt() {
+      list.add(s);
+    }
+  )* {
+    return list;
+  }
+}
+
+FilterStmt filterStmt(final Identifier target) :
+{
+  final Identifier id;
+  final Node condition;
+}
+{
+  <FILTER> id = simpleIdentifier()
+  <BY> condition = exp() <SEMICOLON> {
+    return new FilterStmt(pos3(target), target, id, condition);
+  }
+}
+
+DistinctStmt distinctStmt(final Identifier target) :
+{
+  final Identifier id;
+}
+{
+  <DISTINCT> id = simpleIdentifier() <SEMICOLON> {
+    return new DistinctStmt(pos3(target), target, id);
+  }
+}
+
+LimitStmt limitStmt(final Identifier target) :
+{
+  final Identifier id;
+  final NumericLiteral count;
+}
+{
+  <LIMIT> id = simpleIdentifier() count = numericLiteral() <SEMICOLON> {
+    return new LimitStmt(pos3(target), target, id, count);
+  }
+}
+
+OrderStmt orderStmt(final Identifier target) :
+{
+  final Identifier id;
+  final List<Pair<Identifier, Direction>> fields;
+}
+{
+  <ORDER> id = simpleIdentifier() <BY> fields = orderFieldCommaList()
+  <SEMICOLON> {
+    return new OrderStmt(pos3(target), target, id, fields);
+  }
+}
+
+List<Pair<Identifier, Direction>> orderFieldCommaList() :
+{
+  final List<Pair<Identifier, Direction>> list = Lists.newArrayList();
+  Pair<Identifier, Direction> field;
+}
+{
+  field = orderField() {
+    list.add(field);
+  }
+  (
+    <COMMA> field = orderField() {
+      list.add(field);
+    }
+  )* {
+    return list;
+  }
+}
+
+Pair<Identifier, Direction> orderField() :
+{
+  final Identifier id;
+  final Direction direction;
+}
+{
+  (
+    <STAR> {
+      id = new SpecialIdentifier(pos());
+    }
+  |
+    id = simpleIdentifier()
+  )
+  (
+    <ASC> {
+      direction = Direction.ASC;
+    }
+  |
+    <DESC> {
+      direction = Direction.DESC;
+    }
+  |
+    {
+      direction = Direction.NOT_SPECIFIED;
+    }
+  ) {
+    return Pair.of(id, direction);
+  }
+}
+
+GroupStmt groupStmt(final Identifier target) :
+{
+  final Identifier id;
+  final List<Node> keys;
+  final Node exp;
+}
+{
+  <GROUP> id = simpleIdentifier()
+  (
+    <ALL> {
+      keys = null;
+    }
+  |
+    <BY>
+    (
+      keys = tuple()
+    |
+      exp = exp() {
+        keys = ImmutableList.of(exp);
+      }
+    )
+  )
+  <SEMICOLON> {
+    return new GroupStmt(pos3(target), target, id, keys);
+  }
+}
+
+/** Parses a schema. */
+Schema schema() :
+{
+  final SqlParserPos pos;
+  final ImmutableList.Builder<FieldSchema> list = ImmutableList.builder();
+  FieldSchema fieldSchema;
+}
+{
+  <LPAREN> {
+    pos = pos();
+  }
+  fieldSchema = fieldSchema() {
+    list.add(fieldSchema);
+  }
+  (
+    <COMMA> fieldSchema = fieldSchema() {
+      list.add(fieldSchema);
+    }
+  )*
+  <RPAREN> {
+    return new Schema(pos2(pos), list.build());
+  }
+}
+
+FieldSchema fieldSchema() :
+{
+  final Identifier identifier;
+  final Type type;
+}
+{
+  identifier = simpleIdentifier() <COLON> type = type() {
+    return new FieldSchema(pos3(identifier), identifier, type);
+  }
+}
+
+/** Parses a Type. */
+Type type() :
+{
+  String s;
+}
+{
+  s = identifier() {
+    return new Type(pos(), s);
+  }
+}
+
+/** Parses an expression. */
+Node exp() :
+{
+  final Node e;
+}
+{
+  e = exp1() {
+    return e;
+  }
+}
+
+/** Parses an expression of precedence 1: OR. */
+Node exp1() :
+{
+  Node e;
+  Node f;
+}
+{
+  e = exp2()
+  (
+    <OR> f = exp2() {
+      e = new Call(pos3(e), Op.OR, e, f);
+    }
+  )* {
+    return e;
+  }
+}
+
+/** Parses an expression of precedence 2: AND. */
+Node exp2() :
+{
+  Node e;
+  Node f;
+}
+{
+  e = exp3()
+  (
+    <AND> f = exp3() {
+      e = new Call(pos3(e), Op.AND, e, f);
+    }
+  )* {
+    return e;
+  }
+}
+
+/** Parses an expression of precedence 3: NOT. */
+Node exp3() :
+{
+  final Node e;
+  final SqlParserPos p;
+}
+{
+  (
+    <NOT> {
+      p = pos();
+    }
+    e = exp3() {
+      return new Call(pos2(p), Op.NOT, e);
+    }
+  |
+    e = exp4() {
+      return e;
+    }
+  )
+}
+
+/** Parses an expression of precedence 4: relational operators (==, !=, <, <=,
+ * >, >=). */
+Node exp4() :
+{
+  Node e;
+  Node f;
+}
+{
+  e = exp5()
+  (
+    <EQEQ> f = exp5() {
+      e = new Call(pos3(e), Op.EQ, e, f);
+    }
+  |
+    <GT> f = exp5() {
+      e = new Call(pos3(e), Op.GT, e, f);
+    }
+  |
+    <LT> f = exp5() {
+      e = new Call(pos3(e), Op.LT, e, f);
+    }
+  |
+    <GE> f = exp5() {
+      e = new Call(pos3(e), Op.GTE, e, f);
+    }
+  |
+    <LE> f = exp5() {
+      e = new Call(pos3(e), Op.LTE, e, f);
+    }
+  )* {
+    return e;
+  }
+}
+
+/** Parses an expression of precedence 5: +, -. */
+Node exp5() :
+{
+  Node e;
+  Node f;
+}
+{
+  e = exp10()
+  (
+    <PLUS> f = exp10() {
+      e = new Call(pos3(e), Op.PLUS, e, f);
+    }
+  |
+    <MINUS> f = exp10() {
+      e = new Call(pos3(e), Op.PLUS, e, f);
+    }
+  )* {
+    return e;
+  }
+}
+
+/** Parses an expression of precedence 10: . */
+Node exp10() :
+{
+  Node e;
+  Node f;
+}
+{
+  e = atom()
+  (
+    <DOT>
+    f = atom() {
+      e = new Call(pos3(e), Op.DOT, e, f);
+    }
+  )* {
+    return e;
+  }
+}
+
+/** Parses an atomic expression, effectively an expression of infinite
+  * precedence. */
+Node atom() :
+{
+  final Node e;
+}
+{
+  (
+    e = literal()
+  |
+    e = simpleIdentifier()
+  |
+    <LPAREN> e = exp() <RPAREN>
+  ) {
+    return e;
+  }
+}
+
+/** A non-empty list of expressions. */
+List<Node> expCommaList() :
+{
+  final List<Node> list = Lists.newArrayList();
+  Node e;
+}
+{
+  e = exp() {
+    list.add(e);
+  }
+  (
+    <COMMA> e = exp() {
+      list.add(e);
+    }
+  )* {
+    return list;
+  }
+}
+
+/** Parses a tuple. A tuple is a list of one or more expressions surrounded by
+ * parentheses. */
+List<Node> tuple() :
+{
+  final List<Node> expList;
+}
+{
+  <LPAREN> expList = expCommaList() <RPAREN> {
+    return expList;
+  }
+}
+
+/** Parses a literal expression. */
+Literal literal() :
+{
+  Literal e;
+}
+{
+  (
+    e = numericLiteral()
+  |
+    e = stringLiteral()
+  ) {
+    return e;
+  }
+}
+
+/** Parses a unsigned numeric literal */
+NumericLiteral unsignedNumericLiteral() :
+{
+}
+{
+  (
+    <UNSIGNED_INTEGER_LITERAL> {
+      return Literal.createExactNumeric(token.image, pos());
+    }
+  |
+    <FLOAT_LITERAL> {
+      assert token.image.endsWith("F");
+      final String x = token.image.substring(0, token.image.length() - 1);
+      return Literal.createExactNumeric(x, pos());
+    }
+  )
+}
+
+/** Parses a numeric literal (can be signed) */
+NumericLiteral numericLiteral() :
+{
+  NumericLiteral num;
+  SqlParserPos p;
+}
+{
+  <PLUS> num = unsignedNumericLiteral() {
+    return num;
+  }
+|
+  <MINUS> {
+    p = pos();
+  }
+  num = unsignedNumericLiteral() {
+    return num.negate(pos2(p));
+  }
+|
+  num = unsignedNumericLiteral() {
+    return num;
+  }
+}
+
+/** Parses a string literal. */
+Literal stringLiteral() :
+{
+  String s;
+}
+{
+  <QUOTED_STRING> {
+    s = SqlParserUtil.parseString(token.image);
+    return new Literal(pos(), s);
+  }
+}
+
+/** Parses a simple identifier as a string. */
+String identifier() :
+{
+  String id;
+}
+{
+  (
+    <IDENTIFIER> {
+      id = unquotedIdentifier();
+    }
+  | id = nonReservedKeyWord()
+  ) {
+    return id;
+  }
+}
+
+/**
+ * Parses a simple identifier as an Identifier.
+ */
+Identifier simpleIdentifier() :
+{
+  String s;
+}
+{
+  s = identifier() {
+    return new Identifier(pos(), s);
+  }
+}
+
+/* KEYWORDS:  anything in this list is a reserved word unless it appears
+   in the nonReservedKeyWord() production. */
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+  < ALL: "ALL" >
+| < AND: "AND" >
+| < ASC: "ASC" >
+| < AS: "AS" >
+| < BY: "BY" >
+| < DESC: "DESC" >
+| < DESCRIBE: "DESCRIBE" >
+| < DISTINCT: "DISTINCT" >
+| < DUMP: "DUMP" >
+| < FILTER: "FILTER" >
+| < FOREACH: "FOREACH" >
+| < GENERATE: "GENERATE" >
+| < GROUP: "GROUP" >
+| < LOAD: "LOAD" >
+| < LIMIT: "LIMIT" >
+| < NOT: "NOT" >
+| < ORDER: "ORDER" >
+| < OR: "OR" >
+| < VALUES: "VALUES" >
+}
+
+/** Parses a non-reserved keyword for use as an identifier. */
+String commonNonReservedKeyWord() :
+{
+}
+{
+  (
+    <ALL>
+  | <AND>
+  | <ASC>
+  | <BY>
+  | <DESC>
+  | <DESCRIBE>
+  | <DISTINCT>
+  | <DUMP>
+  | <FOREACH>
+  | <GENERATE>
+  | <GROUP>
+  | <LIMIT>
+  | <LOAD>
+  | <NOT>
+  | <OR>
+  | <ORDER>
+  | <VALUES>
+  ) {
+    return unquotedIdentifier();
+  }
+}
+
+/* LITERALS */
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < UNSIGNED_INTEGER_LITERAL: (["0"-"9"])+ >
+    |
+    < FLOAT_LITERAL: (["0"-"9"])+ "." (["0"-"9"])+ "F" >
+    |
+    < APPROX_NUMERIC_LITERAL:
+    (<UNSIGNED_INTEGER_LITERAL> | <DECIMAL_NUMERIC_LITERAL>) <EXPONENT> >
+    |
+    < DECIMAL_NUMERIC_LITERAL:
+    (["0"-"9"])+(".")?(["0"-"9"])*
+    | "."(["0"-"9"])+
+    >
+    |
+    < #EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+    |
+    < #HEXDIGIT: ["0"-"9","a"-"f","A"-"F"] >
+    |
+    < #WHITESPACE:
+    [ " ","\t","\n","\r","\f" ]
+    >
+    |
+    /* To improve error reporting, we allow all kinds of characters,
+     * not just hexits, in a binary string literal. */
+    < BINARY_STRING_LITERAL: ["x","X"] <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+    |
+    < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+    |
+    < PREFIXED_STRING_LITERAL: ("_" <CHARSETNAME> | "N") <QUOTED_STRING> >
+    |
+    < UNICODE_STRING_LITERAL: "U" "&" <QUOTED_STRING> >
+    |
+    < #CHARSETNAME: (["a"-"z","A"-"Z","0"-"9"])
+    (["a"-"z","A"-"Z","0"-"9",":",".","-","_"])*
+    >
+}
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < UNICODE_QUOTED_ESCAPE_CHAR:
+    <QUOTE>
+    (~["0"-"9","a"-"f","A"-"F","+","\""," ","\t","\n","\r","\f"])
+    <QUOTE>
+    >
+}
+
+/* SEPARATORS */
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < LPAREN: "(">
+    | < RPAREN: ")">
+    | < LBRACE_D: "{" (" ")* ["d","D"] >
+    | < LBRACE_T: "{" (" ")* ["t","T"] >
+    | < LBRACE_TS: "{" (" ")* ["t","T"] ["s","S"] >
+    | < LBRACE_FN: "{" (" ")* ["f","F"] ["n","N"] >
+    | < LBRACE: "{" >
+    | < RBRACE: "}" >
+    | < LBRACKET: "[" >
+    | < RBRACKET: "]" >
+    | < SEMICOLON: ";" >
+    | < DOT: "." >
+    | < COMMA: "," >
+}
+
+/* OPERATORS */
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < EQ: "=" >
+    | < EQEQ: "==" >
+    | < GT: ">" >
+    | < LT: "<" >
+    | < HOOK: "?" >
+    | < COLON: ":" >
+    | < LE: "<=" >
+    | < GE: ">=" >
+    | < NE: "!=" >
+    | < PLUS: "+" >
+    | < MINUS: "-" >
+    | < STAR: "*" >
+    | < SLASH: "/" >
+    | < CONCAT: "||" >
+    | < DOUBLE_PERIOD: ".." >
+    | < QUOTE: "'" >
+    | < DOUBLE_QUOTE: "\"" >
+}
+
+
+/*****************************************
+ * Lexical Descriptions                  *
+ *****************************************/
+
+TOKEN_MGR_DECLS : {
+    List<Integer> lexicalStateStack = Lists.newArrayList();
+
+    void pushState() {
+      lexicalStateStack.add(curLexState);
+    }
+
+    void popState() {
+      SwitchTo(lexicalStateStack.remove(lexicalStateStack.size() - 1));
+    }
+}
+
+/*
+Lexical states:
+
+DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
+DQID:    Identifiers are double-quoted, e.g. "My Identifier"
+BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
+IN_SINGLE_LINE_COMMENT:
+IN_FORMAL_COMMENT:
+IN_MULTI_LINE_COMMENT:
+
+DEFAULT, DQID, BTID are the 3 'normal states'. Behavior is identical except
+for how quoted identifiers are recognized.
+
+After a comment has completed, the lexer returns to the previous state, one
+of the 'normal states'.
+*/
+
+/* WHITE SPACE */
+
+<DEFAULT, DQID, BTID> SKIP :
+{
+    " "
+    | "\t"
+    | "\n"
+    | "\r"
+    | "\f"
+}
+
+/* COMMENTS */
+
+<DEFAULT, DQID, BTID> MORE :
+{
+    <"/**" ~["/"]> { pushState(); } : IN_FORMAL_COMMENT
+}
+
+<DEFAULT, DQID, BTID> MORE :
+{
+    "//" { pushState(); } : IN_SINGLE_LINE_COMMENT
+    |
+    "--" { pushState(); } : IN_SINGLE_LINE_COMMENT
+    |
+    "/*" { pushState(); } : IN_MULTI_LINE_COMMENT
+}
+
+<IN_SINGLE_LINE_COMMENT>
+SPECIAL_TOKEN :
+{
+    <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > { popState(); }
+}
+
+<IN_FORMAL_COMMENT>
+SPECIAL_TOKEN :
+{
+    <FORMAL_COMMENT: "*/" > { popState(); }
+}
+
+<IN_MULTI_LINE_COMMENT>
+SPECIAL_TOKEN :
+{
+    <MULTI_LINE_COMMENT: "*/" > { popState(); }
+}
+
+<IN_SINGLE_LINE_COMMENT,IN_FORMAL_COMMENT,IN_MULTI_LINE_COMMENT>
+MORE :
+{
+    < ~[] >
+}
+
+
+/* IDENTIFIERS */
+
+<DEFAULT> TOKEN :
+{
+    < BRACKET_QUOTED_IDENTIFIER:
+    "["
+    (   (~["]","\n","\r"])
+        | ("]]")
+        )+
+    "]"
+    >
+}
+
+<DQID> TOKEN :
+{
+    < QUOTED_IDENTIFIER:
+    "\""
+    (   (~["\"","\n","\r"])
+        | ("\"\"")
+        )+
+    "\""
+    >
+}
+
+<BTID>  TOKEN :
+{
+    < BACK_QUOTED_IDENTIFIER:
+    "`"
+    (   (~["`","\n","\r"])
+        | ("``")
+        )+
+    "`"
+    >
+}
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < COLLATION_ID:
+    (<LETTER>|<DIGIT>)+ (<LETTER>|<DIGIT>|":"|"."|"-"|"_")*
+    "$"
+    (<LETTER>|"_")+
+    ("$" (<LETTER>|<DIGIT>|"_")+)?
+    >
+    |
+    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+    |
+    < UNICODE_QUOTED_IDENTIFIER: "U" "&" <QUOTED_IDENTIFIER> >
+    |
+    < #LETTER:
+    [
+        "\u0024",
+        "\u0041"-"\u005a",
+        "\u005f",
+        "\u0061"-"\u007a",
+        "\u00c0"-"\u00d6",
+        "\u00d8"-"\u00f6",
+        "\u00f8"-"\u00ff",
+        "\u0100"-"\u1fff",
+        "\u3040"-"\u318f",
+        "\u3300"-"\u337f",
+        "\u3400"-"\u3d2d",
+        "\u4e00"-"\u9fff",
+        "\uf900"-"\ufaff"
+    ]
+    >
+    |
+    < #DIGIT:
+    [
+        "\u0030"-"\u0039",
+        "\u0660"-"\u0669",
+        "\u06f0"-"\u06f9",
+        "\u0966"-"\u096f",
+        "\u09e6"-"\u09ef",
+        "\u0a66"-"\u0a6f",
+        "\u0ae6"-"\u0aef",
+        "\u0b66"-"\u0b6f",
+        "\u0be7"-"\u0bef",
+        "\u0c66"-"\u0c6f",
+        "\u0ce6"-"\u0cef",
+        "\u0d66"-"\u0d6f",
+        "\u0e50"-"\u0e59",
+        "\u0ed0"-"\u0ed9",
+        "\u1040"-"\u1049"
+    ]
+    >
+}
+
+// End PigletParser.jj
