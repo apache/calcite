@@ -40,6 +40,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.AbstractList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -236,6 +237,9 @@ public class RexLiteral extends RexNode {
           && (((NlsString) value).getCollation() != null);
     case SYMBOL:
       return value instanceof Enum;
+    case ROW:
+    case MULTISET:
+      return value instanceof List;
     case ANY:
       // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
       // an integer literal surrounded by a cast function.
@@ -386,6 +390,20 @@ public class RexLiteral extends RexNode {
         assert value == null;
         pw.print("null");
       }
+      break;
+    case MULTISET:
+    case ROW:
+      @SuppressWarnings("unchecked") final List<RexLiteral> list = (List) value;
+      pw.print(
+          new AbstractList<String>() {
+            public String get(int index) {
+              return list.get(index).digest;
+            }
+
+            public int size() {
+              return list.size();
+            }
+          });
       break;
     default:
       assert valueMatchesType(value, typeName, true);

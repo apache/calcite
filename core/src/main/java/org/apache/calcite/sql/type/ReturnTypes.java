@@ -310,6 +310,16 @@ public abstract class ReturnTypes {
               -1);
         }
       };
+
+  /**
+   * Returns a multiset type.
+   *
+   * <p>For example, given <code>INTEGER</code>, returns
+   * <code>INTEGER MULTISET</code>.
+   */
+  public static final SqlReturnTypeInference TO_MULTISET =
+      cascade(ARG0, SqlTypeTransforms.TO_MULTISET);
+
   /**
    * Returns the element type of a multiset
    */

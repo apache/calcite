@@ -96,6 +96,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
@@ -323,6 +324,7 @@ public class RexImpTable {
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
+    aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
     winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
@@ -1068,6 +1070,28 @@ public class RexImpTable {
         AggResultContext result) {
       return RexToLixTranslator.convert(result.accumulator().get(1),
           info.returnType());
+    }
+  }
+
+  /** Implementor for the {@code COLLECT} aggregate function. */
+  static class CollectImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      // acc[0] = new ArrayList();
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(ArrayList.class))));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      // acc[0].add(arg);
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(add.accumulator().get(0),
+                  BuiltInMethod.COLLECTION_ADD.method,
+                  add.arguments().get(0))));
     }
   }
 

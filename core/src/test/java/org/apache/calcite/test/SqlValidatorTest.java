@@ -6532,9 +6532,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testCollect() {
     check("select collect(deptno) from emp");
     check("select collect(multiset[3]) from emp");
-    // todo. COLLECT is an aggregate function. test that validator only can
-    // take set operators in its select list once aggregation support is
-    // complete
+    sql("select collect(multiset[3]), ^deptno^ from emp")
+        .fails("Expression 'DEPTNO' is not being grouped");
   }
 
   @Test public void testFusion() {

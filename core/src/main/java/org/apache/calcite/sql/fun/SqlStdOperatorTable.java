@@ -1494,14 +1494,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The COLLECT operator. Multiset aggregator function.
    */
-  public static final SqlFunction COLLECT =
-      new SqlFunction(
-          "COLLECT",
+  public static final SqlAggFunction COLLECT =
+      new SqlAggFunction("COLLECT",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
+          ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM);
+          SqlFunctionCategory.SYSTEM) {
+      };
 
   /**
    * The FUSION operator. Multiset aggregator function.

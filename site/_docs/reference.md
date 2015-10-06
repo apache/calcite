@@ -533,6 +533,7 @@ passed to the aggregate function.
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
+| COLLECT( [ DISTINCT ] value)       | Returns a multiset of the values
 | COUNT( [ DISTINCT ] value [, value]* ) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
 | AVG( [ DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values

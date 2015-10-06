@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -38,6 +39,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -1249,7 +1251,7 @@ public class RexBuilder {
       final MapSqlType mapType = (MapSqlType) type;
       @SuppressWarnings("unchecked")
       final Map<Object, Object> map = (Map) value;
-      operands = new ArrayList<RexNode>();
+      operands = new ArrayList<>();
       for (Map.Entry<Object, Object> entry : map.entrySet()) {
         operands.add(
             makeLiteral(entry.getKey(), mapType.getKeyType(), allowCast));
@@ -1261,12 +1263,39 @@ public class RexBuilder {
       final ArraySqlType arrayType = (ArraySqlType) type;
       @SuppressWarnings("unchecked")
       final List<Object> listValue = (List) value;
-      operands = new ArrayList<RexNode>();
+      operands = new ArrayList<>();
       for (Object entry : listValue) {
         operands.add(
             makeLiteral(entry, arrayType.getComponentType(), allowCast));
       }
       return makeCall(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, operands);
+    case MULTISET:
+      final MultisetSqlType multisetType = (MultisetSqlType) type;
+      operands = new ArrayList<>();
+      for (Object entry : (List) value) {
+        final RexNode e = entry instanceof RexLiteral
+            ? (RexNode) entry
+            : makeLiteral(entry, multisetType.getComponentType(), allowCast);
+        operands.add(e);
+      }
+      if (allowCast) {
+        return makeCall(SqlStdOperatorTable.MULTISET_VALUE, operands);
+      } else {
+        return new RexLiteral((Comparable) FlatLists.of(operands), type,
+            type.getSqlTypeName());
+      }
+    case ROW:
+      operands = new ArrayList<>();
+      //noinspection unchecked
+      for (Pair<RelDataTypeField, Object> pair
+          : Pair.zip(type.getFieldList(), (List<Object>) value)) {
+        final RexNode e = pair.right instanceof RexLiteral
+            ? (RexNode) pair.right
+            : makeLiteral(pair.right, pair.left.getType(), allowCast);
+        operands.add(e);
+      }
+      return new RexLiteral((Comparable) FlatLists.of(operands), type,
+          type.getSqlTypeName());
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
     default:

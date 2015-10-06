@@ -588,6 +588,54 @@ from (values cast(-86.4 as float), cast(-100 as float)) as t(v);
 
 !ok
 
+# COLLECT
+select deptno, collect(empno) as empnos
+from "scott".emp
+group by deptno;
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7782, 7839, 7934]                   |
+|     20 | [7369, 7566, 7788, 7876, 7902]       |
+|     30 | [7499, 7521, 7654, 7698, 7844, 7900] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+
+# COLLECT DISTINCT
+# Disabled in JDK 1.7 because order of values is different
+!if (jdk18) {
+select deptno, collect(distinct job) as jobs
+from "scott".emp
+group by deptno;
++--------+-----------------------------+
+| DEPTNO | JOBS                        |
++--------+-----------------------------+
+|     10 | [MANAGER, CLERK, PRESIDENT] |
+|     20 | [CLERK, ANALYST, MANAGER]   |
+|     30 | [SALESMAN, MANAGER, CLERK]  |
++--------+-----------------------------+
+(3 rows)
+
+!ok
+!}
+
+# COLLECT ... FILTER
+select deptno, collect(empno) filter (where empno < 7550) as empnos
+from "scott".emp
+group by deptno;
++--------+--------------+
+| DEPTNO | EMPNOS       |
++--------+--------------+
+|     10 | []           |
+|     20 | [7369]       |
+|     30 | [7499, 7521] |
++--------+--------------+
+(3 rows)
+
+!ok
+
 # Aggregate FILTER
 select deptno,
   sum(sal) filter (where job = 'CLERK') c_sal,

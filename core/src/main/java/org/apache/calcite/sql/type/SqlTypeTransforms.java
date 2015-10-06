@@ -151,6 +151,21 @@ public abstract class SqlTypeTransforms {
       };
 
   /**
+   * Parameter type-inference transform strategy that wraps a given type
+   * in a multiset.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMultisetType(RelDataType, long)
+   */
+  public static final SqlTypeTransform TO_MULTISET =
+      new SqlTypeTransform() {
+        public RelDataType transformType(SqlOperatorBinding opBinding,
+            RelDataType typeToTransform) {
+          return opBinding.getTypeFactory().createMultisetType(typeToTransform,
+              -1);
+        }
+      };
+
+  /**
    * Parameter type-inference transform strategy where a derived type must be
    * a struct type with precisely one field and the returned type is the type
    * of that field.

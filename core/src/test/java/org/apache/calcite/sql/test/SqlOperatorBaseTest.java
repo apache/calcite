@@ -4107,10 +4107,31 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCollectFunc() {
-    tester.setFor(
-        SqlStdOperatorTable.COLLECT,
-        VM_FENNEL,
-        VM_JAVA);
+    tester.setFor(SqlStdOperatorTable.COLLECT, VM_FENNEL, VM_JAVA);
+    tester.checkFails("collect(^*^)", "Unknown identifier '\\*'", false);
+    checkAggType(tester, "collect(1)", "INTEGER NOT NULL MULTISET NOT NULL");
+    checkAggType(tester,
+        "collect(1.2)", "DECIMAL(2, 1) NOT NULL MULTISET NOT NULL");
+    checkAggType(tester,
+        "collect(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL MULTISET NOT NULL");
+    tester.checkFails("^collect()^",
+        "Invalid number of arguments to function 'COLLECT'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^collect(1, 2)^",
+        "Invalid number of arguments to function 'COLLECT'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    tester.checkAgg("collect(x)", values, Arrays.asList("[0, 2, 2]"), (double) 0);
+    Object result1 = -3;
+    if (!enable) {
+      return;
+    }
+    tester.checkAgg("collect(CASE x WHEN 0 THEN NULL ELSE -1 END)", values,
+        result1, (double) 0);
+    Object result = -1;
+    tester.checkAgg("collect(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
+        values, result, (double) 0);
+    tester.checkAgg("collect(DISTINCT x)", values, 2, (double) 0);
   }
 
   @Test public void testFusionFunc() {
