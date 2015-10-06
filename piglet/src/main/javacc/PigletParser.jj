@@ -464,14 +464,25 @@ GroupStmt groupStmt(final Identifier target) :
 /** Parses a schema. */
 Schema schema() :
 {
-  final SqlParserPos pos;
+  final SqlParserPos p;
+  final List<FieldSchema> fieldSchemaList;
+}
+{
+  <LPAREN> {
+    p = pos();
+  }
+  fieldSchemaList = fieldSchemaList()
+  <RPAREN> {
+    return new Schema(pos2(p), fieldSchemaList);
+  }
+}
+
+List<FieldSchema> fieldSchemaList() :
+{
   final ImmutableList.Builder<FieldSchema> list = ImmutableList.builder();
   FieldSchema fieldSchema;
 }
 {
-  <LPAREN> {
-    pos = pos();
-  }
   fieldSchema = fieldSchema() {
     list.add(fieldSchema);
   }
@@ -479,9 +490,8 @@ Schema schema() :
     <COMMA> fieldSchema = fieldSchema() {
       list.add(fieldSchema);
     }
-  )*
-  <RPAREN> {
-    return new Schema(pos2(pos), list.build());
+  )* {
+    return list.build();
   }
 }
 
@@ -499,12 +509,35 @@ FieldSchema fieldSchema() :
 /** Parses a Type. */
 Type type() :
 {
-  String s;
+  final SqlParserPos p;
+  final String s;
+  final Type t;
+  final List<FieldSchema> fieldSchemaList;
 }
 {
-  s = identifier() {
-    return new Type(pos(), s);
-  }
+  (
+    s = identifier() {
+      return new ScalarType(pos(), s);
+    }
+  |
+    <BAG> {
+      p = pos();
+    }
+    <LBRACE> t = type() <RBRACE> {
+      return new BagType(pos2(p), t);
+    }
+  |
+    <TUPLE> {
+      p = pos();
+    }
+    <LPAREN> fieldSchemaList = fieldSchemaList() <RPAREN> {
+      return new TupleType(pos2(p), fieldSchemaList);
+    }
+  |
+    <MAP> { p = pos(); } <LBRACKET> <RBRACKET> {
+      return new MapType(pos2(p));
+    }
+  )
 }
 
 /** Parses an expression. */
@@ -651,6 +684,10 @@ Node exp10() :
 Node atom() :
 {
   final Node e;
+  Node f;
+  final List<Node> list;
+  ImmutableList.Builder<Node> builder = null;
+  final SqlParserPos p;
 }
 {
   (
@@ -658,7 +695,33 @@ Node atom() :
   |
     e = simpleIdentifier()
   |
-    <LPAREN> e = exp() <RPAREN>
+    <LPAREN> {
+      p = pos();
+    }
+    e = exp()
+    (
+      <COMMA> f = exp() {
+        if (builder == null) {
+          builder = ImmutableList.builder();
+          builder.add(e);
+        }
+        builder.add(f);
+      }
+    )*
+    <RPAREN> {
+      if (builder == null) {
+        return e;
+      } else {
+        return new Call(pos2(p), Op.TUPLE, builder.build());
+      }
+    }
+  |
+    <LBRACE> {
+      p = pos();
+    }
+    list = expCommaListOrEmpty() <RBRACE> {
+      return new Call(pos2(p), Op.BAG, list);
+    }
   ) {
     return e;
   }
@@ -683,6 +746,24 @@ List<Node> expCommaList() :
   }
 }
 
+/** A list of expressions, maybe empty. */
+List<Node> expCommaListOrEmpty() :
+{
+  final List<Node> list;
+  Node e;
+}
+{
+  (
+    list = expCommaList() {
+      return list;
+    }
+  |
+    {
+      return ImmutableList.<Node>of();
+    }
+  )
+}
+
 /** Parses a tuple. A tuple is a list of one or more expressions surrounded by
  * parentheses. */
 List<Node> tuple() :
@@ -702,6 +783,8 @@ Literal literal() :
 }
 {
   (
+    e = booleanLiteral()
+  |
     e = numericLiteral()
   |
     e = stringLiteral()
@@ -710,7 +793,23 @@ Literal literal() :
   }
 }
 
-/** Parses a unsigned numeric literal */
+/** Parses a boolean literal */
+Literal booleanLiteral() :
+{
+}
+{
+  (
+    <TRUE> {
+      return new Literal(pos(), true);
+    }
+  |
+    <FALSE> {
+      return new Literal(pos(), false);
+    }
+  )
+}
+
+/** Parses an unsigned numeric literal */
 NumericLiteral unsignedNumericLiteral() :
 {
 }
@@ -801,24 +900,32 @@ Identifier simpleIdentifier() :
 | < AND: "AND" >
 | < ASC: "ASC" >
 | < AS: "AS" >
+| < BAG: "BAG" >
 | < BY: "BY" >
 | < DESC: "DESC" >
 | < DESCRIBE: "DESCRIBE" >
 | < DISTINCT: "DISTINCT" >
 | < DUMP: "DUMP" >
+| < FALSE: "FALSE" >
 | < FILTER: "FILTER" >
 | < FOREACH: "FOREACH" >
 | < GENERATE: "GENERATE" >
 | < GROUP: "GROUP" >
 | < LOAD: "LOAD" >
 | < LIMIT: "LIMIT" >
+| < MAP: "MAP" >
 | < NOT: "NOT" >
 | < ORDER: "ORDER" >
 | < OR: "OR" >
+| < TRUE: "TRUE" >
+| < TUPLE: "TUPLE" >
 | < VALUES: "VALUES" >
 }
 
-/** Parses a non-reserved keyword for use as an identifier. */
+/** Parses a non-reserved keyword for use as an identifier.
+ *
+ * <p>Reserved: BAG, TUPLE, MAP, TRUE, FALSE
+ */
 String commonNonReservedKeyWord() :
 {
 }
@@ -900,10 +1007,6 @@ String commonNonReservedKeyWord() :
 {
     < LPAREN: "(">
     | < RPAREN: ")">
-    | < LBRACE_D: "{" (" ")* ["d","D"] >
-    | < LBRACE_T: "{" (" ")* ["t","T"] >
-    | < LBRACE_TS: "{" (" ")* ["t","T"] ["s","S"] >
-    | < LBRACE_FN: "{" (" ")* ["f","F"] ["n","N"] >
     | < LBRACE: "{" >
     | < RBRACE: "}" >
     | < LBRACKET: "[" >

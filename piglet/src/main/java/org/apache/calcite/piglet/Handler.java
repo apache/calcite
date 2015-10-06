@@ -20,6 +20,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -194,16 +195,41 @@ public class Handler {
     for (Pair<Ast.Node, RelDataTypeField> pair
         : Pair.zip(nodeList, rowType.getFieldList())) {
       final Ast.Node node = pair.left;
-      if (node instanceof Ast.Literal) {
-        listBuilder.add(
-            (RexLiteral) builder.getRexBuilder().makeLiteral(
-                ((Ast.Literal) node).value, pair.right.getType(), false));
-      } else {
-        throw new IllegalArgumentException("not a literal: " + node);
-      }
+      final RelDataType type = pair.right.getType();
+      listBuilder.add(item(node, type));
     }
     return listBuilder.build();
   }
+
+  private ImmutableList<RexLiteral> bag(List<Ast.Node> nodeList,
+      RelDataType type) {
+    final ImmutableList.Builder<RexLiteral> listBuilder =
+        ImmutableList.builder();
+    for (Ast.Node node : nodeList) {
+      listBuilder.add(item(node, type.getComponentType()));
+    }
+    return listBuilder.build();
+  }
+
+  private RexLiteral item(Ast.Node node, RelDataType type) {
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    switch (node.op) {
+    case LITERAL:
+      final Ast.Literal literal = (Ast.Literal) node;
+      return (RexLiteral) rexBuilder.makeLiteral(literal.value, type, false);
+    case TUPLE:
+      final Ast.Call tuple = (Ast.Call) node;
+      final ImmutableList<RexLiteral> list = tuple(tuple.operands, type);
+      return (RexLiteral) rexBuilder.makeLiteral(list, type, false);
+    case BAG:
+      final Ast.Call bag = (Ast.Call) node;
+      final ImmutableList<RexLiteral> list2 = bag(bag.operands, type);
+      return (RexLiteral) rexBuilder.makeLiteral(list2, type, false);
+    default:
+      throw new IllegalArgumentException("not a literal: " + node);
+    }
+  }
+
 
   private RelDataType toType(Ast.Schema schema) {
     final RelDataTypeFactory.FieldInfoBuilder typeBuilder =
@@ -215,8 +241,25 @@ public class Handler {
   }
 
   private RelDataType toType(Ast.Type type) {
+    switch (type.op) {
+    case SCALAR_TYPE:
+      return toType((Ast.ScalarType) type);
+    case BAG_TYPE:
+      return toType((Ast.BagType) type);
+    case MAP_TYPE:
+      return toType((Ast.MapType) type);
+    case TUPLE_TYPE:
+      return toType((Ast.TupleType) type);
+    default:
+      throw new AssertionError("unknown type " + type);
+    }
+  }
+
+  private RelDataType toType(Ast.ScalarType type) {
     final RelDataTypeFactory typeFactory = builder.getTypeFactory();
     switch (type.name) {
+    case "boolean":
+      return typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     case "int":
       return typeFactory.createSqlType(SqlTypeName.INTEGER);
     case "float":
@@ -224,6 +267,28 @@ public class Handler {
     default:
       return typeFactory.createSqlType(SqlTypeName.VARCHAR);
     }
+  }
+
+  private RelDataType toType(Ast.BagType type) {
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelDataType t = toType(type.componentType);
+    return typeFactory.createMultisetType(t, -1);
+  }
+
+  private RelDataType toType(Ast.MapType type) {
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelDataType k = toType(type.keyType);
+    final RelDataType v = toType(type.valueType);
+    return typeFactory.createMapType(k, v);
+  }
+
+  private RelDataType toType(Ast.TupleType type) {
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    for (Ast.FieldSchema fieldSchema : type.fieldSchemaList) {
+      builder.add(fieldSchema.id.value, toType(fieldSchema.type));
+    }
+    return builder.build();
   }
 
   private void toSortRex(List<RexNode> nodes,

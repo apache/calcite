@@ -140,7 +140,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Ignore("COLLECT not implemented")
+  @Ignore("only collect first column, should collect a struct")
   @Test public void testGroupExample() throws ParseException {
     final String pre = "A = VALUES ('John',18,4.0F),\n"
         + "('Mary',19,3.8F),\n"
@@ -282,6 +282,16 @@ public class PigletTest {
         + "DUMP A;";
     final String expected =
         "LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n";
+    pig(s).explainContains(expected);
+  }
+
+  @Test public void testValuesNested() throws ParseException {
+    final String s = "A = VALUES (1, {('a', true), ('b', false)}),\n"
+        + " (2, {})\n"
+        + "AS (x: int, y: bag {tuple(a: string, b: boolean)});\n"
+        + "DUMP A;";
+    final String expected =
+        "LogicalValues(tuples=[[{ 1, [['a', true], ['b', false]] }, { 2, [] }]])\n";
     pig(s).explainContains(expected);
   }
 }

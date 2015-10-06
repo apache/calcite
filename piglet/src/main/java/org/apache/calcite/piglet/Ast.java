@@ -114,9 +114,20 @@ public class Ast {
 
   /** Parse tree node type. */
   public enum Op {
-    DESCRIBE, DISTINCT, DUMP, LITERAL, LOAD, FOREACH, IDENTIFIER, FILTER,
-    SCHEMA, TYPE, FIELD_SCHEMA, FOREACH_NESTED, LIMIT, ORDER, GROUP, PROGRAM,
-    DOT, VALUES, EQ, NE, GT, LT, GTE, LTE, PLUS, MINUS, AND, OR, NOT
+    PROGRAM,
+
+    // atoms
+    LITERAL, IDENTIFIER, BAG, TUPLE,
+
+    // statements
+    DESCRIBE, DISTINCT, DUMP, LOAD, FOREACH, FILTER,
+    FOREACH_NESTED, LIMIT, ORDER, GROUP, VALUES,
+
+    // types
+    SCHEMA, SCALAR_TYPE, BAG_TYPE, TUPLE_TYPE, MAP_TYPE, FIELD_SCHEMA,
+
+    // operators
+    DOT, EQ, NE, GT, LT, GTE, LTE, PLUS, MINUS, AND, OR, NOT
   }
 
   /** Abstract base class for parse tree node. */
@@ -419,9 +430,13 @@ public class Ast {
   public static class Call extends Node {
     final ImmutableList<Node> operands;
 
-    Call(SqlParserPos pos, Op op, ImmutableList<Node> operands) {
+    private Call(SqlParserPos pos, Op op, ImmutableList<Node> operands) {
       super(pos, op);
-      this.operands = operands;
+      this.operands = ImmutableList.copyOf(operands);
+    }
+
+    public Call(SqlParserPos pos, Op op, Iterable<? extends Node> operands) {
+      this(pos, op, ImmutableList.copyOf(operands));
     }
 
     public Call(SqlParserPos pos, Op op, Node... operands) {
@@ -472,12 +487,52 @@ public class Ast {
   }
 
   /** Parse tree for type. */
-  public static class Type extends Node {
+  public abstract static class Type extends Node {
+    protected Type(SqlParserPos pos, Op op) {
+      super(pos, op);
+    }
+  }
+
+  /** Parse tree for scalar type such as {@code int}. */
+  public static class ScalarType extends Type {
     final String name;
 
-    public Type(SqlParserPos pos, String name) {
-      super(pos, Op.TYPE);
+    public ScalarType(SqlParserPos pos, String name) {
+      super(pos, Op.SCALAR_TYPE);
       this.name = name;
+    }
+  }
+
+  /** Parse tree for a bag type. */
+  public static class BagType extends Type {
+    final Type componentType;
+
+    public BagType(SqlParserPos pos, Type componentType) {
+      super(pos, Op.BAG_TYPE);
+      this.componentType = componentType;
+    }
+  }
+
+  /** Parse tree for a tuple type. */
+  public static class TupleType extends Type {
+    final List<FieldSchema> fieldSchemaList;
+
+    public TupleType(SqlParserPos pos, List<FieldSchema> fieldSchemaList) {
+      super(pos, Op.TUPLE_TYPE);
+      this.fieldSchemaList = ImmutableList.copyOf(fieldSchemaList);
+    }
+  }
+
+  /** Parse tree for a map type. */
+  public static class MapType extends Type {
+    final Type keyType;
+    final Type valueType;
+
+    public MapType(SqlParserPos pos) {
+      super(pos, Op.MAP_TYPE);
+      // REVIEW: Why does Pig's "map" type not have key and value types?
+      this.keyType = new ScalarType(pos, "int");
+      this.valueType = new ScalarType(pos, "int");
     }
   }
 
