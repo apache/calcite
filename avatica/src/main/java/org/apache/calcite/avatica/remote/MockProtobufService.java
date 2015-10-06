@@ -34,23 +34,30 @@ import java.util.Map;
  */
 public class MockProtobufService extends ProtobufService {
 
-  private static final Map<Request, Response> MAPPING;
-  static {
+  private final String connectionId;
+  private final Map<Request, Response> mapping;
+
+  public MockProtobufService(String connectionId) {
+    this.connectionId = connectionId;
+    this.mapping = createMapping();
+  }
+
+  private Map<Request, Response> createMapping() {
     HashMap<Request, Response> mappings = new HashMap<>();
 
     // Add in mappings
 
     mappings.put(
-        new OpenConnectionRequest("0", new HashMap<String, String>()),
+        new OpenConnectionRequest(connectionId, new HashMap<String, String>()),
         new OpenConnectionResponse());
 
     // Get the schema, no.. schema..?
     mappings.put(
-        new SchemasRequest("0", null, null),
+        new SchemasRequest(connectionId, null, null),
         new ResultSetResponse(null, 1, true, null, Meta.Frame.EMPTY, -1));
 
     // Get the tables, no tables exist
-    mappings.put(new TablesRequest("0", null, null, null, Collections.<String>emptyList()),
+    mappings.put(new TablesRequest(connectionId, null, null, null, Collections.<String>emptyList()),
         new ResultSetResponse(null, 150, true, null, Meta.Frame.EMPTY, -1));
 
     // Create a statement, get back an id
@@ -58,7 +65,7 @@ public class MockProtobufService extends ProtobufService {
 
     // Prepare and execute a query. Values and schema are returned
     mappings.put(
-        new PrepareAndExecuteRequest("0", 1,
+        new PrepareAndExecuteRequest(connectionId, 1,
             "select * from (\\n values (1, 'a'), (null, 'b'), (3, 'c')) as t (c1, c2)", -1),
         new ResultSetResponse("0", 1, true,
             Meta.Signature.create(
@@ -72,7 +79,7 @@ public class MockProtobufService extends ProtobufService {
 
     // Prepare a query. Schema for results are returned, but no values
     mappings.put(
-        new PrepareRequest("0",
+        new PrepareRequest(connectionId,
             "select * from (\\n values(1, 'a'), (null, 'b'), (3, 'c')), as t (c1, c2)", -1),
         new ResultSetResponse("0", 1, true,
             Meta.Signature.create(
@@ -84,7 +91,7 @@ public class MockProtobufService extends ProtobufService {
             null, -1));
 
     mappings.put(
-        new ColumnsRequest(null, null, "my_table", null),
+        new ColumnsRequest(connectionId, null, null, "my_table", null),
         new ResultSetResponse("00000000-0000-0000-0000-000000000000", -1, true,
             Meta.Signature.create(
                 Arrays.<ColumnMetaData>asList(
@@ -94,7 +101,7 @@ public class MockProtobufService extends ProtobufService {
             Meta.Frame.create(0, true,
                 Arrays.<Object>asList(new Object[] {new Object[]{"my_table", 10}})), -1));
 
-    MAPPING = Collections.unmodifiableMap(mappings);
+    return Collections.unmodifiableMap(mappings);
   }
 
   @Override public Response _apply(Request request) {
@@ -113,20 +120,7 @@ public class MockProtobufService extends ProtobufService {
    * @throws RuntimeException if no mapping is found for the request
    */
   private Response dispatch(Request request) {
-    // Canonicalize connectionId's to 0
-    if (request instanceof OpenConnectionRequest) {
-      OpenConnectionRequest req = (OpenConnectionRequest) request;
-      request = new OpenConnectionRequest("0", req.info);
-    } else if (request instanceof TablesRequest) {
-      TablesRequest req = (TablesRequest) request;
-      request = new TablesRequest("0", req.catalog, req.schemaPattern,
-          req.tableNamePattern, req.typeList);
-    } else if (request instanceof SchemasRequest) {
-      SchemasRequest req = (SchemasRequest) request;
-      request = new SchemasRequest("0", req.catalog, req.schemaPattern);
-    }
-
-    Response response = MAPPING.get(request);
+    Response response = mapping.get(request);
 
     if (null == response) {
       throw new RuntimeException("Had no response mapping for " + request);
@@ -140,7 +134,7 @@ public class MockProtobufService extends ProtobufService {
    */
   public static class MockProtobufServiceFactory implements Service.Factory {
     @Override public Service create(AvaticaConnection connection) {
-      return new MockProtobufService();
+      return new MockProtobufService(connection.handle.id);
     }
   }
 }

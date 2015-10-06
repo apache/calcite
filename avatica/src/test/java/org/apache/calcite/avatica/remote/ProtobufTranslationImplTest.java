@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
@@ -60,6 +61,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -273,7 +276,11 @@ public class ProtobufTranslationImplTest<T> {
             new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
                 signature)));
 
-    responses.add(new ErrorResponse("an error occurred"));
+    StringWriter sw = new StringWriter();
+    new Exception().printStackTrace(new PrintWriter(sw));
+    responses.add(new ErrorResponse(Collections.singletonList(sw.toString()), "Test Error Message",
+        ErrorResponse.UNKNOWN_ERROR_CODE, ErrorResponse.UNKNOWN_SQL_STATE,
+        AvaticaSeverity.WARNING));
 
     return responses;
   }

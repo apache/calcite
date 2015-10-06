@@ -17,11 +17,13 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaSqlException;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
+import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.server.AvaticaHandler;
 import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
@@ -305,8 +307,8 @@ public class RemoteMetaTest {
       DriverManager.getConnection(url, "john", "doe");
       fail("expected exception");
     } catch (RuntimeException e) {
-      assertEquals("Remote driver error:"
-          + " java.sql.SQLInvalidAuthorizationSpecException: invalid authorization specification"
+      assertEquals("Remote driver error: "
+          + "java.sql.SQLInvalidAuthorizationSpecException: invalid authorization specification"
           + " - not found: john"
           + " -> invalid authorization specification - not found: john"
           + " -> invalid authorization specification - not found: john",
@@ -330,9 +332,9 @@ public class RemoteMetaTest {
       stmt2.executeQuery("select * from buffer");
       fail("expected exception");
     } catch (Exception e) {
-      assertEquals("Remote driver error: java.sql.SQLSyntaxErrorException: user lacks privilege"
-          + " or object not found: BUFFER -> user lacks privilege or object not found: BUFFER"
-          + " -> user lacks privilege or object not found: BUFFER", e.getCause().getMessage());
+      assertEquals("Error -1 (00000) : Error while executing SQL \"select * from buffer\": "
+          + "Remote driver error: user lacks privilege or object not found: BUFFER",
+          e.getMessage());
     }
   }
 
@@ -347,8 +349,33 @@ public class RemoteMetaTest {
       conn.createStatement();
       fail("expected exception");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(), containsString("Remote driver error:"
-          + " Connection not found: invalid id, closed, or expired"));
+      assertThat(e.getMessage(),
+          containsString("Connection not found: invalid id, closed, or expired"));
+    }
+  }
+
+  @Test public void testExceptionPropagation() throws Exception {
+    final String sql = "SELECT * from EMP LIMIT FOOBARBAZ";
+    ConnectionSpec.getDatabaseLock().lock();
+    try (final AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+        final Statement stmt = conn.createStatement()) {
+      try {
+        // invalid SQL
+        stmt.execute(sql);
+        fail("Expected an AvaticaSqlException");
+      } catch (AvaticaSqlException e) {
+        assertEquals(ErrorResponse.UNKNOWN_ERROR_CODE, e.getErrorCode());
+        assertEquals(ErrorResponse.UNKNOWN_SQL_STATE, e.getSQLState());
+        assertTrue("Message should contain original SQL, was '" + e.getMessage() + "'",
+            e.getMessage().contains(sql));
+        assertEquals(1, e.getStackTraces().size());
+        final String stacktrace = e.getStackTraces().get(0);
+        final String substring = "unexpected token: FOOBARBAZ";
+        assertTrue("Message should contain '" + substring + "', was '" + e.getMessage() + ",",
+            stacktrace.contains(substring));
+      }
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 }

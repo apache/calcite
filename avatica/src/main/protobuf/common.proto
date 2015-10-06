@@ -189,3 +189,12 @@ message TypedValue {
   double double_value = 6; // big numbers
   bool null = 7; // a null object
 }
+
+// The severity of some unexpected outcome to an operation.
+// Protobuf enum values must be unique across all other enums
+enum Severity {
+  UNKNOWN_SEVERITY = 0;
+  FATAL_SEVERITY = 1;
+  ERROR_SEVERITY = 2;
+  WARNING_SEVERITY = 3;
+}

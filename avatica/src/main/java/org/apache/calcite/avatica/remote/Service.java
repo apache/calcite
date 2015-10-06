@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.AvaticaClientRuntimeException;
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.proto.Common;
@@ -30,11 +32,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Message;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 /**
  * API for request-response calls to an Avatica server.
@@ -113,7 +120,8 @@ public interface Service {
           name = "closeConnection"),
       @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync"),
       @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties"),
-      @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults") })
+      @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults"),
+      @JsonSubTypes.Type(value = ErrorResponse.class, name = "error") })
   abstract class Response {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
@@ -1924,8 +1932,7 @@ public interface Service {
       return service.apply(this);
     }
 
-    @Override
-    Request deserialize(Message genericMsg) {
+    @Override Request deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Requests.OpenConnectionRequest)) {
         throw new IllegalArgumentException(
             "Expected OpenConnectionRequest, but got" + genericMsg.getClass().getName());
@@ -1948,8 +1955,7 @@ public interface Service {
       return new OpenConnectionRequest(connectionId, info);
     }
 
-    @Override
-    Message serialize() {
+    @Override Message serialize() {
       Requests.OpenConnectionRequest.Builder builder = Requests.OpenConnectionRequest.newBuilder();
       if (null != connectionId) {
         builder.setConnectionId(connectionId);
@@ -2112,6 +2118,7 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CloseConnectionRequest}. */
   class CloseConnectionResponse extends Response {
+
     @JsonCreator
     public CloseConnectionResponse() {}
 
@@ -2438,74 +2445,149 @@ public interface Service {
   }
 
   /**
-   * ErrorResponse can be used in response to any kind of request. It is used internally
-   * by the transport layers to format errors for transport over the wire.
-   * Thus, {@link Request#apply} will never return an ErrorResponse.
+   * Response for any request that the server failed to successfully perform.
+   * It is used internally by the transport layers to format errors for
+   * transport over the wire. Thus, {@link Request#apply} will never return
+   * an ErrorResponse.
    */
-  class ErrorResponse extends Response {
-    public final String message;
+  public class ErrorResponse extends Response {
+    public static final int UNKNOWN_ERROR_CODE = -1;
+    public static final String UNKNOWN_SQL_STATE = "00000";
 
-    public ErrorResponse() {
-      message = null;
+    public final List<String> exceptions;
+    public final String errorMessage;
+    public final int errorCode;
+    public final String sqlState;
+    public final AvaticaSeverity severity;
+
+    ErrorResponse() {
+      exceptions = Collections.singletonList("Unhandled exception");
+      errorMessage = "Unknown message";
+      errorCode = -1;
+      sqlState = UNKNOWN_SQL_STATE;
+      severity = AvaticaSeverity.UNKNOWN;
     }
 
     @JsonCreator
-    public ErrorResponse(@JsonProperty("message") String message) {
-      this.message = message;
+    public ErrorResponse(@JsonProperty("exceptions") List<String> exceptions,
+        @JsonProperty("errorMessage") String errorMessage,
+        @JsonProperty("errorCode") int errorCode,
+        @JsonProperty("sqlState") String sqlState,
+        @JsonProperty("severity") AvaticaSeverity severity) {
+      this.exceptions = exceptions;
+      this.errorMessage = errorMessage;
+      this.errorCode = errorCode;
+      this.sqlState = sqlState;
+      this.severity = severity;
+    }
+
+    protected ErrorResponse(Exception e, String errorMessage, int code, String sqlState,
+        AvaticaSeverity severity) {
+      this(errorMessage, code, sqlState, severity, toStackTraces(e));
+    }
+
+    protected ErrorResponse(String errorMessage, int code, String sqlState,
+        AvaticaSeverity severity, List<String> exceptions) {
+      this.exceptions = exceptions;
+      this.errorMessage = errorMessage;
+      this.errorCode = code;
+      this.sqlState = sqlState;
+      this.severity = severity;
+    }
+
+    static List<String> toStackTraces(Exception e) {
+      List<String> stackTraces = new ArrayList<>();
+      stackTraces.add(toString(e));
+      if (e instanceof SQLException) {
+        SQLException next = ((SQLException) e).getNextException();
+        while (null != next) {
+          stackTraces.add(toString(next));
+          next = next.getNextException();
+        }
+      }
+      return stackTraces;
+    }
+
+    static String toString(Exception e) {
+      StringWriter sw = new StringWriter();
+      Objects.requireNonNull(e).printStackTrace(new PrintWriter(sw));
+      return sw.toString();
     }
 
     @Override ErrorResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.ErrorResponse)) {
-        throw new IllegalArgumentException(
-            "Expected ErrorResponse, but got " + genericMsg.getClass().getName());
+        throw new IllegalArgumentException("Expected ErrorResponse, but got "
+          + genericMsg.getClass());
       }
 
-      final Responses.ErrorResponse msg = (Responses.ErrorResponse) genericMsg;
-      final Descriptor desc = msg.getDescriptorForType();
-
-      String message = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.ErrorResponse.MESSAGE_FIELD_NUMBER)) {
-        message = msg.getMessage();
-      }
-
-      return new ErrorResponse(message);
+      Responses.ErrorResponse msg = (Responses.ErrorResponse) genericMsg;
+      return new ErrorResponse(msg.getExceptionsList(), msg.getErrorMessage(),
+          msg.getErrorCode(), msg.getSqlState(), AvaticaSeverity.fromProto(msg.getSeverity()));
     }
 
     @Override Responses.ErrorResponse serialize() {
       Responses.ErrorResponse.Builder builder = Responses.ErrorResponse.newBuilder();
-
-      if (null != message) {
-        builder.setMessage(message);
-      }
-
-      return builder.build();
+      return builder.addAllExceptions(exceptions).setErrorMessage(errorMessage)
+          .setErrorCode(errorCode).setSqlState(sqlState).setSeverity(severity.toProto()).build();
     }
 
     @Override public int hashCode() {
-      return message == null ? 0 : message.hashCode();
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((exceptions == null) ? 0 : exceptions.hashCode());
+      result = prime * result + errorCode;
+      result = prime * result + ((sqlState == null) ? 0 : sqlState.hashCode());
+      result = prime * result + ((severity == null) ? 0 : severity.hashCode());
+      return result;
     }
 
-    @Override public boolean equals(Object o) {
-      if (o == this) {
+    @Override public boolean equals(Object obj) {
+      if (this == obj) {
         return true;
       }
+      if (!(obj instanceof ErrorResponse)) {
+        return false;
+      }
 
-      if (o instanceof ErrorResponse) {
-        ErrorResponse other = (ErrorResponse) o;
-
-        if (null == message) {
-          if (null != other.message) {
-            return false;
-          }
-        } else if (!message.equals(other.message)) {
+      ErrorResponse other = (ErrorResponse) obj;
+      if (exceptions == null) {
+        if (other.exceptions != null) {
           return false;
         }
-
-        return true;
+      } else if (!exceptions.equals(other.exceptions)) {
+        return false;
       }
 
-      return false;
+      if (errorMessage == null) {
+        if (other.errorMessage != null) {
+          return false;
+        }
+      } else if (!errorMessage.equals(other.errorMessage)) {
+        return false;
+      }
+
+      if (errorCode != other.errorCode) {
+        return false;
+      }
+
+      if (sqlState == null) {
+        if (other.sqlState != null) {
+          return false;
+        }
+      } else if (!sqlState.equals(other.sqlState)) {
+        return false;
+      }
+
+      if (severity != other.severity) {
+        return false;
+      }
+
+      return true;
+    }
+
+    public AvaticaClientRuntimeException toException() {
+      return new AvaticaClientRuntimeException("Remote driver error: " + errorMessage, errorCode,
+          sqlState, severity, exceptions);
     }
   }
 }

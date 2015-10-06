@@ -527,6 +527,121 @@ package org.apache.calcite.avatica.proto;
     // @@protoc_insertion_point(enum_scope:Rep)
   }
 
+  /**
+   * Protobuf enum {@code Severity}
+   *
+   * <pre>
+   * The severity of some unexpected outcome to an operation.
+   * Protobuf enum values must be unique across all other enums
+   * </pre>
+   */
+  public enum Severity
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>UNKNOWN_SEVERITY = 0;</code>
+     */
+    UNKNOWN_SEVERITY(0, 0),
+    /**
+     * <code>FATAL_SEVERITY = 1;</code>
+     */
+    FATAL_SEVERITY(1, 1),
+    /**
+     * <code>ERROR_SEVERITY = 2;</code>
+     */
+    ERROR_SEVERITY(2, 2),
+    /**
+     * <code>WARNING_SEVERITY = 3;</code>
+     */
+    WARNING_SEVERITY(3, 3),
+    UNRECOGNIZED(-1, -1),
+    ;
+
+    /**
+     * <code>UNKNOWN_SEVERITY = 0;</code>
+     */
+    public static final int UNKNOWN_SEVERITY_VALUE = 0;
+    /**
+     * <code>FATAL_SEVERITY = 1;</code>
+     */
+    public static final int FATAL_SEVERITY_VALUE = 1;
+    /**
+     * <code>ERROR_SEVERITY = 2;</code>
+     */
+    public static final int ERROR_SEVERITY_VALUE = 2;
+    /**
+     * <code>WARNING_SEVERITY = 3;</code>
+     */
+    public static final int WARNING_SEVERITY_VALUE = 3;
+
+
+    public final int getNumber() {
+      if (index == -1) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    public static Severity valueOf(int value) {
+      switch (value) {
+        case 0: return UNKNOWN_SEVERITY;
+        case 1: return FATAL_SEVERITY;
+        case 2: return ERROR_SEVERITY;
+        case 3: return WARNING_SEVERITY;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<Severity>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<Severity>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<Severity>() {
+            public Severity findValueByNumber(int number) {
+              return Severity.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return org.apache.calcite.avatica.proto.Common.getDescriptor().getEnumTypes().get(2);
+    }
+
+    private static final Severity[] VALUES = values();
+
+    public static Severity valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      if (desc.getIndex() == -1) {
+        return UNRECOGNIZED;
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private Severity(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:Severity)
+  }
+
   public interface ConnectionPropertiesOrBuilder extends
       // @@protoc_insertion_point(interface_extends:ConnectionProperties)
       com.google.protobuf.MessageOrBuilder {
@@ -12550,8 +12665,10 @@ package org.apache.calcite.avatica.proto;
       "ME\020\020\022\026\n\022JAVA_SQL_TIMESTAMP\020\021\022\021\n\rJAVA_SQL" +
       "_DATE\020\022\022\022\n\016JAVA_UTIL_DATE\020\023\022\017\n\013BYTE_STRI" +
       "NG\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBER\020\026\022\n\n\006OBJECT\020\027" +
-      "\022\010\n\004NULL\020\030B\"\n org.apache.calcite.avatica" +
-      ".protob\006proto3"
+      "\022\010\n\004NULL\020\030*^\n\010Severity\022\024\n\020UNKNOWN_SEVERI" +
+      "TY\020\000\022\022\n\016FATAL_SEVERITY\020\001\022\022\n\016ERROR_SEVERI",
+      "TY\020\002\022\024\n\020WARNING_SEVERITY\020\003B\"\n org.apache" +
+      ".calcite.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

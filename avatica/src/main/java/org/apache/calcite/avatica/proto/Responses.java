@@ -5944,17 +5944,100 @@ package org.apache.calcite.avatica.proto;
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional string message = 1;</code>
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
      */
-    java.lang.String getMessage();
+    com.google.protobuf.ProtocolStringList
+        getExceptionsList();
     /**
-     * <code>optional string message = 1;</code>
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
+     */
+    int getExceptionsCount();
+    /**
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
+     */
+    java.lang.String getExceptions(int index);
+    /**
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
      */
     com.google.protobuf.ByteString
-        getMessageBytes();
+        getExceptionsBytes(int index);
+
+    /**
+     * <code>optional string error_message = 2;</code>
+     *
+     * <pre>
+     * human readable description
+     * </pre>
+     */
+    java.lang.String getErrorMessage();
+    /**
+     * <code>optional string error_message = 2;</code>
+     *
+     * <pre>
+     * human readable description
+     * </pre>
+     */
+    com.google.protobuf.ByteString
+        getErrorMessageBytes();
+
+    /**
+     * <code>optional .Severity severity = 3;</code>
+     */
+    int getSeverityValue();
+    /**
+     * <code>optional .Severity severity = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Common.Severity getSeverity();
+
+    /**
+     * <code>optional uint32 error_code = 4;</code>
+     *
+     * <pre>
+     * numeric identifier for error
+     * </pre>
+     */
+    int getErrorCode();
+
+    /**
+     * <code>optional string sql_state = 5;</code>
+     *
+     * <pre>
+     * five-character standard-defined value
+     * </pre>
+     */
+    java.lang.String getSqlState();
+    /**
+     * <code>optional string sql_state = 5;</code>
+     *
+     * <pre>
+     * five-character standard-defined value
+     * </pre>
+     */
+    com.google.protobuf.ByteString
+        getSqlStateBytes();
   }
   /**
    * Protobuf type {@code ErrorResponse}
+   *
+   * <pre>
+   * Send contextual information about some error over the wire from the server.
+   * </pre>
    */
   public  static final class ErrorResponse extends
       com.google.protobuf.GeneratedMessage implements
@@ -5965,7 +6048,11 @@ package org.apache.calcite.avatica.proto;
       super(builder);
     }
     private ErrorResponse() {
-      message_ = "";
+      exceptions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      errorMessage_ = "";
+      severity_ = 0;
+      errorCode_ = 0;
+      sqlState_ = "";
     }
 
     @java.lang.Override
@@ -5995,8 +6082,34 @@ package org.apache.calcite.avatica.proto;
             }
             case 10: {
               com.google.protobuf.ByteString bs = input.readBytes();
+              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+                exceptions_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              exceptions_.add(bs);
+              break;
+            }
+            case 18: {
+              com.google.protobuf.ByteString bs = input.readBytes();
 
-              message_ = bs;
+              errorMessage_ = bs;
+              break;
+            }
+            case 24: {
+              int rawValue = input.readEnum();
+
+              severity_ = rawValue;
+              break;
+            }
+            case 32: {
+
+              errorCode_ = input.readUInt32();
+              break;
+            }
+            case 42: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+
+              sqlState_ = bs;
               break;
             }
           }
@@ -6007,6 +6120,9 @@ package org.apache.calcite.avatica.proto;
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
+        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+          exceptions_ = exceptions_.getUnmodifiableView();
+        }
         makeExtensionsImmutable();
       }
     }
@@ -6037,13 +6153,63 @@ package org.apache.calcite.avatica.proto;
       return PARSER;
     }
 
-    public static final int MESSAGE_FIELD_NUMBER = 1;
-    private java.lang.Object message_;
+    private int bitField0_;
+    public static final int EXCEPTIONS_FIELD_NUMBER = 1;
+    private com.google.protobuf.LazyStringList exceptions_;
     /**
-     * <code>optional string message = 1;</code>
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
      */
-    public java.lang.String getMessage() {
-      java.lang.Object ref = message_;
+    public com.google.protobuf.ProtocolStringList
+        getExceptionsList() {
+      return exceptions_;
+    }
+    /**
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
+     */
+    public int getExceptionsCount() {
+      return exceptions_.size();
+    }
+    /**
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
+     */
+    public java.lang.String getExceptions(int index) {
+      return exceptions_.get(index);
+    }
+    /**
+     * <code>repeated string exceptions = 1;</code>
+     *
+     * <pre>
+     * exception stacktraces, many for linked exceptions.
+     * </pre>
+     */
+    public com.google.protobuf.ByteString
+        getExceptionsBytes(int index) {
+      return exceptions_.getByteString(index);
+    }
+
+    public static final int ERROR_MESSAGE_FIELD_NUMBER = 2;
+    private java.lang.Object errorMessage_;
+    /**
+     * <code>optional string error_message = 2;</code>
+     *
+     * <pre>
+     * human readable description
+     * </pre>
+     */
+    public java.lang.String getErrorMessage() {
+      java.lang.Object ref = errorMessage_;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
@@ -6051,22 +6217,99 @@ package org.apache.calcite.avatica.proto;
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
-          message_ = s;
+          errorMessage_ = s;
         }
         return s;
       }
     }
     /**
-     * <code>optional string message = 1;</code>
+     * <code>optional string error_message = 2;</code>
+     *
+     * <pre>
+     * human readable description
+     * </pre>
      */
     public com.google.protobuf.ByteString
-        getMessageBytes() {
-      java.lang.Object ref = message_;
+        getErrorMessageBytes() {
+      java.lang.Object ref = errorMessage_;
       if (ref instanceof java.lang.String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        message_ = b;
+        errorMessage_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int SEVERITY_FIELD_NUMBER = 3;
+    private int severity_;
+    /**
+     * <code>optional .Severity severity = 3;</code>
+     */
+    public int getSeverityValue() {
+      return severity_;
+    }
+    /**
+     * <code>optional .Severity severity = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Common.Severity getSeverity() {
+      org.apache.calcite.avatica.proto.Common.Severity result = org.apache.calcite.avatica.proto.Common.Severity.valueOf(severity_);
+      return result == null ? org.apache.calcite.avatica.proto.Common.Severity.UNRECOGNIZED : result;
+    }
+
+    public static final int ERROR_CODE_FIELD_NUMBER = 4;
+    private int errorCode_;
+    /**
+     * <code>optional uint32 error_code = 4;</code>
+     *
+     * <pre>
+     * numeric identifier for error
+     * </pre>
+     */
+    public int getErrorCode() {
+      return errorCode_;
+    }
+
+    public static final int SQL_STATE_FIELD_NUMBER = 5;
+    private java.lang.Object sqlState_;
+    /**
+     * <code>optional string sql_state = 5;</code>
+     *
+     * <pre>
+     * five-character standard-defined value
+     * </pre>
+     */
+    public java.lang.String getSqlState() {
+      java.lang.Object ref = sqlState_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          sqlState_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string sql_state = 5;</code>
+     *
+     * <pre>
+     * five-character standard-defined value
+     * </pre>
+     */
+    public com.google.protobuf.ByteString
+        getSqlStateBytes() {
+      java.lang.Object ref = sqlState_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        sqlState_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -6086,8 +6329,20 @@ package org.apache.calcite.avatica.proto;
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
-      if (!getMessageBytes().isEmpty()) {
-        output.writeBytes(1, getMessageBytes());
+      for (int i = 0; i < exceptions_.size(); i++) {
+        output.writeBytes(1, exceptions_.getByteString(i));
+      }
+      if (!getErrorMessageBytes().isEmpty()) {
+        output.writeBytes(2, getErrorMessageBytes());
+      }
+      if (severity_ != org.apache.calcite.avatica.proto.Common.Severity.UNKNOWN_SEVERITY.getNumber()) {
+        output.writeEnum(3, severity_);
+      }
+      if (errorCode_ != 0) {
+        output.writeUInt32(4, errorCode_);
+      }
+      if (!getSqlStateBytes().isEmpty()) {
+        output.writeBytes(5, getSqlStateBytes());
       }
     }
 
@@ -6097,9 +6352,30 @@ package org.apache.calcite.avatica.proto;
       if (size != -1) return size;
 
       size = 0;
-      if (!getMessageBytes().isEmpty()) {
+      {
+        int dataSize = 0;
+        for (int i = 0; i < exceptions_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(exceptions_.getByteString(i));
+        }
+        size += dataSize;
+        size += 1 * getExceptionsList().size();
+      }
+      if (!getErrorMessageBytes().isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getMessageBytes());
+          .computeBytesSize(2, getErrorMessageBytes());
+      }
+      if (severity_ != org.apache.calcite.avatica.proto.Common.Severity.UNKNOWN_SEVERITY.getNumber()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(3, severity_);
+      }
+      if (errorCode_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32Size(4, errorCode_);
+      }
+      if (!getSqlStateBytes().isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(5, getSqlStateBytes());
       }
       memoizedSerializedSize = size;
       return size;
@@ -6174,6 +6450,10 @@ package org.apache.calcite.avatica.proto;
     }
     /**
      * Protobuf type {@code ErrorResponse}
+     *
+     * <pre>
+     * Send contextual information about some error over the wire from the server.
+     * </pre>
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder> implements
@@ -6207,7 +6487,15 @@ package org.apache.calcite.avatica.proto;
       }
       public Builder clear() {
         super.clear();
-        message_ = "";
+        exceptions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        errorMessage_ = "";
+
+        severity_ = 0;
+
+        errorCode_ = 0;
+
+        sqlState_ = "";
 
         return this;
       }
@@ -6231,7 +6519,18 @@ package org.apache.calcite.avatica.proto;
 
       public org.apache.calcite.avatica.proto.Responses.ErrorResponse buildPartial() {
         org.apache.calcite.avatica.proto.Responses.ErrorResponse result = new org.apache.calcite.avatica.proto.Responses.ErrorResponse(this);
-        result.message_ = message_;
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
+          exceptions_ = exceptions_.getUnmodifiableView();
+          bitField0_ = (bitField0_ & ~0x00000001);
+        }
+        result.exceptions_ = exceptions_;
+        result.errorMessage_ = errorMessage_;
+        result.severity_ = severity_;
+        result.errorCode_ = errorCode_;
+        result.sqlState_ = sqlState_;
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -6247,8 +6546,28 @@ package org.apache.calcite.avatica.proto;
 
       public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.ErrorResponse other) {
         if (other == org.apache.calcite.avatica.proto.Responses.ErrorResponse.getDefaultInstance()) return this;
-        if (!other.getMessage().isEmpty()) {
-          message_ = other.message_;
+        if (!other.exceptions_.isEmpty()) {
+          if (exceptions_.isEmpty()) {
+            exceptions_ = other.exceptions_;
+            bitField0_ = (bitField0_ & ~0x00000001);
+          } else {
+            ensureExceptionsIsMutable();
+            exceptions_.addAll(other.exceptions_);
+          }
+          onChanged();
+        }
+        if (!other.getErrorMessage().isEmpty()) {
+          errorMessage_ = other.errorMessage_;
+          onChanged();
+        }
+        if (other.severity_ != 0) {
+          setSeverityValue(other.getSeverityValue());
+        }
+        if (other.getErrorCode() != 0) {
+          setErrorCode(other.getErrorCode());
+        }
+        if (!other.getSqlState().isEmpty()) {
+          sqlState_ = other.sqlState_;
           onChanged();
         }
         onChanged();
@@ -6276,19 +6595,153 @@ package org.apache.calcite.avatica.proto;
         }
         return this;
       }
+      private int bitField0_;
 
-      private java.lang.Object message_ = "";
+      private com.google.protobuf.LazyStringList exceptions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureExceptionsIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          exceptions_ = new com.google.protobuf.LazyStringArrayList(exceptions_);
+          bitField0_ |= 0x00000001;
+         }
+      }
       /**
-       * <code>optional string message = 1;</code>
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
        */
-      public java.lang.String getMessage() {
-        java.lang.Object ref = message_;
+      public com.google.protobuf.ProtocolStringList
+          getExceptionsList() {
+        return exceptions_.getUnmodifiableView();
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public int getExceptionsCount() {
+        return exceptions_.size();
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public java.lang.String getExceptions(int index) {
+        return exceptions_.get(index);
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public com.google.protobuf.ByteString
+          getExceptionsBytes(int index) {
+        return exceptions_.getByteString(index);
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public Builder setExceptions(
+          int index, java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureExceptionsIsMutable();
+        exceptions_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public Builder addExceptions(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureExceptionsIsMutable();
+        exceptions_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public Builder addAllExceptions(
+          java.lang.Iterable<java.lang.String> values) {
+        ensureExceptionsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, exceptions_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public Builder clearExceptions() {
+        exceptions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string exceptions = 1;</code>
+       *
+       * <pre>
+       * exception stacktraces, many for linked exceptions.
+       * </pre>
+       */
+      public Builder addExceptionsBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureExceptionsIsMutable();
+        exceptions_.add(value);
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object errorMessage_ = "";
+      /**
+       * <code>optional string error_message = 2;</code>
+       *
+       * <pre>
+       * human readable description
+       * </pre>
+       */
+      public java.lang.String getErrorMessage() {
+        java.lang.Object ref = errorMessage_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
-            message_ = s;
+            errorMessage_ = s;
           }
           return s;
         } else {
@@ -6296,53 +6749,241 @@ package org.apache.calcite.avatica.proto;
         }
       }
       /**
-       * <code>optional string message = 1;</code>
+       * <code>optional string error_message = 2;</code>
+       *
+       * <pre>
+       * human readable description
+       * </pre>
        */
       public com.google.protobuf.ByteString
-          getMessageBytes() {
-        java.lang.Object ref = message_;
+          getErrorMessageBytes() {
+        java.lang.Object ref = errorMessage_;
         if (ref instanceof String) {
           com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
-          message_ = b;
+          errorMessage_ = b;
           return b;
         } else {
           return (com.google.protobuf.ByteString) ref;
         }
       }
       /**
-       * <code>optional string message = 1;</code>
+       * <code>optional string error_message = 2;</code>
+       *
+       * <pre>
+       * human readable description
+       * </pre>
        */
-      public Builder setMessage(
+      public Builder setErrorMessage(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
   
-        message_ = value;
+        errorMessage_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional string message = 1;</code>
+       * <code>optional string error_message = 2;</code>
+       *
+       * <pre>
+       * human readable description
+       * </pre>
        */
-      public Builder clearMessage() {
+      public Builder clearErrorMessage() {
         
-        message_ = getDefaultInstance().getMessage();
+        errorMessage_ = getDefaultInstance().getErrorMessage();
         onChanged();
         return this;
       }
       /**
-       * <code>optional string message = 1;</code>
+       * <code>optional string error_message = 2;</code>
+       *
+       * <pre>
+       * human readable description
+       * </pre>
        */
-      public Builder setMessageBytes(
+      public Builder setErrorMessageBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
   
-        message_ = value;
+        errorMessage_ = value;
+        onChanged();
+        return this;
+      }
+
+      private int severity_ = 0;
+      /**
+       * <code>optional .Severity severity = 3;</code>
+       */
+      public int getSeverityValue() {
+        return severity_;
+      }
+      /**
+       * <code>optional .Severity severity = 3;</code>
+       */
+      public Builder setSeverityValue(int value) {
+        severity_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .Severity severity = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.Severity getSeverity() {
+        org.apache.calcite.avatica.proto.Common.Severity result = org.apache.calcite.avatica.proto.Common.Severity.valueOf(severity_);
+        return result == null ? org.apache.calcite.avatica.proto.Common.Severity.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .Severity severity = 3;</code>
+       */
+      public Builder setSeverity(org.apache.calcite.avatica.proto.Common.Severity value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        
+        severity_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .Severity severity = 3;</code>
+       */
+      public Builder clearSeverity() {
+        
+        severity_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int errorCode_ ;
+      /**
+       * <code>optional uint32 error_code = 4;</code>
+       *
+       * <pre>
+       * numeric identifier for error
+       * </pre>
+       */
+      public int getErrorCode() {
+        return errorCode_;
+      }
+      /**
+       * <code>optional uint32 error_code = 4;</code>
+       *
+       * <pre>
+       * numeric identifier for error
+       * </pre>
+       */
+      public Builder setErrorCode(int value) {
+        
+        errorCode_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional uint32 error_code = 4;</code>
+       *
+       * <pre>
+       * numeric identifier for error
+       * </pre>
+       */
+      public Builder clearErrorCode() {
+        
+        errorCode_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object sqlState_ = "";
+      /**
+       * <code>optional string sql_state = 5;</code>
+       *
+       * <pre>
+       * five-character standard-defined value
+       * </pre>
+       */
+      public java.lang.String getSqlState() {
+        java.lang.Object ref = sqlState_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            sqlState_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string sql_state = 5;</code>
+       *
+       * <pre>
+       * five-character standard-defined value
+       * </pre>
+       */
+      public com.google.protobuf.ByteString
+          getSqlStateBytes() {
+        java.lang.Object ref = sqlState_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          sqlState_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string sql_state = 5;</code>
+       *
+       * <pre>
+       * five-character standard-defined value
+       * </pre>
+       */
+      public Builder setSqlState(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        sqlState_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string sql_state = 5;</code>
+       *
+       * <pre>
+       * five-character standard-defined value
+       * </pre>
+       */
+      public Builder clearSqlState() {
+        
+        sqlState_ = getDefaultInstance().getSqlState();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string sql_state = 5;</code>
+       *
+       * <pre>
+       * five-character standard-defined value
+       * </pre>
+       */
+      public Builder setSqlStateBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        sqlState_ = value;
         onChanged();
         return this;
       }
@@ -6462,9 +7103,11 @@ package org.apache.calcite.avatica.proto;
       "nt\022\036\n\003key\030\001 \001(\0132\021.DatabaseProperty\022\032\n\005va" +
       "lue\030\002 \001(\0132\013.TypedValue\"C\n\030DatabaseProper" +
       "tyResponse\022\'\n\005props\030\001 \003(\0132\030.DatabaseProp" +
-      "ertyElement\" \n\rErrorResponse\022\017\n\007message\030" +
-      "\001 \001(\tB\"\n org.apache.calcite.avatica.prot",
-      "ob\006proto3"
+      "ertyElement\"~\n\rErrorResponse\022\022\n\nexceptio" +
+      "ns\030\001 \003(\t\022\025\n\rerror_message\030\002 \001(\t\022\033\n\010sever",
+      "ity\030\003 \001(\0162\t.Severity\022\022\n\nerror_code\030\004 \001(\r" +
+      "\022\021\n\tsql_state\030\005 \001(\tB\"\n org.apache.calcit" +
+      "e.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -6550,7 +7193,7 @@ package org.apache.calcite.avatica.proto;
     internal_static_ErrorResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ErrorResponse_descriptor,
-        new java.lang.String[] { "Message", });
+        new java.lang.String[] { "Exceptions", "ErrorMessage", "Severity", "ErrorCode", "SqlState", });
     org.apache.calcite.avatica.proto.Common.getDescriptor();
   }
 

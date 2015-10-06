@@ -14,41 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.remote;
+package org.apache.calcite.avatica.test;
 
-import java.util.Objects;
+import org.apache.calcite.avatica.AvaticaSeverity;
+
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
- * API for text request-response calls to an Avatica server.
- *
- * @param <T> The type this handler accepts and returns
+ * Tests for {@link AvaticaSeverity}.
  */
-public interface Handler<T> {
-  int HTTP_OK = 200;
-  int HTTP_INTERNAL_SERVER_ERROR = 500;
+public class AvaticaSeverityTest {
 
-  /**
-   * Struct that encapsulates the context of the result of a request to Avatica.
-   */
-  public class HandlerResponse<T> {
-    private final T response;
-    private final int statusCode;
-
-    public HandlerResponse(T response, int statusCode) {
-      this.response = Objects.requireNonNull(response);
-      this.statusCode = statusCode;
-    }
-
-    public T getResponse() {
-      return response;
-    }
-
-    public int getStatusCode() {
-      return statusCode;
+  @Test
+  public void testProtobufSerialization() {
+    for (AvaticaSeverity severity : AvaticaSeverity.values()) {
+      assertEquals(severity, AvaticaSeverity.fromProto(severity.toProto()));
     }
   }
 
-  HandlerResponse<T> apply(T request);
 }
 
-// End Handler.java
+// End AvaticaSeverityTest.java

@@ -109,7 +109,7 @@ public class ExceptionMessageTest {
       fail("Query badEntries should result in an exception");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
-          equalTo("error while executing SQL \"select * from \"badEntries\"\": "
+          equalTo("Error while executing SQL \"select * from \"badEntries\"\": "
               + "Can't iterate over badEntries"));
     }
   }
@@ -120,7 +120,7 @@ public class ExceptionMessageTest {
       fail("Query should fail");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
-          equalTo("error while executing SQL \"invalid sql\": parse failed: "
+          equalTo("Error while executing SQL \"invalid sql\": parse failed: "
               + "Non-query expression encountered in illegal context"));
     }
   }

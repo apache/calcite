@@ -18,9 +18,6 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,62 +30,43 @@ import java.util.Map;
  */
 public class MockJsonService extends JsonService {
   private final Map<String, String> map;
-  private final ObjectMapper mapper = new ObjectMapper();
 
   public MockJsonService(Map<String, String> map) {
     this.map = map;
   }
 
   @Override public String apply(String request) {
-    String response = map.get(canonicalizeConnectionId(request));
+    String response = map.get(request);
     if (response == null) {
       throw new RuntimeException("No response for " + request);
     }
     return response;
   }
 
-  /**
-   * The connection id is always different, therefore when present in the request,
-   * set it to 0.
-   */
-  private String canonicalizeConnectionId(String request) {
-    ObjectNode jsonRequest;
-    try {
-      jsonRequest = (ObjectNode) mapper.readTree(request);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    if (jsonRequest.get("connectionId") != null) {
-      jsonRequest.put("connectionId", "0");
-      return jsonRequest.toString();
-    } else {
-      return request;
-    }
-  }
-
   /** Factory that creates a {@code MockJsonService}. */
   public static class Factory implements Service.Factory {
     public Service create(AvaticaConnection connection) {
+      final String connectionId = connection.handle.id;
       final Map<String, String> map1 = new HashMap<>();
       try {
         map1.put(
-            "{\"request\":\"openConnection\",\"connectionId\":\"0\",\"info\":{}}",
+            "{\"request\":\"openConnection\",\"connectionId\":\"" + connectionId + "\",\"info\":{}}",
             "{\"response\":\"openConnection\"}");
         map1.put(
-            "{\"request\":\"closeConnection\",\"connectionId\":\"0\"}",
+            "{\"request\":\"closeConnection\",\"connectionId\":\"" + connectionId + "\"}",
             "{\"response\":\"closeConnection\"}");
         map1.put(
             "{\"request\":\"getSchemas\",\"catalog\":null,\"schemaPattern\":{\"s\":null}}",
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
-            JsonService.encode(new SchemasRequest("0", null, null)),
+            JsonService.encode(new SchemasRequest(connectionId, null, null)),
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             JsonService.encode(
-                new TablesRequest("0", null, null, null, Arrays.<String>asList())),
+                new TablesRequest(connectionId, null, null, null, Arrays.<String>asList())),
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
-            "{\"request\":\"createStatement\",\"connectionId\":0}",
+            "{\"request\":\"createStatement\",\"connectionId\":\"" + connectionId + "\"}",
             "{\"response\":\"createStatement\",\"id\":0}");
         map1.put(
             "{\"request\":\"prepareAndExecute\",\"statementId\":0,"
@@ -111,7 +89,7 @@ public class MockJsonService extends JsonService {
                 + " \"cursorFactory\": {\"style\": \"ARRAY\"}\n"
                 + "}}");
         map1.put(
-            "{\"request\":\"getColumns\",\"catalog\":null,\"schemaPattern\":null,"
+            "{\"request\":\"getColumns\",\"connectionId\":\"" + connectionId + "\",\"catalog\":null,\"schemaPattern\":null,"
                 + "\"tableNamePattern\":\"my_table\",\"columnNamePattern\":null}",
             "{\"response\":\"resultSet\",\"connectionId\":\"00000000-0000-0000-0000-000000000000\",\"statementId\":-1,\"ownStatement\":true,"
                 + "\"signature\":{\"columns\":["

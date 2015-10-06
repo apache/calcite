@@ -74,8 +74,7 @@ public abstract class ProtobufService extends AbstractService {
     return (CloseStatementResponse) _apply(request);
   }
 
-  @Override
-  public OpenConnectionResponse apply(OpenConnectionRequest request) {
+  @Override public OpenConnectionResponse apply(OpenConnectionRequest request) {
     return (OpenConnectionResponse) _apply(request);
   }
 

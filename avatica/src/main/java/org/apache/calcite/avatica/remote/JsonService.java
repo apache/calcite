@@ -44,9 +44,16 @@ public abstract class JsonService extends AbstractService {
   public abstract String apply(String request);
 
   //@VisibleForTesting
-  protected static <T> T decode(String response, Class<T> valueType)
+  protected static <T> T decode(String response, Class<T> expectedType)
       throws IOException {
-    return MAPPER.readValue(response, valueType);
+    Response resp = MAPPER.readValue(response, Response.class);
+    if (resp instanceof ErrorResponse) {
+      throw ((ErrorResponse) resp).toException();
+    } else if (!expectedType.isAssignableFrom(resp.getClass())) {
+      throw new ClassCastException("Cannot cast " + resp.getClass() + " into " + expectedType);
+    }
+
+    return expectedType.cast(resp);
   }
 
   //@VisibleForTesting

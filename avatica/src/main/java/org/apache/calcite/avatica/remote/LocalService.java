@@ -110,21 +110,25 @@ public class LocalService implements Service {
   }
 
   public ResultSetResponse apply(CatalogsRequest request) {
-    final Meta.MetaResultSet resultSet =
-        meta.getCatalogs(new Meta.ConnectionHandle(request.connectionId));
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    final Meta.MetaResultSet resultSet = meta.getCatalogs(ch);
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(SchemasRequest request) {
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
     final Meta.MetaResultSet resultSet =
-        meta.getSchemas(new Meta.ConnectionHandle(request.connectionId),
-            request.catalog, Meta.Pat.of(request.schemaPattern));
+        meta.getSchemas(ch, request.catalog, Meta.Pat.of(request.schemaPattern));
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(TablesRequest request) {
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
     final Meta.MetaResultSet resultSet =
-        meta.getTables(new Meta.ConnectionHandle(request.connectionId),
+        meta.getTables(ch,
             request.catalog,
             Meta.Pat.of(request.schemaPattern),
             Meta.Pat.of(request.tableNamePattern),
@@ -133,21 +137,24 @@ public class LocalService implements Service {
   }
 
   public ResultSetResponse apply(TableTypesRequest request) {
-    final Meta.MetaResultSet resultSet = meta.getTableTypes(
-        new Meta.ConnectionHandle(request.connectionId));
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    final Meta.MetaResultSet resultSet = meta.getTableTypes(ch);
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(TypeInfoRequest request) {
-    final Meta.MetaResultSet resultSet = meta.getTypeInfo(
-        new Meta.ConnectionHandle(request.connectionId));
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    final Meta.MetaResultSet resultSet = meta.getTypeInfo(ch);
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(ColumnsRequest request) {
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
     final Meta.MetaResultSet resultSet =
-        meta.getColumns(
-            new Meta.ConnectionHandle(request.connectionId),
+        meta.getColumns(ch,
             request.catalog,
             Meta.Pat.of(request.schemaPattern),
             Meta.Pat.of(request.tableNamePattern),
@@ -212,37 +219,45 @@ public class LocalService implements Service {
   }
 
   public CreateStatementResponse apply(CreateStatementRequest request) {
-    final Meta.StatementHandle h =
-        meta.createStatement(new Meta.ConnectionHandle(request.connectionId));
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    final Meta.StatementHandle h = meta.createStatement(ch);
     return new CreateStatementResponse(h.connectionId, h.id);
   }
 
   public CloseStatementResponse apply(CloseStatementRequest request) {
-    meta.closeStatement(
-        new Meta.StatementHandle(request.connectionId, request.statementId,
-            null));
+    final Meta.StatementHandle h = new Meta.StatementHandle(
+        request.connectionId, request.statementId, null);
+    meta.closeStatement(h);
     return new CloseStatementResponse();
   }
 
   public OpenConnectionResponse apply(OpenConnectionRequest request) {
-    meta.openConnection(new Meta.ConnectionHandle(request.connectionId), request.info);
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    meta.openConnection(ch, request.info);
     return new OpenConnectionResponse();
   }
 
   public CloseConnectionResponse apply(CloseConnectionRequest request) {
-    meta.closeConnection(new Meta.ConnectionHandle(request.connectionId));
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    meta.closeConnection(ch);
     return new CloseConnectionResponse();
   }
 
   public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
     final Meta.ConnectionProperties connProps =
-        meta.connectionSync(new Meta.ConnectionHandle(request.connectionId), request.connProps);
+        meta.connectionSync(ch, request.connProps);
     return new ConnectionSyncResponse(connProps);
   }
 
   public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
-    return new DatabasePropertyResponse(meta.getDatabaseProperties(
-        new Meta.ConnectionHandle(request.connectionId)));
+    final Meta.ConnectionHandle ch =
+        new Meta.ConnectionHandle(request.connectionId);
+    return new DatabasePropertyResponse(meta.getDatabaseProperties(ch));
   }
 }
 

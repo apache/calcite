@@ -81,15 +81,11 @@ public class Driver extends UnregisteredDriver {
 
   @Override public Meta createMeta(AvaticaConnection connection) {
     final ConnectionConfig config = connection.config();
-    final Service service = createService(config);
+    final Service service = createService(connection, config);
     return new RemoteMeta(connection, service);
   }
 
-  private Service createService(ConnectionConfig config) {
-    // Exploit that none of the factory implementations currently rely
-    // on connection being there.
-    AvaticaConnection connection = null;
-
+  private Service createService(AvaticaConnection connection, ConnectionConfig config) {
     final Service.Factory metaFactory = config.factory();
     final Service service;
     if (metaFactory != null) {
@@ -120,8 +116,8 @@ public class Driver extends UnregisteredDriver {
     return service;
   }
 
-  @Override
-  public Connection connect(String url, Properties info) throws SQLException {
+  @Override public Connection connect(String url, Properties info)
+      throws SQLException {
     AvaticaConnection conn = (AvaticaConnection) super.connect(url, info);
     if (conn == null) {
       // It's not an url for our driver
@@ -130,7 +126,7 @@ public class Driver extends UnregisteredDriver {
 
     // Create the corresponding remote connection
     ConnectionConfig config = conn.config();
-    Service service = createService(config);
+    Service service = createService(conn, config);
 
     Map<String, String> infoAsString = new HashMap<>();
     for (Map.Entry<Object, Object> entry : info.entrySet()) {
