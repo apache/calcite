@@ -593,14 +593,73 @@ public abstract class Types {
    */
   public static class ArrayType implements Type {
     private final Type componentType;
+    private final boolean componentIsNullable;
+    private final long maximumCardinality;
 
-    public ArrayType(Type componentType) {
+    public ArrayType(Type componentType, boolean componentIsNullable,
+        long maximumCardinality) {
       this.componentType = componentType;
+      this.componentIsNullable = componentIsNullable;
+      this.maximumCardinality = Math.max(maximumCardinality, -1L);
     }
 
+    public ArrayType(Type componentType) {
+      this(componentType, !Primitive.is(componentType), -1L);
+    }
+
+    /** Returns the type of elements in the array. */
     public Type getComponentType() {
       return componentType;
     }
+
+    /** Returns whether elements in the array may be null. */
+    public boolean componentIsNullable() {
+      return componentIsNullable;
+    }
+
+    /** Returns the maximum cardinality; -1 if there is no maximum. */
+    public long maximumCardinality() {
+      return maximumCardinality;
+    }
+  }
+
+  /**
+   * Map type.
+   */
+  public static class MapType implements Type {
+    private final Type keyType;
+    private final boolean keyIsNullable;
+    private final Type valueType;
+    private final boolean valueIsNullable;
+
+    public MapType(Type keyType, boolean keyIsNullable,
+        Type valueType, boolean valueIsNullable) {
+      this.keyType = keyType;
+      this.keyIsNullable = keyIsNullable;
+      this.valueType = valueType;
+      this.valueIsNullable = valueIsNullable;
+    }
+
+    /** Returns the type of keys. */
+    public Type getKeyType() {
+      return keyType;
+    }
+
+    /** Returns whether keys may be null. */
+    public boolean keyIsNullable() {
+      return keyIsNullable;
+    }
+
+    /** Returns the type of values. */
+    public Type getValueType() {
+      return valueType;
+    }
+
+    /** Returns whether values may be null. */
+    public boolean valueIsNullable() {
+      return valueIsNullable;
+    }
+
   }
 }
 

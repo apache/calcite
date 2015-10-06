@@ -1370,6 +1370,9 @@ public class SqlFunctions {
     return (Function1<List<E>, Enumerable<E>>) (Function1) LIST_AS_ENUMERABLE;
   }
 
+  public static Object[] array(Object... args) {
+    return args;
+  }
 }
 
 // End SqlFunctions.java

@@ -19,6 +19,8 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 
+import com.google.common.base.Preconditions;
+
 /**
  * SQL array type.
  */
@@ -35,8 +37,7 @@ public class ArraySqlType extends AbstractSqlType {
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
     super(SqlTypeName.ARRAY, isNullable, null);
-    assert elementType != null;
-    this.elementType = elementType;
+    this.elementType = Preconditions.checkNotNull(elementType);
     computeDigest();
   }
 

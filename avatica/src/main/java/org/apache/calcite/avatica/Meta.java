@@ -492,11 +492,17 @@ public interface Meta {
         Class resultClazz) {
       if (columns.size() == 1) {
         return OBJECT;
-      } else if (resultClazz != null && !resultClazz.isArray()) {
-        return record(resultClazz);
-      } else {
+      }
+      if (resultClazz == null) {
         return ARRAY;
       }
+      if (resultClazz.isArray()) {
+        return ARRAY;
+      }
+      if (List.class.isAssignableFrom(resultClazz)) {
+        return LIST;
+      }
+      return record(resultClazz);
     }
 
     public Common.CursorFactory toProto() {

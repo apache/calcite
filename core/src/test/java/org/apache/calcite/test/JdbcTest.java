@@ -2209,7 +2209,7 @@ public class JdbcTest {
         .query("select multiset(\n"
             + "  select \"deptno\", \"empid\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
-        .returnsUnordered("A=[[10, 100], [20, 200], [10, 150], [10, 110]]");
+        .returnsUnordered("A=[{10, 100}, {20, 200}, {10, 150}, {10, 110}]");
   }
 
   @Test public void testMultisetQueryWithSingleColumn() {
@@ -2217,7 +2217,7 @@ public class JdbcTest {
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
-        .returnsUnordered("A=[10, 20, 10, 10]");
+        .returnsUnordered("A=[{10}, {20}, {10}, {10}]");
   }
 
   @Ignore("unnest does not apply to array. should it?")
@@ -2241,8 +2241,8 @@ public class JdbcTest {
             + " select \"employees\" from \"hr\".\"depts\"\n"
             + " where \"deptno\" = 10)")
         .returnsUnordered(
-            "EXPR$0=Employee [empid: 100, deptno: 10, name: Bill]",
-            "EXPR$0=Employee [empid: 150, deptno: 10, name: Sebastian]");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null");
   }
 
   @Test public void testArrayElement() {
@@ -2250,8 +2250,7 @@ public class JdbcTest {
         .with(CalciteAssert.Config.REGULAR)
         .query("select element(\"employees\") from \"hr\".\"depts\"\n"
             + "where cardinality(\"employees\") < 2")
-        .returnsUnordered(
-            "EXPR$0=Employee [empid: 200, deptno: 20, name: Eric]",
+        .returnsUnordered("EXPR$0={200, 20, Eric, 8000.0, 500}",
             "EXPR$0=null");
   }
 
@@ -2260,9 +2259,9 @@ public class JdbcTest {
         .query("select * from \"hr\".\"emps\",\n"
             + " LATERAL (select * from \"hr\".\"depts\" where \"emps\".\"deptno\" = \"depts\".\"deptno\")")
         .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]",
-            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
 
   /** Per SQL std, UNNEST is implicitly LATERAL. */
@@ -2716,10 +2715,10 @@ public class JdbcTest {
         .query(
             "select * from \"hr\".\"emps\", \"hr\".\"depts\" where \"emps\".\"empid\" < 140 and \"depts\".\"deptno\" > 20")
         .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=30; name0=Marketing; employees=[]; location=Location [x: 0, y: 52]",
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]; location=null",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=30; name0=Marketing; employees=[]; location=Location [x: 0, y: 52]",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]; location=null");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=30; name0=Marketing; employees=[]; location={0, 52}",
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=40; name0=HR; employees=[{200, 20, Eric, 8000.0, 500}]; location=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=30; name0=Marketing; employees=[]; location={0, 52}",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[{200, 20, Eric, 8000.0, 500}]; location=null");
   }
 
   @Test public void testDistinctCountSimple() {
@@ -2841,7 +2840,7 @@ public class JdbcTest {
             + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")
         .returnsUnordered(
-            "deptno=10; name=Sales; employees=[Employee [empid: 100, deptno: 10, name: Bill], Employee [empid: 150, deptno: 10, name: Sebastian]]; location=Location [x: -122, y: 38]");
+            "deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
 
   /** A difficult query: an IN list so large that the planner promotes it
@@ -4292,10 +4291,9 @@ public class JdbcTest {
         .with(CalciteAssert.Config.REGULAR)
         .query(
             "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n")
-        .returns(""
-            + "deptno=10; E=Employee [empid: 100, deptno: 10, name: Bill]\n"
-            + "deptno=30; E=null\n"
-            + "deptno=40; E=Employee [empid: 200, deptno: 20, name: Eric]\n");
+        .returnsUnordered("deptno=10; E={100, 10, Bill, 10000.0, 1000}",
+            "deptno=30; E=null",
+            "deptno=40; E={200, 20, Eric, 8000.0, 500}");
   }
 
   @Test public void testVarcharEquals() {
@@ -6593,6 +6591,8 @@ public class JdbcTest {
   public static class Department {
     public final int deptno;
     public final String name;
+
+    @org.apache.calcite.adapter.java.Array(component = Employee.class)
     public final List<Employee> employees;
     public final Location location;
 
@@ -6603,7 +6603,6 @@ public class JdbcTest {
       this.employees = employees;
       this.location = location;
     }
-
 
     public String toString() {
       return "Department [deptno: " + deptno + ", name: " + name

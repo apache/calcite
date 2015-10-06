@@ -17,6 +17,7 @@
 package org.apache.calcite.jdbc;
 
 import org.apache.calcite.avatica.AvaticaResultSet;
+import org.apache.calcite.avatica.AvaticaResultSetMetaData;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Handler;
@@ -24,6 +25,7 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.runtime.ArrayEnumeratorCursor;
 import org.apache.calcite.runtime.ObjectEnumeratorCursor;
 
@@ -66,11 +68,6 @@ public class CalciteResultSet extends AvaticaResultSet {
 
   @Override public ResultSet create(ColumnMetaData.AvaticaType elementType,
       Iterable<Object> iterable) {
-    final CalciteResultSet resultSet =
-        new CalciteResultSet(statement,
-            (CalcitePrepare.CalciteSignature) signature, resultSetMetaData,
-            localCalendar.getTimeZone(), new Meta.Frame(0, true, iterable));
-    final Cursor cursor = resultSet.createCursor(elementType, iterable);
     final List<ColumnMetaData> columnMetaDataList;
     if (elementType instanceof ColumnMetaData.StructType) {
       columnMetaDataList = ((ColumnMetaData.StructType) elementType).columns;
@@ -78,6 +75,19 @@ public class CalciteResultSet extends AvaticaResultSet {
       columnMetaDataList =
           ImmutableList.of(ColumnMetaData.dummy(elementType, false));
     }
+    final CalcitePrepare.CalciteSignature signature =
+        (CalcitePrepare.CalciteSignature) this.signature;
+    final CalcitePrepare.CalciteSignature<Object> newSignature =
+        new CalcitePrepare.CalciteSignature<>(signature.sql,
+            signature.parameters, signature.internalParameters,
+            signature.rowType, columnMetaDataList, Meta.CursorFactory.ARRAY,
+            ImmutableList.<RelCollation>of(), -1, null);
+    ResultSetMetaData subResultSetMetaData =
+        new AvaticaResultSetMetaData(statement, null, newSignature);
+    final CalciteResultSet resultSet =
+        new CalciteResultSet(statement, signature, subResultSetMetaData,
+            localCalendar.getTimeZone(), new Meta.Frame(0, true, iterable));
+    final Cursor cursor = resultSet.createCursor(elementType, iterable);
     return resultSet.execute2(cursor, columnMetaDataList);
   }
 

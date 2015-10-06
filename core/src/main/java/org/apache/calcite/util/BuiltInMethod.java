@@ -172,6 +172,7 @@ public enum BuiltInMethod {
   FUNCTION0_APPLY(Function0.class, "apply"),
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
+  ARRAY(SqlFunctions.class, "array", Object[].class),
   LIST_N(FlatLists.class, "of", Object[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),

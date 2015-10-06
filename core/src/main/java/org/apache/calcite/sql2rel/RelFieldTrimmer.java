@@ -806,13 +806,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Populate mapping of where to find the fields. System, group key and
     // indicator fields first.
-    for (IntPair pair : inputMapping) {
-      if (pair.source < groupCount) {
-        mapping.set(pair.source, pair.target);
-        if (aggregate.indicator) {
-          mapping.set(pair.source + groupCount, pair.target + groupCount);
-        }
-      }
+    for (j = 0; j < groupCount + indicatorCount; j++) {
+      mapping.set(j, j);
     }
 
     // Now create new agg calls, and populate mapping for them.
@@ -829,7 +824,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelBuilder.AggCall newAggCall =
             relBuilder.aggregateCall(aggCall.getAggregation(),
                 aggCall.isDistinct(), filterArg, aggCall.name, args);
-        mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
+        mapping.set(groupCount + indicatorCount + newAggCallList.size(), j);
         newAggCallList.add(newAggCall);
       }
       ++j;
@@ -1060,6 +1055,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
      */
     public TrimResult(RelNode left, Mapping right) {
       super(left, right);
+      assert right.getTargetCount() == left.getRowType().getFieldCount()
+          : "rowType: " + left.getRowType() + ", mapping: " + right;
     }
   }
 }

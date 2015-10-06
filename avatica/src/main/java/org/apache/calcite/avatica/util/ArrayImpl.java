@@ -16,38 +16,68 @@
  */
 package org.apache.calcite.avatica.util;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 /** Implementation of JDBC {@link Array}. */
 public class ArrayImpl implements Array {
-  private final ColumnMetaData.AvaticaType elementType;
-  private final Factory factory;
   private final List list;
+  private final AbstractCursor.ArrayAccessor accessor;
 
-  public ArrayImpl(List list, ColumnMetaData.AvaticaType elementType,
-      Factory factory) {
+  public ArrayImpl(List list, AbstractCursor.ArrayAccessor accessor) {
     this.list = list;
-    this.elementType = elementType;
-    this.factory = factory;
+    this.accessor = accessor;
   }
 
   public String getBaseTypeName() throws SQLException {
-    return elementType.name;
+    return accessor.componentType.name;
   }
 
   public int getBaseType() throws SQLException {
-    return elementType.id;
+    return accessor.componentType.id;
   }
 
   public Object getArray() throws SQLException {
     return getArray(list);
+  }
+
+  @Override public String toString() {
+    final Iterator iterator = list.iterator();
+    if (!iterator.hasNext()) {
+      return "[]";
+    }
+    final StringBuilder buf = new StringBuilder("[");
+    for (;;) {
+      accessor.componentSlotGetter.slot = iterator.next();
+      try {
+        append(buf, accessor.componentAccessor.getString());
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+      accessor.componentSlotGetter.slot = null;
+      if (!iterator.hasNext()) {
+        return buf.append("]").toString();
+      }
+      buf.append(", ");
+    }
+  }
+
+  private void append(StringBuilder buf, Object o) {
+    if (o == null) {
+      buf.append("null");
+    } else if (o.getClass().isArray()) {
+      append(buf, AvaticaUtils.primitiveList(o));
+    } else {
+      buf.append(o);
+    }
   }
 
   /**
@@ -65,7 +95,7 @@ public class ArrayImpl implements Array {
   @SuppressWarnings("unchecked")
   protected Object getArray(List list) throws SQLException {
     int i = 0;
-    switch (elementType.rep) {
+    switch (accessor.componentType.rep) {
     case PRIMITIVE_DOUBLE:
       final double[] doubles = new double[list.size()];
       for (double v : (List<Double>) list) {
@@ -118,13 +148,12 @@ public class ArrayImpl implements Array {
       // fall through
     }
     final Object[] objects = list.toArray();
-    switch (elementType.id) {
+    switch (accessor.componentType.id) {
     case Types.ARRAY:
-      final ColumnMetaData.ArrayType arrayType =
-          (ColumnMetaData.ArrayType) elementType;
+      final AbstractCursor.ArrayAccessor componentAccessor =
+          (AbstractCursor.ArrayAccessor) accessor.componentAccessor;
       for (i = 0; i < objects.length; i++) {
-        objects[i] =
-            new ArrayImpl((List) objects[i], arrayType.component, factory);
+        objects[i] = new ArrayImpl((List) objects[i], componentAccessor);
       }
     }
     return objects;
@@ -144,7 +173,7 @@ public class ArrayImpl implements Array {
   }
 
   public ResultSet getResultSet() throws SQLException {
-    return factory.create(elementType, list);
+    return accessor.factory.create(accessor.componentType, list);
   }
 
   public ResultSet getResultSet(Map<String, Class<?>> map)

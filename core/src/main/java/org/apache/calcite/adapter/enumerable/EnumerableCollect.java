@@ -43,12 +43,12 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
-    final Result result = implementor.visitChild(this, 0, child, pref);
+    final Result result = implementor.visitChild(this, 0, child, Prefer.ARRAY);
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
             getRowType(),
-            result.format);
+            JavaRowFormat.LIST);
 
     // final Enumerable<Employee> child = <<child adapter>>;
     // final List<Employee> list = child.toList();

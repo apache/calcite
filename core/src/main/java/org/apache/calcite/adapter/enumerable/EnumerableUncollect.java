@@ -50,7 +50,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
             getRowType(),
-            result.format);
+            JavaRowFormat.LIST);
 
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     RelDataType inputRowType = child.getRowType();

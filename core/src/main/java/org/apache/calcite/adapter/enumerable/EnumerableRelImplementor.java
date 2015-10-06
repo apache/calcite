@@ -50,13 +50,16 @@ import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Subclass of {@link org.apache.calcite.plan.RelImplementor} for relational
@@ -97,9 +100,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public ClassDeclaration implementRoot(EnumerableRel rootRel,
       EnumerableRel.Prefer prefer) {
     final EnumerableRel.Result result = rootRel.implement(this, prefer);
-    List<MemberDeclaration> memberDeclarations =
-        new ArrayList<MemberDeclaration>();
-    declareSyntheticClasses(result.block, memberDeclarations);
+    final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
+    new TypeRegistrar(memberDeclarations).go(result);
 
     // The following is a workaround to
     // http://jira.codehaus.org/browse/JANINO-169. Otherwise we'd remove the
@@ -155,19 +157,6 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         memberDeclarations);
   }
 
-  private void declareSyntheticClasses(
-      BlockStatement block,
-      List<MemberDeclaration> memberDeclarations) {
-    final LinkedHashSet<Type> types = new LinkedHashSet<Type>();
-    block.accept(new TypeFinder(types));
-    for (Type type : types) {
-      if (type instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
-        memberDeclarations.add(
-            classDecl((JavaTypeFactoryImpl.SyntheticRecordType) type));
-      }
-    }
-  }
-
   private ClassDeclaration classDecl(
       JavaTypeFactoryImpl.SyntheticRecordType type) {
     ClassDeclaration classDeclaration =
@@ -193,8 +182,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     // Constructor:
     //   Foo(T0 f0, ...) { this.f0 = f0; ... }
     final BlockBuilder blockBuilder = new BlockBuilder();
-    final List<ParameterExpression> parameters =
-        new ArrayList<ParameterExpression>();
+    final List<ParameterExpression> parameters = new ArrayList<>();
     final ParameterExpression thisParameter =
         Expressions.parameter(type, "this");
     for (Types.RecordField field : type.getRecordFields()) {
@@ -244,7 +232,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.FINAL,
             thatParameter,
             Expressions.convert_(oParameter, type)));
-    List<Expression> conditions = new ArrayList<Expression>();
+    final List<Expression> conditions = new ArrayList<>();
     for (Types.RecordField field : type.getRecordFields()) {
       conditions.add(
           Primitive.is(field.getType())
@@ -479,9 +467,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
 
   /** Visitor that finds types in an {@link Expression} tree. */
   private static class TypeFinder extends Visitor {
-    private final LinkedHashSet<Type> types;
+    private final Collection<Type> types;
 
-    TypeFinder(LinkedHashSet<Type> types) {
+    TypeFinder(Collection<Type> types) {
       this.types = types;
     }
 
@@ -508,6 +496,40 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
       }
       types.add(type);
       return super.visit(newArrayExpression, dimension, bound, expressions);
+    }
+  }
+
+  /** Adds a declaration of each synthetic type found in a code block. */
+  private class TypeRegistrar {
+    private final List<MemberDeclaration> memberDeclarations;
+    private final Set<Type> seen = new HashSet<>();
+
+    TypeRegistrar(List<MemberDeclaration> memberDeclarations) {
+      this.memberDeclarations = memberDeclarations;
+    }
+
+    private void register(Type type) {
+      if (!seen.add(type)) {
+        return;
+      }
+      if (type instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
+        memberDeclarations.add(
+            classDecl((JavaTypeFactoryImpl.SyntheticRecordType) type));
+      }
+      if (type instanceof ParameterizedType) {
+        for (Type type1 : ((ParameterizedType) type).getActualTypeArguments()) {
+          register(type1);
+        }
+      }
+    }
+
+    public void go(EnumerableRel.Result result) {
+      final Set<Type> types = new LinkedHashSet<>();
+      result.block.accept(new TypeFinder(types));
+      types.add(result.physType.getJavaRowType());
+      for (Type type : types) {
+        register(type);
+      }
     }
   }
 }

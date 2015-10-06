@@ -307,7 +307,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final boolean nullable) {
     Preconditions.checkNotNull(type);
     RelDataType newType;
-    if (type instanceof RelRecordType) {
+    if (type.isNullable() == nullable) {
+      newType = type;
+    } else if (type instanceof RelRecordType) {
       // REVIEW: angel 18-Aug-2005 dtbug 336 workaround
       // Changed to ignore nullable parameter if nullable is false since
       // copyRecordType implementation is doubtful

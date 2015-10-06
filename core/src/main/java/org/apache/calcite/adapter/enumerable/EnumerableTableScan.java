@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
@@ -23,6 +24,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
@@ -33,6 +35,8 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
@@ -152,7 +156,7 @@ public class EnumerableTableScan
       return Expressions.call(BuiltInMethod.SLICE0.method, expression);
     }
     JavaRowFormat oldFormat = format();
-    if (physType.getFormat() == oldFormat) {
+    if (physType.getFormat() == oldFormat && !hasCollectionField(rowType)) {
       return expression;
     }
     final ParameterExpression row_ =
@@ -160,13 +164,40 @@ public class EnumerableTableScan
     final int fieldCount = table.getRowType().getFieldCount();
     List<Expression> expressionList = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
-      expressionList.add(
-          oldFormat.field(row_, i, physType.getJavaFieldType(i)));
+      expressionList.add(fieldExpression(row_, i, physType, oldFormat));
     }
     return Expressions.call(expression,
         BuiltInMethod.SELECT.method,
         Expressions.lambda(Function1.class, physType.record(expressionList),
             row_));
+  }
+
+  private Expression fieldExpression(ParameterExpression row_, int i,
+      PhysType physType, JavaRowFormat format) {
+    final Expression e = format.field(row_, i, physType.getJavaFieldType(i));
+    final RelDataType relFieldType =
+        physType.getRowType().getFieldList().get(i).getType();
+    switch (relFieldType.getSqlTypeName()) {
+    case ARRAY:
+    case MULTISET:
+      // We can't represent a multiset or array as a List<Employee>, because
+      // the consumer does not know the element type.
+      // The standard element type is List.
+      // We need to convert to a List<List>.
+      final JavaTypeFactory typeFactory =
+          (JavaTypeFactory) getCluster().getTypeFactory();
+      final PhysType elementPhysType = PhysTypeImpl.of(
+          typeFactory, relFieldType.getComponentType(), JavaRowFormat.CUSTOM);
+      final MethodCallExpression e2 =
+          Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, e);
+      final RelDataType dummyType = this.rowType;
+      final Expression e3 =
+          elementPhysType.convertTo(e2,
+              PhysTypeImpl.of(typeFactory, dummyType, JavaRowFormat.LIST));
+      return Expressions.call(e3, BuiltInMethod.ENUMERABLE_TO_LIST.method);
+    default:
+      return e;
+    }
   }
 
   private JavaRowFormat format() {
@@ -186,6 +217,17 @@ public class EnumerableTableScan
       return JavaRowFormat.SCALAR;
     }
     return JavaRowFormat.CUSTOM;
+  }
+
+  private boolean hasCollectionField(RelDataType rowType) {
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      switch (field.getType().getSqlTypeName()) {
+      case ARRAY:
+      case MULTISET:
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

@@ -36,6 +36,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.Field;
@@ -59,8 +60,7 @@ public class JavaTypeFactoryImpl
     extends SqlTypeFactoryImpl
     implements JavaTypeFactory {
   private final Map<List<Pair<Type, Boolean>>, SyntheticRecordType>
-  syntheticTypes =
-      new HashMap<List<Pair<Type, Boolean>>, SyntheticRecordType>();
+  syntheticTypes = new HashMap<>();
 
   public JavaTypeFactoryImpl() {
     this(RelDataTypeSystem.DEFAULT);
@@ -71,18 +71,41 @@ public class JavaTypeFactoryImpl
   }
 
   public RelDataType createStructType(Class type) {
-    List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
+    final List<RelDataTypeField> list = new ArrayList<>();
     for (Field field : type.getFields()) {
       if (!Modifier.isStatic(field.getModifiers())) {
         // FIXME: watch out for recursion
+        final Type fieldType = fieldType(field);
         list.add(
             new RelDataTypeFieldImpl(
                 field.getName(),
                 list.size(),
-                createType(field.getType())));
+                createType(fieldType)));
       }
     }
     return canonize(new JavaRecordType(list, type));
+  }
+
+  /** Returns the type of a field.
+   *
+   * <p>Takes into account {@link org.apache.calcite.adapter.java.Array}
+   * annotations if present.
+   */
+  private Type fieldType(Field field) {
+    final Class<?> klass = field.getType();
+    final org.apache.calcite.adapter.java.Array array =
+        field.getAnnotation(org.apache.calcite.adapter.java.Array.class);
+    if (array != null) {
+      return new Types.ArrayType(array.component(), array.componentIsNullable(),
+          array.maximumCardinality());
+    }
+    final org.apache.calcite.adapter.java.Map map =
+        field.getAnnotation(org.apache.calcite.adapter.java.Map.class);
+    if (map != null) {
+      return new Types.MapType(map.key(), map.keyIsNullable(), map.value(),
+          map.valueIsNullable());
+    }
+    return klass;
   }
 
   public RelDataType createType(Type type) {
@@ -90,9 +113,25 @@ public class JavaTypeFactoryImpl
       return (RelDataType) type;
     }
     if (type instanceof SyntheticRecordType) {
-      SyntheticRecordType syntheticRecordType =
+      final SyntheticRecordType syntheticRecordType =
           (SyntheticRecordType) type;
       return syntheticRecordType.relType;
+    }
+    if (type instanceof Types.ArrayType) {
+      final Types.ArrayType arrayType = (Types.ArrayType) type;
+      final RelDataType componentRelType =
+          createType(arrayType.getComponentType());
+      return createArrayType(
+          createTypeWithNullability(componentRelType,
+              arrayType.componentIsNullable()), arrayType.maximumCardinality());
+    }
+    if (type instanceof Types.MapType) {
+      final Types.MapType mapType = (Types.MapType) type;
+      final RelDataType keyRelType = createType(mapType.getKeyType());
+      final RelDataType valueRelType = createType(mapType.getValueType());
+      return createMapType(
+          createTypeWithNullability(keyRelType, mapType.keyIsNullable()),
+          createTypeWithNullability(valueRelType, mapType.valueIsNullable()));
     }
     if (!(type instanceof Class)) {
       throw new UnsupportedOperationException("TODO: implement " + type);
@@ -269,8 +308,7 @@ public class JavaTypeFactoryImpl
 
   /** Synthetic record type. */
   public static class SyntheticRecordType implements Types.RecordType {
-    final List<Types.RecordField> fields =
-        new ArrayList<Types.RecordField>();
+    final List<Types.RecordField> fields = new ArrayList<>();
     final RelDataType relType;
     private final String name;
 
@@ -309,14 +347,11 @@ public class JavaTypeFactoryImpl
         Type type,
         boolean nullable,
         int modifiers) {
-      this.syntheticType = syntheticType;
-      this.name = name;
-      this.type = type;
+      this.syntheticType = Preconditions.checkNotNull(syntheticType);
+      this.name = Preconditions.checkNotNull(name);
+      this.type = Preconditions.checkNotNull(type);
       this.nullable = nullable;
       this.modifiers = modifiers;
-      assert syntheticType != null;
-      assert name != null;
-      assert type != null;
       assert !(nullable && Primitive.is(type))
           : "type [" + type + "] can never be null";
     }

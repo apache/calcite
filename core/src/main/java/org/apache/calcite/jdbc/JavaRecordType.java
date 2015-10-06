@@ -19,6 +19,8 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
 
 /**
@@ -33,8 +35,7 @@ public class JavaRecordType extends RelRecordType {
 
   public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
     super(fields);
-    this.clazz = clazz;
-    assert clazz != null;
+    this.clazz = Preconditions.checkNotNull(clazz);
   }
 
   @Override public boolean equals(Object obj) {

@@ -136,6 +136,7 @@ import com.google.common.collect.Maps;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -807,16 +808,32 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   private ColumnMetaData.AvaticaType avaticaType(JavaTypeFactory typeFactory,
       RelDataType type, RelDataType fieldType) {
-    final Type clazz = typeFactory.getJavaClass(Util.first(fieldType, type));
-    final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
-    assert rep != null;
     final String typeName = getTypeName(type);
     if (type.getComponentType() != null) {
       final ColumnMetaData.AvaticaType componentType =
           avaticaType(typeFactory, type.getComponentType(), null);
+      final Type clazz = typeFactory.getJavaClass(type.getComponentType());
+      final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
+      assert rep != null;
       return ColumnMetaData.array(componentType, typeName, rep);
     } else {
-      return ColumnMetaData.scalar(getTypeOrdinal(type), typeName, rep);
+      final int typeOrdinal = getTypeOrdinal(type);
+      switch (typeOrdinal) {
+      case Types.STRUCT:
+        final List<ColumnMetaData> columns = new ArrayList<>();
+        for (RelDataTypeField field : type.getFieldList()) {
+          columns.add(
+              metaData(typeFactory, field.getIndex(), field.getName(),
+                  field.getType(), null, null));
+        }
+        return ColumnMetaData.struct(columns);
+      default:
+        final Type clazz =
+            typeFactory.getJavaClass(Util.first(fieldType, type));
+        final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
+        assert rep != null;
+        return ColumnMetaData.scalar(typeOrdinal, typeName, rep);
+      }
     }
   }
 
