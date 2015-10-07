@@ -27,11 +27,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-
-import com.google.common.collect.ImmutableList;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 
 
 /**
@@ -46,13 +42,13 @@ public class SortJoinTransposeRule extends RelOptRule {
 
   public static final SortJoinTransposeRule INSTANCE =
       new SortJoinTransposeRule(LogicalSort.class,
-              LogicalJoin.class);
+          LogicalJoin.class);
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a SortJoinTransposeRule. */
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
-          Class<? extends Join> joinClass) {
+      Class<? extends Join> joinClass) {
     super(
         operand(sortClass,
             operand(joinClass, any())));
@@ -71,9 +67,9 @@ public class SortJoinTransposeRule extends RelOptRule {
     if (join.getJoinType() == JoinRelType.LEFT) {
       if (sort.getCollation() != RelCollations.EMPTY) {
         for (RelFieldCollation relFieldCollation
-                : sort.getCollation().getFieldCollations()) {
+            : sort.getCollation().getFieldCollations()) {
           if (relFieldCollation.getFieldIndex()
-                  >= join.getLeft().getRowType().getFieldCount()) {
+              >= join.getLeft().getRowType().getFieldCount()) {
             return false;
           }
         }
@@ -81,9 +77,9 @@ public class SortJoinTransposeRule extends RelOptRule {
     } else if (join.getJoinType() == JoinRelType.RIGHT) {
       if (sort.getCollation() != RelCollations.EMPTY) {
         for (RelFieldCollation relFieldCollation
-                : sort.getCollation().getFieldCollations()) {
+            : sort.getCollation().getFieldCollations()) {
           if (relFieldCollation.getFieldIndex()
-                  < join.getLeft().getRowType().getFieldCount()) {
+              < join.getLeft().getRowType().getFieldCount()) {
             return false;
           }
         }
@@ -105,55 +101,33 @@ public class SortJoinTransposeRule extends RelOptRule {
     if (join.getJoinType() == JoinRelType.LEFT) {
       // If the input is already sorted and we are not reducing the number of tuples,
       // we bail out
-      if (checkInputForCollationAndLimit(join.getLeft(), sort.getCollation(),
+      if (RelMdUtil.checkInputForCollationAndLimit(join.getLeft(), sort.getCollation(),
           sort.offset, sort.fetch)) {
         return;
       }
       newLeftInput = sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
-              sort.offset, sort.fetch);
+          sort.offset, sort.fetch);
       newRightInput = join.getRight();
     } else {
       final RelCollation rightCollation = RelCollations.shift(
           sort.getCollation(), -join.getLeft().getRowType().getFieldCount());
       // If the input is already sorted and we are not reducing the number of tuples,
       // we bail out
-      if (checkInputForCollationAndLimit(join.getRight(), rightCollation,
+      if (RelMdUtil.checkInputForCollationAndLimit(join.getRight(), rightCollation,
           sort.offset, sort.fetch)) {
         return;
       }
       newLeftInput = join.getLeft();
       newRightInput = sort.copy(sort.getTraitSet(), join.getRight(), rightCollation,
-              sort.offset, sort.fetch);
+          sort.offset, sort.fetch);
     }
     // We copy the join and the top sort operator
     final RelNode joinCopy = join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
-            newRightInput, join.getJoinType(), join.isSemiJoinDone());
+        newRightInput, join.getJoinType(), join.isSemiJoinDone());
     final RelNode sortCopy = sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
-            sort.offset, sort.fetch);
+        sort.offset, sort.fetch);
 
     call.transformTo(sortCopy);
-  }
-
-  /* Checks if an input is already sorted and has less rows than
-   * the sum of offset and limit */
-  private boolean checkInputForCollationAndLimit(RelNode input,
-      RelCollation collation, RexNode offset, RexNode fetch) {
-    // Check if the input is already sorted
-    ImmutableList<RelCollation> inputCollation =
-        RelMetadataQuery.collations(input);
-    final boolean alreadySorted = RelCollations.equal(
-        ImmutableList.of(collation), inputCollation);
-    // Check if we are not reducing the number of tuples
-    boolean alreadySmaller = true;
-    final Double rowCount = RelMetadataQuery.getRowCount(input);
-    if (rowCount != null && fetch != null) {
-      final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
-      final int limit = RexLiteral.intValue(fetch);
-      if ((double) offsetVal + (double) limit < rowCount) {
-        alreadySmaller = false;
-      }
-    }
-    return alreadySorted && alreadySmaller;
   }
 
 }

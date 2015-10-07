@@ -17,6 +17,8 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -748,6 +750,31 @@ public class RelMdUtil {
 
       return numDistinctVals(distinctRowCount, rowCount);
     }
+  }
+
+  /** Returns whether a relational expression is already sorted and has fewer
+   * rows than the sum of offset and limit.
+   *
+   * <p>If this is the case, it is safe to push down a
+   * {@link org.apache.calcite.rel.core.Sort} with limit and optional offset. */
+  public static boolean checkInputForCollationAndLimit(RelNode input,
+      RelCollation collation, RexNode offset, RexNode fetch) {
+    // Check if the input is already sorted
+    ImmutableList<RelCollation> inputCollation =
+        RelMetadataQuery.collations(input);
+    final boolean alreadySorted = RelCollations.equal(
+        ImmutableList.of(collation), inputCollation);
+    // Check if we are not reducing the number of tuples
+    boolean alreadySmaller = true;
+    final Double rowCount = RelMetadataQuery.getRowCount(input);
+    if (rowCount != null && fetch != null) {
+      final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
+      final int limit = RexLiteral.intValue(fetch);
+      if ((double) offsetVal + (double) limit < rowCount) {
+        alreadySmaller = false;
+      }
+    }
+    return alreadySorted && alreadySmaller;
   }
 }
 

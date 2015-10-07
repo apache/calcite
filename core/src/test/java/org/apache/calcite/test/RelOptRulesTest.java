@@ -74,6 +74,7 @@ import org.apache.calcite.rel.rules.SemiJoinRemoveRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
+import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -374,6 +375,22 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "from dept a\n"
             + "left join dept b on b.deptno > 10\n"
             + "right join dept c on b.deptno > 10\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-889">[CALCITE-889]
+   * Implement SortUnionTransposeRule</a>. */
+  @Test public void testSortUnionTranspose() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
+            .addRuleInstance(SortUnionTransposeRule.INSTANCE)
+            .build();
+    final String sql = "select a.name from dept a\n"
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name limit 10";
+    checkPlanning(program, sql);
   }
 
   @Test public void testSemiJoinRule() {
