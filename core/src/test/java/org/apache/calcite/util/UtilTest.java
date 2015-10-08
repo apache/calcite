@@ -73,6 +73,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -1471,6 +1472,42 @@ public class UtilTest {
     final List<String> list = ImmutableList.copyOf(strings);
     final String asString = Util.listToString(list);
     assertThat(Util.stringToList(asString), is(list));
+  }
+
+  /** Tests {@link org.apache.calcite.util.TryThreadLocal}.
+   *
+   * <p>TryThreadLocal was introduced to fix
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-915">[CALCITE-915]
+   * Tests do not unset ThreadLocal values on exit</a>. */
+  @Test public void testTryThreadLocal() {
+    final TryThreadLocal<String> local1 = TryThreadLocal.of("foo");
+    assertThat(local1.get(), is("foo"));
+    TryThreadLocal.Memo memo1 = local1.push("bar");
+    assertThat(local1.get(), is("bar"));
+    local1.set("baz");
+    assertThat(local1.get(), is("baz"));
+    memo1.close();
+    assertThat(local1.get(), is("foo"));
+
+    final TryThreadLocal<String> local2 = TryThreadLocal.of(null);
+    assertThat(local2.get(), nullValue());
+    TryThreadLocal.Memo memo2 = local2.push("a");
+    assertThat(local2.get(), is("a"));
+    local2.set("b");
+    assertThat(local2.get(), is("b"));
+    TryThreadLocal.Memo memo2B = local2.push(null);
+    assertThat(local2.get(), nullValue());
+    memo2B.close();
+    assertThat(local2.get(), is("b"));
+    memo2.close();
+    assertThat(local2.get(), nullValue());
+
+    local2.set("x");
+    try (TryThreadLocal.Memo ignore = local2.push("y")) {
+      assertThat(local2.get(), is("y"));
+      local2.set("z");
+    }
+    assertThat(local2.get(), is("x"));
   }
 }
 

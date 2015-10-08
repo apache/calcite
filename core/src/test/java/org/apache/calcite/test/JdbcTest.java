@@ -91,6 +91,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -247,8 +248,8 @@ public class JdbcTest {
   @Test public void testModelWithModifiableView() throws Exception {
     final List<Employee> employees = new ArrayList<>();
     employees.add(new Employee(135, 10, "Simon", 56.7f, null));
-    try {
-      EmpDeptTableFactory.THREAD_COLLECTION.set(employees);
+    try (final TryThreadLocal.Memo ignore =
+             EmpDeptTableFactory.THREAD_COLLECTION.push(employees)) {
       final CalciteAssert.AssertThat with = modelWithView(
           "select \"name\", \"empid\" as e, \"salary\" "
               + "from \"MUTABLE_EMPLOYEES\" where \"deptno\" = 10",
@@ -316,8 +317,6 @@ public class JdbcTest {
               }
             }
           });
-    } finally {
-      EmpDeptTableFactory.THREAD_COLLECTION.remove();
     }
   }
 
@@ -325,9 +324,8 @@ public class JdbcTest {
   @Test public void testModelWithInvalidModifiableView() throws Exception {
     final List<Employee> employees = new ArrayList<>();
     employees.add(new Employee(135, 10, "Simon", 56.7f, null));
-    try {
-      EmpDeptTableFactory.THREAD_COLLECTION.set(employees);
-
+    try (final TryThreadLocal.Memo ignore =
+             EmpDeptTableFactory.THREAD_COLLECTION.push(employees)) {
       Util.discard(RESOURCE.noValueSuppliedForViewColumn(null, null));
       modelWithView("select \"name\", \"empid\" as e, \"salary\" "
               + "from \"MUTABLE_EMPLOYEES\" where \"commission\" = 10",
@@ -397,8 +395,6 @@ public class JdbcTest {
           null)
           .query("select \"name\" from \"adhoc\".V order by \"name\"")
           .runs();
-    } finally {
-      EmpDeptTableFactory.THREAD_COLLECTION.remove();
     }
   }
 
@@ -871,67 +867,67 @@ public class JdbcTest {
   @Test public void testOnConnectionClose() throws Exception {
     final int[] closeCount = {0};
     final int[] statementCloseCount = {0};
-    HandlerDriver.HANDLERS.set(
-        new HandlerImpl() {
-          @Override public void
-          onConnectionClose(AvaticaConnection connection) {
-            ++closeCount[0];
-            throw new RuntimeException();
-          }
-          @Override public void onStatementClose(AvaticaStatement statement) {
-            ++statementCloseCount[0];
-            throw new RuntimeException();
-          }
-        });
-    final HandlerDriver driver =
-        new HandlerDriver();
-    CalciteConnection connection = (CalciteConnection)
-        driver.connect("jdbc:calcite:", new Properties());
-    SchemaPlus rootSchema = connection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
-    connection.setSchema("hr");
-    final Statement statement = connection.createStatement();
-    final ResultSet resultSet =
-        statement.executeQuery("select * from \"emps\"");
-    assertEquals(0, closeCount[0]);
-    assertEquals(0, statementCloseCount[0]);
-    resultSet.close();
-    try {
-      resultSet.next();
-      fail("resultSet.next() should throw SQLException when closed");
-    } catch (SQLException e) {
-      assertThat(e.getMessage(),
-          containsString("next() called on closed cursor"));
-    }
-    assertEquals(0, closeCount[0]);
-    assertEquals(0, statementCloseCount[0]);
+    final HandlerImpl h = new HandlerImpl() {
+      @Override public void onConnectionClose(AvaticaConnection connection) {
+        ++closeCount[0];
+        throw new RuntimeException();
+      }
 
-    // Close statement. It throws SQLException, but statement is still closed.
-    try {
-      statement.close();
-      fail("expecting error");
-    } catch (SQLException e) {
-      // ok
-    }
-    assertEquals(0, closeCount[0]);
-    assertEquals(1, statementCloseCount[0]);
+      @Override public void onStatementClose(AvaticaStatement statement) {
+        ++statementCloseCount[0];
+        throw new RuntimeException();
+      }
+    };
+    try (final TryThreadLocal.Memo ignore =
+             HandlerDriver.HANDLERS.push(h)) {
+      final HandlerDriver driver = new HandlerDriver();
+      CalciteConnection connection = (CalciteConnection)
+          driver.connect("jdbc:calcite:", new Properties());
+      SchemaPlus rootSchema = connection.getRootSchema();
+      rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
+      connection.setSchema("hr");
+      final Statement statement = connection.createStatement();
+      final ResultSet resultSet =
+          statement.executeQuery("select * from \"emps\"");
+      assertEquals(0, closeCount[0]);
+      assertEquals(0, statementCloseCount[0]);
+      resultSet.close();
+      try {
+        resultSet.next();
+        fail("resultSet.next() should throw SQLException when closed");
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+            containsString("next() called on closed cursor"));
+      }
+      assertEquals(0, closeCount[0]);
+      assertEquals(0, statementCloseCount[0]);
 
-    // Close connection. It throws SQLException, but connection is still closed.
-    try {
+      // Close statement. It throws SQLException, but statement is still closed.
+      try {
+        statement.close();
+        fail("expecting error");
+      } catch (SQLException e) {
+        // ok
+      }
+      assertEquals(0, closeCount[0]);
+      assertEquals(1, statementCloseCount[0]);
+
+      // Close connection. It throws SQLException, but connection is still closed.
+      try {
+        connection.close();
+        fail("expecting error");
+      } catch (SQLException e) {
+        // ok
+      }
+      assertEquals(1, closeCount[0]);
+      assertEquals(1, statementCloseCount[0]);
+
+      // Close a closed connection. Handler is not called again.
       connection.close();
-      fail("expecting error");
-    } catch (SQLException e) {
-      // ok
+      assertEquals(1, closeCount[0]);
+      assertEquals(1, statementCloseCount[0]);
+
     }
-    assertEquals(1, closeCount[0]);
-    assertEquals(1, statementCloseCount[0]);
-
-    // Close a closed connection. Handler is not called again.
-    connection.close();
-    assertEquals(1, closeCount[0]);
-    assertEquals(1, statementCloseCount[0]);
-
-    HandlerDriver.HANDLERS.remove();
   }
 
   /** Tests {@link java.sql.Statement}.{@code closeOnCompletion()}. */
@@ -3335,15 +3331,18 @@ public class JdbcTest {
 
   /** Query that reads no columns from either underlying table. */
   @Test public void testCountStar() {
-    CalciteAssert.hr()
-        .query("select count(*) c from \"hr\".\"emps\", \"hr\".\"depts\"")
-        .convertContains("LogicalAggregate(group=[{}], C=[COUNT()])\n"
-            + "  LogicalProject(DUMMY=[0])\n"
-            + "    LogicalJoin(condition=[true], joinType=[inner])\n"
-            + "      LogicalProject(DUMMY=[0])\n"
-            + "        EnumerableTableScan(table=[[hr, emps]])\n"
-            + "      LogicalProject(DUMMY=[0])\n"
-            + "        EnumerableTableScan(table=[[hr, depts]])");
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true);
+         final TryThreadLocal.Memo memo = Prepare.THREAD_EXPAND.push(true)) {
+      CalciteAssert.hr()
+          .query("select count(*) c from \"hr\".\"emps\", \"hr\".\"depts\"")
+          .convertContains("LogicalAggregate(group=[{}], C=[COUNT()])\n"
+              + "  LogicalProject(DUMMY=[0])\n"
+              + "    LogicalJoin(condition=[true], joinType=[inner])\n"
+              + "      LogicalProject(DUMMY=[0])\n"
+              + "        EnumerableTableScan(table=[[hr, emps]])\n"
+              + "      LogicalProject(DUMMY=[0])\n"
+              + "        EnumerableTableScan(table=[[hr, depts]])");
+    }
   }
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
@@ -4173,26 +4172,25 @@ public class JdbcTest {
 
   /** Tests that field-trimming creates a project near the table scan. */
   @Test public void testTrimFields() throws Exception {
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       CalciteAssert.hr()
           .query("select \"name\", count(\"commission\") + 1\n"
-            + "from \"hr\".\"emps\"\n"
-            + "group by \"deptno\", \"name\"")
+              + "from \"hr\".\"emps\"\n"
+              + "group by \"deptno\", \"name\"")
           .convertContains("LogicalProject(name=[$1], EXPR$1=[+($2, 1)])\n"
               + "  LogicalAggregate(group=[{0, 1}], agg#0=[COUNT($2)])\n"
               + "    LogicalProject(deptno=[$1], name=[$2], commission=[$4])\n"
               + "      EnumerableTableScan(table=[[hr, emps]])\n");
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
   /** Tests that field-trimming creates a project near the table scan, in a
    * query with windowed-aggregation. */
   @Test public void testTrimFieldsOver() throws Exception {
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true);
+         final TryThreadLocal.Memo memo = Prepare.THREAD_EXPAND.push(true)) {
+      Util.discard(memo);
+      // The correct plan has a project on a filter on a project on a scan.
       CalciteAssert.hr()
           .query("select \"name\",\n"
               + "  count(\"commission\") over (partition by \"deptno\") + 1\n"
@@ -4203,8 +4201,6 @@ public class JdbcTest {
               + "  LogicalFilter(condition=[>($0, 10)])\n"
               + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
               + "      EnumerableTableScan(table=[[hr, emps]])\n");
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -4220,9 +4216,10 @@ public class JdbcTest {
             "M=1",
             "M=1");
   }
+
   /** Tests multiple window aggregates over constants.
    * This tests that EnumerableWindowRel is able to reference the right slot
-   * when accessing constant for aggregation argument.*/
+   * when accessing constant for aggregation argument. */
   @Test public void testWinAggConstantMultipleConstants() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
@@ -4644,7 +4641,9 @@ public class JdbcTest {
    * use as scratch space during development. */
   // Do not add '@Ignore'; just remember not to commit changes to dummy.iq
   @Test public void testRunDummy() throws Exception {
-    checkRun("sql/dummy.iq");
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(false)) {
+      checkRun("sql/dummy.iq");
+    }
   }
 
   @Test public void testRunAgg() throws Exception {
@@ -6478,8 +6477,8 @@ public class JdbcTest {
 
   /** Factory for EMP and DEPT tables. */
   public static class EmpDeptTableFactory implements TableFactory<Table> {
-    public static final ThreadLocal<List<Employee>> THREAD_COLLECTION =
-        new ThreadLocal<>();
+    public static final TryThreadLocal<List<Employee>> THREAD_COLLECTION =
+        TryThreadLocal.of(null);
 
     public Table create(
         SchemaPlus schema,
@@ -6578,7 +6577,8 @@ public class JdbcTest {
 
   /** Mock driver that a given {@link Handler}. */
   public static class HandlerDriver extends org.apache.calcite.jdbc.Driver {
-    private static final ThreadLocal<Handler> HANDLERS = new ThreadLocal<>();
+    private static final TryThreadLocal<Handler> HANDLERS =
+        TryThreadLocal.of(null);
 
     public HandlerDriver() {
     }

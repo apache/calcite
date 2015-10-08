@@ -52,6 +52,7 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -83,12 +84,14 @@ public abstract class Prepare {
   protected RelDataType parameterRowType;
 
   // temporary. for testing.
-  public static final ThreadLocal<Boolean> THREAD_TRIM =
-      new ThreadLocal<Boolean>() {
-        @Override protected Boolean initialValue() {
-          return false;
-        }
-      };
+  public static final TryThreadLocal<Boolean> THREAD_TRIM =
+      TryThreadLocal.of(false);
+
+  /** Temporary, while CALCITE-816 is under development.
+   *
+   * @see org.apache.calcite.util.Util#deprecated(Object, boolean) */
+  public static final TryThreadLocal<Boolean> THREAD_EXPAND =
+      TryThreadLocal.of(false);
 
   public Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
