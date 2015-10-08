@@ -337,7 +337,7 @@ that only contains this count and no additional data.
 
 {% highlight json %}
 {
-  "response": "Service$ExecuteResponse",
+  "response": "executeResults",
   "resultSets": [ ResultSetResponse, ResultSetResponse, ... ]
 }
 {% endhighlight %}
