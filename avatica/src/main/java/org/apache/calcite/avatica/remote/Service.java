@@ -106,7 +106,8 @@ public interface Service {
       @JsonSubTypes.Type(value = CloseConnectionResponse.class,
           name = "closeConnection"),
       @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync"),
-      @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties") })
+      @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties"),
+      @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults") })
   abstract class Response {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
