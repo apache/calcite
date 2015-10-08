@@ -113,7 +113,7 @@ public class MongoAdapterIT {
    * included if "it" profile is activated ({@code -Pit}). To disable,
    * specify {@code -Dcalcite.test.mongodb=false} on the Java command line. */
   public static final boolean ENABLED =
-      Boolean.valueOf(System.getProperty("calcite.test.mongodb", "true"));
+      Util.getBooleanProperty("calcite.test.mongodb", true);
 
   /** Whether to run this test. */
   protected boolean enabled() {

@@ -2293,8 +2293,18 @@ public class Util {
    * @return Whether property is true
    */
   public static boolean getBooleanProperty(String property) {
+    return getBooleanProperty(property, false);
+  }
+
+  /** Returns the value of a system property as a boolean, returning a given
+   * default value if the property is not specified. */
+  public static boolean getBooleanProperty(String property,
+      boolean defaultValue) {
     final String v = System.getProperties().getProperty(property);
-    return v != null && ("".equals(v) || "true".equalsIgnoreCase(v));
+    if (v == null) {
+      return defaultValue;
+    }
+    return "".equals(v) || "true".equalsIgnoreCase(v);
   }
 
   //~ Inner Classes ----------------------------------------------------------

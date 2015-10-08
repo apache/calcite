@@ -93,7 +93,7 @@ environment, as follows.
 * `-Dcalcite.test.slow` enables tests that take longer to execute. For
   example, there are tests that create virtual TPC-H and TPC-DS schemas
   in-memory and run tests from those benchmarks.
-* `-Dcalcite.test.splunk=true` enables tests that run against Splunk.
+* `-Dcalcite.test.splunk` enables tests that run against Splunk.
   Splunk must be installed and running.
 
 ## Running integration tests
@@ -417,8 +417,8 @@ Before you start:
 * Check that `README`, `README.md` and `doc/howto.md` have the correct version number.
 * Set `version.major` and `version.minor` in `pom.xml`.
 * Make sure build and tests succeed, including with
-  -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow=true,
-  -Dcalcite.test.mongodb=true, -Dcalcite.test.splunk=true.
+  -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow,
+  -Dcalcite.test.mongodb, -Dcalcite.test.splunk.
 * Trigger a
   <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
   by merging the latest code into the `julianhyde/coverity_scan` branch,

@@ -141,7 +141,7 @@ import org.junit.runners.Suite;
     PartiallyOrderedSetTest.class,
 
     // system tests and benchmarks (very slow, but usually only run if
-    // '-Dcalcite.test.slow=true' is specified)
+    // '-Dcalcite.test.slow' is specified)
     FoodmartTest.class
 })
 public class CalciteSuite {

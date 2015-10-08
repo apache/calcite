@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.util.Util;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 
@@ -46,9 +48,9 @@ public class SplunkAdapterTest {
 
   /** Whether to run Splunk tests. Disabled by default, because we do not expect
    * Splunk to be installed and populated data set. To enable,
-   * specify {@code -Dcalcite.test.splunk=true} on the Java command line. */
+   * specify {@code -Dcalcite.test.splunk} on the Java command line. */
   public static final boolean ENABLED =
-      Boolean.getBoolean("calcite.test.splunk");
+      Util.getBooleanProperty("calcite.test.splunk");
 
   /** Whether this test is enabled. Tests are disabled unless we know that
    * Splunk is present and loaded with the requisite data. */
@@ -240,7 +242,7 @@ public class SplunkAdapterTest {
         + "from \"splunk\".\"splunk\"",
         new Function<ResultSet, Void>() {
           public Void apply(ResultSet a0) {
-            final Set<String> actual = new HashSet<String>();
+            final Set<String> actual = new HashSet<>();
             try {
               while (a0.next()) {
                 actual.add(a0.getString(1));
