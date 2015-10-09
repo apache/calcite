@@ -82,10 +82,6 @@ public abstract class TableScan extends AbstractRelNode {
     return table.getCollationList();
   }
 
-  @Override public boolean isKey(ImmutableBitSet columns) {
-    return table.isKey(columns);
-  }
-
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     double dRows = table.getRowCount();
     double dCpu = dRows + 1; // ensure non-zero cost

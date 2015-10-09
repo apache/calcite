@@ -26,7 +26,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -86,12 +85,6 @@ public abstract class SetOp extends AbstractRelNode {
     newInputs.set(ordinalInParent, p);
     inputs = ImmutableList.copyOf(newInputs);
     recomputeDigest();
-  }
-
-  @Override public boolean isKey(ImmutableBitSet columns) {
-    // If not ALL then the rows are distinct.
-    // Therefore the set of all columns is a key.
-    return !all && columns.nextClearBit(0) >= getRowType().getFieldCount();
   }
 
   @Override public List<RelNode> getInputs() {

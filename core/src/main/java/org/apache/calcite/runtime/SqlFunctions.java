@@ -1303,6 +1303,16 @@ public class SqlFunctions {
     return b != null && b;
   }
 
+  /** NULL &rarr; FALSE, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
+  public static boolean isFalse(Boolean b) {
+    return b != null && !b;
+  }
+
+  /** NULL &rarr; TRUE, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
+  public static boolean isNotTrue(Boolean b) {
+    return b == null || !b;
+  }
+
   /** NULL &rarr; TRUE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
   public static boolean isNotFalse(Boolean b) {
     return b == null || b;

@@ -115,7 +115,10 @@ public interface RelNode extends RelOptNode, Cloneable {
    * <code>false</code>, derived classes should override.
    *
    * @return Whether the same value will not come out twice
+   *
+   * @deprecated Use {@link RelMetadataQuery#areRowsUnique(RelNode)}
    */
+  @Deprecated // to be removed before 2.0
   boolean isDistinct();
 
   /**
@@ -366,7 +369,10 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @param columns Ordinals of key columns
    * @return Whether the given columns are a key or a superset of a key
+   *
+   * @deprecated Use {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
    */
+  @Deprecated // to be removed before 2.0
   boolean isKey(ImmutableBitSet columns);
 
   /**

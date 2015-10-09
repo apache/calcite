@@ -159,11 +159,11 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public boolean isDistinct() {
-    return isKey(ImmutableBitSet.range(getRowType().getFieldCount()));
+    return RelMetadataQuery.areRowsUnique(this);
   }
 
   public boolean isKey(ImmutableBitSet columns) {
-    return false;
+    return RelMetadataQuery.areColumnsUnique(this, columns);
   }
 
   public int getId() {

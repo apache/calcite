@@ -57,9 +57,6 @@ public abstract class BuiltInMetadata {
      * represented as an {@link org.apache.calcite.util.ImmutableBitSet}, where
      * each bit position represents a 0-based output column ordinal.
      *
-     * <p>Note that {@link RelNode#isDistinct} should return {@code true} if and
-     * only if at least one key is known.</p>
-     *
      * <p>Nulls can be ignored if the relational expression has filtered out
      * null values.
      *
@@ -77,8 +74,16 @@ public abstract class BuiltInMetadata {
      * Determines whether a specified set of columns from a specified relational
      * expression are unique.
      *
+     * <p>For example, if the relational expression is a {@code TableScan} to
+     * T(A, B, C, D) whose key is (A, B), then:
+     * <ul>
+     * <li>{@code areColumnsUnique([0, 1])} yields true,
+     * <li>{@code areColumnsUnique([0])} yields false,
+     * <li>{@code areColumnsUnique([0, 2])} yields false.
+     * </ul>
+     *
      * <p>Nulls can be ignored if the relational expression has filtered out
-     * null values.</p>
+     * null values.
      *
      * @param columns column mask representing the subset of columns for which
      *                uniqueness will be determined

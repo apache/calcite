@@ -184,12 +184,6 @@ public abstract class Aggregate extends SingleRel {
       boolean indicator, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
 
-  // implement RelNode
-  public boolean isDistinct() {
-    // we never return duplicate rows
-    return true;
-  }
-
   /**
    * Returns a list of calls to aggregate functions.
    *

@@ -244,6 +244,24 @@ public abstract class RelMetadataQuery {
   }
 
   /**
+   * Returns whether the rows of a given relational expression are distinct.
+   * This is derived by applying the
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
+   * statistic over all columns.
+   *
+   * @param rel     the relational expression
+   * @return true or false depending on whether the rows are unique, or
+   * null if not enough information is available to make that determination
+   */
+  public static Boolean areRowsUnique(RelNode rel) {
+    final BuiltInMetadata.ColumnUniqueness metadata =
+        rel.metadata(BuiltInMetadata.ColumnUniqueness.class);
+    final ImmutableBitSet columns =
+        ImmutableBitSet.range(rel.getRowType().getFieldCount());
+    return metadata.areColumnsUnique(columns, false);
+  }
+
+  /**
    * Returns the
    * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
    * statistic.

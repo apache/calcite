@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 
@@ -61,15 +60,6 @@ public abstract class Intersect extends SetOp {
     }
     dRows *= 0.25;
     return dRows;
-  }
-
-  @Override public boolean isKey(ImmutableBitSet columns) {
-    for (RelNode input : inputs) {
-      if (input.isKey(columns)) {
-        return true;
-      }
-    }
-    return super.isKey(columns);
   }
 }
 

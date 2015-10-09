@@ -30,7 +30,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -187,28 +186,8 @@ public class RelSubset extends AbstractRelNode {
     return digest.toString();
   }
 
-  // implement RelNode
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return set.rel.getRowType();
-  }
-
-  // implement RelNode
-  public boolean isDistinct() {
-    for (RelNode rel : set.rels) {
-      if (rel.isDistinct()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @Override public boolean isKey(ImmutableBitSet columns) {
-    for (RelNode rel : set.rels) {
-      if (rel.isKey(columns)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**

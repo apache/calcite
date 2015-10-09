@@ -72,10 +72,6 @@ public abstract class ConverterImpl extends SingleRel
             + inTraits + " traits");
   }
 
-  public boolean isDistinct() {
-    return getInput().isDistinct();
-  }
-
   public RelTraitSet getInputTraits() {
     return inTraits;
   }

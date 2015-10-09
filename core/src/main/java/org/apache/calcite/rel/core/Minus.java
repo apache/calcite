@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 
@@ -59,11 +58,6 @@ public abstract class Minus extends SetOp {
       dRows = 0;
     }
     return dRows;
-  }
-
-  @Override public boolean isKey(ImmutableBitSet columns) {
-    return inputs.get(0).isKey(columns)
-        || super.isKey(columns);
   }
 }
 

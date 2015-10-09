@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 
@@ -73,14 +72,6 @@ public class HepRelVertex extends AbstractRelNode {
 
   @Override protected RelDataType deriveRowType() {
     return currentRel.getRowType();
-  }
-
-  @Override public boolean isDistinct() {
-    return currentRel.isDistinct();
-  }
-
-  @Override public boolean isKey(ImmutableBitSet columns) {
-    return currentRel.isKey(columns);
   }
 
   @Override protected String computeDigest() {
