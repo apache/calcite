@@ -54,11 +54,13 @@ public class MockProtobufService extends ProtobufService {
     // Get the schema, no.. schema..?
     mappings.put(
         new SchemasRequest(connectionId, null, null),
-        new ResultSetResponse(null, 1, true, null, Meta.Frame.EMPTY, -1));
+        // ownStatement=false just to avoid the extra close statement call.
+        new ResultSetResponse(null, 1, false, null, Meta.Frame.EMPTY, -1));
 
     // Get the tables, no tables exist
     mappings.put(new TablesRequest(connectionId, null, null, null, Collections.<String>emptyList()),
-        new ResultSetResponse(null, 150, true, null, Meta.Frame.EMPTY, -1));
+        // ownStatement=false just to avoid the extra close statement call.
+        new ResultSetResponse(null, 150, false, null, Meta.Frame.EMPTY, -1));
 
     // Create a statement, get back an id
     mappings.put(new CreateStatementRequest("0"), new CreateStatementResponse("0", 1));

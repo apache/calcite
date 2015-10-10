@@ -26,9 +26,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.protobuf.Descriptors.Descriptor;
 
 import java.lang.reflect.Type;
+import java.sql.Array;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -444,6 +446,11 @@ public class ColumnMetaData {
     /** Values are represented as some sub-class of {@link Number}.
      * The JSON encoding does this. */
     NUMBER(Number.class),
+
+    ARRAY(Array.class),
+    MULTISET(List.class),
+    STRUCT(Struct.class),
+
     OBJECT(Object.class);
 
     public final Class clazz;
@@ -512,6 +519,10 @@ public class ColumnMetaData {
         return resultSet.getTime(i);
       case JAVA_SQL_TIMESTAMP:
         return resultSet.getTimestamp(i);
+      case ARRAY:
+        return resultSet.getArray(i);
+      case STRUCT:
+        return resultSet.getObject(i, Struct.class);
       default:
         return resultSet.getObject(i);
       }
@@ -694,8 +705,12 @@ public class ColumnMetaData {
   public static class ArrayType extends AvaticaType {
     public final AvaticaType component;
 
-    private ArrayType(int type, String typeName, Rep representation,
-        AvaticaType component) {
+    /**
+     * Not for public use. Use {@link ColumnMetaData#array(AvaticaType, String, Rep)}.
+     */
+    @JsonCreator
+    public ArrayType(@JsonProperty("type") int type, @JsonProperty("name") String typeName,
+        @JsonProperty("rep") Rep representation, @JsonProperty("component") AvaticaType component) {
       super(type, typeName, representation);
       this.component = component;
     }

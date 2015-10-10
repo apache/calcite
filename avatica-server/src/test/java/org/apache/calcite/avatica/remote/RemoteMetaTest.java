@@ -29,6 +29,7 @@ import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
 import org.apache.calcite.avatica.server.Main.HandlerFactory;
+import org.apache.calcite.avatica.util.ArrayImpl;
 
 import com.google.common.cache.Cache;
 
@@ -41,6 +42,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -54,6 +56,7 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -394,6 +397,24 @@ public class RemoteMetaTest {
     }
     // default fetch size is 100, we are well beyond it
     assertTrue(rowCount > 900);
+  }
+
+  @Test public void testArrays() throws SQLException {
+    ConnectionSpec.getDatabaseLock().lock();
+    try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+         Statement stmt = conn.createStatement()) {
+      ResultSet resultSet =
+          stmt.executeQuery("select * from (values ('a', array['b', 'c']));");
+
+      assertTrue(resultSet.next());
+      assertEquals("a", resultSet.getString(1));
+      Array arr = resultSet.getArray(2);
+      assertTrue(arr instanceof ArrayImpl);
+      Object[] values = (Object[]) ((ArrayImpl) arr).getArray();
+      assertArrayEquals(new String[]{"b", "c"}, values);
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
   }
 }
 
