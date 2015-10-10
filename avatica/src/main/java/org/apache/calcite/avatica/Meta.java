@@ -864,49 +864,21 @@ public interface Meta {
           final Common.Row.Builder rowBuilder = Common.Row.newBuilder();
 
           for (Object element : (Object[]) row) {
-            final Common.TypedValue.Builder valueBuilder = Common.TypedValue.newBuilder();
+            final Common.ColumnValue.Builder columnBuilder = Common.ColumnValue.newBuilder();
 
-            // Numbers
-            if (element instanceof Byte) {
-              valueBuilder.setType(Common.Rep.BYTE).setNumberValue(((Byte) element).longValue());
-            } else if (element instanceof Short) {
-              valueBuilder.setType(Common.Rep.SHORT).setNumberValue(((Short) element).longValue());
-            } else if (element instanceof Integer) {
-              valueBuilder.setType(Common.Rep.INTEGER)
-                .setNumberValue(((Integer) element).longValue());
-            } else if (element instanceof Long) {
-              valueBuilder.setType(Common.Rep.LONG).setNumberValue((Long) element);
-            } else if (element instanceof Double) {
-              valueBuilder.setType(Common.Rep.DOUBLE)
-                .setDoubleValue(((Double) element).doubleValue());
-            } else if (element instanceof Float) {
-              valueBuilder.setType(Common.Rep.FLOAT).setNumberValue(((Float) element).longValue());
-            } else if (element instanceof BigDecimal) {
-              valueBuilder.setType(Common.Rep.NUMBER)
-                .setDoubleValue(((BigDecimal) element).doubleValue());
-            // Strings
-            } else if (element instanceof String) {
-              valueBuilder.setType(Common.Rep.STRING)
-                .setStringValue((String) element);
-            } else if (element instanceof Character) {
-              valueBuilder.setType(Common.Rep.CHARACTER)
-                .setStringValue(((Character) element).toString());
-            // Bytes
-            } else if (element instanceof byte[]) {
-              valueBuilder.setType(Common.Rep.BYTE_STRING)
-                .setBytesValues(ByteString.copyFrom((byte[]) element));
-            // Boolean
-            } else if (element instanceof Boolean) {
-              valueBuilder.setType(Common.Rep.BOOLEAN).setBoolValue((boolean) element);
-            } else if (null == element) {
-              valueBuilder.setType(Common.Rep.NULL);
-            // Unhandled
+            if (element instanceof List) {
+              List<?> list = (List<?>) element;
+              // Add each element in the list/array to the column's value
+              for (Object listItem : list) {
+                columnBuilder.addValue(serializeScalar(listItem));
+              }
             } else {
-              throw new RuntimeException("Unhandled type in Frame: " + element.getClass());
+              // Only one value for this column, a scalar.
+              columnBuilder.addValue(serializeScalar(element));
             }
 
             // Add value to row
-            rowBuilder.addValue(valueBuilder.build());
+            rowBuilder.addValue(columnBuilder.build());
           }
 
           // Collect all rows
@@ -920,64 +892,110 @@ public interface Meta {
       return builder.build();
     }
 
+    static Common.TypedValue serializeScalar(Object element) {
+      final Common.TypedValue.Builder valueBuilder = Common.TypedValue.newBuilder();
+
+      // Numbers
+      if (element instanceof Byte) {
+        valueBuilder.setType(Common.Rep.BYTE).setNumberValue(((Byte) element).longValue());
+      } else if (element instanceof Short) {
+        valueBuilder.setType(Common.Rep.SHORT).setNumberValue(((Short) element).longValue());
+      } else if (element instanceof Integer) {
+        valueBuilder.setType(Common.Rep.INTEGER)
+          .setNumberValue(((Integer) element).longValue());
+      } else if (element instanceof Long) {
+        valueBuilder.setType(Common.Rep.LONG).setNumberValue((Long) element);
+      } else if (element instanceof Double) {
+        valueBuilder.setType(Common.Rep.DOUBLE)
+          .setDoubleValue(((Double) element).doubleValue());
+      } else if (element instanceof Float) {
+        valueBuilder.setType(Common.Rep.FLOAT).setNumberValue(((Float) element).longValue());
+      } else if (element instanceof BigDecimal) {
+        valueBuilder.setType(Common.Rep.NUMBER)
+          .setDoubleValue(((BigDecimal) element).doubleValue());
+      // Strings
+      } else if (element instanceof String) {
+        valueBuilder.setType(Common.Rep.STRING)
+          .setStringValue((String) element);
+      } else if (element instanceof Character) {
+        valueBuilder.setType(Common.Rep.CHARACTER)
+          .setStringValue(((Character) element).toString());
+      // Bytes
+      } else if (element instanceof byte[]) {
+        valueBuilder.setType(Common.Rep.BYTE_STRING)
+          .setBytesValues(ByteString.copyFrom((byte[]) element));
+      // Boolean
+      } else if (element instanceof Boolean) {
+        valueBuilder.setType(Common.Rep.BOOLEAN).setBoolValue((boolean) element);
+      } else if (null == element) {
+        valueBuilder.setType(Common.Rep.NULL);
+      // Unhandled
+      } else {
+        throw new RuntimeException("Unhandled type in Frame: " + element.getClass());
+      }
+
+      return valueBuilder.build();
+    }
+
     public static Frame fromProto(Common.Frame proto) {
       List<Object> parsedRows = new ArrayList<>(proto.getRowsCount());
       for (Common.Row protoRow : proto.getRowsList()) {
         ArrayList<Object> row = new ArrayList<>(protoRow.getValueCount());
-        for (Common.TypedValue protoElement : protoRow.getValueList()) {
-          Object element;
-
-          // TODO Should these be primitives or Objects?
-          switch (protoElement.getType()) {
-          case BYTE:
-            element = Long.valueOf(protoElement.getNumberValue()).byteValue();
-            break;
-          case SHORT:
-            element = Long.valueOf(protoElement.getNumberValue()).shortValue();
-            break;
-          case INTEGER:
-            element = Long.valueOf(protoElement.getNumberValue()).intValue();
-            break;
-          case LONG:
-            element = protoElement.getNumberValue();
-            break;
-          case FLOAT:
-            element = Long.valueOf(protoElement.getNumberValue()).floatValue();
-            break;
-          case DOUBLE:
-            element = Double.valueOf(protoElement.getDoubleValue());
-            break;
-          case NUMBER:
-            // TODO more cases here to expand on? BigInteger?
-            element = BigDecimal.valueOf(protoElement.getDoubleValue());
-            break;
-          case STRING:
-            element = protoElement.getStringValue();
-            break;
-          case CHARACTER:
-            // A single character in the string
-            element = protoElement.getStringValue().charAt(0);
-            break;
-          case BYTE_STRING:
-            element = protoElement.getBytesValues().toByteArray();
-            break;
-          case BOOLEAN:
-            element = protoElement.getBoolValue();
-            break;
-          case NULL:
-            element = null;
-            break;
-          default:
-            throw new RuntimeException("Unhandled type: " + protoElement.getType());
+        for (Common.ColumnValue protoColumn : protoRow.getValueList()) {
+          Object value;
+          if (protoColumn.getValueCount() > 1) {
+            // Array
+            List<Object> array = new ArrayList<>(protoColumn.getValueCount());
+            for (Common.TypedValue columnValue : protoColumn.getValueList()) {
+              array.add(getScalarValue(columnValue));
+            }
+            value = array;
+          } else {
+            // Scalar
+            value = getScalarValue(protoColumn.getValue(0));
           }
 
-          row.add(element);
+          row.add(value);
         }
 
         parsedRows.add(row);
       }
 
       return new Frame(proto.getOffset(), proto.getDone(), parsedRows);
+    }
+
+    static Object getScalarValue(Common.TypedValue protoElement) {
+      // TODO Should these be primitives or Objects?
+      switch (protoElement.getType()) {
+      case BYTE:
+        return Long.valueOf(protoElement.getNumberValue()).byteValue();
+      case SHORT:
+        return Long.valueOf(protoElement.getNumberValue()).shortValue();
+      case INTEGER:
+        return Long.valueOf(protoElement.getNumberValue()).intValue();
+      case LONG:
+        return protoElement.getNumberValue();
+      case FLOAT:
+        return Long.valueOf(protoElement.getNumberValue()).floatValue();
+      case DOUBLE:
+        return Double.valueOf(protoElement.getDoubleValue());
+      case NUMBER:
+        // TODO more cases here to expand on? BigInteger?
+        return BigDecimal.valueOf(protoElement.getDoubleValue());
+      case STRING:
+        return protoElement.getStringValue();
+      case CHARACTER:
+        // A single character in the string
+        return protoElement.getStringValue().charAt(0);
+      case BYTE_STRING:
+        return protoElement.getBytesValues().toByteArray();
+      case BOOLEAN:
+        return protoElement.getBoolValue();
+      case NULL:
+        return null;
+      default:
+        throw new RuntimeException("Unhandled type: " + protoElement.getType());
+      }
     }
 
     @Override public int hashCode() {

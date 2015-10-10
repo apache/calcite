@@ -114,6 +114,9 @@ enum Rep {
   NUMBER = 22;
   OBJECT = 23;
   NULL = 24;
+  ARRAY = 27;
+  STRUCT = 28;
+  MULTISET = 29;
 }
 
 // Base class for a column type
@@ -162,7 +165,7 @@ message Frame {
 
 // A row is a collection of values
 message Row {
-  repeated TypedValue value = 1;
+  repeated ColumnValue value = 1;
 }
 
 // Database property, list of functions the database provides for a certain operation
@@ -175,6 +178,11 @@ message DatabaseProperty {
 message WireMessage {
   string name = 1;
   bytes wrapped_message = 2;
+}
+
+// A value might be a TypedValue or an Array of TypedValue's
+message ColumnValue {
+  repeated TypedValue value = 1;
 }
 
 // Generic wrapper to support any SQL type. Struct-like to work around no polymorphism construct.

@@ -44,6 +44,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -190,9 +191,14 @@ public class JdbcMeta implements Meta {
     for (int i = 1; i <= metaData.getColumnCount(); i++) {
       final SqlType sqlType = SqlType.valueOf(metaData.getColumnType(i));
       final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(sqlType.internal);
-      ColumnMetaData.AvaticaType t =
-          ColumnMetaData.scalar(metaData.getColumnType(i),
-              metaData.getColumnTypeName(i), rep);
+      final ColumnMetaData.AvaticaType t;
+      if (sqlType == SqlType.ARRAY || sqlType == SqlType.STRUCT || sqlType == SqlType.MULTISET) {
+        ColumnMetaData.AvaticaType arrayValueType = ColumnMetaData.scalar(Types.JAVA_OBJECT,
+            metaData.getColumnTypeName(i), ColumnMetaData.Rep.OBJECT);
+        t = ColumnMetaData.array(arrayValueType, metaData.getColumnTypeName(i), rep);
+      } else {
+        t = ColumnMetaData.scalar(metaData.getColumnType(i), metaData.getColumnTypeName(i), rep);
+      }
       ColumnMetaData md =
           new ColumnMetaData(i - 1, metaData.isAutoIncrement(i),
               metaData.isCaseSensitive(i), metaData.isSearchable(i),
@@ -210,7 +216,7 @@ public class JdbcMeta implements Meta {
   }
 
   /**
-   * Converts from JDBC metadata to Avatica parameters.
+   * Converts from JDBC metadata to Avatica parameters
    */
   protected static List<AvaticaParameter> parameters(ParameterMetaData metaData)
       throws SQLException {
