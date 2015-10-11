@@ -29,7 +29,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -59,7 +61,13 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   /** Creates a {@link TableFunctionImpl} from a class, looking for an "eval"
    * method. Returns null if there is no such method. */
   public static TableFunction create(Class<?> clazz) {
-    final Method method = findMethod(clazz, "eval");
+    return create(clazz, "eval");
+  }
+
+  /** Creates a {@link TableFunctionImpl} from a class, looking for a method
+   * with a given name. Returns null if there is no such method. */
+  public static TableFunction create(Class<?> clazz, String methodName) {
+    final Method method = findMethod(clazz, methodName);
     if (method == null) {
       return null;
     }
@@ -75,7 +83,8 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
       }
     }
     final Class<?> returnType = method.getReturnType();
-    if (!QueryableTable.class.isAssignableFrom(returnType)) {
+    if (!QueryableTable.class.isAssignableFrom(returnType)
+        && !ScannableTable.class.isAssignableFrom(returnType)) {
       return null;
     }
     CallImplementor implementor = createImplementor(method);
@@ -88,7 +97,15 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   public Type getElementType(List<Object> arguments) {
-    return apply(arguments).getElementType();
+    final Table table = apply(arguments);
+    if (table instanceof QueryableTable) {
+      QueryableTable queryableTable = (QueryableTable) table;
+      return queryableTable.getElementType();
+    } else if (table instanceof ScannableTable) {
+      return Object[].class;
+    }
+    throw new AssertionError("Invalid table class: " + table + " "
+        + table.getClass());
   }
 
   public CallImplementor getImplementor() {
@@ -102,22 +119,27 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
               RexCall call, List<Expression> translatedOperands) {
             Expression expr = super.implement(translator, call,
                 translatedOperands);
-            Expression queryable = Expressions.call(
-              Expressions.convert_(expr, QueryableTable.class),
-              BuiltInMethod.QUERYABLE_TABLE_AS_QUERYABLE.method,
-              Expressions.call(DataContext.ROOT,
-                BuiltInMethod.DATA_CONTEXT_GET_QUERY_PROVIDER.method),
-              Expressions.constant(null, SchemaPlus.class),
-              Expressions.constant(call.getOperator().getName(),
-                String.class));
-            expr = Expressions.call(queryable,
-                BuiltInMethod.QUERYABLE_AS_ENUMERABLE.method);
+            final Class<?> returnType = method.getReturnType();
+            if (QueryableTable.class.isAssignableFrom(returnType)) {
+              Expression queryable = Expressions.call(
+                  Expressions.convert_(expr, QueryableTable.class),
+                  BuiltInMethod.QUERYABLE_TABLE_AS_QUERYABLE.method,
+                  Expressions.call(DataContext.ROOT,
+                      BuiltInMethod.DATA_CONTEXT_GET_QUERY_PROVIDER.method),
+                  Expressions.constant(null, SchemaPlus.class),
+                  Expressions.constant(call.getOperator().getName(), String.class));
+              expr = Expressions.call(queryable,
+                  BuiltInMethod.QUERYABLE_AS_ENUMERABLE.method);
+            } else {
+              expr = Expressions.call(expr,
+                  BuiltInMethod.SCANNABLE_TABLE_SCAN.method, DataContext.ROOT);
+            }
             return expr;
           }
         }, NullPolicy.ANY, false);
   }
 
-  private QueryableTable apply(List<Object> arguments) {
+  private Table apply(List<Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {
@@ -125,18 +147,15 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
       }
       //noinspection unchecked
       final Object table = method.invoke(o, arguments.toArray());
-      return (QueryableTable) table;
+      return (Table) table;
     } catch (IllegalArgumentException e) {
       throw RESOURCE.illegalArgumentForTableFunctionCall(
           method.toString(),
           Arrays.toString(method.getParameterTypes()),
           arguments.toString()
       ).ex(e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
-    } catch (InstantiationException e) {
+    } catch (IllegalAccessException | InvocationTargetException
+        | InstantiationException e) {
       throw new RuntimeException(e);
     }
   }

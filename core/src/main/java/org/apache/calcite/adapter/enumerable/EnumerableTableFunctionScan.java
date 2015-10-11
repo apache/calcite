@@ -26,8 +26,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.util.BuiltInMethod;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
@@ -59,21 +65,51 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     BlockBuilder bb = new BlockBuilder();
      // Non-array user-specified types are not supported yet
+    final JavaRowFormat format;
+    boolean array = false;
+    if (getElementType() == null) {
+      format = JavaRowFormat.ARRAY;
+    } else if (rowType.getFieldCount() == 1 && isQueryable()) {
+      format = JavaRowFormat.SCALAR;
+    } else if (getElementType() instanceof Class
+        && Object[].class.isAssignableFrom((Class) getElementType())) {
+      array = true;
+      format = JavaRowFormat.ARRAY;
+    } else {
+      format = JavaRowFormat.CUSTOM;
+    }
     final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(),
-            getRowType(),
-            getElementType() == null /* e.g. not known */
-            || (getElementType() instanceof Class
-                && Object[].class.isAssignableFrom((Class) getElementType()))
-            ? JavaRowFormat.ARRAY
-            : JavaRowFormat.CUSTOM);
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), format,
+            false);
     RexToLixTranslator t = RexToLixTranslator.forAggregation(
         (JavaTypeFactory) getCluster().getTypeFactory(), bb, null);
     t = t.setCorrelates(implementor.allCorrelateVariables);
-    final Expression translated = t.translate(getCall());
+    Expression translated = t.translate(getCall());
+    if (array && rowType.getFieldCount() == 1) {
+      translated =
+          Expressions.call(null, BuiltInMethod.SLICE0.method, translated);
+    }
     bb.add(Expressions.return_(null, translated));
     return implementor.result(physType, bb.toBlock());
+  }
+
+  private boolean isQueryable() {
+    if (!(getCall() instanceof RexCall)) {
+      return false;
+    }
+    final RexCall call = (RexCall) getCall();
+    if (!(call.getOperator() instanceof SqlUserDefinedTableFunction)) {
+      return false;
+    }
+    final SqlUserDefinedTableFunction udtf =
+        (SqlUserDefinedTableFunction) call.getOperator();
+    if (!(udtf.getFunction() instanceof TableFunctionImpl)) {
+      return false;
+    }
+    final TableFunctionImpl tableFunction =
+        (TableFunctionImpl) udtf.getFunction();
+    final Method method = tableFunction.method;
+    return QueryableTable.class.isAssignableFrom(method.getReturnType());
   }
 }
 

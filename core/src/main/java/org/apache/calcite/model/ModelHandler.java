@@ -96,13 +96,14 @@ public class ModelHandler {
       throw new RuntimeException("UDF class '"
           + className + "' not found");
     }
-    // Must look for TableMacro before ScalarFunction. Both have an "eval"
-    // method.
-    final TableFunction tableFunction = TableFunctionImpl.create(clazz);
+    final TableFunction tableFunction =
+        TableFunctionImpl.create(clazz, Util.first(methodName, "eval"));
     if (tableFunction != null) {
       schema.add(functionName, tableFunction);
       return;
     }
+    // Must look for TableMacro before ScalarFunction. Both have an "eval"
+    // method.
     final TableMacro macro = TableMacroImpl.create(clazz);
     if (macro != null) {
       schema.add(functionName, macro);

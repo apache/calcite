@@ -103,6 +103,7 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalTableFunctionScan(
         getCluster(),
+        traitSet,
         inputs,
         rexCall,
         elementType,

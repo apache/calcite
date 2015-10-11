@@ -255,6 +255,7 @@ public enum BuiltInMethod {
   NOT(SqlFunctions.class, "not", Boolean.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
+  SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
   STRING_TO_BOOLEAN(SqlFunctions.class, "toBoolean", String.class),
   STRING_TO_DATE(DateTimeUtils.class, "dateStringToUnixDate", String.class),
   STRING_TO_TIME(DateTimeUtils.class, "timeStringToUnixDate", String.class),

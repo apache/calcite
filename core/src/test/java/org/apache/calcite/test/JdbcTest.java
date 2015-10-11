@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
@@ -62,6 +63,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -170,6 +172,10 @@ import static org.junit.Assert.fail;
 public class JdbcTest {
   public static final Method GENERATE_STRINGS_METHOD =
       Types.lookupMethod(JdbcTest.class, "generateStrings", Integer.class);
+
+  public static final Method MAZE_METHOD =
+      Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
+          int.class);
 
   public static final Method MULTIPLICATION_TABLE_METHOD =
       Types.lookupMethod(JdbcTest.class, "multiplicationTable", int.class,
@@ -451,6 +457,27 @@ public class JdbcTest {
         + "where char_length(c) > 3");
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("N=4; C=abcd\n"));
+  }
+
+  /**
+   * Tests a table function that implements {@link ScannableTable} and returns
+   * a single column.
+   */
+  @Test public void testScannableTableFunction()
+      throws SQLException, ClassNotFoundException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction table = TableFunctionImpl.create(MAZE_METHOD);
+    schema.add("Maze", table);
+    final String sql = "select *\n"
+        + "from table(\"s\".\"Maze\"(5, 3, 1))";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    final String result = "S=abcde\n"
+        + "S=xyz\n";
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
   }
 
   /**
@@ -4290,9 +4317,9 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .query(
-            "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n")
-        .returnsUnordered("deptno=10; E={100, 10, Bill, 10000.0, 1000}",
-            "deptno=30; E=null",
+            "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n").returnsUnordered(
+        "deptno=10; E={100, 10, Bill, 10000.0, 1000}",
+        "deptno=30; E=null",
             "deptno=40; E={200, 20, Eric, 8000.0, 500}");
   }
 
@@ -7050,7 +7077,7 @@ public class JdbcTest {
   private static QueryableTable oneThreePlus(String s) {
     List<Integer> items;
     // Argument is null in case SQL contains function call with expression.
-    // Then the engine calls a function with null argumets to get getRowType.
+    // Then the engine calls a function with null arguments to get getRowType.
     if (s == null) {
       items = ImmutableList.of();
     } else {
@@ -7058,10 +7085,11 @@ public class JdbcTest {
       items = ImmutableList.of(1, 3, latest);
     }
     final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);
-    return new AbstractQueryableTable(Object[].class) {
-      public Queryable<Integer> asQueryable(
+    return new AbstractQueryableTable(Integer.class) {
+      public <E> Queryable<E> asQueryable(
           QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-        return enumerable.asQueryable();
+        //noinspection unchecked
+        return (Queryable<E>) enumerable.asQueryable();
       }
 
       public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -7082,6 +7110,27 @@ public class JdbcTest {
   public static class TestStaticTableFunction {
     public static QueryableTable eval(String s) {
       return oneThreePlus(s);
+    }
+  }
+
+  /** The real MazeTable may be found in example/function. This is a cut-down
+   * version to support a test. */
+  public static class MazeTable extends AbstractTable
+      implements ScannableTable {
+
+    public static ScannableTable generate(int width, int height, int seed) {
+      return new MazeTable();
+    }
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder()
+          .add("S", SqlTypeName.VARCHAR, 12)
+          .build();
+    }
+
+    public Enumerable<Object[]> scan(DataContext root) {
+      Object[][] rows = {{"abcde"}, {"xyz"}};
+      return Linq4j.asEnumerable(rows);
     }
   }
 }
