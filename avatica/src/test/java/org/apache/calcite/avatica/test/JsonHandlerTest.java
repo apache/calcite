@@ -22,13 +22,13 @@ import org.apache.calcite.avatica.remote.LocalJsonService;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.TypedValue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -96,6 +96,10 @@ public class JsonHandlerTest {
     @Override public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
       return null;
     }
+
+    @Override public ExecuteResponse apply(ExecuteRequest request) {
+      return null;
+    }
   }
 
 
@@ -112,16 +116,11 @@ public class JsonHandlerTest {
     }
 
     @Override public FetchResponse apply(FetchRequest request) {
-      assertEquals(expectedParameterValues.size(), request.parameterValues.size());
-      for (int i = 0; i < expectedParameterValues.size(); i++) {
-        assertEquals(expectedParameterValues.get(i).type, request.parameterValues.get(i).type);
-        assertEquals(expectedParameterValues.get(i).value, request.parameterValues.get(i).value);
-      }
-      expectedParameterValues.clear();
       return null;
     }
   }
 
+  @Ignore // Mark as ignore because fetch does not support parameters anymore
   @Test public void testFetchRequestWithNumberParameter() {
     final List<TypedValue> expectedParameterValues = new ArrayList<>();
     final Service service = new ParameterValuesCheckingService(expectedParameterValues);

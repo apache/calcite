@@ -25,6 +25,192 @@ package org.apache.calcite.avatica.proto;
       com.google.protobuf.ExtensionRegistry registry) {
   }
   /**
+   * Protobuf enum {@code StatementType}
+   *
+   * <pre>
+   * Has to be consistent with Meta.StatementType
+   * </pre>
+   */
+  public enum StatementType
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>SELECT = 0;</code>
+     */
+    SELECT(0, 0),
+    /**
+     * <code>INSERT = 1;</code>
+     */
+    INSERT(1, 1),
+    /**
+     * <code>UPDATE = 2;</code>
+     */
+    UPDATE(2, 2),
+    /**
+     * <code>DELETE = 3;</code>
+     */
+    DELETE(3, 3),
+    /**
+     * <code>UPSERT = 4;</code>
+     */
+    UPSERT(4, 4),
+    /**
+     * <code>MERGE = 5;</code>
+     */
+    MERGE(5, 5),
+    /**
+     * <code>OTHER_DML = 6;</code>
+     */
+    OTHER_DML(6, 6),
+    /**
+     * <code>CREATE = 7;</code>
+     */
+    CREATE(7, 7),
+    /**
+     * <code>DROP = 8;</code>
+     */
+    DROP(8, 8),
+    /**
+     * <code>ALTER = 9;</code>
+     */
+    ALTER(9, 9),
+    /**
+     * <code>OTHER_DDL = 10;</code>
+     */
+    OTHER_DDL(10, 10),
+    /**
+     * <code>CALL = 11;</code>
+     */
+    CALL(11, 11),
+    UNRECOGNIZED(-1, -1),
+    ;
+
+    /**
+     * <code>SELECT = 0;</code>
+     */
+    public static final int SELECT_VALUE = 0;
+    /**
+     * <code>INSERT = 1;</code>
+     */
+    public static final int INSERT_VALUE = 1;
+    /**
+     * <code>UPDATE = 2;</code>
+     */
+    public static final int UPDATE_VALUE = 2;
+    /**
+     * <code>DELETE = 3;</code>
+     */
+    public static final int DELETE_VALUE = 3;
+    /**
+     * <code>UPSERT = 4;</code>
+     */
+    public static final int UPSERT_VALUE = 4;
+    /**
+     * <code>MERGE = 5;</code>
+     */
+    public static final int MERGE_VALUE = 5;
+    /**
+     * <code>OTHER_DML = 6;</code>
+     */
+    public static final int OTHER_DML_VALUE = 6;
+    /**
+     * <code>CREATE = 7;</code>
+     */
+    public static final int CREATE_VALUE = 7;
+    /**
+     * <code>DROP = 8;</code>
+     */
+    public static final int DROP_VALUE = 8;
+    /**
+     * <code>ALTER = 9;</code>
+     */
+    public static final int ALTER_VALUE = 9;
+    /**
+     * <code>OTHER_DDL = 10;</code>
+     */
+    public static final int OTHER_DDL_VALUE = 10;
+    /**
+     * <code>CALL = 11;</code>
+     */
+    public static final int CALL_VALUE = 11;
+
+
+    public final int getNumber() {
+      if (index == -1) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    public static StatementType valueOf(int value) {
+      switch (value) {
+        case 0: return SELECT;
+        case 1: return INSERT;
+        case 2: return UPDATE;
+        case 3: return DELETE;
+        case 4: return UPSERT;
+        case 5: return MERGE;
+        case 6: return OTHER_DML;
+        case 7: return CREATE;
+        case 8: return DROP;
+        case 9: return ALTER;
+        case 10: return OTHER_DDL;
+        case 11: return CALL;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<StatementType>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<StatementType>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<StatementType>() {
+            public StatementType findValueByNumber(int number) {
+              return StatementType.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return org.apache.calcite.avatica.proto.Common.getDescriptor().getEnumTypes().get(0);
+    }
+
+    private static final StatementType[] VALUES = values();
+
+    public static StatementType valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      if (desc.getIndex() == -1) {
+        return UNRECOGNIZED;
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private StatementType(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:StatementType)
+  }
+
+  /**
    * Protobuf enum {@code Rep}
    */
   public enum Rep
@@ -313,7 +499,7 @@ package org.apache.calcite.avatica.proto;
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return org.apache.calcite.avatica.proto.Common.getDescriptor().getEnumTypes().get(0);
+      return org.apache.calcite.avatica.proto.Common.getDescriptor().getEnumTypes().get(1);
     }
 
     private static final Rep[] VALUES = values();
@@ -2078,6 +2264,15 @@ package org.apache.calcite.avatica.proto;
      * <code>optional .CursorFactory cursor_factory = 4;</code>
      */
     org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder getCursorFactoryOrBuilder();
+
+    /**
+     * <code>optional .StatementType statementType = 5;</code>
+     */
+    int getStatementTypeValue();
+    /**
+     * <code>optional .StatementType statementType = 5;</code>
+     */
+    org.apache.calcite.avatica.proto.Common.StatementType getStatementType();
   }
   /**
    * Protobuf type {@code Signature}
@@ -2098,6 +2293,7 @@ package org.apache.calcite.avatica.proto;
       columns_ = java.util.Collections.emptyList();
       sql_ = "";
       parameters_ = java.util.Collections.emptyList();
+      statementType_ = 0;
     }
 
     @java.lang.Override
@@ -2158,6 +2354,12 @@ package org.apache.calcite.avatica.proto;
                 cursorFactory_ = subBuilder.buildPartial();
               }
 
+              break;
+            }
+            case 40: {
+              int rawValue = input.readEnum();
+
+              statementType_ = rawValue;
               break;
             }
           }
@@ -2332,6 +2534,22 @@ package org.apache.calcite.avatica.proto;
       return getCursorFactory();
     }
 
+    public static final int STATEMENTTYPE_FIELD_NUMBER = 5;
+    private int statementType_;
+    /**
+     * <code>optional .StatementType statementType = 5;</code>
+     */
+    public int getStatementTypeValue() {
+      return statementType_;
+    }
+    /**
+     * <code>optional .StatementType statementType = 5;</code>
+     */
+    public org.apache.calcite.avatica.proto.Common.StatementType getStatementType() {
+      org.apache.calcite.avatica.proto.Common.StatementType result = org.apache.calcite.avatica.proto.Common.StatementType.valueOf(statementType_);
+      return result == null ? org.apache.calcite.avatica.proto.Common.StatementType.UNRECOGNIZED : result;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -2357,6 +2575,9 @@ package org.apache.calcite.avatica.proto;
       if (cursorFactory_ != null) {
         output.writeMessage(4, getCursorFactory());
       }
+      if (statementType_ != org.apache.calcite.avatica.proto.Common.StatementType.SELECT.getNumber()) {
+        output.writeEnum(5, statementType_);
+      }
     }
 
     private int memoizedSerializedSize = -1;
@@ -2380,6 +2601,10 @@ package org.apache.calcite.avatica.proto;
       if (cursorFactory_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(4, getCursorFactory());
+      }
+      if (statementType_ != org.apache.calcite.avatica.proto.Common.StatementType.SELECT.getNumber()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(5, statementType_);
       }
       memoizedSerializedSize = size;
       return size;
@@ -2513,6 +2738,8 @@ package org.apache.calcite.avatica.proto;
           cursorFactory_ = null;
           cursorFactoryBuilder_ = null;
         }
+        statementType_ = 0;
+
         return this;
       }
 
@@ -2561,6 +2788,7 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.cursorFactory_ = cursorFactoryBuilder_.build();
         }
+        result.statementType_ = statementType_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -2635,6 +2863,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.hasCursorFactory()) {
           mergeCursorFactory(other.getCursorFactory());
+        }
+        if (other.statementType_ != 0) {
+          setStatementTypeValue(other.getStatementTypeValue());
         }
         onChanged();
         return this;
@@ -3328,6 +3559,50 @@ package org.apache.calcite.avatica.proto;
           cursorFactory_ = null;
         }
         return cursorFactoryBuilder_;
+      }
+
+      private int statementType_ = 0;
+      /**
+       * <code>optional .StatementType statementType = 5;</code>
+       */
+      public int getStatementTypeValue() {
+        return statementType_;
+      }
+      /**
+       * <code>optional .StatementType statementType = 5;</code>
+       */
+      public Builder setStatementTypeValue(int value) {
+        statementType_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .StatementType statementType = 5;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.StatementType getStatementType() {
+        org.apache.calcite.avatica.proto.Common.StatementType result = org.apache.calcite.avatica.proto.Common.StatementType.valueOf(statementType_);
+        return result == null ? org.apache.calcite.avatica.proto.Common.StatementType.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .StatementType statementType = 5;</code>
+       */
+      public Builder setStatementType(org.apache.calcite.avatica.proto.Common.StatementType value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        
+        statementType_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .StatementType statementType = 5;</code>
+       */
+      public Builder clearStatementType() {
+        
+        statementType_ = 0;
+        onChanged();
+        return this;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -12224,54 +12499,59 @@ package org.apache.calcite.avatica.proto;
       "_isolation\030\004 \001(\r\022\017\n\007catalog\030\005 \001(\t\022\016\n\006sch" +
       "ema\030\006 \001(\t\"S\n\017StatementHandle\022\025\n\rconnecti" +
       "on_id\030\001 \001(\t\022\n\n\002id\030\002 \001(\r\022\035\n\tsignature\030\003 \001" +
-      "(\0132\n.Signature\"\211\001\n\tSignature\022 \n\007columns\030" +
+      "(\0132\n.Signature\"\260\001\n\tSignature\022 \n\007columns\030" +
       "\001 \003(\0132\017.ColumnMetaData\022\013\n\003sql\030\002 \001(\t\022%\n\np" +
       "arameters\030\003 \003(\0132\021.AvaticaParameter\022&\n\016cu",
-      "rsor_factory\030\004 \001(\0132\016.CursorFactory\"\255\003\n\016C" +
-      "olumnMetaData\022\017\n\007ordinal\030\001 \001(\r\022\026\n\016auto_i" +
-      "ncrement\030\002 \001(\010\022\026\n\016case_sensitive\030\003 \001(\010\022\022" +
-      "\n\nsearchable\030\004 \001(\010\022\020\n\010currency\030\005 \001(\010\022\020\n\010" +
-      "nullable\030\006 \001(\r\022\016\n\006signed\030\007 \001(\010\022\024\n\014displa" +
-      "y_size\030\010 \001(\r\022\r\n\005label\030\t \001(\t\022\023\n\013column_na" +
-      "me\030\n \001(\t\022\023\n\013schema_name\030\013 \001(\t\022\021\n\tprecisi" +
-      "on\030\014 \001(\r\022\r\n\005scale\030\r \001(\r\022\022\n\ntable_name\030\016 " +
-      "\001(\t\022\024\n\014catalog_name\030\017 \001(\t\022\021\n\tread_only\030\020" +
-      " \001(\010\022\020\n\010writable\030\021 \001(\010\022\033\n\023definitely_wri",
-      "table\030\022 \001(\010\022\031\n\021column_class_name\030\023 \001(\t\022\032" +
-      "\n\004type\030\024 \001(\0132\014.AvaticaType\"}\n\013AvaticaTyp" +
-      "e\022\n\n\002id\030\001 \001(\r\022\014\n\004name\030\002 \001(\t\022\021\n\003rep\030\003 \001(\016" +
-      "2\004.Rep\022 \n\007columns\030\004 \003(\0132\017.ColumnMetaData" +
-      "\022\037\n\tcomponent\030\005 \001(\0132\014.AvaticaType\"\221\001\n\020Av" +
-      "aticaParameter\022\016\n\006signed\030\001 \001(\010\022\021\n\tprecis" +
-      "ion\030\002 \001(\r\022\r\n\005scale\030\003 \001(\r\022\026\n\016parameter_ty" +
-      "pe\030\004 \001(\r\022\021\n\ttype_name\030\005 \001(\t\022\022\n\nclass_nam" +
-      "e\030\006 \001(\t\022\014\n\004name\030\007 \001(\t\"\263\001\n\rCursorFactory\022" +
-      "#\n\005style\030\001 \001(\0162\024.CursorFactory.Style\022\022\n\n",
-      "class_name\030\002 \001(\t\022\023\n\013field_names\030\003 \003(\t\"T\n" +
-      "\005Style\022\n\n\006OBJECT\020\000\022\n\n\006RECORD\020\001\022\025\n\021RECORD" +
-      "_PROJECTION\020\002\022\t\n\005ARRAY\020\003\022\010\n\004LIST\020\004\022\007\n\003MA" +
-      "P\020\005\"9\n\005Frame\022\016\n\006offset\030\001 \001(\004\022\014\n\004done\030\002 \001" +
-      "(\010\022\022\n\004rows\030\003 \003(\0132\004.Row\"!\n\003Row\022\032\n\005value\030\001" +
-      " \003(\0132\013.TypedValue\"3\n\020DatabaseProperty\022\014\n" +
-      "\004name\030\001 \001(\t\022\021\n\tfunctions\030\002 \003(\t\"4\n\013WireMe" +
-      "ssage\022\014\n\004name\030\001 \001(\t\022\027\n\017wrapped_message\030\002" +
-      " \001(\014\"\232\001\n\nTypedValue\022\022\n\004type\030\001 \001(\0162\004.Rep\022" +
-      "\022\n\nbool_value\030\002 \001(\010\022\024\n\014string_value\030\003 \001(",
-      "\t\022\024\n\014number_value\030\004 \001(\022\022\024\n\014bytes_values\030" +
-      "\005 \001(\014\022\024\n\014double_value\030\006 \001(\001\022\014\n\004null\030\007 \001(" +
-      "\010*\275\003\n\003Rep\022\025\n\021PRIMITIVE_BOOLEAN\020\000\022\022\n\016PRIM" +
-      "ITIVE_BYTE\020\001\022\022\n\016PRIMITIVE_CHAR\020\002\022\023\n\017PRIM" +
-      "ITIVE_SHORT\020\003\022\021\n\rPRIMITIVE_INT\020\004\022\022\n\016PRIM" +
-      "ITIVE_LONG\020\005\022\023\n\017PRIMITIVE_FLOAT\020\006\022\024\n\020PRI" +
-      "MITIVE_DOUBLE\020\007\022\013\n\007BOOLEAN\020\010\022\010\n\004BYTE\020\t\022\r" +
-      "\n\tCHARACTER\020\n\022\t\n\005SHORT\020\013\022\013\n\007INTEGER\020\014\022\010\n" +
-      "\004LONG\020\r\022\t\n\005FLOAT\020\016\022\n\n\006DOUBLE\020\017\022\017\n\013BIG_IN" +
-      "TEGER\020\031\022\017\n\013BIG_DECIMAL\020\032\022\021\n\rJAVA_SQL_TIM",
-      "E\020\020\022\026\n\022JAVA_SQL_TIMESTAMP\020\021\022\021\n\rJAVA_SQL_" +
-      "DATE\020\022\022\022\n\016JAVA_UTIL_DATE\020\023\022\017\n\013BYTE_STRIN" +
-      "G\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBER\020\026\022\n\n\006OBJECT\020\027\022" +
-      "\010\n\004NULL\020\030B\"\n org.apache.calcite.avatica." +
-      "protob\006proto3"
+      "rsor_factory\030\004 \001(\0132\016.CursorFactory\022%\n\rst" +
+      "atementType\030\005 \001(\0162\016.StatementType\"\255\003\n\016Co" +
+      "lumnMetaData\022\017\n\007ordinal\030\001 \001(\r\022\026\n\016auto_in" +
+      "crement\030\002 \001(\010\022\026\n\016case_sensitive\030\003 \001(\010\022\022\n" +
+      "\nsearchable\030\004 \001(\010\022\020\n\010currency\030\005 \001(\010\022\020\n\010n" +
+      "ullable\030\006 \001(\r\022\016\n\006signed\030\007 \001(\010\022\024\n\014display" +
+      "_size\030\010 \001(\r\022\r\n\005label\030\t \001(\t\022\023\n\013column_nam" +
+      "e\030\n \001(\t\022\023\n\013schema_name\030\013 \001(\t\022\021\n\tprecisio" +
+      "n\030\014 \001(\r\022\r\n\005scale\030\r \001(\r\022\022\n\ntable_name\030\016 \001" +
+      "(\t\022\024\n\014catalog_name\030\017 \001(\t\022\021\n\tread_only\030\020 ",
+      "\001(\010\022\020\n\010writable\030\021 \001(\010\022\033\n\023definitely_writ" +
+      "able\030\022 \001(\010\022\031\n\021column_class_name\030\023 \001(\t\022\032\n" +
+      "\004type\030\024 \001(\0132\014.AvaticaType\"}\n\013AvaticaType" +
+      "\022\n\n\002id\030\001 \001(\r\022\014\n\004name\030\002 \001(\t\022\021\n\003rep\030\003 \001(\0162" +
+      "\004.Rep\022 \n\007columns\030\004 \003(\0132\017.ColumnMetaData\022" +
+      "\037\n\tcomponent\030\005 \001(\0132\014.AvaticaType\"\221\001\n\020Ava" +
+      "ticaParameter\022\016\n\006signed\030\001 \001(\010\022\021\n\tprecisi" +
+      "on\030\002 \001(\r\022\r\n\005scale\030\003 \001(\r\022\026\n\016parameter_typ" +
+      "e\030\004 \001(\r\022\021\n\ttype_name\030\005 \001(\t\022\022\n\nclass_name" +
+      "\030\006 \001(\t\022\014\n\004name\030\007 \001(\t\"\263\001\n\rCursorFactory\022#",
+      "\n\005style\030\001 \001(\0162\024.CursorFactory.Style\022\022\n\nc" +
+      "lass_name\030\002 \001(\t\022\023\n\013field_names\030\003 \003(\t\"T\n\005" +
+      "Style\022\n\n\006OBJECT\020\000\022\n\n\006RECORD\020\001\022\025\n\021RECORD_" +
+      "PROJECTION\020\002\022\t\n\005ARRAY\020\003\022\010\n\004LIST\020\004\022\007\n\003MAP" +
+      "\020\005\"9\n\005Frame\022\016\n\006offset\030\001 \001(\004\022\014\n\004done\030\002 \001(" +
+      "\010\022\022\n\004rows\030\003 \003(\0132\004.Row\"!\n\003Row\022\032\n\005value\030\001 " +
+      "\003(\0132\013.TypedValue\"3\n\020DatabaseProperty\022\014\n\004" +
+      "name\030\001 \001(\t\022\021\n\tfunctions\030\002 \003(\t\"4\n\013WireMes" +
+      "sage\022\014\n\004name\030\001 \001(\t\022\027\n\017wrapped_message\030\002 " +
+      "\001(\014\"\232\001\n\nTypedValue\022\022\n\004type\030\001 \001(\0162\004.Rep\022\022",
+      "\n\nbool_value\030\002 \001(\010\022\024\n\014string_value\030\003 \001(\t" +
+      "\022\024\n\014number_value\030\004 \001(\022\022\024\n\014bytes_values\030\005" +
+      " \001(\014\022\024\n\014double_value\030\006 \001(\001\022\014\n\004null\030\007 \001(\010" +
+      "*\237\001\n\rStatementType\022\n\n\006SELECT\020\000\022\n\n\006INSERT" +
+      "\020\001\022\n\n\006UPDATE\020\002\022\n\n\006DELETE\020\003\022\n\n\006UPSERT\020\004\022\t" +
+      "\n\005MERGE\020\005\022\r\n\tOTHER_DML\020\006\022\n\n\006CREATE\020\007\022\010\n\004" +
+      "DROP\020\010\022\t\n\005ALTER\020\t\022\r\n\tOTHER_DDL\020\n\022\010\n\004CALL" +
+      "\020\013*\275\003\n\003Rep\022\025\n\021PRIMITIVE_BOOLEAN\020\000\022\022\n\016PRI" +
+      "MITIVE_BYTE\020\001\022\022\n\016PRIMITIVE_CHAR\020\002\022\023\n\017PRI" +
+      "MITIVE_SHORT\020\003\022\021\n\rPRIMITIVE_INT\020\004\022\022\n\016PRI",
+      "MITIVE_LONG\020\005\022\023\n\017PRIMITIVE_FLOAT\020\006\022\024\n\020PR" +
+      "IMITIVE_DOUBLE\020\007\022\013\n\007BOOLEAN\020\010\022\010\n\004BYTE\020\t\022" +
+      "\r\n\tCHARACTER\020\n\022\t\n\005SHORT\020\013\022\013\n\007INTEGER\020\014\022\010" +
+      "\n\004LONG\020\r\022\t\n\005FLOAT\020\016\022\n\n\006DOUBLE\020\017\022\017\n\013BIG_I" +
+      "NTEGER\020\031\022\017\n\013BIG_DECIMAL\020\032\022\021\n\rJAVA_SQL_TI" +
+      "ME\020\020\022\026\n\022JAVA_SQL_TIMESTAMP\020\021\022\021\n\rJAVA_SQL" +
+      "_DATE\020\022\022\022\n\016JAVA_UTIL_DATE\020\023\022\017\n\013BYTE_STRI" +
+      "NG\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBER\020\026\022\n\n\006OBJECT\020\027" +
+      "\022\010\n\004NULL\020\030B\"\n org.apache.calcite.avatica" +
+      ".protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -12302,7 +12582,7 @@ package org.apache.calcite.avatica.proto;
     internal_static_Signature_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_Signature_descriptor,
-        new java.lang.String[] { "Columns", "Sql", "Parameters", "CursorFactory", });
+        new java.lang.String[] { "Columns", "Sql", "Parameters", "CursorFactory", "StatementType", });
     internal_static_ColumnMetaData_descriptor =
       getDescriptor().getMessageTypes().get(3);
     internal_static_ColumnMetaData_fieldAccessorTable = new

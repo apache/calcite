@@ -43,7 +43,7 @@ public abstract class AbstractService implements Service {
     }
     return new Meta.Signature(columns, signature.sql,
         signature.parameters, signature.internalParameters,
-        signature.cursorFactory);
+        signature.cursorFactory, signature.statementType);
   }
 
   ColumnMetaData finagle(ColumnMetaData column) {

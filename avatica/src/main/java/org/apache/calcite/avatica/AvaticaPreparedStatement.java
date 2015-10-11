@@ -48,7 +48,6 @@ import java.util.List;
 public abstract class AvaticaPreparedStatement
     extends AvaticaStatement
     implements PreparedStatement, ParameterMetaData {
-  private Meta.Signature signature;
   private final ResultSetMetaData resultSetMetaData;
   private Calendar calendar;
   protected final TypedValue[] slots;
@@ -71,8 +70,7 @@ public abstract class AvaticaPreparedStatement
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     super(connection, h, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
-    this.signature = signature;
+        resultSetHoldability, signature);
     this.slots = new TypedValue[signature.parameters.size()];
     this.resultSetMetaData =
         connection.factory.newResultSetMetaData(this, signature);
@@ -107,7 +105,8 @@ public abstract class AvaticaPreparedStatement
   // implement PreparedStatement
 
   public ResultSet executeQuery() throws SQLException {
-    return getConnection().executeQueryInternal(this, signature, null);
+    this.updateCount = -1;
+    return getConnection().executeQueryInternal(this, getSignature(), null);
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
@@ -119,7 +118,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public long executeLargeUpdate() throws SQLException {
-    getConnection().executeQueryInternal(this, signature, null);
+    getConnection().executeQueryInternal(this, getSignature(), null);
     return updateCount;
   }
 
@@ -199,7 +198,8 @@ public abstract class AvaticaPreparedStatement
   }
 
   public boolean execute() throws SQLException {
-    getConnection().executeQueryInternal(this, signature, null);
+    this.updateCount = -1;
+    getConnection().executeQueryInternal(this, getSignature(), null);
     // Result set is null for DML or DDL.
     // Result set is closed if user cancelled the query.
     return openResultSet != null && !openResultSet.isClosed();
@@ -280,7 +280,7 @@ public abstract class AvaticaPreparedStatement
 
   protected AvaticaParameter getParameter(int param) throws SQLException {
     try {
-      return signature.parameters.get(param - 1);
+      return getSignature().parameters.get(param - 1);
     } catch (IndexOutOfBoundsException e) {
       //noinspection ThrowableResultOfMethodCallIgnored
       throw connection.helper.toSQLException(
@@ -295,7 +295,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public int getParameterCount() {
-    return signature.parameters.size();
+    return getSignature().parameters.size();
   }
 
   public int isNullable(int param) throws SQLException {

@@ -58,9 +58,23 @@ public abstract class AvaticaStatement
   final int resultSetType;
   final int resultSetConcurrency;
   final int resultSetHoldability;
-  private int fetchSize;
+  private int fetchSize = 100;
   private int fetchDirection;
   protected long maxRowCount = 0;
+
+  private Meta.Signature signature;
+
+  protected void setSignature(Meta.Signature signature) {
+    this.signature = signature;
+  }
+
+  protected Meta.Signature getSignature() {
+    return signature;
+  }
+
+  public Meta.StatementType getStatementType() {
+    return signature.statementType;
+  }
 
   /**
    * Creates an AvaticaStatement.
@@ -74,10 +88,17 @@ public abstract class AvaticaStatement
   protected AvaticaStatement(AvaticaConnection connection,
       Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) {
+    this(connection, h, resultSetType, resultSetConcurrency, resultSetHoldability, null);
+  }
+
+  protected AvaticaStatement(AvaticaConnection connection,
+      Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
+      int resultSetHoldability, Meta.Signature signature) {
     this.connection = Objects.requireNonNull(connection);
     this.resultSetType = resultSetType;
     this.resultSetConcurrency = resultSetConcurrency;
     this.resultSetHoldability = resultSetHoldability;
+    this.signature = signature;
     this.closed = false;
     if (h == null) {
       final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(connection.id);
