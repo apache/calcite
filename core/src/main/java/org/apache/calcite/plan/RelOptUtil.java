@@ -2863,12 +2863,9 @@ public abstract class RelOptUtil {
   public static RelNode createProject(final RelFactories.ProjectFactory factory,
       final RelNode child, final List<Integer> posList) {
     RelDataType rowType = child.getRowType();
-    if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
-      return child;
-    }
     final List<String> fieldNames = rowType.getFieldNames();
     final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
-    return factory.createProject(child,
+    return createProject(child,
         new AbstractList<RexNode>() {
           public int size() {
             return posList.size();
@@ -2888,7 +2885,7 @@ public abstract class RelOptUtil {
             final int pos = posList.get(index);
             return fieldNames.get(pos);
           }
-        });
+        }, true, factory);
   }
 
   /**
