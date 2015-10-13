@@ -43,6 +43,10 @@ public abstract class JsonService extends AbstractService {
    * responses to and from the peer service. */
   public abstract String apply(String request);
 
+  @Override SerializationType getSerializationType() {
+    return SerializationType.JSON;
+  }
+
   //@VisibleForTesting
   protected static <T> T decode(String response, Class<T> expectedType)
       throws IOException {

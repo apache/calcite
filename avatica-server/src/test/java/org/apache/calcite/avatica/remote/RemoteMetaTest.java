@@ -42,13 +42,16 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -412,6 +415,34 @@ public class RemoteMetaTest {
       assertTrue(arr instanceof ArrayImpl);
       Object[] values = (Object[]) ((ArrayImpl) arr).getArray();
       assertArrayEquals(new String[]{"b", "c"}, values);
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testBinaryAndStrings() throws Exception {
+    final String tableName = "testbinaryandstrs";
+    final byte[] data = "asdf".getBytes(StandardCharsets.UTF_8);
+    ConnectionSpec.getDatabaseLock().lock();
+    try (final Connection conn = DriverManager.getConnection(url);
+        final Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      assertFalse(stmt.execute("CREATE TABLE " + tableName + "(id int, bin BINARY(4))"));
+      try (final PreparedStatement prepStmt = conn.prepareStatement(
+          "INSERT INTO " + tableName + " values(1, ?)")) {
+        prepStmt.setBytes(1, data);
+        assertFalse(prepStmt.execute());
+      }
+      try (ResultSet results = stmt.executeQuery("SELECT id, bin from " + tableName)) {
+        assertTrue(results.next());
+        assertEquals(1, results.getInt(1));
+        // byte comparison should work
+        assertArrayEquals("Bytes were " + Arrays.toString(results.getBytes(2)),
+            data, results.getBytes(2));
+        // as should string
+        assertEquals(new String(data, StandardCharsets.UTF_8), results.getString(2));
+        assertFalse(results.next());
+      }
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
