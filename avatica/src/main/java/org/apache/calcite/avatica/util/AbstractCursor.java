@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.AvaticaSite;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Field;
@@ -789,7 +790,7 @@ public abstract class AbstractCursor implements Cursor {
    * encoding {@link java.sql.Types#BINARY}
    * and {@link java.sql.Types#VARBINARY} values in Base64 format.
    */
-  private static class BinaryFromStringAccessor extends StringAccessor {
+  static class BinaryFromStringAccessor extends StringAccessor {
     public BinaryFromStringAccessor(Getter getter) {
       super(getter);
     }
@@ -798,19 +799,39 @@ public abstract class AbstractCursor implements Cursor {
       return super.getObject();
     }
 
+    @Override public String getString() {
+      Object o = getObject();
+      if (o instanceof byte[]) {
+        return new String((byte[]) o);
+      } else if (o instanceof String) {
+        try {
+          return new String(Base64.decode((String) o));
+        } catch (IOException e) {
+          throw new IllegalArgumentException("bad base64 string", e);
+        }
+      }
+      return super.getString();
+    }
+
     @Override public byte[] getBytes() {
       // JSON sends this as a base64-enc string, protobuf can do binary.
       Object obj = getObject();
+      if (null == obj) {
+        return null;
+      }
+
       if (obj instanceof byte[]) {
         // If we already have bytes, just send them back.
         return (byte[]) obj;
+      } else if (obj instanceof String) {
+        try {
+          return Base64.decode((String) obj);
+        } catch (IOException e) {
+          throw new IllegalArgumentException("bad base64 string", e);
+        }
       }
 
-      final String string = getString();
-      if (string == null) {
-        return null;
-      }
-      return ByteString.parseBase64(string);
+      throw new IllegalStateException("Unhandled object: " + obj);
     }
   }
 
