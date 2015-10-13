@@ -683,7 +683,7 @@ public abstract class AbstractCursor implements Cursor {
    * converts a 0L (0 long) value to the string "0" and back to 0 (0 int).
    * So you cannot be sure that the source and target type are the same.
    */
-  private static class NumberAccessor extends BigNumberAccessor {
+  static class NumberAccessor extends BigNumberAccessor {
     private final int scale;
 
     public NumberAccessor(Getter getter, int scale) {
@@ -700,8 +700,11 @@ public abstract class AbstractCursor implements Cursor {
       if (n == null) {
         return null;
       }
-      return AvaticaSite.toBigDecimal(n)
-          .setScale(scale, BigDecimal.ROUND_UNNECESSARY);
+      BigDecimal decimal = AvaticaSite.toBigDecimal(n);
+      if (0 != scale) {
+        return decimal.setScale(scale, BigDecimal.ROUND_UNNECESSARY);
+      }
+      return decimal;
     }
 
     public BigDecimal getBigDecimal() {
