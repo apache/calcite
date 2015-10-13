@@ -26,6 +26,7 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -782,7 +783,7 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     //FIXME: Protobuf gets byte[]
-    public byte[] getBytes() {
+    @Override public byte[] getBytes() {
       Object obj = getObject();
       try {
         final ByteString o = (ByteString) obj;
@@ -790,6 +791,19 @@ public abstract class AbstractCursor implements Cursor {
       } catch (Exception ex) {
         return obj == null ? null : (byte[]) obj;
       }
+    }
+
+    @Override public String getString() {
+      Object o = getObject();
+      if (null == o) {
+        return null;
+      }
+      if (o instanceof byte[]) {
+        return new String((byte[]) o, StandardCharsets.UTF_8);
+      } else if (o instanceof ByteString) {
+        return ((ByteString) o).toString();
+      }
+      throw new IllegalStateException("Unhandled value type: " + o.getClass());
     }
   }
 
@@ -810,16 +824,31 @@ public abstract class AbstractCursor implements Cursor {
     @Override public byte[] getBytes() {
       // JSON sends this as a base64-enc string, protobuf can do binary.
       Object obj = getObject();
+
       if (obj instanceof byte[]) {
         // If we already have bytes, just send them back.
         return (byte[]) obj;
       }
 
-      final String string = getString();
-      if (string == null) {
+      return getBase64Decoded();
+    }
+
+    private byte[] getBase64Decoded() {
+      final String string = super.getString();
+      if (null == string) {
         return null;
       }
+      // Need to base64 decode the string.
       return ByteString.parseBase64(string);
+    }
+
+    @Override public String getString() {
+      final byte[] bytes = getBase64Decoded();
+      if (null == bytes) {
+        return null;
+      }
+      // Need to base64 decode the string.
+      return new String(bytes, StandardCharsets.UTF_8);
     }
   }
 

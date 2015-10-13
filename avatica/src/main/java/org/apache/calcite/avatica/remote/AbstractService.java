@@ -29,6 +29,19 @@ import java.util.List;
  */
 public abstract class AbstractService implements Service {
 
+  /**
+   * Represents the serialization of the data over a transport.
+   */
+  enum SerializationType {
+    JSON,
+    PROTOBUF
+  }
+
+  /**
+   * @return The manner in which the data is serialized.
+   */
+  abstract SerializationType getSerializationType();
+
   /** Modifies a signature, changing the representation of numeric columns
    * within it. This deals with the fact that JSON transmits a small long value,
    * or a float which is a whole number, as an integer. Thus the accessors need
@@ -68,7 +81,14 @@ public abstract class AbstractService implements Service {
     switch (column.type.id) {
     case Types.VARBINARY:
     case Types.BINARY:
-      return column.setRep(ColumnMetaData.Rep.STRING);
+      switch (getSerializationType()) {
+      case JSON:
+        return column.setRep(ColumnMetaData.Rep.STRING);
+      case PROTOBUF:
+        return column;
+      default:
+        throw new IllegalStateException("Unhadled case statement");
+      }
     case Types.DECIMAL:
     case Types.NUMERIC:
       return column.setRep(ColumnMetaData.Rep.NUMBER);
