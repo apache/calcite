@@ -27,6 +27,10 @@
         "name": "MAZE",
         "className": "org.apache.calcite.example.maze.MazeTable",
         "methodName": "generate"
+      }, {
+        "name": "SOLVE",
+        "className": "org.apache.calcite.example.maze.MazeTable",
+        "methodName": "solve"
       } ]
     }
   ]

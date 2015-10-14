@@ -30,6 +30,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.io.PrintWriter;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * User-defined table function that generates a Maze and prints it in text
@@ -39,14 +40,18 @@ public class MazeTable extends AbstractTable implements ScannableTable {
   final int width;
   final int height;
   final int seed;
+  final boolean solution;
 
-  private MazeTable(int width, int height, int seed) {
+  private MazeTable(int width, int height, int seed, boolean solution) {
     this.width = width;
     this.height = height;
     this.seed = seed;
+    this.solution = solution;
   }
 
-  /** Called by reflection based on the definition of the user-defined
+  /** Table function that generates a maze.
+   *
+   * <p>Called by reflection based on the definition of the user-defined
    * function in the schema.
    *
    * @param width Width of maze
@@ -54,8 +59,24 @@ public class MazeTable extends AbstractTable implements ScannableTable {
    * @param seed Random number seed, or -1 to create an unseeded random
    * @return Table that prints the maze in text form
    */
+  @SuppressWarnings("unused") // called via reflection
   public static ScannableTable generate(int width, int height, int seed) {
-    return new MazeTable(width, height, seed);
+    return new MazeTable(width, height, seed, false);
+  }
+
+  /** Table function that generates a maze with a solution.
+   *
+   * <p>Called by reflection based on the definition of the user-defined
+   * function in the schema.
+   *
+   * @param width Width of maze
+   * @param height Height of maze
+   * @param seed Random number seed, or -1 to create an unseeded random
+   * @return Table that prints the maze in text form, with solution shown
+   */
+  @SuppressWarnings("unused") // called via reflection
+  public static ScannableTable solve(int width, int height, int seed) {
+    return new MazeTable(width, height, seed, true);
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -74,7 +95,13 @@ public class MazeTable extends AbstractTable implements ScannableTable {
     }
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return Linq4j.transform(maze.enumerator(),
+        final Set<Integer> solutionSet;
+        if (solution) {
+          solutionSet = maze.solve(0, 0);
+        } else {
+          solutionSet = null;
+        }
+        return Linq4j.transform(maze.enumerator(solutionSet),
             new Function1<String, Object[]>() {
               public Object[] apply(String s) {
                 return new Object[] {s};

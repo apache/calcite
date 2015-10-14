@@ -19,7 +19,9 @@ package org.apache.calcite.example.maze;
 import org.apache.calcite.linq4j.Enumerator;
 
 import java.io.PrintWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
@@ -76,8 +78,23 @@ class Maze {
     pw.println();
     final StringBuilder b = new StringBuilder();
     final StringBuilder b2 = new StringBuilder();
+    final CellContent cellContent;
+    if (space) {
+      cellContent = new CellContent() {
+        public String get(int c) {
+          return "  ";
+        }
+      };
+    } else {
+      cellContent = new CellContent() {
+        public String get(int c) {
+          String s = region(c) + "";
+          return s.length() == 1 ? " " + s : s;
+        }
+      };
+    }
     for (int y = 0; y < height; y++) {
-      row(space, b, b2, y);
+      row(cellContent, b, b2, y);
       pw.println(b.toString());
       pw.println(b2.toString());
       b.setLength(0);
@@ -91,7 +108,17 @@ class Maze {
   }
 
   /** Generates a list of lines representing the maze in text form. */
-  public Enumerator<String> enumerator() {
+  public Enumerator<String> enumerator(final Set<Integer> solutionSet) {
+    final CellContent cellContent;
+    if (solutionSet == null) {
+      cellContent = CellContent.SPACE;
+    } else {
+      cellContent = new CellContent() {
+        public String get(int c) {
+          return solutionSet.contains(c) ? "* " : "  ";
+        }
+      };
+    }
     return new Enumerator<String>() {
       int i = -1;
       final StringBuilder b = new StringBuilder();
@@ -109,7 +136,7 @@ class Maze {
         if (i % 2 == 0) {
           b.setLength(0);
           b2.setLength(0);
-          row(true, b, b2, i / 2);
+          row(cellContent, b, b2, i / 2);
         }
         return true;
       }
@@ -123,7 +150,8 @@ class Maze {
   }
 
   /** Returns a pair of strings representing a row of the maze. */
-  private void row(boolean space, StringBuilder b, StringBuilder b2, int y) {
+  private void row(CellContent cellContent, StringBuilder b, StringBuilder b2,
+      int y) {
     final int c0 = y * width;
     for (int x = 0; x < width; x++) {
       b.append('+');
@@ -134,16 +162,8 @@ class Maze {
       return;
     }
     for (int x = 0; x < width; x++) {
-      b2.append(lefts[c0 + x] ? ' ' : '|');
-      if (space) {
-        b2.append("  ");
-      } else {
-        String s = region(c0 + x) + "";
-        if (s.length() == 1) {
-          s = " " + s;
-        }
-        b2.append(s);
-      }
+      b2.append(lefts[c0 + x] ? ' ' : '|')
+          .append(cellContent.get(c0 + x));
     }
     b2.append('|');
   }
@@ -214,53 +234,72 @@ class Maze {
     return this;
   }
 
-  private Set<Integer> solve(int x, int y) {
-    List<Integer> list = new ArrayList<>();
-    try {
-      solveRecurse(y * width + x, null, list);
-      return null;
-    } catch (SolvedException e) {
-      return new LinkedHashSet<>(e.list);
+  Set<Integer> solve(int x, int y) {
+    int c = y * width + x;
+    final int target = regions.length - 1;
+    Direction d = Direction.UP;
+    final List<Integer> list = new ArrayList<>();
+    final Deque<Direction> fromStack = new ArrayDeque<>();
+    final Deque<Direction> directionStack = new ArrayDeque<>();
+    Direction from = Direction.BACKTRACK;
+    int cNext = 0;
+    Direction dNext = Direction.UP;
+    boolean move = false;
+    for (;;) {
+      switch (d) {
+      case UP:
+        // try to go up
+        move = from != Direction.DOWN && ups[c];
+        cNext = c - width;
+        dNext = Direction.LEFT;
+        break;
+      case LEFT:
+        // try to go left
+        move = from != Direction.RIGHT && lefts[c];
+        cNext = c - 1;
+        dNext = Direction.DOWN;
+        break;
+      case DOWN:
+        // try to go down
+        move = from != Direction.UP && c + width < regions.length
+            && ups[c + width];
+        cNext = c + width;
+        dNext = Direction.RIGHT;
+        break;
+      case RIGHT:
+        move = from != Direction.LEFT && c % width < width - 1
+            && lefts[c + 1];
+        cNext = c + 1;
+        dNext = Direction.BACKTRACK;
+        break;
+      case BACKTRACK:
+        move = false;
+        do {
+          c = list.remove(list.size() - 1);
+          dNext = directionStack.pop();
+          from = fromStack.pop();
+        } while (dNext == Direction.BACKTRACK);
+      }
+      if (move) {
+        directionStack.push(dNext);
+        fromStack.push(from);
+        list.add(c);
+        if (cNext == target) {
+          list.add(cNext);
+          return new LinkedHashSet<>(list);
+        }
+        from = d;
+        d = Direction.UP;
+        c = cNext;
+      } else {
+        d = dNext;
+      }
     }
-  }
-
-  private void solveRecurse(int c, Direction direction, List<Integer> list) {
-    list.add(c);
-    if (c == regions.length - 1) {
-      throw new SolvedException(list);
-    }
-    // try to go up
-    if (direction != Direction.DOWN && ups[c]) {
-      solveRecurse(c - width, Direction.UP, list);
-    }
-    // try to go left
-    if (direction != Direction.RIGHT && lefts[c]) {
-      solveRecurse(c - 1, Direction.LEFT, list);
-    }
-    // try to go down
-    if (direction != Direction.UP
-        && c + width < regions.length && ups[c + width]) {
-      solveRecurse(c + width, Direction.DOWN, list);
-    }
-    // try to go right
-    if (direction != Direction.LEFT && c % width < width - 1 && lefts[c + 1]) {
-      solveRecurse(c + 1, Direction.RIGHT, list);
-    }
-    list.remove(list.size() - 1);
   }
 
   /** Direction. */
   private enum Direction {
-    UP, LEFT, DOWN, RIGHT
-  }
-
-  /** Flow-control exception thrown when the maze is solved. */
-  private static class SolvedException extends RuntimeException {
-    private final List<Integer> list;
-
-    SolvedException(List<Integer> list) {
-      this.list = list;
-    }
+    UP, LEFT, DOWN, RIGHT, BACKTRACK
   }
 
   /**
@@ -308,6 +347,18 @@ class Maze {
         }
       }
     }
+  }
+
+  /** Callback to get what to print in a particular cell. Must be two characters
+   * long, usually two spaces. */
+  interface CellContent {
+    CellContent SPACE = new CellContent() {
+      public String get(int c) {
+        return "  ";
+      }
+    };
+
+    String get(int c);
   }
 }
 
