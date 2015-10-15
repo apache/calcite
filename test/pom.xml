@@ -75,12 +75,10 @@ limitations under the License.
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>foodmart-data-hsqldb</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>scott-data-hsqldb</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
