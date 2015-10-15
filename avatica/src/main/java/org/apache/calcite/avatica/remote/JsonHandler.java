@@ -51,7 +51,7 @@ public class JsonHandler implements Handler<String> {
     return MAPPER.readValue(request, valueType);
   }
 
-  private <T> String encode(T response) throws IOException {
+  public <T> String encode(T response) throws IOException {
     final StringWriter w = new StringWriter();
     MAPPER.writeValue(w, response);
     return w.toString();
