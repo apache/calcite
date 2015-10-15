@@ -754,7 +754,7 @@ public class MongoAdapterIT {
 
   @Ignore
   @Test public void testFoodmartQueries() {
-    final List<Pair<String, String>> queries = JdbcTest.getFoodmartQueries();
+    final List<Pair<String, String>> queries = FoodmartQueries.getFoodmartQueries();
     for (Ord<Pair<String, String>> query : Ord.zip(queries)) {
 //      if (query.i != 29) continue;
       if (query.e.left.contains("agg_")) {

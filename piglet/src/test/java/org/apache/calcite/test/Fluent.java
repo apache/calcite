@@ -50,7 +50,7 @@ class Fluent {
   public Fluent explainContains(String expected) throws ParseException {
     final Ast.Program program = parseProgram(pig);
     final PigRelBuilder builder =
-        PigRelBuilder.create(PigRelBuilderTest.config().build());
+        PigRelBuilder.create(RelBuilderConfig.config().build());
     new Handler(builder).handle(program);
     assertThat(RelOptUtil.toString(builder.peek()), is(expected));
     return this;
@@ -96,7 +96,7 @@ class Fluent {
   public Fluent returns(Function<String, Void> checker) throws ParseException {
     final Ast.Program program = parseProgram(pig);
     final PigRelBuilder builder =
-        PigRelBuilder.create(PigRelBuilderTest.config().build());
+        PigRelBuilder.create(RelBuilderConfig.config().build());
     final StringWriter sw = new StringWriter();
     new CalciteHandler(builder, sw).handle(program);
     checker.apply(sw.toString());

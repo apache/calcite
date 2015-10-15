@@ -75,6 +75,7 @@ limitations under the License.
     <module>plus</module>
     <module>spark</module>
     <module>splunk</module>
+    <module>test</module>
     <module>ubenchmark</module>
   </modules>
 
@@ -93,12 +94,6 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
-        <artifactId>calcite-avatica</artifactId>
-        <version>1.5.0-incubating-SNAPSHOT</version>
-        <type>test-jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica-server</artifactId>
         <version>1.5.0-incubating-SNAPSHOT</version>
       </dependency>
@@ -109,8 +104,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>
-        <artifactId>calcite-core</artifactId>
-        <type>test-jar</type>
+        <artifactId>calcite-test</artifactId>
         <version>1.5.0-incubating-SNAPSHOT</version>
       </dependency>
       <dependency>
