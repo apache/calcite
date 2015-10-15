@@ -216,7 +216,6 @@ public class JdbcFrontLinqBackTest {
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
   }
 
-  @Ignore
   @Test public void testInsert() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
@@ -224,12 +223,12 @@ public class JdbcFrontLinqBackTest {
         .returns(
             "empid=0; deptno=0; name=first; salary=0.0; commission=null\n");
     with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
-        .returns("ROWCOUNT=4\n");
+        .updates(4);
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=5\n");
     with.query("insert into \"foo\".\"bar\" "
         + "select * from \"hr\".\"emps\" where \"deptno\" = 10")
-        .returns("ROWCOUNT=3\n");
+        .updates(3);
     with.query("select \"name\", count(*) as c from \"foo\".\"bar\" "
         + "group by \"name\"")
         .returnsUnordered(
@@ -334,19 +333,18 @@ public class JdbcFrontLinqBackTest {
     };
   }
 
-  @Ignore
   @Test public void testInsert2() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)")
-        .returns("ROWCOUNT=1\n");
+        .updates(1);
     with.query("insert into \"foo\".\"bar\"\n"
         + "values (1, 3, 'third', 0, 3), (1, 4, 'fourth', 0, 4), (1, 5, 'fifth ', 0, 3)")
-        .returns("ROWCOUNT=3\n");
+        .updates(3);
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=5\n");
     with.query("insert into \"foo\".\"bar\" values (1, 6, null, 0, null)")
-        .returns("ROWCOUNT=1\n");
+        .updates(1);
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=6\n");
   }
