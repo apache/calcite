@@ -23,11 +23,11 @@ limitations under the License.
     <version>1.5.0-incubating-SNAPSHOT</version>
   </parent>
 
-  <artifactId>calcite-core</artifactId>
+  <artifactId>calcite-test</artifactId>
   <packaging>jar</packaging>
   <version>1.5.0-incubating-SNAPSHOT</version>
-  <name>Calcite Core</name>
-  <description>Core Calcite APIs and engine.</description>
+  <name>Calcite Test</name>
+  <description>Calcite Tests</description>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
@@ -45,11 +45,16 @@ limitations under the License.
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-linq4j</artifactId>
     </dependency>
-
     <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-avatica-server</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
@@ -59,18 +64,13 @@ limitations under the License.
       <artifactId>guava</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <scope>test</scope>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
-      <artifactId>eigenbase-properties</artifactId>
+      <artifactId>foodmart-queries</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
@@ -83,99 +83,31 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.janino</groupId>
-      <artifactId>janino</artifactId>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>quidem</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.janino</groupId>
-      <artifactId>commons-compiler</artifactId>
+      <groupId>org.hsqldb</groupId>
+      <artifactId>hsqldb</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.pentaho</groupId>
-      <artifactId>pentaho-aggdesigner-algorithm</artifactId>
+      <groupId>org.incava</groupId>
+      <artifactId>java-diff</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>sqlline</groupId>
+      <artifactId>sqlline</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <includes>
-            <include>org/apache/calcite/test/CalciteSuite.java</include>
-          </includes>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>javacc-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>javacc</id>
-            <goals>
-              <goal>javacc</goal>
-            </goals>
-            <configuration>
-              <sourceDirectory>${project.build.directory}/generated-sources/fmpp</sourceDirectory>
-              <includes>
-                <include>**/Parser.jj</include>
-              </includes>
-              <lookAhead>2</lookAhead>
-              <isStatic>false</isStatic>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>net.hydromatic</groupId>
-        <artifactId>hydromatic-resource-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate-sources</goal>
-            </goals>
-            <configuration>
-              <packageName>org.apache.calcite.runtime</packageName>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- Parent module has the same plugin and does the work of
-           generating -sources.jar for each project. But without the
-           plugin declared here, IDEs don't know the sources are
-           available. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>jar-no-fork</goal>
-              <goal>test-jar-no-fork</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -203,35 +135,8 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <artifactId>maven-remote-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>non-root-resources</id>
-            <goals>
-              <goal>process</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
-
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <excludes>
-          <exclude>version/*.properties</exclude>
-        </excludes>
-      </resource>
-      <resource>
-        <!-- Copy freemarker template and fmpp configuration files of
-             Calcite's SQL parser to allow clients to extend parser. -->
-        <directory>${basedir}/src/main/codegen</directory>
-        <targetPath>codegen</targetPath>
-      </resource>
-    </resources>
   </build>
-
   <profiles>
     <profile>
       <id>it</id>
@@ -351,56 +256,5 @@ limitations under the License.
         </dependency>
       </dependencies>
     </profile>
-    <profile>
-      <!-- CALCITE-539: workaround for MSHARED-394: Avoid rewrite of
-      destination in DefaultMavenFileFilter#filterFile when producing
-      the same contents -->
-      <id>generate-version-properties</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-        <file><missing>target/classes/org-apache-calcite-jdbc.properties</missing></file>
-      </activation>
-      <build>
-        <resources>
-          <resource>
-            <directory>src/main/resources/version</directory>
-            <filtering>true</filtering>
-          </resource>
-        </resources>
-      </build>
-    </profile>
-    <profile>
-      <!-- CALCITE-538: workaround for https://github.com/freemarker/fmpp/issues/11
-        FMPP always overwrites destination file, however we do not want
-        recompile the whole module every time.
-      -->
-      <id>generate-parser</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-        <file><missing>target/generated-sources/fmpp/javacc/Parser.jj</missing></file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-            <artifactId>fmpp-maven-plugin</artifactId>
-            <configuration>
-              <cfgFile>src/main/codegen/config.fmpp</cfgFile>
-              <templateDirectory>src/main/codegen/templates</templateDirectory>
-            </configuration>
-            <executions>
-              <execution>
-                <id>generate-fmpp-sources</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
-
 </project>
