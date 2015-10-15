@@ -57,6 +57,11 @@ message CloseStatementResponse {
 
 }
 
+// Response to OpenConnectionRequest {
+message OpenConnectionResponse {
+
+}
+
 // Response to CloseConnectionRequest {
 message CloseConnectionResponse {
 
@@ -75,4 +80,8 @@ message DatabasePropertyElement {
 // Response for Meta#getDatabaseProperties()
 message DatabasePropertyResponse {
   repeated DatabasePropertyElement props = 1;
+}
+
+message ErrorResponse {
+  string message = 1;
 }

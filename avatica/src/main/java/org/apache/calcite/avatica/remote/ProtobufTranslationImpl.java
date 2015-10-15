@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest;
 import org.apache.calcite.avatica.proto.Requests.CreateStatementRequest;
 import org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest;
 import org.apache.calcite.avatica.proto.Requests.FetchRequest;
+import org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareRequest;
 import org.apache.calcite.avatica.proto.Requests.SchemasRequest;
@@ -36,8 +37,10 @@ import org.apache.calcite.avatica.proto.Responses.CloseStatementResponse;
 import org.apache.calcite.avatica.proto.Responses.ConnectionSyncResponse;
 import org.apache.calcite.avatica.proto.Responses.CreateStatementResponse;
 import org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse;
+import org.apache.calcite.avatica.proto.Responses.ErrorResponse;
 import org.apache.calcite.avatica.proto.Responses.ExecuteResponse;
 import org.apache.calcite.avatica.proto.Responses.FetchResponse;
+import org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse;
 import org.apache.calcite.avatica.proto.Responses.PrepareResponse;
 import org.apache.calcite.avatica.proto.Responses.ResultSetResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
@@ -68,6 +71,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     HashMap<String, RequestTranslator> reqParsers = new HashMap<>();
     reqParsers.put(CatalogsRequest.class.getName(),
         new RequestTranslator(CatalogsRequest.PARSER, new Service.CatalogsRequest()));
+    reqParsers.put(OpenConnectionRequest.class.getName(),
+        new RequestTranslator(OpenConnectionRequest.PARSER, new Service.OpenConnectionRequest()));
     reqParsers.put(CloseConnectionRequest.class.getName(),
         new RequestTranslator(CloseConnectionRequest.PARSER, new Service.CloseConnectionRequest()));
     reqParsers.put(CloseStatementRequest.class.getName(),
@@ -100,6 +105,9 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 
     HashMap<String, ResponseTranslator> respParsers = new HashMap<>();
+    respParsers.put(OpenConnectionResponse.class.getName(),
+        new ResponseTranslator(OpenConnectionResponse.PARSER,
+            new Service.OpenConnectionResponse()));
     respParsers.put(CloseConnectionResponse.class.getName(),
         new ResponseTranslator(CloseConnectionResponse.PARSER,
             new Service.CloseConnectionResponse()));
@@ -123,6 +131,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new ResponseTranslator(PrepareResponse.PARSER, new Service.PrepareResponse()));
     respParsers.put(ResultSetResponse.class.getName(),
         new ResponseTranslator(ResultSetResponse.PARSER, new Service.ResultSetResponse()));
+    respParsers.put(ErrorResponse.class.getName(),
+        new ResponseTranslator(ErrorResponse.PARSER, new Service.ErrorResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
   }

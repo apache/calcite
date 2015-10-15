@@ -52,7 +52,14 @@ public class RemoteProtobufService extends ProtobufService {
       }
       final int responseCode = connection.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) {
-        throw new RuntimeException("response code " + responseCode);
+        InputStream errorStream = connection.getErrorStream();
+        if (errorStream != null) {
+          byte[] errorResponse = AvaticaUtils.readFullyToBytes(errorStream);
+          ErrorResponse response = (ErrorResponse) translation.parseResponse(errorResponse);
+          throw new RuntimeException("Remote driver error: " + response.message);
+        } else {
+          throw new RuntimeException("response code " + responseCode);
+        }
       }
       final InputStream inputStream = connection.getInputStream();
       // Read the (serialized protobuf) response off the wire and convert it back to a Response

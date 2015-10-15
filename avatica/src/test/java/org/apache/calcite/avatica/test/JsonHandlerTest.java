@@ -85,6 +85,10 @@ public class JsonHandlerTest {
       return null;
     }
 
+    @Override public OpenConnectionResponse apply(OpenConnectionRequest request) {
+      return null;
+    }
+
     @Override public CloseConnectionResponse apply(CloseConnectionRequest request) {
       return null;
     }

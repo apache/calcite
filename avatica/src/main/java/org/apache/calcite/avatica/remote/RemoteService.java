@@ -53,9 +53,16 @@ public class RemoteService extends JsonService {
           wr.close();
         }
       }
-      final int responseCode = connection.getResponseCode();
+      int responseCode = connection.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) {
-        throw new RuntimeException("response code " + responseCode);
+        InputStream errorStream = connection.getErrorStream();
+        if (errorStream != null) {
+          String errorResponse = AvaticaUtils.readFully(errorStream);
+          ErrorResponse response = decode(errorResponse, ErrorResponse.class);
+          throw new RuntimeException("Remote driver error: " + response.message);
+        } else {
+          throw new RuntimeException("response code " + responseCode);
+        }
       }
       final InputStream inputStream = connection.getInputStream();
       return AvaticaUtils.readFully(inputStream);

@@ -18,14 +18,17 @@ package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.remote.ProtobufHandler;
+import org.apache.calcite.avatica.remote.ProtobufTranslation;
 import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
 import org.apache.calcite.avatica.remote.Service;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import java.io.IOException;
-
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -35,11 +38,14 @@ import javax.servlet.http.HttpServletResponse;
  * Jetty handler that executes Avatica JSON request-responses.
  */
 public class AvaticaProtobufHandler extends AbstractHandler {
+  private static final Log LOG = LogFactory.getLog(AvaticaHandler.class);
 
   private final ProtobufHandler pbHandler;
+  private final ProtobufTranslation protobufTranslation;
 
   public AvaticaProtobufHandler(Service service) {
-    this.pbHandler = new ProtobufHandler(service, new ProtobufTranslationImpl());
+    this.protobufTranslation = new ProtobufTranslationImpl();
+    this.pbHandler = new ProtobufHandler(service, protobufTranslation);
   }
 
   public void handle(String target, Request baseRequest,
@@ -53,11 +59,24 @@ public class AvaticaProtobufHandler extends AbstractHandler {
         requestBytes = AvaticaUtils.readFullyToBytes(inputStream);
       }
 
-      byte[] responseBytes = pbHandler.apply(requestBytes);
+      byte[] responseBytes;
+      try {
+        responseBytes = pbHandler.apply(requestBytes);
+      } catch (Throwable t) {
+        LOG.error("Error handling request", t);
+        response.setStatus(500);
+        responseBytes = createErrorResponse(t);
+      }
 
       baseRequest.setHandled(true);
       response.getOutputStream().write(responseBytes);
     }
+  }
+
+  private byte[] createErrorResponse(Throwable t) throws IOException {
+    Service.ErrorResponse errorResponse = new Service.ErrorResponse(
+        AvaticaHandler.getErrorMessage(t));
+    return protobufTranslation.serializeResponse(errorResponse);
   }
 
 }
