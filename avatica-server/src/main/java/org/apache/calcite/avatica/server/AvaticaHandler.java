@@ -23,6 +23,11 @@ import org.apache.calcite.avatica.remote.Service;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
+
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
@@ -63,13 +68,35 @@ public class AvaticaHandler extends AbstractHandler {
       if (LOG.isTraceEnabled()) {
         LOG.trace("request: " + jsonRequest);
       }
-      final String jsonResponse = jsonHandler.apply(jsonRequest);
+      String jsonResponse;
+      try {
+        jsonResponse = jsonHandler.apply(jsonRequest);
+      } catch (Throwable t) {
+        LOG.error("Error handling request: " + jsonRequest, t);
+        response.setStatus(500);
+        jsonResponse = createErrorResponse(t);
+      }
       if (LOG.isTraceEnabled()) {
         LOG.trace("response: " + jsonResponse);
       }
       baseRequest.setHandled(true);
       response.getWriter().println(jsonResponse);
     }
+  }
+
+  private String createErrorResponse(Throwable t) throws IOException {
+    return jsonHandler.encode(new Service.ErrorResponse(getErrorMessage(t)));
+  }
+
+  public static String getErrorMessage(Throwable t) {
+    return Joiner.on(" -> ").join(
+        Iterables.transform(Throwables.getCausalChain(t), new Function<Throwable, String>() {
+          @Override
+          public String apply(Throwable input) {
+            return input.getMessage() == null
+                ? "(null exception message)" : input.getMessage();
+          }
+        }));
   }
 }
 

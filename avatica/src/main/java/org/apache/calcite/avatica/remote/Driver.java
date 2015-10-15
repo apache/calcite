@@ -26,10 +26,15 @@ import org.apache.calcite.avatica.UnregisteredDriver;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Avatica Remote JDBC driver.
@@ -76,6 +81,15 @@ public class Driver extends UnregisteredDriver {
 
   @Override public Meta createMeta(AvaticaConnection connection) {
     final ConnectionConfig config = connection.config();
+    final Service service = createService(config);
+    return new RemoteMeta(connection, service);
+  }
+
+  private Service createService(ConnectionConfig config) {
+    // Exploit that none of the factory implementations currently rely
+    // on connection being there.
+    AvaticaConnection connection = null;
+
     final Service.Factory metaFactory = config.factory();
     final Service service;
     if (metaFactory != null) {
@@ -103,7 +117,40 @@ public class Driver extends UnregisteredDriver {
     } else {
       service = new MockJsonService(Collections.<String, String>emptyMap());
     }
-    return new RemoteMeta(connection, service);
+    return service;
+  }
+
+  @Override
+  public Connection connect(String url, Properties info) throws SQLException {
+    AvaticaConnection conn = (AvaticaConnection) super.connect(url, info);
+    if (conn == null) {
+      // It's not an url for our driver
+      return null;
+    }
+
+    // Create the corresponding remote connection
+    ConnectionConfig config = conn.config();
+    Service service = createService(config);
+
+    Map<String, String> infoAsString = new HashMap<>();
+    for (Map.Entry<Object, Object> entry : info.entrySet()) {
+      // Determine if this is a property we want to forward to the server
+      boolean localProperty = false;
+      for (BuiltInConnectionProperty prop : BuiltInConnectionProperty.values()) {
+        if (prop.camelName().equals(entry.getKey())) {
+          localProperty = true;
+          break;
+        }
+      }
+
+      if (!localProperty) {
+        infoAsString.put(entry.getKey().toString(), entry.getValue().toString());
+      }
+    }
+
+    service.apply(new Service.OpenConnectionRequest(conn.id, infoAsString));
+
+    return conn;
   }
 
   private Serialization getSerialization(ConnectionConfig config) {

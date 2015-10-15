@@ -50,11 +50,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Tests covering {@link RemoteMeta}. */
 @RunWith(Parameterized.class)
@@ -293,6 +295,60 @@ public class RemoteMetaTest {
       assertEquals(1L, results.getLong(17));
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testOpenConnectionWithProperties() throws Exception {
+    // This tests that username and password are used for creating a connection on the
+    // server. If this was not the case, it would succeed.
+    try {
+      DriverManager.getConnection(url, "john", "doe");
+      fail("expected exception");
+    } catch (RuntimeException e) {
+      assertEquals("Remote driver error:"
+          + " java.sql.SQLInvalidAuthorizationSpecException: invalid authorization specification"
+          + " - not found: john"
+          + " -> invalid authorization specification - not found: john"
+          + " -> invalid authorization specification - not found: john",
+          e.getMessage());
+    }
+  }
+
+  @Test public void testRemoteConnectionsAreDifferent() throws SQLException {
+    Connection conn1 = DriverManager.getConnection(url);
+    Statement stmt = conn1.createStatement();
+    stmt.execute("DECLARE LOCAL TEMPORARY TABLE"
+        + " buffer (id INTEGER PRIMARY KEY, textdata VARCHAR(100))");
+    stmt.execute("insert into buffer(id, textdata) values(1, 'abc')");
+    stmt.executeQuery("select * from buffer");
+
+    // The local temporary table is local to the connection above, and should
+    // not be visible on another connection
+    Connection conn2 = DriverManager.getConnection(url);
+    Statement stmt2 = conn2.createStatement();
+    try {
+      stmt2.executeQuery("select * from buffer");
+      fail("expected exception");
+    } catch (Exception e) {
+      assertEquals("Remote driver error: java.sql.SQLSyntaxErrorException: user lacks privilege"
+          + " or object not found: BUFFER -> user lacks privilege or object not found: BUFFER"
+          + " -> user lacks privilege or object not found: BUFFER", e.getCause().getMessage());
+    }
+  }
+
+  @Test public void testRemoteConnectionClosing() throws Exception {
+    AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+    // Verify connection is usable
+    conn.createStatement();
+    conn.close();
+
+    // After closing the connection, it should not be usable anymore
+    try {
+      conn.createStatement();
+      fail("expected exception");
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(), containsString("Remote driver error:"
+          + " Connection not found: invalid id, closed, or expired"));
     }
   }
 }

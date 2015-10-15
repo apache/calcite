@@ -110,19 +110,22 @@ public class LocalService implements Service {
   }
 
   public ResultSetResponse apply(CatalogsRequest request) {
-    final Meta.MetaResultSet resultSet = meta.getCatalogs();
+    final Meta.MetaResultSet resultSet =
+        meta.getCatalogs(new Meta.ConnectionHandle(request.connectionId));
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(SchemasRequest request) {
     final Meta.MetaResultSet resultSet =
-        meta.getSchemas(request.catalog, Meta.Pat.of(request.schemaPattern));
+        meta.getSchemas(new Meta.ConnectionHandle(request.connectionId),
+            request.catalog, Meta.Pat.of(request.schemaPattern));
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(TablesRequest request) {
     final Meta.MetaResultSet resultSet =
-        meta.getTables(request.catalog,
+        meta.getTables(new Meta.ConnectionHandle(request.connectionId),
+            request.catalog,
             Meta.Pat.of(request.schemaPattern),
             Meta.Pat.of(request.tableNamePattern),
             request.typeList);
@@ -130,18 +133,22 @@ public class LocalService implements Service {
   }
 
   public ResultSetResponse apply(TableTypesRequest request) {
-    final Meta.MetaResultSet resultSet = meta.getTableTypes();
+    final Meta.MetaResultSet resultSet = meta.getTableTypes(
+        new Meta.ConnectionHandle(request.connectionId));
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(TypeInfoRequest request) {
-    final Meta.MetaResultSet resultSet = meta.getTypeInfo();
+    final Meta.MetaResultSet resultSet = meta.getTypeInfo(
+        new Meta.ConnectionHandle(request.connectionId));
     return toResponse(resultSet);
   }
 
   public ResultSetResponse apply(ColumnsRequest request) {
     final Meta.MetaResultSet resultSet =
-        meta.getColumns(request.catalog,
+        meta.getColumns(
+            new Meta.ConnectionHandle(request.connectionId),
+            request.catalog,
             Meta.Pat.of(request.schemaPattern),
             Meta.Pat.of(request.tableNamePattern),
             Meta.Pat.of(request.columnNamePattern));
@@ -217,6 +224,11 @@ public class LocalService implements Service {
     return new CloseStatementResponse();
   }
 
+  public OpenConnectionResponse apply(OpenConnectionRequest request) {
+    meta.openConnection(new Meta.ConnectionHandle(request.connectionId), request.info);
+    return new OpenConnectionResponse();
+  }
+
   public CloseConnectionResponse apply(CloseConnectionRequest request) {
     meta.closeConnection(new Meta.ConnectionHandle(request.connectionId));
     return new CloseConnectionResponse();
@@ -229,7 +241,8 @@ public class LocalService implements Service {
   }
 
   public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
-    return new DatabasePropertyResponse(meta.getDatabaseProperties());
+    return new DatabasePropertyResponse(meta.getDatabaseProperties(
+        new Meta.ConnectionHandle(request.connectionId)));
   }
 }
 

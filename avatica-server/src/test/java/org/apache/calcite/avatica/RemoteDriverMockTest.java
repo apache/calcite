@@ -94,8 +94,7 @@ public class RemoteDriverMockTest {
   }
 
   @Test public void testRegister() throws Exception {
-    final Connection connection =
-        DriverManager.getConnection("jdbc:avatica:remote:");
+    final Connection connection = getMockConnection();
     assertThat(connection.isClosed(), is(false));
     connection.close();
     assertThat(connection.isClosed(), is(true));

@@ -27,6 +27,8 @@ import org.apache.calcite.avatica.remote.Service;
 
 import com.google.common.cache.Cache;
 
+import net.jcip.annotations.NotThreadSafe;
+
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -69,6 +71,7 @@ import static org.junit.Assert.fail;
  * Unit test for Avatica Remote JDBC driver.
  */
 @RunWith(Parameterized.class)
+@NotThreadSafe // for testConnectionIsolation
 public class RemoteDriverTest {
   public static final String LJS =
       LocalJdbcServiceFactory.class.getName();
@@ -214,8 +217,7 @@ public class RemoteDriverTest {
   }
 
   @Test public void testRegister() throws Exception {
-    final Connection connection =
-        DriverManager.getConnection("jdbc:avatica:remote:");
+    final Connection connection = getLocalConnection();
     assertThat(connection.isClosed(), is(false));
     connection.close();
     assertThat(connection.isClosed(), is(true));
@@ -789,23 +791,26 @@ public class RemoteDriverTest {
   @Test public void testConnectionIsolation() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {
-      final String sql = "select * from (values (1, 'a'))";
-      Connection conn1 = getLocalConnection();
-      Connection conn2 = getLocalConnection();
       Cache<String, Connection> connectionMap = getLocalConnectionInternals()
-          .getRemoteConnectionMap((AvaticaConnection) conn1);
+          .getRemoteConnectionMap((AvaticaConnection) getLocalConnection());
       // Other tests being run might leave connections in the cache.
       // The lock guards against more connections being cached during the test.
       connectionMap.invalidateAll();
+
+      final String sql = "select * from (values (1, 'a'))";
       assertEquals("connection cache should start empty",
           0, connectionMap.size());
+      Connection conn1 = getLocalConnection();
+      Connection conn2 = getLocalConnection();
+      assertEquals("we now have two connections open",
+          2, connectionMap.size());
       PreparedStatement conn1stmt1 = conn1.prepareStatement(sql);
       assertEquals(
-          "statement creation implicitly creates a connection server-side",
-          1, connectionMap.size());
+          "creating a statement does not cause new connection",
+          2, connectionMap.size());
       PreparedStatement conn2stmt1 = conn2.prepareStatement(sql);
       assertEquals(
-          "statement creation implicitly creates a connection server-side",
+          "creating a statement does not cause new connection",
           2, connectionMap.size());
       AvaticaPreparedStatement s1 = (AvaticaPreparedStatement) conn1stmt1;
       AvaticaPreparedStatement s2 = (AvaticaPreparedStatement) conn2stmt1;
