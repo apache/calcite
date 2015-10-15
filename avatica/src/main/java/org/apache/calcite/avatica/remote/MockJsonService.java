@@ -18,6 +18,9 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,16 +33,14 @@ import java.util.Map;
  */
 public class MockJsonService extends JsonService {
   private final Map<String, String> map;
+  private final ObjectMapper mapper = new ObjectMapper();
 
   public MockJsonService(Map<String, String> map) {
     this.map = map;
   }
 
   @Override public String apply(String request) {
-    String response = map.get(request);
-    if (response == null) {
-      response = handleCloseConnection(request);
-    }
+    String response = map.get(canonicalizeConnectionId(request));
     if (response == null) {
       throw new RuntimeException("No response for " + request);
     }
@@ -47,14 +48,22 @@ public class MockJsonService extends JsonService {
   }
 
   /**
-   * Special case for closeConnection because connection IDs are random.
-   * @return response if is a CloseConnectionRequest, null otherwise.
+   * The connection id is always different, therefore when present in the request,
+   * set it to 0.
    */
-  private static String handleCloseConnection(String request) {
-    if (request.contains("closeConnection")) {
-      return "{\"response\":\"closeConnection\"}";
+  private String canonicalizeConnectionId(String request) {
+    ObjectNode jsonRequest;
+    try {
+      jsonRequest = (ObjectNode) mapper.readTree(request);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return null;
+    if (jsonRequest.get("connectionId") != null) {
+      jsonRequest.put("connectionId", "0");
+      return jsonRequest.toString();
+    } else {
+      return request;
+    }
   }
 
   /** Factory that creates a {@code MockJsonService}. */
@@ -63,14 +72,20 @@ public class MockJsonService extends JsonService {
       final Map<String, String> map1 = new HashMap<>();
       try {
         map1.put(
+            "{\"request\":\"openConnection\",\"connectionId\":\"0\",\"info\":{}}",
+            "{\"response\":\"openConnection\"}");
+        map1.put(
+            "{\"request\":\"closeConnection\",\"connectionId\":\"0\"}",
+            "{\"response\":\"closeConnection\"}");
+        map1.put(
             "{\"request\":\"getSchemas\",\"catalog\":null,\"schemaPattern\":{\"s\":null}}",
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
-            JsonService.encode(new SchemasRequest(null, null)),
+            JsonService.encode(new SchemasRequest("0", null, null)),
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             JsonService.encode(
-                new TablesRequest(null, null, null, Arrays.<String>asList())),
+                new TablesRequest("0", null, null, null, Arrays.<String>asList())),
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             "{\"request\":\"createStatement\",\"connectionId\":0}",

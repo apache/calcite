@@ -40,13 +40,17 @@ public class MockProtobufService extends ProtobufService {
 
     // Add in mappings
 
+    mappings.put(
+        new OpenConnectionRequest("0", new HashMap<String, String>()),
+        new OpenConnectionResponse());
+
     // Get the schema, no.. schema..?
     mappings.put(
-        new SchemasRequest(null, null),
+        new SchemasRequest("0", null, null),
         new ResultSetResponse(null, 1, true, null, Meta.Frame.EMPTY, -1));
 
     // Get the tables, no tables exist
-    mappings.put(new TablesRequest(null, null, null, Collections.<String>emptyList()),
+    mappings.put(new TablesRequest("0", null, null, null, Collections.<String>emptyList()),
         new ResultSetResponse(null, 150, true, null, Meta.Frame.EMPTY, -1));
 
     // Create a statement, get back an id
@@ -109,6 +113,19 @@ public class MockProtobufService extends ProtobufService {
    * @throws RuntimeException if no mapping is found for the request
    */
   private Response dispatch(Request request) {
+    // Canonicalize connectionId's to 0
+    if (request instanceof OpenConnectionRequest) {
+      OpenConnectionRequest req = (OpenConnectionRequest) request;
+      request = new OpenConnectionRequest("0", req.info);
+    } else if (request instanceof TablesRequest) {
+      TablesRequest req = (TablesRequest) request;
+      request = new TablesRequest("0", req.catalog, req.schemaPattern,
+          req.tableNamePattern, req.typeList);
+    } else if (request instanceof SchemasRequest) {
+      SchemasRequest req = (SchemasRequest) request;
+      request = new SchemasRequest("0", req.catalog, req.schemaPattern);
+    }
+
     Response response = MAPPING.get(request);
 
     if (null == response) {

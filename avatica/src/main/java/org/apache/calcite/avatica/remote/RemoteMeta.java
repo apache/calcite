@@ -64,12 +64,12 @@ class RemoteMeta extends MetaImpl {
         response.ownStatement, signature0, response.firstFrame);
   }
 
-  @Override public Map<DatabaseProperty, Object> getDatabaseProperties() {
+  @Override public Map<DatabaseProperty, Object> getDatabaseProperties(ConnectionHandle ch) {
     synchronized (this) {
       // Compute map on first use, and cache
       if (databaseProperties == null) {
         databaseProperties =
-            service.apply(new Service.DatabasePropertyRequest()).map;
+            service.apply(new Service.DatabasePropertyRequest(ch.id)).map;
       }
       return databaseProperties;
     }
@@ -86,6 +86,11 @@ class RemoteMeta extends MetaImpl {
   @Override public void closeStatement(StatementHandle h) {
     final Service.CloseStatementResponse response =
         service.apply(new Service.CloseStatementRequest(h.connectionId, h.id));
+  }
+
+  @Override public void openConnection(ConnectionHandle ch, Map<String, String> info) {
+    final Service.OpenConnectionResponse response =
+        service.apply(new Service.OpenConnectionRequest(ch.id, info));
   }
 
   @Override public void closeConnection(ConnectionHandle ch) {
@@ -117,44 +122,45 @@ class RemoteMeta extends MetaImpl {
     }
   }
 
-  @Override public MetaResultSet getCatalogs() {
+  @Override public MetaResultSet getCatalogs(ConnectionHandle ch) {
     final Service.ResultSetResponse response =
-        service.apply(new Service.CatalogsRequest());
+        service.apply(new Service.CatalogsRequest(ch.id));
     return toResultSet(MetaCatalog.class, response);
   }
 
-  @Override public MetaResultSet getSchemas(String catalog, Pat schemaPattern) {
+  @Override public MetaResultSet getSchemas(ConnectionHandle ch, String catalog,
+      Pat schemaPattern) {
     final Service.ResultSetResponse response =
-        service.apply(new Service.SchemasRequest(catalog, schemaPattern.s));
+        service.apply(new Service.SchemasRequest(ch.id, catalog, schemaPattern.s));
     return toResultSet(MetaSchema.class, response);
   }
 
-  @Override public MetaResultSet getTables(String catalog, Pat schemaPattern,
+  @Override public MetaResultSet getTables(ConnectionHandle ch, String catalog, Pat schemaPattern,
       Pat tableNamePattern, List<String> typeList) {
     final Service.ResultSetResponse response =
         service.apply(
-            new Service.TablesRequest(catalog, schemaPattern.s,
+            new Service.TablesRequest(ch.id, catalog, schemaPattern.s,
                 tableNamePattern.s, typeList));
     return toResultSet(MetaTable.class, response);
   }
 
-  @Override public MetaResultSet getTableTypes() {
+  @Override public MetaResultSet getTableTypes(ConnectionHandle ch) {
     final Service.ResultSetResponse response =
-        service.apply(new Service.TableTypesRequest());
+        service.apply(new Service.TableTypesRequest(ch.id));
     return toResultSet(MetaTableType.class, response);
   }
 
-  @Override public MetaResultSet getTypeInfo() {
+  @Override public MetaResultSet getTypeInfo(ConnectionHandle ch) {
     final Service.ResultSetResponse response =
-        service.apply(new Service.TypeInfoRequest());
+        service.apply(new Service.TypeInfoRequest(ch.id));
     return toResultSet(MetaTypeInfo.class, response);
   }
 
-  @Override public MetaResultSet getColumns(String catalog, Pat schemaPattern,
+  @Override public MetaResultSet getColumns(ConnectionHandle ch, String catalog, Pat schemaPattern,
       Pat tableNamePattern, Pat columnNamePattern) {
     final Service.ResultSetResponse response =
         service.apply(
-            new Service.ColumnsRequest(catalog, schemaPattern.s,
+            new Service.ColumnsRequest(ch.id, catalog, schemaPattern.s,
                 tableNamePattern.s, columnNamePattern.s));
     return toResultSet(MetaColumn.class, response);
   }

@@ -156,6 +156,14 @@ public abstract class JsonService extends AbstractService {
     }
   }
 
+  public OpenConnectionResponse apply(OpenConnectionRequest request) {
+    try {
+      return decode(apply(encode(request)), OpenConnectionResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
   public CloseConnectionResponse apply(CloseConnectionRequest request) {
     try {
       return decode(apply(encode(request)), CloseConnectionResponse.class);

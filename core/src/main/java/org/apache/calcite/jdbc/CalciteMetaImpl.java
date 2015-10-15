@@ -214,7 +214,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return (CalciteConnectionImpl) connection;
   }
 
-  @Override public Map<DatabaseProperty, Object> getDatabaseProperties() {
+  @Override public Map<DatabaseProperty, Object> getDatabaseProperties(ConnectionHandle ch) {
     final ImmutableMap.Builder<DatabaseProperty, Object> builder =
         ImmutableMap.builder();
     for (DatabaseProperty p : DatabaseProperty.values()) {
@@ -243,7 +243,8 @@ public class CalciteMetaImpl extends MetaImpl {
     }
   }
 
-  public MetaResultSet getTables(String catalog,
+  public MetaResultSet getTables(ConnectionHandle ch,
+      String catalog,
       final Pat schemaPattern,
       final Pat tableNamePattern,
       final List<String> typeList) {
@@ -280,7 +281,7 @@ public class CalciteMetaImpl extends MetaImpl {
         "REF_GENERATION");
   }
 
-  public MetaResultSet getTypeInfo() {
+  public MetaResultSet getTypeInfo(ConnectionHandle ch) {
     return createResultSet(allTypeInfo(),
         MetaTypeInfo.class,
         "TYPE_NAME",
@@ -303,7 +304,8 @@ public class CalciteMetaImpl extends MetaImpl {
         "NUM_PREC_RADIX");
   }
 
-  public MetaResultSet getColumns(String catalog,
+  public MetaResultSet getColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {
@@ -506,7 +508,7 @@ public class CalciteMetaImpl extends MetaImpl {
             });
   }
 
-  public MetaResultSet getSchemas(String catalog, Pat schemaPattern) {
+  public MetaResultSet getSchemas(ConnectionHandle ch, String catalog, Pat schemaPattern) {
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     return createResultSet(schemas(catalog).where(schemaMatcher),
         MetaSchema.class,
@@ -514,13 +516,13 @@ public class CalciteMetaImpl extends MetaImpl {
         "TABLE_CATALOG");
   }
 
-  public MetaResultSet getCatalogs() {
+  public MetaResultSet getCatalogs(ConnectionHandle ch) {
     return createResultSet(catalogs(),
         MetaCatalog.class,
         "TABLE_CAT");
   }
 
-  public MetaResultSet getTableTypes() {
+  public MetaResultSet getTableTypes(ConnectionHandle ch) {
     return createResultSet(tableTypes(),
         MetaTableType.class,
         "TABLE_TYPE");

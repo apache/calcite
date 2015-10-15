@@ -284,8 +284,7 @@ public abstract class AvaticaConnection implements Connection {
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     try {
-      final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(id);
-      final Meta.StatementHandle h = meta.prepare(ch, sql, -1);
+      final Meta.StatementHandle h = meta.prepare(handle, sql, -1);
       return factory.newPreparedStatement(this, h, h.signature, resultSetType,
           resultSetConcurrency, resultSetHoldability);
     } catch (RuntimeException e) {

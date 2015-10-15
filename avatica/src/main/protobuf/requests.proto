@@ -22,18 +22,19 @@ import "common.proto";
 
 // Request for Meta#getCatalogs()
 message CatalogsRequest {
-
+  string connection_id = 1;
 }
 
 // Request for Meta#getDatabaseProperties()
 message DatabasePropertyRequest {
-
+  string connection_id = 1;
 }
 
 // Request for Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}
 message SchemasRequest {
   string catalog = 1;
   string schema_pattern = 2;
+  string connection_id = 3;
 }
 
 // Request for Request for Meta#getTables(String, org.apache.calcite.avatica.Meta.Pat,
@@ -44,11 +45,12 @@ message TablesRequest {
   string table_name_pattern = 3;
   repeated string type_list = 4;
   bool has_type_list = 6; // Having an empty type_list is distinct from a null type_list
+  string connection_id = 7;
 }
 
 // Request for Meta#getTableTypes()
 message TableTypesRequest {
-
+  string connection_id = 1;
 }
 
 // Request for Meta#getColumns(String, org.apache.calcite.avatica.Meta.Pat,
@@ -58,11 +60,12 @@ message ColumnsRequest {
   string schema_pattern = 2;
   string table_name_pattern = 3;
   string column_name_pattern = 4;
+  string connection_id = 5;
 }
 
 // Request for Meta#getTypeInfo()
 message TypeInfoRequest {
-
+  string connection_id = 1;
 }
 
 // Request for Meta#prepareAndExecute(Meta.StatementHandle, String, long, Meta.PrepareCallback)
@@ -97,6 +100,12 @@ message CreateStatementRequest {
 message CloseStatementRequest {
   string connection_id = 1;
   uint32 statement_id = 2;
+}
+
+// Request for Meta#openConnection(Meta.ConnectionHandle, Map<String, String>)
+message OpenConnectionRequest {
+  string connection_id = 1;
+  map<string, string> info = 2;
 }
 
 // Request for Meta#closeConnection(Meta.ConnectionHandle)

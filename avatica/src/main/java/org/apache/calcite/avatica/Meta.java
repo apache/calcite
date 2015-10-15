@@ -58,73 +58,81 @@ public interface Meta {
    * <p>The provider can omit properties whose value is the same as the
    * default.
    */
-  Map<DatabaseProperty, Object> getDatabaseProperties();
+  Map<DatabaseProperty, Object> getDatabaseProperties(ConnectionHandle ch);
 
   /** Per {@link DatabaseMetaData#getTables(String, String, String, String[])}. */
-  MetaResultSet getTables(String catalog,
+  MetaResultSet getTables(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       List<String> typeList);
 
   /** Per {@link DatabaseMetaData#getColumns(String, String, String, String)}. */
-  MetaResultSet getColumns(String catalog,
+  MetaResultSet getColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern);
 
-  MetaResultSet getSchemas(String catalog, Pat schemaPattern);
+  MetaResultSet getSchemas(ConnectionHandle ch, String catalog, Pat schemaPattern);
 
   /** Per {@link DatabaseMetaData#getCatalogs()}. */
-  MetaResultSet getCatalogs();
+  MetaResultSet getCatalogs(ConnectionHandle ch);
 
   /** Per {@link DatabaseMetaData#getTableTypes()}. */
-  MetaResultSet getTableTypes();
+  MetaResultSet getTableTypes(ConnectionHandle ch);
 
   /** Per {@link DatabaseMetaData#getProcedures(String, String, String)}. */
-  MetaResultSet getProcedures(String catalog,
+  MetaResultSet getProcedures(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat procedureNamePattern);
 
   /** Per {@link DatabaseMetaData#getProcedureColumns(String, String, String, String)}. */
-  MetaResultSet getProcedureColumns(String catalog,
+  MetaResultSet getProcedureColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat procedureNamePattern,
       Pat columnNamePattern);
 
   /** Per {@link DatabaseMetaData#getColumnPrivileges(String, String, String, String)}. */
-  MetaResultSet getColumnPrivileges(String catalog,
+  MetaResultSet getColumnPrivileges(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table,
       Pat columnNamePattern);
 
   /** Per {@link DatabaseMetaData#getTablePrivileges(String, String, String)}. */
-  MetaResultSet getTablePrivileges(String catalog,
+  MetaResultSet getTablePrivileges(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern);
 
   /** Per
    * {@link DatabaseMetaData#getBestRowIdentifier(String, String, String, int, boolean)}. */
-  MetaResultSet getBestRowIdentifier(String catalog,
+  MetaResultSet getBestRowIdentifier(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table,
       int scope,
       boolean nullable);
 
   /** Per {@link DatabaseMetaData#getVersionColumns(String, String, String)}. */
-  MetaResultSet getVersionColumns(String catalog, String schema, String table);
+  MetaResultSet getVersionColumns(ConnectionHandle ch, String catalog, String schema, String table);
 
   /** Per {@link DatabaseMetaData#getPrimaryKeys(String, String, String)}. */
-  MetaResultSet getPrimaryKeys(String catalog, String schema, String table);
+  MetaResultSet getPrimaryKeys(ConnectionHandle ch, String catalog, String schema, String table);
 
   /** Per {@link DatabaseMetaData#getImportedKeys(String, String, String)}. */
-  MetaResultSet getImportedKeys(String catalog, String schema, String table);
+  MetaResultSet getImportedKeys(ConnectionHandle ch, String catalog, String schema, String table);
 
   /** Per {@link DatabaseMetaData#getExportedKeys(String, String, String)}. */
-  MetaResultSet getExportedKeys(String catalog, String schema, String table);
+  MetaResultSet getExportedKeys(ConnectionHandle ch, String catalog, String schema, String table);
 
   /** Per
    * {@link DatabaseMetaData#getCrossReference(String, String, String, String, String, String)}. */
-  MetaResultSet getCrossReference(String parentCatalog,
+  MetaResultSet getCrossReference(ConnectionHandle ch,
+      String parentCatalog,
       String parentSchema,
       String parentTable,
       String foreignCatalog,
@@ -132,53 +140,60 @@ public interface Meta {
       String foreignTable);
 
   /** Per {@link DatabaseMetaData#getTypeInfo()}. */
-  MetaResultSet getTypeInfo();
+  MetaResultSet getTypeInfo(ConnectionHandle ch);
 
   /** Per {@link DatabaseMetaData#getIndexInfo(String, String, String, boolean, boolean)}. */
-  MetaResultSet getIndexInfo(String catalog,
+  MetaResultSet getIndexInfo(ConnectionHandle ch, String catalog,
       String schema,
       String table,
       boolean unique,
       boolean approximate);
 
   /** Per {@link DatabaseMetaData#getUDTs(String, String, String, int[])}. */
-  MetaResultSet getUDTs(String catalog,
+  MetaResultSet getUDTs(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat typeNamePattern,
       int[] types);
 
   /** Per {@link DatabaseMetaData#getSuperTypes(String, String, String)}. */
-  MetaResultSet getSuperTypes(String catalog,
+  MetaResultSet getSuperTypes(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat typeNamePattern);
 
   /** Per {@link DatabaseMetaData#getSuperTables(String, String, String)}. */
-  MetaResultSet getSuperTables(String catalog,
+  MetaResultSet getSuperTables(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern);
 
   /** Per {@link DatabaseMetaData#getAttributes(String, String, String, String)}. */
-  MetaResultSet getAttributes(String catalog,
+  MetaResultSet getAttributes(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat typeNamePattern,
       Pat attributeNamePattern);
 
   /** Per {@link DatabaseMetaData#getClientInfoProperties()}. */
-  MetaResultSet getClientInfoProperties();
+  MetaResultSet getClientInfoProperties(ConnectionHandle ch);
 
   /** Per {@link DatabaseMetaData#getFunctions(String, String, String)}. */
-  MetaResultSet getFunctions(String catalog,
+  MetaResultSet getFunctions(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat functionNamePattern);
 
   /** Per {@link DatabaseMetaData#getFunctionColumns(String, String, String, String)}. */
-  MetaResultSet getFunctionColumns(String catalog,
+  MetaResultSet getFunctionColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat functionNamePattern,
       Pat columnNamePattern);
 
   /** Per {@link DatabaseMetaData#getPseudoColumns(String, String, String, String)}. */
-  MetaResultSet getPseudoColumns(String catalog,
+  MetaResultSet getPseudoColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern);
@@ -249,7 +264,19 @@ public interface Meta {
   /** Closes a statement. */
   void closeStatement(StatementHandle h);
 
-  /** Closes a connection. */
+  /**
+   * Opens (creates) a connection. The client allocates its own connection ID which the server is
+   * then made aware of through the {@link ConnectionHandle}. The Map {@code info} argument is
+   * analogous to the {@link Properties} typically passed to a "normal" JDBC Driver. Avatica
+   * specific properties should not be included -- only properties for the underlying driver.
+   *
+   * @param ch A ConnectionHandle encapsulates information about the connection to be opened
+   *    as provided by the client.
+   * @param info A Map corresponding to the Properties typically passed to a JDBC Driver.
+   */
+  void openConnection(ConnectionHandle ch, Map<String, String> info);
+
+  /** Closes a connection */
   void closeConnection(ConnectionHandle ch);
 
   /** Sync client and server view of connection properties.
@@ -291,7 +318,7 @@ public interface Meta {
    * {@link DatabaseMetaData#getSQLKeywords()}, which always return the same
    * value at all times and across connections.
    *
-   * @see #getDatabaseProperties()
+   * @see #getDatabaseProperties(Meta.ConnectionHandle)
    */
   enum DatabaseProperty {
     /** Database property containing the value of
@@ -336,8 +363,8 @@ public interface Meta {
 
     /** Returns a value of this property, using the default value if the map
      * does not contain an explicit value. */
-    public <T> T getProp(Meta meta, Class<T> aClass) {
-      return getProp(meta.getDatabaseProperties(), aClass);
+    public <T> T getProp(Meta meta, ConnectionHandle ch, Class<T> aClass) {
+      return getProp(meta.getDatabaseProperties(ch), aClass);
     }
 
     /** Returns a value of this property, using the default value if the map
