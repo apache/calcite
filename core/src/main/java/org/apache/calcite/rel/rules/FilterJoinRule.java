@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -224,8 +225,14 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     // create the new join node referencing the new children and
     // containing its new join filters (if there are any)
+    final ImmutableList<RelDataType> fieldTypes =
+        ImmutableList.<RelDataType>builder()
+            .addAll(RelOptUtil.getFieldTypeList(leftRel.getRowType()))
+            .addAll(RelOptUtil.getFieldTypeList(rightRel.getRowType())).build();
     final RexNode joinFilter =
-        RexUtil.composeConjunction(rexBuilder, joinFilters, false);
+        RexUtil.composeConjunction(rexBuilder,
+            RexUtil.fixUp(rexBuilder, joinFilters, fieldTypes),
+            false);
 
     // If nothing actually got pushed and there is nothing leftover,
     // then this rule is a no-op
@@ -260,7 +267,8 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     // create a FilterRel on top of the join if needed
     relBuilder.filter(
-        RexUtil.fixUp(rexBuilder, aboveFilters, newJoinRel.getRowType()));
+        RexUtil.fixUp(rexBuilder, aboveFilters,
+            RelOptUtil.getFieldTypeList(newJoinRel.getRowType())));
 
     call.transformTo(relBuilder.build());
   }

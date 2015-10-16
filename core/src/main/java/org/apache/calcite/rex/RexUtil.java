@@ -1147,6 +1147,13 @@ public class RexUtil {
     return new CnfHelper(rexBuilder).pull(node);
   }
 
+  @Deprecated // to be removed before 2.0
+  public static List<RexNode> fixUp(final RexBuilder rexBuilder,
+      List<RexNode> nodes, final RelDataType rowType) {
+    final List<RelDataType> typeList = RelOptUtil.getFieldTypeList(rowType);
+    return fixUp(rexBuilder, nodes, typeList);
+  }
+
   /** Fixes up the type of all {@link RexInputRef}s in an
    * expression to match differences in nullability.
    *
@@ -1155,25 +1162,8 @@ public class RexUtil {
    *
    * <p>Throws if there any greater inconsistencies of type. */
   public static List<RexNode> fixUp(final RexBuilder rexBuilder,
-      List<RexNode> nodes, final RelDataType rowType) {
-    final List<RelDataType> typeList = RelOptUtil.getFieldTypeList(rowType);
-    return new RexShuttle() {
-      @Override public RexNode visitInputRef(RexInputRef ref) {
-        final RelDataType rightType = typeList.get(ref.getIndex());
-        final RelDataType refType = ref.getType();
-        if (refType == rightType) {
-          return ref;
-        }
-        final RelDataType refType2 =
-            rexBuilder.getTypeFactory().createTypeWithNullability(refType,
-                rightType.isNullable());
-        if (refType2 == rightType) {
-          return new RexInputRef(ref.getIndex(), refType2);
-        }
-        throw new AssertionError("mismatched type " + ref + " " + rightType);
-      }
-      // CHECKSTYLE: IGNORE 1
-    }.apply(nodes);
+      List<RexNode> nodes, final List<RelDataType> fieldTypes) {
+    return new FixNullabilityShuttle(rexBuilder, fieldTypes).apply(nodes);
   }
 
   /** Transforms a list of expressions into a list of their types. */
@@ -1859,6 +1849,34 @@ public class RexUtil {
 
     @Override public Void visitCorrelVariable(RexCorrelVariable var) {
       throw Util.FoundOne.NULL;
+    }
+  }
+
+  /** Shuttle that fixes up an expression to match changes in nullability of
+   * input fields. */
+  public static class FixNullabilityShuttle extends RexShuttle {
+    private final List<RelDataType> typeList;
+    private final RexBuilder rexBuilder;
+
+    public FixNullabilityShuttle(RexBuilder rexBuilder,
+        List<RelDataType> typeList) {
+      this.typeList = typeList;
+      this.rexBuilder = rexBuilder;
+    }
+
+    @Override public RexNode visitInputRef(RexInputRef ref) {
+      final RelDataType rightType = typeList.get(ref.getIndex());
+      final RelDataType refType = ref.getType();
+      if (refType == rightType) {
+        return ref;
+      }
+      final RelDataType refType2 =
+          rexBuilder.getTypeFactory().createTypeWithNullability(refType,
+              rightType.isNullable());
+      if (refType2 == rightType) {
+        return new RexInputRef(ref.getIndex(), refType2);
+      }
+      throw new AssertionError("mismatched type " + ref + " " + rightType);
     }
   }
 }
