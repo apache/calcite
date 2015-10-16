@@ -30,13 +30,18 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.trace.CalciteLogger;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Checks whether one condition logically implies another.
@@ -50,6 +55,9 @@ import java.util.Map;
  * </ul>
  */
 public class RexImplicationChecker {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(Logger.getLogger(RexImplicationChecker.class.getName()));
+
   final RexBuilder builder;
   final RexExecutorImpl executor;
   final RelDataType rowType;
@@ -80,6 +88,8 @@ public class RexImplicationChecker {
     if (!validate(first, second)) {
       return false;
     }
+
+    LOGGER.fine("Checking if " + first.toString() + " => " + second.toString());
 
     RexCall firstCond = (RexCall) first;
     RexCall secondCond = (RexCall) second;
@@ -130,11 +140,13 @@ public class RexImplicationChecker {
         // If f could not imply even one conjunction in
         // secondDnfs, then final implication may be false
         if (!implyOneConjunction) {
+          LOGGER.fine(first + " doesnot imply " + second);
           return false;
         }
       }
     }
 
+    LOGGER.fine(first + " implies " + second);
     return true;
   }
 
@@ -148,28 +160,51 @@ public class RexImplicationChecker {
 
     // Check Support
     if (!checkSupport(firstUsageFinder, secondUsageFinder)) {
+      LOGGER.warning("Support for checking " + first
+          + " => " + second + " is not there");
       return false;
     }
 
-    List<Pair<RexInputRef, RexNode>> usageList = new ArrayList<>();
+    ImmutableList.Builder<Set<Pair<RexInputRef, RexNode>>> usagesBuilder =
+        ImmutableList.builder();
     for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
         : firstUsageFinder.usageMap.entrySet()) {
-      final Pair<SqlOperator, RexNode> pair = entry.getValue().usageList.get(0);
-      usageList.add(Pair.of(entry.getKey(), pair.getValue()));
+      ImmutableSet.Builder<Pair<RexInputRef, RexNode>> usageBuilder =
+          ImmutableSet.builder();
+      if (entry.getValue().usageList.size() > 0) {
+        for (final Pair<SqlOperator, RexNode> pair
+            : entry.getValue().usageList) {
+          usageBuilder.add(Pair.of(entry.getKey(), pair.getValue()));
+        }
+        usagesBuilder.add(usageBuilder.build());
+      }
     }
 
-    // Get the literals from first conjunction and executes second conjunction
-    // using them.
-    //
-    // E.g., for
-    //   x > 30 &rArr; x > 10,
-    // we will replace x by 30 in second expression and execute it i.e.,
-    //   30 > 10
-    //
-    // If it's true then we infer implication.
-    final DataContext dataValues =
-        VisitorDataContext.of(rowType, usageList);
+    final Set<List<Pair<RexInputRef, RexNode>>> usages =
+        Sets.cartesianProduct(usagesBuilder.build());
 
+    for (List usageList : usages) {
+      // Get the literals from first conjunction and executes second conjunction
+      // using them.
+      //
+      // E.g., for
+      //   x > 30 &rArr; x > 10,
+      // we will replace x by 30 in second expression and execute it i.e.,
+      //   30 > 10
+      //
+      // If it's true then we infer implication.
+      final DataContext dataValues =
+          VisitorDataContext.of(rowType, usageList);
+
+      if (!isSatisfiable(second, dataValues)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private boolean isSatisfiable(RexNode second, DataContext dataValues) {
     if (dataValues == null) {
       return false;
     }
@@ -185,6 +220,7 @@ public class RexImplicationChecker {
     } catch (Exception e) {
       // TODO: CheckSupport should not allow this exception to be thrown
       // Need to monitor it and handle all the cases raising them.
+      LOGGER.warning("Exception thrown while checking if => " + second + ": " + e.getMessage());
       return false;
     }
     return result != null
@@ -215,6 +251,10 @@ public class RexImplicationChecker {
    *    <li>(=) X (>, >=, <, <=, =, !=)
    *    <li>(!=, =)
    * </ul>
+   *
+   * <li>We support utmost 2 operators to be be used for a variable in first
+   * and second usages
+   *
    * </ol>
    *
    * @return whether input usage pattern is supported
@@ -227,52 +267,100 @@ public class RexImplicationChecker {
         secondUsageFinder.usageMap;
 
     for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
-        : firstUsageMap.entrySet()) {
-      if (entry.getValue().usageCount > 1) {
-        return false;
-      }
-    }
-
-    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
         : secondUsageMap.entrySet()) {
       final InputRefUsage<SqlOperator, RexNode> secondUsage = entry.getValue();
-      if (secondUsage.usageCount > 1
-          || secondUsage.usageList.size() != 1) {
+      final List<Pair<SqlOperator, RexNode>> secondUsageList = secondUsage.usageList;
+      final int secondLen = secondUsageList.size();
+
+      if (secondUsage.usageCount != secondLen || secondLen > 2) {
         return false;
       }
 
       final InputRefUsage<SqlOperator, RexNode> firstUsage =
           firstUsageMap.get(entry.getKey());
+
       if (firstUsage == null
-          || firstUsage.usageList.size() != 1) {
+          || firstUsage.usageList.size() != firstUsage.usageCount
+          || firstUsage.usageCount > 2) {
         return false;
       }
 
-      final Pair<SqlOperator, RexNode> fUse = firstUsage.usageList.get(0);
-      final Pair<SqlOperator, RexNode> sUse = secondUsage.usageList.get(0);
+      final List<Pair<SqlOperator, RexNode>> firstUsageList = firstUsage.usageList;
+      final int firstLen = firstUsageList.size();
 
-      final SqlKind fKind = fUse.getKey().getKind();
+      final SqlKind fKind = firstUsageList.get(0).getKey().getKind();
+      final SqlKind sKind = secondUsageList.get(0).getKey().getKind();
+      final SqlKind fKind2 =
+          (firstUsageList.size() == 2) ? firstUsageList.get(1).getKey().getKind() : null;
+      final SqlKind sKind2 =
+          (secondUsageList.size() == 2) ? secondUsageList.get(1).getKey().getKind() : null;
 
-      if (fKind != SqlKind.EQUALS) {
-        switch (sUse.getKey().getKind()) {
-        case GREATER_THAN:
-        case GREATER_THAN_OR_EQUAL:
-          if (!(fKind == SqlKind.GREATER_THAN)
-              && !(fKind == SqlKind.GREATER_THAN_OR_EQUAL)) {
-            return false;
-          }
-          break;
-        case LESS_THAN:
-        case LESS_THAN_OR_EQUAL:
-          if (!(fKind == SqlKind.LESS_THAN)
-              && !(fKind == SqlKind.LESS_THAN_OR_EQUAL)) {
-            return false;
-          }
-          break;
-        default:
+      if (firstLen == 2 && secondLen == 2
+          && !(isEquivalentOp(fKind, sKind) && isEquivalentOp(fKind2, sKind2))
+          && !(isEquivalentOp(fKind, sKind2) && isEquivalentOp(fKind2, sKind))) {
+        return false;
+      } else if (firstLen == 1 && secondLen == 1
+          && fKind != SqlKind.EQUALS && !isEquivalentOp(fKind, sKind)) {
+        return false;
+      } else if (firstLen == 1 && secondLen == 2 && fKind != SqlKind.EQUALS) {
+        return false;
+      } else if (firstLen == 2 && secondLen == 1) {
+        // Allow only cases like
+        // x < 30 and x < 40 implies x < 70
+        // x > 30 and x < 40 implies x < 70
+        // But disallow cases like
+        // x > 30 and x > 40 implies x < 70
+        if (!isOppositeOp(fKind, fKind2)
+            && !(isEquivalentOp(fKind, fKind2) && isEquivalentOp(fKind, sKind))) {
           return false;
         }
       }
+    }
+
+    return true;
+  }
+
+  private boolean isEquivalentOp(SqlKind fKind, SqlKind sKind) {
+    switch (sKind) {
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+      if (!(fKind == SqlKind.GREATER_THAN)
+          && !(fKind == SqlKind.GREATER_THAN_OR_EQUAL)) {
+        return false;
+      }
+      break;
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+      if (!(fKind == SqlKind.LESS_THAN)
+          && !(fKind == SqlKind.LESS_THAN_OR_EQUAL)) {
+        return false;
+      }
+      break;
+    default:
+      return false;
+    }
+
+    return true;
+  }
+
+  private boolean isOppositeOp(SqlKind fKind, SqlKind sKind) {
+    switch (sKind) {
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+      if (!(fKind == SqlKind.LESS_THAN)
+          && !(fKind == SqlKind.LESS_THAN_OR_EQUAL)) {
+        return false;
+      }
+      break;
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+      if (!(fKind == SqlKind.GREATER_THAN)
+          && !(fKind == SqlKind.GREATER_THAN_OR_EQUAL)) {
+        return false;
+      }
+      break;
+    default:
+      return false;
     }
     return true;
   }
