@@ -50,7 +50,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:CatalogsRequest)
       CatalogsRequestOrBuilder {
     // Use CatalogsRequest.newBuilder() to construct.
-    private CatalogsRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private CatalogsRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private CatalogsRequest() {
@@ -64,8 +64,7 @@ package org.apache.calcite.avatica.proto;
     }
     private CatalogsRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -83,18 +82,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -111,23 +111,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.CatalogsRequest.class, org.apache.calcite.avatica.proto.Requests.CatalogsRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<CatalogsRequest> PARSER =
-        new com.google.protobuf.AbstractParser<CatalogsRequest>() {
-      public CatalogsRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new CatalogsRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<CatalogsRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -139,9 +124,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -174,23 +157,20 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -248,12 +228,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CatalogsRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CatalogsRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -380,9 +365,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -434,7 +417,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -454,16 +438,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:CatalogsRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.CatalogsRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.CatalogsRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.CatalogsRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.CatalogsRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.CatalogsRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<CatalogsRequest>
+        PARSER = new com.google.protobuf.AbstractParser<CatalogsRequest>() {
+      public CatalogsRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new CatalogsRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<CatalogsRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<CatalogsRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.CatalogsRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -494,7 +507,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:DatabasePropertyRequest)
       DatabasePropertyRequestOrBuilder {
     // Use DatabasePropertyRequest.newBuilder() to construct.
-    private DatabasePropertyRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private DatabasePropertyRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private DatabasePropertyRequest() {
@@ -508,8 +521,7 @@ package org.apache.calcite.avatica.proto;
     }
     private DatabasePropertyRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -527,18 +539,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -555,23 +568,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest.class, org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<DatabasePropertyRequest> PARSER =
-        new com.google.protobuf.AbstractParser<DatabasePropertyRequest>() {
-      public DatabasePropertyRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new DatabasePropertyRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<DatabasePropertyRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -583,9 +581,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -618,23 +614,20 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -692,12 +685,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -824,9 +822,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -878,7 +874,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -898,16 +895,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:DatabasePropertyRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<DatabasePropertyRequest>
+        PARSER = new com.google.protobuf.AbstractParser<DatabasePropertyRequest>() {
+      public DatabasePropertyRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new DatabasePropertyRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<DatabasePropertyRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<DatabasePropertyRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -958,7 +984,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:SchemasRequest)
       SchemasRequestOrBuilder {
     // Use SchemasRequest.newBuilder() to construct.
-    private SchemasRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private SchemasRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private SchemasRequest() {
@@ -974,8 +1000,7 @@ package org.apache.calcite.avatica.proto;
     }
     private SchemasRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -993,30 +1018,31 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              catalog_ = bs;
+              catalog_ = s;
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              schemaPattern_ = bs;
+              schemaPattern_ = s;
               break;
             }
             case 26: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -1033,23 +1059,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.SchemasRequest.class, org.apache.calcite.avatica.proto.Requests.SchemasRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<SchemasRequest> PARSER =
-        new com.google.protobuf.AbstractParser<SchemasRequest>() {
-      public SchemasRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new SchemasRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<SchemasRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CATALOG_FIELD_NUMBER = 1;
-    private java.lang.Object catalog_;
+    private volatile java.lang.Object catalog_;
     /**
      * <code>optional string catalog = 1;</code>
      */
@@ -1061,9 +1072,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          catalog_ = s;
-        }
+        catalog_ = s;
         return s;
       }
     }
@@ -1085,7 +1094,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int SCHEMA_PATTERN_FIELD_NUMBER = 2;
-    private java.lang.Object schemaPattern_;
+    private volatile java.lang.Object schemaPattern_;
     /**
      * <code>optional string schema_pattern = 2;</code>
      */
@@ -1097,9 +1106,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          schemaPattern_ = s;
-        }
+        schemaPattern_ = s;
         return s;
       }
     }
@@ -1121,7 +1128,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int CONNECTION_ID_FIELD_NUMBER = 3;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 3;</code>
      */
@@ -1133,9 +1140,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -1168,37 +1173,32 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getCatalogBytes().isEmpty()) {
-        output.writeBytes(1, getCatalogBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, catalog_);
       }
       if (!getSchemaPatternBytes().isEmpty()) {
-        output.writeBytes(2, getSchemaPatternBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 2, schemaPattern_);
       }
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(3, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 3, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getCatalogBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getCatalogBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, catalog_);
       }
       if (!getSchemaPatternBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getSchemaPatternBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, schemaPattern_);
       }
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(3, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -1256,12 +1256,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.SchemasRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.SchemasRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -1402,9 +1407,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            catalog_ = s;
-          }
+          catalog_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -1456,7 +1459,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         catalog_ = value;
         onChanged();
         return this;
@@ -1472,9 +1476,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            schemaPattern_ = s;
-          }
+          schemaPattern_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -1526,7 +1528,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -1542,9 +1545,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -1596,7 +1597,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -1616,16 +1618,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:SchemasRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.SchemasRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.SchemasRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.SchemasRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.SchemasRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.SchemasRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<SchemasRequest>
+        PARSER = new com.google.protobuf.AbstractParser<SchemasRequest>() {
+      public SchemasRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new SchemasRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<SchemasRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<SchemasRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.SchemasRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -1715,7 +1746,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:TablesRequest)
       TablesRequestOrBuilder {
     // Use TablesRequest.newBuilder() to construct.
-    private TablesRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private TablesRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private TablesRequest() {
@@ -1734,8 +1765,7 @@ package org.apache.calcite.avatica.proto;
     }
     private TablesRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -1753,30 +1783,30 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              catalog_ = bs;
+              catalog_ = s;
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              schemaPattern_ = bs;
+              schemaPattern_ = s;
               break;
             }
             case 26: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              tableNamePattern_ = bs;
+              tableNamePattern_ = s;
               break;
             }
             case 34: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
               if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
                 typeList_ = new com.google.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000008;
               }
-              typeList_.add(bs);
+              typeList_.add(s);
               break;
             }
             case 48: {
@@ -1785,18 +1815,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 58: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
           typeList_ = typeList_.getUnmodifiableView();
@@ -1816,24 +1847,9 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.TablesRequest.class, org.apache.calcite.avatica.proto.Requests.TablesRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<TablesRequest> PARSER =
-        new com.google.protobuf.AbstractParser<TablesRequest>() {
-      public TablesRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new TablesRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<TablesRequest> getParserForType() {
-      return PARSER;
-    }
-
     private int bitField0_;
     public static final int CATALOG_FIELD_NUMBER = 1;
-    private java.lang.Object catalog_;
+    private volatile java.lang.Object catalog_;
     /**
      * <code>optional string catalog = 1;</code>
      */
@@ -1845,9 +1861,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          catalog_ = s;
-        }
+        catalog_ = s;
         return s;
       }
     }
@@ -1869,7 +1883,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int SCHEMA_PATTERN_FIELD_NUMBER = 2;
-    private java.lang.Object schemaPattern_;
+    private volatile java.lang.Object schemaPattern_;
     /**
      * <code>optional string schema_pattern = 2;</code>
      */
@@ -1881,9 +1895,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          schemaPattern_ = s;
-        }
+        schemaPattern_ = s;
         return s;
       }
     }
@@ -1905,7 +1917,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int TABLE_NAME_PATTERN_FIELD_NUMBER = 3;
-    private java.lang.Object tableNamePattern_;
+    private volatile java.lang.Object tableNamePattern_;
     /**
      * <code>optional string table_name_pattern = 3;</code>
      */
@@ -1917,9 +1929,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          tableNamePattern_ = s;
-        }
+        tableNamePattern_ = s;
         return s;
       }
     }
@@ -1983,7 +1993,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int CONNECTION_ID_FIELD_NUMBER = 7;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 7;</code>
      */
@@ -1995,9 +2005,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -2030,50 +2038,44 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getCatalogBytes().isEmpty()) {
-        output.writeBytes(1, getCatalogBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, catalog_);
       }
       if (!getSchemaPatternBytes().isEmpty()) {
-        output.writeBytes(2, getSchemaPatternBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 2, schemaPattern_);
       }
       if (!getTableNamePatternBytes().isEmpty()) {
-        output.writeBytes(3, getTableNamePatternBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 3, tableNamePattern_);
       }
       for (int i = 0; i < typeList_.size(); i++) {
-        output.writeBytes(4, typeList_.getByteString(i));
+        com.google.protobuf.GeneratedMessage.writeString(output, 4, typeList_.getRaw(i));
       }
       if (hasTypeList_ != false) {
         output.writeBool(6, hasTypeList_);
       }
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(7, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 7, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getCatalogBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getCatalogBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, catalog_);
       }
       if (!getSchemaPatternBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getSchemaPatternBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, schemaPattern_);
       }
       if (!getTableNamePatternBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, getTableNamePatternBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(3, tableNamePattern_);
       }
       {
         int dataSize = 0;
         for (int i = 0; i < typeList_.size(); i++) {
-          dataSize += com.google.protobuf.CodedOutputStream
-            .computeBytesSizeNoTag(typeList_.getByteString(i));
+          dataSize += computeStringSizeNoTag(typeList_.getRaw(i));
         }
         size += dataSize;
         size += 1 * getTypeListList().size();
@@ -2083,10 +2085,9 @@ package org.apache.calcite.avatica.proto;
           .computeBoolSize(6, hasTypeList_);
       }
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(7, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(7, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -2144,12 +2145,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.TablesRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.TablesRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -2325,9 +2331,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            catalog_ = s;
-          }
+          catalog_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -2379,7 +2383,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         catalog_ = value;
         onChanged();
         return this;
@@ -2395,9 +2400,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            schemaPattern_ = s;
-          }
+          schemaPattern_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -2449,7 +2452,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -2465,9 +2469,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            tableNamePattern_ = s;
-          }
+          tableNamePattern_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -2519,7 +2521,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         tableNamePattern_ = value;
         onChanged();
         return this;
@@ -2612,7 +2615,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  ensureTypeListIsMutable();
+  checkByteStringIsUtf8(value);
+        ensureTypeListIsMutable();
         typeList_.add(value);
         onChanged();
         return this;
@@ -2666,9 +2670,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -2720,7 +2722,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -2740,16 +2743,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:TablesRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.TablesRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.TablesRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.TablesRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.TablesRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.TablesRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<TablesRequest>
+        PARSER = new com.google.protobuf.AbstractParser<TablesRequest>() {
+      public TablesRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new TablesRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<TablesRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TablesRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.TablesRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -2780,7 +2812,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:TableTypesRequest)
       TableTypesRequestOrBuilder {
     // Use TableTypesRequest.newBuilder() to construct.
-    private TableTypesRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private TableTypesRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private TableTypesRequest() {
@@ -2794,8 +2826,7 @@ package org.apache.calcite.avatica.proto;
     }
     private TableTypesRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -2813,18 +2844,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -2841,23 +2873,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.TableTypesRequest.class, org.apache.calcite.avatica.proto.Requests.TableTypesRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<TableTypesRequest> PARSER =
-        new com.google.protobuf.AbstractParser<TableTypesRequest>() {
-      public TableTypesRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new TableTypesRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<TableTypesRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -2869,9 +2886,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -2904,23 +2919,20 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -2978,12 +2990,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.TableTypesRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.TableTypesRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -3110,9 +3127,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -3164,7 +3179,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -3184,16 +3200,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:TableTypesRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.TableTypesRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.TableTypesRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.TableTypesRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.TableTypesRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.TableTypesRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<TableTypesRequest>
+        PARSER = new com.google.protobuf.AbstractParser<TableTypesRequest>() {
+      public TableTypesRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new TableTypesRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<TableTypesRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TableTypesRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.TableTypesRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -3265,7 +3310,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:ColumnsRequest)
       ColumnsRequestOrBuilder {
     // Use ColumnsRequest.newBuilder() to construct.
-    private ColumnsRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private ColumnsRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private ColumnsRequest() {
@@ -3283,8 +3328,7 @@ package org.apache.calcite.avatica.proto;
     }
     private ColumnsRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -3302,42 +3346,43 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              catalog_ = bs;
+              catalog_ = s;
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              schemaPattern_ = bs;
+              schemaPattern_ = s;
               break;
             }
             case 26: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              tableNamePattern_ = bs;
+              tableNamePattern_ = s;
               break;
             }
             case 34: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              columnNamePattern_ = bs;
+              columnNamePattern_ = s;
               break;
             }
             case 42: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -3354,23 +3399,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.ColumnsRequest.class, org.apache.calcite.avatica.proto.Requests.ColumnsRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<ColumnsRequest> PARSER =
-        new com.google.protobuf.AbstractParser<ColumnsRequest>() {
-      public ColumnsRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new ColumnsRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<ColumnsRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CATALOG_FIELD_NUMBER = 1;
-    private java.lang.Object catalog_;
+    private volatile java.lang.Object catalog_;
     /**
      * <code>optional string catalog = 1;</code>
      */
@@ -3382,9 +3412,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          catalog_ = s;
-        }
+        catalog_ = s;
         return s;
       }
     }
@@ -3406,7 +3434,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int SCHEMA_PATTERN_FIELD_NUMBER = 2;
-    private java.lang.Object schemaPattern_;
+    private volatile java.lang.Object schemaPattern_;
     /**
      * <code>optional string schema_pattern = 2;</code>
      */
@@ -3418,9 +3446,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          schemaPattern_ = s;
-        }
+        schemaPattern_ = s;
         return s;
       }
     }
@@ -3442,7 +3468,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int TABLE_NAME_PATTERN_FIELD_NUMBER = 3;
-    private java.lang.Object tableNamePattern_;
+    private volatile java.lang.Object tableNamePattern_;
     /**
      * <code>optional string table_name_pattern = 3;</code>
      */
@@ -3454,9 +3480,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          tableNamePattern_ = s;
-        }
+        tableNamePattern_ = s;
         return s;
       }
     }
@@ -3478,7 +3502,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int COLUMN_NAME_PATTERN_FIELD_NUMBER = 4;
-    private java.lang.Object columnNamePattern_;
+    private volatile java.lang.Object columnNamePattern_;
     /**
      * <code>optional string column_name_pattern = 4;</code>
      */
@@ -3490,9 +3514,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          columnNamePattern_ = s;
-        }
+        columnNamePattern_ = s;
         return s;
       }
     }
@@ -3514,7 +3536,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int CONNECTION_ID_FIELD_NUMBER = 5;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 5;</code>
      */
@@ -3526,9 +3548,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -3561,51 +3581,44 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getCatalogBytes().isEmpty()) {
-        output.writeBytes(1, getCatalogBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, catalog_);
       }
       if (!getSchemaPatternBytes().isEmpty()) {
-        output.writeBytes(2, getSchemaPatternBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 2, schemaPattern_);
       }
       if (!getTableNamePatternBytes().isEmpty()) {
-        output.writeBytes(3, getTableNamePatternBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 3, tableNamePattern_);
       }
       if (!getColumnNamePatternBytes().isEmpty()) {
-        output.writeBytes(4, getColumnNamePatternBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 4, columnNamePattern_);
       }
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(5, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 5, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getCatalogBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getCatalogBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, catalog_);
       }
       if (!getSchemaPatternBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getSchemaPatternBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, schemaPattern_);
       }
       if (!getTableNamePatternBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, getTableNamePatternBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(3, tableNamePattern_);
       }
       if (!getColumnNamePatternBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(4, getColumnNamePatternBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(4, columnNamePattern_);
       }
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(5, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -3663,12 +3676,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.ColumnsRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.ColumnsRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -3824,9 +3842,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            catalog_ = s;
-          }
+          catalog_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -3878,7 +3894,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         catalog_ = value;
         onChanged();
         return this;
@@ -3894,9 +3911,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            schemaPattern_ = s;
-          }
+          schemaPattern_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -3948,7 +3963,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -3964,9 +3980,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            tableNamePattern_ = s;
-          }
+          tableNamePattern_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -4018,7 +4032,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         tableNamePattern_ = value;
         onChanged();
         return this;
@@ -4034,9 +4049,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            columnNamePattern_ = s;
-          }
+          columnNamePattern_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -4088,7 +4101,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         columnNamePattern_ = value;
         onChanged();
         return this;
@@ -4104,9 +4118,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -4158,7 +4170,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -4178,16 +4191,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:ColumnsRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.ColumnsRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.ColumnsRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.ColumnsRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.ColumnsRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.ColumnsRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<ColumnsRequest>
+        PARSER = new com.google.protobuf.AbstractParser<ColumnsRequest>() {
+      public ColumnsRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new ColumnsRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<ColumnsRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ColumnsRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.ColumnsRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -4218,7 +4260,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:TypeInfoRequest)
       TypeInfoRequestOrBuilder {
     // Use TypeInfoRequest.newBuilder() to construct.
-    private TypeInfoRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private TypeInfoRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private TypeInfoRequest() {
@@ -4232,8 +4274,7 @@ package org.apache.calcite.avatica.proto;
     }
     private TypeInfoRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -4251,18 +4292,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -4279,23 +4321,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.TypeInfoRequest.class, org.apache.calcite.avatica.proto.Requests.TypeInfoRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<TypeInfoRequest> PARSER =
-        new com.google.protobuf.AbstractParser<TypeInfoRequest>() {
-      public TypeInfoRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new TypeInfoRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<TypeInfoRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -4307,9 +4334,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -4342,23 +4367,20 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -4416,12 +4438,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.TypeInfoRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.TypeInfoRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -4548,9 +4575,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -4602,7 +4627,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -4622,16 +4648,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:TypeInfoRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.TypeInfoRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.TypeInfoRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.TypeInfoRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.TypeInfoRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.TypeInfoRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<TypeInfoRequest>
+        PARSER = new com.google.protobuf.AbstractParser<TypeInfoRequest>() {
+      public TypeInfoRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new TypeInfoRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<TypeInfoRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TypeInfoRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.TypeInfoRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -4682,7 +4737,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:PrepareAndExecuteRequest)
       PrepareAndExecuteRequestOrBuilder {
     // Use PrepareAndExecuteRequest.newBuilder() to construct.
-    private PrepareAndExecuteRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private PrepareAndExecuteRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private PrepareAndExecuteRequest() {
@@ -4699,8 +4754,7 @@ package org.apache.calcite.avatica.proto;
     }
     private PrepareAndExecuteRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -4718,15 +4772,15 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              sql_ = bs;
+              sql_ = s;
               break;
             }
             case 24: {
@@ -4742,10 +4796,11 @@ package org.apache.calcite.avatica.proto;
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -4762,23 +4817,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest.class, org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<PrepareAndExecuteRequest> PARSER =
-        new com.google.protobuf.AbstractParser<PrepareAndExecuteRequest>() {
-      public PrepareAndExecuteRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new PrepareAndExecuteRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<PrepareAndExecuteRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -4790,9 +4830,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -4814,7 +4852,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int SQL_FIELD_NUMBER = 2;
-    private java.lang.Object sql_;
+    private volatile java.lang.Object sql_;
     /**
      * <code>optional string sql = 2;</code>
      */
@@ -4826,9 +4864,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          sql_ = s;
-        }
+        sql_ = s;
         return s;
       }
     }
@@ -4879,12 +4915,11 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
       if (!getSqlBytes().isEmpty()) {
-        output.writeBytes(2, getSqlBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 2, sql_);
       }
       if (maxRowCount_ != 0L) {
         output.writeUInt64(3, maxRowCount_);
@@ -4894,19 +4929,16 @@ package org.apache.calcite.avatica.proto;
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
       if (!getSqlBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getSqlBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, sql_);
       }
       if (maxRowCount_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
@@ -4916,7 +4948,7 @@ package org.apache.calcite.avatica.proto;
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(4, statementId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -4974,12 +5006,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -5125,9 +5162,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -5179,7 +5214,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -5195,9 +5231,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            sql_ = s;
-          }
+          sql_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -5249,7 +5283,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         sql_ = value;
         onChanged();
         return this;
@@ -5321,16 +5356,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:PrepareAndExecuteRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<PrepareAndExecuteRequest>
+        PARSER = new com.google.protobuf.AbstractParser<PrepareAndExecuteRequest>() {
+      public PrepareAndExecuteRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new PrepareAndExecuteRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<PrepareAndExecuteRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<PrepareAndExecuteRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -5376,7 +5440,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:PrepareRequest)
       PrepareRequestOrBuilder {
     // Use PrepareRequest.newBuilder() to construct.
-    private PrepareRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private PrepareRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private PrepareRequest() {
@@ -5392,8 +5456,7 @@ package org.apache.calcite.avatica.proto;
     }
     private PrepareRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -5411,15 +5474,15 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              sql_ = bs;
+              sql_ = s;
               break;
             }
             case 24: {
@@ -5430,10 +5493,11 @@ package org.apache.calcite.avatica.proto;
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -5450,23 +5514,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.PrepareRequest.class, org.apache.calcite.avatica.proto.Requests.PrepareRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<PrepareRequest> PARSER =
-        new com.google.protobuf.AbstractParser<PrepareRequest>() {
-      public PrepareRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new PrepareRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<PrepareRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -5478,9 +5527,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -5502,7 +5549,7 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int SQL_FIELD_NUMBER = 2;
-    private java.lang.Object sql_;
+    private volatile java.lang.Object sql_;
     /**
      * <code>optional string sql = 2;</code>
      */
@@ -5514,9 +5561,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          sql_ = s;
-        }
+        sql_ = s;
         return s;
       }
     }
@@ -5558,37 +5603,33 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
       if (!getSqlBytes().isEmpty()) {
-        output.writeBytes(2, getSqlBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 2, sql_);
       }
       if (maxRowCount_ != 0L) {
         output.writeUInt64(3, maxRowCount_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
       if (!getSqlBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getSqlBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, sql_);
       }
       if (maxRowCount_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt64Size(3, maxRowCount_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -5646,12 +5687,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.PrepareRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.PrepareRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -5791,9 +5837,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -5845,7 +5889,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -5861,9 +5906,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            sql_ = s;
-          }
+          sql_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -5915,7 +5958,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         sql_ = value;
         onChanged();
         return this;
@@ -5961,16 +6005,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:PrepareRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.PrepareRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.PrepareRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.PrepareRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.PrepareRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.PrepareRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<PrepareRequest>
+        PARSER = new com.google.protobuf.AbstractParser<PrepareRequest>() {
+      public PrepareRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new PrepareRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<PrepareRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<PrepareRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.PrepareRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -6020,7 +6093,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:FetchRequest)
       FetchRequestOrBuilder {
     // Use FetchRequest.newBuilder() to construct.
-    private FetchRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private FetchRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private FetchRequest() {
@@ -6037,8 +6110,7 @@ package org.apache.calcite.avatica.proto;
     }
     private FetchRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -6056,9 +6128,9 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
             case 16: {
@@ -6079,10 +6151,11 @@ package org.apache.calcite.avatica.proto;
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -6099,23 +6172,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.FetchRequest.class, org.apache.calcite.avatica.proto.Requests.FetchRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<FetchRequest> PARSER =
-        new com.google.protobuf.AbstractParser<FetchRequest>() {
-      public FetchRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new FetchRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<FetchRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -6127,9 +6185,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -6193,9 +6249,8 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
       if (statementId_ != 0) {
         output.writeUInt32(2, statementId_);
@@ -6208,15 +6263,13 @@ package org.apache.calcite.avatica.proto;
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
       if (statementId_ != 0) {
         size += com.google.protobuf.CodedOutputStream
@@ -6230,7 +6283,7 @@ package org.apache.calcite.avatica.proto;
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(4, fetchMaxRowCount_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -6288,12 +6341,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.FetchRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.FetchRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -6438,9 +6496,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6492,7 +6548,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -6602,16 +6659,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:FetchRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.FetchRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.FetchRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.FetchRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.FetchRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.FetchRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<FetchRequest>
+        PARSER = new com.google.protobuf.AbstractParser<FetchRequest>() {
+      public FetchRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new FetchRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<FetchRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<FetchRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.FetchRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -6642,7 +6728,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:CreateStatementRequest)
       CreateStatementRequestOrBuilder {
     // Use CreateStatementRequest.newBuilder() to construct.
-    private CreateStatementRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private CreateStatementRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private CreateStatementRequest() {
@@ -6656,8 +6742,7 @@ package org.apache.calcite.avatica.proto;
     }
     private CreateStatementRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -6675,18 +6760,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -6703,23 +6789,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.CreateStatementRequest.class, org.apache.calcite.avatica.proto.Requests.CreateStatementRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<CreateStatementRequest> PARSER =
-        new com.google.protobuf.AbstractParser<CreateStatementRequest>() {
-      public CreateStatementRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new CreateStatementRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<CreateStatementRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -6731,9 +6802,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -6766,23 +6835,20 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -6840,12 +6906,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CreateStatementRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CreateStatementRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -6972,9 +7043,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -7026,7 +7095,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -7046,16 +7116,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:CreateStatementRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.CreateStatementRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.CreateStatementRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.CreateStatementRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.CreateStatementRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.CreateStatementRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<CreateStatementRequest>
+        PARSER = new com.google.protobuf.AbstractParser<CreateStatementRequest>() {
+      public CreateStatementRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new CreateStatementRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<CreateStatementRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<CreateStatementRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.CreateStatementRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -7091,7 +7190,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:CloseStatementRequest)
       CloseStatementRequestOrBuilder {
     // Use CloseStatementRequest.newBuilder() to construct.
-    private CloseStatementRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private CloseStatementRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private CloseStatementRequest() {
@@ -7106,8 +7205,7 @@ package org.apache.calcite.avatica.proto;
     }
     private CloseStatementRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -7125,9 +7223,9 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
             case 16: {
@@ -7138,10 +7236,11 @@ package org.apache.calcite.avatica.proto;
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -7158,23 +7257,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.CloseStatementRequest.class, org.apache.calcite.avatica.proto.Requests.CloseStatementRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<CloseStatementRequest> PARSER =
-        new com.google.protobuf.AbstractParser<CloseStatementRequest>() {
-      public CloseStatementRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new CloseStatementRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<CloseStatementRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -7186,9 +7270,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -7230,30 +7312,27 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
       if (statementId_ != 0) {
         output.writeUInt32(2, statementId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
       if (statementId_ != 0) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(2, statementId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -7311,12 +7390,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CloseStatementRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CloseStatementRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -7449,9 +7533,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -7503,7 +7585,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -7549,16 +7632,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:CloseStatementRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.CloseStatementRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.CloseStatementRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.CloseStatementRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.CloseStatementRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.CloseStatementRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<CloseStatementRequest>
+        PARSER = new com.google.protobuf.AbstractParser<CloseStatementRequest>() {
+      public CloseStatementRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new CloseStatementRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<CloseStatementRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<CloseStatementRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.CloseStatementRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -7595,7 +7707,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:OpenConnectionRequest)
       OpenConnectionRequestOrBuilder {
     // Use OpenConnectionRequest.newBuilder() to construct.
-    private OpenConnectionRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private OpenConnectionRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private OpenConnectionRequest() {
@@ -7609,8 +7721,7 @@ package org.apache.calcite.avatica.proto;
     }
     private OpenConnectionRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -7628,30 +7739,31 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
             case 18: {
               if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
                 info_ = com.google.protobuf.MapField.newMapField(
-                    infoDefaultEntry);
+                    InfoDefaultEntryHolder.defaultEntry);
                 mutable_bitField0_ |= 0x00000002;
               }
               com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
               info = input.readMessage(
-                  infoDefaultEntry.getParserForType(), extensionRegistry);
+                  InfoDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               info_.getMutableMap().put(info.getKey(), info.getValue());
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -7666,7 +7778,7 @@ package org.apache.calcite.avatica.proto;
         int number) {
       switch (number) {
         case 2:
-          return info_;
+          return internalGetInfo();
         default:
           throw new RuntimeException(
               "Invalid map field number: " + number);
@@ -7679,24 +7791,9 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest.class, org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<OpenConnectionRequest> PARSER =
-        new com.google.protobuf.AbstractParser<OpenConnectionRequest>() {
-      public OpenConnectionRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new OpenConnectionRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<OpenConnectionRequest> getParserForType() {
-      return PARSER;
-    }
-
     private int bitField0_;
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -7708,9 +7805,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -7732,26 +7827,33 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int INFO_FIELD_NUMBER = 2;
-    private static final com.google.protobuf.MapEntry<
-        java.lang.String, java.lang.String> infoDefaultEntry =
-            com.google.protobuf.MapEntry
-            .<java.lang.String, java.lang.String>newDefaultInstance(
-                org.apache.calcite.avatica.proto.Requests.internal_static_OpenConnectionRequest_InfoEntry_descriptor, 
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "",
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "");
+    private static final class InfoDefaultEntryHolder {
+      static final com.google.protobuf.MapEntry<
+          java.lang.String, java.lang.String> defaultEntry =
+              com.google.protobuf.MapEntry
+              .<java.lang.String, java.lang.String>newDefaultInstance(
+                  org.apache.calcite.avatica.proto.Requests.internal_static_OpenConnectionRequest_InfoEntry_descriptor, 
+                  com.google.protobuf.WireFormat.FieldType.STRING,
+                  "",
+                  com.google.protobuf.WireFormat.FieldType.STRING,
+                  "");
+    }
     private com.google.protobuf.MapField<
-        java.lang.String, java.lang.String> info_ =
-            com.google.protobuf.MapField.emptyMapField(
-                infoDefaultEntry);
-
+        java.lang.String, java.lang.String> info_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+    internalGetInfo() {
+      if (info_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            InfoDefaultEntryHolder.defaultEntry);
+     }
+      return info_;
+    }
     /**
      * <code>map&lt;string, string&gt; info = 2;</code>
      */
 
     public java.util.Map<java.lang.String, java.lang.String> getInfo() {
-      return info_.getMap();
+      return internalGetInfo().getMap();
     }
 
     private byte memoizedIsInitialized = -1;
@@ -7766,14 +7868,13 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
       for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
-           : info_.getMap().entrySet()) {
+           : internalGetInfo().getMap().entrySet()) {
         com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-        info = infoDefaultEntry.newBuilderForType()
+        info = InfoDefaultEntryHolder.defaultEntry.newBuilderForType()
             .setKey(entry.getKey())
             .setValue(entry.getValue())
             .build();
@@ -7781,27 +7882,25 @@ package org.apache.calcite.avatica.proto;
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
       for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
-           : info_.getMap().entrySet()) {
+           : internalGetInfo().getMap().entrySet()) {
         com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-        info = infoDefaultEntry.newBuilderForType()
+        info = InfoDefaultEntryHolder.defaultEntry.newBuilderForType()
             .setKey(entry.getKey())
             .setValue(entry.getValue())
             .build();
         size += com.google.protobuf.CodedOutputStream
             .computeMessageSize(2, info);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -7859,12 +7958,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -7893,7 +7997,18 @@ package org.apache.calcite.avatica.proto;
           int number) {
         switch (number) {
           case 2:
-            return info_;
+            return internalGetInfo();
+          default:
+            throw new RuntimeException(
+                "Invalid map field number: " + number);
+        }
+      }
+      @SuppressWarnings({"rawtypes"})
+      protected com.google.protobuf.MapField internalGetMutableMapField(
+          int number) {
+        switch (number) {
+          case 2:
+            return internalGetMutableInfo();
           default:
             throw new RuntimeException(
                 "Invalid map field number: " + number);
@@ -7924,7 +8039,7 @@ package org.apache.calcite.avatica.proto;
         super.clear();
         connectionId_ = "";
 
-        info_.clear();
+        internalGetMutableInfo().clear();
         return this;
       }
 
@@ -7950,7 +8065,8 @@ package org.apache.calcite.avatica.proto;
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         result.connectionId_ = connectionId_;
-        result.info_ = info_.copy();
+        result.info_ = internalGetInfo();
+        result.info_.makeImmutable();
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -7971,7 +8087,8 @@ package org.apache.calcite.avatica.proto;
           connectionId_ = other.connectionId_;
           onChanged();
         }
-        info_.mergeFrom(other.info_);
+        internalGetMutableInfo().mergeFrom(
+            other.internalGetInfo());
         onChanged();
         return this;
       }
@@ -8009,9 +8126,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8063,30 +8178,55 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
       }
 
       private com.google.protobuf.MapField<
-          java.lang.String, java.lang.String> info_ =
-              com.google.protobuf.MapField.newMapField(
-                  infoDefaultEntry);
-
+          java.lang.String, java.lang.String> info_;
+      private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+      internalGetInfo() {
+        if (info_ == null) {
+          return com.google.protobuf.MapField.emptyMapField(
+              InfoDefaultEntryHolder.defaultEntry);
+       }
+        return info_;
+      }
+      private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+      internalGetMutableInfo() {
+        onChanged();;
+        if (info_ == null) {
+          info_ = com.google.protobuf.MapField.newMapField(
+              InfoDefaultEntryHolder.defaultEntry);
+        }
+        if (!info_.isMutable()) {
+          info_ = info_.copy();
+        }
+        return info_;
+      }
       /**
        * <code>map&lt;string, string&gt; info = 2;</code>
        */
       public java.util.Map<java.lang.String, java.lang.String> getInfo() {
-        return info_.getMap();
+        return internalGetInfo().getMap();
       }
       /**
        * <code>map&lt;string, string&gt; info = 2;</code>
        */
       public java.util.Map<java.lang.String, java.lang.String>
       getMutableInfo() {
-        onChanged();
-        return info_.getMutableMap();
+        return internalGetMutableInfo().getMutableMap();
+      }
+      /**
+       * <code>map&lt;string, string&gt; info = 2;</code>
+       */
+      public Builder putAllInfo(
+          java.util.Map<java.lang.String, java.lang.String> values) {
+        getMutableInfo().putAll(values);
+        return this;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -8103,16 +8243,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:OpenConnectionRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<OpenConnectionRequest>
+        PARSER = new com.google.protobuf.AbstractParser<OpenConnectionRequest>() {
+      public OpenConnectionRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new OpenConnectionRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<OpenConnectionRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<OpenConnectionRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -8143,7 +8312,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:CloseConnectionRequest)
       CloseConnectionRequestOrBuilder {
     // Use CloseConnectionRequest.newBuilder() to construct.
-    private CloseConnectionRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private CloseConnectionRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private CloseConnectionRequest() {
@@ -8157,8 +8326,7 @@ package org.apache.calcite.avatica.proto;
     }
     private CloseConnectionRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -8176,18 +8344,19 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -8204,23 +8373,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest.class, org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<CloseConnectionRequest> PARSER =
-        new com.google.protobuf.AbstractParser<CloseConnectionRequest>() {
-      public CloseConnectionRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new CloseConnectionRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<CloseConnectionRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -8232,9 +8386,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -8267,23 +8419,20 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -8341,12 +8490,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -8473,9 +8627,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8527,7 +8679,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -8547,16 +8700,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:CloseConnectionRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<CloseConnectionRequest>
+        PARSER = new com.google.protobuf.AbstractParser<CloseConnectionRequest>() {
+      public CloseConnectionRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new CloseConnectionRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<CloseConnectionRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<CloseConnectionRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -8596,7 +8778,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:ConnectionSyncRequest)
       ConnectionSyncRequestOrBuilder {
     // Use ConnectionSyncRequest.newBuilder() to construct.
-    private ConnectionSyncRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private ConnectionSyncRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private ConnectionSyncRequest() {
@@ -8610,8 +8792,7 @@ package org.apache.calcite.avatica.proto;
     }
     private ConnectionSyncRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -8629,9 +8810,9 @@ package org.apache.calcite.avatica.proto;
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+              String s = input.readStringRequireUtf8();
 
-              connectionId_ = bs;
+              connectionId_ = s;
               break;
             }
             case 18: {
@@ -8639,7 +8820,7 @@ package org.apache.calcite.avatica.proto;
               if (connProps_ != null) {
                 subBuilder = connProps_.toBuilder();
               }
-              connProps_ = input.readMessage(org.apache.calcite.avatica.proto.Common.ConnectionProperties.PARSER, extensionRegistry);
+              connProps_ = input.readMessage(org.apache.calcite.avatica.proto.Common.ConnectionProperties.parser(), extensionRegistry);
               if (subBuilder != null) {
                 subBuilder.mergeFrom(connProps_);
                 connProps_ = subBuilder.buildPartial();
@@ -8650,10 +8831,11 @@ package org.apache.calcite.avatica.proto;
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         makeExtensionsImmutable();
       }
@@ -8670,23 +8852,8 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest.class, org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest.Builder.class);
     }
 
-    public static final com.google.protobuf.Parser<ConnectionSyncRequest> PARSER =
-        new com.google.protobuf.AbstractParser<ConnectionSyncRequest>() {
-      public ConnectionSyncRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new ConnectionSyncRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<ConnectionSyncRequest> getParserForType() {
-      return PARSER;
-    }
-
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
-    private java.lang.Object connectionId_;
+    private volatile java.lang.Object connectionId_;
     /**
      * <code>optional string connection_id = 1;</code>
      */
@@ -8698,9 +8865,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          connectionId_ = s;
-        }
+        connectionId_ = s;
         return s;
       }
     }
@@ -8754,30 +8919,27 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (!getConnectionIdBytes().isEmpty()) {
-        output.writeBytes(1, getConnectionIdBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
       }
       if (connProps_ != null) {
         output.writeMessage(2, getConnProps());
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (!getConnectionIdBytes().isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getConnectionIdBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
       }
       if (connProps_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getConnProps());
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -8835,12 +8997,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -8977,9 +9144,7 @@ package org.apache.calcite.avatica.proto;
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            connectionId_ = s;
-          }
+          connectionId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -9031,7 +9196,8 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+  checkByteStringIsUtf8(value);
+        
         connectionId_ = value;
         onChanged();
         return this;
@@ -9168,16 +9334,45 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:ConnectionSyncRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<ConnectionSyncRequest>
+        PARSER = new com.google.protobuf.AbstractParser<ConnectionSyncRequest>() {
+      public ConnectionSyncRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new ConnectionSyncRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<ConnectionSyncRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ConnectionSyncRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
@@ -9245,7 +9440,7 @@ package org.apache.calcite.avatica.proto;
       // @@protoc_insertion_point(message_implements:ExecuteRequest)
       ExecuteRequestOrBuilder {
     // Use ExecuteRequest.newBuilder() to construct.
-    private ExecuteRequest(com.google.protobuf.GeneratedMessage.Builder builder) {
+    private ExecuteRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
     }
     private ExecuteRequest() {
@@ -9261,8 +9456,7 @@ package org.apache.calcite.avatica.proto;
     }
     private ExecuteRequest(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
       int mutable_bitField0_ = 0;
       try {
@@ -9284,7 +9478,7 @@ package org.apache.calcite.avatica.proto;
               if (statementHandle_ != null) {
                 subBuilder = statementHandle_.toBuilder();
               }
-              statementHandle_ = input.readMessage(org.apache.calcite.avatica.proto.Common.StatementHandle.PARSER, extensionRegistry);
+              statementHandle_ = input.readMessage(org.apache.calcite.avatica.proto.Common.StatementHandle.parser(), extensionRegistry);
               if (subBuilder != null) {
                 subBuilder.mergeFrom(statementHandle_);
                 statementHandle_ = subBuilder.buildPartial();
@@ -9297,7 +9491,7 @@ package org.apache.calcite.avatica.proto;
                 parameterValues_ = new java.util.ArrayList<org.apache.calcite.avatica.proto.Common.TypedValue>();
                 mutable_bitField0_ |= 0x00000002;
               }
-              parameterValues_.add(input.readMessage(org.apache.calcite.avatica.proto.Common.TypedValue.PARSER, extensionRegistry));
+              parameterValues_.add(input.readMessage(org.apache.calcite.avatica.proto.Common.TypedValue.parser(), extensionRegistry));
               break;
             }
             case 24: {
@@ -9313,10 +9507,11 @@ package org.apache.calcite.avatica.proto;
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
           parameterValues_ = java.util.Collections.unmodifiableList(parameterValues_);
@@ -9334,21 +9529,6 @@ package org.apache.calcite.avatica.proto;
       return org.apache.calcite.avatica.proto.Requests.internal_static_ExecuteRequest_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               org.apache.calcite.avatica.proto.Requests.ExecuteRequest.class, org.apache.calcite.avatica.proto.Requests.ExecuteRequest.Builder.class);
-    }
-
-    public static final com.google.protobuf.Parser<ExecuteRequest> PARSER =
-        new com.google.protobuf.AbstractParser<ExecuteRequest>() {
-      public ExecuteRequest parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new ExecuteRequest(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<ExecuteRequest> getParserForType() {
-      return PARSER;
     }
 
     private int bitField0_;
@@ -9438,7 +9618,6 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (statementHandle_ != null) {
         output.writeMessage(1, getStatementHandle());
       }
@@ -9453,9 +9632,8 @@ package org.apache.calcite.avatica.proto;
       }
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
@@ -9475,7 +9653,7 @@ package org.apache.calcite.avatica.proto;
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(4, hasParameterValues_);
       }
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
@@ -9533,12 +9711,17 @@ package org.apache.calcite.avatica.proto;
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return new Builder(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.ExecuteRequest prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Requests.ExecuteRequest prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -10143,101 +10326,130 @@ package org.apache.calcite.avatica.proto;
     }
 
     // @@protoc_insertion_point(class_scope:ExecuteRequest)
-    private static final org.apache.calcite.avatica.proto.Requests.ExecuteRequest defaultInstance;static {
-      defaultInstance = new org.apache.calcite.avatica.proto.Requests.ExecuteRequest();
+    private static final org.apache.calcite.avatica.proto.Requests.ExecuteRequest DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Requests.ExecuteRequest();
     }
 
     public static org.apache.calcite.avatica.proto.Requests.ExecuteRequest getDefaultInstance() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<ExecuteRequest>
+        PARSER = new com.google.protobuf.AbstractParser<ExecuteRequest>() {
+      public ExecuteRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new ExecuteRequest(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<ExecuteRequest> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ExecuteRequest> getParserForType() {
+      return PARSER;
     }
 
     public org.apache.calcite.avatica.proto.Requests.ExecuteRequest getDefaultInstanceForType() {
-      return defaultInstance;
+      return DEFAULT_INSTANCE;
     }
 
   }
 
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_CatalogsRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_CatalogsRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_DatabasePropertyRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_DatabasePropertyRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_SchemasRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_SchemasRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_TablesRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_TablesRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_TableTypesRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_TableTypesRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_ColumnsRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ColumnsRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_TypeInfoRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_TypeInfoRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_PrepareAndExecuteRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_PrepareAndExecuteRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_PrepareRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_PrepareRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_FetchRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_FetchRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_CreateStatementRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_CreateStatementRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_CloseStatementRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_CloseStatementRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_OpenConnectionRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_OpenConnectionRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_OpenConnectionRequest_InfoEntry_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_OpenConnectionRequest_InfoEntry_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_CloseConnectionRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_CloseConnectionRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_ConnectionSyncRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ConnectionSyncRequest_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_ExecuteRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable

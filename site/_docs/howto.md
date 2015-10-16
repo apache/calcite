@@ -397,8 +397,8 @@ need to be re-generated only every build, only when the schema changes.
 First, install Protobuf 3.0:
 
 {% highlight bash %}
-$ wget https://github.com/google/protobuf/releases/download/v3.0.0-alpha-2/protobuf-java-3.0.0-alpha-2.tar.gz
-$ tar xf protobuf-java-3.0.0-alpha-2.tar.gz && cd protobuf-3.0.0-alpha-2
+$ wget https://github.com/google/protobuf/releases/download/v3.0.0-beta-1/protobuf-java-3.0.0-beta-1.tar.gz
+$ tar xf protobuf-java-3.0.0-beta-1.tar.gz && cd protobuf-3.0.0-beta-1
 $ ./configure
 $ make
 $ sudo make install

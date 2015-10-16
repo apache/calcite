@@ -71,71 +71,73 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
   static {
     HashMap<String, RequestTranslator> reqParsers = new HashMap<>();
     reqParsers.put(CatalogsRequest.class.getName(),
-        new RequestTranslator(CatalogsRequest.PARSER, new Service.CatalogsRequest()));
+        new RequestTranslator(CatalogsRequest.parser(), new Service.CatalogsRequest()));
     reqParsers.put(OpenConnectionRequest.class.getName(),
-        new RequestTranslator(OpenConnectionRequest.PARSER, new Service.OpenConnectionRequest()));
+        new RequestTranslator(OpenConnectionRequest.parser(), new Service.OpenConnectionRequest()));
     reqParsers.put(CloseConnectionRequest.class.getName(),
-        new RequestTranslator(CloseConnectionRequest.PARSER, new Service.CloseConnectionRequest()));
+        new RequestTranslator(CloseConnectionRequest.parser(),
+          new Service.CloseConnectionRequest()));
     reqParsers.put(CloseStatementRequest.class.getName(),
-        new RequestTranslator(CloseStatementRequest.PARSER, new Service.CloseStatementRequest()));
+        new RequestTranslator(CloseStatementRequest.parser(), new Service.CloseStatementRequest()));
     reqParsers.put(ColumnsRequest.class.getName(),
-        new RequestTranslator(ColumnsRequest.PARSER, new Service.ColumnsRequest()));
+        new RequestTranslator(ColumnsRequest.parser(), new Service.ColumnsRequest()));
     reqParsers.put(ConnectionSyncRequest.class.getName(),
-        new RequestTranslator(ConnectionSyncRequest.PARSER, new Service.ConnectionSyncRequest()));
+        new RequestTranslator(ConnectionSyncRequest.parser(), new Service.ConnectionSyncRequest()));
     reqParsers.put(CreateStatementRequest.class.getName(),
-        new RequestTranslator(CreateStatementRequest.PARSER, new Service.CreateStatementRequest()));
+        new RequestTranslator(CreateStatementRequest.parser(),
+          new Service.CreateStatementRequest()));
     reqParsers.put(DatabasePropertyRequest.class.getName(),
-        new RequestTranslator(DatabasePropertyRequest.PARSER,
+        new RequestTranslator(DatabasePropertyRequest.parser(),
             new Service.DatabasePropertyRequest()));
     reqParsers.put(FetchRequest.class.getName(),
-        new RequestTranslator(FetchRequest.PARSER, new Service.FetchRequest()));
+        new RequestTranslator(FetchRequest.parser(), new Service.FetchRequest()));
     reqParsers.put(PrepareAndExecuteRequest.class.getName(),
-        new RequestTranslator(PrepareAndExecuteRequest.PARSER,
+        new RequestTranslator(PrepareAndExecuteRequest.parser(),
             new Service.PrepareAndExecuteRequest()));
     reqParsers.put(PrepareRequest.class.getName(),
-        new RequestTranslator(PrepareRequest.PARSER, new Service.PrepareRequest()));
+        new RequestTranslator(PrepareRequest.parser(), new Service.PrepareRequest()));
     reqParsers.put(SchemasRequest.class.getName(),
-        new RequestTranslator(SchemasRequest.PARSER, new Service.SchemasRequest()));
+        new RequestTranslator(SchemasRequest.parser(), new Service.SchemasRequest()));
     reqParsers.put(TablesRequest.class.getName(),
-        new RequestTranslator(TablesRequest.PARSER, new Service.TablesRequest()));
+        new RequestTranslator(TablesRequest.parser(), new Service.TablesRequest()));
     reqParsers.put(TableTypesRequest.class.getName(),
-        new RequestTranslator(TableTypesRequest.PARSER, new Service.TableTypesRequest()));
+        new RequestTranslator(TableTypesRequest.parser(), new Service.TableTypesRequest()));
     reqParsers.put(TypeInfoRequest.class.getName(),
-        new RequestTranslator(TypeInfoRequest.PARSER, new Service.TypeInfoRequest()));
+        new RequestTranslator(TypeInfoRequest.parser(), new Service.TypeInfoRequest()));
     reqParsers.put(ExecuteRequest.class.getName(),
-        new RequestTranslator(ExecuteRequest.PARSER, new Service.ExecuteRequest()));
+        new RequestTranslator(ExecuteRequest.parser(), new Service.ExecuteRequest()));
 
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 
     HashMap<String, ResponseTranslator> respParsers = new HashMap<>();
     respParsers.put(OpenConnectionResponse.class.getName(),
-        new ResponseTranslator(OpenConnectionResponse.PARSER,
+        new ResponseTranslator(OpenConnectionResponse.parser(),
             new Service.OpenConnectionResponse()));
     respParsers.put(CloseConnectionResponse.class.getName(),
-        new ResponseTranslator(CloseConnectionResponse.PARSER,
+        new ResponseTranslator(CloseConnectionResponse.parser(),
             new Service.CloseConnectionResponse()));
     respParsers.put(CloseStatementResponse.class.getName(),
-        new ResponseTranslator(CloseStatementResponse.PARSER,
+        new ResponseTranslator(CloseStatementResponse.parser(),
             new Service.CloseStatementResponse()));
     respParsers.put(ConnectionSyncResponse.class.getName(),
-        new ResponseTranslator(ConnectionSyncResponse.PARSER,
+        new ResponseTranslator(ConnectionSyncResponse.parser(),
             new Service.ConnectionSyncResponse()));
     respParsers.put(CreateStatementResponse.class.getName(),
-        new ResponseTranslator(CreateStatementResponse.PARSER,
+        new ResponseTranslator(CreateStatementResponse.parser(),
             new Service.CreateStatementResponse()));
     respParsers.put(DatabasePropertyResponse.class.getName(),
-        new ResponseTranslator(DatabasePropertyResponse.PARSER,
+        new ResponseTranslator(DatabasePropertyResponse.parser(),
             new Service.DatabasePropertyResponse()));
     respParsers.put(ExecuteResponse.class.getName(),
-        new ResponseTranslator(ExecuteResponse.PARSER, new Service.ExecuteResponse()));
+        new ResponseTranslator(ExecuteResponse.parser(), new Service.ExecuteResponse()));
     respParsers.put(FetchResponse.class.getName(),
-        new ResponseTranslator(FetchResponse.PARSER, new Service.FetchResponse()));
+        new ResponseTranslator(FetchResponse.parser(), new Service.FetchResponse()));
     respParsers.put(PrepareResponse.class.getName(),
-        new ResponseTranslator(PrepareResponse.PARSER, new Service.PrepareResponse()));
+        new ResponseTranslator(PrepareResponse.parser(), new Service.PrepareResponse()));
     respParsers.put(ResultSetResponse.class.getName(),
-        new ResponseTranslator(ResultSetResponse.PARSER, new Service.ResultSetResponse()));
+        new ResponseTranslator(ResultSetResponse.parser(), new Service.ResultSetResponse()));
     respParsers.put(ErrorResponse.class.getName(),
-        new ResponseTranslator(ErrorResponse.PARSER, new Service.ErrorResponse()));
+        new ResponseTranslator(ErrorResponse.parser(), new Service.ErrorResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
   }
