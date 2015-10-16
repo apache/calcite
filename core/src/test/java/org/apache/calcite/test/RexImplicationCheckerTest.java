@@ -197,6 +197,41 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(node2, node1);
   }
 
+  @Test public void testSimpleBetween() {
+    final Fixture f = new Fixture();
+    final RexNode node1 = f.ge(f.i, f.literal(30));
+    final RexNode node2 = f.lt(f.i, f.literal(70));
+    final RexNode node3 = f.and(node1, node2);
+    final RexNode node4 = f.ge(f.i, f.literal(50));
+    final RexNode node5 = f.lt(f.i, f.literal(60));
+    final RexNode node6 = f.and(node4, node5);
+
+    f.checkNotImplies(node3, node4);
+    f.checkNotImplies(node3, node5);
+    f.checkNotImplies(node3, node6);
+    f.checkNotImplies(node1, node6);
+    f.checkNotImplies(node2, node6);
+    f.checkImplies(node6, node3);
+    f.checkImplies(node6, node2);
+    f.checkImplies(node6, node1);
+  }
+
+  @Test public void testSimpleBetweenCornerCases() {
+    final Fixture f = new Fixture();
+    final RexNode node1 = f.gt(f.i, f.literal(30));
+    final RexNode node2 = f.gt(f.i, f.literal(50));
+    final RexNode node3 = f.lt(f.i, f.literal(60));
+    final RexNode node4 = f.lt(f.i, f.literal(80));
+    final RexNode node5 = f.lt(f.i, f.literal(90));
+    final RexNode node6 = f.lt(f.i, f.literal(100));
+
+    f.checkNotImplies(f.and(node1, node2), f.and(node3, node4));
+    f.checkNotImplies(f.and(node5, node6), f.and(node3, node4));
+    f.checkNotImplies(f.and(node1, node2), node6);
+    f.checkNotImplies(node6, f.and(node1, node2));
+    f.checkImplies(f.and(node3, node4), f.and(node5, node6));
+  }
+
   /** Contains all the nourishment a test case could possibly need.
    *
    * <p>We put the data in here, rather than as fields in the test case, so that
@@ -324,6 +359,10 @@ public class RexImplicationCheckerTest {
     RexNode le(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, node1,
           node2);
+    }
+
+    RexNode and(RexNode node1, RexNode node2) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.AND, node1, node2);
     }
 
     RexNode longLiteral(long value) {
