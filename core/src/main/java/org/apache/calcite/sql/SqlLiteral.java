@@ -23,6 +23,7 @@ import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -273,6 +274,12 @@ public class SqlLiteral extends SqlNode {
    * <li>If the node is a {@link SqlIntervalQualifier},
    * returns its {@link TimeUnitRange}.
    *
+   * <li>If the node is INTERVAL_DAY_TIME in {@link SqlTypeFamily},
+   * returns its sign multiplied by its millisecond equivalent value
+   *
+   * <li>If the node is INTERVAL_YEAR_MONTH in {@link SqlTypeFamily},
+   * returns its sign multiplied by its months equivalent value
+   *
    * <li>Otherwise the behavior is not specified.
    * </ul>
    */
@@ -284,6 +291,14 @@ public class SqlLiteral extends SqlNode {
         return (NlsString) literal.value;
       case NUMERIC:
         return (BigDecimal) literal.value;
+      case INTERVAL_YEAR_MONTH:
+        final SqlIntervalLiteral.IntervalValue valMonth =
+            (SqlIntervalLiteral.IntervalValue) literal.value;
+        return valMonth.getSign() * SqlParserUtil.intervalToMonths(valMonth);
+      case INTERVAL_DAY_TIME:
+        final SqlIntervalLiteral.IntervalValue valTime =
+            (SqlIntervalLiteral.IntervalValue) literal.value;
+        return valTime.getSign() * SqlParserUtil.intervalToMillis(valTime);
       }
     }
     if (SqlUtil.isLiteralChain(node)) {
