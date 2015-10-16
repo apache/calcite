@@ -230,7 +230,7 @@ public class ProtobufTranslationImplTest<T> {
 
     // Stub out the metadata for a row
     List<ColumnMetaData> columns =
-        Arrays.<ColumnMetaData>asList(MetaImpl.columnMetaData("str", 0, String.class),
+        Arrays.asList(MetaImpl.columnMetaData("str", 0, String.class),
             MetaImpl.columnMetaData("count", 1, Integer.class));
     List<AvaticaParameter> params =
         Arrays.asList(
@@ -278,9 +278,10 @@ public class ProtobufTranslationImplTest<T> {
 
     StringWriter sw = new StringWriter();
     new Exception().printStackTrace(new PrintWriter(sw));
-    responses.add(new ErrorResponse(Collections.singletonList(sw.toString()), "Test Error Message",
-        ErrorResponse.UNKNOWN_ERROR_CODE, ErrorResponse.UNKNOWN_SQL_STATE,
-        AvaticaSeverity.WARNING));
+    responses.add(
+        new ErrorResponse(Collections.singletonList(sw.toString()), "Test Error Message",
+            ErrorResponse.UNKNOWN_ERROR_CODE, ErrorResponse.UNKNOWN_SQL_STATE,
+            AvaticaSeverity.WARNING));
 
     return responses;
   }
