@@ -478,6 +478,32 @@ LogicalProject(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testIntervalLiteralYearToMonth">
+        <Resource name="sql">
+            <![CDATA[select cast(empno as Integer) * (INTERVAL '1-1' YEAR TO MONTH)
+from emp
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[*(CAST($0):INTEGER NOT NULL, 13)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testIntervalLiteralHourToMinute">
+        <Resource name="sql">
+            <![CDATA[select cast(empno as Integer) * (INTERVAL '1:1' HOUR TO MINUTE)
+from emp
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[*(CAST($0):INTEGER NOT NULL, 3660000)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSelectDistinct">
         <Resource name="sql">
             <![CDATA[select distinct sal + 5 from emp]]>

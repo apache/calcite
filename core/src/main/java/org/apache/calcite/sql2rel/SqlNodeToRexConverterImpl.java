@@ -28,7 +28,6 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
-import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BitString;
@@ -140,19 +139,13 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeDateLiteral((Calendar) value);
 
     case INTERVAL_YEAR_MONTH:
-      intervalValue =
-          (SqlIntervalLiteral.IntervalValue) value;
-      l = SqlParserUtil.intervalToMonths(intervalValue);
-      return rexBuilder.makeIntervalLiteral(
-          BigDecimal.valueOf(l),
-          intervalValue.getIntervalQualifier());
     case INTERVAL_DAY_TIME:
-      intervalValue =
-          (SqlIntervalLiteral.IntervalValue) value;
-      l = SqlParserUtil.intervalToMillis(intervalValue);
+      SqlIntervalQualifier sqlIntervalQualifier =
+          ((SqlIntervalLiteral.IntervalValue) value).getIntervalQualifier();
+      l = (long) SqlLiteral.value(literal);
       return rexBuilder.makeIntervalLiteral(
           BigDecimal.valueOf(l),
-          intervalValue.getIntervalQualifier());
+          sqlIntervalQualifier);
     default:
       throw Util.unexpected(literal.getTypeName());
     }
