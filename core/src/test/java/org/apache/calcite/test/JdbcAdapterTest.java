@@ -401,6 +401,38 @@ public class JdbcAdapterTest {
               }
             });
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-666">[CALCITE-666]
+   * Anti-semi-joins against JDBC adapter give wrong results</a>. */
+  @Test public void testScalarSubquery() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("SELECT COUNT(empno) AS cEmpNo FROM \"SCOTT\".\"EMP\" "
+            + "WHERE DEPTNO <> (SELECT * FROM (VALUES 1))")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .returns("CEMPNO=14\n");
+
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("SELECT ename FROM \"SCOTT\".\"EMP\" "
+            + "WHERE DEPTNO = (SELECT deptno FROM \"SCOTT\".\"DEPT\" "
+            + "WHERE dname = 'ACCOUNTING')")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .returns("ENAME=CLARK\nENAME=KING\nENAME=MILLER\n");
+
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("SELECT COUNT(ename) AS cEname FROM \"SCOTT\".\"EMP\" "
+            + "WHERE DEPTNO > (SELECT deptno FROM \"SCOTT\".\"DEPT\" "
+            + "WHERE dname = 'ACCOUNTING')")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .returns("CENAME=11\n");
+
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("SELECT COUNT(ename) AS cEname FROM \"SCOTT\".\"EMP\" "
+            + "WHERE DEPTNO < (SELECT deptno FROM \"SCOTT\".\"DEPT\" "
+            + "WHERE dname = 'ACCOUNTING')")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .returns("CENAME=0\n");
+  }
 }
 
 // End JdbcAdapterTest.java
