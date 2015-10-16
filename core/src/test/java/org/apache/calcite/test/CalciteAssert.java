@@ -53,6 +53,8 @@ import com.google.common.collect.Lists;
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
+import org.hamcrest.CoreMatchers;
+
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -296,6 +298,15 @@ public class CalciteAssert {
     };
   }
 
+  public static Function<Integer, Void> checkUpdateCount(final int expected) {
+    return new Function<Integer, Void>() {
+      public Void apply(Integer updateCount) {
+        assertThat(updateCount, CoreMatchers.is(expected));
+        return null;
+      }
+    };
+  }
+
   /** Checks that the result of the second and subsequent executions is the same
    * as the first.
    *
@@ -430,6 +441,7 @@ public class CalciteAssert {
       boolean materializationsEnabled,
       List<Pair<Hook, Function>> hooks,
       Function<ResultSet, Void> resultChecker,
+      Function<Integer, Void> updateChecker,
       Function<Throwable, Void> exceptionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled
@@ -450,9 +462,14 @@ public class CalciteAssert {
       }
       Statement statement = connection.createStatement();
       statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
-      ResultSet resultSet;
+      ResultSet resultSet = null;
+      Integer updateCount = null;
       try {
-        resultSet = statement.executeQuery(sql);
+        if (updateChecker == null) {
+          resultSet = statement.executeQuery(sql);
+        } else {
+          updateCount = statement.executeUpdate(sql);
+        }
         if (exceptionChecker != null) {
           exceptionChecker.apply(null);
           return;
@@ -467,7 +484,12 @@ public class CalciteAssert {
       if (resultChecker != null) {
         resultChecker.apply(resultSet);
       }
-      resultSet.close();
+      if (updateChecker != null) {
+        updateChecker.apply(updateCount);
+      }
+      if (resultSet != null) {
+        resultSet.close();
+      }
       statement.close();
       connection.close();
     } catch (Error | RuntimeException e) {
@@ -1163,11 +1185,22 @@ public class CalciteAssert {
       return returns(sql, checker);
     }
 
+    public final AssertQuery updates(int count) {
+      try {
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+            hooks, null, checkUpdateCount(count), null);
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException(
+            "exception while executing [" + sql + "]", e);
+      }
+    }
+
     protected AssertQuery returns(String sql,
         Function<ResultSet, Void> checker) {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            hooks, checker, null);
+            hooks, checker, null, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1182,7 +1215,7 @@ public class CalciteAssert {
     public AssertQuery throws_(String message) {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            hooks, null, checkException(message));
+            hooks, null, null, checkException(message));
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1193,7 +1226,7 @@ public class CalciteAssert {
     public AssertQuery runs() {
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            hooks, null, null);
+            hooks, null, null, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1204,7 +1237,7 @@ public class CalciteAssert {
     public AssertQuery typeIs(String expected) {
       try {
         assertQuery(createConnection(), sql, limit, false,
-            hooks, checkResultType(expected), null);
+            hooks, checkResultType(expected), null, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1283,7 +1316,7 @@ public class CalciteAssert {
           });
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            hooks, null, null);
+            hooks, null, null, null);
         assertNotNull(plan);
       } catch (Exception e) {
         throw new RuntimeException(
@@ -1306,7 +1339,7 @@ public class CalciteAssert {
           });
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            hooks, null, null);
+            hooks, null, null, null);
         predicate1.apply(list);
         return this;
       } catch (Exception e) {

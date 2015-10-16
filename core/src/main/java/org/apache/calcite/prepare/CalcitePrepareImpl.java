@@ -623,8 +623,35 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           public Enumerable<T> bind(DataContext dataContext) {
             return Linq4j.asEnumerable(list);
           }
-        }
-    );
+        },
+        Meta.StatementType.SELECT);
+  }
+
+  /**
+   * Routine to figure out the StatementType and defaults to SELECT
+   * As CASE increases the default may change
+   * @param kind a SqlKind
+   * @return Meta.StatementType*/
+  private Meta.StatementType getStatementType(SqlKind kind) {
+    switch (kind) {
+    case INSERT:
+      return Meta.StatementType.INSERT;
+    default:
+      return Meta.StatementType.SELECT;
+    }
+  }
+
+  /**
+   * Routine to figure out the StatementType if call does not have sql
+   * defaults to SELECT
+   * @param preparedResult An objecet returned from prepareQueryable or prepareRel
+   * @return Meta.StatementType*/
+  private Meta.StatementType getStatementType(Prepare.PreparedResult preparedResult) {
+    if (preparedResult.isDml()) {
+      return Meta.StatementType.IS_DML;
+    } else {
+      return Meta.StatementType.SELECT;
+    }
   }
 
   <T> CalciteSignature<T> prepare2_(
@@ -650,6 +677,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
+    final Meta.StatementType statementType;
     if (query.sql != null) {
       final CalciteConnectionConfig config = context.config();
       SqlParser parser = createParser(query.sql,
@@ -660,6 +688,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();
+        statementType = getStatementType(sqlNode.getKind());
       } catch (SqlParseException e) {
         throw new RuntimeException(
             "parse failed: " + e.getMessage(), e);
@@ -715,10 +744,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       x = context.getTypeFactory().createType(elementType);
       preparedResult =
           preparingStmt.prepareQueryable(query.queryable, x);
+      statementType = getStatementType(preparedResult);
     } else {
       assert query.rel != null;
       x = query.rel.getRowType();
       preparedResult = preparingStmt.prepareRel(query.rel);
+      statementType = getStatementType(preparedResult);
     }
 
     final List<AvaticaParameter> parameters = new ArrayList<>();
@@ -759,7 +790,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             ? ((Prepare.PreparedResultImpl) preparedResult).collations
             : ImmutableList.<RelCollation>of(),
         maxRowCount,
-        bindable);
+        bindable,
+        statementType);
   }
 
   private List<ColumnMetaData> getColumnMetaDataList(
