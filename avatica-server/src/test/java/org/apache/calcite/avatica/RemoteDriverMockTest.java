@@ -202,6 +202,19 @@ public class RemoteDriverMockTest {
     connection.close();
   }
 
+  @Test public void testResultSetsFinagled() throws Exception {
+    // These values specified in MockJsonService
+    final String table = "my_table";
+    final long value = 10;
+
+    final Connection connection = getMockConnection();
+    // Not an accurate ResultSet per JDBC, but close enough for testing.
+    ResultSet results = connection.getMetaData().getColumns(null, null, table, null);
+    assertTrue(results.next());
+    assertEquals(table, results.getString(1));
+    assertEquals(value, results.getLong(2));
+  }
+
 }
 
 // End RemoteDriverMockTest.java

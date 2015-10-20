@@ -277,6 +277,24 @@ public class RemoteMetaTest {
         + "'" + RANDOM.nextInt(Integer.MAX_VALUE) + "', '" + UUID.randomUUID() + "')");
     assertEquals(status, 1);
   }
+
+  @Test public void testBigints() throws Exception {
+    final String table = "TESTBIGINTS";
+    ConnectionSpec.getDatabaseLock().lock();
+    try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+        Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + table));
+      assertFalse(stmt.execute("CREATE TABLE " + table + " (id BIGINT)"));
+      assertFalse(stmt.execute("INSERT INTO " + table + " values(10)"));
+      ResultSet results = conn.getMetaData().getColumns(null, null, table, null);
+      assertTrue(results.next());
+      assertEquals(table, results.getString(3));
+      // ordinal position
+      assertEquals(1L, results.getLong(17));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
 }
 
 // End RemoteMetaTest.java

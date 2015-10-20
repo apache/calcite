@@ -31,27 +31,27 @@ public abstract class ProtobufService extends AbstractService {
   public abstract Response _apply(Request request);
 
   @Override public ResultSetResponse apply(CatalogsRequest request) {
-    return (ResultSetResponse) _apply(request);
+    return finagle((ResultSetResponse) _apply(request));
   }
 
   @Override public ResultSetResponse apply(SchemasRequest request) {
-    return (ResultSetResponse) _apply(request);
+    return finagle((ResultSetResponse) _apply(request));
   }
 
   @Override public ResultSetResponse apply(TablesRequest request) {
-    return (ResultSetResponse) _apply(request);
+    return finagle((ResultSetResponse) _apply(request));
   }
 
   @Override public ResultSetResponse apply(TableTypesRequest request) {
-    return (ResultSetResponse) _apply(request);
+    return finagle((ResultSetResponse) _apply(request));
   }
 
   @Override public ResultSetResponse apply(TypeInfoRequest request) {
-    return (ResultSetResponse) _apply(request);
+    return finagle((ResultSetResponse) _apply(request));
   }
 
   @Override public ResultSetResponse apply(ColumnsRequest request) {
-    return (ResultSetResponse) _apply(request);
+    return finagle((ResultSetResponse) _apply(request));
   }
 
   @Override public PrepareResponse apply(PrepareRequest request) {
@@ -87,7 +87,7 @@ public abstract class ProtobufService extends AbstractService {
   }
 
   @Override public ExecuteResponse apply(ExecuteRequest request) {
-    return (ExecuteResponse) _apply(request);
+    return finagle((ExecuteResponse) _apply(request));
   }
 
   /**

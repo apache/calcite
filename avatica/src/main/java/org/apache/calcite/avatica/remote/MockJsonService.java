@@ -95,6 +95,25 @@ public class MockJsonService extends JsonService {
                 + " \"parameters\": [],\n"
                 + " \"cursorFactory\": {\"style\": \"ARRAY\"}\n"
                 + "}}");
+        map1.put(
+            "{\"request\":\"getColumns\",\"catalog\":null,\"schemaPattern\":null,"
+                + "\"tableNamePattern\":\"my_table\",\"columnNamePattern\":null}",
+            "{\"response\":\"resultSet\",\"connectionId\":\"00000000-0000-0000-0000-000000000000\",\"statementId\":-1,\"ownStatement\":true,"
+                + "\"signature\":{\"columns\":["
+                  + "{\"ordinal\":0,\"autoIncrement\":false,\"caseSensitive\":false,\"searchable\":true,\"currency\":false,\"nullable\":1,\"signed\":false,"
+                    + "\"displaySize\":40,\"label\":\"TABLE_NAME\",\"columnName\":\"TABLE_NAME\",\"schemaName\":\"\",\"precision\":0,\"scale\":0,\"tableName\":\"SYSTEM.TABLE\","
+                    + "\"catalogName\":\"\",\"type\":{\"type\":\"scalar\",\"id\":12,\"name\":\"VARCHAR\",\"rep\":\"STRING\"},\"readOnly\":true,\"writable\":false,"
+                    + "\"definitelyWritable\":false,\"columnClassName\":\"java.lang.String\"},"
+                  + "{\"ordinal\":1,\"autoIncrement\":false,\"caseSensitive\":false,\"searchable\":true,\"currency\":false,\"nullable\":1,\"signed\":true,"
+                    + "\"displaySize\":40,\"label\":\"ORDINAL_POSITION\",\"columnName\":\"ORDINAL_POSITION\",\"schemaName\":\"\",\"precision\":0,\"scale\":0,"
+                    + "\"tableName\":\"SYSTEM.TABLE\",\"catalogName\":\"\",\"type\":{\"type\":\"scalar\",\"id\":-5,\"name\":\"BIGINT\",\"rep\":\"PRIMITIVE_LONG\"},"
+                    + "\"readOnly\":true,\"writable\":false,\"definitelyWritable\":false,\"columnClassName\":\"java.lang.Long\"}"
+                + "],\"sql\":null,"
+                + "\"parameters\":[],"
+                + "\"cursorFactory\":{\"style\":\"LIST\",\"clazz\":null,\"fieldNames\":null},\"statementType\":null},"
+                + "\"firstFrame\":{\"offset\":0,\"done\":true,"
+                + "\"rows\":[[\"my_table\",10]]"
+                + "},\"updateCount\":-1}");
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

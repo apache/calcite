@@ -79,6 +79,17 @@ public class MockProtobufService extends ProtobufService {
                 Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
             null, -1));
 
+    mappings.put(
+        new ColumnsRequest(null, null, "my_table", null),
+        new ResultSetResponse("00000000-0000-0000-0000-000000000000", -1, true,
+            Meta.Signature.create(
+                Arrays.<ColumnMetaData>asList(
+                    MetaImpl.columnMetaData("TABLE_NAME", 0, String.class),
+                    MetaImpl.columnMetaData("ORDINAL_POSITION", 1, Long.class)), null,
+                Collections.<AvaticaParameter>emptyList(), Meta.CursorFactory.ARRAY, null),
+            Meta.Frame.create(0, true,
+                Arrays.<Object>asList(new Object[] {new Object[]{"my_table", 10}})), -1));
+
     MAPPING = Collections.unmodifiableMap(mappings);
   }
 
