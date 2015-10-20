@@ -98,6 +98,9 @@ public abstract class AbstractService implements Service {
       assert r.signature == null;
       return r;
     }
+    if (r.signature == null) {
+      return r;
+    }
     final Meta.Signature signature = finagle(r.signature);
     if (signature == r.signature) {
       return r;

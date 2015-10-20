@@ -62,7 +62,7 @@ public abstract class JsonService extends AbstractService {
 
   public ResultSetResponse apply(CatalogsRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return finagle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
@@ -70,7 +70,7 @@ public abstract class JsonService extends AbstractService {
 
   public ResultSetResponse apply(SchemasRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return finagle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
@@ -78,7 +78,7 @@ public abstract class JsonService extends AbstractService {
 
   public ResultSetResponse apply(TablesRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return finagle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
@@ -86,7 +86,7 @@ public abstract class JsonService extends AbstractService {
 
   public ResultSetResponse apply(TableTypesRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return finagle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
@@ -94,7 +94,7 @@ public abstract class JsonService extends AbstractService {
 
   public ResultSetResponse apply(TypeInfoRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return finagle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
@@ -102,7 +102,7 @@ public abstract class JsonService extends AbstractService {
 
   public ResultSetResponse apply(ColumnsRequest request) {
     try {
-      return decode(apply(encode(request)), ResultSetResponse.class);
+      return finagle(decode(apply(encode(request)), ResultSetResponse.class));
     } catch (IOException e) {
       throw handle(e);
     }
