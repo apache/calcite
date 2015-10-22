@@ -36,8 +36,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.4.0-incubating-source.tar.gz
-$ cd calcite-1.4.0-incubating
+$ tar xvfz calcite-1.5.0-source.tar.gz
+$ cd calcite-1.5.0
 $ mvn install
 {% endhighlight %}
 
@@ -54,8 +54,8 @@ Create a local copy of the github repository,
 then build using maven:
 
 {% highlight bash %}
-$ git clone git://github.com/apache/incubator-calcite.git
-$ cd incubator-calcite
+$ git clone git://github.com/apache/calcite.git
+$ cd calcite
 $ mvn install
 {% endhighlight %}
 
@@ -178,18 +178,18 @@ combine them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
 Then push your commit(s) to github, and create a pull request from
-your branch to the incubator-calcite master branch. Update the JIRA case
+your branch to the calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
 ## Getting started
 
 Calcite is a community, so the first step to joining the project is to introduce yourself.
-Join the [developers list](http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/)
+Join the [developers list](http://mail-archives.apache.org/mod_mbox/calcite-dev/)
 and send an email.
 
 If you have the chance to attend a [meetup](http://www.meetup.com/Apache-Calcite/),
-or meet [members of the community](http://calcite.incubator.apache.org/team-list.html)
+or meet [members of the community](http://calcite.apache.org/develop)
 at a conference, that's also great.
 
 Choose an initial task to work on. It should be something really simple,
@@ -498,31 +498,30 @@ git clean -xn
 mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers.
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts:
 
 * In the `target` directory should be these 8 files, among others:
-  * apache-calcite-X.Y.Z-incubating-src.tar.gz
-  * apache-calcite-X.Y.Z-incubating-src.tar.gz.asc
-  * apache-calcite-X.Y.Z-incubating-src.tar.gz.md5
-  * apache-calcite-X.Y.Z-incubating-src.tar.gz.sha1
-  * apache-calcite-X.Y.Z-incubating-src.zip
-  * apache-calcite-X.Y.Z-incubating-src.zip.asc
-  * apache-calcite-X.Y.Z-incubating-src.zip.md5
-  * apache-calcite-X.Y.Z-incubating-src.zip.sha1
-* Note that the file names start `apache-calcite-` and include
-  `incubating` in the version.
+  * apache-calcite-X.Y.Z-src.tar.gz
+  * apache-calcite-X.Y.Z-src.tar.gz.asc
+  * apache-calcite-X.Y.Z-src.tar.gz.md5
+  * apache-calcite-X.Y.Z-src.tar.gz.sha1
+  * apache-calcite-X.Y.Z-src.zip
+  * apache-calcite-X.Y.Z-src.zip.asc
+  * apache-calcite-X.Y.Z-src.zip.md5
+  * apache-calcite-X.Y.Z-src.zip.sha1
+* Note that the file names start `apache-calcite-`.
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
-  `apache-calcite-X.Y.Z-incubating-src`.
-* That directory must contain files `DISCLAIMER`, `NOTICE`, `LICENSE`,
+  `apache-calcite-X.Y.Z-src`.
+* That directory must contain files `NOTICE`, `LICENSE`,
   `README`, `README.md`
   * Check that the version in `README` is correct
 * In each .jar (for example
-  `core/target/calcite-core-X.Y.Z-incubating.jar` and
-  `mongodb/target/calcite-mongodb-X.Y.Z-incubating-sources.jar`), check
+  `core/target/calcite-core-X.Y.Z.jar` and
+  `mongodb/target/calcite-mongodb-X.Y.Z-sources.jar`), check
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
 * In each .jar, check that `org-apache-calcite-jdbc.properties` is
@@ -533,7 +532,7 @@ Now, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z-incubating -DdevelopmentVersion=X.Y.Z+1-incubating-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
@@ -551,23 +550,23 @@ Verify the staged artifacts in the Nexus repository:
   (or a similar URL)
 
 Upload the artifacts via subversion to a staging area,
-https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN:
+https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN:
 
 {% highlight bash %}
 # Create a subversion workspace, if you haven't already
 mkdir -p ~/dist/dev
 pushd ~/dist/dev
-svn co https://dist.apache.org/repos/dist/dev/incubator/calcite
+svn co https://dist.apache.org/repos/dist/dev/calcite
 popd
 
 # Move the files into a directory
 cd target
-mkdir ~/dist/dev/calcite/apache-calcite-X.Y.Z-incubating-rcN
-mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-incubating-rcN
+mkdir ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
+mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
 
 # Check in
 cd ~/dist/dev/calcite
-svn add apache-calcite-X.Y.Z-incubating-rcN
+svn add apache-calcite-X.Y.Z-rcN
 svn ci
 {% endhighlight %}
 
@@ -579,8 +578,8 @@ svn ci
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d apache-calcite-X.Y.Z-incubating
-git push origin :refs/tags/apache-calcite-X.Y.Z-incubating
+git tag -d apache-calcite-X.Y.Z
+git push origin :refs/tags/apache-calcite-X.Y.Z
 
 # Remove modified files
 mvn release:clean
@@ -598,7 +597,7 @@ git reset --hard HEAD
 gpg --recv-keys key
 
 # Check keys
-curl -O https://dist.apache.org/repos/dist/release/incubator/calcite/KEYS
+curl -O https://dist.apache.org/repos/dist/release/calcite/KEYS
 
 # Sign/check md5 and sha1 hashes
 # (Assumes your O/S has 'md5' and 'sha1' commands.)
@@ -630,7 +629,7 @@ function checkHash() {
     fi
   done
 }
-checkHash apache-calcite-X.Y.Z-incubating-rcN
+checkHash apache-calcite-X.Y.Z-rcN
 {% endhighlight %}
 
 ## Get approval for a release via Apache voting process (for Calcite committers)
@@ -638,24 +637,24 @@ checkHash apache-calcite-X.Y.Z-incubating-rcN
 Release vote on dev list
 
 {% highlight text %}
-To: dev@calcite.incubator.apache.org
-Subject: [VOTE] Release apache-calcite-X.Y.Z-incubating (release candidate N)
+To: dev@calcite.apache.org
+Subject: [VOTE] Release apache-calcite-X.Y.Z (release candidate N)
 
 Hi all,
 
-I have created a build for Apache Calcite X.Y.Z-incubating, release candidate N.
+I have created a build for Apache Calcite X.Y.Z, release candidate N.
 
 Thanks to everyone who has contributed to this release.
 <Further details about release.> You can read the release notes here:
-https://github.com/apache/incubator-calcite/blob/XXXX/site/_docs/history.md
+https://github.com/apache/calcite/blob/XXXX/site/_docs/history.md
 
 The commit to be voted upon:
-http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
+http://git-wip-us.apache.org/repos/asf/calcite/commit/NNNNNN
 
 Its hash is XXXX.
 
 The artifacts to be voted on are located here:
-https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN/
+https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN/
 
 The hashes of the artifacts are as follows:
 src.tar.gz.md5 XXXX
@@ -669,12 +668,12 @@ https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
 Release artifacts are signed with the following key:
 https://people.apache.org/keys/committer/jhyde.asc
 
-Please vote on releasing this package as Apache Calcite X.Y.Z-incubating.
+Please vote on releasing this package as Apache Calcite X.Y.Z.
 
 The vote is open for the next 72 hours and passes if a majority of
-at least three +1 PPMC votes are cast.
+at least three +1 PMC votes are cast.
 
-[ ] +1 Release this package as Apache Calcite X.Y.Z-incubating
+[ ] +1 Release this package as Apache Calcite X.Y.Z
 [ ]  0 I don't feel strongly about it, but I'm okay with the release
 [ ] -1 Do not release this package because...
 
@@ -689,8 +688,8 @@ Julian
 After vote finishes, send out the result:
 
 {% highlight text %}
-Subject: [RESULT] [VOTE] Release apache-calcite-X.Y.Z-incubating (release candidate N)
-To: dev@calcite.incubator.apache.org
+Subject: [RESULT] [VOTE] Release apache-calcite-X.Y.Z (release candidate N)
+To: dev@calcite.apache.org
 
 Thanks to everyone who has tested the release candidate and given
 their comments and votes.
@@ -706,10 +705,13 @@ N non-binding +1s:
 No 0s or -1s.
 
 Therefore I am delighted to announce that the proposal to release
-Apache Calcite X.Y.Z-incubating has passed.
+Apache Calcite X.Y.Z has passed.
 
-I'll now start a vote on the general list. Those of you in the IPMC,
-please recast your vote on the new thread.
+Thanks everyone. We’ll now roll the release out to the mirrors.
+
+There was some feedback during voting. I shall open a separate
+thread to discuss.
+
 
 Julian
 {% endhighlight %}
@@ -719,74 +721,6 @@ shortened URLs for the vote proposal and result emails. Examples:
 [s.apache.org/calcite-1.2-vote](http://s.apache.org/calcite-1.2-vote) and
 [s.apache.org/calcite-1.2-result](http://s.apache.org/calcite-1.2-result).
 
-Propose a vote on the incubator list.
-
-{% highlight text %}
-To: general@incubator.apache.org
-Subject: [VOTE] Release Apache Calcite X.Y.Z (incubating)
-
-Hi all,
-
-The Calcite community has voted on and approved a proposal to release
-Apache Calcite X.Y.Z (incubating).
-
-Proposal:
-http://s.apache.org/calcite-X.Y.Z-vote
-
-Vote result:
-N binding +1 votes
-N non-binding +1 votes
-No -1 votes
-http://s.apache.org/calcite-X.Y.Z-result
-
-The commit to be voted upon:
-http://git-wip-us.apache.org/repos/asf/incubator-calcite/commit/NNNNNN
-
-Its hash is XXXX.
-
-The artifacts to be voted on are located here:
-https://dist.apache.org/repos/dist/dev/incubator/calcite/apache-calcite-X.Y.Z-incubating-rcN/
-
-The hashes of the artifacts are as follows:
-src.tar.gz.md5 XXXX
-src.tar.gz.sha1 XXXX
-src.zip.md5 XXXX
-src.zip.sha1 XXXX
-
-A staged Maven repository is available for review at:
-https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
-
-Release artifacts are signed with the following key:
-https://people.apache.org/keys/committer/jhyde.asc
-
-Pursuant to the Releases section of the Incubation Policy and with
-the endorsement of NNN of our mentors we would now like to request
-the permission of the Incubator PMC to publish the release. The vote
-is open for 72 hours, or until the necessary number of votes (3 +1)
-is reached.
-
-[ ] +1 Release this package as Apache Calcite X.Y.Z incubating
-[ ] -1 Do not release this package because...
-
-Julian Hyde, on behalf of Apache Calcite PPMC
-{% endhighlight %}
-
-After vote finishes, send out the result:
-
-{% highlight text %}
-To: general@incubator.apache.org
-Subject: [RESULT] [VOTE] Release Apache Calcite X.Y.Z (incubating)
-
-This vote passes with N +1s and no 0 or -1 votes:
-+1 <name> (mentor)
-
-There was some feedback during voting. I shall open a separate
-thread to discuss.
-
-Thanks everyone. We’ll now roll the release out to the mirrors.
-
-Julian
-{% endhighlight %}
 
 ## Publishing a release (for Calcite committers)
 
@@ -794,10 +728,10 @@ After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
 
 In JIRA, search for
-[all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.3.0-incubating%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
+[all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
 and do a bulk update changing their status to "Closed",
 with a change comment
-"Resolved in release X.Y.Z-incubating (YYYY-MM-DD)"
+"Resolved in release X.Y.Z (YYYY-MM-DD)"
 (fill in release number and date appropriately).
 Uncheck "Send mail for this update".
 
@@ -814,37 +748,37 @@ Check the artifacts into svn.
 # Get the release candidate.
 mkdir -p ~/dist/dev
 cd ~/dist/dev
-svn co https://dist.apache.org/repos/dist/dev/incubator/calcite
+svn co https://dist.apache.org/repos/dist/dev/calcite
 
 # Copy the artifacts. Note that the copy does not have '-rcN' suffix.
 mkdir -p ~/dist/release
 cd ~/dist/release
-svn co https://dist.apache.org/repos/dist/release/incubator/calcite
+svn co https://dist.apache.org/repos/dist/release/calcite
 cd calcite
-cp -rp ../../dev/calcite/apache-calcite-X.Y.Z-incubating-rcN apache-calcite-X.Y.Z-incubating
-svn add apache-calcite-X.Y.Z-incubating
+cp -rp ../../dev/calcite/apache-calcite-X.Y.Z-rcN apache-calcite-X.Y.Z
+svn add apache-calcite-X.Y.Z
 
 # Check in.
 svn ci
 {% endhighlight %}
 
 Svnpubsub will publish to
-https://dist.apache.org/repos/dist/release/incubator/calcite and propagate to
-http://www.apache.org/dyn/closer.cgi/incubator/calcite within 24 hours.
+https://dist.apache.org/repos/dist/release/calcite and propagate to
+http://www.apache.org/dyn/closer.cgi/calcite within 24 hours.
 
 If there are now more than 2 releases, clear out the oldest ones:
 
 {% highlight bash %}
 cd ~/dist/release/calcite
-svn rm apache-calcite-X.Y.Z-incubating
+svn rm apache-calcite-X.Y.Z
 svn ci
 {% endhighlight %}
 
 The old releases will remain available in the
-[release archive](http://archive.apache.org/dist/incubator/calcite/).
+[release archive](http://archive.apache.org/dist/calcite/).
 
 Add a release note by copying
-[site/_posts/2015-03-13-release-1.1.0-incubating.md]({{ site.sourceRoot }}/site/_posts/2015-03-13-release-1.1.0-incubating.md),
+[site/_posts/2015-xx-xx-release-1.5.0.md]({{ site.sourceRoot }}/site/_posts/2015-xx-xx-release-1.5.0.md),
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 

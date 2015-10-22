@@ -20,22 +20,17 @@
   apacheId: gates
   githubId: alanfgates
   org: Hortonworks
-  role: Mentor
+  role: PMC
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
   org: MapR
-  role: Committer
+  role: PMC
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
   org: Hortonworks
   role: Champion
-- name: Chris Wensel
-  apacheId: cwensel
-  githubId: cwensel
-  org: Concurrent
-  role: PMC
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -50,38 +45,38 @@
   apacheId: jcamacho
   githubId: jcamachor
   org: Hortonworks
-  role: Committer
+  role: PMC
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
   org: MapR
-  role: Committer
+  role: PMC
 - name: John Pullokkaran
   apacheId: jpullokk
   githubId: jpullokkaran
   org: Hortonworks
-  role: Committer
+  role: PMC
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
   org: Hortonworks
-  role: PMC
+  role: PMC Chair
   homepage: http://people.apache.org/~jhyde
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
   org: Hortonworks
-  role: Committer
+  role: PMC
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
   org: NGData
-  role: Mentor
+  role: PMC
 - name: Ted Dunning
   apacheId: tdunning
   githubId: tdunning
   org: MapR
-  role: Mentor
+  role: PMC
   avatar: https://www.mapr.com/sites/default/files/otherpageimages/ted-circle-80.png
 - name: Vladimir Sitnikov
   apacheId: vladimirsitnikov

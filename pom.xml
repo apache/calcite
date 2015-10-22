@@ -32,16 +32,16 @@ limitations under the License.
   <!-- More project information. -->
   <name>Calcite</name>
   <description>Calcite is a dynamic data management framework</description>
-  <url>http://calcite.incubator.apache.org</url>
+  <url>http://calcite.apache.org</url>
   <inceptionYear>2012</inceptionYear>
 
   <mailingLists>
     <mailingList>
       <name>Apache Calcite developers list</name>
-      <subscribe>dev-subscribe@calcite.incubator.apache.org</subscribe>
-      <unsubscribe>dev-unsubscribe@calcite.incubator.apache.org</unsubscribe>
-      <post>dev@calcite.incubator.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev</archive>
+      <subscribe>dev-subscribe@calcite.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@calcite.apache.org</unsubscribe>
+      <post>dev@calcite.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/calcite-dev</archive>
     </mailingList>
   </mailingLists>
 
@@ -58,9 +58,9 @@ limitations under the License.
   </issueManagement>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</developerConnection>
-    <url>https://github.com/apache/incubator-calcite</url>
+    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</developerConnection>
+    <url>https://github.com/apache/calcite</url>
     <tag>HEAD</tag>
   </scm>
 

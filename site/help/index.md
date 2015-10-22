@@ -26,11 +26,11 @@ Need help with Calcite? Try these resources.
 ## Mailing Lists
 
 The best option is to send email to the developers list
-[dev@calcite.incubator.apache.org](mailto:dev@calcite.incubator.apache.org). All
+[dev@calcite.apache.org](mailto:dev@calcite.apache.org). All
 of the historic traffic is available in the
 [archive](http://mail-archives.apache.org/mod_mbox/calcite-dev/). To
 subscribe to the user list, please send email to
-[dev-subscribe@calcite.incubator.apache.org](mailto:dev-subscribe@calcite.incubator.apache.org).
+[dev-subscribe@calcite.apache.org](mailto:dev-subscribe@calcite.apache.org).
 
 ## Bug Reports
 
@@ -47,4 +47,4 @@ your question.
 ## Browse the code
 
 One of the advantages of open source software is that you can browse the code.
-The code is available on [github](https://github.com/apache/incubator-calcite/tree/master).
+The code is available on [github](https://github.com/apache/calcite/tree/master).

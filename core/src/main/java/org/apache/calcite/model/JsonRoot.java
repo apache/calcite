@@ -44,7 +44,7 @@ import java.util.List;
  * </pre>
  * <!-- CHECKSTYLE: ON -->
  *
- * <p>See the <a href="http://calcite.incubator.apache.org/docs/model.html">JSON
+ * <p>See the <a href="http://calcite.apache.org/docs/model.html">JSON
  * model reference</a>.
  */
 public class JsonRoot {

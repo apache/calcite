@@ -16,10 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
 -->
-[![Build Status](https://travis-ci.org/julianhyde/incubator-calcite.svg?branch=master)](https://travis-ci.org/julianhyde/incubator-calcite)
+[![Build Status](https://travis-ci.org/julianhyde/calcite.svg?branch=master)](https://travis-ci.org/julianhyde/calcite)
 
 # Apache Calcite
 
 Apache Calcite is a dynamic data management framework.
 
-For more details, see the [home page](http://calcite.incubator.apache.org).
+For more details, see the [home page](http://calcite.apache.org).

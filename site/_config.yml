@@ -17,7 +17,7 @@ markdown: kramdown
 permalink: /news/:year/:month/:day/:title/
 excerpt_separator: ""
 
-repository: https://github.com/apache/incubator-calcite
+repository: https://github.com/apache/calcite
 destination: target
 exclude: [README.md,Gemfile*]
 keep_files: [".git", ".svn", "apidocs"]
@@ -27,11 +27,11 @@ collections:
     output: true
 
 # The URL where the code can be found
-sourceRoot: https://github.com/apache/incubator-calcite/blob/master
+sourceRoot: https://github.com/apache/calcite/blob/master
 
 # The URL where Javadocs are located
 apiRoot: /apidocs
-# apiRoot: http://calcite.incubator.apache.org/apidocs
+# apiRoot: http://calcite.apache.org/apidocs
 
 # The base path where the website is deployed
 baseurl:

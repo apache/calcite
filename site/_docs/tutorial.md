@@ -56,8 +56,8 @@ several important concepts:
 You need Java (1.7 or higher; 1.8 preferred), git and maven (3.2.1 or later).
 
 {% highlight bash %}
-$ git clone https://github.com/apache/incubator-calcite.git
-$ cd incubator-calcite
+$ git clone https://github.com/apache/calcite.git
+$ cd calcite
 $ mvn install -DskipTests -Dcheckstyle.skip=true
 $ cd example/csv
 {% endhighlight %}

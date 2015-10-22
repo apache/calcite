@@ -34,23 +34,23 @@ Name | Apache Id | Github | Organization | Role
 
 There are several development mailing lists for Calcite:
 
-* [dev@calcite.incubator.apache.org](mailto:dev@calcite.incubator.apache.org) - Development discussions
-  [[archive](https://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/)]
-* [issues@calcite.incubator.apache.org](mailto:issues@calcite.incubator.apache.org) - Bug tracking
-  [[archive](https://mail-archives.apache.org/mod_mbox/incubator-calcite-issues/)]
-* [commits@calcite.incubator.apache.org](mailto:commits@calcite.incubator.apache.org) - Git tracking
-  [[archive](https://mail-archives.apache.org/mod_mbox/incubator-calcite-commits/)]
+* [dev@calcite.apache.org](mailto:dev@calcite.apache.org) - Development discussions
+  [[archive](https://mail-archives.apache.org/mod_mbox/calcite-dev/)]
+* [issues@calcite.apache.org](mailto:issues@calcite.apache.org) - Bug tracking
+  [[archive](https://mail-archives.apache.org/mod_mbox/calcite-issues/)]
+* [commits@calcite.apache.org](mailto:commits@calcite.apache.org) - Git tracking
+  [[archive](https://mail-archives.apache.org/mod_mbox/calcite-commits/)]
 
 You can subscribe to the lists by sending email to
-*list*-subscribe@calcite.incubator.apache.org and unsubscribe by sending email to
-*list*-unsubscribe@calcite.incubator.apache.org.
+*list*-subscribe@calcite.apache.org and unsubscribe by sending email to
+*list*-unsubscribe@calcite.apache.org.
 
 ## Source code
 
 Calcite uses git for version control.  The canonical source is in
-[Apache](https://git-wip-us.apache.org/repos/asf/incubator-calcite.git),
+[Apache](https://git-wip-us.apache.org/repos/asf/calcite.git),
 but most people find the
-[Github mirror](https://github.com/apache/incubator-calcite) more
+[Github mirror](https://github.com/apache/calcite) more
 user-friendly.
 
 ## Download source, build, and run tests
@@ -62,8 +62,8 @@ Create a local copy of the git repository, cd to its root directory,
 then build using maven:
 
 {% highlight bash %}
-$ git clone git://github.com/apache/incubator-calcite.git
-$ cd incubator-calcite
+$ git clone git://github.com/apache/calcite.git
+$ cd calcite
 $ mvn install
 {% endhighlight %}
 

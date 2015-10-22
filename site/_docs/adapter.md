@@ -22,7 +22,7 @@ limitations under the License.
 {% endcomment %}
 -->
 
-* <a href="https://github.com/apache/incubator-drill">Apache Drill adapter</a>
+* <a href="https://github.com/apache/drill">Apache Drill adapter</a>
 * Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
 * CSV adapter (example/csv)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)

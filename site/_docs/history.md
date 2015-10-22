@@ -24,9 +24,14 @@ limitations under the License.
 -->
 
 For a full list of releases, see
-<a href="https://github.com/apache/incubator-calcite/releases">github</a>.
+<a href="https://github.com/apache/calcite/releases">github</a>.
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.4.0-incubating">1.4.0-incubating</a> / 2015-09-02
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.5.0">1.5.0</a> / 2015-xx-xx
+{: #v1-5-0}
+
+Under development.
+
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.4.0-incubating">1.4.0-incubating</a> / 2015-09-02
 {: #v1-4-0}
 
 In addition to a large number of bug fixes and minor enhancements,
@@ -207,7 +212,7 @@ Bug fixes, API changes and minor enhancements
   `version.minor` can be set just before a release, rather than just after as at
   present
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.3.0-incubating">1.3.0-incubating</a> / 2015-05-30
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.3.0-incubating">1.3.0-incubating</a> / 2015-05-30
 {: #v1-3-0}
 
 Mainly bug-fixes, but this release adds support for
@@ -323,7 +328,7 @@ Bug-fixes and internal changes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-678">CALCITE-678</a>]
   `SemiJoinRule` mixes up fields when `Aggregate.groupSet` is not field #0
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.2.0-incubating">1.2.0-incubating</a> / 2015-04-07
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.2.0-incubating">1.2.0-incubating</a> / 2015-04-07
 {: #v1-2-0}
 
 A short release, less than a month after 1.1.
@@ -453,7 +458,7 @@ Bug-fixes and internal changes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-619">CALCITE-619</a>]
   Slim down dependencies in parent POM
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.1.0-incubating">1.1.0-incubating</a> / 2015-03-13
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.1.0-incubating">1.1.0-incubating</a> / 2015-03-13
 {: #v1-1-0}
 
 This Calcite release makes it possible to exploit physical properties
@@ -561,7 +566,7 @@ Bug-fixes and internal changes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-586">CALCITE-586</a>]
   Prevent JSON serialization of `Signature.internalParameters`
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-31
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.0.0-incubating">1.0.0-incubating</a> / 2015-01-31
 {: #v1-0-0}
 
 Calcite's first major release.
@@ -795,7 +800,7 @@ Bug-fixes and internal changes
 * Fix `JdbcTest.testVersion` now that version is 1.0
 * Update release HOWTO
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-0.9.2-incubating">0.9.2-incubating</a> / 2014-11-05
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-0.9.2-incubating">0.9.2-incubating</a> / 2014-11-05
 {: #v0-9-2}
 
 A fairly minor release, and last release before we rename all of the
@@ -844,7 +849,7 @@ Bug-fixes and internal changes
 * Update `DiffRepository` documentation.
 * Add tests for windowed aggregates without `ORDER BY`. (Works already.)
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/calcite-0.9.1-incubating">0.9.1-incubating</a> / 2014-10-02
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-0.9.1-incubating">0.9.1-incubating</a> / 2014-10-02
 {: #v0-9-1}
 
 This is the first release as Calcite. (The project was previously called Optiq.)
@@ -978,7 +983,7 @@ Bug-fixes and internal changes
   * Update JIRA cases following release
   * Instructions for making and verifying a release
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-0.9.0-incubating">0.9.0-incubating</a> / 2014-08-19
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-0.9.0-incubating">0.9.0-incubating</a> / 2014-08-19
 {: #v0-9-0}
 
 This is the first release under the Apache incubator process.
@@ -1107,7 +1112,7 @@ Bug-fixes and internal changes
   Add unit test for `SqlRun`
 * Fix a bug where composite `SELECT DISTINCT` would return duplicate rows.
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.8">0.8</a> / 2014-06-27
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.8">0.8</a> / 2014-06-27
 {: #v0-8}
 
 New features
@@ -1167,14 +1172,14 @@ Bug-fixes and internal changes
   Error casting MongoDB date
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-284">CALCITE-284</a>]
   Window functions range defaults to `CURRENT ROW`
-* [<a href=https://issues.apache.org/jira/browse/CALCITE-285">CALCITE-285</a>]
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-285">CALCITE-285</a>]
   Window functions throw exception without `ORDER BY`
 * Test case for
-  [<a href=““https://issues.apache.org/jira/browse/CALCITE-285”>CALCITE-285</a>].
+  [<a href=“https://issues.apache.org/jira/browse/CALCITE-285”>CALCITE-285</a>].
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-281">CALCITE-281</a>]
   `EXTRACT` function's SQL return type is `BIGINT` but implemented as Java `int`
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.7">0.7</a> / 2014-05-13
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.7">0.7</a> / 2014-05-13
 {: #v0-7}
 
 New features
@@ -1245,7 +1250,7 @@ Bug-fixes and internal changes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-205">CALCITE-205</a>]
   Suspicious map.get in VolcanoPlanner.reregister
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.6">0.6</a> / 2014-04-11
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.6">0.6</a> / 2014-04-11
 {: #v0-6}
 
 New features
@@ -1362,7 +1367,7 @@ Bug-fixes and internal changes
 * In planner, use `RelTrait.subsumes` rather than `equals` in an assert.
   (Jinfeng Ni)
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-14
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.5">0.5</a> / 2014-03-14
 {: #v0-5}
 
 New features
@@ -1457,7 +1462,7 @@ Bug-fixes and internal changes
   maven-central, we can make optiq-spark part of the regular build, and remove
   the spark profile.)
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.4.18">0.4.18</a> / 2014-02-14
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.4.18">0.4.18</a> / 2014-02-14
 {: #v0-4-18}
 
 API and functionality changes
@@ -1551,7 +1556,7 @@ Bug-fixes and internal changes
 * Fix escaped unicode characters above 0x8000. Add tests for unicode
   strings.
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
 {: #v0-4-17}
 
 API changes
@@ -1633,7 +1638,7 @@ Other
   password; not just dataSource.
 * Wrap internal error in `SQLException`.
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.4.16">0.4.16</a> / 2013-11-24
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.4.16">0.4.16</a> / 2013-11-24
 {: #v0-4-16}
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-69">CALCITE-69</a>]
@@ -1689,7 +1694,7 @@ Other
 * Upgrade to junit-4.11 (avoiding the dodgy junit-4.1.12).
 * Upgrade to linq4j-0.1.11.
 
-## <a href="https://github.com/apache/incubator-calcite/releases/tag/optiq-parent-0.4.15">0.4.15</a> / 2013-10-14
+## <a href="https://github.com/apache/calcite/releases/tag/optiq-parent-0.4.15">0.4.15</a> / 2013-10-14
 {: #v0-4-15}
 
 * Lots of good stuff that this margin is too small to contain. See

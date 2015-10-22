@@ -47,18 +47,18 @@ combine them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
 Then push your commit(s) to github, and create a pull request from
-your branch to the incubator-calcite master branch. Update the JIRA case
+your branch to the calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
 ## Getting started
 
 Calcite is a community, so the first step to joining the project is to introduce yourself.
-Join the [developers list](http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/)
+Join the [developers list](http://mail-archives.apache.org/mod_mbox/calcite-dev/)
 and send an email.
 
 If you have the chance to attend a [meetup](http://www.meetup.com/Apache-Calcite/),
-or meet [members of the community](http://calcite.incubator.apache.org/team-list.html)
+or meet [members of the community](http://calcite.apache.org/develop)
 at a conference, that's also great.
 
 Choose an initial task to work on. It should be something really simple,

@@ -21,12 +21,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-  <Project rdf:about="https://calcite.incubator.apache.org">
+  <Project rdf:about="https://calcite.apache.org">
     <created>2015-05-27</created>
     <license rdf:resource="http://spdx.org/licenses/Apache-2.0" />
     <name>Apache Calcite</name>
-    <homepage rdf:resource="https://calcite.incubator.apache.org" />
-    <asfext:pmc rdf:resource="https://calcite.incubator.apache.org" />
+    <homepage rdf:resource="https://calcite.apache.org" />
+    <asfext:pmc rdf:resource="https://calcite.apache.org" />
     <shortdesc>A dynamic data management framework.</shortdesc>
     <description>Calcite is a framework for writing data management
       systems.  It converts queries, represented in relational algebra,
@@ -37,16 +37,16 @@ limitations under the License.
       operator types, metadata, and cost model are added at runtime as
       plugins.</description>
     <bug-database rdf:resource="https://issues.apache.org/jira/browse/CALCITE" />
-    <mailing-list rdf:resource="https://calcite.incubator.apache.org/develop" />
-    <download-page rdf:resource="https://calcite.incubator.apache.org/downloads" />
+    <mailing-list rdf:resource="https://calcite.apache.org/develop" />
+    <download-page rdf:resource="https://calcite.apache.org/docs/downloads.html" />
     <programming-language>Java</programming-language>
     <category rdf:resource="http://projects.apache.org/category/big-data" />
     <category rdf:resource="http://projects.apache.org/category/hadoop" />
     <category rdf:resource="http://projects.apache.org/category/sql" />
     <repository>
       <GitRepository>
-        <location rdf:resource="https://git-wip-us.apache.org/repos/asf/incubator-calcite.git"/>
-        <browse rdf:resource="https://github.com/apache/incubator-calcite"/>
+        <location rdf:resource="https://git-wip-us.apache.org/repos/asf/calcite.git"/>
+        <browse rdf:resource="https://github.com/apache/calcite"/>
       </GitRepository>
     </repository>
     <maintainer>
