@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.remote.Service.Request;
+import org.apache.calcite.avatica.remote.Service.Response;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -28,37 +31,32 @@ import java.io.StringWriter;
  *
  * @see org.apache.calcite.avatica.remote.JsonService
  */
-public class JsonHandler implements Handler<String> {
-  private final Service service;
+public class JsonHandler extends AbstractHandler<String> {
 
   protected static final ObjectMapper MAPPER = JsonService.MAPPER;
 
   public JsonHandler(Service service) {
-    this.service = service;
+    super(service);
   }
 
-  public String apply(String jsonRequest) {
-    try {
-      Service.Request request = decode(jsonRequest, Service.Request.class);
-      final Service.Response response = request.accept(service);
-      return encode(response);
-    } catch (IOException e) {
-      throw handle(e);
-    }
+  public HandlerResponse<String> apply(String jsonRequest) {
+    return super.apply(jsonRequest);
   }
 
-  private <T> T decode(String request, Class<T> valueType) throws IOException {
-    return MAPPER.readValue(request, valueType);
+  @Override Request decode(String request) throws IOException {
+    return MAPPER.readValue(request, Service.Request.class);
   }
 
-  private <T> String encode(T response) throws IOException {
+  /**
+   * Serializes the provided object as JSON.
+   *
+   * @param response The object to serialize.
+   * @return A JSON string.
+   */
+  @Override String encode(Response response) throws IOException {
     final StringWriter w = new StringWriter();
     MAPPER.writeValue(w, response);
     return w.toString();
-  }
-
-  protected RuntimeException handle(IOException e) {
-    return new RuntimeException(e);
   }
 }
 

@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.Meta.Frame;
 import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.proto.Requests;
 import org.apache.calcite.avatica.proto.Responses;
+import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.Service.FetchRequest;
 import org.apache.calcite.avatica.remote.Service.FetchResponse;
 
@@ -90,7 +91,9 @@ public class ProtobufHandlerTest {
     when(translation.serializeResponse(response))
         .thenReturn(response.serialize().toByteArray());
 
-    byte[] serializedResponse = handler.apply(serializedRequest);
+    HandlerResponse<byte[]> handlerResponse = handler.apply(serializedRequest);
+    byte[] serializedResponse = handlerResponse.getResponse();
+    assertEquals(200, handlerResponse.getStatusCode());
 
     Responses.FetchResponse protoResponse = Responses.FetchResponse.parseFrom(serializedResponse);
 

@@ -133,8 +133,8 @@ public abstract class AvaticaStatement
       Meta.ExecuteResult x =
           connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
     } catch (RuntimeException e) {
-      throw connection.helper.createException(
-          "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
+      throw connection.helper.createException("Error while executing SQL \"" + sql + "\": "
+          + e.getMessage(), e);
     }
   }
 
@@ -158,8 +158,8 @@ public abstract class AvaticaStatement
       }
       return openResultSet;
     } catch (RuntimeException e) {
-      throw connection.helper.createException(
-        "error while executing SQL \"" + sql + "\": " + e.getMessage(), e);
+      throw connection.helper.createException("Error while executing SQL \"" + sql + "\": "
+          + e.getMessage(), e);
     }
   }
 

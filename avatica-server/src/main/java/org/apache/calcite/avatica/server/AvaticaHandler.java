@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 
@@ -63,12 +64,15 @@ public class AvaticaHandler extends AbstractHandler {
       if (LOG.isTraceEnabled()) {
         LOG.trace("request: " + jsonRequest);
       }
-      final String jsonResponse = jsonHandler.apply(jsonRequest);
+
+      final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
       if (LOG.isTraceEnabled()) {
         LOG.trace("response: " + jsonResponse);
       }
       baseRequest.setHandled(true);
-      response.getWriter().println(jsonResponse);
+      // Set the status code and write out the response.
+      response.setStatus(jsonResponse.getStatusCode());
+      response.getWriter().println(jsonResponse.getResponse());
     }
   }
 }

@@ -18,8 +18,6 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.remote.Service.Response;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import java.io.IOException;
 
 /**
@@ -27,36 +25,25 @@ import java.io.IOException;
  * by converting them to the POJO Request. Returns back the serialized protocol
  * buffer response.
  */
-public class ProtobufHandler implements Handler<byte[]> {
+public class ProtobufHandler extends AbstractHandler<byte[]> {
 
-  private final Service service;
   private final ProtobufTranslation translation;
 
   public ProtobufHandler(Service service, ProtobufTranslation translation) {
-    this.service = service;
+    super(service);
     this.translation = translation;
   }
 
-  @Override public byte[] apply(byte[] requestBytes) {
-    // Transform the protocol buffer bytes into a POJO
-    // Encapsulate the task of transforming this since
-    // the bytes also contain the PB request class name.
-    Service.Request requestPojo;
-    try {
-      requestPojo = translation.parseRequest(requestBytes);
-    } catch (InvalidProtocolBufferException e) {
-      throw new RuntimeException(e);
-    }
+  @Override public HandlerResponse<byte[]> apply(byte[] requestBytes) {
+    return super.apply(requestBytes);
+  }
 
-    // Get the response for the request
-    Response response = requestPojo.accept(service);
+  @Override Service.Request decode(byte[] serializedRequest) throws IOException {
+    return translation.parseRequest(serializedRequest);
+  }
 
-    try {
-      // Serialize it into bytes for the wire.
-      return translation.serializeResponse(response);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  @Override byte[] encode(Response response) throws IOException {
+    return translation.serializeResponse(response);
   }
 }
 

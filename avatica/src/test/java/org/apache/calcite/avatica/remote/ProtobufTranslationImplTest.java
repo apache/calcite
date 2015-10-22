@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
@@ -27,6 +28,7 @@ import org.apache.calcite.avatica.Meta.Style;
 import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.remote.Service.CatalogsRequest;
 import org.apache.calcite.avatica.remote.Service.CloseConnectionRequest;
+import org.apache.calcite.avatica.remote.Service.CloseConnectionResponse;
 import org.apache.calcite.avatica.remote.Service.CloseStatementRequest;
 import org.apache.calcite.avatica.remote.Service.CloseStatementResponse;
 import org.apache.calcite.avatica.remote.Service.ColumnsRequest;
@@ -36,9 +38,12 @@ import org.apache.calcite.avatica.remote.Service.CreateStatementRequest;
 import org.apache.calcite.avatica.remote.Service.CreateStatementResponse;
 import org.apache.calcite.avatica.remote.Service.DatabasePropertyRequest;
 import org.apache.calcite.avatica.remote.Service.DatabasePropertyResponse;
+import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.ExecuteResponse;
 import org.apache.calcite.avatica.remote.Service.FetchRequest;
 import org.apache.calcite.avatica.remote.Service.FetchResponse;
+import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
+import org.apache.calcite.avatica.remote.Service.OpenConnectionResponse;
 import org.apache.calcite.avatica.remote.Service.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.remote.Service.PrepareRequest;
 import org.apache.calcite.avatica.remote.Service.PrepareResponse;
@@ -56,6 +61,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,13 +165,13 @@ public class ProtobufTranslationImplTest<T> {
 
     requests.add(new CatalogsRequest());
     requests.add(new DatabasePropertyRequest());
-    requests.add(new SchemasRequest("catalog", "schemaPattern"));
+    requests.add(new SchemasRequest("connectionId", "catalog", "schemaPattern"));
     requests.add(
-        new TablesRequest("catalog", "schemaPattern", "tableNamePattern",
+        new TablesRequest("connectionId", "catalog", "schemaPattern", "tableNamePattern",
             Arrays.asList("STRING", "BOOLEAN", "INT")));
     requests.add(new TableTypesRequest());
     requests.add(
-        new ColumnsRequest("catalog", "schemaPattern", "tableNamePattern",
+        new ColumnsRequest("connectionId", "catalog", "schemaPattern", "tableNamePattern",
             "columnNamePattern"));
     requests.add(new TypeInfoRequest());
     requests.add(
@@ -181,6 +188,10 @@ public class ProtobufTranslationImplTest<T> {
 
     requests.add(new CreateStatementRequest("connectionId"));
     requests.add(new CloseStatementRequest("connectionId", Integer.MAX_VALUE));
+    Map<String, String> info = new HashMap<>();
+    info.put("param1", "value1");
+    info.put("param2", "value2");
+    requests.add(new OpenConnectionRequest("connectionId", info));
     requests.add(new CloseConnectionRequest("connectionId"));
     requests.add(
         new ConnectionSyncRequest("connectionId",
@@ -194,14 +205,15 @@ public class ProtobufTranslationImplTest<T> {
     LinkedList<Request> requests = new LinkedList<>();
 
     // We're pretty fast and loose on what can be null.
-    requests.add(new SchemasRequest(null, null));
+    requests.add(new SchemasRequest(null, null, null));
     // Repeated fields default to an empty list
-    requests.add(new TablesRequest(null, null, null, Collections.<String>emptyList()));
-    requests.add(new ColumnsRequest(null, null, null, null));
+    requests.add(new TablesRequest(null, null, null, null, Collections.<String>emptyList()));
+    requests.add(new ColumnsRequest(null, null, null, null, null));
     requests.add(new PrepareAndExecuteRequest(null, 0, null, 0));
     requests.add(new PrepareRequest(null, null, 0));
     requests.add(new CreateStatementRequest(null));
     requests.add(new CloseStatementRequest(null, 0));
+    requests.add(new OpenConnectionRequest(null, null));
     requests.add(new CloseConnectionRequest(null));
     requests.add(new ConnectionSyncRequest(null, null));
 
@@ -246,6 +258,9 @@ public class ProtobufTranslationImplTest<T> {
         Integer.MAX_VALUE, "catalog", "schema");
     responses.add(new ConnectionSyncResponse(connProps));
 
+    responses.add(new OpenConnectionResponse());
+    responses.add(new CloseConnectionResponse());
+
     responses.add(new CreateStatementResponse("connectionId", Integer.MAX_VALUE));
 
     Map<Meta.DatabaseProperty, Object> propertyMap = new HashMap<>();
@@ -260,6 +275,12 @@ public class ProtobufTranslationImplTest<T> {
         new PrepareResponse(
             new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
                 signature)));
+
+    StringWriter sw = new StringWriter();
+    new Exception().printStackTrace(new PrintWriter(sw));
+    responses.add(new ErrorResponse(Collections.singletonList(sw.toString()), "Test Error Message",
+        ErrorResponse.UNKNOWN_ERROR_CODE, ErrorResponse.UNKNOWN_SQL_STATE,
+        AvaticaSeverity.WARNING));
 
     return responses;
   }

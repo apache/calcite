@@ -17,11 +17,13 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaSqlException;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
+import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.server.AvaticaHandler;
 import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
@@ -50,11 +52,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Tests covering {@link RemoteMeta}. */
 @RunWith(Parameterized.class)
@@ -291,6 +295,85 @@ public class RemoteMetaTest {
       assertEquals(table, results.getString(3));
       // ordinal position
       assertEquals(1L, results.getLong(17));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testOpenConnectionWithProperties() throws Exception {
+    // This tests that username and password are used for creating a connection on the
+    // server. If this was not the case, it would succeed.
+    try {
+      DriverManager.getConnection(url, "john", "doe");
+      fail("expected exception");
+    } catch (RuntimeException e) {
+      assertEquals("Remote driver error: "
+          + "java.sql.SQLInvalidAuthorizationSpecException: invalid authorization specification"
+          + " - not found: john"
+          + " -> invalid authorization specification - not found: john"
+          + " -> invalid authorization specification - not found: john",
+          e.getMessage());
+    }
+  }
+
+  @Test public void testRemoteConnectionsAreDifferent() throws SQLException {
+    Connection conn1 = DriverManager.getConnection(url);
+    Statement stmt = conn1.createStatement();
+    stmt.execute("DECLARE LOCAL TEMPORARY TABLE"
+        + " buffer (id INTEGER PRIMARY KEY, textdata VARCHAR(100))");
+    stmt.execute("insert into buffer(id, textdata) values(1, 'abc')");
+    stmt.executeQuery("select * from buffer");
+
+    // The local temporary table is local to the connection above, and should
+    // not be visible on another connection
+    Connection conn2 = DriverManager.getConnection(url);
+    Statement stmt2 = conn2.createStatement();
+    try {
+      stmt2.executeQuery("select * from buffer");
+      fail("expected exception");
+    } catch (Exception e) {
+      assertEquals("Error -1 (00000) : Error while executing SQL \"select * from buffer\": "
+          + "Remote driver error: user lacks privilege or object not found: BUFFER",
+          e.getMessage());
+    }
+  }
+
+  @Test public void testRemoteConnectionClosing() throws Exception {
+    AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+    // Verify connection is usable
+    conn.createStatement();
+    conn.close();
+
+    // After closing the connection, it should not be usable anymore
+    try {
+      conn.createStatement();
+      fail("expected exception");
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          containsString("Connection not found: invalid id, closed, or expired"));
+    }
+  }
+
+  @Test public void testExceptionPropagation() throws Exception {
+    final String sql = "SELECT * from EMP LIMIT FOOBARBAZ";
+    ConnectionSpec.getDatabaseLock().lock();
+    try (final AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+        final Statement stmt = conn.createStatement()) {
+      try {
+        // invalid SQL
+        stmt.execute(sql);
+        fail("Expected an AvaticaSqlException");
+      } catch (AvaticaSqlException e) {
+        assertEquals(ErrorResponse.UNKNOWN_ERROR_CODE, e.getErrorCode());
+        assertEquals(ErrorResponse.UNKNOWN_SQL_STATE, e.getSQLState());
+        assertTrue("Message should contain original SQL, was '" + e.getMessage() + "'",
+            e.getMessage().contains(sql));
+        assertEquals(1, e.getStackTraces().size());
+        final String stacktrace = e.getStackTraces().get(0);
+        final String substring = "unexpected token: FOOBARBAZ";
+        assertTrue("Message should contain '" + substring + "', was '" + e.getMessage() + ",",
+            stacktrace.contains(substring));
+      }
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }

@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.AvaticaClientRuntimeException;
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.proto.Common;
@@ -30,11 +32,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Message;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 /**
  * API for request-response calls to an Avatica server.
@@ -52,6 +59,7 @@ public interface Service {
   FetchResponse apply(FetchRequest request);
   CreateStatementResponse apply(CreateStatementRequest request);
   CloseStatementResponse apply(CloseStatementRequest request);
+  OpenConnectionResponse apply(OpenConnectionRequest request);
   CloseConnectionResponse apply(CloseConnectionRequest request);
   ConnectionSyncResponse apply(ConnectionSyncRequest request);
   DatabasePropertyResponse apply(DatabasePropertyRequest request);
@@ -82,6 +90,8 @@ public interface Service {
           name = "createStatement"),
       @JsonSubTypes.Type(value = CloseStatementRequest.class,
           name = "closeStatement"),
+      @JsonSubTypes.Type(value = OpenConnectionRequest.class,
+          name = "openConnection"),
       @JsonSubTypes.Type(value = CloseConnectionRequest.class,
           name = "closeConnection"),
       @JsonSubTypes.Type(value = ConnectionSyncRequest.class, name = "connectionSync"),
@@ -98,6 +108,7 @@ public interface Service {
       property = "response",
       defaultImpl = ResultSetResponse.class)
   @JsonSubTypes({
+      @JsonSubTypes.Type(value = OpenConnectionResponse.class, name = "openConnection"),
       @JsonSubTypes.Type(value = ResultSetResponse.class, name = "resultSet"),
       @JsonSubTypes.Type(value = PrepareResponse.class, name = "prepare"),
       @JsonSubTypes.Type(value = FetchResponse.class, name = "fetch"),
@@ -109,15 +120,27 @@ public interface Service {
           name = "closeConnection"),
       @JsonSubTypes.Type(value = ConnectionSyncResponse.class, name = "connectionSync"),
       @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties"),
-      @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults") })
+      @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults"),
+      @JsonSubTypes.Type(value = ErrorResponse.class, name = "error") })
   abstract class Response {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#getCatalogs()}. */
+   * {@link org.apache.calcite.avatica.Meta#getCatalogs(Meta.ConnectionHandle)}. */
   class CatalogsRequest extends Request {
+    public final String connectionId;
+
+    public CatalogsRequest() {
+      connectionId = null;
+    }
+
+    @JsonCreator
+    public CatalogsRequest(@JsonProperty("connectionId") String connectionId) {
+      this.connectionId = connectionId;
+    }
+
     ResultSetResponse accept(Service service) {
       return service.apply(this);
     }
@@ -128,31 +151,67 @@ public interface Service {
             "Expected CatalogsRequest, but got " + genericMsg.getClass().getName());
       }
 
-      // No state to set
-      return new CatalogsRequest();
+      final Requests.CatalogsRequest msg = (Requests.CatalogsRequest) genericMsg;
+      final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc,
+          Requests.CatalogsRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
+
+      return new CatalogsRequest(connectionId);
     }
 
     @Override Requests.CatalogsRequest serialize() {
-      return Requests.CatalogsRequest.newBuilder().build();
+      Requests.CatalogsRequest.Builder builder = Requests.CatalogsRequest.newBuilder();
+
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return connectionId == null ? 0 : connectionId.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof CatalogsRequest;
+
+      if (o instanceof CatalogsRequest) {
+        CatalogsRequest other = (CatalogsRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
+        return true;
+      }
+
+      return false;
     }
   }
 
   /** Request for
-   * {@link org.apache.calcite.avatica.Meta#getDatabaseProperties()}. */
+   * {@link org.apache.calcite.avatica.Meta#getDatabaseProperties(Meta.ConnectionHandle)}. */
   class DatabasePropertyRequest extends Request {
-    @JsonCreator
+    public final String connectionId;
+
     public DatabasePropertyRequest() {
+      connectionId = null;
+    }
+
+    @JsonCreator
+    public DatabasePropertyRequest(@JsonProperty("connectionId") String connectionId) {
+      this.connectionId = connectionId;
     }
 
     DatabasePropertyResponse accept(Service service) {
@@ -165,38 +224,73 @@ public interface Service {
             "Expected DatabasePropertyRequest, but got " + genericMsg.getClass().getName());
       }
 
-      return new DatabasePropertyRequest();
+      final Requests.DatabasePropertyRequest msg = (Requests.DatabasePropertyRequest) genericMsg;
+      final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc,
+          Requests.DatabasePropertyRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
+
+      return new DatabasePropertyRequest(connectionId);
     }
 
     @Override Requests.DatabasePropertyRequest serialize() {
-      return Requests.DatabasePropertyRequest.newBuilder().build();
+      Requests.DatabasePropertyRequest.Builder builder =
+          Requests.DatabasePropertyRequest.newBuilder();
+
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return connectionId == null ? 0 : connectionId.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof DatabasePropertyRequest;
+
+      if (o instanceof DatabasePropertyRequest) {
+        DatabasePropertyRequest other = (DatabasePropertyRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
+        return true;
+      }
+
+      return false;
     }
   }
   /** Request for
-   * {@link Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}. */
+   * {@link Meta#getSchemas(Meta.ConnectionHandle, String, Meta.Pat)}. */
   class SchemasRequest extends Request {
+    public final String connectionId;
     public final String catalog;
     public final String schemaPattern;
 
     SchemasRequest() {
+      connectionId = null;
       catalog = null;
       schemaPattern = null;
     }
 
     @JsonCreator
-    public SchemasRequest(@JsonProperty("catalog") String catalog,
+    public SchemasRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("catalog") String catalog,
         @JsonProperty("schemaPattern") String schemaPattern) {
+      this.connectionId = connectionId;
       this.catalog = catalog;
       this.schemaPattern = schemaPattern;
     }
@@ -214,6 +308,11 @@ public interface Service {
       final Requests.SchemasRequest msg = (Requests.SchemasRequest) genericMsg;
       final Descriptor desc = msg.getDescriptorForType();
 
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc, Requests.SchemasRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
+
       String catalog = null;
       if (ProtobufService.hasField(msg, desc, Requests.SchemasRequest.CATALOG_FIELD_NUMBER)) {
         catalog = msg.getCatalog();
@@ -225,11 +324,14 @@ public interface Service {
         schemaPattern = msg.getSchemaPattern();
       }
 
-      return new SchemasRequest(catalog, schemaPattern);
+      return new SchemasRequest(connectionId, catalog, schemaPattern);
     }
 
     @Override Requests.SchemasRequest serialize() {
       Requests.SchemasRequest.Builder builder = Requests.SchemasRequest.newBuilder();
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
       if (null != catalog) {
         builder.setCatalog(catalog);
       }
@@ -243,6 +345,7 @@ public interface Service {
     @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
+      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
       result = prime * result + ((schemaPattern == null) ? 0 : schemaPattern.hashCode());
       return result;
@@ -254,6 +357,14 @@ public interface Service {
       }
       if (o instanceof SchemasRequest) {
         SchemasRequest other = (SchemasRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
 
         if (null == catalog) {
           // We're null, other is not
@@ -281,15 +392,17 @@ public interface Service {
   }
 
   /** Request for
-   * {@link Meta#getTables(String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, java.util.List)}
+   * {@link Meta#getTables(Meta.ConnectionHandle, String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, java.util.List)}
    */
   class TablesRequest extends Request {
+    public final String connectionId;
     public final String catalog;
     public final String schemaPattern;
     public final String tableNamePattern;
     public final List<String> typeList;
 
     TablesRequest() {
+      connectionId = null;
       catalog = null;
       schemaPattern = null;
       tableNamePattern = null;
@@ -297,10 +410,12 @@ public interface Service {
     }
 
     @JsonCreator
-    public TablesRequest(@JsonProperty("catalog") String catalog,
+    public TablesRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("catalog") String catalog,
         @JsonProperty("schemaPattern") String schemaPattern,
         @JsonProperty("tableNamePattern") String tableNamePattern,
         @JsonProperty("typeList") List<String> typeList) {
+      this.connectionId = connectionId;
       this.catalog = catalog;
       this.schemaPattern = schemaPattern;
       this.tableNamePattern = tableNamePattern;
@@ -319,6 +434,11 @@ public interface Service {
 
       final Requests.TablesRequest msg = (Requests.TablesRequest) genericMsg;
       final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc, Requests.TablesRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
 
       String catalog = null;
       if (ProtobufService.hasField(msg, desc, Requests.TablesRequest.CATALOG_FIELD_NUMBER)) {
@@ -343,12 +463,15 @@ public interface Service {
         typeList = msg.getTypeListList();
       }
 
-      return new TablesRequest(catalog, schemaPattern, tableNamePattern, typeList);
+      return new TablesRequest(connectionId, catalog, schemaPattern, tableNamePattern, typeList);
     }
 
     @Override Requests.TablesRequest serialize() {
       Requests.TablesRequest.Builder builder = Requests.TablesRequest.newBuilder();
 
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
       if (null != catalog) {
         builder.setCatalog(catalog);
       }
@@ -371,6 +494,7 @@ public interface Service {
     @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
+      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
       result = prime * result + ((schemaPattern == null) ? 0 : schemaPattern.hashCode());
       result = prime * result + ((tableNamePattern == null) ? 0 : tableNamePattern.hashCode());
@@ -385,8 +509,16 @@ public interface Service {
       if (o instanceof TablesRequest) {
         TablesRequest other = (TablesRequest) o;
 
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
         if (null == catalog) {
-          if (null != catalog) {
+          if (null != other.catalog) {
             return false;
           }
         } else if (!catalog.equals(other.catalog)) {
@@ -425,9 +557,20 @@ public interface Service {
   }
 
   /**
-   * Request for {@link Meta#getTableTypes()}.
+   * Request for {@link Meta#getTableTypes(Meta.ConnectionHandle)}.
    */
   class TableTypesRequest extends Request {
+    public final String connectionId;
+
+    public TableTypesRequest() {
+      this.connectionId = null;
+    }
+
+    @JsonCreator
+    public TableTypesRequest(@JsonProperty("connectionId") String connectionId) {
+      this.connectionId = connectionId;
+    }
+
     @Override ResultSetResponse accept(Service service) {
       return service.apply(this);
     }
@@ -438,35 +581,65 @@ public interface Service {
             "Expected TableTypesRequest, but got " + genericMsg.getClass().getName());
       }
 
-      return new TableTypesRequest();
+      final Requests.TableTypesRequest msg = (Requests.TableTypesRequest) genericMsg;
+      final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc,
+          Requests.TableTypesRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
+
+      return new TableTypesRequest(connectionId);
     }
 
     @Override Requests.TableTypesRequest serialize() {
-      return Requests.TableTypesRequest.newBuilder().build();
+      Requests.TableTypesRequest.Builder builder = Requests.TableTypesRequest.newBuilder();
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return connectionId == null ? 0 : connectionId.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof TableTypesRequest;
+      if (o instanceof TableTypesRequest) {
+        TableTypesRequest other = (TableTypesRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
+        return true;
+      }
+
+      return false;
     }
   }
 
   /** Request for
-   * {@link Meta#getColumns(String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat)}.
+   * {@link Meta#getColumns(Meta.ConnectionHandle, String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat)}.
    */
   class ColumnsRequest extends Request {
+    public final String connectionId;
     public final String catalog;
     public final String schemaPattern;
     public final String tableNamePattern;
     public final String columnNamePattern;
 
     ColumnsRequest() {
+      connectionId = null;
       catalog = null;
       schemaPattern = null;
       tableNamePattern = null;
@@ -474,10 +647,12 @@ public interface Service {
     }
 
     @JsonCreator
-    public ColumnsRequest(@JsonProperty("catalog") String catalog,
+    public ColumnsRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("catalog") String catalog,
         @JsonProperty("schemaPattern") String schemaPattern,
         @JsonProperty("tableNamePattern") String tableNamePattern,
         @JsonProperty("columnNamePattern") String columnNamePattern) {
+      this.connectionId = connectionId;
       this.catalog = catalog;
       this.schemaPattern = schemaPattern;
       this.tableNamePattern = tableNamePattern;
@@ -496,6 +671,11 @@ public interface Service {
 
       final Requests.ColumnsRequest msg = (Requests.ColumnsRequest) genericMsg;
       final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc, Requests.ColumnsRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
 
       String catalog = null;
       if (ProtobufService.hasField(msg, desc, Requests.ColumnsRequest.CATALOG_FIELD_NUMBER)) {
@@ -520,12 +700,16 @@ public interface Service {
         columnNamePattern = msg.getColumnNamePattern();
       }
 
-      return new ColumnsRequest(catalog, schemaPattern, tableNamePattern, columnNamePattern);
+      return new ColumnsRequest(connectionId, catalog, schemaPattern, tableNamePattern,
+          columnNamePattern);
     }
 
     @Override Requests.ColumnsRequest serialize() {
       Requests.ColumnsRequest.Builder builder = Requests.ColumnsRequest.newBuilder();
 
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
       if (null != catalog) {
         builder.setCatalog(catalog);
       }
@@ -545,6 +729,7 @@ public interface Service {
     @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
+      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
       result = prime * result + ((columnNamePattern == null) ? 0 : columnNamePattern.hashCode());
       result = prime * result + ((schemaPattern == null) ? 0 : schemaPattern.hashCode());
@@ -558,6 +743,14 @@ public interface Service {
       }
       if (o instanceof ColumnsRequest) {
         ColumnsRequest other = (ColumnsRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
 
         if (null == catalog) {
           if (null != other.catalog) {
@@ -599,8 +792,19 @@ public interface Service {
   }
 
   /** Request for
-   * {@link Meta#getTypeInfo()}. */
+   * {@link Meta#getTypeInfo(Meta.ConnectionHandle)}. */
   class TypeInfoRequest extends Request {
+    public final String connectionId;
+
+    public TypeInfoRequest() {
+      connectionId = null;
+    }
+
+    @JsonCreator
+    public TypeInfoRequest(@JsonProperty("connectionId") String connectionId) {
+      this.connectionId = connectionId;
+    }
+
     @Override ResultSetResponse accept(Service service) {
       return service.apply(this);
     }
@@ -611,22 +815,50 @@ public interface Service {
             "Expected TypeInfoRequest, but got " + genericMsg.getClass().getName());
       }
 
-      return new TypeInfoRequest();
+      final Requests.TypeInfoRequest msg = (Requests.TypeInfoRequest) genericMsg;
+      final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc,
+          Requests.TypeInfoRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
+
+      return new TypeInfoRequest(connectionId);
     }
 
     @Override Requests.TypeInfoRequest serialize() {
-      return Requests.TypeInfoRequest.newBuilder().build();
+      Requests.TypeInfoRequest.Builder builder = Requests.TypeInfoRequest.newBuilder();
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return connectionId == null ? 0 : connectionId.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof TypeInfoRequest;
+      if (o instanceof TypeInfoRequest) {
+        TypeInfoRequest other = (TypeInfoRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
+        return true;
+      }
+
+      return false;
     }
   }
 
@@ -637,10 +869,10 @@ public interface Service {
    * no signature and no other data.
    *
    * <p>Several types of request, including
-   * {@link org.apache.calcite.avatica.Meta#getCatalogs()} and
-   * {@link org.apache.calcite.avatica.Meta#getSchemas(String, org.apache.calcite.avatica.Meta.Pat)}
-   * {@link Meta#getTables(String, Meta.Pat, Meta.Pat, List)}
-   * {@link Meta#getTableTypes()}
+   * {@link org.apache.calcite.avatica.Meta#getCatalogs(Meta.ConnectionHandle)} and
+   * {@link org.apache.calcite.avatica.Meta#getSchemas(Meta.ConnectionHandle, String, org.apache.calcite.avatica.Meta.Pat)}
+   * {@link Meta#getTables(Meta.ConnectionHandle, String, Meta.Pat, Meta.Pat, List)}
+   * {@link Meta#getTableTypes(Meta.ConnectionHandle)}
    * return this response. */
   class ResultSetResponse extends Response {
     public final String connectionId;
@@ -1679,6 +1911,136 @@ public interface Service {
   }
 
   /** Request for
+   * {@link Meta#openConnection}. */
+  class OpenConnectionRequest extends Request {
+    public final String connectionId;
+    public final Map<String, String> info;
+
+    public OpenConnectionRequest() {
+      connectionId = null;
+      info = null;
+    }
+
+    @JsonCreator
+    public OpenConnectionRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("info") Map<String, String> info) {
+      this.connectionId = connectionId;
+      this.info = info;
+    }
+
+    @Override OpenConnectionResponse accept(Service service) {
+      return service.apply(this);
+    }
+
+    @Override
+    Request deserialize(Message genericMsg) {
+      if (!(genericMsg instanceof Requests.OpenConnectionRequest)) {
+        throw new IllegalArgumentException(
+            "Expected OpenConnectionRequest, but got" + genericMsg.getClass().getName());
+      }
+
+      final Requests.OpenConnectionRequest msg = (Requests.OpenConnectionRequest) genericMsg;
+      final Descriptor desc = msg.getDescriptorForType();
+
+      String connectionId = null;
+      if (ProtobufService.hasField(msg, desc,
+          Requests.OpenConnectionRequest.CONNECTION_ID_FIELD_NUMBER)) {
+        connectionId = msg.getConnectionId();
+      }
+
+      Map<String, String> info = msg.getInfo();
+      if (info.isEmpty()) {
+        info = null;
+      }
+
+      return new OpenConnectionRequest(connectionId, info);
+    }
+
+    @Override
+    Message serialize() {
+      Requests.OpenConnectionRequest.Builder builder = Requests.OpenConnectionRequest.newBuilder();
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+      if (null != info) {
+        builder.getMutableInfo().putAll(info);
+      }
+
+      return builder.build();
+    }
+
+    @Override public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = prime * result + ((info == null) ? 0 : info.hashCode());
+      return result;
+    }
+
+    @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
+      if (o instanceof OpenConnectionRequest) {
+        OpenConnectionRequest other = (OpenConnectionRequest) o;
+
+        if (null == connectionId) {
+          if (null != other.connectionId) {
+            return false;
+          }
+        } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
+        if (null == info) {
+          if (null != other.info) {
+            return false;
+          }
+        } else if (!info.equals(other.info)) {
+          return false;
+        }
+
+        return true;
+      }
+
+      return false;
+    }
+  }
+
+  /** Response from
+   * {@link org.apache.calcite.avatica.remote.Service.OpenConnectionRequest}. */
+  class OpenConnectionResponse extends Response {
+
+    @JsonCreator
+    public OpenConnectionResponse() {
+    }
+
+    @Override OpenConnectionResponse deserialize(Message genericMsg) {
+      if (!(genericMsg instanceof Responses.OpenConnectionResponse)) {
+        throw new IllegalArgumentException(
+            "Expected OpenConnectionResponse, but got " + genericMsg.getClass().getName());
+      }
+
+      return new OpenConnectionResponse();
+    }
+
+    @Override Responses.OpenConnectionResponse serialize() {
+      return Responses.OpenConnectionResponse.newBuilder().build();
+    }
+
+    @Override public int hashCode() {
+      return 0;
+    }
+
+    @Override public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      }
+      return o instanceof OpenConnectionResponse;
+    }
+  }
+
+  /** Request for
    * {@link Meta#closeConnection(org.apache.calcite.avatica.Meta.ConnectionHandle)}. */
   class CloseConnectionRequest extends Request {
     public final String connectionId;
@@ -1758,6 +2120,7 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CloseConnectionRequest}. */
   class CloseConnectionResponse extends Response {
+
     @JsonCreator
     public CloseConnectionResponse() {}
 
@@ -1951,7 +2314,7 @@ public interface Service {
   }
 
   /** Response for
-   * {@link Meta#getDatabaseProperties()}. */
+   * {@link Meta#getDatabaseProperties(Meta.ConnectionHandle)}. */
   class DatabasePropertyResponse extends Response {
     public final Map<Meta.DatabaseProperty, Object> map;
 
@@ -2080,6 +2443,157 @@ public interface Service {
       }
 
       return false;
+    }
+  }
+
+  /**
+   * Response for any request that the server failed to successfully perform.
+   * It is used internally by the transport layers to format errors for
+   * transport over the wire. Thus, {@link Request#apply} will never return
+   * an ErrorResponse.
+   */
+  public class ErrorResponse extends Response {
+    public static final int UNKNOWN_ERROR_CODE = -1;
+    public static final String UNKNOWN_SQL_STATE = "00000";
+
+    public final List<String> exceptions;
+    public final String errorMessage;
+    public final int errorCode;
+    public final String sqlState;
+    public final AvaticaSeverity severity;
+
+    ErrorResponse() {
+      exceptions = Collections.singletonList("Unhandled exception");
+      errorMessage = "Unknown message";
+      errorCode = -1;
+      sqlState = UNKNOWN_SQL_STATE;
+      severity = AvaticaSeverity.UNKNOWN;
+    }
+
+    @JsonCreator
+    public ErrorResponse(@JsonProperty("exceptions") List<String> exceptions,
+        @JsonProperty("errorMessage") String errorMessage,
+        @JsonProperty("errorCode") int errorCode,
+        @JsonProperty("sqlState") String sqlState,
+        @JsonProperty("severity") AvaticaSeverity severity) {
+      this.exceptions = exceptions;
+      this.errorMessage = errorMessage;
+      this.errorCode = errorCode;
+      this.sqlState = sqlState;
+      this.severity = severity;
+    }
+
+    protected ErrorResponse(Exception e, String errorMessage, int code, String sqlState,
+        AvaticaSeverity severity) {
+      this(errorMessage, code, sqlState, severity, toStackTraces(e));
+    }
+
+    protected ErrorResponse(String errorMessage, int code, String sqlState,
+        AvaticaSeverity severity, List<String> exceptions) {
+      this.exceptions = exceptions;
+      this.errorMessage = errorMessage;
+      this.errorCode = code;
+      this.sqlState = sqlState;
+      this.severity = severity;
+    }
+
+    static List<String> toStackTraces(Exception e) {
+      List<String> stackTraces = new ArrayList<>();
+      stackTraces.add(toString(e));
+      if (e instanceof SQLException) {
+        SQLException next = ((SQLException) e).getNextException();
+        while (null != next) {
+          stackTraces.add(toString(next));
+          next = next.getNextException();
+        }
+      }
+      return stackTraces;
+    }
+
+    static String toString(Exception e) {
+      StringWriter sw = new StringWriter();
+      Objects.requireNonNull(e).printStackTrace(new PrintWriter(sw));
+      return sw.toString();
+    }
+
+    @Override
+    ErrorResponse deserialize(Message genericMsg) {
+      if (!(genericMsg instanceof Responses.ErrorResponse)) {
+        throw new IllegalArgumentException("Expected ErrorResponse, but got "
+          + genericMsg.getClass());
+      }
+
+      Responses.ErrorResponse msg = (Responses.ErrorResponse) genericMsg;
+      return new ErrorResponse(msg.getExceptionsList(), msg.getErrorMessage(),
+          msg.getErrorCode(), msg.getSqlState(), AvaticaSeverity.fromProto(msg.getSeverity()));
+    }
+
+    @Override
+    Responses.ErrorResponse serialize() {
+      Responses.ErrorResponse.Builder builder = Responses.ErrorResponse.newBuilder();
+      return builder.addAllExceptions(exceptions).setErrorMessage(errorMessage)
+          .setErrorCode(errorCode).setSqlState(sqlState).setSeverity(severity.toProto()).build();
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((exceptions == null) ? 0 : exceptions.hashCode());
+      result = prime * result + errorCode;
+      result = prime * result + ((sqlState == null) ? 0 : sqlState.hashCode());
+      result = prime * result + ((severity == null) ? 0 : severity.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof ErrorResponse)) {
+        return false;
+      }
+
+      ErrorResponse other = (ErrorResponse) obj;
+      if (exceptions == null) {
+        if (other.exceptions != null) {
+          return false;
+        }
+      } else if (!exceptions.equals(other.exceptions)) {
+        return false;
+      }
+
+      if (errorMessage == null) {
+        if (other.errorMessage != null) {
+          return false;
+        }
+      } else if (!errorMessage.equals(other.errorMessage)) {
+        return false;
+      }
+
+      if (errorCode != other.errorCode) {
+        return false;
+      }
+
+      if (sqlState == null) {
+        if (other.sqlState != null) {
+          return false;
+        }
+      } else if (!sqlState.equals(other.sqlState)) {
+        return false;
+      }
+
+      if (severity != other.severity) {
+        return false;
+      }
+
+      return true;
+    }
+
+    public AvaticaClientRuntimeException toException() {
+      return new AvaticaClientRuntimeException("Remote driver error: " + errorMessage, errorCode,
+          sqlState, severity, exceptions);
     }
   }
 }

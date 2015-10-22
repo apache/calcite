@@ -57,6 +57,11 @@ message CloseStatementResponse {
 
 }
 
+// Response to OpenConnectionRequest {
+message OpenConnectionResponse {
+
+}
+
 // Response to CloseConnectionRequest {
 message CloseConnectionResponse {
 
@@ -75,4 +80,13 @@ message DatabasePropertyElement {
 // Response for Meta#getDatabaseProperties()
 message DatabasePropertyResponse {
   repeated DatabasePropertyElement props = 1;
+}
+
+// Send contextual information about some error over the wire from the server.
+message ErrorResponse {
+  repeated string exceptions = 1; // exception stacktraces, many for linked exceptions.
+  string error_message = 2; // human readable description
+  Severity severity = 3;
+  uint32 error_code = 4; // numeric identifier for error
+  string sql_state = 5; // five-character standard-defined value
 }

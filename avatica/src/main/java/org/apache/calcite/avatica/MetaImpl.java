@@ -48,7 +48,7 @@ import java.util.NoSuchElementException;
  * <p>Each sub-class must implement the two remaining abstract methods,
  * {@link #prepare} and
  * {@link #prepareAndExecute}.
- * It should also override metadata methods such as {@link #getCatalogs()} and
+ * It should also override metadata methods such as {@link #getCatalogs(Meta.ConnectionHandle)} and
  * {@link #getTables} for the element types for which it has instances; the
  * default metadata methods return empty collections.
  */
@@ -178,6 +178,10 @@ public abstract class MetaImpl implements Meta {
     default:
       throw new AssertionError("unknown style: " + cursorFactory.style);
     }
+  }
+
+  @Override public void openConnection(ConnectionHandle ch, Map<String, String> info) {
+    // dummy implementation, connection is already created at this point
   }
 
   @Override public void closeConnection(ConnectionHandle ch) {
@@ -569,63 +573,69 @@ public abstract class MetaImpl implements Meta {
   public static class MetaSuperTable {
   }
 
-  public Map<DatabaseProperty, Object> getDatabaseProperties() {
+  public Map<DatabaseProperty, Object> getDatabaseProperties(ConnectionHandle ch) {
     return Collections.emptyMap();
   }
 
-  public MetaResultSet getTables(String catalog,
+  public MetaResultSet getTables(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       List<String> typeList) {
     return createEmptyResultSet(MetaTable.class);
   }
 
-  public MetaResultSet getColumns(String catalog,
+  public MetaResultSet getColumns(ConnectionHandle ch, String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {
     return createEmptyResultSet(MetaColumn.class);
   }
 
-  public MetaResultSet getSchemas(String catalog, Pat schemaPattern) {
+  public MetaResultSet getSchemas(ConnectionHandle ch, String catalog, Pat schemaPattern) {
     return createEmptyResultSet(MetaSchema.class);
   }
 
-  public MetaResultSet getCatalogs() {
+  public MetaResultSet getCatalogs(ConnectionHandle ch) {
     return createEmptyResultSet(MetaCatalog.class);
   }
 
-  public MetaResultSet getTableTypes() {
+  public MetaResultSet getTableTypes(ConnectionHandle ch) {
     return createEmptyResultSet(MetaTableType.class);
   }
 
-  public MetaResultSet getProcedures(String catalog,
+  public MetaResultSet getProcedures(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat procedureNamePattern) {
     return createEmptyResultSet(MetaProcedure.class);
   }
 
-  public MetaResultSet getProcedureColumns(String catalog,
+  public MetaResultSet getProcedureColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat procedureNamePattern,
       Pat columnNamePattern) {
     return createEmptyResultSet(MetaProcedureColumn.class);
   }
 
-  public MetaResultSet getColumnPrivileges(String catalog,
+  public MetaResultSet getColumnPrivileges(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table,
       Pat columnNamePattern) {
     return createEmptyResultSet(MetaColumnPrivilege.class);
   }
 
-  public MetaResultSet getTablePrivileges(String catalog,
+  public MetaResultSet getTablePrivileges(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern) {
     return createEmptyResultSet(MetaTablePrivilege.class);
   }
 
-  public MetaResultSet getBestRowIdentifier(String catalog,
+  public MetaResultSet getBestRowIdentifier(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table,
       int scope,
@@ -633,31 +643,36 @@ public abstract class MetaImpl implements Meta {
     return createEmptyResultSet(MetaBestRowIdentifier.class);
   }
 
-  public MetaResultSet getVersionColumns(String catalog,
+  public MetaResultSet getVersionColumns(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table) {
     return createEmptyResultSet(MetaVersionColumn.class);
   }
 
-  public MetaResultSet getPrimaryKeys(String catalog,
+  public MetaResultSet getPrimaryKeys(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table) {
     return createEmptyResultSet(MetaPrimaryKey.class);
   }
 
-  public MetaResultSet getImportedKeys(String catalog,
+  public MetaResultSet getImportedKeys(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table) {
     return createEmptyResultSet(MetaImportedKey.class);
   }
 
-  public MetaResultSet getExportedKeys(String catalog,
+  public MetaResultSet getExportedKeys(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table) {
     return createEmptyResultSet(MetaExportedKey.class);
   }
 
-  public MetaResultSet getCrossReference(String parentCatalog,
+  public MetaResultSet getCrossReference(ConnectionHandle ch,
+      String parentCatalog,
       String parentSchema,
       String parentTable,
       String foreignCatalog,
@@ -666,11 +681,12 @@ public abstract class MetaImpl implements Meta {
     return createEmptyResultSet(MetaCrossReference.class);
   }
 
-  public MetaResultSet getTypeInfo() {
+  public MetaResultSet getTypeInfo(ConnectionHandle ch) {
     return createEmptyResultSet(MetaTypeInfo.class);
   }
 
-  public MetaResultSet getIndexInfo(String catalog,
+  public MetaResultSet getIndexInfo(ConnectionHandle ch,
+      String catalog,
       String schema,
       String table,
       boolean unique,
@@ -678,50 +694,57 @@ public abstract class MetaImpl implements Meta {
     return createEmptyResultSet(MetaIndexInfo.class);
   }
 
-  public MetaResultSet getUDTs(String catalog,
+  public MetaResultSet getUDTs(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat typeNamePattern,
       int[] types) {
     return createEmptyResultSet(MetaUdt.class);
   }
 
-  public MetaResultSet getSuperTypes(String catalog,
+  public MetaResultSet getSuperTypes(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat typeNamePattern) {
     return createEmptyResultSet(MetaSuperType.class);
   }
 
-  public MetaResultSet getSuperTables(String catalog,
+  public MetaResultSet getSuperTables(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern) {
     return createEmptyResultSet(MetaSuperTable.class);
   }
 
-  public MetaResultSet getAttributes(String catalog,
+  public MetaResultSet getAttributes(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat typeNamePattern,
       Pat attributeNamePattern) {
     return createEmptyResultSet(MetaAttribute.class);
   }
 
-  public MetaResultSet getClientInfoProperties() {
+  public MetaResultSet getClientInfoProperties(ConnectionHandle ch) {
     return createEmptyResultSet(MetaClientInfoProperty.class);
   }
 
-  public MetaResultSet getFunctions(String catalog,
+  public MetaResultSet getFunctions(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat functionNamePattern) {
     return createEmptyResultSet(MetaFunction.class);
   }
 
-  public MetaResultSet getFunctionColumns(String catalog,
+  public MetaResultSet getFunctionColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat functionNamePattern,
       Pat columnNamePattern) {
     return createEmptyResultSet(MetaFunctionColumn.class);
   }
 
-  public MetaResultSet getPseudoColumns(String catalog,
+  public MetaResultSet getPseudoColumns(ConnectionHandle ch,
+      String catalog,
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {

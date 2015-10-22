@@ -38,6 +38,17 @@ public class Helper {
   }
 
   public SQLException createException(String message, Exception e) {
+    return createException(message, null, e);
+  }
+
+  public SQLException createException(String message, String sql, Exception e) {
+    if (e instanceof AvaticaClientRuntimeException) {
+      // The AvaticaClientRuntimeException contains extra information about what/why
+      // the exception was thrown that we can pass back to the user.
+      AvaticaClientRuntimeException rte = (AvaticaClientRuntimeException) e;
+      return new AvaticaSqlException(message, rte.getSqlState(), rte.getErrorCode(),
+          rte.getServerExceptions());
+    }
     return new SQLException(message, e);
   }
 

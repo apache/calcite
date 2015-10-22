@@ -38,42 +38,35 @@ public class MockJsonService extends JsonService {
   @Override public String apply(String request) {
     String response = map.get(request);
     if (response == null) {
-      response = handleCloseConnection(request);
-    }
-    if (response == null) {
       throw new RuntimeException("No response for " + request);
     }
     return response;
   }
 
-  /**
-   * Special case for closeConnection because connection IDs are random.
-   * @return response if is a CloseConnectionRequest, null otherwise.
-   */
-  private static String handleCloseConnection(String request) {
-    if (request.contains("closeConnection")) {
-      return "{\"response\":\"closeConnection\"}";
-    }
-    return null;
-  }
-
   /** Factory that creates a {@code MockJsonService}. */
   public static class Factory implements Service.Factory {
     public Service create(AvaticaConnection connection) {
+      final String connectionId = connection.handle.id;
       final Map<String, String> map1 = new HashMap<>();
       try {
+        map1.put(
+            "{\"request\":\"openConnection\",\"connectionId\":\"" + connectionId + "\",\"info\":{}}",
+            "{\"response\":\"openConnection\"}");
+        map1.put(
+            "{\"request\":\"closeConnection\",\"connectionId\":\"" + connectionId + "\"}",
+            "{\"response\":\"closeConnection\"}");
         map1.put(
             "{\"request\":\"getSchemas\",\"catalog\":null,\"schemaPattern\":{\"s\":null}}",
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
-            JsonService.encode(new SchemasRequest(null, null)),
+            JsonService.encode(new SchemasRequest(connectionId, null, null)),
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
             JsonService.encode(
-                new TablesRequest(null, null, null, Arrays.<String>asList())),
+                new TablesRequest(connectionId, null, null, null, Arrays.<String>asList())),
             "{\"response\":\"resultSet\", updateCount: -1, firstFrame: {offset: 0, done: true, rows: []}}");
         map1.put(
-            "{\"request\":\"createStatement\",\"connectionId\":0}",
+            "{\"request\":\"createStatement\",\"connectionId\":\"" + connectionId + "\"}",
             "{\"response\":\"createStatement\",\"id\":0}");
         map1.put(
             "{\"request\":\"prepareAndExecute\",\"statementId\":0,"
@@ -96,7 +89,7 @@ public class MockJsonService extends JsonService {
                 + " \"cursorFactory\": {\"style\": \"ARRAY\"}\n"
                 + "}}");
         map1.put(
-            "{\"request\":\"getColumns\",\"catalog\":null,\"schemaPattern\":null,"
+            "{\"request\":\"getColumns\",\"connectionId\":\"" + connectionId + "\",\"catalog\":null,\"schemaPattern\":null,"
                 + "\"tableNamePattern\":\"my_table\",\"columnNamePattern\":null}",
             "{\"response\":\"resultSet\",\"connectionId\":\"00000000-0000-0000-0000-000000000000\",\"statementId\":-1,\"ownStatement\":true,"
                 + "\"signature\":{\"columns\":["
