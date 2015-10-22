@@ -824,7 +824,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         RelBuilder.AggCall newAggCall =
             relBuilder.aggregateCall(aggCall.getAggregation(),
                 aggCall.isDistinct(), filterArg, aggCall.name, args);
-        mapping.set(groupCount + indicatorCount + newAggCallList.size(), j);
+        mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
         newAggCallList.add(newAggCall);
       }
       ++j;
