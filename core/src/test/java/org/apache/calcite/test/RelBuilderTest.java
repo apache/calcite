@@ -116,6 +116,36 @@ public class RelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testScanInvalidTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM zzz
+    try {
+      final RelNode root =
+          RelBuilder.create(config().build())
+              .scan("ZZZ") // this relation does not exist
+              .build();
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'ZZZ' not found"));
+    }
+  }
+
+  @Test public void testScanValidTableWrongCase() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM "emp"
+    try {
+      final RelNode root =
+          RelBuilder.create(config().build())
+              .scan("emp") // the table is named 'EMP', not 'emp'
+              .build();
+      fail("Expected error (table names are case-sensitive), but got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'emp' not found"));
+    }
+  }
+
   @Test public void testScanFilterTrue() {
     // Equivalent SQL:
     //   SELECT *

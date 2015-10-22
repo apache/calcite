@@ -57,6 +57,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Stacks;
+import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -650,6 +651,9 @@ public class RelBuilder {
   public RelBuilder scan(String tableName) {
     final RelOptTable relOptTable =
         relOptSchema.getTableForMember(ImmutableList.of(tableName));
+    if (relOptTable == null) {
+      throw Static.RESOURCE.tableNotFound(tableName).ex();
+    }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
     return this;
