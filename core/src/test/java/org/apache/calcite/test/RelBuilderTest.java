@@ -116,6 +116,20 @@ public class RelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testScanInvalidTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM zzz
+    try {
+      final RelNode root =
+          RelBuilder.create(config().build())
+              .scan("ZZZ") // this relation does not exist
+              .build();
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'ZZZ' not found"));
+    }
+  }
+
   @Test public void testScanFilterTrue() {
     // Equivalent SQL:
     //   SELECT *

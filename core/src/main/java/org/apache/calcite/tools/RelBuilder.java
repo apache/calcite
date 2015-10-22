@@ -650,6 +650,9 @@ public class RelBuilder {
   public RelBuilder scan(String tableName) {
     final RelOptTable relOptTable =
         relOptSchema.getTableForMember(ImmutableList.of(tableName));
+    if (relOptTable == null) {
+      throw new RuntimeException(String.format("Table '%s' not found", tableName));
+    }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
     return this;
