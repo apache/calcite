@@ -29,6 +29,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Util;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +41,7 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -810,6 +814,58 @@ public class MaterializationTest {
           .query(q)
           .enableMaterializations(true)
           .explainMatches("", CONTAINS_LOCATIONS)
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
+  @Test public void testSingleMaterializationMultiUsage() {
+    String q = "select *\n"
+        + "from (select * from \"emps\" where \"empid\" < 300)\n"
+        + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", "select * from \"emps\" where \"empid\" < 500")
+          .query(q)
+          .enableMaterializations(true)
+          .explainMatches("", new Function<ResultSet, Void>() {
+            public Void apply(ResultSet s) {
+              try {
+                final String actual = Util.toLinux(CalciteAssert.toString(s));
+                final String scan = "EnumerableTableScan(table=[[hr, m0]])";
+                assertTrue(actual + " should have had two occurrences of " + scan,
+                    StringUtils.countMatches(actual, scan) == 2);
+                return null;
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          })
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
+  @Test public void testMultiMaterializationMultiUsage() {
+    String q = "select *\n"
+        + "from (select * from \"emps\" where \"empid\" < 300)\n"
+        + "join (select \"deptno\", count(*) as c from \"emps\" group by \"deptno\") using (\"deptno\")";
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", "select \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"deptno\"",
+              "m1", "select * from \"emps\" where \"empid\" < 500")
+          .query(q)
+          .enableMaterializations(true)
+          .explainContains("EnumerableTableScan(table=[[hr, m0]])")
+          .explainContains("EnumerableTableScan(table=[[hr, m1]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
       Prepare.THREAD_TRIM.set(false);

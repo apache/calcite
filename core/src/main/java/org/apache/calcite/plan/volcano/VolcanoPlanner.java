@@ -360,7 +360,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     registerImpl(rel, root.set);
   }
 
-  private void useMaterialization(RelOptMaterialization materialization) {
+  private RelNode useMaterialization(RelNode root,
+      RelOptMaterialization materialization, boolean firstRun) {
     // Try to rewrite the original root query in terms of the materialized
     // query. If that is possible, register the remnant query as equivalent
     // to the root.
@@ -368,22 +369,23 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // This call modifies originalRoot. Doesn't look like originalRoot should be mutable though.
     // Need to check.
-    RelNode sub = substitute(originalRoot, materialization);
+    RelNode sub = substitute(root, materialization);
     if (sub != null) {
-      // TODO: try to substitute other materializations in the remnant.
-      // Useful for big queries, e.g.
-      //   (t1 group by c1) join (t2 group by c2).
       Hook.SUB.run(sub);
-      registerImpl(sub, root.set);
-      return;
+      registerImpl(sub, this.root.set);
+      return sub;
     }
-    RelSubset subset = registerImpl(materialization.queryRel, null);
-    RelNode tableRel2 =
-        RelOptUtil.createCastRel(
-            materialization.tableRel,
-            materialization.queryRel.getRowType(),
-            true);
-    registerImpl(tableRel2, subset.set);
+
+    if (firstRun) {
+      RelSubset subset = registerImpl(materialization.queryRel, null);
+      RelNode tableRel2 =
+          RelOptUtil.createCastRel(
+              materialization.tableRel,
+              materialization.queryRel.getRowType(),
+              true);
+      registerImpl(tableRel2, subset.set);
+    }
+    return null;
   }
 
   private RelNode substitute(
@@ -415,6 +417,33 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     return new MaterializedViewSubstitutionVisitor(target, root)
             .go(materialization.tableRel);
+  }
+
+  // Register all possible combinations of materialization substitution.
+  // Useful for big queries, e.g.
+  //   (t1 group by c1) join (t2 group by c2).
+  private void useMaterializations(RelNode root,
+      List<RelOptMaterialization> materializations, boolean firstRun) {
+    for (RelOptMaterialization m : materializations) {
+      RelNode sub = useMaterialization(root, m, firstRun);
+      if (sub != null) {
+        useMaterializations(sub, materializations, false);
+      } else {
+        // Based on the assumption that a substitution itself won't trigger another
+        // substitution, if a materialization is not matched here it won't be useful
+        // in any subsequent matching for the current level of recursion or this level
+        // down. So we can safely remove the unmatched materialization from the remnant
+        // list for the current root.
+        List<RelOptMaterialization> newList =
+            Lists.newArrayListWithExpectedSize(materializations.size() - 1);
+        for (RelOptMaterialization elem : materializations) {
+          if (elem != m) {
+            newList.add(elem);
+          }
+        }
+        materializations = newList;
+      }
+    }
   }
 
   private void useApplicableMaterializations() {
@@ -454,6 +483,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
         Graphs.makeImmutable(usesGraph);
     final Set<RelOptTable> queryTables = findTables(originalRoot);
+    final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
     for (RelOptMaterialization materialization : materializations) {
       if (materialization.starTable != null) {
         // Materialization is a tile in a lattice. We will deal with it shortly.
@@ -461,10 +491,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
       if (materialization.table != null) {
         if (usesTable(materialization.table, queryTables, frozenGraph)) {
-          useMaterialization(materialization);
+          applicableMaterializations.add(materialization);
         }
       }
     }
+    useMaterializations(originalRoot, applicableMaterializations, true);
 
     // Use a lattice if the query uses at least the central (fact) table of the
     // lattice.
