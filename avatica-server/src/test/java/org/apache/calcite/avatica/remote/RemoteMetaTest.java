@@ -378,6 +378,23 @@ public class RemoteMetaTest {
       ConnectionSpec.getDatabaseLock().unlock();
     }
   }
+
+  @Test public void testRemoteColumnsMeta() throws Exception {
+    // Verify all columns are retrieved, thus that frame-based fetching works correctly for columns
+    int rowCount = 0;
+    try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
+      ResultSet rs = conn.getMetaData().getColumns(null, null, null, null);
+      while (rs.next()) {
+        rowCount++;
+      }
+      rs.close();
+
+      // The implicitly created statement should have been closed
+      assertTrue(rs.getStatement().isClosed());
+    }
+    // default fetch size is 100, we are well beyond it
+    assertTrue(rowCount > 900);
+  }
 }
 
 // End RemoteMetaTest.java

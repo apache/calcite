@@ -551,8 +551,12 @@ public abstract class AvaticaConnection implements Connection {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         metaResultSet.connectionId, metaResultSet.statementId, null);
     final AvaticaStatement statement = lookupStatement(h);
-    return executeQueryInternal(statement, metaResultSet.signature.sanitize(),
+    ResultSet resultSet = executeQueryInternal(statement, metaResultSet.signature.sanitize(),
         metaResultSet.firstFrame);
+    if (metaResultSet.ownStatement) {
+      resultSet.getStatement().closeOnCompletion();
+    }
+    return resultSet;
   }
 
   /** Creates a statement wrapper around an existing handle. */
