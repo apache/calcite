@@ -17,6 +17,8 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -68,6 +70,12 @@ public class VolcanoPlannerTraitTest {
    * Private trait definition for an alternate type of traits.
    */
   private static final AltTraitDef ALT_TRAIT_DEF = new AltTraitDef();
+
+  /**
+   * Private alternate trait.
+   */
+  private static final AltTrait ALT_EMPTY_TRAIT =
+      new AltTrait(ALT_TRAIT_DEF, "ALT_EMPTY");
 
   /**
    * Private alternate trait.
@@ -148,6 +156,38 @@ public class VolcanoPlannerTraitTest {
 
     child = child.getInputs().get(0);
     assertTrue(child instanceof PhysLeafRel);
+  }
+
+  @Test public void testRuleMatchAfterConversion() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(ALT_TRAIT_DEF);
+
+    planner.addRule(new PhysToIteratorConverterRule());
+    planner.addRule(new PhysLeafRule());
+    planner.addRule(new IterSingleRule());
+    planner.addRule(new IterSinglePhysMergeRule());
+
+    RelOptCluster cluster = VolcanoPlannerTest.newCluster(planner);
+
+    NoneLeafRel noneLeafRel =
+        RelOptUtil.addTrait(
+            new NoneLeafRel(cluster, "noneLeafRel"), ALT_TRAIT);
+
+    NoneSingleRel noneRel =
+        RelOptUtil.addTrait(
+            new NoneSingleRel(cluster, noneLeafRel), ALT_EMPTY_TRAIT);
+
+    RelNode convertedRel =
+        planner.changeTraits(noneRel,
+            cluster.traitSetOf(EnumerableConvention.INSTANCE)
+                .replace(ALT_EMPTY_TRAIT));
+
+    planner.setRoot(convertedRel);
+    RelNode result = planner.chooseDelegate().findBestExp();
+
+    assertTrue(result instanceof IterMergedRel);
   }
 
   @Ignore
@@ -251,7 +291,7 @@ public class VolcanoPlannerTraitTest {
     }
 
     public boolean satisfies(RelTrait trait) {
-      return equals(trait);
+      return trait.equals(ALT_EMPTY_TRAIT) || equals(trait);
     }
 
     public String toString() {
@@ -454,12 +494,7 @@ public class VolcanoPlannerTraitTest {
 
 
   /** A mix-in interface to extend {@link RelNode}, for testing. */
-  interface FooRel {
-    String implement(FooRelImplementor implementor);
-  }
-
-  /** An implementor for {@link FooRel}. */
-  interface FooRelImplementor {
+  interface FooRel extends EnumerableRel {
   }
 
   /** Relational expression with one input, that implements the {@link FooRel}
@@ -484,7 +519,8 @@ public class VolcanoPlannerTraitTest {
           sole(inputs));
     }
 
-    public String implement(FooRelImplementor implementor) {
+    @Override public Result implement(EnumerableRelImplementor implementor,
+        Prefer pref) {
       return null;
     }
   }
@@ -666,6 +702,48 @@ public class VolcanoPlannerTraitTest {
       return new PhysToIteratorConverter(
           getCluster(),
           sole(inputs));
+    }
+  }
+
+  /** Planner rule that converts an {@link IterSingleRel} on a
+   * {@link PhysToIteratorConverter} into a {@link IterMergedRel}. */
+  private static class IterSinglePhysMergeRule extends RelOptRule {
+    public IterSinglePhysMergeRule() {
+      super(
+          operand(IterSingleRel.class,
+              operand(PhysToIteratorConverter.class, any())));
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      IterSingleRel singleRel = call.rel(0);
+      call.transformTo(
+          new IterMergedRel(singleRel.getCluster(),  null));
+    }
+  }
+
+  /** Relational expression with no inputs, that implements the {@link FooRel}
+   * mix-in interface. */
+  private static class IterMergedRel extends TestLeafRel implements FooRel {
+    public IterMergedRel(RelOptCluster cluster, String label) {
+      super(
+          cluster,
+          cluster.traitSetOf(EnumerableConvention.INSTANCE),
+          label);
+    }
+
+    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return planner.getCostFactory().makeZeroCost();
+    }
+
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      assert traitSet.comprises(EnumerableConvention.INSTANCE);
+      assert inputs.isEmpty();
+      return new IterMergedRel(getCluster(), this.getLabel());
+    }
+
+    @Override public Result implement(EnumerableRelImplementor implementor,
+        Prefer pref) {
+      return null;
     }
   }
 }

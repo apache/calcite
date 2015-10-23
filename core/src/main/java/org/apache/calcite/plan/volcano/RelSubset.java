@@ -198,7 +198,7 @@ public class RelSubset extends AbstractRelNode {
     final Set<RelNode> list = new LinkedHashSet<RelNode>();
     for (RelNode parent : set.getParentRels()) {
       for (RelSubset rel : inputSubsets(parent)) {
-        if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
+        if (rel.set == set && traitSet.satisfies(rel.getTraitSet())) {
           list.add(parent);
         }
       }
@@ -236,7 +236,7 @@ public class RelSubset extends AbstractRelNode {
   parentLoop:
     for (RelNode parent : set.getParentRels()) {
       for (RelSubset rel : inputSubsets(parent)) {
-        if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
+        if (rel.set == set && traitSet.satisfies(rel.getTraitSet())) {
           list.add(parent);
           continue parentLoop;
         }

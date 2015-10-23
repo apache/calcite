@@ -528,8 +528,7 @@ public class LatticeTest {
         .enableMaterializations(true)
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
             + "  EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[adhoc, m{27, 31}]])")
+            + "    EnumerableTableScan(table=[[adhoc, m{27, 31}]])")
         .returnsUnordered("C=4");
   }
 
