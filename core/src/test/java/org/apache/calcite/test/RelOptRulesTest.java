@@ -817,6 +817,23 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " where d.deptno=7 and d.deptno=8");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-935">[CALCITE-935]
+   * Improve how ReduceExpressionsRule handles duplicate constraints</a>. */
+  @Test public void testReduceConstantsDup2() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    final String sql = "select *\n"
+        + "from emp\n"
+        + "where deptno=7 and deptno=8\n"
+        + "and empno = 10 and mgr is null and empno = 10";
+    checkPlanning(program, sql);
+  }
+
   @Test public void testReduceConstants2() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)

@@ -62,12 +62,14 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -510,17 +512,91 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     // We cannot use an ImmutableMap.Builder here. If there are multiple entries
     // with the same key (e.g. "WHERE deptno = 1 AND deptno = 2"), it doesn't
     // matter which we take, so the latter will replace the former.
-    final Map<RexNode, RexLiteral> builder = Maps.newHashMap();
+    // The basic idea is to find all the pairs of RexNode = RexLiteral
+    // (1) If 'predicates' contain a non-EQUALS, we bail out.
+    // (2) It is OK if a RexNode is equal to the same RexLiteral several times,
+    // (e.g. "WHERE deptno = 1 AND deptno = 1")
+    // (3) It will return false if there are inconsistent constraints (e.g.
+    // "WHERE deptno = 1 AND deptno = 2")
+    final Map<RexNode, RexLiteral> map = new HashMap<>();
+    final Set<RexNode> excludeSet = new HashSet<>();
     for (RexNode predicate : predicates.pulledUpPredicates) {
-      switch (predicate.getKind()) {
-      case EQUALS:
-        final List<RexNode> operands = ((RexCall) predicate).getOperands();
-        if (operands.get(1) instanceof RexLiteral) {
-          builder.put(operands.get(0), (RexLiteral) operands.get(1));
+      gatherConstraints(map, predicate, excludeSet);
+    }
+    final ImmutableMap.Builder<RexNode, RexLiteral> builder =
+        ImmutableMap.builder();
+    for (Map.Entry<RexNode, RexLiteral> entry : map.entrySet()) {
+      RexNode rexNode = entry.getKey();
+      if (!overlap(rexNode, excludeSet)) {
+        builder.put(rexNode, entry.getValue());
+      }
+    }
+    return builder.build();
+  }
+
+  private static boolean overlap(RexNode rexNode, Set<RexNode> set) {
+    if (rexNode instanceof RexCall) {
+      for (RexNode r : ((RexCall) rexNode).getOperands()) {
+        if (overlap(r, set)) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      return set.contains(rexNode);
+    }
+  }
+
+  /** Tries to decompose the RexNode which is a RexCall into non-literal
+   * RexNodes. */
+  private static void decompose(Set<RexNode> set, RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      for (RexNode r : ((RexCall) rexNode).getOperands()) {
+        decompose(set, r);
+      }
+    } else if (!(rexNode instanceof RexLiteral)) {
+      set.add(rexNode);
+    }
+  }
+
+  private static void gatherConstraints(Map<RexNode, RexLiteral> map,
+      RexNode predicate, Set<RexNode> excludeSet) {
+    if (predicate.getKind() != SqlKind.EQUALS) {
+      decompose(excludeSet, predicate);
+      return;
+    }
+    final List<RexNode> operands = ((RexCall) predicate).getOperands();
+    if (operands.size() != 2) {
+      decompose(excludeSet, predicate);
+      return;
+    }
+    // if it reaches here, we have rexNode equals rexNode
+    final RexNode left = operands.get(0);
+    final RexNode right = operands.get(1);
+    // note that literals are immutable too and they can only be compared through
+    // values.
+    if (right instanceof RexLiteral && !excludeSet.contains(left)) {
+      RexLiteral existedValue = map.get(left);
+      if (existedValue == null) {
+        map.put(left, (RexLiteral) right);
+      } else {
+        if (!existedValue.getValue().equals(((RexLiteral) right).getValue())) {
+          // we found conflict values.
+          map.remove(left);
+          excludeSet.add(left);
+        }
+      }
+    } else if (left instanceof RexLiteral && !excludeSet.contains(right)) {
+      RexLiteral existedValue = map.get(right);
+      if (existedValue == null) {
+        map.put(right, (RexLiteral) left);
+      } else {
+        if (!existedValue.getValue().equals(((RexLiteral) left).getValue())) {
+          map.remove(right);
+          excludeSet.add(right);
         }
       }
     }
-    return ImmutableMap.copyOf(builder);
   }
 
   /** Pushes predicates into a CASE.
