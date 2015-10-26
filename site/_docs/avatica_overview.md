@@ -38,7 +38,6 @@ The Java implementation uses Jackson to convert request/response command
 objects to/from JSON.
 
 Avatica-Server is a Java implementation of Avatica RPC.
-It embeds the Jetty HTTP server.
 
 Core concepts:
 
@@ -63,6 +62,31 @@ implementation in Java. The ODBC client would be written in C or C++.
 
 Since the Avatica protocol abstracts many of the differences between providers,
 the same ODBC client could be used for different databases.
+
+## HTTP Server
+
+Avatica-server embeds the Jetty HTTP server, providing a class
+[HttpServer]({{ site.apiRoot }}/org/apache/calcite/avatica/server/HttpServer.html)
+that implements the Avatica RPC protocol
+and can be run as a standalone Java application.
+
+Connectors in HTTP server can be configured if needed by extending
+`HttpServer` class and overriding its `configureConnector()` method.
+For example, user can set `requestHeaderSize` to 64K bytes as follows:
+
+{% highlight java %}
+HttpServer server = new HttpServer(handler) {
+  @Override
+  protected ServerConnector configureConnector(
+      ServerConnector connector, int port) {
+    HttpConnectionFactory factory = (HttpConnectionFactory)
+        connector.getDefaultConnectionFactory();
+    factory.getHttpConfiguration().setRequestHeaderSize(64 << 10);
+    return super.configureConnector(connector, port);
+  }
+};
+server.start();
+{% endhighlight %}
 
 ## Project structure
 

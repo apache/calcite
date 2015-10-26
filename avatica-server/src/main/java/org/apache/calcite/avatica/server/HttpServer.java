@@ -29,6 +29,9 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 /**
  * Avatica HTTP server.
+ *
+ * <p>If you need to change the server's configuration, override the
+ * {@link #configureConnector(ServerConnector, int)} method in a derived class.
  */
 public class HttpServer {
   private static final Log LOG = LogFactory.getLog(HttpServer.class);
@@ -36,6 +39,10 @@ public class HttpServer {
   private Server server;
   private int port = -1;
   private final Handler handler;
+
+  public HttpServer(Handler handler) {
+    this(0, handler);
+  }
 
   public HttpServer(int port, Handler handler) {
     this.port = port;
@@ -52,10 +59,8 @@ public class HttpServer {
     server = new Server(threadPool);
     server.manage(threadPool);
 
-    final ServerConnector connector = new ServerConnector(server);
-    connector.setIdleTimeout(60 * 1000);
-    connector.setSoLingerTime(-1);
-    connector.setPort(port);
+    final ServerConnector connector = configureConnector(new ServerConnector(server), port);
+
     server.setConnectors(new Connector[] { connector });
 
     final HandlerList handlerList = new HandlerList();
@@ -69,6 +74,25 @@ public class HttpServer {
     port = connector.getLocalPort();
 
     LOG.info("Service listening on port " + getPort() + ".");
+  }
+
+  /**
+   * Configures the server connector.
+   *
+   * <p>The default configuration sets a timeout of 1 minute and disables
+   * TCP linger time.
+   *
+   * <p>To change the configuration, override this method in a derived class.
+   * The overriding method must call its super method.
+   *
+   * @param connector connector to be configured
+   * @param port port number handed over in constructor
+   */
+  protected ServerConnector configureConnector(ServerConnector connector, int port) {
+    connector.setIdleTimeout(60 * 1000);
+    connector.setSoLingerTime(-1);
+    connector.setPort(port);
+    return connector;
   }
 
   public void stop() {
