@@ -591,6 +591,9 @@ public interface CalciteResource {
 
   @BaseMessage("View is not modifiable. No value is supplied for NOT NULL column ''{0}'' of base table ''{1}''")
   ExInst<SqlValidatorException> noValueSuppliedForViewColumn(String columnName, String tableName);
+
+  @BaseMessage("Table ''{0}'' not found")
+  ExInst<CalciteException> tableNotFound(String tableName);
 }
 
 // End CalciteResource.java
