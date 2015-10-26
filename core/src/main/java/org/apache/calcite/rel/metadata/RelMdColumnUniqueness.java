@@ -366,46 +366,15 @@ public class RelMdColumnUniqueness {
   }
 
   public Boolean areColumnsUnique(
-      boolean dummy, // prevent method from being used
       RelSubset rel,
       ImmutableBitSet columns,
       boolean ignoreNulls) {
-    int nullCount = 0;
-    for (RelNode rel2 : rel.getRels()) {
-      if (rel2 instanceof Aggregate || simplyProjects(rel2, columns)) {
-        final Boolean unique =
-            RelMetadataQuery.areColumnsUnique(rel2, columns, ignoreNulls);
-        if (unique != null) {
-          if (unique) {
-            return true;
-          }
-        } else {
-          ++nullCount;
-        }
-      }
+    final RelNode best = rel.getBest();
+    if (best == null) {
+      return null;
+    } else {
+      return RelMetadataQuery.areColumnsUnique(best, columns, ignoreNulls);
     }
-    return nullCount == 0 ? false : null;
-  }
-
-  private boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
-    if (!(rel instanceof Project)) {
-      return false;
-    }
-    Project project = (Project) rel;
-    final List<RexNode> projects = project.getProjects();
-    for (int column : columns) {
-      if (column >= projects.size()) {
-        return false;
-      }
-      if (!(projects.get(column) instanceof RexInputRef)) {
-        return false;
-      }
-      final RexInputRef ref = (RexInputRef) projects.get(column);
-      if (ref.getIndex() != column) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /** Aggregate and Calc are "safe" children of a RelSubset to delve into. */

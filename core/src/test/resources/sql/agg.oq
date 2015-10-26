@@ -1209,6 +1209,40 @@ order by sum_cnt;
 
 !ok
 
+# [CALCITE-938] Aggregate row count
+select empno, d.deptno
+from "scott".emp
+join (select distinct deptno from "scott".dept) d
+using (deptno);
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
+|  7369 |     20 |
+|  7499 |     30 |
+|  7521 |     30 |
+|  7566 |     20 |
+|  7654 |     30 |
+|  7698 |     30 |
+|  7782 |     10 |
+|  7788 |     20 |
+|  7839 |     10 |
+|  7844 |     30 |
+|  7876 |     20 |
+|  7900 |     30 |
+|  7902 |     20 |
+|  7934 |     10 |
++-------+--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t0])
+  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c

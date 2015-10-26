@@ -94,7 +94,7 @@ public class RelMdRowCount {
   }
 
   public Double getRowCount(Aggregate rel) {
-    ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
+    ImmutableBitSet groupKey = rel.getGroupSet();
 
     // rowcount is the cardinality of the group by columns
     Double distinctRowCount =
