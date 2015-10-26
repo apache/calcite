@@ -113,14 +113,13 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.Frameworks;
@@ -277,8 +276,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       throw new RuntimeException("parse failed", e);
     }
     final SqlValidator validator =
-        new CalciteSqlValidator(
-            SqlStdOperatorTable.instance(), catalogReader, typeFactory);
+        createSqlValidator(catalogReader, typeFactory);
     SqlNode sqlNode1 = validator.validate(sqlNode);
     if (convert) {
       return convert_(
@@ -713,11 +711,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
 
       final CalciteSchema rootSchema = context.getRootSchema();
-      final ChainedSqlOperatorTable opTab =
-          new ChainedSqlOperatorTable(
-              ImmutableList.of(SqlStdOperatorTable.instance(), catalogReader));
       final SqlValidator validator =
-          new CalciteSqlValidator(opTab, catalogReader, typeFactory);
+          createSqlValidator(catalogReader, typeFactory);
       validator.setIdentifierExpansion(true);
 
       final List<Prepare.Materialization> materializations =
@@ -792,6 +787,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         maxRowCount,
         bindable,
         statementType);
+  }
+
+  private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader,
+      JavaTypeFactory typeFactory) {
+    final SqlOperatorTable opTab =
+        ChainedSqlOperatorTable.of(SqlStdOperatorTable.instance(),
+            catalogReader);
+    return new CalciteSqlValidator(opTab, catalogReader, typeFactory);
   }
 
   private List<ColumnMetaData> getColumnMetaDataList(
@@ -1123,10 +1126,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       return root;
     }
 
-    private SqlValidatorImpl createSqlValidator(CatalogReader catalogReader) {
-      return new SqlValidatorImpl(
-          SqlStdOperatorTable.instance(), catalogReader,
-          rexBuilder.getTypeFactory(), SqlConformance.DEFAULT) { };
+    private SqlValidator createSqlValidator(CatalogReader catalogReader) {
+      return prepare.createSqlValidator(
+          (CalciteCatalogReader) catalogReader,
+          (JavaTypeFactory) typeFactory);
     }
 
     @Override protected SqlValidator getSqlValidator() {

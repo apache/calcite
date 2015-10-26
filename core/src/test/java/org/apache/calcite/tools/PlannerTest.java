@@ -186,10 +186,10 @@ public class PlannerTest {
 
   @Test public void testValidateUserDefinedAggregate() throws Exception {
     final SqlStdOperatorTable stdOpTab = SqlStdOperatorTable.instance();
-    SqlOperatorTable opTab = new ChainedSqlOperatorTable(
-        ImmutableList.of(stdOpTab,
+    SqlOperatorTable opTab =
+        ChainedSqlOperatorTable.of(stdOpTab,
             new ListSqlOperatorTable(
-                ImmutableList.<SqlOperator>of(new MyCountAggFunction()))));
+                ImmutableList.<SqlOperator>of(new MyCountAggFunction())));
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(

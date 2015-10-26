@@ -42,6 +42,7 @@ import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
@@ -373,7 +374,7 @@ public abstract class Prepare {
 
   /** Interface by which validator and planner can read table metadata. */
   public interface CatalogReader
-      extends RelOptSchema, SqlValidatorCatalogReader {
+      extends RelOptSchema, SqlValidatorCatalogReader, SqlOperatorTable {
     PreparingTable getTableForMember(List<String> names);
 
     /** Returns a catalog reader the same as this one but with a possibly

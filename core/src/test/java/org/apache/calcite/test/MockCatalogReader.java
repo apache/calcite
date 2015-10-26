@@ -48,7 +48,10 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ObjectSqlType;
@@ -369,6 +372,15 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   //~ Methods ----------------------------------------------------------------
 
+  public void lookupOperatorOverloads(SqlIdentifier opName,
+      SqlFunctionCategory category, SqlSyntax syntax,
+      List<SqlOperator> operatorList) {
+  }
+
+  public List<SqlOperator> getOperatorList() {
+    return ImmutableList.of();
+  }
+
   public Prepare.CatalogReader withSchemaPath(List<String> schemaPath) {
     return this;
   }
@@ -580,7 +592,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                 return null;
               }
 
-              @Override public <T> Queryable<T>
+              @Override public <E> Queryable<E>
               asQueryable(QueryProvider queryProvider, SchemaPlus schema,
                   String tableName) {
                 return null;

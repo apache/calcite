@@ -75,6 +75,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
@@ -5329,6 +5330,47 @@ public class JdbcTest {
             + "P=20\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-937">[CALCITE-937]
+   * User-defined function within view</a>. */
+  @Test public void testUserDefinedFunctionInView() throws Exception {
+    Class.forName("org.apache.calcite.jdbc.Driver");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
+
+    SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
+    post.add("MY_INCREMENT",
+        ScalarFunctionImpl.create(MyIncrement.class, "eval"));
+
+    final String viewSql = "select \"empid\" as EMPLOYEE_ID,\n"
+        + "  \"name\" || ' ' || \"name\" as EMPLOYEE_NAME,\n"
+        + "  \"salary\" as EMPLOYEE_SALARY,\n"
+        + "  POST.MY_INCREMENT(\"empid\", 10) as INCREMENTED_SALARY\n"
+        + "from \"hr\".\"emps\"";
+    post.add("V_EMP",
+        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(), null));
+
+    final String result = ""
+        + "EMPLOYEE_ID=100; EMPLOYEE_NAME=Bill Bill; EMPLOYEE_SALARY=10000.0; INCREMENTED_SALARY=110.0\n"
+        + "EMPLOYEE_ID=200; EMPLOYEE_NAME=Eric Eric; EMPLOYEE_SALARY=8000.0; INCREMENTED_SALARY=220.0\n"
+        + "EMPLOYEE_ID=150; EMPLOYEE_NAME=Sebastian Sebastian; EMPLOYEE_SALARY=7000.0; INCREMENTED_SALARY=165.0\n"
+        + "EMPLOYEE_ID=110; EMPLOYEE_NAME=Theodore Theodore; EMPLOYEE_SALARY=11500.0; INCREMENTED_SALARY=121.0\n";
+
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(viewSql);
+    assertThat(CalciteAssert.toString(resultSet), is(result));
+    resultSet.close();
+
+    ResultSet viewResultSet =
+        statement.executeQuery("select * from \"POST\".\"V_EMP\"");
+    assertThat(CalciteAssert.toString(viewResultSet), is(result));
+    statement.close();
+    connection.close();
+  }
+
   /**
    * Tests that IS NULL/IS NOT NULL is properly implemented for non-strict
    * functions.
@@ -6959,6 +7001,13 @@ public class JdbcTest {
 
     public static int eval(int x) {
       return x * 2;
+    }
+  }
+
+  /** User-defined function with two arguments. */
+  public static class MyIncrement {
+    public float eval(int x, int y) {
+      return x + x * y / 100;
     }
   }
 

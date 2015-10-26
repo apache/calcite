@@ -34,7 +34,6 @@ import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -67,8 +66,7 @@ import java.util.NavigableSet;
  * and also {@link org.apache.calcite.sql.SqlOperatorTable} based on tables and
  * functions defined schemas.
  */
-public class CalciteCatalogReader implements Prepare.CatalogReader,
-    SqlOperatorTable {
+public class CalciteCatalogReader implements Prepare.CatalogReader {
   final CalciteSchema rootSchema;
   final JavaTypeFactory typeFactory;
   private final List<String> defaultSchema;
@@ -171,7 +169,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader,
     if (schema == null) {
       return ImmutableList.of();
     }
-    final List<SqlMoniker> result = new ArrayList<SqlMoniker>();
+    final List<SqlMoniker> result = new ArrayList<>();
     final Map<String, CalciteSchema> schemaMap = schema.getSubSchemaMap();
 
     for (String subSchema : schemaMap.keySet()) {
@@ -245,8 +243,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader,
   }
 
   private SqlOperator toOp(SqlIdentifier name, Function function) {
-    List<RelDataType> argTypes = new ArrayList<RelDataType>();
-    List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
+    List<RelDataType> argTypes = new ArrayList<>();
+    List<SqlTypeFamily> typeFamilies = new ArrayList<>();
     for (FunctionParameter o : function.getParameters()) {
       final RelDataType type = o.getType(typeFactory);
       argTypes.add(type);
