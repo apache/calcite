@@ -125,8 +125,24 @@ public class RelBuilderTest {
           RelBuilder.create(config().build())
               .scan("ZZZ") // this relation does not exist
               .build();
+      fail("Expected error because ZZZ does not exist");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("Table 'ZZZ' not found"));
+    }
+  }
+
+  @Test public void testScanValidTableWrongCase() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    try {
+      final RelNode root =
+          RelBuilder.create(config().build())
+              .scan("emp") // the table is named 'EMP', not 'emp'
+              .build();
+      fail("Table names are case-sensitive and scan of 'emp' should have failed");
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'emp' not found"));
     }
   }
 

@@ -45,6 +45,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -52,12 +54,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Stacks;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.calcite.util.*;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -651,7 +649,7 @@ public class RelBuilder {
     final RelOptTable relOptTable =
         relOptSchema.getTableForMember(ImmutableList.of(tableName));
     if (relOptTable == null) {
-      throw new RuntimeException(String.format("Table '%s' not found", tableName));
+      throw Static.RESOURCE.tableNotFound(tableName).ex();
     }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
