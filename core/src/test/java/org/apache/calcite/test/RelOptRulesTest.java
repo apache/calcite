@@ -16,18 +16,21 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
@@ -85,9 +88,11 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.junit.Ignore;
@@ -330,13 +335,10 @@ public class RelOptRulesTest extends RelOptTestBase {
           }
         };
     final FilterJoinRule join =
-        new FilterJoinRule.JoinConditionPushRule(
-            RelFactories.DEFAULT_FILTER_FACTORY,
-            RelFactories.DEFAULT_PROJECT_FACTORY, predicate);
+        new FilterJoinRule.JoinConditionPushRule(RelBuilder.proto(), predicate);
     final FilterJoinRule filterOnJoin =
-        new FilterJoinRule.FilterIntoJoinRule(true,
-            RelFactories.DEFAULT_FILTER_FACTORY,
-            RelFactories.DEFAULT_PROJECT_FACTORY, predicate);
+        new FilterJoinRule.FilterIntoJoinRule(true, RelBuilder.proto(),
+            predicate);
     final HepProgram program =
         HepProgram.builder()
             .addGroupBegin()
@@ -1945,6 +1947,37 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from sales.emp left join (\n"
             + "select * from sales.dept) using (deptno)\n"
             + "order by sal, name limit 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-931">[CALCITE-931]
+   * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
+  @Test public void testSortJoinTranspose4() {
+    // Create a customized test with RelCollation trait in the test cluster.
+    Tester tester = new TesterImpl(getDiffRepos(), true, false, null) {
+      @Override public RelOptPlanner createPlanner() {
+        return new MockRelOptPlanner() {
+          @Override public List<RelTraitDef> getRelTraitDefs() {
+            return ImmutableList.<RelTraitDef>of(RelCollationTraitDef.INSTANCE);
+          }
+          @Override public RelTraitSet emptyTraitSet() {
+            return RelTraitSet.createEmpty().plus(
+                RelCollationTraitDef.INSTANCE.getDefault());
+          }
+        };
+      }
+    };
+
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    final String sql = "select * from sales.emp e right join (\n"
+        + "select * from sales.dept d) using (deptno)\n"
+        + "order by name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 

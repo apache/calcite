@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -109,8 +110,10 @@ public class SortJoinTransposeRule extends RelOptRule {
           sort.offset, sort.fetch);
       newRightInput = join.getRight();
     } else {
-      final RelCollation rightCollation = RelCollations.shift(
-          sort.getCollation(), -join.getLeft().getRowType().getFieldCount());
+      final RelCollation rightCollation =
+          RelCollationTraitDef.INSTANCE.canonize(
+              RelCollations.shift(sort.getCollation(),
+                  -join.getLeft().getRowType().getFieldCount()));
       // If the input is already sorted and we are not reducing the number of tuples,
       // we bail out
       if (RelMdUtil.checkInputForCollationAndLimit(join.getRight(), rightCollation,
@@ -118,8 +121,8 @@ public class SortJoinTransposeRule extends RelOptRule {
         return;
       }
       newLeftInput = join.getLeft();
-      newRightInput = sort.copy(sort.getTraitSet(), join.getRight(), rightCollation,
-          sort.offset, sort.fetch);
+      newRightInput = sort.copy(sort.getTraitSet().replace(rightCollation),
+          join.getRight(), rightCollation, sort.offset, sort.fetch);
     }
     // We copy the join and the top sort operator
     final RelNode joinCopy = join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
