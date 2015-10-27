@@ -19,9 +19,11 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,29 +34,61 @@ import java.util.List;
  *
  */
 public class SortUnionTransposeRule extends RelOptRule {
-  public static final SortUnionTransposeRule INSTANCE = new SortUnionTransposeRule();
+
+  /** Rule instance for Union implementation that does not preserve the
+   * ordering of its inputs. Thus, it makes no sense to match this rule
+   * if the Sort does not have a limit, i.e., {@link Sort#fetch} is null. */
+  public static final SortUnionTransposeRule INSTANCE = new SortUnionTransposeRule(false);
+
+  /** Rule instance for Union implementation that preserves the ordering
+   * of its inputs. It is still worth applying this rule even if the Sort
+   * does not have a limit, for the merge of already sorted inputs that
+   * the Union can do is usually cheap. */
+  public static final SortUnionTransposeRule MATCH_NULL_FETCH = new SortUnionTransposeRule(true);
+
+  /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
+   * this only makes sense if the Union preserves order (and merges). */
+  private final boolean matchNullFetch;
 
   // ~ Constructors -----------------------------------------------------------
+
+  private SortUnionTransposeRule(boolean matchNullFetch) {
+    this(Sort.class, Union.class, matchNullFetch, RelFactories.LOGICAL_BUILDER,
+        "SortUnionTransposeRule:default");
+  }
 
   /**
    * Creates a SortUnionTransposeRule.
    */
-  private SortUnionTransposeRule() {
-    super(operand(Sort.class, operand(Union.class, any())));
+  public SortUnionTransposeRule(
+      Class<? extends Sort> sortClass,
+      Class<? extends Union> unionClass,
+      boolean matchNullFetch,
+      RelBuilderFactory relBuilderFactory,
+      String description) {
+    super(
+        operand(sortClass,
+            operand(unionClass, any())),
+        relBuilderFactory, description);
+    this.matchNullFetch = matchNullFetch;
   }
 
   // ~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Sort sort = call.rel(0);
+    final Union union = call.rel(1);
+    // We only apply this rule if Union.all is true and Sort.offset is null.
+    // There is a flag indicating if this rule should be applied when
+    // Sort.fetch is null.
+    return union.all
+        && sort.offset == null
+        && (matchNullFetch || sort.fetch != null);
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Union union = call.rel(1);
-    // It is not valid to apply the rule if
-    // Union.all is false;
-    // or Sort.offset is not null
-    // or Sort.fetch is null.
-    if (!union.all || sort.offset != null || sort.fetch == null) {
-      return;
-    }
     List<RelNode> inputs = new ArrayList<>();
     // Thus we use 'ret' as a flag to identify if we have finished pushing the
     // sort past a union.

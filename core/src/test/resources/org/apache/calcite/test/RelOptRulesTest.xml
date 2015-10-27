@@ -4263,4 +4263,37 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortUnionTranspose2">
+        <Resource name="sql">
+            <![CDATA[select a.name from dept a
+union all
+select b.name from dept b
+order by name]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(NAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(NAME=[$0])
+        LogicalProject(NAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(NAME=[$0])
+        LogicalProject(NAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
