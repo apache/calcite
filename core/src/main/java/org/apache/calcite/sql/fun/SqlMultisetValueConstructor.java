@@ -88,7 +88,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
         SqlTypeUtil.deriveAndCollectTypes(
             callBinding.getValidator(),
             callBinding.getScope(),
-            callBinding.getCall().getOperandList());
+            callBinding.operands());
     if (argTypes.size() == 0) {
       throw callBinding.newValidationError(RESOURCE.requireAtLeastOneArg());
     }

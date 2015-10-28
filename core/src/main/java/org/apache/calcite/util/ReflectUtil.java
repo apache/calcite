@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.function.Parameter;
+
 import com.google.common.collect.ImmutableList;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -38,7 +41,7 @@ public abstract class ReflectUtil {
   private static Map<Class, Method> primitiveToByteBufferWriteMethod;
 
   static {
-    primitiveToBoxingMap = new HashMap<Class, Class>();
+    primitiveToBoxingMap = new HashMap<>();
     primitiveToBoxingMap.put(Boolean.TYPE, Boolean.class);
     primitiveToBoxingMap.put(Byte.TYPE, Byte.class);
     primitiveToBoxingMap.put(Character.TYPE, Character.class);
@@ -48,11 +51,10 @@ public abstract class ReflectUtil {
     primitiveToBoxingMap.put(Long.TYPE, Long.class);
     primitiveToBoxingMap.put(Short.TYPE, Short.class);
 
-    primitiveToByteBufferReadMethod = new HashMap<Class, Method>();
-    primitiveToByteBufferWriteMethod = new HashMap<Class, Method>();
+    primitiveToByteBufferReadMethod = new HashMap<>();
+    primitiveToByteBufferWriteMethod = new HashMap<>();
     Method[] methods = ByteBuffer.class.getDeclaredMethods();
-    for (int i = 0; i < methods.length; ++i) {
-      Method method = methods[i];
+    for (Method method : methods) {
       Class[] paramTypes = method.getParameterTypes();
       if (method.getName().startsWith("get")) {
         if (!method.getReturnType().isPrimitive()) {
@@ -62,8 +64,7 @@ public abstract class ReflectUtil {
           continue;
         }
         primitiveToByteBufferReadMethod.put(
-            method.getReturnType(),
-            method);
+            method.getReturnType(), method);
 
         // special case for Boolean:  treat as byte
         if (method.getReturnType().equals(Byte.TYPE)) {
@@ -325,7 +326,7 @@ public abstract class ReflectUtil {
     // the original visiteeClass has a diamond-shaped interface inheritance
     // graph. (This is common, for example, in JMI.) The idea is to avoid
     // iterating over a single interface's method more than once in a call.
-    Map<Class<?>, Method> cache = new HashMap<Class<?>, Method>();
+    Map<Class<?>, Method> cache = new HashMap<>();
 
     return lookupVisitMethod(
         visitorClass,
@@ -375,14 +376,9 @@ public abstract class ReflectUtil {
     }
 
     Class<?>[] interfaces = visiteeClass.getInterfaces();
-    for (int i = 0; i < interfaces.length; ++i) {
-      Method method =
-          lookupVisitMethod(
-              visitorClass,
-              interfaces[i],
-              visitMethodName,
-              paramTypes,
-              cache);
+    for (Class<?> anInterface : interfaces) {
+      final Method method = lookupVisitMethod(visitorClass, anInterface,
+          visitMethodName, paramTypes, cache);
       if (method != null) {
         if (candidateMethod != null) {
           if (!method.equals(candidateMethod)) {
@@ -427,8 +423,7 @@ public abstract class ReflectUtil {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
     assert Object.class.isAssignableFrom(visiteeBaseClazz);
     return new ReflectiveVisitDispatcher<R, E>() {
-      final Map<List<Object>, Method> map =
-          new HashMap<List<Object>, Method>();
+      final Map<List<Object>, Method> map = new HashMap<>();
 
       public Method lookupVisitMethod(
           Class<? extends R> visitorClass,
@@ -535,13 +530,8 @@ public abstract class ReflectUtil {
         try {
           final Object o = method.invoke(visitor, args);
           return returnClazz.cast(o);
-        } catch (IllegalAccessException e) {
-          throw Util.newInternal(
-              e,
-              "While invoking method '" + method + "'");
-        } catch (InvocationTargetException e) {
-          throw Util.newInternal(
-              e,
+        } catch (IllegalAccessException | InvocationTargetException e) {
+          throw Util.newInternal(e,
               "While invoking method '" + method + "'");
         }
       }
@@ -557,8 +547,7 @@ public abstract class ReflectUtil {
                 methodName,
                 otherArgClassList);
         if (method == null) {
-          List<Class> classList =
-              new ArrayList<Class>();
+          List<Class> classList = new ArrayList<>();
           classList.add(arg0Clazz);
           classList.addAll(otherArgClassList);
           throw new IllegalArgumentException("Method not found: " + methodName
@@ -567,6 +556,26 @@ public abstract class ReflectUtil {
         return method;
       }
     };
+  }
+
+  /** Derives the name of the {@code i}th parameter of a method. */
+  public static String getParameterName(Method method, int i) {
+    for (Annotation annotation : method.getParameterAnnotations()[i]) {
+      if (annotation.annotationType() == Parameter.class) {
+        return ((Parameter) annotation).name();
+      }
+    }
+    return Compatible.INSTANCE.getParameterName(method, i);
+  }
+
+  /** Derives whether the {@code i}th parameter of a method is optional. */
+  public static boolean isParameterOptional(Method method, int i) {
+    for (Annotation annotation : method.getParameterAnnotations()[i]) {
+      if (annotation.annotationType() == Parameter.class) {
+        return ((Parameter) annotation).optional();
+      }
+    }
+    return false;
   }
 
   //~ Inner Classes ----------------------------------------------------------

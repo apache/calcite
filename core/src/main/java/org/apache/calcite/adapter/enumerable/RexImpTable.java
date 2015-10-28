@@ -107,6 +107,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DATETIME_PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DEFAULT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DENSE_RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
@@ -292,6 +293,14 @@ public class RexImpTable {
     map.put(MAP_VALUE_CONSTRUCTOR, value);
     map.put(ARRAY_VALUE_CONSTRUCTOR, value);
     map.put(ITEM, new ItemImplementor());
+
+    map.put(DEFAULT,
+        new CallImplementor() {
+          public Expression implement(RexToLixTranslator translator,
+              RexCall call, NullAs nullAs) {
+            return Expressions.constant(null);
+          }
+        });
 
     // Sequences
     defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
@@ -822,17 +831,8 @@ public class RexImpTable {
       NullAs nullAs) {
     final List<Expression> translatedOperands =
         translator.translateList(call.getOperands());
-    switch (nullAs) {
-    case NOT_POSSIBLE:
-    case NULL:
-      for (Expression translatedOperand : translatedOperands) {
-        if (Expressions.isConstantNull(translatedOperand)) {
-          return NULL_EXPR;
-        }
-      }
-    }
-    Expression result;
-    result = implementor.implement(translator, call, translatedOperands);
+    Expression result =
+        implementor.implement(translator, call, translatedOperands);
     return nullAs.handle(result);
   }
 

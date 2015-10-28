@@ -45,6 +45,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -1591,7 +1592,7 @@ public class JdbcTest {
         + "c0=Store 15; c1=1997; m0=52644.0700\n"
         + "c0=Store 11; c1=1997; m0=55058.7900\n",
     "select \"customer\".\"yearly_income\" as \"c0\","
-        + " \"customer\".\"education\" as \"c1\" \n"
+        + " \"customer\".\"education\" as \"c1\"\n"
         + "from \"customer\" as \"customer\",\n"
         + " \"sales_fact_1997\" as \"sales_fact_1997\"\n"
         + "where \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
@@ -2018,7 +2019,7 @@ public class JdbcTest {
     final StringBuilder buf = new StringBuilder();
     buf.append("select count(*)");
     for (int i = 0; i < n; i++) {
-      buf.append(i == 0 ? "\nfrom " : ",\n ")
+      buf.append(i == 0 ? "\nfrom " : ",\n")
           .append("\"hr\".\"depts\" as d").append(i);
     }
     for (int i = 1; i < n; i++) {
@@ -5265,6 +5266,18 @@ public class JdbcTest {
         + "'\n"
         + "         },\n"
         + "         {\n"
+        + "           name: 'MY_LEFT',\n"
+        + "           className: '"
+        + MyLeftFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'ABCDE',\n"
+        + "           className: '"
+        + MyAbcdeFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
         + "           name: 'MY_STR',\n"
         + "           className: '"
         + MyToStringFunction.class.getName()
@@ -5434,6 +5447,78 @@ public class JdbcTest {
         + " max(\"adhoc\".count_args(0, 0)) as p2\n"
         + "from \"adhoc\".EMPLOYEES limit 1")
         .returns("P0=0; P1=1; P2=2\n");
+  }
+
+  /** Tests passing parameters to user-defined function by name. */
+  @Test public void testUdfArgumentName() {
+    final CalciteAssert.AssertThat with = withUdf();
+    // arguments in physical order
+    with.query("values (\"adhoc\".my_left(\"s\" => 'hello', \"n\" => 3))")
+        .returns("EXPR$0=hel\n");
+    // arguments in reverse order
+    with.query("values (\"adhoc\".my_left(\"n\" => 3, \"s\" => 'hello'))")
+        .returns("EXPR$0=hel\n");
+    with.query("values (\"adhoc\".my_left(\"n\" => 1 + 2, \"s\" => 'hello'))")
+        .returns("EXPR$0=hel\n");
+    // duplicate argument names
+    with.query("values (\"adhoc\".my_left(\"n\" => 3, \"n\" => 2, \"s\" => 'hello'))")
+        .throws_("Duplicate argument name 'n'\n");
+    // invalid argument names
+    with.query("values (\"adhoc\".my_left(\"n\" => 3, \"m\" => 2, \"s\" => 'h'))")
+        .throws_("No match found for function signature "
+            + "MY_LEFT(n => <NUMERIC>, m => <NUMERIC>, s => <CHARACTER>)\n");
+    // missing arguments
+    with.query("values (\"adhoc\".my_left(\"n\" => 3))")
+        .throws_("No match found for function signature MY_LEFT(n => <NUMERIC>)\n");
+    with.query("values (\"adhoc\".my_left(\"s\" => 'hello'))")
+        .throws_("No match found for function signature MY_LEFT(s => <CHARACTER>)\n");
+    // arguments of wrong type
+    with.query("values (\"adhoc\".my_left(\"n\" => 'hello', \"s\" => 'x'))")
+        .throws_("No match found for function signature "
+            + "MY_LEFT(n => <CHARACTER>, s => <CHARACTER>)\n");
+    with.query("values (\"adhoc\".my_left(\"n\" => 1, \"s\" => 0))")
+        .throws_("No match found for function signature "
+            + "MY_LEFT(n => <NUMERIC>, s => <NUMERIC>)\n");
+  }
+
+  /** Tests calling a user-defined function some of whose parameters are
+   * optional. */
+  @Test public void testUdfArgumentOptional() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4,e=>5))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
+    with.query("values (\"adhoc\".abcde(1,2,3,4,CAST(NULL AS INTEGER)))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
+    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
+    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: null, e: null}\n");
+    with.query("values (\"adhoc\".abcde(a=>1,e=>5,c=>3))")
+        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: 5}\n");
+    with.query("values (\"adhoc\".abcde(1,2,3))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: null, e: null}\n");
+    with.query("values (\"adhoc\".abcde(1,2,3,4))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
+    with.query("values (\"adhoc\".abcde(1,2,3,4,5))")
+        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
+    with.query("values (\"adhoc\".abcde(1,2))")
+        .throws_("No match found for function signature ABCDE(<NUMERIC>, <NUMERIC>)");
+    with.query("values (\"adhoc\".abcde(1,DEFAULT,3))")
+        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+    with.query("values (\"adhoc\".abcde(1,DEFAULT,'abcde'))")
+        .throws_("No match found for function signature ABCDE(<NUMERIC>, <ANY>, <CHARACTER>)");
+    with.query("values (\"adhoc\".abcde(true))")
+        .throws_("No match found for function signature ABCDE(<BOOLEAN>)");
+    with.query("values (\"adhoc\".abcde(true,DEFAULT))")
+        .throws_("No match found for function signature ABCDE(<BOOLEAN>, <ANY>)");
+    with.query("values (\"adhoc\".abcde(1,DEFAULT,3,DEFAULT))")
+        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+    with.query("values (\"adhoc\".abcde(1,2,DEFAULT))")
+        .throws_("DEFAULT is only allowed for optional parameters");
+    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>DEFAULT))")
+        .throws_("DEFAULT is only allowed for optional parameters");
+    with.query("values (\"adhoc\".abcde(a=>1,b=>DEFAULT,c=>3))")
+        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
   }
 
   /** Test for
@@ -6214,10 +6299,10 @@ public class JdbcTest {
   @Test public void testLexCaseInsensitiveSubQueryField() {
     CalciteAssert.that()
         .with(Lex.MYSQL)
-        .query("select DID \n"
-            + "from (select deptid as did \n"
+        .query("select DID\n"
+            + "from (select deptid as did\n"
             + "         FROM\n"
-            + "            ( values (1), (2) ) as T1(deptid) \n"
+            + "            ( values (1), (2) ) as T1(deptid)\n"
             + "         ) ")
         .returnsUnordered("DID=1", "DID=2");
   }
@@ -6395,11 +6480,11 @@ public class JdbcTest {
         CalciteAssert.that()
             .with(Lex.ORACLE);
 
-    with.query("select DID from (select DEPTID as did FROM \n "
+    with.query("select DID from (select DEPTID as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select x.DID from (select DEPTID as did FROM \n "
+    with.query("select x.DID from (select DEPTID as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X")
         .returnsUnordered("DID=1", "DID=2");
   }
@@ -6409,23 +6494,23 @@ public class JdbcTest {
         CalciteAssert.that()
             .with(Lex.MYSQL);
 
-    with.query("select DID from (select deptid as did FROM \n "
+    with.query("select DID from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select x.DID from (select deptid as did FROM \n "
+    with.query("select x.DID from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select X.DID from (select deptid as did FROM \n "
+    with.query("select X.DID from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select X.DID2 from (select deptid as did FROM \n "
+    with.query("select X.DID2 from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
         .returnsUnordered("DID2=1", "DID2=2");
 
-    with.query("select X.DID2 from (select deptid as did FROM \n "
+    with.query("select X.DID2 from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
         .returnsUnordered("DID2=1", "DID2=2");
   }
@@ -6435,23 +6520,23 @@ public class JdbcTest {
         CalciteAssert.that()
             .with(Lex.MYSQL);
 
-    with.query("select `DID` from (select deptid as did FROM \n "
+    with.query("select `DID` from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select `x`.`DID` from (select deptid as did FROM \n "
+    with.query("select `x`.`DID` from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select `X`.`DID` from (select deptid as did FROM \n "
+    with.query("select `X`.`DID` from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X ")
         .returnsUnordered("DID=1", "DID=2");
 
-    with.query("select `X`.`DID2` from (select deptid as did FROM \n "
+    with.query("select `X`.`DID2` from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
         .returnsUnordered("DID2=1", "DID2=2");
 
-    with.query("select `X`.`DID2` from (select deptid as did FROM \n "
+    with.query("select `X`.`DID2` from (select deptid as did FROM\n"
         + "     ( values (1), (2) ) as T1(deptid) ) X (DID2)")
         .returnsUnordered("DID2=1", "DID2=2");
   }
@@ -6459,7 +6544,7 @@ public class JdbcTest {
   @Test public void testUnquotedCaseSensitiveSubQuerySqlServer() {
     CalciteAssert.that()
         .with(Lex.SQL_SERVER)
-        .query("select DID from (select deptid as did FROM \n "
+        .query("select DID from (select deptid as did FROM\n"
             + "     ( values (1), (2) ) as T1(deptid) ) ")
         .returnsUnordered("DID=1", "DID=2");
   }
@@ -6467,7 +6552,7 @@ public class JdbcTest {
   @Test public void testQuotedCaseSensitiveSubQuerySqlServer() {
     CalciteAssert.that()
         .with(Lex.SQL_SERVER)
-        .query("select [DID] from (select deptid as did FROM \n "
+        .query("select [DID] from (select deptid as did FROM\n"
             + "     ( values (1), (2) ) as T1([deptid]) ) ")
         .returnsUnordered("DID=1", "DID=2");
   }
@@ -6976,16 +7061,37 @@ public class JdbcTest {
     public MyTable2[] mytable2 = { new MyTable2() };
   }
 
-  /** Example of a UDF with a non-static {@code eval} method. */
+  /** Example of a UDF with a non-static {@code eval} method,
+   * and named parameters. */
   public static class MyPlusFunction {
-    public int eval(int x, int y) {
+    public int eval(@Parameter(name = "x") int x, @Parameter(name = "y") int y) {
       return x + y;
+    }
+  }
+
+  /** Example of a UDF with named parameters. */
+  public static class MyLeftFunction {
+    public String eval(@Parameter(name = "s") String s,
+        @Parameter(name = "n") int n) {
+      return s.substring(0, n);
+    }
+  }
+
+  /** Example of a UDF with named parameters, some of them optional. */
+  public static class MyAbcdeFunction {
+    public String eval(@Parameter(name = "A", optional = false) Integer a,
+        @Parameter(name = "B", optional = true) Integer b,
+        @Parameter(name = "C", optional = false) Integer c,
+        @Parameter(name = "D", optional = true) Integer d,
+        @Parameter(name = "E", optional = true) Integer e) {
+      return "{a: " + a + ", b: " + b +  ", c: " + c +  ", d: " + d  + ", e: "
+          + e + "}";
     }
   }
 
   /** Example of a non-strict UDF. (Does something useful when passed NULL.) */
   public static class MyToStringFunction {
-    public static String eval(Object o) {
+    public static String eval(@Parameter(name = "o") Object o) {
       if (o == null) {
         return "<null>";
       }

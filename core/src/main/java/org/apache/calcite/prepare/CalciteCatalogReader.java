@@ -50,6 +50,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -242,7 +243,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
             }));
   }
 
-  private SqlOperator toOp(SqlIdentifier name, Function function) {
+  private SqlOperator toOp(SqlIdentifier name, final Function function) {
     List<RelDataType> argTypes = new ArrayList<>();
     List<SqlTypeFamily> typeFamilies = new ArrayList<>();
     for (FunctionParameter o : function.getParameters()) {
@@ -253,9 +254,16 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
     final RelDataType returnType;
     if (function instanceof ScalarFunction) {
+      Predicate<Integer> optional =
+          new Predicate<Integer>() {
+            public boolean apply(Integer input) {
+              return function.getParameters().get(input).isOptional();
+            }
+          };
       return new SqlUserDefinedFunction(name,
           ReturnTypes.explicit(Schemas.proto((ScalarFunction) function)),
-          InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies),
+          InferTypes.explicit(argTypes),
+          OperandTypes.family(typeFamilies, optional),
           toSql(argTypes), function);
     } else if (function instanceof AggregateFunction) {
       returnType = ((AggregateFunction) function).getReturnType(typeFactory);

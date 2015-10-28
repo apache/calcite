@@ -20,6 +20,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -41,7 +44,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
    * Creates an AS operator.
    */
   public SqlAsOperator() {
-    super(
+    this(
         "AS",
         SqlKind.AS,
         20,
@@ -49,6 +52,14 @@ public class SqlAsOperator extends SqlSpecialOperator {
         ReturnTypes.ARG0,
         InferTypes.RETURN_TYPE,
         OperandTypes.ANY_ANY);
+  }
+
+  protected SqlAsOperator(String name, SqlKind kind, int prec,
+      boolean leftAssoc, SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(name, kind, prec, leftAssoc, returnTypeInference,
+        operandTypeInference, operandTypeChecker);
   }
 
   //~ Methods ----------------------------------------------------------------

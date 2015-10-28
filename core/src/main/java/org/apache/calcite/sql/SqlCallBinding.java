@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -29,6 +30,9 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,6 +44,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * analyzing to the operands of a {@link SqlCall} with a {@link SqlValidator}.
  */
 public class SqlCallBinding extends SqlOperatorBinding {
+  private static final SqlCall DEFAULT_CALL =
+      SqlStdOperatorTable.DEFAULT.createCall(SqlParserPos.ZERO);
   //~ Instance fields --------------------------------------------------------
 
   private final SqlValidator validator;
@@ -110,6 +116,77 @@ public class SqlCallBinding extends SqlOperatorBinding {
    */
   public SqlCall getCall() {
     return call;
+  }
+
+  /** Returns the operands to a call permuted into the same order as the
+   * formal parameters of the function. */
+  public List<SqlNode> operands() {
+    if (hasAssignment()) {
+      return permutedOperands(call);
+    } else {
+      final List<SqlNode> operandList = call.getOperandList();
+      if (call.getOperator() instanceof SqlFunction) {
+        final List<RelDataType> paramTypes =
+            ((SqlFunction) call.getOperator()).getParamTypes();
+        if (paramTypes != null && operandList.size() < paramTypes.size()) {
+          final List<SqlNode> list = Lists.newArrayList(operandList);
+          while (list.size() < paramTypes.size()) {
+            list.add(DEFAULT_CALL);
+          }
+          return list;
+        }
+      }
+      return operandList;
+    }
+  }
+
+  /** Returns whether arguments have name assignment. */
+  private boolean hasAssignment() {
+    for (SqlNode operand : call.getOperandList()) {
+      if (operand != null
+          && operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Returns the operands to a call permuted into the same order as the
+   * formal parameters of the function. */
+  public List<SqlNode> permutedOperands(final SqlCall call) {
+    final SqlFunction operator = (SqlFunction) call.getOperator();
+    return Lists.transform(operator.getParamNames(),
+        new Function<String, SqlNode>() {
+          public SqlNode apply(String paramName) {
+            for (SqlNode operand2 : call.getOperandList()) {
+              final SqlCall call2 = (SqlCall) operand2;
+              assert operand2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
+              final SqlIdentifier id = call2.operand(1);
+              if (id.getSimple().equals(paramName)) {
+                return call2.operand(0);
+              }
+            }
+            return DEFAULT_CALL;
+          }
+        });
+  }
+
+  /**
+   * Returns a particular operand.
+   */
+  public SqlNode operand(int i) {
+    return operands().get(i);
+  }
+
+  /** Returns a call that is equivalent except that arguments have been
+   * permuted into the logical order. Any arguments whose default value is being
+   * used are null. */
+  public SqlCall permutedCall() {
+    final List<SqlNode> operandList = operands();
+    if (operandList.equals(call.getOperandList())) {
+      return call;
+    }
+    return call.getOperator().createCall(call.pos, operandList);
   }
 
   public SqlMonotonicity getOperandMonotonicity(int ordinal) {

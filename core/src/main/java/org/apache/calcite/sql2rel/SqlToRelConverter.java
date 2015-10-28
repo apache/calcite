@@ -88,6 +88,7 @@ import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -4173,7 +4174,8 @@ public class SqlToRelConverter {
           return agg.lookupAggregates(call);
         }
       }
-      return exprConverter.convertCall(this, call);
+      return exprConverter.convertCall(this,
+          new SqlCallBinding(validator, scope, call).permutedCall());
     }
 
     // implement SqlVisitor

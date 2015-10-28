@@ -23,8 +23,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ImplementableAggFunction;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.ReflectUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
@@ -56,6 +57,7 @@ public class AggregateFunctionImpl implements AggregateFunction,
 
   /** Private constructor; use {@link #create}. */
   private AggregateFunctionImpl(Class<?> declaringClass,
+      List<FunctionParameter> params,
       List<Class<?>> valueTypes,
       Class<?> accumulatorType,
       Class<?> resultType,
@@ -64,18 +66,16 @@ public class AggregateFunctionImpl implements AggregateFunction,
       Method mergeMethod,
       Method resultMethod) {
     this.declaringClass = declaringClass;
-    this.isStatic = Modifier.isStatic(initMethod.getModifiers());
     this.valueTypes = ImmutableList.copyOf(valueTypes);
-    this.parameters = ReflectiveFunctionBase.toFunctionParameters(valueTypes);
+    this.parameters = params;
     this.accumulatorType = accumulatorType;
     this.resultType = resultType;
-    this.initMethod = initMethod;
-    this.addMethod = addMethod;
+    this.initMethod = Preconditions.checkNotNull(initMethod);
+    this.addMethod = Preconditions.checkNotNull(addMethod);
     this.mergeMethod = mergeMethod;
     this.resultMethod = resultMethod;
+    this.isStatic = Modifier.isStatic(initMethod.getModifiers());
 
-    assert initMethod != null;
-    assert addMethod != null;
     assert resultMethod != null || accumulatorType == resultType;
   }
 
@@ -100,7 +100,17 @@ public class AggregateFunctionImpl implements AggregateFunction,
       if (addParamTypes.isEmpty() || addParamTypes.get(0) != accumulatorType) {
         throw RESOURCE.firstParameterOfAdd(clazz.getName()).ex();
       }
-      final List<Class<?>> valueTypes = Util.skip(addParamTypes, 1);
+      final ReflectiveFunctionBase.ParameterListBuilder params =
+          ReflectiveFunctionBase.builder();
+      final ImmutableList.Builder<Class<?>> valueTypes =
+          ImmutableList.builder();
+      for (int i = 1; i < addParamTypes.size(); i++) {
+        final Class<?> type = addParamTypes.get(i);
+        final String name = ReflectUtil.getParameterName(addMethod, i);
+        final boolean optional = ReflectUtil.isParameterOptional(addMethod, i);
+        params.add(type, name, optional);
+        valueTypes.add(type);
+      }
 
       // A init()
       // A add(A, V)
@@ -112,8 +122,9 @@ public class AggregateFunctionImpl implements AggregateFunction,
       // TODO: check merge args are (A, A)
       // TODO: check result args are (A)
 
-      return new AggregateFunctionImpl(clazz, valueTypes, accumulatorType,
-          resultType, initMethod, addMethod, mergeMethod, resultMethod);
+      return new AggregateFunctionImpl(clazz, params.build(),
+          valueTypes.build(), accumulatorType, resultType, initMethod,
+          addMethod, mergeMethod, resultMethod);
     }
     return null;
   }

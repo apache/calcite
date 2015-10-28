@@ -790,10 +790,8 @@ SqlNodeList ParenthesizedQueryOrCommaList(
 }
 
 /**
- * Parses function parameter lists including DISTINCT keyword recognition
- *
- * <p>This is pretty much the same as ParenthesizedQueryOrCommaList but allows
- * the DISTINCT keyword to follow the left paren and not be followed by a comma.
+ * Parses function parameter lists including DISTINCT keyword recognition,
+ * DEFAULT, and named argument assignment.
  */
 List FunctionParameterList(
     ExprContext exprContext) :
@@ -801,6 +799,7 @@ List FunctionParameterList(
     SqlNode e = null;
     List list = new ArrayList();
     ExprContext firstExprContext = exprContext;
+    SqlIdentifier name = null;
 }
 {
     <LPAREN>
@@ -829,11 +828,26 @@ List FunctionParameterList(
     {
        list.add(e);
     }
-    e = OrderedQueryOrExpr(firstExprContext)
+    [
+        name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
+    ]
+    (
+        <DEFAULT_KW> {
+            e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
+        }
+    |
+        e = OrderedQueryOrExpr(firstExprContext)
+    )
     {
         if (e != null) {
+            if (name != null) {
+                e = SqlStdOperatorTable.ARGUMENT_ASSIGNMENT.createCall(
+                    name.getParserPosition().plus(e.getParserPosition()),
+                    e, name);
+            }
             list.add(e);
         }
+        name = null;
     }
     (
         <COMMA>
@@ -841,8 +855,23 @@ List FunctionParameterList(
             // a comma-list can't appear where only a query is expected
             checkNonQueryExpression(exprContext);
         }
-        e = Expression(exprContext)
+        [
+            name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
+        ]
+        (
+            <DEFAULT_KW> {
+                e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
+            }
+        |
+            e = Expression(exprContext)
+        )
         {
+            if (name != null) {
+                e = SqlStdOperatorTable.ARGUMENT_ASSIGNMENT.createCall(
+                    name.getParserPosition().plus(e.getParserPosition()),
+                    e, name);
+                name = null;
+            }
             list.add(e);
         }
     ) *
@@ -5437,6 +5466,7 @@ String CommonNonReservedKeyWord() :
     | < STAR: "*" >
     | < SLASH: "/" >
     | < CONCAT: "||" >
+    | < NAMED_ARGUMENT_ASSIGNMENT: "=>" >
     | < DOUBLE_PERIOD: ".." >
     | < QUOTE: "'" >
     | < DOUBLE_QUOTE: "\"" >

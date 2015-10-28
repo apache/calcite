@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -56,9 +55,8 @@ public class SqlQuarterFunction extends SqlFunction {
 
   public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    SqlCall call = callBinding.getCall();
     return OperandTypes.DATETIME.checkSingleOperandType(callBinding,
-        call.operand(0), 0, throwOnFailure);
+        callBinding.operand(0), 0, throwOnFailure);
   }
 }
 

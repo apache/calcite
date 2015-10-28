@@ -127,7 +127,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
 
     return SqlTypeUtil.isCharTypeComparable(
         callBinding,
-        callBinding.getCall().getOperandList(),
+        callBinding.operands(),
         throwOnFailure);
   }
 

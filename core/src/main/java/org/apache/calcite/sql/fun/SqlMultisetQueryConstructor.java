@@ -89,7 +89,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         SqlTypeUtil.deriveAndCollectTypes(
             callBinding.getValidator(),
             callBinding.getScope(),
-            callBinding.getCall().getOperandList());
+            callBinding.operands());
     final RelDataType componentType =
         getComponentType(
             callBinding.getTypeFactory(),

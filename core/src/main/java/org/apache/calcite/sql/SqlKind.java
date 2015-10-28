@@ -182,6 +182,16 @@ public enum SqlKind {
   AS,
 
   /**
+   * ARGUMENT_ASSIGNMENT operator, {@code =>}
+   */
+  ARGUMENT_ASSIGNMENT,
+
+  /**
+   * DEFAULT operator
+   */
+  DEFAULT,
+
+  /**
    * OVER operator
    */
   OVER,
@@ -710,7 +720,8 @@ public enum SqlKind {
   public static final Set<SqlKind> EXPRESSION =
       EnumSet.complementOf(
           EnumSet.of(
-              AS, DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
+              AS, ARGUMENT_ASSIGNMENT, DEFAULT,
+              DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
               SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
               LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
               NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,

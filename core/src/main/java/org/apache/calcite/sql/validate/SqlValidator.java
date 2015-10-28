@@ -636,11 +636,11 @@ public interface SqlValidator {
    * @param unresolvedFunction Overloaded function which is the target of the
    *                           call
    * @param argTypes           Types of arguments
+   * @param argNames           Names of arguments, or null if call by position
    */
-  CalciteException handleUnresolvedFunction(
-      SqlCall call,
-      SqlFunction unresolvedFunction,
-      List<RelDataType> argTypes);
+  CalciteException handleUnresolvedFunction(SqlCall call,
+      SqlFunction unresolvedFunction, List<RelDataType> argTypes,
+      List<String> argNames);
 
   /**
    * Expands an expression in the ORDER BY clause into an expression with the

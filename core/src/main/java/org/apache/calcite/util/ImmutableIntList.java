@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -24,7 +26,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableListIterator;
 
 import java.lang.reflect.Array;
-import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -236,15 +237,14 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
    *
    * <p>For example, {@code range(1, 3)} contains [1, 2]. */
   public static List<Integer> range(final int lower, final int upper) {
-    return new AbstractList<Integer>() {
-      @Override public Integer get(int index) {
-        return lower + index;
-      }
-
-      @Override public int size() {
-        return upper - lower;
-      }
-    };
+    return Functions.generate(upper - lower,
+        new Function1<Integer, Integer>() {
+          /** @see Bug#upgrade(String) Upgrade to {@code IntFunction} when we
+           * drop support for JDK 1.7 */
+          public Integer apply(Integer index) {
+            return lower + index;
+          }
+        });
   }
 
   /** Returns the identity list [0, ..., count - 1].

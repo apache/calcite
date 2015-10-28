@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -38,17 +39,24 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   protected final ImmutableList<SqlTypeFamily> families;
+  protected final Predicate<Integer> optional;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Package private. Create using {@link OperandTypes#family}.
    */
-  FamilyOperandTypeChecker(List<SqlTypeFamily> families) {
+  FamilyOperandTypeChecker(List<SqlTypeFamily> families,
+      Predicate<Integer> optional) {
     this.families = ImmutableList.copyOf(families);
+    this.optional = optional;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public boolean isOptional(int i) {
+    return optional.apply(i);
+  }
 
   public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
@@ -97,7 +105,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
       return false;
     }
 
-    for (Ord<SqlNode> op : Ord.zip(callBinding.getCall().getOperandList())) {
+    for (Ord<SqlNode> op : Ord.zip(callBinding.operands())) {
       if (!checkSingleOperandType(
           callBinding,
           op.e,
@@ -110,7 +118,12 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(families.size());
+    final int max = families.size();
+    int min = max;
+    while (min > 0 && optional.apply(min - 1)) {
+      --min;
+    }
+    return SqlOperandCountRanges.between(min, max);
   }
 
   public String getAllowedSignatures(SqlOperator op, String opName) {

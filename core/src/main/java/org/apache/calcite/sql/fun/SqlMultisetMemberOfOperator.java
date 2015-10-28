@@ -56,7 +56,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
       boolean throwOnFailure) {
     if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
-        callBinding.getCall().operand(1),
+        callBinding.operand(1),
         0,
         throwOnFailure)) {
       return false;
@@ -65,12 +65,12 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
     MultisetSqlType mt =
         (MultisetSqlType) callBinding.getValidator().deriveType(
             callBinding.getScope(),
-            callBinding.getCall().operand(1));
+            callBinding.operand(1));
 
     RelDataType t0 =
         callBinding.getValidator().deriveType(
             callBinding.getScope(),
-            callBinding.getCall().operand(0));
+            callBinding.operand(0));
     RelDataType t1 = mt.getComponentType();
 
     if (t0.getFamily() != t1.getFamily()) {

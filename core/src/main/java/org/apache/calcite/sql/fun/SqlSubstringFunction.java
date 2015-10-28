@@ -95,11 +95,10 @@ public class SqlSubstringFunction extends SqlFunction {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    SqlCall call = callBinding.getCall();
     SqlValidator validator = callBinding.getValidator();
     SqlValidatorScope scope = callBinding.getScope();
 
-    final List<SqlNode> operands = call.getOperandList();
+    final List<SqlNode> operands = callBinding.operands();
     int n = operands.size();
     assert (3 == n) || (2 == n);
     if (!OperandTypes.STRING.checkSingleOperandType(

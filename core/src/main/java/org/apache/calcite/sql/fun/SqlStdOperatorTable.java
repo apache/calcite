@@ -150,6 +150,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAsOperator AS = new SqlAsOperator();
 
+  /**
+   * <code>ARGUMENT_ASSIGNMENT</code> operator (<code>=&lt;</code>)
+   * assigns an argument to a function call to a particular named parameter.
+   */
+  public static final SqlSpecialOperator ARGUMENT_ASSIGNMENT =
+      new SqlArgumentAssignmentOperator();
+
+  /**
+   * <code>DEFAULT</code> operator indicates that an argument to a function call
+   * is to take its default value..
+   */
+  public static final SqlSpecialOperator DEFAULT = new SqlDefaultOperator();
+
   /** <code>FILTER</code> operator filters which rows are included in an
    *  aggregate function. */
   public static final SqlFilterOperator FILTER = new SqlFilterOperator();

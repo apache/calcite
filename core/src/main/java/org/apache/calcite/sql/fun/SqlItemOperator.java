@@ -84,8 +84,8 @@ class SqlItemOperator extends SqlSpecialOperator {
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    final SqlNode left = callBinding.getCall().operand(0);
-    final SqlNode right = callBinding.getCall().operand(1);
+    final SqlNode left = callBinding.operand(0);
+    final SqlNode right = callBinding.operand(1);
     if (!ARRAY_OR_MAP.checkSingleOperandType(callBinding, left, 0,
         throwOnFailure)) {
       return false;

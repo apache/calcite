@@ -399,6 +399,17 @@ public abstract class Mappings {
     return new Permutation(IntList.toArray(targets));
   }
 
+  /** Creates a bijection.
+   *
+   * <p>Throws if sources and targets are not one to one. */
+  public static Mapping bijection(Map<Integer, Integer> targets) {
+    final List<Integer> targetList = new ArrayList<>();
+    for (int i = 0; i < targets.size(); i++) {
+      targetList.add(targets.get(i));
+    }
+    return new Permutation(IntList.toArray(targetList));
+  }
+
   /**
    * Returns whether a mapping is the identity.
    */

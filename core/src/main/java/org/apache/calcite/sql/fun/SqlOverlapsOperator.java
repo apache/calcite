@@ -111,28 +111,27 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    SqlCall call = callBinding.getCall();
     SqlValidator validator = callBinding.getValidator();
     SqlValidatorScope scope = callBinding.getScope();
     if (!OperandTypes.DATETIME.checkSingleOperandType(
         callBinding,
-        call.operand(0),
+        callBinding.operand(0),
         0,
         throwOnFailure)) {
       return false;
     }
     if (!OperandTypes.DATETIME.checkSingleOperandType(
         callBinding,
-        call.operand(2),
+        callBinding.operand(2),
         0,
         throwOnFailure)) {
       return false;
     }
 
-    RelDataType t0 = validator.deriveType(scope, call.operand(0));
-    RelDataType t1 = validator.deriveType(scope, call.operand(1));
-    RelDataType t2 = validator.deriveType(scope, call.operand(2));
-    RelDataType t3 = validator.deriveType(scope, call.operand(3));
+    RelDataType t0 = validator.deriveType(scope, callBinding.operand(0));
+    RelDataType t1 = validator.deriveType(scope, callBinding.operand(1));
+    RelDataType t2 = validator.deriveType(scope, callBinding.operand(2));
+    RelDataType t3 = validator.deriveType(scope, callBinding.operand(3));
 
     // t0 must be comparable with t2
     if (!SqlTypeUtil.sameNamedType(t0, t2)) {

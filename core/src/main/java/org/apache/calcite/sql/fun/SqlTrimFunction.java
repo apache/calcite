@@ -158,10 +158,9 @@ public class SqlTrimFunction extends SqlFunction {
     if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
       return false;
     }
-    final List<SqlNode> operands = callBinding.getCall().getOperandList();
-    return SqlTypeUtil.isCharTypeComparable(
-        callBinding,
-        ImmutableList.of(operands.get(1), operands.get(2)), throwOnFailure);
+    return SqlTypeUtil.isCharTypeComparable(callBinding,
+        ImmutableList.of(callBinding.operand(1), callBinding.operand(2)),
+        throwOnFailure);
   }
 }
 

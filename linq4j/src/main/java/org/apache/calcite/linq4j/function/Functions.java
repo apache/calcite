@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.RandomAccess;
 
 /**
  * Utilities relating to functions.
@@ -422,14 +423,7 @@ public abstract class Functions {
     if (size < 0) {
       throw new IllegalArgumentException();
     }
-    return new AbstractList<E>() {
-      public int size() {
-        return size;
-      }
-      public E get(int index) {
-        return fn.apply(index);
-      }
-    };
+    return new GeneratingList<>(size, fn);
   }
 
   /**
@@ -646,6 +640,26 @@ public abstract class Functions {
     }
 
     static final Ignore INSTANCE = new Ignore();
+  }
+
+  /** List that generates each element using a function. */
+  private static class GeneratingList<E> extends AbstractList<E>
+      implements RandomAccess {
+    private final int size;
+    private final Function1<Integer, E> fn;
+
+    public GeneratingList(int size, Function1<Integer, E> fn) {
+      this.size = size;
+      this.fn = fn;
+    }
+
+    public int size() {
+      return size;
+    }
+
+    public E get(int index) {
+      return fn.apply(index);
+    }
   }
 }
 

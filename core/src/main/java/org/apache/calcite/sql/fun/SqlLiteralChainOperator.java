@@ -79,9 +79,8 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
     if (callBinding.getOperandCount() < 2) {
       return true; // nothing to compare
     }
-    final List<SqlNode> operandList = callBinding.getCall().getOperandList();
     RelDataType firstType = null;
-    for (Ord<SqlNode> operand : Ord.zip(operandList)) {
+    for (Ord<SqlNode> operand : Ord.zip(callBinding.operands())) {
       RelDataType type =
           callBinding.getValidator().deriveType(
               callBinding.getScope(),

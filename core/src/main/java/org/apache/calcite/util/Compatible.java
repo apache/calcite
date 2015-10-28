@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -59,6 +60,9 @@ public interface Compatible {
    * {@link org.apache.calcite.jdbc.CalciteConnection} in all JDK versions. */
   @Deprecated // to be removed before 2.0
   void setSchema(Connection connection, String schema);
+
+  /** Calls {@link Method}.{@code getParameters()[i].getName()}. */
+  String getParameterName(Method method, int i);
 
   /** Creates the implementation of Compatible suitable for the
    * current environment. */
@@ -101,6 +105,20 @@ public interface Compatible {
                 final Method method1 =
                     connection.getClass().getMethod("setSchema", String.class);
                 return method1.invoke(connection, schema);
+              }
+              if (method.getName().equals("getParameterName")) {
+                final Method m = (Method) args[0];
+                final int i = (Integer) args[1];
+                try {
+                  final Method method1 =
+                      m.getClass().getMethod("getParameters");
+                  Object parameters = method1.invoke(m);
+                  final Object parameter = Array.get(parameters, i);
+                  final Method method3 = parameter.getClass().getMethod("getName");
+                  return method3.invoke(parameter);
+                } catch (NoSuchMethodException e) {
+                  return "arg" + i;
+                }
               }
               return null;
             }

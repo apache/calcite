@@ -41,6 +41,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
+  public boolean isOptional(int i) {
+    return false;
+  }
+
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -70,7 +74,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
 
       if (fields.size() != colCount) {
         if (throwOnFailure) {
-          SqlNode node = callBinding.getCall().operand(i);
+          SqlNode node = callBinding.operand(i);
           if (node instanceof SqlSelect) {
             node = ((SqlSelect) node).getSelectList();
           }
@@ -103,9 +107,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
       if (type == null) {
         if (throwOnFailure) {
           SqlNode field =
-              SqlUtil.getSelectListItem(
-                  callBinding.getCall().operand(0),
-                  i);
+              SqlUtil.getSelectListItem(callBinding.operand(0), i);
           throw validator.newValidationError(field,
               RESOURCE.columnTypeMismatchInSetop(i + 1, // 1-based
                   callBinding.getOperator().getName()));

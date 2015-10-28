@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.examples.RelBuilderExample;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.SqlDialect;
@@ -42,6 +43,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.management.MemoryType;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
@@ -1413,6 +1415,17 @@ public class UtilTest {
     assertThat(reverse.hasNext(), is(true));
     assertThat(reverse.next().e, is("a"));
     assertThat(reverse.hasNext(), is(false));
+  }
+
+  /** Tests {@link org.apache.calcite.util.ReflectUtil#getParameterName}. */
+  @Test public void testParameterName() throws NoSuchMethodException {
+    final Method method = UtilTest.class.getMethod("foo", int.class, int.class);
+    assertThat(ReflectUtil.getParameterName(method, 0), is("arg0"));
+    assertThat(ReflectUtil.getParameterName(method, 1), is("j"));
+  }
+
+  /** Dummy method for {@link #testParameterName()} to inspect. */
+  public static void foo(int i, @Parameter(name = "j") int j) {
   }
 }
 

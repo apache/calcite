@@ -113,7 +113,7 @@ public class SqlCastFunction extends SqlFunction {
             firstType.isNullable());
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
-      SqlNode operand0 = callBinding.getCall().operand(0);
+      SqlNode operand0 = callBinding.operand(0);
 
       // dynamic parameters and null constants need their types assigned
       // to them using the type they are casted to.
@@ -145,8 +145,8 @@ public class SqlCastFunction extends SqlFunction {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    final SqlNode left = callBinding.getCall().operand(0);
-    final SqlNode right = callBinding.getCall().operand(1);
+    final SqlNode left = callBinding.operand(0);
+    final SqlNode right = callBinding.operand(1);
     if (SqlUtil.isNullLiteral(left, false)
         || left instanceof SqlDynamicParam) {
       return true;

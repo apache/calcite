@@ -37,6 +37,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelDataType> paramTypes;
+  private final ImmutableList<String> paramNames;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -45,12 +46,20 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
    *
    * @param paramTypes parameter types for operands; index in this array
    *                   corresponds to operand number
+   * @param paramNames parameter names, or null
    */
-  public AssignableOperandTypeChecker(List<RelDataType> paramTypes) {
+  public AssignableOperandTypeChecker(List<RelDataType> paramTypes,
+      List<String> paramNames) {
     this.paramTypes = ImmutableList.copyOf(paramTypes);
+    this.paramNames =
+        paramNames == null ? null : ImmutableList.copyOf(paramNames);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public boolean isOptional(int i) {
+    return false;
+  }
 
   public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(paramTypes.size());
@@ -59,6 +68,8 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
+    // Do not use callBinding.operands(). We have not resolved to a function
+    // yet, therefore we do not know the ordered parameter names.
     final List<SqlNode> operands = callBinding.getCall().getOperandList();
     for (Pair<RelDataType, SqlNode> pair : Pair.zip(paramTypes, operands)) {
       RelDataType argType =
@@ -83,6 +94,10 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     for (Ord<RelDataType> paramType : Ord.zip(paramTypes)) {
       if (paramType.i > 0) {
         sb.append(", ");
+      }
+      if (paramNames != null) {
+        sb.append(paramNames.get(paramType.i))
+            .append(" => ");
       }
       sb.append("<");
       sb.append(paramType.e.getFamily());

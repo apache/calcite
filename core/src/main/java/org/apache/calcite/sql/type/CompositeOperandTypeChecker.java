@@ -107,6 +107,15 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
+  public boolean isOptional(int i) {
+    for (SqlOperandTypeChecker allowedRule : allowedRules) {
+      if (allowedRule.isOptional(i)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public ImmutableList<? extends SqlOperandTypeChecker> getRules() {
     return allowedRules;
   }

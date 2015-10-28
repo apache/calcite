@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
@@ -36,11 +35,14 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
+  public boolean isOptional(int i) {
+    return false;
+  }
+
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    SqlCall call = callBinding.getCall();
-    final SqlNode op0 = call.operand(0);
+    final SqlNode op0 = callBinding.operand(0);
     if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         op0,
@@ -49,7 +51,7 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
       return false;
     }
 
-    final SqlNode op1 = call.operand(1);
+    final SqlNode op1 = callBinding.operand(1);
     if (!OperandTypes.MULTISET.checkSingleOperandType(
         callBinding,
         op1,

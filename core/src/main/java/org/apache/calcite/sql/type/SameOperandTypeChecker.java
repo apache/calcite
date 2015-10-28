@@ -53,6 +53,10 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return Consistency.NONE;
   }
 
+  public boolean isOptional(int i) {
+    return false;
+  }
+
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -84,7 +88,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
       if (operatorBinding.isOperandNull(i, false)) {
         if (throwOnFailure) {
           throw callBinding.getValidator().newValidationError(
-              callBinding.getCall().operand(i), RESOURCE.nullIllegal());
+              callBinding.operand(i), RESOURCE.nullIllegal());
         } else {
           return false;
         }

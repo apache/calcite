@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
@@ -58,7 +60,17 @@ public abstract class OperandTypes {
    * corresponding family.
    */
   public static FamilyOperandTypeChecker family(SqlTypeFamily... families) {
-    return new FamilyOperandTypeChecker(ImmutableList.copyOf(families));
+    return new FamilyOperandTypeChecker(ImmutableList.copyOf(families),
+        Predicates.<Integer>alwaysFalse());
+  }
+
+  /**
+   * Creates a checker that passes if each operand is a member of a
+   * corresponding family, and allows specified parameters to be optional.
+   */
+  public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families,
+      Predicate<Integer> optional) {
+    return new FamilyOperandTypeChecker(families, optional);
   }
 
   /**
@@ -66,7 +78,7 @@ public abstract class OperandTypes {
    * corresponding family.
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families) {
-    return new FamilyOperandTypeChecker(families);
+    return family(families, Predicates.<Integer>alwaysFalse());
   }
 
   /**
@@ -159,6 +171,10 @@ public abstract class OperandTypes {
         return opName + "(...)";
       }
 
+      public boolean isOptional(int i) {
+        return false;
+      }
+
       public Consistency getConsistency() {
         return Consistency.NONE;
       }
@@ -241,7 +257,8 @@ public abstract class OperandTypes {
    * literal.
    */
   public static final SqlSingleOperandTypeChecker POSITIVE_INTEGER_LITERAL =
-      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.INTEGER)) {
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.INTEGER),
+          Predicates.<Integer>alwaysFalse()) {
         public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
             SqlNode node,
@@ -416,7 +433,8 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker MINUS_DATE_OPERATOR =
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
-              SqlTypeFamily.DATETIME_INTERVAL)) {
+              SqlTypeFamily.DATETIME_INTERVAL),
+          Predicates.<Integer>alwaysFalse()) {
         public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {
@@ -474,7 +492,7 @@ public abstract class OperandTypes {
             boolean throwOnFailure) {
           return checkSingleOperandType(
               callBinding,
-              callBinding.getCall().operand(0),
+              callBinding.operand(0),
               0,
               throwOnFailure);
         }
@@ -485,6 +503,10 @@ public abstract class OperandTypes {
 
         public String getAllowedSignatures(SqlOperator op, String opName) {
           return "UNNEST(<MULTISET>)";
+        }
+
+        public boolean isOptional(int i) {
+          return false;
         }
 
         public Consistency getConsistency() {
@@ -537,7 +559,7 @@ public abstract class OperandTypes {
             boolean throwOnFailure) {
           return checkSingleOperandType(
               callBinding,
-              callBinding.getCall().operand(0),
+              callBinding.operand(0),
               0,
               throwOnFailure);
         }
@@ -549,6 +571,10 @@ public abstract class OperandTypes {
         public String getAllowedSignatures(SqlOperator op, String opName) {
           return SqlUtil.getAliasedSignature(op, opName,
               ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
+        }
+
+        public boolean isOptional(int i) {
+          return false;
         }
 
         public Consistency getConsistency() {

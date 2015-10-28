@@ -59,6 +59,9 @@ public interface SqlOperandTypeChecker {
   /** Returns the strategy for making the arguments have consistency types. */
   Consistency getConsistency();
 
+  /** Returns whether the {@code i}th operand is optional. */
+  boolean isOptional(int i);
+
   /** Strategy used to make arguments consistent. */
   enum Consistency {
     /** Do not try to make arguments consistent. */

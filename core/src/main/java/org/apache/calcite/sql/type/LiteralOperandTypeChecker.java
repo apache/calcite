@@ -44,6 +44,10 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
+  public boolean isOptional(int i) {
+    return false;
+  }
+
   public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
@@ -79,7 +83,7 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
       boolean throwOnFailure) {
     return checkSingleOperandType(
         callBinding,
-        callBinding.getCall().operand(0),
+        callBinding.operand(0),
         0,
         throwOnFailure);
   }

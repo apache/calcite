@@ -1480,7 +1480,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (call.operandCount() > 0) {
         // This is not a default constructor invocation, and
         // no user-defined constructor could be found
-        throw handleUnresolvedFunction(call, unresolvedConstructor, argTypes);
+        throw handleUnresolvedFunction(call, unresolvedConstructor, argTypes,
+            null);
       }
     } else {
       SqlCall testCall =
@@ -1513,10 +1514,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return type;
   }
 
-  public CalciteException handleUnresolvedFunction(
-      SqlCall call,
-      SqlFunction unresolvedFunction,
-      List<RelDataType> argTypes) {
+  public CalciteException handleUnresolvedFunction(SqlCall call,
+      SqlFunction unresolvedFunction, List<RelDataType> argTypes,
+      List<String> argNames) {
     // For builtins, we can give a better error message
     final List<SqlOperator> overloads = Lists.newArrayList();
     opTab.lookupOperatorOverloads(unresolvedFunction.getNameAsId(), null,
@@ -1534,7 +1534,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     AssignableOperandTypeChecker typeChecking =
-        new AssignableOperandTypeChecker(argTypes);
+        new AssignableOperandTypeChecker(argTypes, argNames);
     String signature =
         typeChecking.getAllowedSignatures(
             unresolvedFunction,
@@ -1623,18 +1623,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             returnType);
       }
     } else if (node instanceof SqlCall) {
-      SqlCall call = (SqlCall) node;
-      SqlOperandTypeInference operandTypeInference =
+      final SqlCall call = (SqlCall) node;
+      final SqlOperandTypeInference operandTypeInference =
           call.getOperator().getOperandTypeInference();
-      List<SqlNode> operands = call.getOperandList();
-      RelDataType[] operandTypes = new RelDataType[operands.size()];
+      final SqlCallBinding callBinding = new SqlCallBinding(this, scope, call);
+      final List<SqlNode> operands = callBinding.operands();
+      final RelDataType[] operandTypes = new RelDataType[operands.size()];
       if (operandTypeInference == null) {
         // TODO:  eventually should assert(operandTypeInference != null)
         // instead; for now just eat it
         Arrays.fill(operandTypes, unknownType);
       } else {
         operandTypeInference.inferOperandTypes(
-            new SqlCallBinding(this, scope, call),
+            callBinding,
             inferredType,
             operandTypes);
       }
@@ -3982,10 +3983,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // For example, "LOCALTIME()" is illegal. (It should be
       // "LOCALTIME", which would have been handled as a
       // SqlIdentifier.)
-      throw handleUnresolvedFunction(
-          call,
-          (SqlFunction) operator,
-          ImmutableList.<RelDataType>of());
+      throw handleUnresolvedFunction(call, (SqlFunction) operator,
+          ImmutableList.<RelDataType>of(), null);
     }
 
     SqlValidatorScope operandScope = scope.getOperandScope(call);
