@@ -34,6 +34,7 @@ message ResultSetResponse {
 // Response to PrepareAndExecuteRequest
 message ExecuteResponse {
   repeated ResultSetResponse results = 1;
+  bool missing_statement = 2; // Did the request fail because of no-cached statement
 }
 
 // Response to PrepareRequest
@@ -44,6 +45,8 @@ message PrepareResponse {
 // Response to FetchRequest
 message FetchResponse {
   Frame frame = 1;
+  bool missing_statement = 2; // Did the request fail because of no-cached statement
+  bool missing_results = 3; // Did the request fail because of a cached-statement w/o ResultSet
 }
 
 // Response to CreateStatementRequest
@@ -89,4 +92,9 @@ message ErrorResponse {
   Severity severity = 3;
   uint32 error_code = 4; // numeric identifier for error
   string sql_state = 5; // five-character standard-defined value
+}
+
+message SyncResultsResponse {
+  bool missing_statement = 1; // Server doesn't have the statement with the ID from the request
+  bool more_results = 2; // Should the client fetch() to get more results
 }

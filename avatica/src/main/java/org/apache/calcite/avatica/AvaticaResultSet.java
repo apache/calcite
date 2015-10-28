@@ -49,6 +49,7 @@ import java.util.TimeZone;
  */
 public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   protected final AvaticaStatement statement;
+  protected final QueryState state;
   protected final Meta.Signature signature;
   protected final Meta.Frame firstFrame;
   protected final List<ColumnMetaData> columnMetaDataList;
@@ -69,11 +70,13 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   private Cursor timeoutCursor;
 
   public AvaticaResultSet(AvaticaStatement statement,
+      QueryState state,
       Meta.Signature signature,
       ResultSetMetaData resultSetMetaData,
       TimeZone timeZone,
       Meta.Frame firstFrame) {
     this.statement = statement;
+    this.state = state;
     this.signature = signature;
     this.firstFrame = firstFrame;
     this.columnMetaDataList = signature.columns;
@@ -182,7 +185,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   protected AvaticaResultSet execute() throws SQLException {
     final List<TypedValue> parameterValues = statement.getBoundParameterValues();
     final Iterable<Object> iterable1 =
-        statement.connection.meta.createIterable(statement.handle, signature,
+        statement.connection.meta.createIterable(statement.handle, state, signature,
             parameterValues, firstFrame);
     this.cursor = MetaImpl.createCursor(signature.cursorFactory, iterable1);
     this.accessorList =

@@ -136,7 +136,7 @@ public class MockProtobufService extends ProtobufService {
    */
   public static class MockProtobufServiceFactory implements Service.Factory {
     @Override public Service create(AvaticaConnection connection) {
-      return new MockProtobufService(connection.handle.id);
+      return new MockProtobufService(connection.id);
     }
   }
 }

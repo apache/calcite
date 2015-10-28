@@ -111,6 +111,10 @@ public class JsonHandlerTest {
       return null;
     }
 
+    @Override public SyncResultsResponse apply(SyncResultsRequest request) {
+      return null;
+    }
+
     @Override public ExecuteResponse apply(ExecuteRequest request) {
       return null;
     }
@@ -145,7 +149,7 @@ public class JsonHandlerTest {
               RANDOM.nextInt(), false, signature, Meta.Frame.EMPTY, -1L);
 
       return new Service.ExecuteResponse(
-          Collections.singletonList(resultSetResponse));
+          Collections.singletonList(resultSetResponse), false);
     }
   }
 

@@ -99,6 +99,10 @@ public abstract class ProtobufService extends AbstractService {
     return finagle((ExecuteResponse) _apply(request));
   }
 
+  @Override public SyncResultsResponse apply(SyncResultsRequest request) {
+    return (SyncResultsResponse) _apply(request);
+  }
+
   /**
    * Determines whether the given message has the field, denoted by the provided number, set.
    *

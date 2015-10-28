@@ -88,7 +88,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
       } else {
         fetchRowCount = (int) maxRowCount;
       }
-      final Meta.Frame firstFrame = frame(resultSet, 0, fetchRowCount, calendar);
+      final Meta.Frame firstFrame = frame(null, resultSet, 0, fetchRowCount, calendar);
       if (firstFrame.done) {
         resultSet.close();
       }
@@ -114,7 +114,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
 
   /** Creates a frame containing a given number or unlimited number of rows
    * from a result set. */
-  static Meta.Frame frame(ResultSet resultSet, long offset,
+  static Meta.Frame frame(StatementInfo info, ResultSet resultSet, long offset,
       int fetchMaxRowCount, Calendar calendar) throws SQLException {
     final ResultSetMetaData metaData = resultSet.getMetaData();
     final int columnCount = metaData.getColumnCount();
@@ -126,7 +126,13 @@ class JdbcResultSet extends Meta.MetaResultSet {
     // Meta prepare/prepareAndExecute 0 return 0 row and done
     boolean done = fetchMaxRowCount == 0;
     for (int i = 0; fetchMaxRowCount < 0 || i < fetchMaxRowCount; i++) {
-      if (!resultSet.next()) {
+      final boolean hasRow;
+      if (null != info) {
+        hasRow = info.next();
+      } else {
+        hasRow = resultSet.next();
+      }
+      if (!hasRow) {
         done = true;
         resultSet.close();
         break;

@@ -104,7 +104,7 @@ public abstract class AvaticaStatement
     this.signature = signature;
     this.closed = false;
     if (h == null) {
-      final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(connection.id);
+      final Meta.ConnectionHandle ch = connection.handle;
       h = connection.meta.createStatement(ch);
     }
     connection.statementMap.put(h.id, this);
@@ -130,12 +130,44 @@ public abstract class AvaticaStatement
     try {
       // In JDBC, maxRowCount = 0 means no limit; in prepare it means LIMIT 0
       final long maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
-      Meta.ExecuteResult x =
-          connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
+      for (int i = 0; i < connection.maxRetriesPerExecute; i++) {
+        try {
+          Meta.ExecuteResult x =
+              connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
+          return;
+        } catch (NoSuchStatementException e) {
+          resetStatement();
+        }
+      }
     } catch (RuntimeException e) {
       throw connection.helper.createException("Error while executing SQL \"" + sql + "\": "
           + e.getMessage(), e);
     }
+
+    throw new RuntimeException("Failed to successfully execute query after "
+        + connection.maxRetriesPerExecute + " attempts.");
+  }
+
+  protected void resetStatement() {
+    // Invalidate the old statement
+    connection.statementMap.remove(handle.id);
+    // Get a new one
+    final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(connection.id);
+    Meta.StatementHandle h = connection.meta.createStatement(ch);
+    // Cache it in the connection
+    connection.statementMap.put(h.id, this);
+    // Update the local state and try again
+    this.handle = h;
+  }
+
+  /**
+   * Re-initialize the ResultSet on the server with the given state.
+   * @param state The ResultSet's state.
+   * @param offset Offset into the desired ResultSet
+   * @return True if the ResultSet has more results, false if there are no more results.
+   */
+  protected boolean syncResults(QueryState state, long offset) throws NoSuchStatementException {
+    return connection.meta.syncResults(handle, state, offset);
   }
 
   // implement Statement
@@ -447,7 +479,7 @@ public abstract class AvaticaStatement
    */
   protected ResultSet executeQueryInternal(Meta.Signature signature)
       throws SQLException {
-    return connection.executeQueryInternal(this, signature, null);
+    return connection.executeQueryInternal(this, signature, null, null);
   }
 
   /**

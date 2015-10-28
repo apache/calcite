@@ -46,7 +46,7 @@ public class CalciteResultSet extends AvaticaResultSet {
       CalcitePrepare.CalciteSignature calciteSignature,
       ResultSetMetaData resultSetMetaData, TimeZone timeZone,
       Meta.Frame firstFrame) {
-    super(statement, calciteSignature, resultSetMetaData, timeZone, firstFrame);
+    super(statement, null, calciteSignature, resultSetMetaData, timeZone, firstFrame);
   }
 
   @Override protected CalciteResultSet execute() throws SQLException {

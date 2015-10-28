@@ -46,7 +46,7 @@ public class MockJsonService extends JsonService {
   /** Factory that creates a {@code MockJsonService}. */
   public static class Factory implements Service.Factory {
     public Service create(AvaticaConnection connection) {
-      final String connectionId = connection.handle.id;
+      final String connectionId = connection.id;
       final Map<String, String> map1 = new HashMap<>();
       try {
         map1.put(
