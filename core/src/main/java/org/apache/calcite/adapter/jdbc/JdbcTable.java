@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -49,6 +45,10 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -150,6 +150,7 @@ class JdbcTable extends AbstractQueryableTable
     else if(jdbcSchemaName != null){
       strings.add(jdbcSchemaName);
     }
+
     strings.add(jdbcTableName);
     return new SqlIdentifier(strings, SqlParserPos.ZERO);
   }
