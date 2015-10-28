@@ -18,6 +18,8 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.Meta.StatementHandle;
 
+import java.sql.ResultSet;
+
 /**
  * An Exception which denotes that a cached Statement is present but has no {@link ResultSet}.
  */

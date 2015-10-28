@@ -436,6 +436,7 @@ public abstract class AvaticaConnection implements Connection {
    * @param statement     Statement
    * @param signature     Prepared query
    * @param firstFrame    First frame of rows, or null if we need to execute
+   * @param state         The state used to create the given result
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs
    */

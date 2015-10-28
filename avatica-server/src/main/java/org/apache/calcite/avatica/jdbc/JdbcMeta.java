@@ -67,7 +67,7 @@ public class JdbcMeta implements Meta {
 
   private static final String STMT_CACHE_KEY_BASE = "avatica.statementcache";
 
-  /** Special value for {@link Statement#getLargeMaxRows()} that means fetch
+  /** Special value for {@code Statement#getLargeMaxRows()} that means fetch
    * an unlimited number of rows in a single batch.
    *
    * <p>Any other negative value will return an unlimited number of rows but

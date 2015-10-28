@@ -18,6 +18,9 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.proto.Common;
 
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+
 /**
  * Identifies an operation from {@link DatabaseMetaData} which returns a {@link ResultSet}. This
  * enum is used to allow clients to request the server to re-instantiate a {@link ResultSet} for

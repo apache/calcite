@@ -77,7 +77,7 @@ public class StatementInfo {
   }
 
   /**
-   * @see {@link ResultSet#next()}
+   * @see ResultSet#next()
    */
   public boolean next() throws SQLException {
     return _next(resultSet);

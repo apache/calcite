@@ -122,7 +122,7 @@ public class AlternatingRemoteMetaTest {
   }
 
   /**
-   * Driver implementation {@link AlternativeAvaticaHttpClient}.
+   * Driver implementation {@link AlternatingAvaticaHttpClient}.
    */
   public static class AlternatingDriver extends Driver {
 
