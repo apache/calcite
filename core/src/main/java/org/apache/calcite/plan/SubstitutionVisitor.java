@@ -147,6 +147,7 @@ public class SubstitutionVisitor {
   protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.<UnifyRule>of(
 //          TrivialRule.INSTANCE,
+          ScanToProjectUnifyRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
 //          ProjectToFilterUnifyRule.INSTANCE,
@@ -838,6 +839,43 @@ public class SubstitutionVisitor {
         return call.result(call.query);
       }
       return null;
+    }
+  }
+
+  /** Implementation of {@link UnifyRule} that matches
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
+  private static class ScanToProjectUnifyRule extends AbstractUnifyRule {
+    public static final ScanToProjectUnifyRule INSTANCE =
+        new ScanToProjectUnifyRule();
+
+    private ScanToProjectUnifyRule() {
+      super(any(MutableScan.class),
+          any(MutableProject.class), 0);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableProject target = (MutableProject) call.target;
+      final MutableScan query = (MutableScan) call.query;
+      // We do not need to check query's parent type to avoid duplication
+      // of ProjectToProjectUnifyRule or FilterToProjectUnifyRule, since
+      // SubstitutionVisitor performs a top-down match.
+      if (!query.equals(target.getInput())) {
+        return null;
+      }
+      final RexShuttle shuttle = getRexShuttle(target);
+      final RexBuilder rexBuilder = target.cluster.getRexBuilder();
+      final List<RexNode> newProjects;
+      try {
+        newProjects = (List<RexNode>)
+            shuttle.apply(rexBuilder.identityProjects(query.getRowType()));
+      } catch (MatchFailed e) {
+        return null;
+      }
+      final MutableProject newProject =
+          MutableProject.of(
+              query.getRowType(), target, newProjects);
+      final MutableRel newProject2 = MutableRels.strip(newProject);
+      return call.result(newProject2);
     }
   }
 

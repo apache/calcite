@@ -790,6 +790,19 @@ public class MaterializationTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-891">[CALCITE-891]
+   * TableScan without Project cannot be substituted by any projected
+   * materialization</a>. */
+  @Test public void testJoinMaterialization2() {
+    String q = "select *\n"
+        + "from \"emps\"\n"
+        + "join \"depts\" using (\"deptno\")";
+    final String m = "select \"deptno\", \"empid\", \"name\",\n"
+        + "\"salary\", \"commission\" from \"emps\"";
+    checkMaterialize(m, q);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-761">[CALCITE-761]
    * Pre-populated materializations</a>. */
   @Test public void testPrePopulated() {
