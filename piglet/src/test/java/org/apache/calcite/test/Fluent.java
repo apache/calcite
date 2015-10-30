@@ -22,6 +22,7 @@ import org.apache.calcite.piglet.parser.ParseException;
 import org.apache.calcite.piglet.parser.PigletParser;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.tools.PigRelBuilder;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -52,7 +53,7 @@ class Fluent {
     final PigRelBuilder builder =
         PigRelBuilder.create(PigRelBuilderTest.config().build());
     new Handler(builder).handle(program);
-    assertThat(RelOptUtil.toString(builder.peek()), is(expected));
+    assertThat(Util.toLinux(RelOptUtil.toString(builder.peek())), is(expected));
     return this;
   }
 
@@ -99,13 +100,13 @@ class Fluent {
         PigRelBuilder.create(PigRelBuilderTest.config().build());
     final StringWriter sw = new StringWriter();
     new CalciteHandler(builder, sw).handle(program);
-    checker.apply(sw.toString());
+    checker.apply(Util.toLinux(sw.toString()));
     return this;
   }
 
   public Fluent parseContains(String expected) throws ParseException {
     final Ast.Program program = parseProgram(pig);
-    assertThat(Ast.toString(program), is(expected));
+    assertThat(Util.toLinux(Ast.toString(program)), is(expected));
     return this;
   }
 }

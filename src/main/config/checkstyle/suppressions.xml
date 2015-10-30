@@ -23,11 +23,11 @@ limitations under the License.
   <suppress checks="Header" files="CalciteResource.properties"/>
   <suppress checks=".*" files="org-apache-calcite-jdbc.properties"/>
   <suppress checks=".*" files="Foo.java"/>
-  <suppress checks=".*" files=".*/target/maven-archiver/pom.properties"/>
+  <suppress checks=".*" files=".*[/\\]target[/\\]maven-archiver[/\\]pom.properties"/>
   <suppress checks=".*" files="git.properties"/>
   <suppress checks=".*" files="trace.properties"/>
   <suppress checks=".*" files="release.properties"/>
-  <suppress checks=".*" files="avatica/src/main/java/org/apache/calcite/avatica/proto"/>
+  <suppress checks=".*" files="avatica[/\\]src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]calcite[/\\]avatica[/\\]proto"/>
 
   <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
        through no fault of its own. -->

@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.PigRelBuilder;
+import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
@@ -35,6 +36,11 @@ public class PigRelBuilderTest {
     return RelBuilderTest.config();
   }
 
+  /** Converts a relational expression to a sting with linux line-endings. */
+  private String str(RelNode r) {
+    return Util.toLinux(RelOptUtil.toString(r));
+  }
+
   @Test public void testScan() {
     // Equivalent SQL:
     //   SELECT *
@@ -43,7 +49,7 @@ public class PigRelBuilderTest {
     final RelNode root = builder
         .scan("EMP")
         .build();
-    assertThat(RelOptUtil.toString(root),
+    assertThat(str(root),
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
@@ -61,7 +67,7 @@ public class PigRelBuilderTest {
         .build();
     final String plan = "LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(RelOptUtil.toString(root), is(plan));
+    assertThat(str(root), is(plan));
   }
 
   @Test public void testFilter() {
@@ -74,12 +80,13 @@ public class PigRelBuilderTest {
         .load("EMP.csv", null, null)
         .filter(builder.isNotNull(builder.field("MGR")))
         .build();
-    assertThat(RelOptUtil.toString(root),
-        is("LogicalFilter(condition=[IS NOT NULL($3)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String plan = "LogicalFilter(condition=[IS NOT NULL($3)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(plan));
   }
 
   @Test public void testForeach() {}
+
   @Test public void testGroup() {
     // Syntax:
     //   alias = GROUP alias { ALL | BY expression}
@@ -96,7 +103,7 @@ public class PigRelBuilderTest {
         + "LogicalAggregate(group=[{2, 7}], EMP=[COLLECT($8)])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(RelOptUtil.toString(root), is(plan));
+    assertThat(str(root), is(plan));
   }
 
   @Test public void testGroup2() {
@@ -115,7 +122,7 @@ public class PigRelBuilderTest {
         + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n      LogicalTableScan(table=[[scott, EMP]])\n  LogicalAggregate(group=[{0}], DEPT=[COLLECT($3)])\n"
         + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[ROW($0, $1, $2)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(RelOptUtil.toString(root), is(plan));
+    assertThat(str(root), is(plan));
   }
 
   @Test public void testImport() {}
@@ -132,7 +139,7 @@ public class PigRelBuilderTest {
     final RelNode root = builder
         .load("EMP.csv", null, null)
         .build();
-    assertThat(RelOptUtil.toString(root),
+    assertThat(str(root),
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
