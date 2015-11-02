@@ -37,6 +37,10 @@ public class HttpServer {
   private int port = -1;
   private final Handler handler;
 
+  public HttpServer(Handler handler) {
+    this(0, handler);
+  }
+
   public HttpServer(int port, Handler handler) {
     this.port = port;
     this.handler = handler;
