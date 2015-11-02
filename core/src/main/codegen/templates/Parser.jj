@@ -798,11 +798,40 @@ List FunctionParameterList(
 {
     SqlNode e = null;
     List list = new ArrayList();
-    ExprContext firstExprContext = exprContext;
-    SqlIdentifier name = null;
 }
 {
     <LPAREN>
+    [
+        <DISTINCT> {
+            e = SqlSelectKeyword.DISTINCT.symbol(getPos());
+        }
+    |
+        <ALL> {
+            e = SqlSelectKeyword.ALL.symbol(getPos());
+        }
+    ]
+    {
+        list.add(e);
+    }
+    Arg0(list, exprContext)
+    (
+        <COMMA> {
+            // a comma-list can't appear where only a query is expected
+            checkNonQueryExpression(exprContext);
+        }
+        Arg(list, exprContext)
+    )*
+    <RPAREN>
+    {
+        return list;
+    }
+}
+
+void Arg0(List list, ExprContext exprContext) :
+{
+    SqlIdentifier name = null;
+    SqlNode e = null;
+    final ExprContext firstExprContext;
     {
         // we've now seen left paren, so queries inside should
         // be allowed as subqueries
@@ -813,21 +842,13 @@ List FunctionParameterList(
         case ACCEPT_CURSOR:
             firstExprContext = ExprContext.ACCEPT_ALL;
             break;
+        default:
+            firstExprContext = exprContext;
+            break;
         }
     }
-    [ <DISTINCT>
-        {
-            e = SqlSelectKeyword.DISTINCT.symbol(getPos());
-        }
-        |
-      <ALL>
-        {
-            e = SqlSelectKeyword.ALL.symbol(getPos());
-        }
-    ]
-    {
-       list.add(e);
-    }
+}
+{
     [
         name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
     ]
@@ -847,37 +868,34 @@ List FunctionParameterList(
             }
             list.add(e);
         }
-        name = null;
     }
+}
+
+void Arg(List list, ExprContext exprContext) :
+{
+    SqlIdentifier name = null;
+    SqlNode e = null;
+}
+{
+    [
+        name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
+    ]
     (
-        <COMMA>
-        {
-            // a comma-list can't appear where only a query is expected
-            checkNonQueryExpression(exprContext);
+        <DEFAULT_KW> {
+            e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
         }
-        [
-            name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
-        ]
-        (
-            <DEFAULT_KW> {
-                e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
-            }
-        |
-            e = Expression(exprContext)
-        )
-        {
+    |
+        e = Expression(exprContext)
+    )
+    {
+        if (e != null) {
             if (name != null) {
                 e = SqlStdOperatorTable.ARGUMENT_ASSIGNMENT.createCall(
                     name.getParserPosition().plus(e.getParserPosition()),
                     e, name);
-                name = null;
             }
             list.add(e);
         }
-    ) *
-    <RPAREN>
-    {
-        return list;
     }
 }
 
@@ -1134,26 +1152,28 @@ SqlNode NamedRoutineCall(
     ExprContext exprContext) :
 {
     SqlIdentifier name;
-    SqlNodeList args;
-    SqlParserPos pos;
+    final List<SqlNode> list = Lists.newArrayList();
+    final SqlParserPos pos;
 }
 {
-    name = CompoundIdentifier()
-    {
+    name = CompoundIdentifier() {
         pos = getPos();
     }
-    (
-        LOOKAHEAD(2)
-        <LPAREN>
-        { pos = getPos(); }
-        <RPAREN>
-        { pos = pos.plus(getPos()); args = new SqlNodeList(pos); }
-        | args = ParenthesizedQueryOrCommaList(exprContext)
-        { pos = pos.plus(getPos()); }
-    )
+    <LPAREN>
+    [
+        Arg0(list, exprContext)
+        (
+            <COMMA> {
+                // a comma-list can't appear where only a query is expected
+                checkNonQueryExpression(exprContext);
+            }
+            Arg(list, exprContext)
+        )*
+    ]
+    <RPAREN>
     {
         SqlNode function = createCall(
-            name, pos, routineType, null, SqlParserUtil.toNodeArray(args));
+            name, pos.plus(getPos()), routineType, null, SqlParserUtil.toNodeArray(list));
         return function;
     }
 }

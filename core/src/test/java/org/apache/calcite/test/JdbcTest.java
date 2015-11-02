@@ -179,6 +179,10 @@ public class JdbcTest {
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
 
+  public static final Method MAZE2_METHOD =
+      Types.lookupMethod(MazeTable.class, "generate2", int.class, int.class,
+          Integer.class);
+
   public static final Method MULTIPLICATION_TABLE_METHOD =
       Types.lookupMethod(JdbcTest.class, "multiplicationTable", int.class,
         int.class, Integer.class);
@@ -482,6 +486,34 @@ public class JdbcTest {
     assertThat(CalciteAssert.toString(resultSet), equalTo(result));
   }
 
+  /** As {@link #testScannableTableFunction()} but with named parameters. */
+  @Test public void testScannableTableFunctionWithNamedParameters()
+      throws SQLException, ClassNotFoundException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction table = TableFunctionImpl.create(MAZE2_METHOD);
+    schema.add("Maze", table);
+    final String sql = "select *\n"
+        + "from table(\"s\".\"Maze\"(5, 3, 1))";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    final String result = "S=abcde\n"
+        + "S=xyz\n";
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+
+    final String sql2 = "select *\n"
+        + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
+    resultSet = connection.createStatement().executeQuery(sql2);
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+
+    final String sql3 = "select *\n"
+        + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
+    resultSet = connection.createStatement().executeQuery(sql3);
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+  }
+
   /**
    * Tests a table function that returns different row type based on
    * actual call arguments.
@@ -724,6 +756,38 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Tests a table macro with named and optional parameters. */
+  @Test public void testTableMacroWithNamedParameters() throws Exception {
+    // View(String r optional, String s, int t optional)
+    final CalciteAssert.AssertThat with =
+        assertWithMacro(TableMacroFunctionWithNamedParameters.class);
+    with.query("select * from table(\"adhoc\".\"View\"('(5)'))")
+        .throws_("No match found for function signature View(<CHARACTER>)");
+    final String expected1 = "c=1\n"
+        + "c=3\n"
+        + "c=5\n"
+        + "c=6\n";
+    with.query("select * from table(\"adhoc\".\"View\"('5', '6'))")
+        .returns(expected1);
+    final String expected2 = "c=1\n"
+        + "c=3\n"
+        + "c=5\n"
+        + "c=6\n";
+    with.query("select * from table(\"adhoc\".\"View\"(r=>'5', s=>'6'))")
+        .returns(expected2);
+    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', t=>'6'))")
+        .throws_("Duplicate argument name 'T'");
+    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
+        .throws_(
+            "No match found for function signature View(T => <CHARACTER>, S => <CHARACTER>)");
+    final String expected3 = "c=1\n"
+        + "c=3\n"
+        + "c=6\n"
+        + "c=5\n";
+    with.query("select * from table(\"adhoc\".\"View\"(t=>5, s=>'6'))")
+        .returns(expected3);
+  }
+
   /** Tests a JDBC connection that provides a model that contains a table
    *  macro. */
   @Test public void testTableMacroInModel() throws Exception {
@@ -739,7 +803,7 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains a table
    *  function. */
   @Test public void testTableFunctionInModel() throws Exception {
-    checkTableFunctionInModel(TestTableFunction.class);
+    checkTableFunctionInModel(MyTableFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
@@ -7229,6 +7293,29 @@ public class JdbcTest {
     }
   }
 
+  /** User-defined table-macro function with named and optional parameters. */
+  public static class TableMacroFunctionWithNamedParameters {
+    public TranslatableTable eval(
+        @Parameter(name = "R", optional = true) String r,
+        @Parameter(name = "S") String s,
+        @Parameter(name = "T", optional = true) Integer t) {
+      final StringBuilder sb = new StringBuilder();
+      abc(sb, r);
+      abc(sb, s);
+      abc(sb, t);
+      return view(sb.toString());
+    }
+
+    private void abc(StringBuilder sb, Object s) {
+      if (s != null) {
+        if (sb.length() > 0) {
+          sb.append(", ");
+        }
+        sb.append('(').append(s).append(')');
+      }
+    }
+  }
+
   private static QueryableTable oneThreePlus(String s) {
     List<Integer> items;
     // Argument is null in case SQL contains function call with expression.
@@ -7254,7 +7341,7 @@ public class JdbcTest {
   }
 
   /** A table function that returns a {@link QueryableTable}. */
-  public static class TestTableFunction {
+  public static class MyTableFunction {
     public QueryableTable eval(String s) {
       return oneThreePlus(s);
     }
@@ -7274,6 +7361,13 @@ public class JdbcTest {
       implements ScannableTable {
 
     public static ScannableTable generate(int width, int height, int seed) {
+      return new MazeTable();
+    }
+
+    public static ScannableTable generate2(
+        @Parameter(name = "WIDTH") int width,
+        @Parameter(name = "HEIGHT") int height,
+        @Parameter(name = "SEED", optional = true) Integer seed) {
       return new MazeTable();
     }
 

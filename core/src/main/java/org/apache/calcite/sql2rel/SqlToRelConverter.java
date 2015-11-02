@@ -2069,11 +2069,13 @@ public class SqlToRelConverter {
 
     // Expand table macro if possible. It's more efficient than
     // LogicalTableFunctionScan.
+    final SqlCallBinding callBinding =
+        new SqlCallBinding(bb.scope.getValidator(), bb.scope, call);
     if (operator instanceof SqlUserDefinedTableMacro) {
       final SqlUserDefinedTableMacro udf =
           (SqlUserDefinedTableMacro) operator;
-      final TranslatableTable table = udf.getTable(typeFactory,
-        call.getOperandList());
+      final TranslatableTable table =
+          udf.getTable(typeFactory, callBinding.operands());
       final RelDataType rowType = table.getRowType(typeFactory);
       RelOptTable relOptTable = RelOptTableImpl.create(null, rowType, table);
       RelNode converted = toRel(relOptTable);
@@ -2084,7 +2086,7 @@ public class SqlToRelConverter {
     Type elementType;
     if (operator instanceof SqlUserDefinedTableFunction) {
       SqlUserDefinedTableFunction udtf = (SqlUserDefinedTableFunction) operator;
-      elementType = udtf.getElementType(typeFactory, call.getOperandList());
+      elementType = udtf.getElementType(typeFactory, callBinding.operands());
     } else {
       elementType = null;
     }

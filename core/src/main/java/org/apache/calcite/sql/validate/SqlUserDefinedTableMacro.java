@@ -45,6 +45,7 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -64,12 +65,18 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   public SqlUserDefinedTableMacro(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      SqlOperandTypeChecker operandTypeChecker, List<RelDataType> paramTypes,
       TableMacro tableMacro) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
-        returnTypeInference, operandTypeInference, operandTypeChecker, null,
+        returnTypeInference, operandTypeInference, operandTypeChecker,
+        Preconditions.checkNotNull(paramTypes),
         SqlFunctionCategory.USER_DEFINED_FUNCTION);
     this.tableMacro = tableMacro;
+  }
+
+  @Override public List<String> getParamNames() {
+    return Lists.transform(tableMacro.getParameters(),
+        FunctionParameter.NAME_FN);
   }
 
   /** Returns the table in this UDF, or null if there is no table. */
@@ -95,7 +102,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
       List<SqlNode> operandList, Function function,
       SqlIdentifier opName,
       boolean failOnNonLiteral) {
-    List<Object> arguments = new ArrayList<Object>(operandList.size());
+    List<Object> arguments = new ArrayList<>(operandList.size());
     // Construct a list of arguments, if they are all constants.
     for (Pair<FunctionParameter, SqlNode> pair
         : Pair.zip(function.getParameters(), operandList)) {
@@ -140,6 +147,9 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
       }
       if (SqlUtil.isLiteral(right)) {
         return ((SqlLiteral) right).getValue();
+      }
+      if (right.getKind() == SqlKind.DEFAULT) {
+        return null; // currently NULL is the only default value
       }
       throw new NonLiteralException();
     }

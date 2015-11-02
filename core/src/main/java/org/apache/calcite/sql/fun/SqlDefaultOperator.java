@@ -41,7 +41,7 @@ class SqlDefaultOperator extends SqlSpecialOperator {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    writer.sep(getName());
+    writer.keyword(getName());
   }
 }
 

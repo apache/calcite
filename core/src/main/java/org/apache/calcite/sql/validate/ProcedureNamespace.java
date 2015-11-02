@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -51,18 +52,20 @@ public class ProcedureNamespace extends AbstractNamespace {
     validator.inferUnknownTypes(validator.unknownType, scope, call);
     final RelDataType type = validator.deriveTypeImpl(scope, call);
     final SqlOperator operator = call.getOperator();
+    final SqlCallBinding callBinding =
+        new SqlCallBinding(validator, scope, call);
     if (operator instanceof SqlUserDefinedTableFunction) {
       assert type.getSqlTypeName() == SqlTypeName.CURSOR
           : "User-defined table function should have CURSOR type, not " + type;
       final SqlUserDefinedTableFunction udf =
           (SqlUserDefinedTableFunction) operator;
-      return udf.getRowType(validator.typeFactory, call.getOperandList());
+      return udf.getRowType(validator.typeFactory, callBinding.operands());
     } else if (operator instanceof SqlUserDefinedTableMacro) {
       assert type.getSqlTypeName() == SqlTypeName.CURSOR
           : "User-defined table macro should have CURSOR type, not " + type;
       final SqlUserDefinedTableMacro udf =
           (SqlUserDefinedTableMacro) operator;
-      return udf.getTable(validator.typeFactory, call.getOperandList())
+      return udf.getTable(validator.typeFactory, callBinding.operands())
           .getRowType(validator.typeFactory);
     }
     return type;
