@@ -18,8 +18,12 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -27,14 +31,17 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -42,10 +49,12 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -880,6 +889,74 @@ public class MaterializationTest {
           .explainContains("EnumerableTableScan(table=[[hr, m0]])")
           .explainContains("EnumerableTableScan(table=[[hr, m1]])")
           .sameResultWithMaterializationsDisabled();
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
+  @Test public void testMaterializationSubstitution() {
+    String q = "select *\n"
+        + "from (select * from \"emps\" where \"empid\" < 300)\n"
+        + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
+
+    final List<Pair<String, String>> expectedNames = Lists.newArrayList();
+    expectedNames.add(Pair.of("emps", "m0"));
+    expectedNames.add(Pair.of("emps", "m1"));
+    expectedNames.add(Pair.of("m0", "emps"));
+    expectedNames.add(Pair.of("m0", "m0"));
+    expectedNames.add(Pair.of("m0", "m1"));
+    expectedNames.add(Pair.of("m1", "emps"));
+    expectedNames.add(Pair.of("m1", "m0"));
+    expectedNames.add(Pair.of("m1", "m1"));
+
+    /**
+     * Implementation of RelVisitor to extract substituted table names.
+     */
+    class SubstitutionVisitor extends RelVisitor {
+      private String first;
+      private String second;
+
+      Pair<String, String> run(RelNode input) {
+        go(input);
+        return Pair.of(first, second);
+      }
+
+      @Override public void visit(
+          RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof TableScan) {
+          RelOptTable table = node.getTable();
+          List<String> qName = table.getQualifiedName();
+          String name = qName.get(qName.size() - 1);
+          if (first == null) {
+            first = name;
+          } else {
+            second = name;
+          }
+        }
+        super.visit(node, ordinal, parent);
+      }
+    }
+
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      final List<Pair<String, String>> substitutedNames = Lists.newArrayList();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", "select * from \"emps\" where \"empid\" < 300",
+              "m1", "select * from \"emps\" where \"empid\" < 600")
+          .query(q)
+          .withHook(Hook.SUB,
+              new Function<RelNode, Void>() {
+                public Void apply(RelNode input) {
+                  substitutedNames.add(new SubstitutionVisitor().run(input));
+                  return null;
+                }
+              })
+          .enableMaterializations(true)
+          .sameResultWithMaterializationsDisabled();
+      Collections.sort(substitutedNames);
+      assertThat(substitutedNames, is(expectedNames));
     } finally {
       Prepare.THREAD_TRIM.set(false);
     }

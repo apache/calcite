@@ -431,8 +431,33 @@ public class SubstitutionVisitor {
     return fromMutable(node);
   }
 
-  public RelNode go(RelNode replacement_) {
-    MutableRel replacement = toMutable(replacement_);
+  /**
+   * Returns a list of all possible rels that result from substituting the
+   * matched RelNode with the replacement RelNode within the query.
+   *
+   * <p>For example, the substitution result of A join B, while A and B
+   * are both a qualified match for replacement R, is R join B, R join R,
+   * A join R.
+   */
+  public List<RelNode> go(RelNode replacement_) {
+    List<List<Replacement>> matches = go(toMutable(replacement_));
+    if (matches.isEmpty()) {
+      return ImmutableList.of();
+    }
+    List<RelNode> sub = Lists.newArrayList();
+    sub.add(fromMutable(query.input));
+    reverseSubstitute(query, matches, sub, 0, matches.size());
+    return sub;
+  }
+
+  /**
+   * Substitutes the query with replacement whenever possible but meanwhile
+   * keeps track of all the substitutions and their original rel before
+   * replacement, so that in later processing stage, the replacement can be
+   * recovered individually to produce a list of all possible rels with
+   * substitution in different places.
+   */
+  private List<List<Replacement>> go(MutableRel replacement) {
     assert MutableRels.equalType(
         "target", target, "replacement", replacement, true);
     final List<MutableRel> queryDescendants = MutableRels.descendants(query);
@@ -453,10 +478,27 @@ public class SubstitutionVisitor {
     }
     map.clear();
 
+    final List<Replacement> attempted = Lists.newArrayList();
+    List<List<Replacement>> substitutions = Lists.newArrayList();
+
     for (;;) {
       int count = 0;
+      MutableRel queryDescendant = query;
     outer:
-      for (MutableRel queryDescendant : queryDescendants) {
+      while (queryDescendant != null) {
+        for (Replacement r : attempted) {
+          if (queryDescendant == r.after) {
+            // This node has been replaced by previous iterations in the
+            // hope to match its ancestors, so the node itself should not
+            // be matched again.
+            queryDescendant = MutableRels.preOrderTraverseNext(queryDescendant);
+            continue outer;
+          }
+        }
+        final MutableRel next = MutableRels.preOrderTraverseNext(queryDescendant);
+        final MutableRel childOrNext =
+            queryDescendant.getInputs().isEmpty()
+                ? next : queryDescendant.getInputs().get(0);
         for (MutableRel targetDescendant : targetDescendants) {
           for (UnifyRule rule
               : applicableRules(queryDescendant, targetDescendant)) {
@@ -466,6 +508,7 @@ public class SubstitutionVisitor {
               final UnifyResult result = rule.apply(call);
               if (result != null) {
                 ++count;
+                attempted.add(new Replacement(result.call.query, result.result));
                 MutableRel parent = result.call.query.replaceInParent(result.result);
 
                 // Replace previous equivalents with new equivalents, higher up
@@ -477,19 +520,93 @@ public class SubstitutionVisitor {
                     : Pair.of(result.result, result.call.query);
                 equivalents.put(result.result, result.call.query);
                 if (targetDescendant == target) {
-                  MutableRels.replace(query, target, replacement);
-                  return fromMutable(query.input);
+                  // A real substitution happens. We purge the attempted
+                  // replacement list and add them into substitution list.
+                  // Meanwhile we stop matching the descendants and jump
+                  // to the next subtree in pre-order traversal.
+                  if (!target.equals(replacement)) {
+                    Replacement r = MutableRels.replace(
+                        query.input, target, copyMutable(replacement));
+                    assert r != null
+                        : rule + "should have returned a result containing the target.";
+                    attempted.add(r);
+                  }
+                  substitutions.add(ImmutableList.copyOf(attempted));
+                  attempted.clear();
+                  queryDescendant = next;
+                  continue outer;
                 }
+                // We will try walking the query tree all over again to see
+                // if there can be any substitutions after the replacement
+                // attempt.
                 break outer;
               }
             }
           }
         }
+        queryDescendant = childOrNext;
       }
-      if (count == 0) {
-        return null;
+      // Quit the entire loop if:
+      // 1) we have walked the entire query tree with one or more successful
+      //    substitutions, thus count != 0 && attempted.isEmpty();
+      // 2) we have walked the entire query tree but have made no replacement
+      //    attempt, thus count == 0 && attempted.isEmpty();
+      // 3) we had done some replacement attempt in a previous walk, but in
+      //    this one we have not found any potential matches or substitutions,
+      //    thus count == 0 && !attempted.isEmpty().
+      if (count == 0 || attempted.isEmpty()) {
+        break;
       }
     }
+    if (!attempted.isEmpty()) {
+      // We had done some replacement attempt in the previous walk, but that
+      // did not lead to any substitutions in this walk, so we need to recover
+      // the replacement.
+      undoReplacement(attempted);
+    }
+    return substitutions;
+  }
+
+  /**
+   * Represents a replacement action: before => after.
+   */
+  private static class Replacement {
+    final MutableRel before;
+    final MutableRel after;
+
+    Replacement(MutableRel before, MutableRel after) {
+      this.before = before;
+      this.after = after;
+    }
+  }
+
+  private static void undoReplacement(List<Replacement> replacement) {
+    for (int i = replacement.size() - 1; i >= 0; i--) {
+      Replacement r = replacement.get(i);
+      r.after.replaceInParent(r.before);
+    }
+  }
+
+  private static void redoReplacement(List<Replacement> replacement) {
+    for (Replacement r : replacement) {
+      r.before.replaceInParent(r.after);
+    }
+  }
+
+  private static void reverseSubstitute(Holder query,
+      List<List<Replacement>> matches, List<RelNode> sub,
+      int replaceCount, int maxCount) {
+    if (matches.isEmpty()) {
+      return;
+    }
+    final List<List<Replacement>> rem = matches.subList(1, matches.size());
+    reverseSubstitute(query, rem, sub, replaceCount, maxCount);
+    undoReplacement(matches.get(0));
+    if (++replaceCount < maxCount) {
+      sub.add(fromMutable(query.input));
+    }
+    reverseSubstitute(query, rem, sub, replaceCount, maxCount);
+    redoReplacement(matches.get(0));
   }
 
   private static List<RelNode> fromMutables(List<MutableRel> nodes) {
@@ -530,6 +647,50 @@ public class SubstitutionVisitor {
       final MutableJoin join = (MutableJoin) node;
       return LogicalJoin.create(fromMutable(join.getLeft()), fromMutable(join.getRight()),
           join.getCondition(), join.getJoinType(), join.getVariablesStopped());
+    default:
+      throw new AssertionError(node.deep());
+    }
+  }
+
+  private static List<MutableRel> copyMutables(List<MutableRel> nodes) {
+    return Lists.transform(nodes,
+        new Function<MutableRel, MutableRel>() {
+          public MutableRel apply(MutableRel mutableRel) {
+            return copyMutable(mutableRel);
+          }
+        });
+  }
+
+  private static MutableRel copyMutable(MutableRel node) {
+    switch (node.type) {
+    case SCAN:
+      return MutableScan.of((TableScan) ((MutableScan) node).rel);
+    case VALUES:
+      return MutableValues.of((Values) ((MutableValues) node).rel);
+    case PROJECT:
+      final MutableProject project = (MutableProject) node;
+      return MutableProject.of(project.rowType,
+          copyMutable(project.input), project.projects);
+    case FILTER:
+      final MutableFilter filter = (MutableFilter) node;
+      return MutableFilter.of(copyMutable(filter.input), filter.condition);
+    case AGGREGATE:
+      final MutableAggregate aggregate = (MutableAggregate) node;
+      return MutableAggregate.of(copyMutable(aggregate.input),
+          aggregate.indicator, aggregate.groupSet, aggregate.groupSets,
+          aggregate.aggCalls);
+    case SORT:
+      final MutableSort sort = (MutableSort) node;
+      return MutableSort.of(copyMutable(sort.input), sort.collation,
+          sort.offset, sort.fetch);
+    case UNION:
+      final MutableUnion union = (MutableUnion) node;
+      return MutableUnion.of(copyMutables(union.inputs), union.all);
+    case JOIN:
+      final MutableJoin join = (MutableJoin) node;
+      return MutableJoin.of(join.cluster, copyMutable(join.getLeft()),
+          copyMutable(join.getRight()), join.getCondition(), join.getJoinType(),
+          join.getVariablesStopped());
     default:
       throw new AssertionError(node.deep());
     }
@@ -1711,6 +1872,10 @@ public class SubstitutionVisitor {
 
     @Override public void setInput(int ordinalInParent, MutableRel input) {
       inputs.set(ordinalInParent, input);
+      if (input != null) {
+        input.parent = this;
+        input.ordinalInParent = ordinalInParent;
+      }
     }
 
     @Override public List<MutableRel> getInputs() {
@@ -1784,7 +1949,7 @@ public class SubstitutionVisitor {
       }
       if (input != null) {
         input.parent = this;
-        input.ordinalInParent = 0;
+        input.ordinalInParent = ordinalInParent;
       }
     }
 
@@ -1857,6 +2022,20 @@ public class SubstitutionVisitor {
           variablesStopped);
     }
 
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof MutableJoin
+          && joinType == ((MutableJoin) obj).joinType
+          && condition.toString().equals(
+              ((MutableJoin) obj).condition.toString())
+          && left.equals(((MutableJoin) obj).left)
+          && right.equals(((MutableJoin) obj).right);
+    }
+
+    @Override public int hashCode() {
+      return Objects.hashCode(left, right, condition.toString(), joinType);
+    }
+
     @Override public StringBuilder digest(StringBuilder buf) {
       return buf.append("Join(left: ").append(left)
           .append(", right:").append(right)
@@ -1888,6 +2067,20 @@ public class SubstitutionVisitor {
       }
     }
 
+    public static MutableRel preOrderTraverseNext(MutableRel node) {
+      MutableRel parent = node.getParent();
+      int ordinal = node.ordinalInParent + 1;
+      while (parent != null) {
+        if (parent.getInputs().size() > ordinal) {
+          return parent.getInputs().get(ordinal);
+        }
+        node = parent;
+        parent = node.getParent();
+        ordinal = node.ordinalInParent + 1;
+      }
+      return null;
+    }
+
     private static List<MutableRel> descendants(MutableRel query) {
       final List<MutableRel> list = new ArrayList<>();
       descendantsRecurse(list, query);
@@ -1914,28 +2107,30 @@ public class SubstitutionVisitor {
      *
      * <p>Assumes relational expressions (and their descendants) are not null.
      * Does not handle cycles. */
-    public static void replace(MutableRel query, MutableRel find,
+    public static Replacement replace(MutableRel query, MutableRel find,
         MutableRel replace) {
       if (find.equals(replace)) {
         // Short-cut common case.
-        return;
+        return null;
       }
       assert equalType("find", find, "replace", replace, true);
-      replaceRecurse(query, find, replace);
+      return replaceRecurse(query, find, replace);
     }
 
     /** Helper for {@link #replace}. */
-    private static void replaceRecurse(MutableRel query, MutableRel find,
-        MutableRel replace) {
-      final List<MutableRel> inputs = query.getInputs();
-      for (int i = 0; i < inputs.size(); i++) {
-        MutableRel input = inputs.get(i);
-        if (input.equals(find)) {
-          query.setInput(i, replace);
-        } else {
-          replaceRecurse(input, find, replace);
+    private static Replacement replaceRecurse(MutableRel query,
+        MutableRel find, MutableRel replace) {
+      if (find.equals(query)) {
+        query.replaceInParent(replace);
+        return new Replacement(query, replace);
+      }
+      for (MutableRel input : query.getInputs()) {
+        Replacement r = replaceRecurse(input, find, replace);
+        if (r != null) {
+          return r;
         }
       }
+      return null;
     }
 
     /** Based on

@@ -40,7 +40,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
     super(target_, query_, EXTENDED_RULES);
   }
 
-  public RelNode go(RelNode replacement_) {
+  public List<RelNode> go(RelNode replacement_) {
     return super.go(replacement_);
   }
 

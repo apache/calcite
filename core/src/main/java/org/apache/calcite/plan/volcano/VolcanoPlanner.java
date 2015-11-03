@@ -360,7 +360,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     registerImpl(rel, root.set);
   }
 
-  private RelNode useMaterialization(RelNode root,
+  private List<RelNode> useMaterialization(RelNode root,
       RelOptMaterialization materialization, boolean firstRun) {
     // Try to rewrite the original root query in terms of the materialized
     // query. If that is possible, register the remnant query as equivalent
@@ -369,10 +369,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // This call modifies originalRoot. Doesn't look like originalRoot should be mutable though.
     // Need to check.
-    RelNode sub = substitute(root, materialization);
-    if (sub != null) {
-      Hook.SUB.run(sub);
-      registerImpl(sub, this.root.set);
+    List<RelNode> sub = substitute(root, materialization);
+    if (!sub.isEmpty()) {
+      for (RelNode rel : sub) {
+        Hook.SUB.run(rel);
+        registerImpl(rel, this.root.set);
+      }
       return sub;
     }
 
@@ -385,10 +387,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               true);
       registerImpl(tableRel2, subset.set);
     }
-    return null;
+    return ImmutableList.of();
   }
 
-  private RelNode substitute(
+  private List<RelNode> substitute(
       RelNode root, RelOptMaterialization materialization) {
     // First, if the materialization is in terms of a star table, rewrite
     // the query in terms of the star table.
@@ -423,25 +425,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   // Useful for big queries, e.g.
   //   (t1 group by c1) join (t2 group by c2).
   private void useMaterializations(RelNode root,
-      List<RelOptMaterialization> materializations, boolean firstRun) {
+      List<RelOptMaterialization> materializations) {
+    List<RelNode> applied = Lists.newArrayList(root);
     for (RelOptMaterialization m : materializations) {
-      RelNode sub = useMaterialization(root, m, firstRun);
-      if (sub != null) {
-        useMaterializations(sub, materializations, false);
-      } else {
-        // Based on the assumption that a substitution itself won't trigger another
-        // substitution, if a materialization is not matched here it won't be useful
-        // in any subsequent matching for the current level of recursion or this level
-        // down. So we can safely remove the unmatched materialization from the remnant
-        // list for the current root.
-        List<RelOptMaterialization> newList =
-            Lists.newArrayListWithExpectedSize(materializations.size() - 1);
-        for (RelOptMaterialization elem : materializations) {
-          if (elem != m) {
-            newList.add(elem);
-          }
-        }
-        materializations = newList;
+      int count = applied.size();
+      for (int i = 0; i < count; i++) {
+        List<RelNode> sub = useMaterialization(applied.get(i), m, i == 0);
+        applied.addAll(sub);
       }
     }
   }
@@ -495,7 +485,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
       }
     }
-    useMaterializations(originalRoot, applicableMaterializations, true);
+    useMaterializations(originalRoot, applicableMaterializations);
 
     // Use a lattice if the query uses at least the central (fact) table of the
     // lattice.
