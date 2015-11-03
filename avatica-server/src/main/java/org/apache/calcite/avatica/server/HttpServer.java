@@ -37,6 +37,10 @@ public class HttpServer {
   private int port = -1;
   private final Handler handler;
 
+  public HttpServer(Handler handler) {
+    this(0, handler);
+  }
+
   public HttpServer(int port, Handler handler) {
     this.port = port;
     this.handler = handler;
@@ -52,10 +56,8 @@ public class HttpServer {
     server = new Server(threadPool);
     server.manage(threadPool);
 
-    final ServerConnector connector = new ServerConnector(server);
-    connector.setIdleTimeout(60 * 1000);
-    connector.setSoLingerTime(-1);
-    connector.setPort(port);
+    final ServerConnector connector = configureConnector(new ServerConnector(server), port);
+
     server.setConnectors(new Connector[] { connector });
 
     final HandlerList handlerList = new HandlerList();
@@ -69,6 +71,19 @@ public class HttpServer {
     port = connector.getLocalPort();
 
     LOG.info("Service listening on port " + getPort() + ".");
+  }
+
+  /**
+   * Configure server connector if needed.
+   *
+   * @param connector connector to be configured
+   * @param port port number handed over in constructor
+   */
+  protected ServerConnector configureConnector(ServerConnector connector, int port) {
+    connector.setIdleTimeout(60 * 1000);
+    connector.setSoLingerTime(-1);
+    connector.setPort(port);
+    return connector;
   }
 
   public void stop() {

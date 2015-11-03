@@ -39,6 +39,22 @@ objects to/from JSON.
 
 Avatica-Server is a Java implementation of Avatica RPC.
 It embeds the Jetty HTTP server.
+Connector in HTTP server can be configured if needed by extending
+org.apache.calcite.avatica.server.HttpServer class and overriding configureConnector() method.
+For example, user can set "requestHeaderSize" by,
+
+{% highlight java %}
+HttpServer server = new HttpServer(handler) {
+  @Override
+  protected ServerConnector configureConnector(ServerConnector connector, int port) {
+    HttpConnectionFactory factory =
+        (HttpConnectionFactory)connector.getDefaultConnectionFactory();
+    factory.getHttpConfiguration().setRequestHeaderSize(64 << 10);
+    return super.configureConnector(connector, port);
+  }
+};
+server.start();
+{% endhighlight %}
 
 Core concepts:
 
