@@ -124,7 +124,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       relBuilder.push(input);
       if (!alreadyUnique) {
         ++transformCount;
-        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet(), null),
+        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet(), false, null),
             aggRel.getAggCallList());
       }
     }
@@ -139,7 +139,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     // create a new union whose children are the aggregates created above
     relBuilder.union(true, union.getInputs().size());
     relBuilder.aggregate(
-        relBuilder.groupKey(aggRel.getGroupSet(), aggRel.getGroupSets()),
+        relBuilder.groupKey(aggRel.getGroupSet(), aggRel.indicator, aggRel.getGroupSets()),
         transformedAggCalls);
     call.transformTo(relBuilder.build());
   }

@@ -104,7 +104,7 @@ public class AggregateUnionAggregateRule extends RelOptRule {
     }
 
     relBuilder.union(true);
-    relBuilder.aggregate(relBuilder.groupKey(topAggRel.getGroupSet(), null),
+    relBuilder.aggregate(relBuilder.groupKey(topAggRel.getGroupSet(), false, null),
         topAggRel.getAggCallList());
     call.transformTo(relBuilder.build());
   }

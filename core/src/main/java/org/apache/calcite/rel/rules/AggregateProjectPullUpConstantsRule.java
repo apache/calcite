@@ -136,7 +136,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
                 groupCount, newGroupCount));
       }
       relBuilder.aggregate(
-          relBuilder.groupKey(ImmutableBitSet.range(newGroupCount), null),
+          relBuilder.groupKey(ImmutableBitSet.range(newGroupCount), false, null),
           newAggCalls);
     } else {
       // Create the mapping from old field positions to new field
@@ -180,7 +180,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
 
       // Aggregate on projection.
       relBuilder.aggregate(
-          relBuilder.groupKey(ImmutableBitSet.range(newGroupCount), null),
+          relBuilder.groupKey(ImmutableBitSet.range(newGroupCount), false, null),
               newAggCalls);
     }
 

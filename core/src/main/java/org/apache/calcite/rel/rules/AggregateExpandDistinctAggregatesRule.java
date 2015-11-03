@@ -188,7 +188,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     int n = 0;
     if (!newAggCallList.isEmpty()) {
       final RelBuilder.GroupKey groupKey =
-          relBuilder.groupKey(groupSet, aggregate.getGroupSets());
+          relBuilder.groupKey(groupSet, aggregate.indicator, aggregate.getGroupSets());
       relBuilder.aggregate(groupKey, newAggCallList);
       ++n;
     }
@@ -228,7 +228,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(aggregate.getInput());
-    relBuilder.aggregate(relBuilder.groupKey(fullGroupSet, groupSets),
+    relBuilder.aggregate(relBuilder.groupKey(fullGroupSet, groupSets.size() > 1, groupSets),
         distinctAggCalls);
     final RelNode distinct = relBuilder.peek();
     final int groupCount = fullGroupSet.cardinality();
@@ -332,6 +332,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     relBuilder.aggregate(
         relBuilder.groupKey(
             remap(fullGroupSet, aggregate.getGroupSet()),
+            aggregate.indicator,
             remap(fullGroupSet, aggregate.getGroupSets())),
         newCalls);
     relBuilder.convert(aggregate.getRowType(), true);

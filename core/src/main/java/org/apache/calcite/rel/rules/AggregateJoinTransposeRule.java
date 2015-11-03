@@ -247,7 +247,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
           }
         }
         side.newInput = relBuilder.push(joinInput)
-            .aggregate(relBuilder.groupKey(belowAggregateKey, null),
+            .aggregate(relBuilder.groupKey(belowAggregateKey, false, null),
                 belowAggCalls)
             .build();
       }
@@ -331,7 +331,8 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       }
       relBuilder.aggregate(
           relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
-              Mappings.apply2(mapping, aggregate.getGroupSets())), newAggCalls);
+              aggregate.indicator, Mappings.apply2(mapping, aggregate.getGroupSets())),
+          newAggCalls);
     }
     call.transformTo(relBuilder.build());
   }

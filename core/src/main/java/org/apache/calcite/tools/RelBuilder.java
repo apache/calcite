@@ -540,18 +540,18 @@ public class RelBuilder {
 
   /** Creates a group key. */
   public GroupKey groupKey(Iterable<? extends RexNode> nodes) {
-    return new GroupKeyImpl(ImmutableList.copyOf(nodes), null, null);
+    return new GroupKeyImpl(ImmutableList.copyOf(nodes), false, null, null);
   }
 
   /** Creates a group key with grouping sets. */
-  public GroupKey groupKey(Iterable<? extends RexNode> nodes,
+  public GroupKey groupKey(Iterable<? extends RexNode> nodes, boolean indicator,
       Iterable<? extends Iterable<? extends RexNode>> nodeLists) {
     final ImmutableList.Builder<ImmutableList<RexNode>> builder =
         ImmutableList.builder();
     for (Iterable<? extends RexNode> nodeList : nodeLists) {
       builder.add(ImmutableList.copyOf(nodeList));
     }
-    return new GroupKeyImpl(ImmutableList.copyOf(nodes), builder.build(), null);
+    return new GroupKeyImpl(ImmutableList.copyOf(nodes), indicator, builder.build(), null);
   }
 
   /** Creates a group key of fields identified by ordinal. */
@@ -570,7 +570,7 @@ public class RelBuilder {
    * <p>This method of creating a group key does not allow you to group on new
    * expressions, only column projections, but is efficient, especially when you
    * are coming from an existing {@link Aggregate}. */
-  public GroupKey groupKey(ImmutableBitSet groupSet,
+  public GroupKey groupKey(ImmutableBitSet groupSet, boolean indicator,
       ImmutableList<ImmutableBitSet> groupSets) {
     if (groupSet.length() > peek().getRowType().getFieldCount()) {
       throw new IllegalArgumentException("out of bounds: " + groupSet);
@@ -587,7 +587,7 @@ public class RelBuilder {
                 return fields(ImmutableIntList.of(input.toArray()));
               }
             });
-    return groupKey(nodes, nodeLists);
+    return groupKey(nodes, indicator, nodeLists);
   }
 
   /** Creates a call to an aggregate function. */
@@ -852,7 +852,7 @@ public class RelBuilder {
       assert groupSet.contains(set);
     }
     RelNode aggregate = aggregateFactory.createAggregate(r,
-        groupSets.size() > 1, groupSet, groupSets, aggregateCalls);
+        groupKey_.indicator, groupSet, groupSets, aggregateCalls);
     push(aggregate);
     return this;
   }
@@ -1366,12 +1366,14 @@ public class RelBuilder {
   /** Implementation of {@link RelBuilder.GroupKey}. */
   protected static class GroupKeyImpl implements GroupKey {
     final ImmutableList<RexNode> nodes;
+    final boolean indicator;
     final ImmutableList<ImmutableList<RexNode>> nodeLists;
     final String alias;
 
-    GroupKeyImpl(ImmutableList<RexNode> nodes,
+    GroupKeyImpl(ImmutableList<RexNode> nodes, boolean indicator,
         ImmutableList<ImmutableList<RexNode>> nodeLists, String alias) {
       this.nodes = Preconditions.checkNotNull(nodes);
+      this.indicator = indicator;
       this.nodeLists = nodeLists;
       this.alias = alias;
     }
@@ -1383,7 +1385,7 @@ public class RelBuilder {
     public GroupKey alias(String alias) {
       return Objects.equals(this.alias, alias)
           ? this
-          : new GroupKeyImpl(nodes, nodeLists, alias);
+          : new GroupKeyImpl(nodes, indicator, nodeLists, alias);
     }
   }
 

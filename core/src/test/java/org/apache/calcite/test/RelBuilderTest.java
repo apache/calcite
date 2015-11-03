@@ -412,7 +412,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(
-                builder.groupKey(ImmutableBitSet.of(7),
+                builder.groupKey(ImmutableBitSet.of(7), true,
                     ImmutableList.of(ImmutableBitSet.of(7),
                         ImmutableBitSet.of())),
                 builder.aggregateCall(SqlStdOperatorTable.COUNT, false,
@@ -431,7 +431,7 @@ public class RelBuilderTest {
     try {
       RelNode root =
           builder.scan("EMP")
-              .aggregate(builder.groupKey(ImmutableBitSet.of(17), null))
+              .aggregate(builder.groupKey(ImmutableBitSet.of(17), false, null))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -445,7 +445,7 @@ public class RelBuilderTest {
       RelNode root =
           builder.scan("EMP")
               .aggregate(
-                  builder.groupKey(ImmutableBitSet.of(7),
+                  builder.groupKey(ImmutableBitSet.of(7), true,
                       ImmutableList.of(ImmutableBitSet.of(4),
                           ImmutableBitSet.of())))
               .build();
@@ -461,7 +461,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(
-                builder.groupKey(ImmutableBitSet.of(7, 6),
+                builder.groupKey(ImmutableBitSet.of(7, 6), true,
                     ImmutableList.of(ImmutableBitSet.of(7),
                         ImmutableBitSet.of(6),
                         ImmutableBitSet.of(7))))
