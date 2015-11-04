@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
@@ -53,6 +55,73 @@ public class AvaticaSqlException extends SQLException {
    */
   public List<String> getStackTraces() {
     return stackTraces;
+  }
+
+  // printStackTrace() will get redirected to printStackTrace(PrintStream), don't need to override.
+
+  @Override public void printStackTrace(PrintStream stream) {
+    super.printStackTrace(stream);
+    stream.flush();
+    printServerStackTrace(new PrintStreamOrWriter(stream));
+  }
+
+  @Override public void printStackTrace(PrintWriter writer) {
+    super.printStackTrace(writer);
+    writer.flush();
+    printServerStackTrace(new PrintStreamOrWriter(writer));
+  }
+
+  void printServerStackTrace(PrintStreamOrWriter streamOrWriter) {
+    for (String serverStackTrace : this.stackTraces) {
+      streamOrWriter.println(serverStackTrace);
+    }
+  }
+
+  /**
+   * A class that encapsulates either a PrintStream or a PrintWriter.
+   */
+  private static class PrintStreamOrWriter {
+    /**
+     * Enumeration to differentiate between a PrintStream and a PrintWriter.
+     */
+    private enum Type {
+      STREAM,
+      WRITER
+    }
+
+    private PrintStream stream;
+    private PrintWriter writer;
+    private final Type type;
+
+    public PrintStreamOrWriter(PrintStream stream) {
+      this.stream = stream;
+      type = Type.STREAM;
+    }
+
+    public PrintStreamOrWriter(PrintWriter writer) {
+      this.writer = writer;
+      type = Type.WRITER;
+    }
+
+    /**
+     * Prints the given string to the the provided stream or writer.
+     *
+     * @param string The string to print
+     */
+    public void println(String string) {
+      switch (type) {
+      case STREAM:
+        stream.println(string);
+        stream.flush();
+        return;
+      case WRITER:
+        writer.println(string);
+        writer.flush();
+        return;
+      default:
+        throw new IllegalStateException();
+      }
+    }
   }
 }
 

@@ -34,6 +34,7 @@ import org.apache.calcite.avatica.util.ArrayImpl;
 import com.google.common.cache.Cache;
 
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -41,6 +42,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -59,6 +62,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -445,6 +449,27 @@ public class RemoteMetaTest {
         assertEquals(new String(data, StandardCharsets.UTF_8), results.getString(2));
         assertFalse(results.next());
       }
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testLocalStackTraceHasServerStackTrace() {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      Statement statement = DriverManager.getConnection(url).createStatement();
+      statement.executeQuery("SELECT * FROM BOGUS_TABLE_DEF_DOESNT_EXIST");
+    } catch (SQLException e) {
+      // Verify that we got the expected exception
+      assertThat(e, instanceOf(AvaticaSqlException.class));
+
+      // Print the stack
+      StringWriter sw = new StringWriter();
+      PrintWriter writer = new PrintWriter(sw);
+      e.printStackTrace(writer);
+
+      // Attempt to verify that we got a "server-side" class in the stack.
+      assertThat(sw.toString(), CoreMatchers.containsString(JdbcMeta.class.getName()));
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
