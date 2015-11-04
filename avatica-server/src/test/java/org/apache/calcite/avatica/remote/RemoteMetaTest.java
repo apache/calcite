@@ -31,9 +31,11 @@ import org.apache.calcite.avatica.server.Main;
 import org.apache.calcite.avatica.server.Main.HandlerFactory;
 import org.apache.calcite.avatica.util.ArrayImpl;
 
+import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 
 import org.eclipse.jetty.server.handler.AbstractHandler;
+
 import org.junit.AfterClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -59,6 +61,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -76,33 +79,14 @@ public class RemoteMetaTest {
   // Keep a reference to the servers we start to clean them up after
   private static final List<HttpServer> ACTIVE_SERVERS = new ArrayList<>();
 
-  /** Factory that provides a {@link JdbcMeta}. */
-  public static class FullyRemoteJdbcMetaFactory implements Meta.Factory {
-
-    private static JdbcMeta instance = null;
-
-    private static JdbcMeta getInstance() {
-      if (instance == null) {
-        try {
-          instance = new JdbcMeta(CONNECTION_SPEC.url, CONNECTION_SPEC.username,
-              CONNECTION_SPEC.password);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      return instance;
-    }
-
-    @Override public Meta create(List<String> args) {
-      return getInstance();
-    }
-  }
+  private final HttpServer server;
+  private final String url;
 
   @Parameters
   public static List<Object[]> parameters() throws Exception {
     List<Object[]> params = new ArrayList<>();
 
-    final String[] mainArgs = new String[] { FullyRemoteJdbcMetaFactory.class.getName() };
+    final String[] mainArgs = { FullyRemoteJdbcMetaFactory.class.getName() };
 
     // Bind to '0' to pluck an ephemeral port instead of expecting a certain one to be free
 
@@ -125,9 +109,6 @@ public class RemoteMetaTest {
 
     return params;
   }
-
-  private final HttpServer server;
-  private final String url;
 
   public RemoteMetaTest(HttpServer server, Driver.Serialization serialization) {
     this.server = server;
@@ -447,6 +428,45 @@ public class RemoteMetaTest {
       }
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testLocalStackTraceHasServerStackTrace() {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      Statement statement = DriverManager.getConnection(url).createStatement();
+      statement.executeQuery("SELECT * FROM BOGUS_TABLE_DEF_DOESNT_EXIST");
+    } catch (SQLException e) {
+      // Verify that we got the expected exception
+      assertThat(e, instanceOf(AvaticaSqlException.class));
+
+      // Attempt to verify that we got a "server-side" class in the stack.
+      assertThat(Throwables.getStackTraceAsString(e),
+          containsString(JdbcMeta.class.getName()));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  /** Factory that provides a {@link JdbcMeta}. */
+  public static class FullyRemoteJdbcMetaFactory implements Meta.Factory {
+
+    private static JdbcMeta instance = null;
+
+    private static JdbcMeta getInstance() {
+      if (instance == null) {
+        try {
+          instance = new JdbcMeta(CONNECTION_SPEC.url, CONNECTION_SPEC.username,
+              CONNECTION_SPEC.password);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return instance;
+    }
+
+    @Override public Meta create(List<String> args) {
+      return getInstance();
     }
   }
 }
