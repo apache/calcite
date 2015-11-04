@@ -73,6 +73,7 @@ import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.Graphs;
+import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
@@ -452,17 +453,18 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // and therefore we can deduce T2 uses Emps.
     DirectedGraph<List<String>, DefaultEdge> usesGraph =
         DefaultDirectedGraph.create();
+    final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
     for (RelOptMaterialization materialization : materializations) {
-      if (materialization.table != null) {
+      // If materialization is a tile in a lattice, we will deal with it shortly.
+      if (materialization.table != null
+          && materialization.starTable == null) {
+        final List<String> qname = materialization.table.getQualifiedName();
+        qnameMap.put(qname, materialization);
         for (RelOptTable usedTable
             : findTables(materialization.queryRel)) {
-          usesGraph.addVertex(
-              materialization.table.getQualifiedName());
-          usesGraph.addVertex(
-              usedTable.getQualifiedName());
-          usesGraph.addEdge(
-              materialization.table.getQualifiedName(),
-              usedTable.getQualifiedName());
+          usesGraph.addVertex(qname);
+          usesGraph.addVertex(usedTable.getQualifiedName());
+          usesGraph.addEdge(usedTable.getQualifiedName(), qname);
         }
       }
     }
@@ -474,15 +476,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         Graphs.makeImmutable(usesGraph);
     final Set<RelOptTable> queryTables = findTables(originalRoot);
     final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
-    for (RelOptMaterialization materialization : materializations) {
-      if (materialization.starTable != null) {
-        // Materialization is a tile in a lattice. We will deal with it shortly.
-        continue;
-      }
-      if (materialization.table != null) {
-        if (usesTable(materialization.table, queryTables, frozenGraph)) {
-          applicableMaterializations.add(materialization);
-        }
+    for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
+      RelOptMaterialization materialization = qnameMap.get(qname);
+      if (materialization != null
+          && usesTable(materialization.table, queryTables, frozenGraph)) {
+        applicableMaterializations.add(materialization);
       }
     }
     useMaterializations(originalRoot, applicableMaterializations);
@@ -525,8 +523,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
     for (RelOptTable queryTable : usedTables) {
       if (usesGraph.getShortestPath(
-          table.getQualifiedName(),
-          queryTable.getQualifiedName()) != null) {
+          queryTable.getQualifiedName(),
+          table.getQualifiedName()) != null) {
         return true;
       }
     }

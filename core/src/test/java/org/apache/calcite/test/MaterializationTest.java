@@ -34,14 +34,13 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.JsonBuilder;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -49,6 +48,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +73,14 @@ public class MaterializationTest {
   private static final Function<ResultSet, Void> CONTAINS_LOCATIONS =
       CalciteAssert.checkResultContains(
           "EnumerableTableScan(table=[[hr, locations]])");
+
+  private static final Ordering<Iterable<String>>
+  CASE_INSENSITIVE_LIST_COMPARATOR =
+      Ordering.from(String.CASE_INSENSITIVE_ORDER).lexicographical();
+
+  private static final Ordering<Iterable<List<String>>>
+  CASE_INSENSITIVE_LIST_LIST_COMPARATOR =
+      CASE_INSENSITIVE_LIST_COMPARATOR.lexicographical();
 
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -899,48 +907,20 @@ public class MaterializationTest {
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
 
-    final List<Pair<String, String>> expectedNames = Lists.newArrayList();
-    expectedNames.add(Pair.of("emps", "m0"));
-    expectedNames.add(Pair.of("emps", "m1"));
-    expectedNames.add(Pair.of("m0", "emps"));
-    expectedNames.add(Pair.of("m0", "m0"));
-    expectedNames.add(Pair.of("m0", "m1"));
-    expectedNames.add(Pair.of("m1", "emps"));
-    expectedNames.add(Pair.of("m1", "m0"));
-    expectedNames.add(Pair.of("m1", "m1"));
-
-    /**
-     * Implementation of RelVisitor to extract substituted table names.
-     */
-    class SubstitutionVisitor extends RelVisitor {
-      private String first;
-      private String second;
-
-      Pair<String, String> run(RelNode input) {
-        go(input);
-        return Pair.of(first, second);
-      }
-
-      @Override public void visit(
-          RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof TableScan) {
-          RelOptTable table = node.getTable();
-          List<String> qName = table.getQualifiedName();
-          String name = qName.get(qName.size() - 1);
-          if (first == null) {
-            first = name;
-          } else {
-            second = name;
-          }
-        }
-        super.visit(node, ordinal, parent);
-      }
-    }
+    final String[][][] expectedNames = {
+      {{"hr", "emps"}, {"hr", "m0"}},
+      {{"hr", "emps"}, {"hr", "m1"}},
+      {{"hr", "m0"}, {"hr", "emps"}},
+      {{"hr", "m0"}, {"hr", "m0"}},
+      {{"hr", "m0"}, {"hr", "m1"}},
+      {{"hr", "m1"}, {"hr", "emps"}},
+      {{"hr", "m1"}, {"hr", "m0"}},
+      {{"hr", "m1"}, {"hr", "m1"}}};
 
     try {
       Prepare.THREAD_TRIM.set(true);
       MaterializationService.setThreadLocal();
-      final List<Pair<String, String>> substitutedNames = Lists.newArrayList();
+      final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()
           .withMaterializations(JdbcTest.HR_MODEL,
               "m0", "select * from \"emps\" where \"empid\" < 300",
@@ -949,16 +929,102 @@ public class MaterializationTest {
           .withHook(Hook.SUB,
               new Function<RelNode, Void>() {
                 public Void apply(RelNode input) {
-                  substitutedNames.add(new SubstitutionVisitor().run(input));
+                  substitutedNames.add(new TableNameVisitor().run(input));
                   return null;
                 }
               })
           .enableMaterializations(true)
           .sameResultWithMaterializationsDisabled();
-      Collections.sort(substitutedNames);
-      assertThat(substitutedNames, is(expectedNames));
+      Collections.sort(substitutedNames, CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
+      assertThat(substitutedNames, is(list3(expectedNames)));
     } finally {
       Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
+  @Test public void testMaterializationSubstitution2() {
+    String q = "select *\n"
+        + "from (select * from \"emps\" where \"empid\" < 300)\n"
+        + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
+
+    final String[][][] expectedNames = {
+      {{"hr", "emps"}, {"hr", "m0"}},
+      {{"hr", "emps"}, {"hr", "m1"}},
+      {{"hr", "emps"}, {"hr", "m2"}},
+      {{"hr", "m0"}, {"hr", "emps"}},
+      {{"hr", "m0"}, {"hr", "m0"}},
+      {{"hr", "m0"}, {"hr", "m1"}},
+      {{"hr", "m0"}, {"hr", "m2"}},
+      {{"hr", "m1"}, {"hr", "emps"}},
+      {{"hr", "m1"}, {"hr", "m0"}},
+      {{"hr", "m1"}, {"hr", "m1"}},
+      {{"hr", "m1"}, {"hr", "m2"}},
+      {{"hr", "m2"}, {"hr", "emps"}},
+      {{"hr", "m2"}, {"hr", "m0"}},
+      {{"hr", "m2"}, {"hr", "m1"}},
+      {{"hr", "m2"}, {"hr", "m2"}}};
+
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      final List<List<List<String>>> substitutedNames = new ArrayList<>();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", "select * from \"emps\" where \"empid\" < 300",
+              "m1", "select * from \"emps\" where \"empid\" < 600",
+              "m2", "select * from \"m1\"")
+          .query(q)
+          .withHook(Hook.SUB,
+              new Function<RelNode, Void>() {
+                public Void apply(RelNode input) {
+                  substitutedNames.add(new TableNameVisitor().run(input));
+                  return null;
+                }
+              })
+          .enableMaterializations(true)
+          .sameResultWithMaterializationsDisabled();
+      Collections.sort(substitutedNames, CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
+      assertThat(substitutedNames, is(list3(expectedNames)));
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
+  private static <E> List<List<List<E>>> list3(E[][][] as) {
+    final ImmutableList.Builder<List<List<E>>> builder =
+        ImmutableList.builder();
+    for (E[][] a : as) {
+      builder.add(list2(a));
+    }
+    return builder.build();
+  }
+
+  private static <E> List<List<E>> list2(E[][] as) {
+    final ImmutableList.Builder<List<E>> builder = ImmutableList.builder();
+    for (E[] a : as) {
+      builder.add(ImmutableList.copyOf(a));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Implementation of RelVisitor to extract substituted table names.
+   */
+  private static class TableNameVisitor extends RelVisitor {
+    private List<List<String>> names = new ArrayList<>();
+
+    List<List<String>> run(RelNode input) {
+      go(input);
+      return names;
+    }
+
+    @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+      if (node instanceof TableScan) {
+        RelOptTable table = node.getTable();
+        List<String> qName = table.getQualifiedName();
+        names.add(qName);
+      }
+      super.visit(node, ordinal, parent);
     }
   }
 }
