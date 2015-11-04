@@ -727,6 +727,44 @@ public abstract class ReturnTypes {
               true);
         }
       };
+
+  /**
+   * Type-inference strategy for SUM aggregate function inferred from the
+   * operand type, and nullable if the call occurs within a "GROUP BY ()"
+   * query. E.g. in "select sum(x) as s from empty", s may be null. Also,
+   * with the default implementation of RelDataTypeSystem, s has the same
+   * type name as x.
+   */
+  public static final SqlReturnTypeInference AGG_SUM =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType type = typeFactory.getTypeSystem()
+              .deriveSumType(typeFactory, opBinding.getOperandType(0));
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+            return typeFactory.createTypeWithNullability(type, true);
+          } else {
+            return type;
+          }
+        }
+      };
+
+  /**
+   * Type-inference strategy for $SUM0 aggregate function inferred from the
+   * operand type. By default the inferred type is identical to the operand
+   * type. E.g. in "select $sum0(x) as s from empty", s has the same type as
+   * x.
+   */
+  public static final SqlReturnTypeInference AGG_SUM_EMPTY_IS_ZERO =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.getTypeSystem()
+              .deriveSumType(typeFactory, opBinding.getOperandType(0));
+        }
+      };
 }
 
 // End ReturnTypes.java

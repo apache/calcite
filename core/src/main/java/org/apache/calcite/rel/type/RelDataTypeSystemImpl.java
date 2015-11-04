@@ -161,6 +161,11 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     }
     return 0;
   }
+
+  public RelDataType deriveSumType(
+      RelDataTypeFactory typeFactory, RelDataType argumentType) {
+    return argumentType;
+  }
 }
 
 // End RelDataTypeSystemImpl.java
