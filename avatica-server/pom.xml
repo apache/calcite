@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.5.0-incubating-SNAPSHOT</version>
+    <version>1.5.0</version>
   </parent>
 
   <artifactId>calcite-avatica-server</artifactId>
   <packaging>jar</packaging>
-  <version>1.5.0-incubating-SNAPSHOT</version>
+  <version>1.5.0</version>
   <name>Calcite Avatica Server</name>
   <description>JDBC server.</description>
 
