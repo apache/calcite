@@ -183,6 +183,9 @@ public class JdbcTest {
       Types.lookupMethod(MazeTable.class, "generate2", int.class, int.class,
           Integer.class);
 
+  public static final Method MAZE3_METHOD =
+      Types.lookupMethod(MazeTable.class, "generate3", String.class);
+
   public static final Method MULTIPLICATION_TABLE_METHOD =
       Types.lookupMethod(JdbcTest.class, "multiplicationTable", int.class,
         int.class, Integer.class);
@@ -496,6 +499,36 @@ public class JdbcTest {
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableFunction table = TableFunctionImpl.create(MAZE2_METHOD);
     schema.add("Maze", table);
+    final String sql = "select *\n"
+        + "from table(\"s\".\"Maze\"(5, 3, 1))";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    final String result = "S=abcde\n"
+        + "S=xyz\n";
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+
+    final String sql2 = "select *\n"
+        + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
+    resultSet = connection.createStatement().executeQuery(sql2);
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+
+    final String sql3 = "select *\n"
+        + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
+    resultSet = connection.createStatement().executeQuery(sql3);
+    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+  }
+
+  /** As {@link #testScannableTableFunction()} but with named parameters. */
+  @Test public void testMultipleScannableTableFunctionWithNamedParameters()
+      throws SQLException, ClassNotFoundException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction table2 = TableFunctionImpl.create(MAZE2_METHOD);
+    schema.add("Maze", table2);
+    final TableFunction table3 = TableFunctionImpl.create(MAZE3_METHOD);
+    schema.add("Maze", table3);
     final String sql = "select *\n"
         + "from table(\"s\".\"Maze\"(5, 3, 1))";
     ResultSet resultSet = connection.createStatement().executeQuery(sql);
@@ -7368,6 +7401,11 @@ public class JdbcTest {
         @Parameter(name = "WIDTH") int width,
         @Parameter(name = "HEIGHT") int height,
         @Parameter(name = "SEED", optional = true) Integer seed) {
+      return new MazeTable();
+    }
+
+    public static ScannableTable generate3(
+        @Parameter(name = "FOO") String foo) {
       return new MazeTable();
     }
 
