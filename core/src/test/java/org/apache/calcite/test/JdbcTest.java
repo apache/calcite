@@ -5526,23 +5526,23 @@ public class JdbcTest {
         .returns("EXPR$0=hel\n");
     // duplicate argument names
     with.query("values (\"adhoc\".my_left(\"n\" => 3, \"n\" => 2, \"s\" => 'hello'))")
-        .throws_("Duplicate argument name 'n'\n");
+        .throws_("Duplicate argument name 'n'");
     // invalid argument names
     with.query("values (\"adhoc\".my_left(\"n\" => 3, \"m\" => 2, \"s\" => 'h'))")
         .throws_("No match found for function signature "
-            + "MY_LEFT(n => <NUMERIC>, m => <NUMERIC>, s => <CHARACTER>)\n");
+            + "MY_LEFT(n => <NUMERIC>, m => <NUMERIC>, s => <CHARACTER>)");
     // missing arguments
     with.query("values (\"adhoc\".my_left(\"n\" => 3))")
-        .throws_("No match found for function signature MY_LEFT(n => <NUMERIC>)\n");
+        .throws_("No match found for function signature MY_LEFT(n => <NUMERIC>)");
     with.query("values (\"adhoc\".my_left(\"s\" => 'hello'))")
-        .throws_("No match found for function signature MY_LEFT(s => <CHARACTER>)\n");
+        .throws_("No match found for function signature MY_LEFT(s => <CHARACTER>)");
     // arguments of wrong type
     with.query("values (\"adhoc\".my_left(\"n\" => 'hello', \"s\" => 'x'))")
         .throws_("No match found for function signature "
-            + "MY_LEFT(n => <CHARACTER>, s => <CHARACTER>)\n");
+            + "MY_LEFT(n => <CHARACTER>, s => <CHARACTER>)");
     with.query("values (\"adhoc\".my_left(\"n\" => 1, \"s\" => 0))")
         .throws_("No match found for function signature "
-            + "MY_LEFT(n => <NUMERIC>, s => <NUMERIC>)\n");
+            + "MY_LEFT(n => <NUMERIC>, s => <NUMERIC>)");
   }
 
   /** Tests calling a user-defined function some of whose parameters are
