@@ -185,6 +185,9 @@ public class JdbcTest {
       Types.lookupMethod(MazeTable.class, "generate2", int.class, int.class,
           Integer.class);
 
+  public static final Method MAZE3_METHOD =
+      Types.lookupMethod(MazeTable.class, "generate3", String.class);
+
   public static final Method MULTIPLICATION_TABLE_METHOD =
       Types.lookupMethod(JdbcTest.class, "multiplicationTable", int.class,
         int.class, Integer.class);
@@ -484,8 +487,9 @@ public class JdbcTest {
         + "from table(\"s\".\"Maze\"(5, 3, 1))";
     ResultSet resultSet = connection.createStatement().executeQuery(sql);
     final String result = "S=abcde\n"
-        + "S=xyz\n";
-    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+        + "S=xyz\n"
+        + "S=generate(w=5, h=3, s=1)\n";
+    assertThat(CalciteAssert.toString(resultSet), is(result));
   }
 
   /** As {@link #testScannableTableFunction()} but with named parameters. */
@@ -500,20 +504,68 @@ public class JdbcTest {
     schema.add("Maze", table);
     final String sql = "select *\n"
         + "from table(\"s\".\"Maze\"(5, 3, 1))";
-    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    final Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(sql);
     final String result = "S=abcde\n"
         + "S=xyz\n";
-    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate2(w=5, h=3, s=1)\n"));
 
     final String sql2 = "select *\n"
         + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
-    resultSet = connection.createStatement().executeQuery(sql2);
-    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+    resultSet = statement.executeQuery(sql2);
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate2(w=5, h=3, s=1)\n"));
 
     final String sql3 = "select *\n"
         + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
-    resultSet = connection.createStatement().executeQuery(sql3);
-    assertThat(CalciteAssert.toString(resultSet), equalTo(result));
+    resultSet = statement.executeQuery(sql3);
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate2(w=5, h=3, s=null)\n"));
+    connection.close();
+  }
+
+  /** As {@link #testScannableTableFunction()} but with named parameters. */
+  @Test public void testMultipleScannableTableFunctionWithNamedParameters()
+      throws SQLException, ClassNotFoundException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction table1 = TableFunctionImpl.create(MAZE_METHOD);
+    schema.add("Maze", table1);
+    final TableFunction table2 = TableFunctionImpl.create(MAZE2_METHOD);
+    schema.add("Maze", table2);
+    final TableFunction table3 = TableFunctionImpl.create(MAZE3_METHOD);
+    schema.add("Maze", table3);
+    final String sql = "select *\n"
+        + "from table(\"s\".\"Maze\"(5, 3, 1))";
+    final Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(sql);
+    final String result = "S=abcde\n"
+        + "S=xyz\n";
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate(w=5, h=3, s=1)\n"));
+
+    final String sql2 = "select *\n"
+        + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
+    resultSet = statement.executeQuery(sql2);
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate2(w=5, h=3, s=1)\n"));
+
+    final String sql3 = "select *\n"
+        + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
+    resultSet = statement.executeQuery(sql3);
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate2(w=5, h=3, s=null)\n"));
+
+    final String sql4 = "select *\n"
+        + "from table(\"s\".\"Maze\"(FOO => 'a'))";
+    resultSet = statement.executeQuery(sql4);
+    assertThat(CalciteAssert.toString(resultSet),
+        is(result + "S=generate3(foo=a)\n"));
+    connection.close();
   }
 
   /**
@@ -7460,15 +7512,26 @@ public class JdbcTest {
   public static class MazeTable extends AbstractTable
       implements ScannableTable {
 
+    private final String content;
+
+    public MazeTable(String content) {
+      this.content = content;
+    }
+
     public static ScannableTable generate(int width, int height, int seed) {
-      return new MazeTable();
+      return new MazeTable(String.format("generate(w=%d, h=%d, s=%d)", width, height, seed));
     }
 
     public static ScannableTable generate2(
         @Parameter(name = "WIDTH") int width,
         @Parameter(name = "HEIGHT") int height,
         @Parameter(name = "SEED", optional = true) Integer seed) {
-      return new MazeTable();
+      return new MazeTable(String.format("generate2(w=%d, h=%d, s=%d)", width, height, seed));
+    }
+
+    public static ScannableTable generate3(
+        @Parameter(name = "FOO") String foo) {
+      return new MazeTable(String.format("generate3(foo=%s)", foo));
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -7478,7 +7541,7 @@ public class JdbcTest {
     }
 
     public Enumerable<Object[]> scan(DataContext root) {
-      Object[][] rows = {{"abcde"}, {"xyz"}};
+      Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
       return Linq4j.asEnumerable(rows);
     }
   }
