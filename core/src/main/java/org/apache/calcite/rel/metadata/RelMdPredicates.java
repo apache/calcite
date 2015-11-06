@@ -35,11 +35,13 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -147,6 +149,7 @@ public class RelMdPredicates {
    */
   public RelOptPredicateList getPredicates(Project project) {
     RelNode child = project.getInput();
+    final RexBuilder rexBuilder = project.getCluster().getRexBuilder();
     RelOptPredicateList childInfo =
         RelMetadataQuery.getPulledUpPredicates(child);
 
@@ -173,6 +176,20 @@ public class RelMdPredicates {
       if (columnsMapped.contains(rCols)) {
         r = r.accept(new RexPermuteInputsShuttle(m, child));
         projectPullUpPredicates.add(r);
+      }
+    }
+
+    // Project can also generate constants. We need to include them.
+    for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
+      if (RexLiteral.isNullLiteral(expr.e)) {
+        projectPullUpPredicates.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+                rexBuilder.makeInputRef(project, expr.i)));
+      } else if (expr.e instanceof RexLiteral) {
+        final RexLiteral literal = (RexLiteral) expr.e;
+        projectPullUpPredicates.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                rexBuilder.makeInputRef(project, expr.i), literal));
       }
     }
     return RelOptPredicateList.of(projectPullUpPredicates);

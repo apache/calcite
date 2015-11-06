@@ -1079,6 +1079,31 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
   }
 
+  /**
+   * Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMdPredicates#getPredicates(Aggregate)}.
+   */
+  @Test public void testPullUpPredicatesFromAggregation() {
+    final String sql = "select a, max(b) from (\n"
+        + "  select 1 as a, 2 as b from emp)subq\n"
+        + "group by a";
+    final Aggregate rel = (Aggregate) convertSql(sql);
+    RelOptPredicateList inputSet = RelMetadataQuery.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates.toString(), is("[=($0, 1)]"));
+  }
+
+  @Test public void testPullUpPredicatesFromProject() {
+    final String sql = "select deptno, mgr, x, 'y' as y from (\n"
+        + "  select deptno, mgr, cast(null as integer) as x\n"
+        + "  from emp\n"
+        + "  where mgr is null and deptno < 10)";
+    final RelNode rel = convertSql(sql);
+    RelOptPredicateList list = RelMetadataQuery.getPulledUpPredicates(rel);
+    assertThat(list.pulledUpPredicates.toString(),
+        is("[IS NULL($1), <($0, 10), IS NULL($2), =($3, 'y')]"));
+  }
+
   /** Custom metadata interface. */
   public interface ColType extends Metadata {
     String getColType(int column);
