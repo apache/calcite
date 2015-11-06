@@ -121,7 +121,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   public List<SqlNode> operands() {
-    if (hasAssignment()) {
+    if (hasAssignment() && !(call.getOperator() instanceof SqlUnresolvedFunction)) {
       return permutedOperands(call);
     } else {
       final List<SqlNode> operandList = call.getOperandList();
