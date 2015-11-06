@@ -56,7 +56,7 @@ public abstract class CalciteFactory implements AvaticaFactory {
   /** Creates a connection with a root schema. */
   public abstract AvaticaConnection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      CalciteRootSchema rootSchema, JavaTypeFactory typeFactory);
+      CalciteSchema rootSchema, JavaTypeFactory typeFactory);
 }
 
 // End CalciteFactory.java

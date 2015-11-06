@@ -23,7 +23,6 @@ import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteRootSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -389,7 +388,7 @@ public final class Schemas {
         return typeFactory;
       }
 
-      public CalciteRootSchema getRootSchema() {
+      public CalciteSchema getRootSchema() {
         return schema.root();
       }
 

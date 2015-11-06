@@ -6436,6 +6436,55 @@ public class JdbcTest {
     }
   }
 
+  @Test public void testExplicitImplicitSchemaSameName() throws Exception {
+    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false).plus();
+
+    // create schema "/a"
+    final Map<String, Schema> aSubSchemaMap = new HashMap<>();
+    final SchemaPlus aSchema = rootSchema.add("a", new AbstractSchema() {
+      @Override protected Map<String, Schema> getSubSchemaMap() {
+        return aSubSchemaMap;
+      }
+    });
+
+    // add explicit schema "/a/b".
+    aSchema.add("b", new AbstractSchema());
+
+    // add implicit schema "/a/b"
+    aSubSchemaMap.put("b", new AbstractSchema());
+
+    aSchema.setCacheEnabled(true);
+
+    //explicit should win implicit.
+    assertThat(aSchema.getSubSchemaNames().size(), is(1));
+  }
+
+  @Test public void testSimpleCalciteSchema() throws Exception {
+    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
+
+    // create schema "/a"
+    final Map<String, Schema> aSubSchemaMap = new HashMap<>();
+    final SchemaPlus aSchema = rootSchema.add("a", new AbstractSchema() {
+      @Override protected Map<String, Schema> getSubSchemaMap() {
+        return aSubSchemaMap;
+      }
+    });
+
+    // add explicit schema "/a/b".
+    aSchema.add("b", new AbstractSchema());
+
+    // add implicit schema "/a/c"
+    aSubSchemaMap.put("c", new AbstractSchema());
+
+    assertTrue(aSchema.getSubSchema("c") != null);
+    assertTrue(aSchema.getSubSchema("b") != null);
+
+    // add implicit schema "/a/b"
+    aSubSchemaMap.put("b", new AbstractSchema());
+    //explicit should win implicit.
+    assertThat(aSchema.getSubSchemaNames().size(), is(2));
+  }
+
   @Test public void testSchemaCaching() throws Exception {
     final Connection connection =
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
