@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -142,14 +143,13 @@ public class SqlIntervalQualifier extends SqlNode {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, boolean fail) {
+  public boolean equalsDeep(SqlNode node, Litmus litmus) {
     final String thisString = this.toString();
     final String thatString = node.toString();
     if (!thisString.equals(thatString)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
-    return true;
+    return litmus.succeed();
   }
 
   public int getStartPrecision(RelDataTypeSystem typeSystem) {

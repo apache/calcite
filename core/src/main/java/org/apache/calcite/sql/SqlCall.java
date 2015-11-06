@@ -24,6 +24,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -134,23 +135,21 @@ public abstract class SqlCall extends SqlNode {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, boolean fail) {
+  public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (node == this) {
       return true;
     }
     if (!(node instanceof SqlCall)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     SqlCall that = (SqlCall) node;
 
     // Compare operators by name, not identity, because they may not
     // have been resolved yet.
     if (!this.getOperator().getName().equals(that.getOperator().getName())) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
-    return equalDeep(this.getOperandList(), that.getOperandList(), fail);
+    return equalDeep(this.getOperandList(), that.getOperandList(), litmus);
   }
 
   /**

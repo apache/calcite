@@ -1183,6 +1183,8 @@ public class Util {
    * @param s   string to be padded
    * @param len desired length
    * @return padded string
+   *
+   * @deprecated Use {@link Spaces#padRight(String, int)}
    */
   @Deprecated // to be removed before 2.0
   public static String rpad(String s, int len) {

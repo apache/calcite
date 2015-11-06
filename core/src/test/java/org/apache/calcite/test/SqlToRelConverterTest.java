@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -1457,13 +1458,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
-   * @see RelNode#isValid(boolean)
+   * @see RelNode#isValid(org.apache.calcite.util.Litmus)
    */
   public static class RelValidityChecker extends RelVisitor {
     int invalidCount;
 
     public void visit(RelNode node, int ordinal, RelNode parent) {
-      if (!node.isValid(true)) {
+      if (!node.isValid(Litmus.THROW)) {
         ++invalidCount;
       }
       super.visit(node, ordinal, parent);

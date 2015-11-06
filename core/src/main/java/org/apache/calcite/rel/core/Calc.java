@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
@@ -63,7 +64,7 @@ public abstract class Calc extends SingleRel {
     super(cluster, traits, child);
     this.rowType = program.getOutputRowType();
     this.program = program;
-    assert isValid(true);
+    assert isValid(Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0
@@ -109,22 +110,21 @@ public abstract class Calc extends SingleRel {
     return copy(traitSet, child, program);
   }
 
-  public boolean isValid(boolean fail) {
+  public boolean isValid(Litmus litmus) {
     if (!RelOptUtil.equal(
         "program's input type",
         program.getInputRowType(),
         "child's output type",
-        getInput().getRowType(),
-        fail)) {
-      return false;
+        getInput().getRowType(), litmus)) {
+      return litmus.fail(null);
     }
-    if (!program.isValid(fail)) {
-      return false;
+    if (!program.isValid(litmus)) {
+      return litmus.fail(null);
     }
-    if (!program.isNormalized(fail, getCluster().getRexBuilder())) {
-      return false;
+    if (!program.isNormalized(litmus, getCluster().getRexBuilder())) {
+      return litmus.fail(null);
     }
-    return true;
+    return litmus.succeed();
   }
 
   public RexProgram getProgram() {

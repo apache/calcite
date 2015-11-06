@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -30,14 +29,12 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexChecker;
-import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
@@ -82,7 +79,7 @@ public abstract class Project extends SingleRel {
     assert rowType != null;
     this.exps = ImmutableList.copyOf(projects);
     this.rowType = rowType;
-    assert isValid(true);
+    assert isValid(Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0
@@ -174,31 +171,25 @@ public abstract class Project extends SingleRel {
     return 1;
   }
 
-  public boolean isValid(boolean fail) {
-    if (!super.isValid(fail)) {
-      assert !fail;
-      return false;
+  public boolean isValid(Litmus litmus) {
+    if (!super.isValid(litmus)) {
+      return litmus.fail(null);
     }
-    if (!RexUtil.compatibleTypes(
-        exps,
-        getRowType(),
-        true)) {
-      assert !fail;
-      return false;
+    if (!RexUtil.compatibleTypes(exps, getRowType(), litmus)) {
+      return litmus.fail("incompatible types");
     }
     RexChecker checker =
         new RexChecker(
-            getInput().getRowType(), fail);
+            getInput().getRowType(), litmus);
     for (RexNode exp : exps) {
       exp.accept(checker);
-    }
-    if (checker.getFailureCount() > 0) {
-      assert !fail;
-      return false;
+      if (checker.getFailureCount() > 0) {
+        return litmus.fail(checker.getFailureCount()
+            + " failures in expression " + exp);
+      }
     }
     if (!Util.isDistinct(rowType.getFieldNames())) {
-      assert !fail : rowType;
-      return false;
+      return litmus.fail("field names not distinct: " + rowType);
     }
     //CHECKSTYLE: IGNORE 1
     if (false && !Util.isDistinct(
@@ -214,10 +205,9 @@ public abstract class Project extends SingleRel {
       // because we need to allow
       //
       //  SELECT a, b FROM c UNION SELECT x, x FROM z
-      assert !fail : exps;
-      return false;
+      return litmus.fail("duplicate expressions: " + exps);
     }
-    return true;
+    return litmus.succeed();
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
@@ -373,80 +363,6 @@ public abstract class Project extends SingleRel {
     public static final int ANON_FIELDS = 2;
     public static final int BOXED = 1;
     public static final int NONE = 0;
-  }
-
-  /**
-   * Visitor which walks over a program and checks validity.
-   */
-  private static class Checker extends RexVisitorImpl<Boolean> {
-    private final boolean fail;
-    private final RelDataType inputRowType;
-    int failCount = 0;
-
-    /**
-     * Creates a Checker.
-     *
-     * @param inputRowType Input row type to expressions
-     * @param fail         Whether to throw if checker finds an error
-     */
-    private Checker(RelDataType inputRowType, boolean fail) {
-      super(true);
-      this.fail = fail;
-      this.inputRowType = inputRowType;
-    }
-
-    public Boolean visitInputRef(RexInputRef inputRef) {
-      final int index = inputRef.getIndex();
-      final List<RelDataTypeField> fields = inputRowType.getFieldList();
-      if ((index < 0) || (index >= fields.size())) {
-        assert !fail;
-        ++failCount;
-        return false;
-      }
-      if (!RelOptUtil.eq("inputRef",
-          inputRef.getType(),
-          "underlying field",
-          fields.get(index).getType(),
-          fail)) {
-        assert !fail;
-        ++failCount;
-        return false;
-      }
-      return true;
-    }
-
-    public Boolean visitLocalRef(RexLocalRef localRef) {
-      assert !fail : "localRef invalid in project";
-      ++failCount;
-      return false;
-    }
-
-    public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
-      super.visitFieldAccess(fieldAccess);
-      final RelDataType refType =
-          fieldAccess.getReferenceExpr().getType();
-      assert refType.isStruct();
-      final RelDataTypeField field = fieldAccess.getField();
-      final int index = field.getIndex();
-      if ((index < 0) || (index > refType.getFieldList().size())) {
-        assert !fail;
-        ++failCount;
-        return false;
-      }
-      final RelDataTypeField typeField =
-          refType.getFieldList().get(index);
-      if (!RelOptUtil.eq(
-          "type1",
-          typeField.getType(),
-          "type2",
-          fieldAccess.getType(),
-          fail)) {
-        assert !fail;
-        ++failCount;
-        return false;
-      }
-      return true;
-    }
   }
 }
 

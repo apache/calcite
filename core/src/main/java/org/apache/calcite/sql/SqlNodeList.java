@@ -21,6 +21,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +56,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    */
   public SqlNodeList(SqlParserPos pos) {
     super(pos);
-    list = new ArrayList<SqlNode>();
+    list = new ArrayList<>();
   }
 
   /**
@@ -66,7 +67,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
       Collection<? extends SqlNode> collection,
       SqlParserPos pos) {
     super(pos);
-    list = new ArrayList<SqlNode>(collection);
+    list = new ArrayList<>(collection);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -152,24 +153,22 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, boolean fail) {
+  public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlNodeList)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     SqlNodeList that = (SqlNodeList) node;
     if (this.size() != that.size()) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     for (int i = 0; i < list.size(); i++) {
       SqlNode thisChild = list.get(i);
       final SqlNode thatChild = that.list.get(i);
-      if (!thisChild.equalsDeep(thatChild, fail)) {
-        return false;
+      if (!thisChild.equalsDeep(thatChild, litmus)) {
+        return litmus.fail(null);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   public SqlNode[] toArray() {

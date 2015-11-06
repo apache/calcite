@@ -66,6 +66,7 @@ import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
@@ -168,7 +169,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * List of all sets. Used only for debugging.
    */
-  final List<RelSet> allSets = new ArrayList<RelSet>();
+  final List<RelSet> allSets = new ArrayList<>();
 
   /**
    * Canonical map from {@link String digest} to the unique
@@ -180,7 +181,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * null VARCHAR(10).
    */
   private final Map<Pair<String, RelDataType>, RelNode> mapDigestToRel =
-      new HashMap<Pair<String, RelDataType>, RelNode>();
+      new HashMap<>();
 
   /**
    * Map each registered expression ({@link RelNode}) to its equivalence set
@@ -193,7 +194,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * to be careful, otherwise it gets incestuous.</p>
    */
   private final IdentityHashMap<RelNode, RelSubset> mapRel2Subset =
-      new IdentityHashMap<RelNode, RelSubset>();
+      new IdentityHashMap<>();
 
   /**
    * The importance of relational expressions.
@@ -205,13 +206,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * <p>If a RelNode has 0 importance, all {@link RelOptRuleCall}s using it
    * are ignored, and future RelOptRuleCalls are not queued up.
    */
-  final Map<RelNode, Double> relImportances = new HashMap<RelNode, Double>();
+  final Map<RelNode, Double> relImportances = new HashMap<>();
 
   /**
    * List of all schemas which have been registered.
    */
-  private final Set<RelOptSchema> registeredSchemas =
-      new HashSet<RelOptSchema>();
+  private final Set<RelOptSchema> registeredSchemas = new HashSet<>();
 
   /**
    * Holds rule calls waiting to be fired.
@@ -221,12 +221,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Holds the currently registered RelTraitDefs.
    */
-  private final List<RelTraitDef> traitDefs = new ArrayList<RelTraitDef>();
+  private final List<RelTraitDef> traitDefs = new ArrayList<>();
 
   /**
    * Set of all registered rules.
    */
-  protected final Set<RelOptRule> ruleSet = new HashSet<RelOptRule>();
+  protected final Set<RelOptRule> ruleSet = new HashSet<>();
 
   private int nextSetId = 0;
 
@@ -261,11 +261,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final Map<List<String>, RelOptLattice> latticeByName =
       Maps.newLinkedHashMap();
 
-  final Map<RelNode, Provenance> provenanceMap =
-      new HashMap<RelNode, Provenance>();
+  final Map<RelNode, Provenance> provenanceMap = new HashMap<>();
 
-  private final List<VolcanoRuleCall> ruleCallStack =
-      new ArrayList<VolcanoRuleCall>();
+  private final List<VolcanoRuleCall> ruleCallStack = new ArrayList<>();
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
@@ -533,7 +531,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   private static Set<RelOptTable> findTables(RelNode rel) {
-    final Set<RelOptTable> usedTables = new LinkedHashSet<RelOptTable>();
+    final Set<RelOptTable> usedTables = new LinkedHashSet<>();
     new RelVisitor() {
       @Override public void visit(RelNode node, int ordinal, RelNode parent) {
         if (node instanceof TableScan) {
@@ -896,7 +894,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private String provenance(RelNode root) {
     final StringWriter sw = new StringWriter();
     final PrintWriter pw = new PrintWriter(sw);
-    final List<RelNode> nodes = new ArrayList<RelNode>();
+    final List<RelNode> nodes = new ArrayList<>();
     new RelVisitor() {
       public void visit(RelNode node, int ordinal, RelNode parent) {
         nodes.add(node);
@@ -904,7 +902,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
       // CHECKSTYLE: IGNORE 1
     }.go(root);
-    final Set<RelNode> visited = new HashSet<RelNode>();
+    final Set<RelNode> visited = new HashSet<>();
     for (RelNode node : nodes) {
       provenanceRecurse(pw, node, 0, visited);
     }
@@ -953,7 +951,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         new RelVisitor() {
           int depth = 0;
 
-          HashSet<RelSubset> visitedSubsets = new HashSet<RelSubset>();
+          final HashSet<RelSubset> visitedSubsets = new HashSet<>();
 
           public void visit(
               RelNode p,
@@ -993,7 +991,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@link Convention#NONE} and boosts their importance by 25%.
    */
   private void injectImportanceBoost() {
-    HashSet<RelSubset> requireBoost = new HashSet<RelSubset>();
+    final HashSet<RelSubset> requireBoost = new HashSet<>();
 
   SUBSET_LOOP:
     for (RelSubset subset : ruleQueue.subsetImportances.keySet()) {
@@ -1031,7 +1029,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           rel.getRowType(),
           "equivRel rowtype",
           equivRel.getRowType(),
-          true);
+          Litmus.THROW);
       set = getSet(equivRel);
     }
     final RelSubset subset = registerImpl(rel, set);
@@ -1688,7 +1686,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           rel,
           new RuleProvenance(
               ruleCall.rule,
-              ImmutableList.<RelNode>copyOf(ruleCall.rels),
+              ImmutableList.copyOf(ruleCall.rels),
               ruleCall.id));
     }
 
@@ -1704,7 +1702,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       assert RelOptUtil.equal(
           "left", equivExp.getRowType(),
           "right", rel.getRowType(),
-          true);
+          Litmus.THROW);
       RelSet equivSet = getSet(equivExp);
       if (equivSet != null) {
         if (LOGGER.isLoggable(Level.FINER)) {

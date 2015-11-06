@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
@@ -84,6 +85,13 @@ public class SqlInOperator extends SqlBinaryOperator {
     return isNotIn;
   }
 
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
+    if (count == 0) {
+      return litmus.fail("wrong operand count " + count + " for " + this);
+    }
+    return litmus.succeed();
+  }
+
   public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -100,7 +108,7 @@ public class SqlInOperator extends SqlBinaryOperator {
     // Derive type for RHS.
     if (right instanceof SqlNodeList) {
       // Handle the 'IN (expr, ...)' form.
-      List<RelDataType> rightTypeList = new ArrayList<RelDataType>();
+      List<RelDataType> rightTypeList = new ArrayList<>();
       SqlNodeList nodeList = (SqlNodeList) right;
       for (int i = 0; i < nodeList.size(); i++) {
         SqlNode node = nodeList.get(i);

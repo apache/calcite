@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 /**
@@ -97,12 +98,11 @@ public class SqlPrefixOperator extends SqlOperator {
     return super.getMonotonicity(call);
   }
 
-  @Override public boolean validRexOperands(int count, boolean fail) {
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
     if (count != 1) {
-      assert !fail : "wrong operand count " + count + " for " + this;
-      return false;
+      return litmus.fail("wrong operand count " + count + " for " + this);
     }
-    return true;
+    return litmus.succeed();
   }
 }
 

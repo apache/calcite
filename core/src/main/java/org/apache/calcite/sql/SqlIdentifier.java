@@ -22,6 +22,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -286,23 +287,20 @@ public class SqlIdentifier extends SqlNode {
     validator.validateIdentifier(this, scope);
   }
 
-  public boolean equalsDeep(SqlNode node, boolean fail) {
+  public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlIdentifier)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     SqlIdentifier that = (SqlIdentifier) node;
     if (this.names.size() != that.names.size()) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     for (int i = 0; i < names.size(); i++) {
       if (!this.names.get(i).equals(that.names.get(i))) {
-        assert !fail : this + "!=" + node;
-        return false;
+        return litmus.fail(this + "!=" + node);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   public <R> R accept(SqlVisitor<R> visitor) {

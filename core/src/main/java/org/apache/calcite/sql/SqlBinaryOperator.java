@@ -25,6 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import java.math.BigDecimal;
@@ -208,7 +209,7 @@ public class SqlBinaryOperator extends SqlOperator {
     return super.getMonotonicity(call);
   }
 
-  @Override public boolean validRexOperands(int count, boolean fail) {
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
     if (count != 2) {
       // Special exception for AND and OR.
       if ((this == SqlStdOperatorTable.AND
@@ -216,10 +217,9 @@ public class SqlBinaryOperator extends SqlOperator {
           && count > 2) {
         return true;
       }
-      assert !fail : "wrong operand count " + count + " for " + this;
-      return false;
+      return litmus.fail("wrong operand count " + count + " for " + this);
     }
-    return true;
+    return litmus.succeed();
   }
 }
 

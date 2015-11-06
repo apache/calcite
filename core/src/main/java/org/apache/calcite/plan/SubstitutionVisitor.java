@@ -54,6 +54,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -405,7 +406,7 @@ public class SubstitutionVisitor {
     assert false; // not called
     MutableRel replacement = toMutable(replacement_);
     assert MutableRels.equalType(
-        "target", target, "replacement", replacement, true);
+        "target", target, "replacement", replacement, Litmus.THROW);
     replacementMap.put(target, replacement);
     final UnifyResult unifyResult = matchRecurse(target);
     if (unifyResult == null) {
@@ -458,7 +459,7 @@ public class SubstitutionVisitor {
    */
   private List<List<Replacement>> go(MutableRel replacement) {
     assert MutableRels.equalType(
-        "target", target, "replacement", replacement, true);
+        "target", target, "replacement", replacement, Litmus.THROW);
     final List<MutableRel> queryDescendants = MutableRels.descendants(query);
     final List<MutableRel> targetDescendants = MutableRels.descendants(target);
 
@@ -895,7 +896,8 @@ public class SubstitutionVisitor {
 
     public UnifyResult result(MutableRel result) {
       assert MutableRels.contains(result, target);
-      assert MutableRels.equalType("result", result, "query", query, true);
+      assert MutableRels.equalType("result", result, "query", query,
+          Litmus.THROW);
       MutableRel replace = replacementMap.get(target);
       if (replace != null) {
         assert false; // replacementMap is always empty
@@ -931,7 +933,8 @@ public class SubstitutionVisitor {
 
     UnifyResult(UnifyRuleCall call, MutableRel result) {
       this.call = call;
-      assert MutableRels.equalType("query", call.query, "result", result, true);
+      assert MutableRels.equalType("query", call.query, "result", result,
+          Litmus.THROW);
       this.result = result;
     }
   }
@@ -1661,7 +1664,7 @@ public class SubstitutionVisitor {
         List<RexNode> projects) {
       super(MutableRelType.PROJECT, rowType, input);
       this.projects = projects;
-      assert RexUtil.compatibleTypes(projects, rowType, true);
+      assert RexUtil.compatibleTypes(projects, rowType, Litmus.THROW);
     }
 
     public static MutableProject of(RelDataType rowType, MutableRel input,
@@ -2096,9 +2099,9 @@ public class SubstitutionVisitor {
 
     /** Returns whether two relational expressions have the same row-type. */
     public static boolean equalType(String desc0, MutableRel rel0, String desc1,
-        MutableRel rel1, boolean fail) {
+        MutableRel rel1, Litmus litmus) {
       return RelOptUtil.equal(desc0, rel0.getRowType(),
-          desc1, rel1.getRowType(), fail);
+          desc1, rel1.getRowType(), litmus);
     }
 
     /** Within a relational expression {@code query}, replaces occurrences of
@@ -2112,7 +2115,7 @@ public class SubstitutionVisitor {
         // Short-cut common case.
         return null;
       }
-      assert equalType("find", find, "replace", replace, true);
+      assert equalType("find", find, "replace", replace, Litmus.THROW);
       return replaceRecurse(query, find, replace);
     }
 

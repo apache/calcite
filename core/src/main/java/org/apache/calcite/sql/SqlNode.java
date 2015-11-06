@@ -24,6 +24,7 @@ import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import java.util.Collection;
@@ -254,27 +255,32 @@ public abstract class SqlNode implements Cloneable {
    * (2 + 3), because the '+' operator is left-associative</li>
    * </ul>
    */
-  public abstract boolean equalsDeep(SqlNode node, boolean fail);
+  public abstract boolean equalsDeep(SqlNode node, Litmus litmus);
+
+  @Deprecated // to be removed before 2.0
+  public final boolean equalsDeep(SqlNode node, boolean fail) {
+    return equalsDeep(node, fail ? Litmus.THROW : Litmus.IGNORE);
+  }
 
   /**
    * Returns whether two nodes are equal (using
-   * {@link #equalsDeep(SqlNode, boolean)}) or are both null.
+   * {@link #equalsDeep(SqlNode, Litmus)}) or are both null.
    *
    * @param node1 First expression
    * @param node2 Second expression
-   * @param fail  Whether to throw {@link AssertionError} if expressions are
-   *              not equal
+   * @param litmus What to do if an error is detected (expressions are
+   *              not equal)
    */
   public static boolean equalDeep(
       SqlNode node1,
       SqlNode node2,
-      boolean fail) {
+      Litmus litmus) {
     if (node1 == null) {
       return node2 == null;
     } else if (node2 == null) {
       return false;
     } else {
-      return node1.equalsDeep(node2, fail);
+      return node1.equalsDeep(node2, litmus);
     }
   }
 
@@ -294,17 +300,16 @@ public abstract class SqlNode implements Cloneable {
 
   /** Returns whether two lists of operands are equal. */
   public static boolean equalDeep(List<SqlNode> operands0,
-      List<SqlNode> operands1, boolean fail) {
+      List<SqlNode> operands1, Litmus litmus) {
     if (operands0.size() != operands1.size()) {
-      assert !fail;
-      return false;
+      return litmus.fail(null);
     }
     for (int i = 0; i < operands0.size(); i++) {
-      if (!SqlNode.equalDeep(operands0.get(i), operands1.get(i), fail)) {
-        return false;
+      if (!SqlNode.equalDeep(operands0.get(i), operands1.get(i), litmus)) {
+        return litmus.fail(null);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 }
 

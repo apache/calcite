@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Objects;
@@ -222,7 +223,7 @@ public final class LogicalWindow extends Window {
                 over.getType(),
                 "aggCall",
                 aggCall.getType(),
-                true);
+                Litmus.THROW);
 
             // Find the index of the aggCall among all partitions of all
             // groups.
@@ -237,7 +238,7 @@ public final class LogicalWindow extends Window {
                 over.getType(),
                 "intermed",
                 intermediateRowType.getFieldList().get(index).getType(),
-                true);
+                Litmus.THROW);
             return new RexInputRef(
                 index,
                 over.getType());

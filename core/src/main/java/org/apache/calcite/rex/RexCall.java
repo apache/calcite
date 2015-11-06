@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
@@ -63,7 +64,7 @@ public class RexCall extends RexNode {
     assert op.getKind() != null : op;
     this.digest = computeDigest(true);
 
-    assert op.validRexOperands(operands.size(), true) : this;
+    assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
   }
 
   //~ Methods ----------------------------------------------------------------

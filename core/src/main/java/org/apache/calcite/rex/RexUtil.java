@@ -33,6 +33,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
@@ -476,34 +477,35 @@ public class RexUtil {
   /**
    * Returns whether an array of expressions has any common sub-expressions.
    */
-  public static boolean containCommonExprs(List<RexNode> exprs, boolean fail) {
+  public static boolean containNoCommonExprs(List<RexNode> exprs,
+      Litmus litmus) {
     final ExpressionNormalizer visitor = new ExpressionNormalizer(false);
     for (RexNode expr : exprs) {
       try {
         expr.accept(visitor);
       } catch (ExpressionNormalizer.SubExprExistsException e) {
         Util.swallow(e, null);
-        assert !fail;
-        return true;
+        return litmus.fail(null);
       }
     }
-    return false;
+    return litmus.succeed();
   }
 
   /**
-   * Returns whether an array of expressions contains a forward reference.
+   * Returns whether an array of expressions contains no forward references.
    * That is, if expression #i contains a {@link RexInputRef} referencing
    * field i or greater.
    *
    * @param exprs        Array of expressions
    * @param inputRowType Input row type
-   * @param fail         Whether to assert if there is a forward reference
+   * @param litmus       What to do if an error is detected (there is a
+   *                     forward reference)
+   *
    * @return Whether there is a forward reference
    */
-  public static boolean containForwardRefs(
-      List<RexNode> exprs,
+  public static boolean containNoForwardRefs(List<RexNode> exprs,
       RelDataType inputRowType,
-      boolean fail) {
+      Litmus litmus) {
     final ForwardRefFinder visitor = new ForwardRefFinder(inputRowType);
     for (int i = 0; i < exprs.size(); i++) {
       RexNode expr = exprs.get(i);
@@ -512,21 +514,20 @@ public class RexUtil {
         expr.accept(visitor);
       } catch (ForwardRefFinder.IllegalForwardRefException e) {
         Util.swallow(e, null);
-        assert !fail : "illegal forward reference in " + expr;
-        return true;
+        return litmus.fail("illegal forward reference in " + expr);
       }
     }
-    return false;
+    return litmus.succeed();
   }
 
   /**
-   * Returns whether an array of exp contains aggregate function calls whose
-   * arguments are not {@link RexInputRef}.s
+   * Returns whether an array of exp contains no aggregate function calls whose
+   * arguments are not {@link RexInputRef}s.
    *
    * @param exprs Expressions
-   * @param fail  Whether to assert if there is such a function call
+   * @param litmus  Whether to assert if there is such a function call
    */
-  static boolean containNonTrivialAggs(List<RexNode> exprs, boolean fail) {
+  static boolean containNoNonTrivialAggs(List<RexNode> exprs, Litmus litmus) {
     for (RexNode expr : exprs) {
       if (expr instanceof RexCall) {
         RexCall rexCall = (RexCall) expr;
@@ -534,14 +535,13 @@ public class RexUtil {
           for (RexNode operand : rexCall.operands) {
             if (!(operand instanceof RexLocalRef)
                 && !(operand instanceof RexLiteral)) {
-              assert !fail : "contains non trivial agg: " + operand;
-              return true;
+              return litmus.fail("contains non trivial agg: " + operand);
             }
           }
         }
       }
     }
-    return false;
+    return litmus.succeed();
   }
 
   /**
@@ -623,28 +623,29 @@ public class RexUtil {
    *
    * @param exprs Array of expressions
    * @param type  Type
-   * @param fail  Whether to fail if there is a mismatch
+   * @param litmus What to do if an error is detected (there is a mismatch)
+   *
    * @return Whether every expression has the same type as the corresponding
    * member of the struct type
-   * @see RelOptUtil#eq(String, RelDataType, String, RelDataType, boolean)
+   *
+   * @see RelOptUtil#eq(String, RelDataType, String, RelDataType, org.apache.calcite.util.Litmus)
    */
   public static boolean compatibleTypes(
       List<RexNode> exprs,
       RelDataType type,
-      boolean fail) {
+      Litmus litmus) {
     final List<RelDataTypeField> fields = type.getFieldList();
     if (exprs.size() != fields.size()) {
-      assert !fail : "rowtype mismatches expressions";
-      return false;
+      return litmus.fail("rowtype mismatches expressions");
     }
     for (int i = 0; i < fields.size(); i++) {
       final RelDataType exprType = exprs.get(i).getType();
       final RelDataType fieldType = fields.get(i).getType();
-      if (!RelOptUtil.eq("type1", exprType, "type2", fieldType, fail)) {
-        return false;
+      if (!RelOptUtil.eq("type1", exprType, "type2", fieldType, litmus)) {
+        return litmus.fail(null);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   /**
@@ -665,39 +666,35 @@ public class RexUtil {
   public static boolean containIdentity(
       List<? extends RexNode> exprs,
       RelDataType rowType,
-      boolean fail) {
+      Litmus litmus) {
     final List<RelDataTypeField> fields = rowType.getFieldList();
     if (exprs.size() < fields.size()) {
-      assert !fail : "exprs/rowType length mismatch";
-      return false;
+      return litmus.fail("exprs/rowType length mismatch");
     }
     for (int i = 0; i < fields.size(); i++) {
       if (!(exprs.get(i) instanceof RexInputRef)) {
-        assert !fail : "expr[" + i + "] is not a RexInputRef";
-        return false;
+        return litmus.fail("expr[" + i + "] is not a RexInputRef");
       }
       RexInputRef inputRef = (RexInputRef) exprs.get(i);
       if (inputRef.getIndex() != i) {
-        assert !fail : "expr[" + i + "] has ordinal "
-            + inputRef.getIndex();
-        return false;
+        return litmus.fail("expr[" + i + "] has ordinal "
+            + inputRef.getIndex());
       }
       if (!RelOptUtil.eq("type1",
           exprs.get(i).getType(),
           "type2",
-          fields.get(i).getType(),
-          fail)) {
-        return false;
+          fields.get(i).getType(), litmus)) {
+        return litmus.fail(null);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   /** Returns whether a list of expressions projects the incoming fields. */
   public static boolean isIdentity(List<? extends RexNode> exps,
       RelDataType inputRowType) {
     return inputRowType.getFieldCount() == exps.size()
-        && containIdentity(exps, inputRowType, false);
+        && containIdentity(exps, inputRowType, Litmus.IGNORE);
   }
 
   /**

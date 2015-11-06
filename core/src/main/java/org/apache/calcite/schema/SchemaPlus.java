@@ -30,7 +30,16 @@ import com.google.common.collect.ImmutableList;
  *
  * <p>A user-defined schema does not need to implement this interface, but by
  * the time a schema is passed to a method in a user-defined schema or
- * user-defined table, it will have been wrapped in this interface.</p>
+ * user-defined table, it will have been wrapped in this interface.
+ *
+ * <p>SchemaPlus is intended to be used by users but not instantiated by them.
+ * Users should only use the SchemaPlus they are given by the system.
+ * The purpose of SchemaPlus is to expose to user code, in a read only manner,
+ * some of the extra information about schemas that Calcite builds up when a
+ * schema is registered. It appears in several SPI calls as context; for example
+ * {@link SchemaFactory#create(SchemaPlus, String, java.util.Map)} contains a
+ * parent schema that might be a wrapped instance of a user-defined
+ * {@link Schema}, or indeed might not.
  */
 public interface SchemaPlus extends Schema {
   /**

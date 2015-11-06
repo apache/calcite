@@ -23,12 +23,36 @@ public interface Litmus {
   /** Implementation of {@link org.apache.calcite.util.Litmus} that throws
    * an {@link java.lang.AssertionError} on failure. */
   Litmus THROW = new Litmus() {
-    @Override public boolean fail(String message) {
+    public boolean fail(String message) {
       throw new AssertionError(message);
     }
 
-    @Override public boolean succeed() {
+    public boolean succeed() {
       return true;
+    }
+
+    public boolean check(boolean condition, Object info) {
+      if (condition) {
+        return succeed();
+      } else {
+        return fail(info == null ? null : info.toString());
+      }
+    }
+  };
+
+  /** Implementation of {@link org.apache.calcite.util.Litmus} that returns
+   * a status code but does not throw. */
+  Litmus IGNORE = new Litmus() {
+    public boolean fail(String message) {
+      return false;
+    }
+
+    public boolean succeed() {
+      return true;
+    }
+
+    public boolean check(boolean condition, Object info) {
+      return condition;
     }
   };
 
@@ -37,6 +61,14 @@ public interface Litmus {
 
   /** Called when test succeeds. Returns true. */
   boolean succeed();
+
+  /** Checks a condition.
+   *
+   * <p>If the condition is true, calls {@link #succeed};
+   * if the condition is false, calls {@link #fail},
+   * converting {@code info} into a string message.
+   */
+  boolean check(boolean condition, Object info);
 }
 
 // End Litmus.java

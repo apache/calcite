@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 
@@ -110,7 +111,7 @@ public class RexProgram {
     this.projects = ImmutableList.copyOf(projects);
     this.condition = condition;
     this.outputRowType = outputRowType;
-    assert isValid(true);
+    assert isValid(Litmus.THROW);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -394,64 +395,53 @@ public class RexProgram {
    * will throw an {@link AssertionError} if assertions are enabled. If <code>
    * fail</code> is false, merely returns whether the program is valid.
    *
-   * @param fail Whether to fail
+   * @param litmus What to do if an error is detected
    * @return Whether the program is valid
-   * @throws AssertionError if program is invalid and <code>fail</code> is
-   *                        true and assertions are enabled
    */
-  public boolean isValid(boolean fail) {
+  public boolean isValid(Litmus litmus) {
     if (inputRowType == null) {
-      assert !fail;
-      return false;
+      return litmus.fail(null);
     }
     if (exprs == null) {
-      assert !fail;
-      return false;
+      return litmus.fail(null);
     }
     if (projects == null) {
-      assert !fail;
-      return false;
+      return litmus.fail(null);
     }
     if (outputRowType == null) {
-      assert !fail;
-      return false;
+      return litmus.fail(null);
     }
 
     // If the input row type is a struct (contains fields) then the leading
     // expressions must be references to those fields. But we don't require
     // this if the input row type is, say, a java class.
     if (inputRowType.isStruct()) {
-      if (!RexUtil.containIdentity(exprs, inputRowType, fail)) {
-        assert !fail;
-        return false;
+      if (!RexUtil.containIdentity(exprs, inputRowType, litmus)) {
+        return litmus.fail(null);
       }
 
       // None of the other fields should be inputRefs.
       for (int i = inputRowType.getFieldCount(); i < exprs.size(); i++) {
         RexNode expr = exprs.get(i);
         if (expr instanceof RexInputRef) {
-          assert !fail;
-          return false;
+          return litmus.fail(null);
         }
       }
     }
     // todo: enable
     // CHECKSTYLE: IGNORE 1
-    if (false && RexUtil.containCommonExprs(exprs, fail)) {
-      assert !fail;
-      return false;
+    if (false && RexUtil.containNoCommonExprs(exprs, litmus)) {
+      return litmus.fail(null);
     }
-    if (RexUtil.containForwardRefs(exprs, inputRowType, fail)) {
-      assert !fail;
-      return false;
+    if (!RexUtil.containNoForwardRefs(exprs, inputRowType, litmus)) {
+      return litmus.fail(null);
     }
-    if (RexUtil.containNonTrivialAggs(exprs, fail)) {
-      assert !fail;
-      return false;
+    if (!RexUtil.containNoNonTrivialAggs(exprs, litmus)) {
+      return litmus.fail(null);
     }
     final Checker checker =
         new Checker(
-            fail,
+            litmus,
             inputRowType,
             new AbstractList<RelDataType>() {
               public RelDataType get(int index) {
@@ -465,30 +455,26 @@ public class RexProgram {
             });
     if (condition != null) {
       if (!SqlTypeUtil.inBooleanFamily(condition.getType())) {
-        assert !fail : "condition must be boolean";
-        return false;
+        return litmus.fail("condition must be boolean");
       }
       condition.accept(checker);
       if (checker.failCount > 0) {
-        assert !fail;
-        return false;
+        return litmus.fail(null);
       }
     }
     for (int i = 0; i < projects.size(); i++) {
       projects.get(i).accept(checker);
       if (checker.failCount > 0) {
-        assert !fail;
-        return false;
+        return litmus.fail(null);
       }
     }
     for (int i = 0; i < exprs.size(); i++) {
       exprs.get(i).accept(checker);
       if (checker.failCount > 0) {
-        assert !fail;
-        return false;
+        return litmus.fail(null);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   /**
@@ -773,24 +759,39 @@ public class RexProgram {
   /**
    * Returns whether this program is in canonical form.
    *
-   * @param fail       Whether to throw an assertion error if not in canonical
-   *                   form
+   * @param litmus     What to do if an error is detected (program is not in
+   *                   canonical form)
    * @param rexBuilder Rex builder
    * @return whether in canonical form
    */
-  public boolean isNormalized(boolean fail, RexBuilder rexBuilder) {
-    final RexProgram normalizedProgram =
-        RexProgramBuilder.normalize(rexBuilder, this);
+  public boolean isNormalized(Litmus litmus, RexBuilder rexBuilder) {
+    final RexProgram normalizedProgram = normalize(rexBuilder, false);
     String normalized = normalizedProgram.toString();
     String string = toString();
     if (!normalized.equals(string)) {
-      assert !fail
-          : "Program is not normalized:\n"
+      return litmus.fail("Program is not normalized:\n"
           + "program:    " + string + "\n"
-          + "normalized: " + normalized + "\n";
-      return false;
+          + "normalized: " + normalized + "\n");
     }
-    return true;
+    return litmus.succeed();
+  }
+
+  /**
+   * Creates a simplified/normalized copy of this program.
+   *
+   * @param rexBuilder Rex builder
+   * @param simplify Whether to simplify (in addition to normalizing)
+   * @return Normalized program
+   */
+  public RexProgram normalize(RexBuilder rexBuilder, boolean simplify) {
+    // Normalize program by creating program builder from the program, then
+    // converting to a program. getProgram does not need to normalize
+    // because the builder was normalized on creation.
+    assert isValid(Litmus.THROW);
+    final RexProgramBuilder builder =
+        RexProgramBuilder.create(rexBuilder, inputRowType, exprs, projects,
+            condition, outputRowType, simplify);
+    return builder.getProgram(false);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -804,15 +805,14 @@ public class RexProgram {
     /**
      * Creates a Checker.
      *
-     * @param fail                 Whether to fail
+     * @param litmus               Whether to fail
      * @param inputRowType         Types of the input fields
      * @param internalExprTypeList Types of the internal expressions
      */
-    public Checker(
-        boolean fail,
+    public Checker(Litmus litmus,
         RelDataType inputRowType,
         List<RelDataType> internalExprTypeList) {
-      super(inputRowType, fail);
+      super(inputRowType, litmus);
       this.internalExprTypeList = internalExprTypeList;
     }
 
@@ -821,21 +821,18 @@ public class RexProgram {
     public Boolean visitLocalRef(RexLocalRef localRef) {
       final int index = localRef.getIndex();
       if ((index < 0) || (index >= internalExprTypeList.size())) {
-        assert !fail;
         ++failCount;
-        return false;
+        return litmus.fail(null);
       }
       if (!RelOptUtil.eq(
           "type1",
           localRef.getType(),
           "type2",
-          internalExprTypeList.get(index),
-          fail)) {
-        assert !fail;
+          internalExprTypeList.get(index), litmus)) {
         ++failCount;
-        return false;
+        return litmus.fail(null);
       }
-      return true;
+      return litmus.succeed();
     }
   }
 

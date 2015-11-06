@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -449,7 +450,7 @@ public class RexProgramBuilder {
       RexProgram program,
       RexBuilder rexBuilder,
       boolean normalize) {
-    assert program.isValid(true);
+    assert program.isValid(Litmus.THROW);
     final RelDataType inputRowType = program.getInputRowType();
     final List<RexLocalRef> projectRefs = program.getProjectList();
     final RexLocalRef conditionRef = program.getCondition();
@@ -726,8 +727,8 @@ public class RexProgramBuilder {
       boolean normalize) {
     // Initialize a program builder with the same expressions, outputs
     // and condition as the bottom program.
-    assert bottomProgram.isValid(true);
-    assert topProgram.isValid(true);
+    assert bottomProgram.isValid(Litmus.THROW);
+    assert topProgram.isValid(Litmus.THROW);
     final RexProgramBuilder progBuilder =
         RexProgramBuilder.forProgram(bottomProgram, rexBuilder, false);
 
@@ -745,7 +746,7 @@ public class RexProgramBuilder {
       progBuilder.addProject(pair.left, pair.right);
     }
     RexProgram mergedProg = progBuilder.getProgram(normalize);
-    assert mergedProg.isValid(true);
+    assert mergedProg.isValid(Litmus.THROW);
     assert mergedProg.getOutputRowType() == topProgram.getOutputRowType();
     return mergedProg;
   }
@@ -906,7 +907,7 @@ public class RexProgramBuilder {
         assert input.getType().isStruct()
             || RelOptUtil.eq("type1", input.getType(),
                 "type2", inputRowType.getFieldList().get(index).getType(),
-                true);
+                Litmus.THROW);
       }
 
       // Return a reference to the N'th expression, which should be
@@ -927,7 +928,7 @@ public class RexProgramBuilder {
             exprList.get(index).getType(),
             "ref type",
             local.getType(),
-            true);
+            Litmus.THROW);
       }
 
       // Resolve the expression to an input.
@@ -994,7 +995,7 @@ public class RexProgramBuilder {
           local.getType(),
           "type2",
           input.getType(),
-          true);
+          Litmus.THROW);
       return local;
     }
 

@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -117,22 +118,20 @@ public abstract class Join extends BiRel {
   }
 
   // TODO: enable
-  public boolean isValid_(boolean fail) {
-    if (!super.isValid(fail)) {
+  public boolean isValid_(Litmus litmus) {
+    if (!super.isValid(litmus)) {
       return false;
     }
     if (getRowType().getFieldCount()
         != getSystemFieldList().size()
         + left.getRowType().getFieldCount()
         + right.getRowType().getFieldCount()) {
-      assert !fail : "field count mismatch";
-      return false;
+      return litmus.fail("field count mismatch");
     }
     if (condition != null) {
       if (condition.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
-        assert !fail
-            : "condition must be boolean: " + condition.getType();
-        return false;
+        return litmus.fail("condition must be boolean: "
+            + condition.getType());
       }
       // The input to the condition is a row type consisting of system
       // fields, left fields, and right fields. Very similar to the
@@ -145,16 +144,14 @@ public abstract class Join extends BiRel {
                   .addAll(getLeft().getRowType().getFieldList())
                   .addAll(getRight().getRowType().getFieldList())
                   .build(),
-              fail);
+              litmus);
       condition.accept(checker);
       if (checker.getFailureCount() > 0) {
-        assert !fail
-            : checker.getFailureCount() + " failures in condition "
-            + condition;
-        return false;
+        return litmus.fail(checker.getFailureCount()
+            + " failures in condition " + condition);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {

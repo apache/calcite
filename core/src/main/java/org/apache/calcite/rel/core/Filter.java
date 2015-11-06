@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
@@ -73,7 +74,7 @@ public abstract class Filter extends SingleRel {
     assert RexUtil.isFlat(condition) : condition;
     this.condition = condition;
     // Too expensive for everyday use:
-    assert !CalcitePrepareImpl.DEBUG || isValid(true);
+    assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW);
   }
 
   /**
@@ -110,18 +111,16 @@ public abstract class Filter extends SingleRel {
     return condition;
   }
 
-  @Override public boolean isValid(boolean fail) {
+  @Override public boolean isValid(Litmus litmus) {
     if (RexUtil.isNullabilityCast(getCluster().getTypeFactory(), condition)) {
-      assert !fail : "Cast for just nullability not allowed";
-      return false;
+      return litmus.fail("Cast for just nullability not allowed");
     }
-    final RexChecker checker = new RexChecker(getInput().getRowType(), fail);
+    final RexChecker checker = new RexChecker(getInput().getRowType(), litmus);
     condition.accept(checker);
     if (checker.getFailureCount() > 0) {
-      assert !fail;
-      return false;
+      return litmus.fail(null);
     }
-    return true;
+    return litmus.succeed();
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {

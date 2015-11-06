@@ -40,6 +40,7 @@ import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -84,7 +85,7 @@ public abstract class Window extends SingleRel {
     this.groups = ImmutableList.copyOf(groups);
   }
 
-  @Override public boolean isValid(boolean fail) {
+  @Override public boolean isValid(Litmus litmus) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
@@ -106,21 +107,20 @@ public abstract class Window extends SingleRel {
         };
 
     final RexChecker checker =
-        new RexChecker(inputTypes, fail);
+        new RexChecker(inputTypes, litmus);
     int count = 0;
     for (Group group : groups) {
       for (RexWinAggCall over : group.aggCalls) {
         ++count;
         if (!checker.isValid(over)) {
-          return false;
+          return litmus.fail(null);
         }
       }
     }
     if (count == 0) {
-      assert !fail : "empty";
-      return false;
+      return litmus.fail("empty");
     }
-    return true;
+    return litmus.succeed();
   }
 
   public RelWriter explainTerms(RelWriter pw) {

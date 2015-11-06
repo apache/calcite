@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 
@@ -55,7 +56,7 @@ import java.util.List;
 public class RexChecker extends RexVisitorImpl<Boolean> {
   //~ Instance fields --------------------------------------------------------
 
-  protected final boolean fail;
+  protected final Litmus litmus;
   protected final List<RelDataType> inputTypeList;
   protected int failCount;
 
@@ -71,11 +72,10 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * <p>Otherwise, each method returns whether its part of the tree is valid.
    *
    * @param inputRowType Input row type
-   * @param fail Whether to throw an {@link AssertionError} if an
-   *                     invalid node is detected
+   * @param litmus What to do if an invalid node is detected
    */
-  public RexChecker(final RelDataType inputRowType, boolean fail) {
-    this(RelOptUtil.getFieldTypeList(inputRowType), fail);
+  public RexChecker(final RelDataType inputRowType, Litmus litmus) {
+    this(RelOptUtil.getFieldTypeList(inputRowType), litmus);
   }
 
   /**
@@ -88,13 +88,12 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * <p>Otherwise, each method returns whether its part of the tree is valid.
    *
    * @param inputTypeList Input row type
-   * @param fail Whether to throw an {@link AssertionError} if an
-   *                      invalid node is detected
+   * @param litmus What to do if an error is detected
    */
-  public RexChecker(List<RelDataType> inputTypeList, boolean fail) {
+  public RexChecker(List<RelDataType> inputTypeList, Litmus litmus) {
     super(true);
     this.inputTypeList = inputTypeList;
-    this.fail = fail;
+    this.litmus = litmus;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -111,36 +110,32 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
   public Boolean visitInputRef(RexInputRef ref) {
     final int index = ref.getIndex();
     if ((index < 0) || (index >= inputTypeList.size())) {
-      assert !fail
-          : "RexInputRef index " + index
-          + " out of range 0.." + (inputTypeList.size() - 1);
       ++failCount;
-      return false;
+      return litmus.fail("RexInputRef index " + index
+          + " out of range 0.." + (inputTypeList.size() - 1));
     }
     if (!ref.getType().isStruct()
         && !RelOptUtil.eq("ref", ref.getType(), "input",
-            inputTypeList.get(index), fail)) {
-      assert !fail;
+            inputTypeList.get(index), litmus)) {
       ++failCount;
-      return false;
+      return litmus.fail(null);
     }
-    return true;
+    return litmus.succeed();
   }
 
   public Boolean visitLocalRef(RexLocalRef ref) {
-    assert !fail : "RexLocalRef illegal outside program";
     ++failCount;
-    return false;
+    return litmus.fail("RexLocalRef illegal outside program");
   }
 
   public Boolean visitCall(RexCall call) {
     for (RexNode operand : call.getOperands()) {
       Boolean valid = operand.accept(this);
       if (valid != null && !valid) {
-        return false;
+        return litmus.fail(null);
       }
     }
-    return true;
+    return litmus.succeed();
   }
 
   public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
@@ -150,22 +145,19 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     final RelDataTypeField field = fieldAccess.getField();
     final int index = field.getIndex();
     if ((index < 0) || (index > refType.getFieldList().size())) {
-      assert !fail;
       ++failCount;
-      return false;
+      return litmus.fail(null);
     }
     final RelDataTypeField typeField = refType.getFieldList().get(index);
     if (!RelOptUtil.eq(
         "type1",
         typeField.getType(),
         "type2",
-        fieldAccess.getType(),
-        fail)) {
-      assert !fail;
+        fieldAccess.getType(), litmus)) {
       ++failCount;
-      return false;
+      return litmus.fail(null);
     }
-    return true;
+    return litmus.succeed();
   }
 
   /**

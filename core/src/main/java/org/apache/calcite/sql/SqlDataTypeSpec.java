@@ -26,6 +26,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Objects;
@@ -234,39 +235,33 @@ public class SqlDataTypeSpec extends SqlNode {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, boolean fail) {
+  public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDataTypeSpec)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     SqlDataTypeSpec that = (SqlDataTypeSpec) node;
     if (!SqlNode.equalDeep(
         this.collectionsTypeName,
-        that.collectionsTypeName,
-        fail)) {
-      return false;
+        that.collectionsTypeName, litmus)) {
+      return litmus.fail(null);
     }
-    if (!this.typeName.equalsDeep(that.typeName, fail)) {
-      return false;
+    if (!this.typeName.equalsDeep(that.typeName, litmus)) {
+      return litmus.fail(null);
     }
     if (this.precision != that.precision) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     if (this.scale != that.scale) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     if (!Objects.equal(this.timeZone, that.timeZone)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
     if (!com.google.common.base.Objects.equal(this.charSetName,
         that.charSetName)) {
-      assert !fail : this + "!=" + node;
-      return false;
+      return litmus.fail(this + "!=" + node);
     }
-    return true;
+    return litmus.succeed();
   }
 
   /**

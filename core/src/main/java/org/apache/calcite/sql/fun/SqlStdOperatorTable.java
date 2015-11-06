@@ -49,6 +49,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlModality;
+import org.apache.calcite.util.Litmus;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -612,6 +613,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.ANY) {
         public boolean argumentMustBeScalar(int ordinal) {
           return false;
+        }
+
+        @Override public boolean validRexOperands(int count, Litmus litmus) {
+          if (count != 0) {
+            return litmus.fail("wrong operand count " + count + " for " + this);
+          }
+          return litmus.succeed();
         }
       };
 

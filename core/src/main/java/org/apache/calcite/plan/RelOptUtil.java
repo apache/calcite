@@ -72,6 +72,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
@@ -1625,7 +1626,7 @@ public abstract class RelOptUtil {
    * @param type1 First type
    * @param desc2 Description of second type
    * @param type2 Second type
-   * @param fail  Whether to assert if they are not equal
+   * @param litmus What to do if an error is detected (types are not equal)
    * @return Whether the types are equal
    */
   public static boolean eq(
@@ -1633,22 +1634,21 @@ public abstract class RelOptUtil {
       RelDataType type1,
       final String desc2,
       RelDataType type2,
-      boolean fail) {
+      Litmus litmus) {
     // if any one of the types is ANY return true
     if (type1.getSqlTypeName() == SqlTypeName.ANY
         || type2.getSqlTypeName() == SqlTypeName.ANY) {
-      return true;
+      return litmus.succeed();
     }
 
     if (type1 != type2) {
-      assert !fail : "type mismatch:\n"
+      return litmus.fail("type mismatch:\n"
           + desc1 + ":\n"
           + type1.getFullTypeString() + "\n"
           + desc2 + ":\n"
-          + type2.getFullTypeString();
-      return false;
+          + type2.getFullTypeString());
     }
-    return true;
+    return litmus.succeed();
   }
 
   /**
@@ -1660,7 +1660,7 @@ public abstract class RelOptUtil {
    * @param type1 First type
    * @param desc2 Description of role of second type
    * @param type2 Second type
-   * @param fail  Whether to assert if they are not equal
+   * @param litmus Whether to assert if they are not equal
    * @return Whether the types are equal
    */
   public static boolean equal(
@@ -1668,26 +1668,22 @@ public abstract class RelOptUtil {
       RelDataType type1,
       final String desc2,
       RelDataType type2,
-      boolean fail) {
+      Litmus litmus) {
     if (!areRowTypesEqual(type1, type2, false)) {
-      if (fail) {
-        throw new AssertionError(
-            "Type mismatch:\n"
-            + desc1 + ":\n"
-            + type1.getFullTypeString() + "\n"
-            + desc2 + ":\n"
-            + type2.getFullTypeString());
-      }
-      return false;
+      return litmus.fail("Type mismatch:\n"
+          + desc1 + ":\n"
+          + type1.getFullTypeString() + "\n"
+          + desc2 + ":\n"
+          + type2.getFullTypeString());
     }
-    return true;
+    return litmus.succeed();
   }
 
   /** Returns whether two relational expressions have the same row-type. */
   public static boolean equalType(String desc0, RelNode rel0, String desc1,
-      RelNode rel1, boolean fail) {
+      RelNode rel1, Litmus litmus) {
     // TODO: change 'equal' to 'eq', which is stronger.
-    return equal(desc0, rel0.getRowType(), desc1, rel1.getRowType(), fail);
+    return equal(desc0, rel0.getRowType(), desc1, rel1.getRowType(), litmus);
   }
 
   /**
@@ -2515,7 +2511,7 @@ public abstract class RelOptUtil {
       // Short-cut common case.
       return query;
     }
-    assert equalType("find", find, "replace", replace, true);
+    assert equalType("find", find, "replace", replace, Litmus.THROW);
     if (query == find) {
       // Short-cut another common case.
       return replace;

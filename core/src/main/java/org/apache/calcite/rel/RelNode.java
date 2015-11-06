@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 import java.util.Set;
@@ -301,20 +302,23 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Returns whether this relational expression is valid.
    *
    * <p>If assertions are enabled, this method is typically called with <code>
-   * fail</code> = <code>true</code>, as follows:
+   * litmus</code> = <code>THROW</code>, as follows:
    *
    * <blockquote>
-   * <pre>assert rel.isValid(true)</pre>
+   * <pre>assert rel.isValid(Litmus.THROW)</pre>
    * </blockquote>
    *
-   * This signals that the method can throw an {@link AssertionError} if it is
-   * not valid.
+   * <p>This signals that the method can throw an {@link AssertionError} if it
+   * is not valid.
    *
-   * @param fail Whether to fail if invalid
+   * @param litmus What to do if invalid
    * @return Whether relational expression is valid
    * @throws AssertionError if this relational expression is invalid and
-   *                        fail=true and assertions are enabled
+   *                        litmus is THROW
    */
+  boolean isValid(Litmus litmus);
+
+  @Deprecated // to be removed before 2.0
   boolean isValid(boolean fail);
 
   /**
