@@ -20,7 +20,7 @@ excerpt_separator: ""
 repository: https://github.com/apache/calcite
 destination: target
 exclude: [README.md,Gemfile*]
-keep_files: [".git", ".svn", "apidocs"]
+keep_files: [".git", ".svn", "apidocs", "testapidocs"]
 
 collections:
   docs:
@@ -32,6 +32,10 @@ sourceRoot: https://github.com/apache/calcite/blob/master
 # The URL where Javadocs are located
 apiRoot: /apidocs
 # apiRoot: http://calcite.apache.org/apidocs
+
+# The URL where Test Javadocs are located
+testApiRoot: /testapidocs
+# testApiRoot: http://calcite.apache.org/testapidocs
 
 # The base path where the website is deployed
 baseurl:

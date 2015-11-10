@@ -589,6 +589,8 @@ limitations under the License.
             </tag>
           </tags>
           <additionalparam>-tag sql.2003:a:xxx</additionalparam>
+          <notimestamp>true</notimestamp>
+          <windowtitle>Apache Calcite API</windowtitle>
         </configuration>
       </plugin>
     </plugins>
