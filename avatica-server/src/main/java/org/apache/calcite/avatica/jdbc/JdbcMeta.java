@@ -642,13 +642,13 @@ public class JdbcMeta implements Meta {
     }
   }
 
-  private RuntimeException propagate(Throwable e) {
+  RuntimeException propagate(Throwable e) {
     if (e instanceof RuntimeException) {
       throw (RuntimeException) e;
     } else if (e instanceof Error) {
       throw (Error) e;
     } else {
-      throw new RuntimeException(e.getMessage());
+      throw new RuntimeException(e);
     }
   }
 

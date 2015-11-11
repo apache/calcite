@@ -295,11 +295,12 @@ public class RemoteMetaTest {
       DriverManager.getConnection(url, "john", "doe");
       fail("expected exception");
     } catch (RuntimeException e) {
-      assertEquals("Remote driver error: "
+      assertEquals("Remote driver error: RuntimeException: "
           + "java.sql.SQLInvalidAuthorizationSpecException: invalid authorization specification"
           + " - not found: john"
-          + " -> invalid authorization specification - not found: john"
-          + " -> invalid authorization specification - not found: john",
+          + " -> SQLInvalidAuthorizationSpecException: invalid authorization specification - "
+          + "not found: john"
+          + " -> HsqlException: invalid authorization specification - not found: john",
           e.getMessage());
     }
   }
@@ -321,7 +322,10 @@ public class RemoteMetaTest {
       fail("expected exception");
     } catch (Exception e) {
       assertEquals("Error -1 (00000) : Error while executing SQL \"select * from buffer\": "
-          + "Remote driver error: user lacks privilege or object not found: BUFFER",
+          + "Remote driver error: RuntimeException: java.sql.SQLSyntaxErrorException: "
+          + "user lacks privilege or object not found: BUFFER -> "
+          + "SQLSyntaxErrorException: user lacks privilege or object not found: BUFFER -> "
+          + "HsqlException: user lacks privilege or object not found: BUFFER",
           e.getMessage());
     }
   }

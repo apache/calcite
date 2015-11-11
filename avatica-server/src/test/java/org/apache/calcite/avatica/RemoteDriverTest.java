@@ -57,6 +57,7 @@ import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -856,7 +857,7 @@ public class RemoteDriverTest {
       fail("expected error, got " + resultSet);
     } catch (SQLException e) {
       assertThat(e.getMessage(),
-          equalTo("exception while executing query: unbound parameter"));
+          containsString("exception while executing query: unbound parameter"));
     }
 
     final ParameterMetaData parameterMetaData = ps.getParameterMetaData();

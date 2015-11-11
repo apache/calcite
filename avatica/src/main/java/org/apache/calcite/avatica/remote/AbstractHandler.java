@@ -133,6 +133,7 @@ public abstract class AbstractHandler<T> implements Handler<T> {
         sb.append(" -> ");
       }
       String message = curr.getMessage();
+      sb.append(curr.getClass().getSimpleName()).append(": ");
       sb.append(null == message ? NULL_EXCEPTION_MESSAGE : message);
       curr = curr.getCause();
     }
