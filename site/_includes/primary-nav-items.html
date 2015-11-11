@@ -3,7 +3,9 @@
     <a href="{{ site.baseurl }}/">Home</a>
   </li>
   <li class="{% if page.url contains '/docs/' %}current{% endif %}">
-    <a href="{{ site.baseurl }}/docs/">Documentation</a>
+    <a href="{{ site.baseurl }}/docs/">
+        <span class="show-on-mobiles">Docs</span>
+        <span class="hide-on-mobiles">Documentation</span></a>
   </li>
   <li class="{% if page.url contains '/talks/' %}current{% endif %}">
     <a href="{{ site.baseurl }}/talks/">Talks</a>

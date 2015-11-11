@@ -27,10 +27,52 @@ Calcite is released as a source artifact, and also through Maven.
 
 # Source releases
 
-Release          | Date       | Commit   | Notes | Download
-:--------------- | :--------- | :------- | :---- | :-------
-{% for post in site.categories.release %}{{ post.version }} | {{ post.date | date_to_string }} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha }}</a> | <a href="history.html#{{ post.tag }}">notes</a> | <a href="http://{% if forloop.index0 < 2 %}www.apache.org/dyn/closer.cgi{% else %}archive.apache.org/dist{% endif %}/calcite/{% if post.fullVersion %}{{ post.fullVersion }}{% else %}apache-calcite-{{ post.version }}{% endif %}">src</a>
-      {% endfor %}
+Release          | Date       | Commit   | Download
+:--------------- | :--------- | :------- | :-------
+{% for post in site.categories.release %}{% comment %}
+{% endcomment %}{% if post.fullVersion %}{% comment %}
+{% endcomment %}{% assign v = post.fullVersion %}{% comment %}
+{% endcomment %}{% else %}{% comment %}
+{% endcomment %}{% capture v %}apache-calcite-{{ post.version }}{% endcapture %}{% comment %}
+{% endcomment %}{% endif %}{% comment %}
+{% endcomment %}{% if forloop.index0 < 2 %}{% comment %}
+{% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
+{% endcomment %}{% assign q = "&action=download" %}{% comment %}
+{% endcomment %}{% assign d = "https://www.apache.org/dist" %}{% comment %}
+{% endcomment %}{% else %}{% comment %}
+{% endcomment %}{% capture p %}http://archive.apache.org/dist/incubator/calcite/{{ v }}{% endcapture %}{% comment %}
+{% endcomment %}{% assign q = "" %}{% comment %}
+{% endcomment %}{% assign d = "https://archive.apache.org/dist/incubator" %}{% comment %}
+{% endcomment %}{% endif %}{% comment %}
+{% endcomment %}<a href="history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
+{% endcomment %} | {{ post.date | date_to_string }}{% comment %}
+{% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
+{% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.md5">md5</a>{% comment %}
+{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
+{% endcomment %} {% raw %}<br>{% endraw %}{% comment %}
+{% endcomment %} <a href="{{ p }}/{{ v }}-src.zip{{ q }}">zip</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.md5">md5</a>{% comment %}
+{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.asc">pgp</a>){% comment %}
+{% endcomment %}
+{% endfor %}
+
+Choose a source distribution in either *tar* or *zip* format,
+and [verify](http://www.apache.org/dyn/closer.cgi#verify)
+using the corresponding *pgp* signature (using the committer file in
+[KEYS](http://www.apache.org/dist/calcite/KEYS)).
+If you cannot do that, the *md5* hash file may be used to check that the
+download has completed OK.
+
+For fast downloads, recent source distributions may be hosted on mirror servers;
+older source distributions are in the
+[archive](http://archive.apache.org/dist/calcite/)
+or [incubator archive](http://archive.apache.org/dist/incubator/calcite/).
+If a download from a mirror fails, retry, and the second download will likely
+succeed.
+
+For security, hash and signature files are always hosted at
+[Apache](https://www.apache.org/dist).
 
 # Maven artifacts
 
