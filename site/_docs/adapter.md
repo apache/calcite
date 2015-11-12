@@ -24,7 +24,7 @@ limitations under the License.
 
 * <a href="https://github.com/apache/drill">Apache Drill adapter</a>
 * Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
-* CSV adapter (example/csv)
+* CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)

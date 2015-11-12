@@ -170,6 +170,8 @@ footer {
   background-color: #212121;
   font-size: 16px;
   padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
   color: #c0c0c0;
   margin-top: 40px;
 
@@ -973,4 +975,15 @@ code.output {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+#poweredby {
+  float: right;
+  text-align: right;
+  width: 120px;
+  height: 36px;
+}
+
+#resources {
+  background-color: #000;
 }

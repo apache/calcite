@@ -25,6 +25,8 @@ limitations under the License.
 
 For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
+Downloads are available on the
+[downloads page]({{ site.baseurl }}/downloads/).
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.5.0">1.5.0</a> / 2015-11-06
 {: #v1-5-0}

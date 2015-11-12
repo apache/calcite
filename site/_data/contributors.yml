@@ -56,12 +56,22 @@
   githubId: jpullokkaran
   org: Hortonworks
   role: PMC
+- name: Josh Elser
+  apacheId: elserj
+  githubId: joshelser
+  org: Hortonworks
+  role: Committer
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
   org: Hortonworks
   role: PMC Chair
   homepage: http://people.apache.org/~jhyde
+- name: Maryann Xue
+  apacheId: maryannxue
+  githubId: maryannxue
+  org: Intel
+  role: Committer
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk

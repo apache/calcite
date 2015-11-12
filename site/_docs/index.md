@@ -139,7 +139,7 @@ The following features are complete.
   (syntax as <a
   href="http://www.postgresql.org/docs/8.4/static/sql-select.html#SQL-LIMIT">Postgres</a>);
   more details in the [SQL reference](reference.html)
-* Local and remote JDBC drivers; see [Avatica](avatica.html)
+* Local and remote JDBC drivers; see [Avatica](avatica_overview.html)
 * Several [adapters](adapter.html)
 
 

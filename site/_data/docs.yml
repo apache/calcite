@@ -41,9 +41,7 @@
 
 - title: Meta
   docs:
-  - downloads
   - history
-  - contributing
   - api
   - testapi
 # End docs.yml

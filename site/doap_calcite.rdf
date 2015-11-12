@@ -38,7 +38,7 @@ limitations under the License.
       plugins.</description>
     <bug-database rdf:resource="https://issues.apache.org/jira/browse/CALCITE" />
     <mailing-list rdf:resource="https://calcite.apache.org/develop" />
-    <download-page rdf:resource="https://calcite.apache.org/docs/downloads.html" />
+    <download-page rdf:resource="https://calcite.apache.org/downloads" />
     <programming-language>Java</programming-language>
     <category rdf:resource="http://projects.apache.org/category/big-data" />
     <category rdf:resource="http://projects.apache.org/category/hadoop" />

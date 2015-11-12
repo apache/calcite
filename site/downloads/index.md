@@ -1,7 +1,6 @@
 ---
-layout: docs
+layout: page
 title: Downloads
-permalink: /docs/downloads.html
 ---
 
 <!--
@@ -44,7 +43,7 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% assign q = "" %}{% comment %}
 {% endcomment %}{% assign d = "https://archive.apache.org/dist/incubator" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
-{% endcomment %}<a href="history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
+{% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
 {% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
