@@ -237,7 +237,7 @@ public abstract class AbstractCursor implements Cursor {
 
   /** Accesses a date value as a string, e.g. "2013-09-22". */
   private static String dateAsString(int v, Calendar calendar) {
-    AvaticaUtils.discard(calendar); // timezone shift doesn't make sense
+    AvaticaUtils.discard(calendar); // time zone shift doesn't make sense
     return DateTimeUtils.unixDateToString(v);
   }
 

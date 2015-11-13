@@ -83,15 +83,15 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   }
 
   /**
-   * Returns timezone component of this literal. Technically, a sql date
+   * Returns time zone component of this literal. Technically, a SQL date
    * doesn't come with a tz, but time and ts inherit this, and the calendar
    * object has one, so it seems harmless.
    *
-   * @return timezone
+   * @return time zone
    */
   public TimeZone getTimeZone() {
-    assert hasTimeZone : "Attempt to get timezone on Literal date: "
-        + getCal() + ", which has no timezone";
+    assert hasTimeZone : "Attempt to get time zone on Literal date: "
+        + getCal() + ", which has no time zone";
     return getCal().getTimeZone();
   }
 

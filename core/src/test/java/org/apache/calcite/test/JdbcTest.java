@@ -1157,7 +1157,7 @@ public class JdbcTest {
       names.add(info.name);
     }
     assertTrue(names.contains("SCHEMA"));
-    assertTrue(names.contains("TIMEZONE"));
+    assertTrue(names.contains("TIME_ZONE"));
     assertTrue(names.contains("MATERIALIZATIONS_ENABLED"));
   }
 

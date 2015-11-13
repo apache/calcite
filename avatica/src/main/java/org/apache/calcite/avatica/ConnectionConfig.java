@@ -22,10 +22,15 @@ import org.apache.calcite.avatica.remote.Service;
  * Connection configuration.
  */
 public interface ConnectionConfig {
+  /** @see BuiltInConnectionProperty#SCHEMA */
   String schema();
+  /** @see BuiltInConnectionProperty#TIME_ZONE */
   String timeZone();
+  /** @see BuiltInConnectionProperty#FACTORY */
   Service.Factory factory();
+  /** @see BuiltInConnectionProperty#URL */
   String url();
+  /** @see BuiltInConnectionProperty#SERIALIZATION */
   String serialization();
 }
 

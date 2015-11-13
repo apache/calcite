@@ -379,7 +379,7 @@ public class SqlDialect {
    * </blockquote>
    *
    * returns {@code TIMESTAMP '1970-01-01 00:00:00'}, regardless of the JVM's
-   * timezone.
+   * time zone.
    *
    * @param timestamp Timestamp
    * @return SQL timestamp literal

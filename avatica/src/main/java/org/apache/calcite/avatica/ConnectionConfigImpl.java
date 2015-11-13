@@ -35,7 +35,7 @@ public class ConnectionConfigImpl implements ConnectionConfig {
   }
 
   public String timeZone() {
-    return BuiltInConnectionProperty.TIMEZONE.wrap(properties).getString();
+    return BuiltInConnectionProperty.TIME_ZONE.wrap(properties).getString();
   }
 
   public Service.Factory factory() {

@@ -33,8 +33,8 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
 
-  /** Timezone, for example 'gmt-3'. Default is the JVM's time zone. */
-  TIMEZONE("timezone", Type.STRING, null, false),
+  /** Time zone, for example 'gmt-3'. Default is the JVM's time zone. */
+  TIME_ZONE("timeZone", Type.STRING, null, false),
 
   /** Remote URL. */
   URL("url", Type.STRING, null, false),
@@ -47,10 +47,14 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   private final Object defaultValue;
   private final boolean required;
 
+  /** Deprecated; use {@link #TIME_ZONE}. */
+  @Deprecated // to be removed before 2.0
+  public static final BuiltInConnectionProperty TIMEZONE = TIME_ZONE;
+
   private static final Map<String, BuiltInConnectionProperty> NAME_TO_PROPS;
 
   static {
-    NAME_TO_PROPS = new HashMap<String, BuiltInConnectionProperty>();
+    NAME_TO_PROPS = new HashMap<>();
     for (BuiltInConnectionProperty p : BuiltInConnectionProperty.values()) {
       NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
       NAME_TO_PROPS.put(p.name(), p);

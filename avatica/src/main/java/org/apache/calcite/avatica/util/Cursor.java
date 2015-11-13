@@ -47,7 +47,7 @@ public interface Cursor extends Closeable {
    *
    *
    * @param types List of column types, per {@link java.sql.Types}.
-   * @param localCalendar Calendar in local timezone
+   * @param localCalendar Calendar in local time zone
    * @param factory Factory that creates sub-ResultSets when needed
    * @return List of column accessors
    */
