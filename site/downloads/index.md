@@ -63,7 +63,7 @@ using the corresponding *pgp* signature (using the committer file in
 If you cannot do that, the *md5* hash file may be used to check that the
 download has completed OK.
 
-For fast downloads, recent source distributions may be hosted on mirror servers;
+For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the
 [archive](http://archive.apache.org/dist/calcite/)
 or [incubator archive](http://archive.apache.org/dist/incubator/calcite/).

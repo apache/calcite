@@ -55,7 +55,8 @@ limitations under the License.
   <div class="post-content">
     {{ post.content }}
     {% if post.categories contains 'release' %}
-    <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">release notes</a>.</p>
+    <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">release notes</a>;
+      <a href="{{ site.baseurl }}/downloads#source-releases">download</a> the release.</p>
     {% endif %}
   </div>
 </article>
