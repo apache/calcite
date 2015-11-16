@@ -68,6 +68,38 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>=($t0, $t2)], expr#4=[
   EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 
+# [CALCITE-970] Default collation of NULL values
+# Nulls high, i.e. last if ASC
+select "store_id", "grocery_sqft" from "store"
+where "store_id" < 3
+order by 2;
++----------+--------------+
+| store_id | grocery_sqft |
++----------+--------------+
+|        1 |        17475 |
+|        2 |        22271 |
+|        0 |              |
++----------+--------------+
+(3 rows)
+
+!ok
+
+# [CALCITE-969] Composite EnumerableSort with DESC wrongly sorts NULL values low
+# Nulls high, i.e. last if ASC, composite sort
+select "store_id", "grocery_sqft" from "store"
+where "store_id" < 3
+order by "florist", 2;
++----------+--------------+
+| store_id | grocery_sqft |
++----------+--------------+
+|        1 |        17475 |
+|        2 |        22271 |
+|        0 |              |
++----------+--------------+
+(3 rows)
+
+!ok
+
 !use post
 
 # [CALCITE-603] WITH ... ORDER BY cannot find table
