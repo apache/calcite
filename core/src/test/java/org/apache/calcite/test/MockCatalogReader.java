@@ -519,8 +519,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                 : RelFieldCollation.Direction.ASCENDING;
         collationList.add(
             RelCollations.of(
-                new RelFieldCollation(i, direction,
-                    RelFieldCollation.NullDirection.UNSPECIFIED)));
+                new RelFieldCollation(i, direction)));
       }
     }
     return collationList;

@@ -69,6 +69,36 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>=($t0, $t2)], expr#4=[
 !plan
 
 # [CALCITE-970] Default collation of NULL values
+# Nulls high, i.e. first if DESC
+select "store_id", "grocery_sqft" from "store"
+where "store_id" < 3
+order by 2 DESC;
++----------+--------------+
+| store_id | grocery_sqft |
++----------+--------------+
+|        0 |              |
+|        2 |        22271 |
+|        1 |        17475 |
++----------+--------------+
+(3 rows)
+
+!ok
+
+# Nulls high, i.e. first if DESC, composite sort
+select "store_id", "grocery_sqft" from "store"
+where "store_id" < 3
+order by "florist", 2 DESC;
++----------+--------------+
+| store_id | grocery_sqft |
++----------+--------------+
+|        0 |              |
+|        2 |        22271 |
+|        1 |        17475 |
++----------+--------------+
+(3 rows)
+
+!ok
+
 # Nulls high, i.e. last if ASC
 select "store_id", "grocery_sqft" from "store"
 where "store_id" < 3

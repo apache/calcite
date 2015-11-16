@@ -29,7 +29,9 @@ import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -3032,15 +3034,15 @@ public class JdbcTest {
             + "store_id=0; grocery_sqft=null\n");
   }
 
-  /** Tests ORDER BY ... DESC. Nulls come last, as for ASC. */
+  /** Tests ORDER BY ... DESC. Nulls come first (they come last for ASC). */
   @Test public void testOrderByDesc() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select \"store_id\", \"grocery_sqft\" from \"store\"\n"
             + "where \"store_id\" < 3 order by 2 desc")
-        .returns("store_id=2; grocery_sqft=22271\n"
-            + "store_id=1; grocery_sqft=17475\n"
-            + "store_id=0; grocery_sqft=null\n");
+        .returns("store_id=0; grocery_sqft=null\n"
+            + "store_id=2; grocery_sqft=22271\n"
+            + "store_id=1; grocery_sqft=17475\n");
   }
 
   /** Tests sorting by an expression not in the select clause. */
@@ -3139,6 +3141,53 @@ public class JdbcTest {
         .returns("store_id=1; grocery_sqft=17475\n"
             + "store_id=2; grocery_sqft=22271\n"
             + "store_id=0; grocery_sqft=null\n");
+  }
+
+  /** Tests ORDER BY ...  with various values of
+   * {@link CalciteConnectionConfig#defaultNullCollation()}. */
+  @Test public void testOrderByVarious() {
+    final boolean[] booleans = {false, true};
+    for (NullCollation nullCollation : NullCollation.values()) {
+      for (boolean asc : booleans) {
+        checkOrderBy(asc, nullCollation);
+      }
+    }
+  }
+
+  public void checkOrderBy(final boolean desc,
+      final NullCollation nullCollation) {
+    final Function<ResultSet, Void> checker = new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        final String msg = (desc ? "DESC" : "ASC") + ":" + nullCollation;
+        final List<Number> numbers = new ArrayList<>();
+        try {
+          while (resultSet.next()) {
+            numbers.add((Number) resultSet.getObject(2));
+          }
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        assertThat(msg, numbers.size(), is(3));
+        assertThat(msg, numbers.get(nullCollation.last(desc) ? 2 : 0), nullValue());
+        return null;
+      }
+    };
+    final CalciteAssert.AssertThat with = CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .with("defaultNullCollation", nullCollation.name());
+    final String sql = "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+        + "where \"store_id\" < 3 order by 2 "
+        + (desc ? " DESC" : "");
+    final String sql1 = "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+        + "where \"store_id\" < 3 order by \"florist\", 2 "
+        + (desc ? " DESC" : "");
+    final String sql2 = "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+        + "where \"store_id\" < 3 order by 2 "
+        + (desc ? " DESC" : "")
+        + ", 1";
+    with.query(sql).returns(checker);
+    with.query(sql1).returns(checker);
+    with.query(sql2).returns(checker);
   }
 
   /** Tests ORDER BY ... FETCH. */

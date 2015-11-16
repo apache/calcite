@@ -39,6 +39,11 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   /** Whether Calcite should create materializations. */
   CREATE_MATERIALIZATIONS("createMaterializations", Type.BOOLEAN, true, false),
 
+  /** How NULL values should be sorted if neither NULLS FIRST nor NULLS LAST are
+   * specified. The defult, HIGH, sorts NULL values the same as Oracle. */
+  DEFAULT_NULL_COLLATION("defaultNullCollation", Type.ENUM, NullCollation.HIGH,
+      true),
+
   /** URI of the model. */
   MODEL("model", Type.STRING, null, false),
 
@@ -128,6 +133,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   public PropEnv wrap(Properties properties) {
     return new PropEnv(parse(properties, NAME_TO_PROPS), this);
   }
+
 }
 
 // End CalciteConnectionProperty.java

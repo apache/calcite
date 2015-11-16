@@ -67,10 +67,7 @@ public class RelCollations {
    * Creates a collation containing one field.
    */
   public static RelCollation of(int fieldIndex) {
-    return of(
-        new RelFieldCollation(fieldIndex,
-            RelFieldCollation.Direction.ASCENDING,
-            RelFieldCollation.NullDirection.UNSPECIFIED));
+    return of(new RelFieldCollation(fieldIndex));
   }
 
   /**

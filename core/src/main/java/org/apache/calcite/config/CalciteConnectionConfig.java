@@ -30,6 +30,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean materializationsEnabled();
   /** @see CalciteConnectionProperty#CREATE_MATERIALIZATIONS */
   boolean createMaterializations();
+  /** @see CalciteConnectionProperty#DEFAULT_NULL_COLLATION */
+  NullCollation defaultNullCollation();
   /** @see CalciteConnectionProperty#MODEL */
   String model();
   /** @see CalciteConnectionProperty#LEX */

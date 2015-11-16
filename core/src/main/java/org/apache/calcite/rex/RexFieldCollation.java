@@ -63,7 +63,7 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
         ? RelFieldCollation.NullDirection.LAST
         : right.contains(SqlKind.NULLS_FIRST)
             ? RelFieldCollation.NullDirection.FIRST
-            : RelFieldCollation.NullDirection.UNSPECIFIED;
+            : getDirection().defaultNullDirection();
   }
 }
 

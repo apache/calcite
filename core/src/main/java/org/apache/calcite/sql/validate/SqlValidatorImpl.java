@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -257,6 +258,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected boolean expandColumnReferences;
 
   private boolean rewriteCalls;
+
+  private NullCollation nullCollation = NullCollation.HIGH;
 
   // TODO jvs 11-Dec-2008:  make this local to performUnconditionalRewrites
   // if it's OK to expand the signature of that method.
@@ -1687,6 +1690,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // implement SqlValidator
   public boolean getColumnReferenceExpansion() {
     return expandColumnReferences;
+  }
+
+  public void setDefaultNullCollation(NullCollation nullCollation) {
+    this.nullCollation = Preconditions.checkNotNull(nullCollation);
+  }
+
+  public NullCollation getDefaultNullCollation() {
+    return nullCollation;
   }
 
   // implement SqlValidator

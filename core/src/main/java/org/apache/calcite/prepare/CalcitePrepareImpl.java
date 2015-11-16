@@ -714,6 +714,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final SqlValidator validator =
           createSqlValidator(catalogReader, typeFactory);
       validator.setIdentifierExpansion(true);
+      validator.setDefaultNullCollation(config.defaultNullCollation());
 
       final List<Prepare.Materialization> materializations =
           config.materializationsEnabled()

@@ -1218,8 +1218,8 @@ public class RelBuilder {
     final List<RexNode> originalExtraNodes = ImmutableList.copyOf(extraNodes);
     for (RexNode node : nodes) {
       fieldCollations.add(
-          collation(node, RelFieldCollation.Direction.ASCENDING,
-              RelFieldCollation.NullDirection.UNSPECIFIED, extraNodes));
+          collation(node, RelFieldCollation.Direction.ASCENDING, null,
+              extraNodes));
     }
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
@@ -1274,8 +1274,8 @@ public class RelBuilder {
       RelFieldCollation.NullDirection nullDirection, List<RexNode> extraNodes) {
     switch (node.getKind()) {
     case INPUT_REF:
-      return new RelFieldCollation(((RexInputRef) node).getIndex(),
-          direction, nullDirection);
+      return new RelFieldCollation(((RexInputRef) node).getIndex(), direction,
+          Util.first(nullDirection, direction.defaultNullDirection()));
     case DESCENDING:
       return collation(((RexCall) node).getOperands().get(0),
           RelFieldCollation.Direction.DESCENDING,
@@ -1289,7 +1289,8 @@ public class RelBuilder {
     default:
       final int fieldIndex = extraNodes.size();
       extraNodes.add(node);
-      return new RelFieldCollation(fieldIndex, direction, nullDirection);
+      return new RelFieldCollation(fieldIndex, direction,
+          Util.first(nullDirection, direction.defaultNullDirection()));
     }
   }
 

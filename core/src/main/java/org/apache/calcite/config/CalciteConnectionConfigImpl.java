@@ -51,6 +51,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  public NullCollation defaultNullCollation() {
+    return CalciteConnectionProperty.DEFAULT_NULL_COLLATION.wrap(properties)
+        .getEnum(NullCollation.class, NullCollation.HIGH);
+  }
+
   public String model() {
     return CalciteConnectionProperty.MODEL.wrap(properties).getString();
   }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -596,6 +597,14 @@ public interface SqlValidator {
    * @return whether column reference expansion is enabled
    */
   boolean getColumnReferenceExpansion();
+
+  /** Sets how NULL values should be collated if an ORDER BY item does not
+   * contain NULLS FIRST or NULLS LAST. */
+  void setDefaultNullCollation(NullCollation nullCollation);
+
+  /** Returns how NULL values should be collated if an ORDER BY item does not
+   * contain NULLS FIRST or NULLS LAST. */
+  NullCollation getDefaultNullCollation();
 
   /**
    * Returns expansion of identifiers.

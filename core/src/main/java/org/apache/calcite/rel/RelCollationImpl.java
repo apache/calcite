@@ -132,7 +132,7 @@ public class RelCollationImpl implements RelCollation {
       RelFieldCollation e = it.next();
       sb.append(e.getFieldIndex());
       if (e.direction != RelFieldCollation.Direction.ASCENDING
-          || e.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
+          || e.nullDirection != e.direction.defaultNullDirection()) {
         sb.append(' ').append(e.shortString());
       }
       if (!it.hasNext()) {
