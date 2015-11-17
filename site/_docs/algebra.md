@@ -285,9 +285,9 @@ Argument types:
 * `fieldName...` Array of String
 * `fieldNames` Iterable of String
 * `rowType` [RelDataType]({{ site.apiRoot }}/org/apache/calcite/rel/type/RelDataType.html)
-* `groupKey` [RelBuilder.GroupKey]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/GroupKey.html)
-* `aggCall...` Array of [RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html)
-* `aggCallList` Iterable of [RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html)
+* `groupKey` [RelBuilder.GroupKey]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.GroupKey.html)
+* `aggCall...` Array of [RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.AggCall.html)
+* `aggCallList` Iterable of [RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.AggCall.html)
 * `value...` Array of Object
 * `value` Object
 * `tupleList` Iterable of List of [RexLiteral]({{ site.apiRoot }}/org/apache/calcite/rex/RexLiteral.html)
@@ -346,7 +346,7 @@ added to the stack.
 ### Group key methods
 
 The following methods return a
-[RelBuilder.GroupKey]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/GroupKey.html).
+[RelBuilder.GroupKey]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.GroupKey.html).
 
 | Method              | Description
 |:------------------- |:-----------
@@ -357,7 +357,7 @@ The following methods return a
 ### Aggregate call methods
 
 The following methods return an
-[RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder/AggCall.html).
+[RelBuilder.AggCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.AggCall.html).
 
 | Method              | Description
 |:------------------- |:-----------

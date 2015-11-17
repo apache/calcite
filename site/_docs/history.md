@@ -1455,7 +1455,7 @@ New features
 * Fix return type inference for aggregate calls. If the `GROUP BY` clause is
   empty, `SUM` may return null.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-37">CALCITE-37</a>]
-  Document JSON model file format (as <a href="model.md">model.md</a>).
+  Document JSON model file format (as <a href="{{ site.sourceRoot }}/site/_docs/model.md">model.md</a>).
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-238">CALCITE-238</a>]
   Add adapter that generates TPC-H data
 * Improve exception message in `AvaticaConnection`; add
@@ -1917,7 +1917,8 @@ Other
   materializations and end-user queries are canonized in terms of star tables.
   Matching (not done yet) will then be a matter of looking for sort, groupBy,
   project. It is not yet possible to define a star in an Optiq model file.
-* Add section to <a href="howto.md">HOWTO</a> on implementing adapters.
+* Add section to <a href="{{ site.sourceRoot }}/site/_docs/howto.md">HOWTO</a>
+  on implementing adapters.
 * Fix data type conversions when creating a clone table in memory.
 * Fix how strings are escaped in JsonBuilder.
 * Test suite now depends on an embedded hsqldb database, so you can run
@@ -1949,8 +1950,8 @@ Other
 {: #v0-4-15}
 
 * Lots of good stuff that this margin is too small to contain. See
-  <a href="reference.md">SQL language reference</a> and
-  <a href="model.md">JSON model reference</a>.
+  <a href="{{ site.sourceRoot }}/site/_docs/reference.md">SQL language reference</a> and
+  <a href="{{ site.sourceRoot }}/site/_docs/model.md">JSON model reference</a>.
 
 # Optiq-csv release history
 

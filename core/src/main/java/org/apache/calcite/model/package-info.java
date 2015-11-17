@@ -31,7 +31,7 @@
  * interfaces and including a custom schema in the model.</p>
  *
  * <p>There are several examples of schemas in the
- * <a href="https://github.com/apache/calcite/blob/master/doc/tutorial.md">tutorial</a>.
+ * <a href="https://calcite.apache.org/docs/tutorial.html">tutorial</a>.
  */
 @PackageMarker
 package org.apache.calcite.model;

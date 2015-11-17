@@ -739,7 +739,7 @@ The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
 
 Add a release note by copying
-[site/_posts/2015-xx-xx-release-1.5.0.md]({{ site.sourceRoot }}/site/_posts/2015-xx-xx-release-1.5.0.md),
+[site/_posts/2015-11-10-release-1.5.0.md]({{ site.sourceRoot }}/site/_posts/2015-11-10-release-1.5.0.md),
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 

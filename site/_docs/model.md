@@ -439,15 +439,18 @@ just 'count(*)':
 
 `statisticProvider` (optional name of a class that implements
 [org.apache.calcite.materialize.LatticeStatisticProvider]({{ site.apiRoot }}/org/apache/calcite/materialize/LatticeStatisticProvider.html))
-is provides estimates of the number of distinct values * in each column.
+provides estimates of the number of distinct values in each column.
 
-You can use a class name, or a class plus a static field, for example
-`org.apache.calcite.materialize.Lattices#CACHING_SQL_STATISTIC_PROVIDER`.
+You can use a class name, or a class plus a static field. Example:
+
+{% highlight json %}
+  "statisticProvider": "org.apache.calcite.materialize.Lattices#CACHING_SQL_STATISTIC_PROVIDER"
+{% endhighlight %}
 
 If not set, Calcite will generate and execute a SQL query to find the real
 value, and cache the results.
 
-See also: <a href="{{ site.baseurl }}/lattice.md">Lattices</a>.
+See also: <a href="{{ site.baseurl }}/docs/lattice.html">Lattices</a>.
 
 ### Tile
 
