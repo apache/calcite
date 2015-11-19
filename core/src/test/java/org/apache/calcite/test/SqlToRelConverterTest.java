@@ -1182,6 +1182,47 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
+  @Test public void testDelete() {
+    sql("delete from emp")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testDeleteWhere() {
+    sql("delete from emp where deptno = 10")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testUpdate() {
+    sql("update emp set empno = empno + 1")
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testUpdateSubQuery() {
+    final String sql = "update emp\n"
+        + "set empno = (\n"
+        + "  select min(empno) from emp as e where e.deptno = emp.deptno)";
+    sql(sql)
+        .convertsTo("${plan}");
+  }
+
+  @Test public void testUpdateWhere() {
+    sql("update emp set empno = empno + 1 where deptno = 10")
+        .convertsTo("${plan}");
+  }
+
+  @Ignore("CALCITE-985")
+  @Test public void testMerge() {
+    final String sql = "merge into emp as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.empno = source.empno\n"
+        + "when matched then\n"
+        + "  update set sal = sal + source.sal\n"
+        + "when not matched then\n"
+        + "  insert (empno, deptno, sal)\n"
+        + "  values (source.empno, source.deptno, source.sal)";
+    sql(sql).convertsTo("${plan}");
+  }
+
   @Test public void testSelectView() {
     // translated condition: deptno = 20 and sal > 1000 and empno > 100
     sql("select * from emp_20 where empno > 100")
