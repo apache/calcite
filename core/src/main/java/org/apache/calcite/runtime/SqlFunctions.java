@@ -1173,6 +1173,37 @@ public class SqlFunctions {
         : toBigDecimal(o.toString());
   }
 
+  /** Converts the internal representation of a SQL DATE (int) to the Java
+   * type used for UDF parameters ({@link java.sql.Date}). */
+  public static java.sql.Date internalToDate(int x) {
+    return new java.sql.Date(x * DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** As {@link #internalToDate(int)} but allows nulls. */
+  public static java.sql.Date internalToDate(Integer x) {
+    return x == null ? null : internalToDate(x.intValue());
+  }
+
+  /** Converts the internal representation of a SQL TIME (int) to the Java
+   * type used for UDF parameters ({@link java.sql.Time}). */
+  public static java.sql.Time internalToTime(int x) {
+    return new java.sql.Time(x);
+  }
+
+  public static java.sql.Time internalToTime(Integer x) {
+    return x == null ? null : internalToTime(x.intValue());
+  }
+
+  /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
+   * type used for UDF parameters ({@link java.sql.Timestamp}). */
+  public static java.sql.Timestamp internalToTimestamp(long x) {
+    return new java.sql.Timestamp(x);
+  }
+
+  public static java.sql.Timestamp internalToTimestamp(Long x) {
+    return x == null ? null : internalToTimestamp(x.longValue());
+  }
+
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
 
   /** Helper for CAST(... AS VARCHAR(maxLength)). */

@@ -120,6 +120,12 @@ public class UdfTest {
         + Smalls.MultipleFunction.class.getName()
         + "',\n"
         + "           methodName: '*'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           className: '"
+        + Smalls.AllTypesFunction.class.getName()
+        + "',\n"
+        + "           methodName: '*'\n"
         + "         }\n"
         + "       ]\n"
         + "     }\n"
@@ -556,6 +562,30 @@ public class UdfTest {
     adhoc3.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-986">[CALCITE-986]
+   * User-defined function with Date or Timestamp parameters</a>. */
+  @Test public void testDate() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values \"adhoc\".\"dateFun\"(DATE '1970-01-01')")
+        .returnsValue("0");
+    with.query("values \"adhoc\".\"dateFun\"(DATE '1970-01-02')")
+        .returnsValue("86400000");
+    with.query("values \"adhoc\".\"dateFun\"(cast(null as date))")
+        .returnsValue("-1");
+    with.query("values \"adhoc\".\"timeFun\"(TIME '00:00:00')")
+        .returnsValue("0");
+    with.query("values \"adhoc\".\"timeFun\"(TIME '00:01:30')")
+        .returnsValue("90000");
+    with.query("values \"adhoc\".\"timeFun\"(cast(null as time))")
+        .returnsValue("-1");
+    with.query("values \"adhoc\".\"timestampFun\"(TIMESTAMP '1970-01-01 00:00:00')")
+        .returnsValue("0");
+    with.query("values \"adhoc\".\"timestampFun\"(TIMESTAMP '1970-01-02 00:01:30')")
+        .returnsValue("86490000");
+    with.query("values \"adhoc\".\"timestampFun\"(cast(null as timestamp))")
+        .returnsValue("-1");
+  }
 }
 
 // End UdfTest.java

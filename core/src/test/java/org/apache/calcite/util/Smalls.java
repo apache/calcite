@@ -403,6 +403,15 @@ public class Smalls {
     public int nonStatic(int x) { return x * 3; }
   }
 
+  /** UDF class that provides user-defined functions for each data type. */
+  public static class AllTypesFunction {
+    private AllTypesFunction() {}
+
+    public static long dateFun(java.sql.Date x) { return x == null ? -1L : x.getTime(); }
+    public static long timestampFun(java.sql.Timestamp x) { return x == null ? -1L : x.getTime(); }
+    public static long timeFun(java.sql.Time x) { return x == null ? -1L : x.getTime(); }
+  }
+
   /** Example of a user-defined aggregate function (UDAF). */
   public static class MySumFunction {
     public MySumFunction() {
