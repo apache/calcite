@@ -24,12 +24,14 @@ import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -56,6 +58,7 @@ public class StreamRules {
           new DeltaAggregateTransposeRule(),
           new DeltaSortTransposeRule(),
           new DeltaUnionTransposeRule(),
+          new DeltaJoinTransposeRule(),
           new DeltaTableScanRule());
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
@@ -191,6 +194,49 @@ public class StreamRules {
             LogicalTableScan.create(cluster, relOptTable2);
         call.transformTo(newScan);
       }
+    }
+  }
+
+  /**
+   * Planner rule that pushes a {@link Delta} through a {@link Join}.
+   *
+   * Product rule [1] is applied to implement the transpose:
+   * stream(x join y)" = "x join stream(y) union all stream(x) join y
+   *
+   * [1] https://en.wikipedia.org/wiki/Product_rule
+   */
+  public static class DeltaJoinTransposeRule extends RelOptRule {
+
+    public DeltaJoinTransposeRule() {
+      super(
+          operand(Delta.class,
+              operand(Join.class, any())));
+    }
+
+    @Override
+    public void onMatch(RelOptRuleCall call) {
+      final Delta delta = call.rel(0);
+      final Join join = call.rel(1);
+      final RelOptCluster cluster = delta.getCluster();
+      RelNode left = join.getLeft();
+      RelNode right = join.getRight();
+
+      final LogicalDelta rightWithDelta = LogicalDelta.create(right);
+      final LogicalJoin joinL = LogicalJoin.create(left, rightWithDelta, join.getCondition(),
+          join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone(),
+          ImmutableList.copyOf(join.getSystemFieldList()));
+
+      final LogicalDelta leftWithDelta = LogicalDelta.create(left);
+      final LogicalJoin joinR = LogicalJoin.create(leftWithDelta, right, join.getCondition(),
+          join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone(),
+          ImmutableList.copyOf(join.getSystemFieldList()));
+
+      List<RelNode> inputsToUnion = Lists.newArrayList();
+      inputsToUnion.add(joinL);
+      inputsToUnion.add(joinR);
+
+      final LogicalUnion newNode = LogicalUnion.create(inputsToUnion, true);
+      call.transformTo(newNode);
     }
   }
 }
