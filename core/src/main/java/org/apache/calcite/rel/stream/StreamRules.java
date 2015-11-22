@@ -29,13 +29,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.*;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.Util;
@@ -193,6 +187,8 @@ public class StreamRules {
         final LogicalTableScan newScan =
             LogicalTableScan.create(cluster, relOptTable2);
         call.transformTo(newScan);
+      } else {
+        call.transformTo(LogicalValues.createEmpty(cluster, delta.getRowType()));
       }
     }
   }
