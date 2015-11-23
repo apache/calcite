@@ -257,6 +257,58 @@ public class MaterializationTest {
         JdbcTest.HR_MODEL);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-988">[CALCITE-988]
+   * FilterToProjectUnifyRule.invert(MutableRel, MutableRel, MutableProject)
+   * works incorrectly</a>. */
+  @Test public void testFilterQueryOnProjectView8() {
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      final String m = "select \"salary\", \"commission\",\n"
+          + "\"deptno\", \"empid\", \"name\" from \"emps\"";
+      final String v = "select * from \"emps\" where \"salary\" is null";
+      final String q = "select * from V where \"commission\" is null";
+      final JsonBuilder builder = new JsonBuilder();
+      final String model = "{\n"
+          + "  version: '1.0',\n"
+          + "  defaultSchema: 'hr',\n"
+          + "  schemas: [\n"
+          + "    {\n"
+          + "      materializations: [\n"
+          + "        {\n"
+          + "          table: 'm0',\n"
+          + "          view: 'm0v',\n"
+          + "          sql: " + builder.toJsonString(m)
+          + "        }\n"
+          + "      ],\n"
+          + "      tables: [\n"
+          + "        {\n"
+          + "          name: 'V',\n"
+          + "          type: 'view',\n"
+          + "          sql: " + builder.toJsonString(v) + "\n"
+          + "        }\n"
+          + "      ],\n"
+          + "      type: 'custom',\n"
+          + "      name: 'hr',\n"
+          + "      factory: 'org.apache.calcite.adapter.java.ReflectiveSchema$Factory',\n"
+          + "      operand: {\n"
+          + "        class: 'org.apache.calcite.test.JdbcTest$HrSchema'\n"
+          + "      }\n"
+          + "    }\n"
+          + "  ]\n"
+          + "}\n";
+      CalciteAssert.that()
+          .withModel(model)
+          .query(q)
+          .enableMaterializations(true)
+          .explainMatches("", CONTAINS_M0)
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
   @Test public void testFilterQueryOnFilterView() {
     checkMaterialize(
         "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10",
