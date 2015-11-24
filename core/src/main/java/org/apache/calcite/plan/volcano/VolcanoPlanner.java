@@ -1982,7 +1982,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           new VolcanoRuleMatch(
               volcanoPlanner,
               getOperand0(),
-              rels);
+              rels,
+              nodeInputs);
       volcanoPlanner.ruleQueue.addMatch(match);
     }
   }

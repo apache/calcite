@@ -24,6 +24,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -45,8 +46,8 @@ public abstract class RelOptRuleCall {
   //~ Instance fields --------------------------------------------------------
 
   public final int id;
-  private final RelOptRuleOperand operand0;
-  private final Map<RelNode, List<RelNode>> nodeInputs;
+  protected final RelOptRuleOperand operand0;
+  protected Map<RelNode, List<RelNode>> nodeInputs;
   public final RelOptRule rule;
   public final RelNode[] rels;
   private final RelOptPlanner planner;
@@ -167,6 +168,16 @@ public abstract class RelOptRuleCall {
    */
   public List<RelNode> getChildRels(RelNode rel) {
     return nodeInputs.get(rel);
+  }
+
+  /** Assigns the input relational expressions of a given relational expression,
+   * as seen by this particular call. Is only called when the operand is
+   * {@link RelOptRule#any()}. */
+  protected void setChildRels(RelNode rel, List<RelNode> inputs) {
+    if (nodeInputs.isEmpty()) {
+      nodeInputs = new HashMap<>();
+    }
+    nodeInputs.put(rel, inputs);
   }
 
   /**

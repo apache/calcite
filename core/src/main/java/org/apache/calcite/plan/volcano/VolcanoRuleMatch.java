@@ -21,6 +21,9 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * A match of a rule to a particular set of target relational expressions,
  * frozen in time.
@@ -31,7 +34,6 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
   private final RelSet targetSet;
   private RelSubset targetSubset;
   private String digest;
-  private final VolcanoPlanner volcanoPlanner;
   private double cachedImportance = Double.NaN;
 
   //~ Constructors -----------------------------------------------------------
@@ -42,16 +44,14 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
    * @param operand0 Primary operand
    * @param rels     List of targets; copied by the constructor, so the client
    *                 can modify it later
+   * @param nodeInputs Map from relational expressions to their inputs
    * @pre rels[i] != null
    */
-  VolcanoRuleMatch(
-      VolcanoPlanner volcanoPlanner,
-      RelOptRuleOperand operand0,
-      RelNode[] rels) {
-    super(volcanoPlanner, operand0, rels.clone());
-    this.volcanoPlanner = volcanoPlanner;
-    for (int i = 0; i < rels.length; i++) {
-      assert rels[i] != null;
+  VolcanoRuleMatch(VolcanoPlanner volcanoPlanner, RelOptRuleOperand operand0,
+      RelNode[] rels, Map<RelNode, List<RelNode>> nodeInputs) {
+    super(volcanoPlanner, operand0, rels.clone(), nodeInputs);
+    for (RelNode rel : rels) {
+      assert rel != null;
     }
 
     // Try to deduce which subset the result will belong to. Assume --
