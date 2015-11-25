@@ -118,6 +118,9 @@ public class JsonHandlerTest {
     @Override public ExecuteResponse apply(ExecuteRequest request) {
       return null;
     }
+
+    @Override
+    public void setRpcMetadata(RpcMetadataResponse metadata) {}
   }
 
   /**
@@ -146,10 +149,10 @@ public class JsonHandlerTest {
 
       final Service.ResultSetResponse resultSetResponse =
           new Service.ResultSetResponse(UUID.randomUUID().toString(),
-              RANDOM.nextInt(), false, signature, Meta.Frame.EMPTY, -1L);
+              RANDOM.nextInt(), false, signature, Meta.Frame.EMPTY, -1L, null);
 
       return new Service.ExecuteResponse(
-          Collections.singletonList(resultSetResponse), false);
+          Collections.singletonList(resultSetResponse), false, null);
     }
   }
 

@@ -18,9 +18,7 @@ package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
-import org.apache.calcite.avatica.remote.ProtobufHandler;
-import org.apache.calcite.avatica.remote.ProtobufTranslation;
-import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
+import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
@@ -41,35 +39,45 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Jetty handler that executes Avatica JSON request-responses.
  */
-public class AvaticaProtobufHandler extends AbstractHandler implements AvaticaHandler {
+public class AvaticaJsonHandler extends AbstractHandler implements AvaticaHandler {
   private static final Log LOG = LogFactory.getLog(AvaticaJsonHandler.class);
 
-  private final Service service;
-  private final ProtobufHandler pbHandler;
-  private final ProtobufTranslation protobufTranslation;
+  final Service service;
+  final JsonHandler jsonHandler;
 
-  public AvaticaProtobufHandler(Service service) {
-    this.protobufTranslation = new ProtobufTranslationImpl();
+  public AvaticaJsonHandler(Service service) {
     this.service = Objects.requireNonNull(service);
-    this.pbHandler = new ProtobufHandler(service, protobufTranslation);
+    this.jsonHandler = new JsonHandler(service);
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
-    response.setContentType("application/octet-stream;charset=utf-8");
+    response.setContentType("application/json;charset=utf-8");
     response.setStatus(HttpServletResponse.SC_OK);
     if (request.getMethod().equals("POST")) {
-      byte[] requestBytes;
-      try (ServletInputStream inputStream = request.getInputStream()) {
-        requestBytes = AvaticaUtils.readFullyToBytes(inputStream);
+      // First look for a request in the header, then look in the body.
+      // The latter allows very large requests without hitting HTTP 413.
+      String rawRequest = request.getHeader("request");
+      if (rawRequest == null) {
+        try (ServletInputStream inputStream = request.getInputStream()) {
+          rawRequest = AvaticaUtils.readFully(inputStream);
+        }
+      }
+      final String jsonRequest =
+          new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("request: " + jsonRequest);
       }
 
-      HandlerResponse<byte[]> handlerResponse = pbHandler.apply(requestBytes);
-
+      final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("response: " + jsonResponse);
+      }
       baseRequest.setHandled(true);
-      response.setStatus(handlerResponse.getStatusCode());
-      response.getOutputStream().write(handlerResponse.getResponse());
+      // Set the status code and write out the response.
+      response.setStatus(jsonResponse.getStatusCode());
+      response.getWriter().println(jsonResponse.getResponse());
     }
   }
 
@@ -78,8 +86,8 @@ public class AvaticaProtobufHandler extends AbstractHandler implements AvaticaHa
     // Set the metadata for the normal service calls
     service.setRpcMetadata(metadata);
     // Also add it to the handler to include with exceptions
-    pbHandler.setRpcMetadata(metadata);
+    jsonHandler.setRpcMetadata(metadata);
   }
 }
 
-// End AvaticaProtobufHandler.java
+// End AvaticaHandler.java

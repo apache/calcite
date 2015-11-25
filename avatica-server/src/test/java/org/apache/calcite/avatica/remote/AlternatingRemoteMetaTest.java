@@ -23,7 +23,7 @@ import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
-import org.apache.calcite.avatica.server.AvaticaHandler;
+import org.apache.calcite.avatica.server.AvaticaJsonHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
 import org.apache.calcite.avatica.server.Main.HandlerFactory;
@@ -193,7 +193,7 @@ public class AlternatingRemoteMetaTest {
       }
       HttpServer jsonServer = Main.start(mainArgs, 0, new HandlerFactory() {
         @Override public AbstractHandler createHandler(Service service) {
-          return new AvaticaHandler(service);
+          return new AvaticaJsonHandler(service);
         }
       });
       ACTIVE_SERVERS.add(jsonServer);

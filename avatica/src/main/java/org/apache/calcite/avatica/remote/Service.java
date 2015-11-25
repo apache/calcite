@@ -69,6 +69,13 @@ public interface Service {
   ConnectionSyncResponse apply(ConnectionSyncRequest request);
   DatabasePropertyResponse apply(DatabasePropertyRequest request);
 
+  /**
+   * Sets server-level metadata for RPCs. This includes information that is static across all RPCs.
+   *
+   * @param metadata The server-level metadata.
+   */
+  void setRpcMetadata(RpcMetadataResponse metadata);
+
   /** Factory that creates a {@code Service}. */
   interface Factory {
     Service create(AvaticaConnection connection);
@@ -128,7 +135,8 @@ public interface Service {
       @JsonSubTypes.Type(value = DatabasePropertyResponse.class, name = "databaseProperties"),
       @JsonSubTypes.Type(value = ExecuteResponse.class, name = "executeResults"),
       @JsonSubTypes.Type(value = ErrorResponse.class, name = "error"),
-      @JsonSubTypes.Type(value = SyncResultsResponse.class, name = "syncResults") })
+      @JsonSubTypes.Type(value = SyncResultsResponse.class, name = "syncResults"),
+      @JsonSubTypes.Type(value = RpcMetadataResponse.class, name = "rpcMetadata") })
   abstract class Response {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
@@ -888,6 +896,7 @@ public interface Service {
     public final Meta.Signature signature;
     public final Meta.Frame firstFrame;
     public final long updateCount;
+    public final RpcMetadataResponse rpcMetadata;
 
     ResultSetResponse() {
       connectionId = null;
@@ -896,6 +905,7 @@ public interface Service {
       signature = null;
       firstFrame = null;
       updateCount = 0;
+      rpcMetadata = null;
     }
 
     @JsonCreator
@@ -905,13 +915,15 @@ public interface Service {
         @JsonProperty("ownStatement") boolean ownStatement,
         @JsonProperty("signature") Meta.Signature signature,
         @JsonProperty("firstFrame") Meta.Frame firstFrame,
-        @JsonProperty("updateCount") long updateCount) {
+        @JsonProperty("updateCount") long updateCount,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.connectionId = connectionId;
       this.statementId = statementId;
       this.ownStatement = ownStatement;
       this.signature = signature;
       this.firstFrame = firstFrame;
       this.updateCount = updateCount;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override ResultSetResponse deserialize(Message genericMsg) {
@@ -943,8 +955,13 @@ public interface Service {
         frame = Meta.Frame.fromProto(msg.getFirstFrame());
       }
 
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc, Responses.ResultSetResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
       return new ResultSetResponse(connectionId, msg.getStatementId(), msg.getOwnStatement(),
-          signature, frame, msg.getUpdateCount());
+          signature, frame, msg.getUpdateCount(), metadata);
     }
 
     @Override Responses.ResultSetResponse serialize() {
@@ -964,6 +981,10 @@ public interface Service {
         builder.setFirstFrame(firstFrame.toProto());
       }
 
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
       return builder.build();
     }
 
@@ -976,6 +997,7 @@ public interface Service {
       result = prime * result + ((signature == null) ? 0 : signature.hashCode());
       result = prime * result + statementId;
       result = prime * result + (int) (updateCount ^ (updateCount >>> 32));
+      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
       return result;
     }
 
@@ -1007,6 +1029,14 @@ public interface Service {
             return false;
           }
         } else if (!signature.equals(other.signature)) {
+          return false;
+        }
+
+        if (null == rpcMetadata) {
+          if (null != rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
           return false;
         }
 
@@ -1250,16 +1280,20 @@ public interface Service {
   class ExecuteResponse extends Response {
     public final List<ResultSetResponse> results;
     public boolean missingStatement = false;
+    public final RpcMetadataResponse rpcMetadata;
 
     ExecuteResponse() {
       results = null;
+      rpcMetadata = null;
     }
 
     @JsonCreator
     public ExecuteResponse(@JsonProperty("resultSets") List<ResultSetResponse> results,
-        @JsonProperty("missingStatement") boolean missingStatement) {
+        @JsonProperty("missingStatement") boolean missingStatement,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.results = results;
       this.missingStatement = missingStatement;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override ExecuteResponse deserialize(Message genericMsg) {
@@ -1269,6 +1303,7 @@ public interface Service {
       }
 
       Responses.ExecuteResponse msg = (Responses.ExecuteResponse) genericMsg;
+      final Descriptor desc = msg.getDescriptorForType();
 
       List<Responses.ResultSetResponse> msgResults = msg.getResultsList();
       List<ResultSetResponse> copiedResults = new ArrayList<>(msgResults.size());
@@ -1277,7 +1312,12 @@ public interface Service {
         copiedResults.add(ResultSetResponse.fromProto(msgResult));
       }
 
-      return new ExecuteResponse(copiedResults, msg.getMissingStatement());
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc, Responses.ExecuteResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new ExecuteResponse(copiedResults, msg.getMissingStatement(), metadata);
     }
 
     @Override Responses.ExecuteResponse serialize() {
@@ -1287,15 +1327,19 @@ public interface Service {
         builder.addResults(result.serialize());
       }
 
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
       return builder.setMissingStatement(missingStatement).build();
     }
 
     @Override public int hashCode() {
-      if (null == results) {
-        return 0;
-      }
-
-      return results.hashCode();
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((results == null) ? 0 : results.hashCode());
+      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      return result;
     }
 
     @Override public boolean equals(Object o) {
@@ -1310,6 +1354,14 @@ public interface Service {
             return false;
           }
         } else if (!results.equals(other.results)) {
+          return false;
+        }
+
+        if (null == rpcMetadata) {
+          if (null != other.rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
           return false;
         }
 
@@ -1426,15 +1478,19 @@ public interface Service {
    * {@link org.apache.calcite.avatica.remote.Service.PrepareRequest}. */
   class PrepareResponse extends Response {
     public final Meta.StatementHandle statement;
+    public final RpcMetadataResponse rpcMetadata;
 
     PrepareResponse() {
       statement = null;
+      rpcMetadata = null;
     }
 
     @JsonCreator
     public PrepareResponse(
-        @JsonProperty("statement") Meta.StatementHandle statement) {
+        @JsonProperty("statement") Meta.StatementHandle statement,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.statement = statement;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override PrepareResponse deserialize(Message genericMsg) {
@@ -1444,8 +1500,14 @@ public interface Service {
       }
 
       Responses.PrepareResponse msg = (Responses.PrepareResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
 
-      return new PrepareResponse(Meta.StatementHandle.fromProto(msg.getStatement()));
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc, Responses.PrepareResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new PrepareResponse(Meta.StatementHandle.fromProto(msg.getStatement()), metadata);
     }
 
     @Override Responses.PrepareResponse serialize() {
@@ -1455,6 +1517,10 @@ public interface Service {
         builder.setStatement(statement.toProto());
       }
 
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
       return builder.build();
     }
 
@@ -1462,6 +1528,7 @@ public interface Service {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((statement == null) ? 0 : statement.hashCode());
+      result = prime * result + ((null == rpcMetadata) ? 0 : rpcMetadata.hashCode());
       return result;
     }
 
@@ -1477,6 +1544,14 @@ public interface Service {
             return false;
           }
         } else if (!statement.equals(other.statement)) {
+          return false;
+        }
+
+        if (null == rpcMetadata) {
+          if (null != other.rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
           return false;
         }
 
@@ -1592,18 +1667,22 @@ public interface Service {
     public final Meta.Frame frame;
     public boolean missingStatement = false;
     public boolean missingResults = false;
+    public final RpcMetadataResponse rpcMetadata;
 
     FetchResponse() {
       frame = null;
+      rpcMetadata = null;
     }
 
     @JsonCreator
     public FetchResponse(@JsonProperty("frame") Meta.Frame frame,
         @JsonProperty("missingStatement") boolean missingStatement,
-        @JsonProperty("missingResults") boolean missingResults) {
+        @JsonProperty("missingResults") boolean missingResults,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.frame = frame;
       this.missingStatement = missingStatement;
       this.missingResults = missingResults;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override FetchResponse deserialize(Message genericMsg) {
@@ -1613,9 +1692,15 @@ public interface Service {
       }
 
       Responses.FetchResponse msg = (Responses.FetchResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
+
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc, Responses.FetchResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
 
       return new FetchResponse(Meta.Frame.fromProto(msg.getFrame()), msg.getMissingStatement(),
-          msg.getMissingResults());
+          msg.getMissingResults(), metadata);
     }
 
     @Override Responses.FetchResponse serialize() {
@@ -1623,6 +1708,10 @@ public interface Service {
 
       if (null != frame) {
         builder.setFrame(frame.toProto());
+      }
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
       }
 
       return builder.setMissingStatement(missingStatement)
@@ -1633,6 +1722,7 @@ public interface Service {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((frame == null) ? 0 : frame.hashCode());
+      result = prime * result + ((null == rpcMetadata) ? 0 : rpcMetadata.hashCode());
       return result;
     }
 
@@ -1648,6 +1738,14 @@ public interface Service {
             return false;
           }
         } else if (!frame.equals(other.frame)) {
+          return false;
+        }
+
+        if (null == rpcMetadata) {
+          if (null != other.rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
           return false;
         }
 
@@ -1740,18 +1838,22 @@ public interface Service {
   class CreateStatementResponse extends Response {
     public final String connectionId;
     public final int statementId;
+    public final RpcMetadataResponse rpcMetadata;
 
     CreateStatementResponse() {
       connectionId = null;
       statementId = 0;
+      rpcMetadata = null;
     }
 
     @JsonCreator
     public CreateStatementResponse(
         @JsonProperty("connectionId") String connectionId,
-        @JsonProperty("statementId") int statementId) {
+        @JsonProperty("statementId") int statementId,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.connectionId = connectionId;
       this.statementId = statementId;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override CreateStatementResponse deserialize(Message genericMsg) {
@@ -1769,7 +1871,13 @@ public interface Service {
         connectionId = msg.getConnectionId();
       }
 
-      return new CreateStatementResponse(connectionId, msg.getStatementId());
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.CreateStatementResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new CreateStatementResponse(connectionId, msg.getStatementId(), metadata);
     }
 
     @Override Responses.CreateStatementResponse serialize() {
@@ -1778,6 +1886,10 @@ public interface Service {
 
       if (null != connectionId) {
         builder.setConnectionId(connectionId);
+      }
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
       }
 
       builder.setStatementId(statementId);
@@ -1790,6 +1902,7 @@ public interface Service {
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       result = prime * result + statementId;
+      result = prime * result + ((null == rpcMetadata) ? 0 : rpcMetadata.hashCode());
       return result;
     }
 
@@ -1805,6 +1918,14 @@ public interface Service {
             return false;
           }
         } else if (!connectionId.equals(other.connectionId)) {
+          return false;
+        }
+
+        if (null == rpcMetadata) {
+          if (null != other.rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
           return false;
         }
 
@@ -1899,8 +2020,16 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CloseStatementRequest}. */
   class CloseStatementResponse extends Response {
+    public final RpcMetadataResponse rpcMetadata;
+
+    public CloseStatementResponse() {
+      rpcMetadata = null;
+    }
+
     @JsonCreator
-    public CloseStatementResponse() {}
+    public CloseStatementResponse(@JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
+      this.rpcMetadata = rpcMetadata;
+    }
 
     @Override CloseStatementResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.CloseStatementResponse)) {
@@ -1908,22 +2037,52 @@ public interface Service {
             "Expected CloseStatementResponse, but got " + genericMsg.getClass().getName());
       }
 
-      return new CloseStatementResponse();
+      Responses.CloseStatementResponse msg = (Responses.CloseStatementResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
+
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.CloseStatementResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new CloseStatementResponse(metadata);
     }
 
     @Override Responses.CloseStatementResponse serialize() {
-      return Responses.CloseStatementResponse.newBuilder().build();
+      Responses.CloseStatementResponse.Builder builder =
+          Responses.CloseStatementResponse.newBuilder();
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return (null == rpcMetadata) ? 0 : rpcMetadata.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof CloseStatementResponse;
+      if (o == null || !(o instanceof CloseStatementResponse)) {
+        return false;
+      }
+
+      CloseStatementResponse other = (CloseStatementResponse) o;
+
+      if (null == rpcMetadata) {
+        if (null != other.rpcMetadata) {
+          return false;
+        }
+      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+        return false;
+      }
+
+      return true;
     }
   }
 
@@ -2050,9 +2209,15 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.OpenConnectionRequest}. */
   class OpenConnectionResponse extends Response {
+    public final RpcMetadataResponse rpcMetadata;
+
+    public OpenConnectionResponse() {
+      rpcMetadata = null;
+    }
 
     @JsonCreator
-    public OpenConnectionResponse() {
+    public OpenConnectionResponse(@JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override OpenConnectionResponse deserialize(Message genericMsg) {
@@ -2061,22 +2226,50 @@ public interface Service {
             "Expected OpenConnectionResponse, but got " + genericMsg.getClass().getName());
       }
 
-      return new OpenConnectionResponse();
+      Responses.OpenConnectionResponse msg = (Responses.OpenConnectionResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
+
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.OpenConnectionResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new OpenConnectionResponse(metadata);
     }
 
     @Override Responses.OpenConnectionResponse serialize() {
-      return Responses.OpenConnectionResponse.newBuilder().build();
+      Responses.OpenConnectionResponse.Builder builder =
+          Responses.OpenConnectionResponse.newBuilder();
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return (null == rpcMetadata) ? 0 : rpcMetadata.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof OpenConnectionResponse;
+      if (null == o || !(o instanceof OpenConnectionResponse)) {
+        return false;
+      }
+
+      OpenConnectionResponse other = (OpenConnectionResponse) o;
+      if (null == rpcMetadata) {
+        if (null != rpcMetadata) {
+          return false;
+        }
+      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+        return false;
+      }
+      return true;
     }
   }
 
@@ -2160,9 +2353,16 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CloseConnectionRequest}. */
   class CloseConnectionResponse extends Response {
+    public final RpcMetadataResponse rpcMetadata;
+
+    public CloseConnectionResponse() {
+      rpcMetadata = null;
+    }
 
     @JsonCreator
-    public CloseConnectionResponse() {}
+    public CloseConnectionResponse(@JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
+      this.rpcMetadata = rpcMetadata;
+    }
 
     @Override CloseConnectionResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.CloseConnectionResponse)) {
@@ -2170,22 +2370,51 @@ public interface Service {
             "Expected CloseConnectionResponse, but got " + genericMsg.getClass().getName());
       }
 
-      return new CloseConnectionResponse();
+      Responses.CloseConnectionResponse msg = (Responses.CloseConnectionResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
+
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.CloseConnectionResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new CloseConnectionResponse(metadata);
     }
 
     @Override Responses.CloseConnectionResponse serialize() {
-      return Responses.CloseConnectionResponse.newBuilder().build();
+      Responses.CloseConnectionResponse.Builder builder =
+          Responses.CloseConnectionResponse.newBuilder();
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
+      return builder.build();
     }
 
     @Override public int hashCode() {
-      return 0;
+      return (null == rpcMetadata) ? 0 : rpcMetadata.hashCode();
     }
 
     @Override public boolean equals(Object o) {
       if (o == this) {
         return true;
       }
-      return o instanceof CloseConnectionResponse;
+      if (o == null || !(o instanceof CloseConnectionResponse)) {
+        return false;
+      }
+      CloseConnectionResponse other = (CloseConnectionResponse) o;
+
+      if (null == rpcMetadata) {
+        if (null != other.rpcMetadata) {
+          return false;
+        }
+      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+        return false;
+      }
+
+      return true;
     }
   }
 
@@ -2291,14 +2520,18 @@ public interface Service {
    * {@link Meta#connectionSync(Meta.ConnectionHandle, Meta.ConnectionProperties)}. */
   class ConnectionSyncResponse extends Response {
     public final Meta.ConnectionProperties connProps;
+    public final RpcMetadataResponse rpcMetadata;
 
     ConnectionSyncResponse() {
       connProps = null;
+      rpcMetadata = null;
     }
 
     @JsonCreator
-    public ConnectionSyncResponse(@JsonProperty("connProps") Meta.ConnectionProperties connProps) {
+    public ConnectionSyncResponse(@JsonProperty("connProps") Meta.ConnectionProperties connProps,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.connProps = connProps;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override ConnectionSyncResponse deserialize(Message genericMsg) {
@@ -2308,8 +2541,16 @@ public interface Service {
       }
 
       Responses.ConnectionSyncResponse msg = (Responses.ConnectionSyncResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
 
-      return new ConnectionSyncResponse(ConnectionPropertiesImpl.fromProto(msg.getConnProps()));
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.ConnectionSyncResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new ConnectionSyncResponse(ConnectionPropertiesImpl.fromProto(msg.getConnProps()),
+          metadata);
     }
 
     @Override Responses.ConnectionSyncResponse serialize() {
@@ -2320,15 +2561,19 @@ public interface Service {
         builder.setConnProps(connProps.toProto());
       }
 
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
       return builder.build();
     }
 
     @Override public int hashCode() {
-      if (null == connProps) {
-        return 0;
-      }
-
-      return connProps.hashCode();
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((connProps == null) ? 0 : connProps.hashCode());
+      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      return result;
     }
 
     @Override public boolean equals(Object o) {
@@ -2346,6 +2591,14 @@ public interface Service {
           return false;
         }
 
+        if (null == rpcMetadata) {
+          if (null != other.rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+          return false;
+        }
+
         return true;
       }
 
@@ -2357,14 +2610,18 @@ public interface Service {
    * {@link Meta#getDatabaseProperties(Meta.ConnectionHandle)}. */
   class DatabasePropertyResponse extends Response {
     public final Map<Meta.DatabaseProperty, Object> map;
+    public final RpcMetadataResponse rpcMetadata;
 
     DatabasePropertyResponse() {
       map = null;
+      rpcMetadata = null;
     }
 
     @JsonCreator
-    public DatabasePropertyResponse(@JsonProperty("map") Map<Meta.DatabaseProperty, Object> map) {
+    public DatabasePropertyResponse(@JsonProperty("map") Map<Meta.DatabaseProperty, Object> map,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.map = map;
+      this.rpcMetadata = rpcMetadata;
     }
 
     @Override DatabasePropertyResponse deserialize(Message genericMsg) {
@@ -2374,6 +2631,7 @@ public interface Service {
       }
 
       Responses.DatabasePropertyResponse msg = (Responses.DatabasePropertyResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
 
       HashMap<Meta.DatabaseProperty, Object> properties = new HashMap<>();
       for (Responses.DatabasePropertyElement property : msg.getPropsList()) {
@@ -2410,7 +2668,13 @@ public interface Service {
         properties.put(dbProp, obj);
       }
 
-      return new DatabasePropertyResponse(properties);
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.DatabasePropertyResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new DatabasePropertyResponse(properties, metadata);
     }
 
     @Override Responses.DatabasePropertyResponse serialize() {
@@ -2453,15 +2717,19 @@ public interface Service {
         }
       }
 
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
       return builder.build();
     }
 
     @Override public int hashCode() {
-      if (null == map) {
-        return 0;
-      }
-
-      return map.hashCode();
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((map == null) ? 0 : map.hashCode());
+      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      return result;
     }
 
     @Override public boolean equals(Object o) {
@@ -2479,6 +2747,14 @@ public interface Service {
           return false;
         }
 
+        if (null == rpcMetadata) {
+          if (null != other.rpcMetadata) {
+            return false;
+          }
+        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+          return false;
+        }
+
         return true;
       }
 
@@ -2489,7 +2765,7 @@ public interface Service {
   /**
    * Response for any request that the server failed to successfully perform.
    * It is used internally by the transport layers to format errors for
-   * transport over the wire. Thus, {@link Request#apply} will never return
+   * transport over the wire. Thus, {@link Service#apply} will never return
    * an ErrorResponse.
    */
   public class ErrorResponse extends Response {
@@ -2503,6 +2779,7 @@ public interface Service {
     public final int errorCode;
     public final String sqlState;
     public final AvaticaSeverity severity;
+    public final RpcMetadataResponse rpcMetadata;
 
     ErrorResponse() {
       exceptions = Collections.singletonList("Unhandled exception");
@@ -2510,6 +2787,7 @@ public interface Service {
       errorCode = -1;
       sqlState = UNKNOWN_SQL_STATE;
       severity = AvaticaSeverity.UNKNOWN;
+      rpcMetadata = null;
     }
 
     @JsonCreator
@@ -2517,26 +2795,29 @@ public interface Service {
         @JsonProperty("errorMessage") String errorMessage,
         @JsonProperty("errorCode") int errorCode,
         @JsonProperty("sqlState") String sqlState,
-        @JsonProperty("severity") AvaticaSeverity severity) {
+        @JsonProperty("severity") AvaticaSeverity severity,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.exceptions = exceptions;
       this.errorMessage = errorMessage;
       this.errorCode = errorCode;
       this.sqlState = sqlState;
       this.severity = severity;
+      this.rpcMetadata = rpcMetadata;
     }
 
     protected ErrorResponse(Exception e, String errorMessage, int code, String sqlState,
-        AvaticaSeverity severity) {
-      this(errorMessage, code, sqlState, severity, toStackTraces(e));
+        AvaticaSeverity severity, RpcMetadataResponse rpcMetadata) {
+      this(errorMessage, code, sqlState, severity, toStackTraces(e), rpcMetadata);
     }
 
     protected ErrorResponse(String errorMessage, int code, String sqlState,
-        AvaticaSeverity severity, List<String> exceptions) {
+        AvaticaSeverity severity, List<String> exceptions, RpcMetadataResponse rpcMetadata) {
       this.exceptions = exceptions;
       this.errorMessage = errorMessage;
       this.errorCode = code;
       this.sqlState = sqlState;
       this.severity = severity;
+      this.rpcMetadata = rpcMetadata;
     }
 
     static List<String> toStackTraces(Exception e) {
@@ -2565,12 +2846,25 @@ public interface Service {
       }
 
       Responses.ErrorResponse msg = (Responses.ErrorResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
+
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
       return new ErrorResponse(msg.getExceptionsList(), msg.getErrorMessage(),
-          msg.getErrorCode(), msg.getSqlState(), AvaticaSeverity.fromProto(msg.getSeverity()));
+          msg.getErrorCode(), msg.getSqlState(), AvaticaSeverity.fromProto(msg.getSeverity()),
+          metadata);
     }
 
     @Override Responses.ErrorResponse serialize() {
       Responses.ErrorResponse.Builder builder = Responses.ErrorResponse.newBuilder();
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
       return builder.addAllExceptions(exceptions).setErrorMessage(errorMessage)
           .setErrorCode(errorCode).setSqlState(sqlState).setSeverity(severity.toProto()).build();
     }
@@ -2582,6 +2876,7 @@ public interface Service {
       result = prime * result + errorCode;
       result = prime * result + ((sqlState == null) ? 0 : sqlState.hashCode());
       result = prime * result + ((severity == null) ? 0 : severity.hashCode());
+      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
       return result;
     }
 
@@ -2626,12 +2921,20 @@ public interface Service {
         return false;
       }
 
+      if (null == rpcMetadata) {
+        if (null != other.rpcMetadata) {
+          return false;
+        }
+      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+        return false;
+      }
+
       return true;
     }
 
     public AvaticaClientRuntimeException toException() {
       return new AvaticaClientRuntimeException("Remote driver error: " + errorMessage, errorCode,
-          sqlState, severity, exceptions);
+          sqlState, severity, exceptions, rpcMetadata);
     }
   }
 
@@ -2748,15 +3051,19 @@ public interface Service {
   class SyncResultsResponse extends Response {
     public boolean missingStatement = false;
     public final boolean moreResults;
+    public final RpcMetadataResponse rpcMetadata;
 
     SyncResultsResponse() {
       this.moreResults = false;
+      this.rpcMetadata = null;
     }
 
     public SyncResultsResponse(@JsonProperty("moreResults") boolean moreResults,
-        @JsonProperty("missingStatement") boolean missingStatement) {
+        @JsonProperty("missingStatement") boolean missingStatement,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.moreResults = moreResults;
       this.missingStatement = missingStatement;
+      this.rpcMetadata = rpcMetadata;
     }
 
     SyncResultsResponse deserialize(Message genericMsg) {
@@ -2766,12 +3073,23 @@ public interface Service {
       }
 
       Responses.SyncResultsResponse msg = (Responses.SyncResultsResponse) genericMsg;
+      Descriptor desc = msg.getDescriptorForType();
 
-      return new SyncResultsResponse(msg.getMoreResults(), msg.getMissingStatement());
+      RpcMetadataResponse metadata = null;
+      if (ProtobufService.hasField(msg, desc,
+          Responses.SyncResultsResponse.METADATA_FIELD_NUMBER)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new SyncResultsResponse(msg.getMoreResults(), msg.getMissingStatement(), metadata);
     }
 
     Responses.SyncResultsResponse serialize() {
       Responses.SyncResultsResponse.Builder builder = Responses.SyncResultsResponse.newBuilder();
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
 
       return builder.setMoreResults(moreResults).setMissingStatement(missingStatement).build();
     }
@@ -2781,6 +3099,7 @@ public interface Service {
       int result = 1;
       result = prime * result + (missingStatement ? 1231 : 1237);
       result = prime * result + (moreResults ? 1231 : 1237);
+      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
       return result;
     }
 
@@ -2794,7 +3113,86 @@ public interface Service {
 
       SyncResultsResponse other = (SyncResultsResponse) obj;
 
+      if (null == rpcMetadata) {
+        if (null != other.rpcMetadata) {
+          return false;
+        }
+      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
+        return false;
+      }
+
       return missingStatement == other.missingStatement && moreResults == other.moreResults;
+    }
+  }
+
+  /**
+   * Response that includes information about the server that handled an RPC.
+   *
+   * This isn't really a "response", but we want to be able to be able to convert it to protobuf
+   * and back again, so ignore that there isn't an explicit endpoint for it.
+   */
+  public class RpcMetadataResponse extends Response {
+    public final String serverAddress;
+
+    public RpcMetadataResponse() {
+      this.serverAddress = null;
+    }
+
+    public RpcMetadataResponse(@JsonProperty("serverAddress") String serverAddress) {
+      this.serverAddress = serverAddress;
+    }
+
+    @Override
+    RpcMetadataResponse deserialize(Message genericMsg) {
+      if (!(genericMsg instanceof Responses.RpcMetadata)) {
+        throw new IllegalArgumentException("Expected RpcMetadata, but got "
+            + genericMsg.getClass().getName());
+      }
+
+      return fromProto((Responses.RpcMetadata) genericMsg);
+    }
+
+    @Override
+    Responses.RpcMetadata serialize() {
+      return Responses.RpcMetadata.newBuilder().setServerAddress(serverAddress).build();
+    }
+
+    static RpcMetadataResponse fromProto(Responses.RpcMetadata msg) {
+      Descriptor desc = msg.getDescriptorForType();
+
+      String serverAddress = null;
+      if (ProtobufService.hasField(msg, desc, Responses.RpcMetadata.SERVER_ADDRESS_FIELD_NUMBER)) {
+        serverAddress = msg.getServerAddress();
+      }
+
+      return new RpcMetadataResponse(serverAddress);
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((serverAddress == null) ? 0 : serverAddress.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (obj == null || !(obj instanceof RpcMetadataResponse)) {
+        return false;
+      }
+
+      RpcMetadataResponse other = (RpcMetadataResponse) obj;
+      if (serverAddress == null) {
+        if (other.serverAddress != null) {
+          return false;
+        }
+      }
+      return serverAddress.equals(other.serverAddress);
     }
   }
 }

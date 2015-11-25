@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.test;
 
 import org.apache.calcite.avatica.AvaticaClientRuntimeException;
 import org.apache.calcite.avatica.AvaticaSeverity;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
 import org.junit.Test;
 
@@ -37,12 +38,14 @@ public class AvaticaClientRuntimeExceptionTest {
     final String sqlState = "abc12";
     final AvaticaSeverity severity = AvaticaSeverity.ERROR;
     final List<String> stacktraces = Arrays.asList("my stack trace");
+    final RpcMetadataResponse metadata = new RpcMetadataResponse("localhost:8765");
     AvaticaClientRuntimeException e = new AvaticaClientRuntimeException(errorMsg, errorCode,
-        sqlState, severity, stacktraces);
+        sqlState, severity, stacktraces, metadata);
     assertEquals(errorMsg, e.getMessage());
     assertEquals(errorCode, e.getErrorCode());
     assertEquals(severity, e.getSeverity());
     assertEquals(stacktraces, e.getServerExceptions());
+    assertEquals(metadata, e.getRpcMetadata());
   }
 
 }

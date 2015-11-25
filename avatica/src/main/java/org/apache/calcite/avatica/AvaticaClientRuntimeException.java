@@ -18,6 +18,7 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.AvaticaRuntimeException;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,14 +37,16 @@ public class AvaticaClientRuntimeException extends RuntimeException {
   private final String sqlState;
   private final AvaticaSeverity severity;
   private final List<String> serverExceptions;
+  private final RpcMetadataResponse metadata;
 
   public AvaticaClientRuntimeException(String errorMessage, int errorCode, String sqlState,
-      AvaticaSeverity severity, List<String> serverExceptions) {
+      AvaticaSeverity severity, List<String> serverExceptions, RpcMetadataResponse metadata) {
     super(errorMessage);
     this.errorCode = errorCode;
     this.sqlState = sqlState;
     this.severity = severity;
     this.serverExceptions = serverExceptions;
+    this.metadata = metadata;
   }
 
   public AvaticaClientRuntimeException(String message, Throwable cause) {
@@ -52,6 +55,7 @@ public class AvaticaClientRuntimeException extends RuntimeException {
     sqlState = ErrorResponse.UNKNOWN_SQL_STATE;
     severity = AvaticaSeverity.UNKNOWN;
     serverExceptions = Collections.singletonList("");
+    metadata = null;
   }
 
   public int getErrorCode() {
@@ -68,6 +72,10 @@ public class AvaticaClientRuntimeException extends RuntimeException {
 
   public List<String> getServerExceptions() {
     return serverExceptions;
+  }
+
+  public RpcMetadataResponse getRpcMetadata() {
+    return metadata;
   }
 
   @Override public String toString() {

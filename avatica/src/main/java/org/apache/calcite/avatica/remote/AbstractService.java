@@ -29,6 +29,8 @@ import java.util.List;
  */
 public abstract class AbstractService implements Service {
 
+  private RpcMetadataResponse rpcMetadata = null;
+
   /**
    * Represents the serialization of the data over a transport.
    */
@@ -102,7 +104,7 @@ public abstract class AbstractService implements Service {
     if (statement == response.statement) {
       return response;
     }
-    return new PrepareResponse(statement);
+    return new PrepareResponse(statement, rpcMetadata);
   }
 
   Meta.StatementHandle finagle(Meta.StatementHandle h) {
@@ -126,7 +128,7 @@ public abstract class AbstractService implements Service {
       return r;
     }
     return new ResultSetResponse(r.connectionId, r.statementId, r.ownStatement,
-        signature, r.firstFrame, r.updateCount);
+        signature, r.firstFrame, r.updateCount, rpcMetadata);
   }
 
   ExecuteResponse finagle(ExecuteResponse r) {
@@ -145,7 +147,13 @@ public abstract class AbstractService implements Service {
     if (changeCount == 0) {
       return r;
     }
-    return new ExecuteResponse(results, r.missingStatement);
+    return new ExecuteResponse(results, r.missingStatement, rpcMetadata);
+  }
+
+  @Override
+  public void setRpcMetadata(RpcMetadataResponse metadata) {
+    // OK if this is null
+    this.rpcMetadata = metadata;
   }
 }
 

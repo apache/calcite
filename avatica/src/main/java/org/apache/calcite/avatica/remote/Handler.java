@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
+
 import java.util.Objects;
 
 /**
@@ -53,6 +55,13 @@ public interface Handler<T> {
   }
 
   HandlerResponse<T> apply(T request);
+
+  /**
+   * Sets some general server information to return to the client in all responses.
+   *
+   * @param metadata Server-wide information
+   */
+  void setRpcMetadata(RpcMetadataResponse metadata);
 }
 
 // End Handler.java

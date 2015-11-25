@@ -35,13 +35,16 @@ public class AvaticaSqlExceptionTest {
     final int code = 42;
     final String sql = "SELECT foo FROM bar;";
     final String stacktrace = "My Stack Trace";
+    final String server = "localhost:8765";
 
-    AvaticaSqlException e = new AvaticaSqlException(msg, sql, code, Arrays.asList(stacktrace));
+    AvaticaSqlException e = new AvaticaSqlException(msg, sql, code, Arrays.asList(stacktrace),
+        server);
     assertTrue(e.getMessage().contains(msg));
     assertEquals(code, e.getErrorCode());
     assertEquals(sql, e.getSQLState());
     assertEquals(1, e.getStackTraces().size());
     assertEquals(stacktrace, e.getStackTraces().get(0));
+    assertEquals(server, e.getRemoteServer());
   }
 
 }

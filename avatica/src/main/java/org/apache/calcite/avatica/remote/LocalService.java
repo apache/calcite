@@ -24,6 +24,7 @@ import org.apache.calcite.avatica.NoSuchStatementException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Implementation of {@link Service} that talks to a local {@link Meta}.
@@ -31,8 +32,14 @@ import java.util.List;
 public class LocalService implements Service {
   final Meta meta;
 
+  private RpcMetadataResponse serverLevelRpcMetadata;
+
   public LocalService(Meta meta) {
     this.meta = meta;
+  }
+
+  @Override public void setRpcMetadata(RpcMetadataResponse serverLevelRpcMetadata) {
+    this.serverLevelRpcMetadata = Objects.requireNonNull(serverLevelRpcMetadata);
   }
 
   private static <E> List<E> list(Iterable<E> iterable) {
@@ -51,7 +58,7 @@ public class LocalService implements Service {
     if (resultSet.updateCount != -1) {
       return new ResultSetResponse(resultSet.connectionId,
           resultSet.statementId, resultSet.ownStatement, null, null,
-          resultSet.updateCount);
+          resultSet.updateCount, serverLevelRpcMetadata);
     }
 
     Meta.Signature signature = resultSet.signature;
@@ -98,7 +105,7 @@ public class LocalService implements Service {
     }
 
     return new ResultSetResponse(resultSet.connectionId, resultSet.statementId,
-        resultSet.ownStatement, signature, frame, updateCount);
+        resultSet.ownStatement, signature, frame, updateCount, serverLevelRpcMetadata);
   }
 
   private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
@@ -169,7 +176,7 @@ public class LocalService implements Service {
         new Meta.ConnectionHandle(request.connectionId);
     final Meta.StatementHandle h =
         meta.prepare(ch, request.sql, request.maxRowCount);
-    return new PrepareResponse(h);
+    return new PrepareResponse(h, serverLevelRpcMetadata);
   }
 
   public ExecuteResponse apply(PrepareAndExecuteRequest request) {
@@ -197,10 +204,10 @@ public class LocalService implements Service {
       for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
         results.add(toResponse(metaResultSet));
       }
-      return new ExecuteResponse(results, false);
+      return new ExecuteResponse(results, false, serverLevelRpcMetadata);
     } catch (NoSuchStatementException e) {
       // The Statement doesn't exist anymore, bubble up this information
-      return new ExecuteResponse(null, true);
+      return new ExecuteResponse(null, true, serverLevelRpcMetadata);
     }
   }
 
@@ -212,12 +219,12 @@ public class LocalService implements Service {
           meta.fetch(h,
               request.offset,
               request.fetchMaxRowCount);
-      return new FetchResponse(frame, false, false);
+      return new FetchResponse(frame, false, false, serverLevelRpcMetadata);
     } catch (NullPointerException | NoSuchStatementException e) {
       // The Statement doesn't exist anymore, bubble up this information
-      return new FetchResponse(null, true, true);
+      return new FetchResponse(null, true, true, serverLevelRpcMetadata);
     } catch (MissingResultsException e) {
-      return new FetchResponse(null, false, true);
+      return new FetchResponse(null, false, true, serverLevelRpcMetadata);
     }
   }
 
@@ -230,9 +237,9 @@ public class LocalService implements Service {
       for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
         results.add(toResponse(metaResultSet));
       }
-      return new ExecuteResponse(results, false);
+      return new ExecuteResponse(results, false, serverLevelRpcMetadata);
     } catch (NoSuchStatementException e) {
-      return new ExecuteResponse(null, true);
+      return new ExecuteResponse(null, true, serverLevelRpcMetadata);
     }
   }
 
@@ -240,28 +247,28 @@ public class LocalService implements Service {
     final Meta.ConnectionHandle ch =
         new Meta.ConnectionHandle(request.connectionId);
     final Meta.StatementHandle h = meta.createStatement(ch);
-    return new CreateStatementResponse(h.connectionId, h.id);
+    return new CreateStatementResponse(h.connectionId, h.id, serverLevelRpcMetadata);
   }
 
   public CloseStatementResponse apply(CloseStatementRequest request) {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         request.connectionId, request.statementId, null);
     meta.closeStatement(h);
-    return new CloseStatementResponse();
+    return new CloseStatementResponse(serverLevelRpcMetadata);
   }
 
   public OpenConnectionResponse apply(OpenConnectionRequest request) {
     final Meta.ConnectionHandle ch =
         new Meta.ConnectionHandle(request.connectionId);
     meta.openConnection(ch, request.info);
-    return new OpenConnectionResponse();
+    return new OpenConnectionResponse(serverLevelRpcMetadata);
   }
 
   public CloseConnectionResponse apply(CloseConnectionRequest request) {
     final Meta.ConnectionHandle ch =
         new Meta.ConnectionHandle(request.connectionId);
     meta.closeConnection(ch);
-    return new CloseConnectionResponse();
+    return new CloseConnectionResponse(serverLevelRpcMetadata);
   }
 
   public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
@@ -269,13 +276,13 @@ public class LocalService implements Service {
         new Meta.ConnectionHandle(request.connectionId);
     final Meta.ConnectionProperties connProps =
         meta.connectionSync(ch, request.connProps);
-    return new ConnectionSyncResponse(connProps);
+    return new ConnectionSyncResponse(connProps, serverLevelRpcMetadata);
   }
 
   public DatabasePropertyResponse apply(DatabasePropertyRequest request) {
     final Meta.ConnectionHandle ch =
         new Meta.ConnectionHandle(request.connectionId);
-    return new DatabasePropertyResponse(meta.getDatabaseProperties(ch));
+    return new DatabasePropertyResponse(meta.getDatabaseProperties(ch), serverLevelRpcMetadata);
   }
 
   public SyncResultsResponse apply(SyncResultsRequest request) {
@@ -284,10 +291,11 @@ public class LocalService implements Service {
     SyncResultsResponse response;
     try {
       // Set success on the cached statement
-      response = new SyncResultsResponse(meta.syncResults(h, request.state, request.offset), false);
+      response = new SyncResultsResponse(meta.syncResults(h, request.state, request.offset), false,
+          serverLevelRpcMetadata);
     } catch (NoSuchStatementException e) {
       // Tried to sync results on a statement which wasn't cached
-      response = new SyncResultsResponse(false, true);
+      response = new SyncResultsResponse(false, true, serverLevelRpcMetadata);
     }
 
     return response;

@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.NoSuchConnectionException;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
 import java.io.IOException;
 
@@ -33,6 +34,7 @@ import java.io.IOException;
 public abstract class AbstractHandler<T> implements Handler<T> {
   private static final String NULL_EXCEPTION_MESSAGE = "(null exception message)";
   protected final Service service;
+  private RpcMetadataResponse metadata = null;
 
   public AbstractHandler(Service service) {
     this.service = service;
@@ -78,7 +80,7 @@ public abstract class AbstractHandler<T> implements Handler<T> {
       errorMsg = getCausalChain(e);
     }
 
-    return new ErrorResponse(e, errorMsg, errorCode, sqlState, severity);
+    return new ErrorResponse(e, errorMsg, errorCode, sqlState, severity, metadata);
   }
 
   /**
@@ -142,6 +144,11 @@ public abstract class AbstractHandler<T> implements Handler<T> {
       return "Unknown error message";
     }
     return sb.toString();
+  }
+
+  @Override
+  public void setRpcMetadata(RpcMetadataResponse metadata) {
+    this.metadata = metadata;
   }
 }
 

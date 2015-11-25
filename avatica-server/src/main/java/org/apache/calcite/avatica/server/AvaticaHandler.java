@@ -16,65 +16,15 @@
  */
 package org.apache.calcite.avatica.server;
 
-import org.apache.calcite.avatica.AvaticaUtils;
-import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
-import org.apache.calcite.avatica.remote.JsonHandler;
-import org.apache.calcite.avatica.remote.Service;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-
-import java.io.IOException;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.server.Handler;
 
 /**
- * Jetty handler that executes Avatica JSON request-responses.
+ * A custom interface that extends the Jetty interface to enable extra control within Avatica.
  */
-public class AvaticaHandler extends AbstractHandler {
-  private static final Log LOG = LogFactory.getLog(AvaticaHandler.class);
+public interface AvaticaHandler extends Handler {
 
-  final JsonHandler jsonHandler;
+  void setServerRpcMetadata(RpcMetadataResponse metadata);
 
-  public AvaticaHandler(Service service) {
-    this.jsonHandler = new JsonHandler(service);
-  }
-
-  public void handle(String target, Request baseRequest,
-      HttpServletRequest request, HttpServletResponse response)
-      throws IOException, ServletException {
-    response.setContentType("application/json;charset=utf-8");
-    response.setStatus(HttpServletResponse.SC_OK);
-    if (request.getMethod().equals("POST")) {
-      // First look for a request in the header, then look in the body.
-      // The latter allows very large requests without hitting HTTP 413.
-      String rawRequest = request.getHeader("request");
-      if (rawRequest == null) {
-        try (ServletInputStream inputStream = request.getInputStream()) {
-          rawRequest = AvaticaUtils.readFully(inputStream);
-        }
-      }
-      final String jsonRequest =
-          new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("request: " + jsonRequest);
-      }
-
-      final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("response: " + jsonResponse);
-      }
-      baseRequest.setHandled(true);
-      // Set the status code and write out the response.
-      response.setStatus(jsonResponse.getStatusCode());
-      response.getWriter().println(jsonResponse.getResponse());
-    }
-  }
 }
-
-// End AvaticaHandler.java

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.server;
 
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -26,6 +28,9 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * Avatica HTTP server.
@@ -38,15 +43,33 @@ public class HttpServer {
 
   private Server server;
   private int port = -1;
-  private final Handler handler;
+  private final AvaticaHandler handler;
 
+  @Deprecated
   public HttpServer(Handler handler) {
+    this(wrapJettyHandler(handler));
+  }
+
+  public HttpServer(AvaticaHandler handler) {
     this(0, handler);
   }
 
+  @Deprecated
   public HttpServer(int port, Handler handler) {
+    this(port, wrapJettyHandler(handler));
+  }
+
+  public HttpServer(int port, AvaticaHandler handler) {
     this.port = port;
     this.handler = handler;
+  }
+
+  private static AvaticaHandler wrapJettyHandler(Handler handler) {
+    if (handler instanceof AvaticaHandler) {
+      return (AvaticaHandler) handler;
+    }
+    // Backwards compatibility, noop's the AvaticaHandler interface
+    return new DelegatingAvaticaHandler(handler);
   }
 
   public void start() {
@@ -74,6 +97,28 @@ public class HttpServer {
     port = connector.getLocalPort();
 
     LOG.info("Service listening on port " + getPort() + ".");
+
+    // Set the information about the address for this server
+    try {
+      this.handler.setServerRpcMetadata(createRpcServerMetadata(connector));
+    } catch (UnknownHostException e) {
+      // Failed to do the DNS lookup, bail out.
+      throw new RuntimeException(e);
+    }
+  }
+
+  private RpcMetadataResponse createRpcServerMetadata(ServerConnector connector) throws
+      UnknownHostException {
+    String host = connector.getHost();
+    if (null == host) {
+      // "null" means binding to all interfaces, we need to pick one so the client gets a real
+      // address and not "0.0.0.0" or similar.
+      host = InetAddress.getLocalHost().getHostName();
+    }
+
+    final int port = connector.getLocalPort();
+
+    return new RpcMetadataResponse(String.format("%s:%d", host, port));
   }
 
   /**

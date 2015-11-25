@@ -24,6 +24,7 @@ import org.apache.calcite.avatica.proto.Responses;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.Service.FetchRequest;
 import org.apache.calcite.avatica.remote.Service.FetchResponse;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -84,7 +85,8 @@ public class ProtobufHandlerTest {
     frameRows.add(new Object[] {true, "my_string"});
 
     Meta.Frame frame = Frame.create(0, true, frameRows);
-    FetchResponse response = new FetchResponse(frame, false, false);
+    RpcMetadataResponse metadata = new RpcMetadataResponse("localhost:8765");
+    FetchResponse response = new FetchResponse(frame, false, false, metadata);
 
     when(translation.parseRequest(serializedRequest)).thenReturn(request);
     when(service.apply(request)).thenReturn(response);

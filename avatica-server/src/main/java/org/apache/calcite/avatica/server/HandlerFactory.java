@@ -35,7 +35,7 @@ public class HandlerFactory {
   public Handler getHandler(Service service, Driver.Serialization serialization) {
     switch (serialization) {
     case JSON:
-      return new AvaticaHandler(service);
+      return new AvaticaJsonHandler(service);
     case PROTOBUF:
       return new AvaticaProtobufHandler(service);
     default:

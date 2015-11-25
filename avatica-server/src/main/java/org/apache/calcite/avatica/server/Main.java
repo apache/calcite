@@ -46,7 +46,7 @@ public class Main {
 
   private static final HandlerFactory JSON_HANDLER_FACTORY = new HandlerFactory() {
     public AbstractHandler createHandler(Service service) {
-      return new AvaticaHandler(service);
+      return new AvaticaJsonHandler(service);
     }
   };
 

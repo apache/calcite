@@ -82,6 +82,31 @@ package org.apache.calcite.avatica.proto;
      * </pre>
      */
     long getUpdateCount();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 7;</code>
+     *
+     * <pre>
+     * with no signature nor other data.
+     * </pre>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 7;</code>
+     *
+     * <pre>
+     * with no signature nor other data.
+     * </pre>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 7;</code>
+     *
+     * <pre>
+     * with no signature nor other data.
+     * </pre>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code ResultSetResponse}
@@ -174,6 +199,19 @@ package org.apache.calcite.avatica.proto;
             case 48: {
 
               updateCount_ = input.readUInt64();
+              break;
+            }
+            case 58: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -307,6 +345,39 @@ package org.apache.calcite.avatica.proto;
       return updateCount_;
     }
 
+    public static final int METADATA_FIELD_NUMBER = 7;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 7;</code>
+     *
+     * <pre>
+     * with no signature nor other data.
+     * </pre>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 7;</code>
+     *
+     * <pre>
+     * with no signature nor other data.
+     * </pre>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 7;</code>
+     *
+     * <pre>
+     * with no signature nor other data.
+     * </pre>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -337,6 +408,9 @@ package org.apache.calcite.avatica.proto;
       if (updateCount_ != 0L) {
         output.writeUInt64(6, updateCount_);
       }
+      if (metadata_ != null) {
+        output.writeMessage(7, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -366,6 +440,10 @@ package org.apache.calcite.avatica.proto;
       if (updateCount_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt64Size(6, updateCount_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(7, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -502,6 +580,12 @@ package org.apache.calcite.avatica.proto;
         }
         updateCount_ = 0L;
 
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -538,6 +622,11 @@ package org.apache.calcite.avatica.proto;
           result.firstFrame_ = firstFrameBuilder_.build();
         }
         result.updateCount_ = updateCount_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -571,6 +660,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getUpdateCount() != 0L) {
           setUpdateCount(other.getUpdateCount());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -990,6 +1082,159 @@ package org.apache.calcite.avatica.proto;
         onChanged();
         return this;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 7;</code>
+       *
+       * <pre>
+       * with no signature nor other data.
+       * </pre>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -1084,6 +1329,19 @@ package org.apache.calcite.avatica.proto;
      * </pre>
      */
     boolean getMissingStatement();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code ExecuteResponse}
@@ -1140,6 +1398,19 @@ package org.apache.calcite.avatica.proto;
             case 16: {
 
               missingStatement_ = input.readBool();
+              break;
+            }
+            case 26: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -1218,6 +1489,27 @@ package org.apache.calcite.avatica.proto;
       return missingStatement_;
     }
 
+    public static final int METADATA_FIELD_NUMBER = 3;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -1236,6 +1528,9 @@ package org.apache.calcite.avatica.proto;
       if (missingStatement_ != false) {
         output.writeBool(2, missingStatement_);
       }
+      if (metadata_ != null) {
+        output.writeMessage(3, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -1250,6 +1545,10 @@ package org.apache.calcite.avatica.proto;
       if (missingStatement_ != false) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(2, missingStatement_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -1375,6 +1674,12 @@ package org.apache.calcite.avatica.proto;
         }
         missingStatement_ = false;
 
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -1409,6 +1714,11 @@ package org.apache.calcite.avatica.proto;
           result.results_ = resultsBuilder_.build();
         }
         result.missingStatement_ = missingStatement_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1453,6 +1763,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getMissingStatement() != false) {
           setMissingStatement(other.getMissingStatement());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -1758,6 +2071,123 @@ package org.apache.calcite.avatica.proto;
         onChanged();
         return this;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -1832,6 +2262,19 @@ package org.apache.calcite.avatica.proto;
      * <code>optional .StatementHandle statement = 1;</code>
      */
     org.apache.calcite.avatica.proto.Common.StatementHandleOrBuilder getStatementOrBuilder();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code PrepareResponse}
@@ -1888,6 +2331,19 @@ package org.apache.calcite.avatica.proto;
 
               break;
             }
+            case 18: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -1933,6 +2389,27 @@ package org.apache.calcite.avatica.proto;
       return getStatement();
     }
 
+    public static final int METADATA_FIELD_NUMBER = 2;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -1948,6 +2425,9 @@ package org.apache.calcite.avatica.proto;
       if (statement_ != null) {
         output.writeMessage(1, getStatement());
       }
+      if (metadata_ != null) {
+        output.writeMessage(2, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -1958,6 +2438,10 @@ package org.apache.calcite.avatica.proto;
       if (statement_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getStatement());
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -2080,6 +2564,12 @@ package org.apache.calcite.avatica.proto;
           statement_ = null;
           statementBuilder_ = null;
         }
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -2107,6 +2597,11 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.statement_ = statementBuilder_.build();
         }
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -2124,6 +2619,9 @@ package org.apache.calcite.avatica.proto;
         if (other == org.apache.calcite.avatica.proto.Responses.PrepareResponse.getDefaultInstance()) return this;
         if (other.hasStatement()) {
           mergeStatement(other.getStatement());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -2267,6 +2765,123 @@ package org.apache.calcite.avatica.proto;
         }
         return statementBuilder_;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -2359,6 +2974,19 @@ package org.apache.calcite.avatica.proto;
      * </pre>
      */
     boolean getMissingResults();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 4;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 4;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 4;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code FetchResponse}
@@ -2425,6 +3053,19 @@ package org.apache.calcite.avatica.proto;
             case 24: {
 
               missingResults_ = input.readBool();
+              break;
+            }
+            case 34: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -2498,6 +3139,27 @@ package org.apache.calcite.avatica.proto;
       return missingResults_;
     }
 
+    public static final int METADATA_FIELD_NUMBER = 4;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 4;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 4;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 4;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -2519,6 +3181,9 @@ package org.apache.calcite.avatica.proto;
       if (missingResults_ != false) {
         output.writeBool(3, missingResults_);
       }
+      if (metadata_ != null) {
+        output.writeMessage(4, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -2537,6 +3202,10 @@ package org.apache.calcite.avatica.proto;
       if (missingResults_ != false) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(3, missingResults_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -2663,6 +3332,12 @@ package org.apache.calcite.avatica.proto;
 
         missingResults_ = false;
 
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -2692,6 +3367,11 @@ package org.apache.calcite.avatica.proto;
         }
         result.missingStatement_ = missingStatement_;
         result.missingResults_ = missingResults_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -2715,6 +3395,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getMissingResults() != false) {
           setMissingResults(other.getMissingResults());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -2934,6 +3617,123 @@ package org.apache.calcite.avatica.proto;
         onChanged();
         return this;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 4;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -3010,6 +3810,19 @@ package org.apache.calcite.avatica.proto;
      * <code>optional uint32 statement_id = 2;</code>
      */
     int getStatementId();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code CreateStatementResponse}
@@ -3064,6 +3877,19 @@ package org.apache.calcite.avatica.proto;
             case 16: {
 
               statementId_ = input.readUInt32();
+              break;
+            }
+            case 26: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -3133,6 +3959,27 @@ package org.apache.calcite.avatica.proto;
       return statementId_;
     }
 
+    public static final int METADATA_FIELD_NUMBER = 3;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -3151,6 +3998,9 @@ package org.apache.calcite.avatica.proto;
       if (statementId_ != 0) {
         output.writeUInt32(2, statementId_);
       }
+      if (metadata_ != null) {
+        output.writeMessage(3, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -3164,6 +4014,10 @@ package org.apache.calcite.avatica.proto;
       if (statementId_ != 0) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(2, statementId_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -3284,6 +4138,12 @@ package org.apache.calcite.avatica.proto;
 
         statementId_ = 0;
 
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -3308,6 +4168,11 @@ package org.apache.calcite.avatica.proto;
         org.apache.calcite.avatica.proto.Responses.CreateStatementResponse result = new org.apache.calcite.avatica.proto.Responses.CreateStatementResponse(this);
         result.connectionId_ = connectionId_;
         result.statementId_ = statementId_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -3329,6 +4194,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getStatementId() != 0) {
           setStatementId(other.getStatementId());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -3450,6 +4318,123 @@ package org.apache.calcite.avatica.proto;
         onChanged();
         return this;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -3511,6 +4496,19 @@ package org.apache.calcite.avatica.proto;
   public interface CloseStatementResponseOrBuilder extends
       // @@protoc_insertion_point(interface_extends:CloseStatementResponse)
       com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code CloseStatementResponse}
@@ -3539,6 +4537,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
+      int mutable_bitField0_ = 0;
       try {
         boolean done = false;
         while (!done) {
@@ -3551,6 +4550,19 @@ package org.apache.calcite.avatica.proto;
               if (!input.skipField(tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -3577,6 +4589,27 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Responses.CloseStatementResponse.class, org.apache.calcite.avatica.proto.Responses.CloseStatementResponse.Builder.class);
     }
 
+    public static final int METADATA_FIELD_NUMBER = 1;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -3589,6 +4622,9 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
+      if (metadata_ != null) {
+        output.writeMessage(1, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -3596,6 +4632,10 @@ package org.apache.calcite.avatica.proto;
       if (size != -1) return size;
 
       size = 0;
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, getMetadata());
+      }
       memoizedSize = size;
       return size;
     }
@@ -3711,6 +4751,12 @@ package org.apache.calcite.avatica.proto;
       }
       public Builder clear() {
         super.clear();
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -3733,6 +4779,11 @@ package org.apache.calcite.avatica.proto;
 
       public org.apache.calcite.avatica.proto.Responses.CloseStatementResponse buildPartial() {
         org.apache.calcite.avatica.proto.Responses.CloseStatementResponse result = new org.apache.calcite.avatica.proto.Responses.CloseStatementResponse(this);
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -3748,6 +4799,9 @@ package org.apache.calcite.avatica.proto;
 
       public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.CloseStatementResponse other) {
         if (other == org.apache.calcite.avatica.proto.Responses.CloseStatementResponse.getDefaultInstance()) return this;
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
+        }
         onChanged();
         return this;
       }
@@ -3772,6 +4826,123 @@ package org.apache.calcite.avatica.proto;
           }
         }
         return this;
+      }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -3834,6 +5005,19 @@ package org.apache.calcite.avatica.proto;
   public interface OpenConnectionResponseOrBuilder extends
       // @@protoc_insertion_point(interface_extends:OpenConnectionResponse)
       com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code OpenConnectionResponse}
@@ -3862,6 +5046,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
+      int mutable_bitField0_ = 0;
       try {
         boolean done = false;
         while (!done) {
@@ -3874,6 +5059,19 @@ package org.apache.calcite.avatica.proto;
               if (!input.skipField(tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -3900,6 +5098,27 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse.class, org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse.Builder.class);
     }
 
+    public static final int METADATA_FIELD_NUMBER = 1;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -3912,6 +5131,9 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
+      if (metadata_ != null) {
+        output.writeMessage(1, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -3919,6 +5141,10 @@ package org.apache.calcite.avatica.proto;
       if (size != -1) return size;
 
       size = 0;
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, getMetadata());
+      }
       memoizedSize = size;
       return size;
     }
@@ -4034,6 +5260,12 @@ package org.apache.calcite.avatica.proto;
       }
       public Builder clear() {
         super.clear();
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -4056,6 +5288,11 @@ package org.apache.calcite.avatica.proto;
 
       public org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse buildPartial() {
         org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse result = new org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse(this);
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -4071,6 +5308,9 @@ package org.apache.calcite.avatica.proto;
 
       public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse other) {
         if (other == org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse.getDefaultInstance()) return this;
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
+        }
         onChanged();
         return this;
       }
@@ -4095,6 +5335,123 @@ package org.apache.calcite.avatica.proto;
           }
         }
         return this;
+      }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -4157,6 +5514,19 @@ package org.apache.calcite.avatica.proto;
   public interface CloseConnectionResponseOrBuilder extends
       // @@protoc_insertion_point(interface_extends:CloseConnectionResponse)
       com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code CloseConnectionResponse}
@@ -4185,6 +5555,7 @@ package org.apache.calcite.avatica.proto;
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
       this();
+      int mutable_bitField0_ = 0;
       try {
         boolean done = false;
         while (!done) {
@@ -4197,6 +5568,19 @@ package org.apache.calcite.avatica.proto;
               if (!input.skipField(tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -4223,6 +5607,27 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse.class, org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse.Builder.class);
     }
 
+    public static final int METADATA_FIELD_NUMBER = 1;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 1;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -4235,6 +5640,9 @@ package org.apache.calcite.avatica.proto;
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
+      if (metadata_ != null) {
+        output.writeMessage(1, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -4242,6 +5650,10 @@ package org.apache.calcite.avatica.proto;
       if (size != -1) return size;
 
       size = 0;
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, getMetadata());
+      }
       memoizedSize = size;
       return size;
     }
@@ -4357,6 +5769,12 @@ package org.apache.calcite.avatica.proto;
       }
       public Builder clear() {
         super.clear();
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -4379,6 +5797,11 @@ package org.apache.calcite.avatica.proto;
 
       public org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse buildPartial() {
         org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse result = new org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse(this);
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -4394,6 +5817,9 @@ package org.apache.calcite.avatica.proto;
 
       public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse other) {
         if (other == org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse.getDefaultInstance()) return this;
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
+        }
         onChanged();
         return this;
       }
@@ -4418,6 +5844,123 @@ package org.apache.calcite.avatica.proto;
           }
         }
         return this;
+      }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 1;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -4493,6 +6036,19 @@ package org.apache.calcite.avatica.proto;
      * <code>optional .ConnectionProperties conn_props = 1;</code>
      */
     org.apache.calcite.avatica.proto.Common.ConnectionPropertiesOrBuilder getConnPropsOrBuilder();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code ConnectionSyncResponse}
@@ -4549,6 +6105,19 @@ package org.apache.calcite.avatica.proto;
 
               break;
             }
+            case 18: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -4594,6 +6163,27 @@ package org.apache.calcite.avatica.proto;
       return getConnProps();
     }
 
+    public static final int METADATA_FIELD_NUMBER = 2;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -4609,6 +6199,9 @@ package org.apache.calcite.avatica.proto;
       if (connProps_ != null) {
         output.writeMessage(1, getConnProps());
       }
+      if (metadata_ != null) {
+        output.writeMessage(2, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -4619,6 +6212,10 @@ package org.apache.calcite.avatica.proto;
       if (connProps_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getConnProps());
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -4741,6 +6338,12 @@ package org.apache.calcite.avatica.proto;
           connProps_ = null;
           connPropsBuilder_ = null;
         }
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -4768,6 +6371,11 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.connProps_ = connPropsBuilder_.build();
         }
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -4785,6 +6393,9 @@ package org.apache.calcite.avatica.proto;
         if (other == org.apache.calcite.avatica.proto.Responses.ConnectionSyncResponse.getDefaultInstance()) return this;
         if (other.hasConnProps()) {
           mergeConnProps(other.getConnProps());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -4928,6 +6539,123 @@ package org.apache.calcite.avatica.proto;
         }
         return connPropsBuilder_;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -5015,6 +6743,19 @@ package org.apache.calcite.avatica.proto;
      * <code>optional .TypedValue value = 2;</code>
      */
     org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getValueOrBuilder();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code DatabasePropertyElement}
@@ -5076,6 +6817,19 @@ package org.apache.calcite.avatica.proto;
               if (subBuilder != null) {
                 subBuilder.mergeFrom(value_);
                 value_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
+            case 26: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
               }
 
               break;
@@ -5146,6 +6900,27 @@ package org.apache.calcite.avatica.proto;
       return getValue();
     }
 
+    public static final int METADATA_FIELD_NUMBER = 3;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -5164,6 +6939,9 @@ package org.apache.calcite.avatica.proto;
       if (value_ != null) {
         output.writeMessage(2, getValue());
       }
+      if (metadata_ != null) {
+        output.writeMessage(3, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -5178,6 +6956,10 @@ package org.apache.calcite.avatica.proto;
       if (value_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getValue());
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -5302,6 +7084,12 @@ package org.apache.calcite.avatica.proto;
           value_ = null;
           valueBuilder_ = null;
         }
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -5334,6 +7122,11 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.value_ = valueBuilder_.build();
         }
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -5354,6 +7147,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.hasValue()) {
           mergeValue(other.getValue());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -5614,6 +7410,123 @@ package org.apache.calcite.avatica.proto;
         }
         return valueBuilder_;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -5699,6 +7612,19 @@ package org.apache.calcite.avatica.proto;
      */
     org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder getPropsOrBuilder(
         int index);
+
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code DatabasePropertyResponse}
@@ -5751,6 +7677,19 @@ package org.apache.calcite.avatica.proto;
               props_.add(input.readMessage(org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement.parser(), extensionRegistry));
               break;
             }
+            case 18: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -5778,6 +7717,7 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse.class, org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse.Builder.class);
     }
 
+    private int bitField0_;
     public static final int PROPS_FIELD_NUMBER = 1;
     private java.util.List<org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement> props_;
     /**
@@ -5813,6 +7753,27 @@ package org.apache.calcite.avatica.proto;
       return props_.get(index);
     }
 
+    public static final int METADATA_FIELD_NUMBER = 2;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -5828,6 +7789,9 @@ package org.apache.calcite.avatica.proto;
       for (int i = 0; i < props_.size(); i++) {
         output.writeMessage(1, props_.get(i));
       }
+      if (metadata_ != null) {
+        output.writeMessage(2, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -5838,6 +7802,10 @@ package org.apache.calcite.avatica.proto;
       for (int i = 0; i < props_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, props_.get(i));
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -5961,6 +7929,12 @@ package org.apache.calcite.avatica.proto;
         } else {
           propsBuilder_.clear();
         }
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -5984,6 +7958,7 @@ package org.apache.calcite.avatica.proto;
       public org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse buildPartial() {
         org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse result = new org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse(this);
         int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
         if (propsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001)) {
             props_ = java.util.Collections.unmodifiableList(props_);
@@ -5993,6 +7968,12 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.props_ = propsBuilder_.build();
         }
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -6033,6 +8014,9 @@ package org.apache.calcite.avatica.proto;
               propsBuilder_.addAllMessages(other.props_);
             }
           }
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -6300,6 +8284,123 @@ package org.apache.calcite.avatica.proto;
         }
         return propsBuilder_;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -6450,6 +8551,19 @@ package org.apache.calcite.avatica.proto;
      */
     com.google.protobuf.ByteString
         getSqlStateBytes();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 6;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 6;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 6;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code ErrorResponse}
@@ -6528,6 +8642,19 @@ package org.apache.calcite.avatica.proto;
               String s = input.readStringRequireUtf8();
 
               sqlState_ = s;
+              break;
+            }
+            case 50: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -6716,6 +8843,27 @@ package org.apache.calcite.avatica.proto;
       }
     }
 
+    public static final int METADATA_FIELD_NUMBER = 6;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 6;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 6;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 6;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -6742,6 +8890,9 @@ package org.apache.calcite.avatica.proto;
       }
       if (!getSqlStateBytes().isEmpty()) {
         com.google.protobuf.GeneratedMessage.writeString(output, 5, sqlState_);
+      }
+      if (metadata_ != null) {
+        output.writeMessage(6, getMetadata());
       }
     }
 
@@ -6771,6 +8922,10 @@ package org.apache.calcite.avatica.proto;
       }
       if (!getSqlStateBytes().isEmpty()) {
         size += com.google.protobuf.GeneratedMessage.computeStringSize(5, sqlState_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(6, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -6897,6 +9052,12 @@ package org.apache.calcite.avatica.proto;
 
         sqlState_ = "";
 
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -6930,6 +9091,11 @@ package org.apache.calcite.avatica.proto;
         result.severity_ = severity_;
         result.errorCode_ = errorCode_;
         result.sqlState_ = sqlState_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -6969,6 +9135,9 @@ package org.apache.calcite.avatica.proto;
         if (!other.getSqlState().isEmpty()) {
           sqlState_ = other.sqlState_;
           onChanged();
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -7386,6 +9555,123 @@ package org.apache.calcite.avatica.proto;
         onChanged();
         return this;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 6;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -7465,6 +9751,19 @@ package org.apache.calcite.avatica.proto;
      * </pre>
      */
     boolean getMoreResults();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code SyncResultsResponse}
@@ -7514,6 +9813,19 @@ package org.apache.calcite.avatica.proto;
             case 16: {
 
               moreResults_ = input.readBool();
+              break;
+            }
+            case 26: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
               break;
             }
           }
@@ -7566,6 +9878,27 @@ package org.apache.calcite.avatica.proto;
       return moreResults_;
     }
 
+    public static final int METADATA_FIELD_NUMBER = 3;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 3;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -7584,6 +9917,9 @@ package org.apache.calcite.avatica.proto;
       if (moreResults_ != false) {
         output.writeBool(2, moreResults_);
       }
+      if (metadata_ != null) {
+        output.writeMessage(3, getMetadata());
+      }
     }
 
     public int getSerializedSize() {
@@ -7598,6 +9934,10 @@ package org.apache.calcite.avatica.proto;
       if (moreResults_ != false) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(2, moreResults_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, getMetadata());
       }
       memoizedSize = size;
       return size;
@@ -7714,6 +10054,12 @@ package org.apache.calcite.avatica.proto;
 
         moreResults_ = false;
 
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
         return this;
       }
 
@@ -7738,6 +10084,11 @@ package org.apache.calcite.avatica.proto;
         org.apache.calcite.avatica.proto.Responses.SyncResultsResponse result = new org.apache.calcite.avatica.proto.Responses.SyncResultsResponse(this);
         result.missingStatement_ = missingStatement_;
         result.moreResults_ = moreResults_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
         onBuilt();
         return result;
       }
@@ -7758,6 +10109,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getMoreResults() != false) {
           setMoreResults(other.getMoreResults());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
         }
         onChanged();
         return this;
@@ -7860,6 +10214,123 @@ package org.apache.calcite.avatica.proto;
         onChanged();
         return this;
       }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return this;
@@ -7913,6 +10384,499 @@ package org.apache.calcite.avatica.proto;
     }
 
     public org.apache.calcite.avatica.proto.Responses.SyncResultsResponse getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface RpcMetadataOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:RpcMetadata)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional string server_address = 1;</code>
+     *
+     * <pre>
+     * The host:port of the server
+     * </pre>
+     */
+    java.lang.String getServerAddress();
+    /**
+     * <code>optional string server_address = 1;</code>
+     *
+     * <pre>
+     * The host:port of the server
+     * </pre>
+     */
+    com.google.protobuf.ByteString
+        getServerAddressBytes();
+  }
+  /**
+   * Protobuf type {@code RpcMetadata}
+   *
+   * <pre>
+   * Generic metadata for the server to return with each response.
+   * </pre>
+   */
+  public  static final class RpcMetadata extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:RpcMetadata)
+      RpcMetadataOrBuilder {
+    // Use RpcMetadata.newBuilder() to construct.
+    private RpcMetadata(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+    }
+    private RpcMetadata() {
+      serverAddress_ = "";
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+    }
+    private RpcMetadata(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+      this();
+      int mutable_bitField0_ = 0;
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!input.skipField(tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              String s = input.readStringRequireUtf8();
+
+              serverAddress_ = s;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw new RuntimeException(e.setUnfinishedMessage(this));
+      } catch (java.io.IOException e) {
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
+      } finally {
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_RpcMetadata_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_RpcMetadata_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.class, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder.class);
+    }
+
+    public static final int SERVER_ADDRESS_FIELD_NUMBER = 1;
+    private volatile java.lang.Object serverAddress_;
+    /**
+     * <code>optional string server_address = 1;</code>
+     *
+     * <pre>
+     * The host:port of the server
+     * </pre>
+     */
+    public java.lang.String getServerAddress() {
+      java.lang.Object ref = serverAddress_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        serverAddress_ = s;
+        return s;
+      }
+    }
+    /**
+     * <code>optional string server_address = 1;</code>
+     *
+     * <pre>
+     * The host:port of the server
+     * </pre>
+     */
+    public com.google.protobuf.ByteString
+        getServerAddressBytes() {
+      java.lang.Object ref = serverAddress_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        serverAddress_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (!getServerAddressBytes().isEmpty()) {
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, serverAddress_);
+      }
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!getServerAddressBytes().isEmpty()) {
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, serverAddress_);
+      }
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Responses.RpcMetadata prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code RpcMetadata}
+     *
+     * <pre>
+     * Generic metadata for the server to return with each response.
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:RpcMetadata)
+        org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_RpcMetadata_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_RpcMetadata_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.calcite.avatica.proto.Responses.RpcMetadata.class, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder.class);
+      }
+
+      // Construct using org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        serverAddress_ = "";
+
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_RpcMetadata_descriptor;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getDefaultInstanceForType() {
+        return org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance();
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata build() {
+        org.apache.calcite.avatica.proto.Responses.RpcMetadata result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata buildPartial() {
+        org.apache.calcite.avatica.proto.Responses.RpcMetadata result = new org.apache.calcite.avatica.proto.Responses.RpcMetadata(this);
+        result.serverAddress_ = serverAddress_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.calcite.avatica.proto.Responses.RpcMetadata) {
+          return mergeFrom((org.apache.calcite.avatica.proto.Responses.RpcMetadata)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.RpcMetadata other) {
+        if (other == org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance()) return this;
+        if (!other.getServerAddress().isEmpty()) {
+          serverAddress_ = other.serverAddress_;
+          onChanged();
+        }
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.calcite.avatica.proto.Responses.RpcMetadata parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.calcite.avatica.proto.Responses.RpcMetadata) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      private java.lang.Object serverAddress_ = "";
+      /**
+       * <code>optional string server_address = 1;</code>
+       *
+       * <pre>
+       * The host:port of the server
+       * </pre>
+       */
+      public java.lang.String getServerAddress() {
+        java.lang.Object ref = serverAddress_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          serverAddress_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string server_address = 1;</code>
+       *
+       * <pre>
+       * The host:port of the server
+       * </pre>
+       */
+      public com.google.protobuf.ByteString
+          getServerAddressBytes() {
+        java.lang.Object ref = serverAddress_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          serverAddress_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string server_address = 1;</code>
+       *
+       * <pre>
+       * The host:port of the server
+       * </pre>
+       */
+      public Builder setServerAddress(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        serverAddress_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string server_address = 1;</code>
+       *
+       * <pre>
+       * The host:port of the server
+       * </pre>
+       */
+      public Builder clearServerAddress() {
+        
+        serverAddress_ = getDefaultInstance().getServerAddress();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string server_address = 1;</code>
+       *
+       * <pre>
+       * The host:port of the server
+       * </pre>
+       */
+      public Builder setServerAddressBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        serverAddress_ = value;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:RpcMetadata)
+    }
+
+    // @@protoc_insertion_point(class_scope:RpcMetadata)
+    private static final org.apache.calcite.avatica.proto.Responses.RpcMetadata DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Responses.RpcMetadata();
+    }
+
+    public static org.apache.calcite.avatica.proto.Responses.RpcMetadata getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<RpcMetadata>
+        PARSER = new com.google.protobuf.AbstractParser<RpcMetadata>() {
+      public RpcMetadata parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new RpcMetadata(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<RpcMetadata> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<RpcMetadata> getParserForType() {
+      return PARSER;
+    }
+
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -7983,6 +10947,11 @@ package org.apache.calcite.avatica.proto;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_SyncResultsResponse_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_RpcMetadata_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_RpcMetadata_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -7992,33 +10961,44 @@ package org.apache.calcite.avatica.proto;
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\017responses.proto\032\014common.proto\"\251\001\n\021Resu" +
+      "\n\017responses.proto\032\014common.proto\"\311\001\n\021Resu" +
       "ltSetResponse\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014" +
       "statement_id\030\002 \001(\r\022\025\n\rown_statement\030\003 \001(" +
       "\010\022\035\n\tsignature\030\004 \001(\0132\n.Signature\022\033\n\013firs" +
       "t_frame\030\005 \001(\0132\006.Frame\022\024\n\014update_count\030\006 " +
-      "\001(\004\"Q\n\017ExecuteResponse\022#\n\007results\030\001 \003(\0132" +
-      "\022.ResultSetResponse\022\031\n\021missing_statement" +
-      "\030\002 \001(\010\"6\n\017PrepareResponse\022#\n\tstatement\030\001" +
-      " \001(\0132\020.StatementHandle\"Z\n\rFetchResponse\022" +
-      "\025\n\005frame\030\001 \001(\0132\006.Frame\022\031\n\021missing_statem",
-      "ent\030\002 \001(\010\022\027\n\017missing_results\030\003 \001(\010\"F\n\027Cr" +
-      "eateStatementResponse\022\025\n\rconnection_id\030\001" +
-      " \001(\t\022\024\n\014statement_id\030\002 \001(\r\"\030\n\026CloseState" +
-      "mentResponse\"\030\n\026OpenConnectionResponse\"\031" +
-      "\n\027CloseConnectionResponse\"C\n\026ConnectionS" +
-      "yncResponse\022)\n\nconn_props\030\001 \001(\0132\025.Connec" +
-      "tionProperties\"U\n\027DatabasePropertyElemen" +
-      "t\022\036\n\003key\030\001 \001(\0132\021.DatabaseProperty\022\032\n\005val" +
-      "ue\030\002 \001(\0132\013.TypedValue\"C\n\030DatabasePropert" +
-      "yResponse\022\'\n\005props\030\001 \003(\0132\030.DatabasePrope",
-      "rtyElement\"~\n\rErrorResponse\022\022\n\nexception" +
-      "s\030\001 \003(\t\022\025\n\rerror_message\030\002 \001(\t\022\033\n\010severi" +
-      "ty\030\003 \001(\0162\t.Severity\022\022\n\nerror_code\030\004 \001(\r\022" +
-      "\021\n\tsql_state\030\005 \001(\t\"F\n\023SyncResultsRespons" +
-      "e\022\031\n\021missing_statement\030\001 \001(\010\022\024\n\014more_res" +
-      "ults\030\002 \001(\010B\"\n org.apache.calcite.avatica" +
-      ".protob\006proto3"
+      "\001(\004\022\036\n\010metadata\030\007 \001(\0132\014.RpcMetadata\"q\n\017E" +
+      "xecuteResponse\022#\n\007results\030\001 \003(\0132\022.Result" +
+      "SetResponse\022\031\n\021missing_statement\030\002 \001(\010\022\036" +
+      "\n\010metadata\030\003 \001(\0132\014.RpcMetadata\"V\n\017Prepar" +
+      "eResponse\022#\n\tstatement\030\001 \001(\0132\020.Statement",
+      "Handle\022\036\n\010metadata\030\002 \001(\0132\014.RpcMetadata\"z" +
+      "\n\rFetchResponse\022\025\n\005frame\030\001 \001(\0132\006.Frame\022\031" +
+      "\n\021missing_statement\030\002 \001(\010\022\027\n\017missing_res" +
+      "ults\030\003 \001(\010\022\036\n\010metadata\030\004 \001(\0132\014.RpcMetada" +
+      "ta\"f\n\027CreateStatementResponse\022\025\n\rconnect" +
+      "ion_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\036\n\010me" +
+      "tadata\030\003 \001(\0132\014.RpcMetadata\"8\n\026CloseState" +
+      "mentResponse\022\036\n\010metadata\030\001 \001(\0132\014.RpcMeta" +
+      "data\"8\n\026OpenConnectionResponse\022\036\n\010metada" +
+      "ta\030\001 \001(\0132\014.RpcMetadata\"9\n\027CloseConnectio",
+      "nResponse\022\036\n\010metadata\030\001 \001(\0132\014.RpcMetadat" +
+      "a\"c\n\026ConnectionSyncResponse\022)\n\nconn_prop" +
+      "s\030\001 \001(\0132\025.ConnectionProperties\022\036\n\010metada" +
+      "ta\030\002 \001(\0132\014.RpcMetadata\"u\n\027DatabaseProper" +
+      "tyElement\022\036\n\003key\030\001 \001(\0132\021.DatabasePropert" +
+      "y\022\032\n\005value\030\002 \001(\0132\013.TypedValue\022\036\n\010metadat" +
+      "a\030\003 \001(\0132\014.RpcMetadata\"c\n\030DatabasePropert" +
+      "yResponse\022\'\n\005props\030\001 \003(\0132\030.DatabasePrope" +
+      "rtyElement\022\036\n\010metadata\030\002 \001(\0132\014.RpcMetada" +
+      "ta\"\236\001\n\rErrorResponse\022\022\n\nexceptions\030\001 \003(\t",
+      "\022\025\n\rerror_message\030\002 \001(\t\022\033\n\010severity\030\003 \001(" +
+      "\0162\t.Severity\022\022\n\nerror_code\030\004 \001(\r\022\021\n\tsql_" +
+      "state\030\005 \001(\t\022\036\n\010metadata\030\006 \001(\0132\014.RpcMetad" +
+      "ata\"f\n\023SyncResultsResponse\022\031\n\021missing_st" +
+      "atement\030\001 \001(\010\022\024\n\014more_results\030\002 \001(\010\022\036\n\010m" +
+      "etadata\030\003 \001(\0132\014.RpcMetadata\"%\n\013RpcMetada" +
+      "ta\022\026\n\016server_address\030\001 \001(\tB\"\n org.apache" +
+      ".calcite.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -8038,79 +11018,85 @@ package org.apache.calcite.avatica.proto;
     internal_static_ResultSetResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ResultSetResponse_descriptor,
-        new java.lang.String[] { "ConnectionId", "StatementId", "OwnStatement", "Signature", "FirstFrame", "UpdateCount", });
+        new java.lang.String[] { "ConnectionId", "StatementId", "OwnStatement", "Signature", "FirstFrame", "UpdateCount", "Metadata", });
     internal_static_ExecuteResponse_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_ExecuteResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ExecuteResponse_descriptor,
-        new java.lang.String[] { "Results", "MissingStatement", });
+        new java.lang.String[] { "Results", "MissingStatement", "Metadata", });
     internal_static_PrepareResponse_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_PrepareResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_PrepareResponse_descriptor,
-        new java.lang.String[] { "Statement", });
+        new java.lang.String[] { "Statement", "Metadata", });
     internal_static_FetchResponse_descriptor =
       getDescriptor().getMessageTypes().get(3);
     internal_static_FetchResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_FetchResponse_descriptor,
-        new java.lang.String[] { "Frame", "MissingStatement", "MissingResults", });
+        new java.lang.String[] { "Frame", "MissingStatement", "MissingResults", "Metadata", });
     internal_static_CreateStatementResponse_descriptor =
       getDescriptor().getMessageTypes().get(4);
     internal_static_CreateStatementResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_CreateStatementResponse_descriptor,
-        new java.lang.String[] { "ConnectionId", "StatementId", });
+        new java.lang.String[] { "ConnectionId", "StatementId", "Metadata", });
     internal_static_CloseStatementResponse_descriptor =
       getDescriptor().getMessageTypes().get(5);
     internal_static_CloseStatementResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_CloseStatementResponse_descriptor,
-        new java.lang.String[] { });
+        new java.lang.String[] { "Metadata", });
     internal_static_OpenConnectionResponse_descriptor =
       getDescriptor().getMessageTypes().get(6);
     internal_static_OpenConnectionResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_OpenConnectionResponse_descriptor,
-        new java.lang.String[] { });
+        new java.lang.String[] { "Metadata", });
     internal_static_CloseConnectionResponse_descriptor =
       getDescriptor().getMessageTypes().get(7);
     internal_static_CloseConnectionResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_CloseConnectionResponse_descriptor,
-        new java.lang.String[] { });
+        new java.lang.String[] { "Metadata", });
     internal_static_ConnectionSyncResponse_descriptor =
       getDescriptor().getMessageTypes().get(8);
     internal_static_ConnectionSyncResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ConnectionSyncResponse_descriptor,
-        new java.lang.String[] { "ConnProps", });
+        new java.lang.String[] { "ConnProps", "Metadata", });
     internal_static_DatabasePropertyElement_descriptor =
       getDescriptor().getMessageTypes().get(9);
     internal_static_DatabasePropertyElement_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_DatabasePropertyElement_descriptor,
-        new java.lang.String[] { "Key", "Value", });
+        new java.lang.String[] { "Key", "Value", "Metadata", });
     internal_static_DatabasePropertyResponse_descriptor =
       getDescriptor().getMessageTypes().get(10);
     internal_static_DatabasePropertyResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_DatabasePropertyResponse_descriptor,
-        new java.lang.String[] { "Props", });
+        new java.lang.String[] { "Props", "Metadata", });
     internal_static_ErrorResponse_descriptor =
       getDescriptor().getMessageTypes().get(11);
     internal_static_ErrorResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ErrorResponse_descriptor,
-        new java.lang.String[] { "Exceptions", "ErrorMessage", "Severity", "ErrorCode", "SqlState", });
+        new java.lang.String[] { "Exceptions", "ErrorMessage", "Severity", "ErrorCode", "SqlState", "Metadata", });
     internal_static_SyncResultsResponse_descriptor =
       getDescriptor().getMessageTypes().get(12);
     internal_static_SyncResultsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_SyncResultsResponse_descriptor,
-        new java.lang.String[] { "MissingStatement", "MoreResults", });
+        new java.lang.String[] { "MissingStatement", "MoreResults", "Metadata", });
+    internal_static_RpcMetadata_descriptor =
+      getDescriptor().getMessageTypes().get(13);
+    internal_static_RpcMetadata_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_RpcMetadata_descriptor,
+        new java.lang.String[] { "ServerAddress", });
     org.apache.calcite.avatica.proto.Common.getDescriptor();
   }
 

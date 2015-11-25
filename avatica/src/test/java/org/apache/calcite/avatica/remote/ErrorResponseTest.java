@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaClientRuntimeException;
 import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
 import org.junit.Test;
 
@@ -39,8 +40,9 @@ public class ErrorResponseTest {
     final String state = "a1b2c";
     final AvaticaSeverity severity = AvaticaSeverity.ERROR;
     final List<String> exceptions = Arrays.asList("Server Stacktrace 1", "Server Stacktace 2");
-    assertEquals(new ErrorResponse(message, code, state, severity, exceptions),
-        new ErrorResponse(message, code, state, severity, exceptions));
+    final RpcMetadataResponse metadata = new RpcMetadataResponse("localhost:8765");
+    assertEquals(new ErrorResponse(message, code, state, severity, exceptions, metadata),
+        new ErrorResponse(message, code, state, severity, exceptions, metadata));
   }
 
   @Test public void testToClientRTE() {
@@ -49,7 +51,9 @@ public class ErrorResponseTest {
     final String state = "a1b2c";
     final AvaticaSeverity severity = AvaticaSeverity.ERROR;
     final List<String> exceptions = Arrays.asList("Server Stacktrace 1", "Server Stacktace 2");
-    final ErrorResponse resp = new ErrorResponse(message, code, state, severity, exceptions);
+    final RpcMetadataResponse metadata = new RpcMetadataResponse("localhost:8765");
+    final ErrorResponse resp = new ErrorResponse(message, code, state, severity, exceptions,
+        metadata);
     AvaticaClientRuntimeException exception = resp.toException();
     assertTrue("Expected error message to end with '" + resp.errorMessage + "', but was '"
         + exception.getMessage() + "'", exception.getMessage().endsWith(resp.errorMessage));
@@ -57,6 +61,7 @@ public class ErrorResponseTest {
     assertEquals(resp.severity, exception.getSeverity());
     assertEquals(resp.sqlState, exception.getSqlState());
     assertEquals(resp.exceptions, exception.getServerExceptions());
+    assertEquals(resp.rpcMetadata, exception.getRpcMetadata());
   }
 }
 

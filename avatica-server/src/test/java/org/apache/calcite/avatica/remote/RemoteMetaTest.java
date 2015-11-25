@@ -24,7 +24,8 @@ import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
-import org.apache.calcite.avatica.server.AvaticaHandler;
+import org.apache.calcite.avatica.remote.Service.Response;
+import org.apache.calcite.avatica.server.AvaticaJsonHandler;
 import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
@@ -33,8 +34,6 @@ import org.apache.calcite.avatica.util.ArrayImpl;
 
 import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
-
-import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import org.junit.AfterClass;
 import org.junit.Ignore;
@@ -45,6 +44,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Connection;
@@ -55,6 +56,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -66,6 +68,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -81,6 +84,8 @@ public class RemoteMetaTest {
 
   private final HttpServer server;
   private final String url;
+  private final int port;
+  private final Driver.Serialization serialization;
 
   @Parameters
   public static List<Object[]> parameters() throws Exception {
@@ -91,15 +96,15 @@ public class RemoteMetaTest {
     // Bind to '0' to pluck an ephemeral port instead of expecting a certain one to be free
 
     final HttpServer jsonServer = Main.start(mainArgs, 0, new HandlerFactory() {
-      @Override public AbstractHandler createHandler(Service service) {
-        return new AvaticaHandler(service);
+      @Override public AvaticaJsonHandler createHandler(Service service) {
+        return new AvaticaJsonHandler(service);
       }
     });
     params.add(new Object[] {jsonServer, Driver.Serialization.JSON});
     ACTIVE_SERVERS.add(jsonServer);
 
     final HttpServer protobufServer = Main.start(mainArgs, 0, new HandlerFactory() {
-      @Override public AbstractHandler createHandler(Service service) {
+      @Override public AvaticaProtobufHandler createHandler(Service service) {
         return new AvaticaProtobufHandler(service);
       }
     });
@@ -112,7 +117,8 @@ public class RemoteMetaTest {
 
   public RemoteMetaTest(HttpServer server, Driver.Serialization serialization) {
     this.server = server;
-    final int port = server.getPort();
+    this.port = this.server.getPort();
+    this.serialization = serialization;
     url = "jdbc:avatica:remote:url=http://localhost:" + port + ";serialization="
         + serialization.name();
   }
@@ -447,6 +453,54 @@ public class RemoteMetaTest {
       // Attempt to verify that we got a "server-side" class in the stack.
       assertThat(Throwables.getStackTraceAsString(e),
           containsString(JdbcMeta.class.getName()));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testServerAddressInResponse() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      URL url = new URL("http://localhost:" + this.port);
+      AvaticaHttpClient httpClient = new AvaticaHttpClientImpl(url);
+      byte[] request;
+
+      Service.OpenConnectionRequest jsonReq = new Service.OpenConnectionRequest(
+          UUID.randomUUID().toString(), Collections.<String, String>emptyMap());
+      switch (this.serialization) {
+      case JSON:
+        request = JsonService.MAPPER.writeValueAsBytes(jsonReq);
+        break;
+      case PROTOBUF:
+        ProtobufTranslation pbTranslation = new ProtobufTranslationImpl();
+        request = pbTranslation.serializeRequest(jsonReq);
+        break;
+      default:
+        throw new IllegalStateException("Should not reach here");
+      }
+
+      byte[] response = httpClient.send(request);
+      Service.OpenConnectionResponse openCnxnResp;
+      switch (this.serialization) {
+      case JSON:
+        openCnxnResp = JsonService.MAPPER.readValue(response,
+            Service.OpenConnectionResponse.class);
+        break;
+      case PROTOBUF:
+        ProtobufTranslation pbTranslation = new ProtobufTranslationImpl();
+        Response genericResp = pbTranslation.parseResponse(response);
+        assertTrue("Expected an OpenConnnectionResponse, but got " + genericResp.getClass(),
+            genericResp instanceof Service.OpenConnectionResponse);
+        openCnxnResp = (Service.OpenConnectionResponse) genericResp;
+        break;
+      default:
+        throw new IllegalStateException("Should not reach here");
+      }
+
+      String hostname = InetAddress.getLocalHost().getHostName();
+
+      assertNotNull(openCnxnResp.rpcMetadata);
+      assertEquals(hostname + ":" + this.port, openCnxnResp.rpcMetadata.serverAddress);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }

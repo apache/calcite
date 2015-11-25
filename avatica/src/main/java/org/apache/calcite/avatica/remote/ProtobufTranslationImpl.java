@@ -45,9 +45,11 @@ import org.apache.calcite.avatica.proto.Responses.FetchResponse;
 import org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse;
 import org.apache.calcite.avatica.proto.Responses.PrepareResponse;
 import org.apache.calcite.avatica.proto.Responses.ResultSetResponse;
+import org.apache.calcite.avatica.proto.Responses.RpcMetadata;
 import org.apache.calcite.avatica.proto.Responses.SyncResultsResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -144,6 +146,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new ResponseTranslator(ErrorResponse.parser(), new Service.ErrorResponse()));
     respParsers.put(SyncResultsResponse.class.getName(),
         new ResponseTranslator(SyncResultsResponse.parser(), new Service.SyncResultsResponse()));
+    respParsers.put(RpcMetadata.class.getName(),
+        new ResponseTranslator(RpcMetadata.parser(), new RpcMetadataResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
   }

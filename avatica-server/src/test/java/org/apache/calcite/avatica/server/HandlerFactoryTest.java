@@ -44,7 +44,7 @@ public class HandlerFactoryTest {
   public void testJson() {
     Handler handler = factory.getHandler(service, Serialization.JSON);
     assertTrue("Expected an implementation of the AvaticaHandler, "
-        + "but got " + handler.getClass(), handler instanceof AvaticaHandler);
+        + "but got " + handler.getClass(), handler instanceof AvaticaJsonHandler);
   }
 
   @Test

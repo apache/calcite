@@ -55,15 +55,15 @@ public class MockProtobufService extends ProtobufService {
     mappings.put(
         new SchemasRequest(connectionId, null, null),
         // ownStatement=false just to avoid the extra close statement call.
-        new ResultSetResponse(null, 1, false, null, Meta.Frame.EMPTY, -1));
+        new ResultSetResponse(null, 1, false, null, Meta.Frame.EMPTY, -1, null));
 
     // Get the tables, no tables exist
     mappings.put(new TablesRequest(connectionId, null, null, null, Collections.<String>emptyList()),
         // ownStatement=false just to avoid the extra close statement call.
-        new ResultSetResponse(null, 150, false, null, Meta.Frame.EMPTY, -1));
+        new ResultSetResponse(null, 150, false, null, Meta.Frame.EMPTY, -1, null));
 
     // Create a statement, get back an id
-    mappings.put(new CreateStatementRequest("0"), new CreateStatementResponse("0", 1));
+    mappings.put(new CreateStatementRequest("0"), new CreateStatementResponse("0", 1, null));
 
     // Prepare and execute a query. Values and schema are returned
     mappings.put(
@@ -77,7 +77,7 @@ public class MockProtobufService extends ProtobufService {
                 null, null, Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
             Meta.Frame.create(0, true,
                 Arrays.<Object>asList(new Object[] {1, "a"},
-                    new Object[] {null, "b"}, new Object[] {3, "c"})), -1));
+                    new Object[] {null, "b"}, new Object[] {3, "c"})), -1, null));
 
     // Prepare a query. Schema for results are returned, but no values
     mappings.put(
@@ -90,7 +90,7 @@ public class MockProtobufService extends ProtobufService {
                     MetaImpl.columnMetaData("C2", 1, String.class)),
                 null, Collections.<AvaticaParameter>emptyList(),
                 Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
-            null, -1));
+            null, -1, null));
 
     mappings.put(
         new ColumnsRequest(connectionId, null, null, "my_table", null),
@@ -101,7 +101,7 @@ public class MockProtobufService extends ProtobufService {
                     MetaImpl.columnMetaData("ORDINAL_POSITION", 1, Long.class)), null,
                 Collections.<AvaticaParameter>emptyList(), Meta.CursorFactory.ARRAY, null),
             Meta.Frame.create(0, true,
-                Arrays.<Object>asList(new Object[] {new Object[]{"my_table", 10}})), -1));
+                Arrays.<Object>asList(new Object[] {new Object[]{"my_table", 10}})), -1, null));
 
     return Collections.unmodifiableMap(mappings);
   }

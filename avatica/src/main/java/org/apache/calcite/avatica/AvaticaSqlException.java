@@ -31,6 +31,7 @@ public class AvaticaSqlException extends SQLException {
 
   private final String errorMessage;
   private final List<String> stackTraces;
+  private final String remoteServer;
 
   /**
    * Construct the Exception with information from the server.
@@ -38,12 +39,14 @@ public class AvaticaSqlException extends SQLException {
    * @param errorMessage A human-readable error message.
    * @param errorCode An integer corresponding to a known error.
    * @param stackTraces Server-side stacktrace.
+   * @param remoteServer The host:port where the Avatica server is located
    */
   public AvaticaSqlException(String errorMessage, String sqlState, int errorCode,
-      List<String> stackTraces) {
+      List<String> stackTraces, String remoteServer) {
     super("Error " + errorCode + " (" + sqlState + ") : " + errorMessage, sqlState, errorCode);
     this.errorMessage = errorMessage;
     this.stackTraces = Objects.requireNonNull(stackTraces);
+    this.remoteServer = remoteServer;
   }
 
   public String getErrorMessage() {
@@ -55,6 +58,13 @@ public class AvaticaSqlException extends SQLException {
    */
   public List<String> getStackTraces() {
     return stackTraces;
+  }
+
+  /**
+   * @return The host:port for the remote Avatica server. May be null.
+   */
+  public String getRemoteServer() {
+    return remoteServer;
   }
 
   // printStackTrace() will get redirected to printStackTrace(PrintStream), don't need to override.

@@ -51,6 +51,7 @@ import org.apache.calcite.avatica.remote.Service.PrepareResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 import org.apache.calcite.avatica.remote.Service.ResultSetResponse;
+import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 import org.apache.calcite.avatica.remote.Service.SchemasRequest;
 import org.apache.calcite.avatica.remote.Service.SyncResultsRequest;
 import org.apache.calcite.avatica.remote.Service.SyncResultsResponse;
@@ -248,6 +249,7 @@ public class ProtobufTranslationImplTest<T> {
    * Generates a collection of Responses whose serialization will be tested.
    */
   private static List<Response> getResponses() {
+    final RpcMetadataResponse rpcMetadata = new RpcMetadataResponse("localhost:8765");
     LinkedList<Response> responses = new LinkedList<>();
 
     // Nested classes (Signature, ColumnMetaData, CursorFactory, etc) are implicitly getting tested)
@@ -273,48 +275,49 @@ public class ProtobufTranslationImplTest<T> {
 
     // And then create a ResultSetResponse
     ResultSetResponse results1 = new ResultSetResponse("connectionId", Integer.MAX_VALUE, true,
-        signature, frame, Long.MAX_VALUE);
+        signature, frame, Long.MAX_VALUE, rpcMetadata);
     responses.add(results1);
 
-    responses.add(new CloseStatementResponse());
+    responses.add(new CloseStatementResponse(rpcMetadata));
 
     ConnectionPropertiesImpl connProps = new ConnectionPropertiesImpl(false, true,
         Integer.MAX_VALUE, "catalog", "schema");
-    responses.add(new ConnectionSyncResponse(connProps));
+    responses.add(new ConnectionSyncResponse(connProps, rpcMetadata));
 
-    responses.add(new OpenConnectionResponse());
-    responses.add(new CloseConnectionResponse());
+    responses.add(new OpenConnectionResponse(rpcMetadata));
+    responses.add(new CloseConnectionResponse(rpcMetadata));
 
-    responses.add(new CreateStatementResponse("connectionId", Integer.MAX_VALUE));
+    responses.add(new CreateStatementResponse("connectionId", Integer.MAX_VALUE, rpcMetadata));
 
     Map<Meta.DatabaseProperty, Object> propertyMap = new HashMap<>();
     for (Meta.DatabaseProperty prop : Meta.DatabaseProperty.values()) {
       propertyMap.put(prop, prop.defaultValue);
     }
-    responses.add(new DatabasePropertyResponse(propertyMap));
+    responses.add(new DatabasePropertyResponse(propertyMap, rpcMetadata));
 
-    responses.add(new ExecuteResponse(Arrays.asList(results1, results1, results1), false));
-    responses.add(new FetchResponse(frame, false, false));
-    responses.add(new FetchResponse(frame, true, true));
-    responses.add(new FetchResponse(frame, false, true));
+    responses.add(new ExecuteResponse(Arrays.asList(results1, results1, results1), false,
+        rpcMetadata));
+    responses.add(new FetchResponse(frame, false, false, rpcMetadata));
+    responses.add(new FetchResponse(frame, true, true, rpcMetadata));
+    responses.add(new FetchResponse(frame, false, true, rpcMetadata));
     responses.add(
         new PrepareResponse(
             new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
-                signature)));
+                signature), rpcMetadata));
 
     StringWriter sw = new StringWriter();
     new Exception().printStackTrace(new PrintWriter(sw));
     responses.add(
         new ErrorResponse(Collections.singletonList(sw.toString()), "Test Error Message",
             ErrorResponse.UNKNOWN_ERROR_CODE, ErrorResponse.UNKNOWN_SQL_STATE,
-            AvaticaSeverity.WARNING));
+            AvaticaSeverity.WARNING, rpcMetadata));
 
     // No more results, statement not missing
-    responses.add(new SyncResultsResponse(false, false));
+    responses.add(new SyncResultsResponse(false, false, rpcMetadata));
     // Missing statement, no results
-    responses.add(new SyncResultsResponse(false, true));
+    responses.add(new SyncResultsResponse(false, true, rpcMetadata));
     // More results, no missing statement
-    responses.add(new SyncResultsResponse(true, false));
+    responses.add(new SyncResultsResponse(true, false, rpcMetadata));
 
     return responses;
   }

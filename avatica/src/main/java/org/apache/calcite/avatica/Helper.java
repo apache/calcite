@@ -46,8 +46,12 @@ public class Helper {
       // The AvaticaClientRuntimeException contains extra information about what/why
       // the exception was thrown that we can pass back to the user.
       AvaticaClientRuntimeException rte = (AvaticaClientRuntimeException) e;
+      String serverAddress = null;
+      if (null != rte.getRpcMetadata()) {
+        serverAddress = rte.getRpcMetadata().serverAddress;
+      }
       return new AvaticaSqlException(message, rte.getSqlState(), rte.getErrorCode(),
-          rte.getServerExceptions());
+          rte.getServerExceptions(), serverAddress);
     }
     return new SQLException(message, e);
   }
