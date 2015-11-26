@@ -237,6 +237,63 @@ public class RexUtil {
     return false;
   }
 
+  /**
+   * Walks over an expression and determines whether it is constant.
+   */
+  private static class ConstantFinder implements RexVisitor<Boolean> {
+    static final ConstantFinder INSTANCE = new ConstantFinder();
+
+    public Boolean visitLiteral(RexLiteral literal) {
+      return true;
+    }
+
+    public Boolean visitInputRef(RexInputRef inputRef) {
+      return false;
+    }
+
+    public Boolean visitLocalRef(RexLocalRef localRef) {
+      return false;
+    }
+
+    public Boolean visitOver(RexOver over) {
+      return false;
+    }
+
+    public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+      return false;
+    }
+
+    public Boolean visitDynamicParam(RexDynamicParam dynamicParam) {
+      return true;
+    }
+
+    public Boolean visitCall(RexCall call) {
+      // Constant if operator is deterministic and all operands are
+      // constant.
+      return call.getOperator().isDeterministic()
+          && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
+    }
+
+    public Boolean visitRangeRef(RexRangeRef rangeRef) {
+      return false;
+    }
+
+    public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+      // "<expr>.FIELD" is constant iff "<expr>" is constant.
+      return fieldAccess.getReferenceExpr().accept(this);
+    }
+  }
+
+  /**
+   * Returns whether node is made up of constants.
+   *
+   * @param node to inspect
+   * @return true if node is made up of constants, false otherwise
+   */
+  public static boolean isConstant(RexNode node) {
+    return node.accept(ConstantFinder.INSTANCE);
+  }
+
    /**
    * Returns whether a given node contains a RexCall with a specified operator
    *
