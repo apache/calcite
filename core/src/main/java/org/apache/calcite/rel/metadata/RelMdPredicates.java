@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
@@ -339,7 +340,7 @@ public class RelMdPredicates {
   }
 
   /**
-   * Is this RexCall a deterministic function over literals
+   * Is this expression a deterministic function over literals
    *
    * @param expr
    * @return TRUE if expr is deterministic and all args are constants; FALSE
@@ -360,6 +361,11 @@ public class RelMdPredicates {
       @Override
       public Void visitInputRef(RexInputRef inputRef) {
         throw new Util.FoundOne(inputRef);
+      }
+
+      @Override
+      public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
+        throw new Util.FoundOne(correlVariable);
       }
 
       @Override
