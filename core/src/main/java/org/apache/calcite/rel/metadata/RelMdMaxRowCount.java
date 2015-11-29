@@ -22,6 +22,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.BuiltInMethod;
@@ -42,8 +43,8 @@ public class RelMdMaxRowCount {
 
     for (RelNode input : rel.getInputs()) {
       Double partialRowCount = RelMetadataQuery.getMaxRowCount(input);
-      if (partialRowCount == null || partialRowCount.equals(Double.POSITIVE_INFINITY)) {
-        return Double.POSITIVE_INFINITY;
+      if (partialRowCount == null) {
+        return null;
       }
       nRows += partialRowCount;
     }
@@ -80,17 +81,20 @@ public class RelMdMaxRowCount {
   public Double getMaxRowCount(Join rel) {
     Double left = RelMetadataQuery.getMaxRowCount(rel.getLeft());
     Double right = RelMetadataQuery.getMaxRowCount(rel.getLeft());
-    if (left.equals(Double.POSITIVE_INFINITY) || right.equals(Double.POSITIVE_INFINITY)) {
-      return Double.POSITIVE_INFINITY;
+    if (left == null || right == null) {
+      return null;
     } else {
-      return RelMetadataQuery.getMaxRowCount(rel.getLeft())
-              * RelMetadataQuery.getMaxRowCount(rel.getRight());
+      return left * right;
     }
+  }
+
+  public Double getMaxRowCount(TableScan rel) {
+    return rel.getRows();
   }
 
   // Catch-all rule when none of the others apply.
   public Double getMaxRowCount(RelNode rel) {
-    return Double.POSITIVE_INFINITY;
+    return null;
   }
 }
 
