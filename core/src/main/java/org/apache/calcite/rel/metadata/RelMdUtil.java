@@ -766,7 +766,7 @@ public class RelMdUtil {
         ImmutableList.of(collation), inputCollation);
     // Check if we are not reducing the number of tuples
     boolean alreadySmaller = true;
-    final Double rowCount = RelMetadataQuery.getRowCount(input);
+    final Double rowCount = RelMetadataQuery.getMaxRowCount(input);
     if (rowCount != null && fetch != null) {
       final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
       final int limit = RexLiteral.intValue(fetch);

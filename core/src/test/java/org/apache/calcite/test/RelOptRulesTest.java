@@ -411,6 +411,22 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-987">[CALCITE-987]
+   * Implement SortUnionTransposeRule</a>. */
+  @Test public void testSortUnionTranspose3() {
+    final HepProgram program =
+            HepProgram.builder()
+                    .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
+                    .addRuleInstance(SortUnionTransposeRule.MATCH_NULL_FETCH)
+                    .build();
+    final String sql = "select a.name from dept a\n"
+            + "union all\n"
+            + "select b.name from dept b\n"
+            + "order by name limit 0";
+    checkPlanning(program, sql);
+  }
+
   @Test public void testSemiJoinRule() {
     final HepProgram preProgram =
         HepProgram.builder()

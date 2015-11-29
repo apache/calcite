@@ -131,6 +131,18 @@ public abstract class BuiltInMetadata {
     Double getRowCount();
   }
 
+  /** Metadata about the max number of rows returned by a relational expression. */
+  public interface MaxRowCount extends Metadata {
+    /**
+     * Estimates the max number of rows which will be returned by a relational
+     * expression. The default implementation for this query returns Double.POSITIVE_INFINITY,
+     * but metadata providers can override this with their own cost models.
+     *
+     * @return estimated max row count
+     */
+    Double getMaxRowCount();
+  }
+
   /** Metadata about the number of distinct rows returned by a set of columns
    * in a relational expression. */
   public interface DistinctRowCount extends Metadata {

@@ -92,6 +92,7 @@ import static org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
+import static org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
 import static org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSize;
@@ -323,6 +324,7 @@ public enum BuiltInMethod {
   COLLATIONS(Collation.class, "collations"),
   DISTRIBUTION(Distribution.class, "distribution"),
   ROW_COUNT(RowCount.class, "getRowCount"),
+  MAX_ROW_COUNT(MaxRowCount.class, "getMaxRowCount"),
   DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
       ImmutableBitSet.class, RexNode.class),
   PERCENTAGE_ORIGINAL_ROWS(PercentageOriginalRows.class,
