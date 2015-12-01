@@ -112,6 +112,7 @@ import org.junit.runners.Suite;
     EnumerableCorrelateTest.class,
 
     // slow tests (above 1s)
+    UdfTest.class,
     PlannerTest.class,
     RelBuilderTest.class,
     PigRelBuilderTest.class,

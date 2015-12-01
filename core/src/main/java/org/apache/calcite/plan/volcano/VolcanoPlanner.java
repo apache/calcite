@@ -598,6 +598,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.mapRel2Subset.clear();
     this.relImportances.clear();
     this.ruleQueue.clear();
+    this.ruleNames.clear();
   }
 
   public boolean addRule(RelOptRule rule) {

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
@@ -37,18 +36,12 @@ import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.linq4j.BaseQueryable;
-import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Function2;
-import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -59,8 +52,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ModifiableTable;
@@ -78,7 +69,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
@@ -99,8 +89,8 @@ import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
-import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -121,7 +111,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
@@ -136,7 +125,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -174,41 +162,6 @@ import static org.junit.Assert.fail;
  * Tests for using Calcite via JDBC.
  */
 public class JdbcTest {
-  public static final Method GENERATE_STRINGS_METHOD =
-      Types.lookupMethod(JdbcTest.class, "generateStrings", Integer.class);
-
-  public static final Method MAZE_METHOD =
-      Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
-          int.class);
-
-  public static final Method MAZE2_METHOD =
-      Types.lookupMethod(MazeTable.class, "generate2", int.class, int.class,
-          Integer.class);
-
-  public static final Method MAZE3_METHOD =
-      Types.lookupMethod(MazeTable.class, "generate3", String.class);
-
-  public static final Method MULTIPLICATION_TABLE_METHOD =
-      Types.lookupMethod(JdbcTest.class, "multiplicationTable", int.class,
-        int.class, Integer.class);
-
-  public static final Method VIEW_METHOD =
-      Types.lookupMethod(JdbcTest.class, "view", String.class);
-
-  public static final Method STR_METHOD =
-      Types.lookupMethod(JdbcTest.class, "str", Object.class, Object.class);
-
-  public static final Method STRING_UNION_METHOD =
-      Types.lookupMethod(
-          JdbcTest.class, "stringUnion", Queryable.class, Queryable.class);
-
-  public static final Method PROCESS_CURSOR_METHOD =
-      Types.lookupMethod(JdbcTest.class, "processCursor",
-          int.class, Enumerable.class);
-
-  public static final Method PROCESS_CURSORS_METHOD =
-      Types.lookupMethod(JdbcTest.class, "processCursors",
-          int.class, Enumerable.class, Enumerable.class);
 
   public static final String FOODMART_SCHEMA = "     {\n"
       + "       type: 'jdbc',\n"
@@ -461,7 +414,7 @@ public class JdbcTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableFunction table =
-        TableFunctionImpl.create(GENERATE_STRINGS_METHOD);
+        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
     schema.add("GenerateStrings", table);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
         + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
@@ -481,7 +434,7 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table = TableFunctionImpl.create(MAZE_METHOD);
+    final TableFunction table = TableFunctionImpl.create(Smalls.MAZE_METHOD);
     schema.add("Maze", table);
     final String sql = "select *\n"
         + "from table(\"s\".\"Maze\"(5, 3, 1))";
@@ -500,7 +453,7 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table = TableFunctionImpl.create(MAZE2_METHOD);
+    final TableFunction table = TableFunctionImpl.create(Smalls.MAZE2_METHOD);
     schema.add("Maze", table);
     final String sql = "select *\n"
         + "from table(\"s\".\"Maze\"(5, 3, 1))";
@@ -533,11 +486,11 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table1 = TableFunctionImpl.create(MAZE_METHOD);
+    final TableFunction table1 = TableFunctionImpl.create(Smalls.MAZE_METHOD);
     schema.add("Maze", table1);
-    final TableFunction table2 = TableFunctionImpl.create(MAZE2_METHOD);
+    final TableFunction table2 = TableFunctionImpl.create(Smalls.MAZE2_METHOD);
     schema.add("Maze", table2);
-    final TableFunction table3 = TableFunctionImpl.create(MAZE3_METHOD);
+    final TableFunction table3 = TableFunctionImpl.create(Smalls.MAZE3_METHOD);
     schema.add("Maze", table3);
     final String sql = "select *\n"
         + "from table(\"s\".\"Maze\"(5, 3, 1))";
@@ -619,7 +572,7 @@ public class JdbcTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableFunction table =
-        TableFunctionImpl.create(MULTIPLICATION_TABLE_METHOD);
+        TableFunctionImpl.create(Smalls.MULTIPLICATION_TABLE_METHOD);
     schema.add("multiplication", table);
     return connection;
   }
@@ -638,10 +591,10 @@ public class JdbcTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableFunction table =
-        TableFunctionImpl.create(GENERATE_STRINGS_METHOD);
+        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
     schema.add("GenerateStrings", table);
     final TableFunction add =
-        TableFunctionImpl.create(PROCESS_CURSOR_METHOD);
+        TableFunctionImpl.create(Smalls.PROCESS_CURSOR_METHOD);
     schema.add("process", add);
     final PreparedStatement ps = connection.prepareStatement("select *\n"
         + "from table(\"s\".\"process\"(2,\n"
@@ -672,10 +625,10 @@ public class JdbcTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.getSubSchema("s");
     final TableFunction table =
-        TableFunctionImpl.create(GENERATE_STRINGS_METHOD);
+        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
     schema.add("GenerateStrings", table);
     final TableFunction add =
-        TableFunctionImpl.create(PROCESS_CURSORS_METHOD);
+        TableFunctionImpl.create(Smalls.PROCESS_CURSORS_METHOD);
     schema.add("process", add);
     final PreparedStatement ps = connection.prepareStatement("select *\n"
         + "from table(\"s\".\"process\"(2,\n"
@@ -760,7 +713,7 @@ public class JdbcTest {
   /**
    * Tests a relation that is accessed via method syntax.
    *
-   * <p>The function ({@link #view(String)} has a return type
+   * <p>The function ({@link Smalls#view(String)} has a return type
    * {@link Table} and the actual returned value implements
    * {@link org.apache.calcite.schema.TranslatableTable}.
    */
@@ -772,7 +725,7 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(VIEW_METHOD);
+    final TableMacro tableMacro = TableMacroImpl.create(Smalls.VIEW_METHOD);
     schema.add("View", tableMacro);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
         + "from table(\"s\".\"View\"('(10), (20)')) as t(n)\n"
@@ -798,7 +751,7 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(STR_METHOD);
+    final TableMacro tableMacro = TableMacroImpl.create(Smalls.STR_METHOD);
     schema.add("Str", tableMacro);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
         + "from table(\"s\".\"Str\"(MAP['a', 1, 'baz', 2],\n"
@@ -814,7 +767,7 @@ public class JdbcTest {
   @Test public void testTableMacroWithNamedParameters() throws Exception {
     // View(String r optional, String s, int t optional)
     final CalciteAssert.AssertThat with =
-        assertWithMacro(TableMacroFunctionWithNamedParameters.class);
+        assertWithMacro(Smalls.TableMacroFunctionWithNamedParameters.class);
     with.query("select * from table(\"adhoc\".\"View\"('(5)'))")
         .throws_("No match found for function signature View(<CHARACTER>)");
     final String expected1 = "c=1\n"
@@ -845,25 +798,25 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains a table
    *  macro. */
   @Test public void testTableMacroInModel() throws Exception {
-    checkTableMacroInModel(TableMacroFunction.class);
+    checkTableMacroInModel(Smalls.TableMacroFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    *  macro defined as a static method. */
   @Test public void testStaticTableMacroInModel() throws Exception {
-    checkTableMacroInModel(StaticTableMacroFunction.class);
+    checkTableMacroInModel(Smalls.StaticTableMacroFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    *  function. */
   @Test public void testTableFunctionInModel() throws Exception {
-    checkTableFunctionInModel(MyTableFunction.class);
+    checkTableFunctionInModel(Smalls.MyTableFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    *  function defined as a static method. */
   @Test public void testStaticTableFunctionInModel() throws Exception {
-    checkTableFunctionInModel(TestStaticTableFunction.class);
+    checkTableFunctionInModel(Smalls.TestStaticTableFunction.class);
   }
 
   private CalciteAssert.AssertThat assertWithMacro(Class clazz) {
@@ -911,150 +864,6 @@ public class JdbcTest {
             "A=30; B=1",
             "A=30; B=3",
             "A=30; B=30");
-  }
-
-  public static <T> Queryable<T> stringUnion(
-      Queryable<T> q0, Queryable<T> q1) {
-    return q0.concat(q1);
-  }
-
-  /** A function that generates a table that generates a sequence of
-   * {@link org.apache.calcite.test.JdbcTest.IntString} values. */
-  public static QueryableTable generateStrings(final Integer count) {
-    return new AbstractQueryableTable(IntString.class) {
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.createJavaType(IntString.class);
-      }
-
-      public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
-          SchemaPlus schema, String tableName) {
-        BaseQueryable<IntString> queryable =
-            new BaseQueryable<IntString>(null, IntString.class, null) {
-              public Enumerator<IntString> enumerator() {
-                return new Enumerator<IntString>() {
-                  static final String Z = "abcdefghijklm";
-
-                  int i = 0;
-                  int curI;
-                  String curS;
-
-                  public IntString current() {
-                    return new IntString(curI, curS);
-                  }
-
-                  public boolean moveNext() {
-                    if (i < count) {
-                      curI = i;
-                      curS = Z.substring(0, i % Z.length());
-                      ++i;
-                      return true;
-                    } else {
-                      return false;
-                    }
-                  }
-
-                  public void reset() {
-                    i = 0;
-                  }
-
-                  public void close() {
-                  }
-                };
-              }
-            };
-        //noinspection unchecked
-        return (Queryable<T>) queryable;
-      }
-    };
-  }
-
-  /** A function that generates multiplication table of {@code ncol} columns x
-   * {@code nrow} rows. */
-  public static QueryableTable multiplicationTable(final int ncol,
-      final int nrow, Integer offset) {
-    final int offs = offset == null ? 0 : offset;
-    return new AbstractQueryableTable(Object[].class) {
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        final RelDataTypeFactory.FieldInfoBuilder builder =
-          typeFactory.builder();
-        builder.add("row_name", typeFactory.createJavaType(String.class));
-        final RelDataType int_ = typeFactory.createJavaType(int.class);
-        for (int i = 1; i <= ncol; i++) {
-          builder.add("c" + i, int_);
-        }
-        return builder.build();
-      }
-
-      public Queryable<Object[]> asQueryable(QueryProvider queryProvider,
-          SchemaPlus schema, String tableName) {
-        final List<Object[]> table = new AbstractList<Object[]>() {
-          @Override public Object[] get(int index) {
-            Object[] cur = new Object[ncol + 1];
-            cur[0] = "row " + index;
-            for (int j = 1; j <= ncol; j++) {
-              cur[j] = j * (index + 1) + offs;
-            }
-            return cur;
-          }
-
-          @Override public int size() {
-            return nrow;
-          }
-        };
-        return Linq4j.asEnumerable(table).asQueryable();
-      }
-    };
-  }
-
-  /**
-   * A function that adds a number to the first column of input cursor
-   */
-  public static QueryableTable processCursor(final int offset,
-    final Enumerable<Object[]> a) {
-    return new AbstractQueryableTable(Object[].class) {
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.builder()
-            .add("result", SqlTypeName.INTEGER)
-            .build();
-      }
-
-      public Queryable<Integer> asQueryable(QueryProvider queryProvider,
-          SchemaPlus schema, String tableName) {
-        final Enumerable<Integer> enumerable =
-            a.select(new Function1<Object[], Integer>() {
-              public Integer apply(Object[] a0) {
-                return offset + ((Integer) a0[0]);
-              }
-            });
-        return enumerable.asQueryable();
-      }
-    };
-  }
-
-  /**
-   * A function that sums the second column of first input cursor, second
-   * column of first input and the given int.
-   */
-  public static QueryableTable processCursors(final int offset,
-      final Enumerable<Object[]> a, final Enumerable<IntString> b) {
-    return new AbstractQueryableTable(Object[].class) {
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.builder()
-            .add("result", SqlTypeName.INTEGER)
-            .build();
-      }
-
-      public Queryable<Integer> asQueryable(QueryProvider queryProvider,
-          SchemaPlus schema, String tableName) {
-        final Enumerable<Integer> enumerable =
-            a.zip(b, new Function2<Object[], IntString, Integer>() {
-              public Integer apply(Object[] v0, IntString v1) {
-                return ((Integer) v0[1]) + v1.n + offset;
-              }
-            });
-        return enumerable.asQueryable();
-      }
-    };
   }
 
   /** Tests {@link org.apache.calcite.avatica.Handler#onConnectionClose}
@@ -5407,514 +5216,6 @@ public class JdbcTest {
             });
   }
 
-  private CalciteAssert.AssertThat withUdf() {
-    return CalciteAssert.model("{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'adhoc',\n"
-        + "       tables: [\n"
-        + "         {\n"
-        + "           name: 'EMPLOYEES',\n"
-        + "           type: 'custom',\n"
-        + "           factory: '"
-        + EmpDeptTableFactory.class.getName()
-        + "',\n"
-        + "           operand: {'foo': true, 'bar': 345}\n"
-        + "         }\n"
-        + "       ],\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'MY_PLUS',\n"
-        + "           className: '"
-        + MyPlusFunction.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'MY_LEFT',\n"
-        + "           className: '"
-        + MyLeftFunction.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'ABCDE',\n"
-        + "           className: '"
-        + MyAbcdeFunction.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'MY_STR',\n"
-        + "           className: '"
-        + MyToStringFunction.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'MY_DOUBLE',\n"
-        + "           className: '"
-        + MyDoubleFunction.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'COUNT_ARGS',\n"
-        + "           className: '"
-        + CountArgs0Function.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'COUNT_ARGS',\n"
-        + "           className: '"
-        + CountArgs1Function.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'COUNT_ARGS',\n"
-        + "           className: '"
-        + CountArgs2Function.class.getName()
-        + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'MY_ABS',\n"
-        + "           className: '"
-        + java.lang.Math.class.getName()
-        + "',\n"
-        + "           methodName: 'abs'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           className: '"
-        + MultipleFunction.class.getName()
-        + "',\n"
-        + "           methodName: '*'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}");
-  }
-
-  /** Tests user-defined function. */
-  @Test public void testUserDefinedFunction() throws Exception {
-    final CalciteAssert.AssertThat with = withUdf();
-    with.query(
-        "select \"adhoc\".my_plus(\"deptno\", 100) as p from \"adhoc\".EMPLOYEES")
-        .returns("P=110\n"
-            + "P=120\n"
-            + "P=110\n"
-            + "P=110\n");
-    with.query(
-        "select \"adhoc\".my_double(\"deptno\") as p from \"adhoc\".EMPLOYEES")
-        .returns("P=20\n"
-            + "P=40\n"
-            + "P=20\n"
-            + "P=20\n");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-937">[CALCITE-937]
-   * User-defined function within view</a>. */
-  @Test public void testUserDefinedFunctionInView() throws Exception {
-    Class.forName("org.apache.calcite.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
-
-    SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
-    post.add("MY_INCREMENT",
-        ScalarFunctionImpl.create(MyIncrement.class, "eval"));
-
-    final String viewSql = "select \"empid\" as EMPLOYEE_ID,\n"
-        + "  \"name\" || ' ' || \"name\" as EMPLOYEE_NAME,\n"
-        + "  \"salary\" as EMPLOYEE_SALARY,\n"
-        + "  POST.MY_INCREMENT(\"empid\", 10) as INCREMENTED_SALARY\n"
-        + "from \"hr\".\"emps\"";
-    post.add("V_EMP",
-        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(), null));
-
-    final String result = ""
-        + "EMPLOYEE_ID=100; EMPLOYEE_NAME=Bill Bill; EMPLOYEE_SALARY=10000.0; INCREMENTED_SALARY=110.0\n"
-        + "EMPLOYEE_ID=200; EMPLOYEE_NAME=Eric Eric; EMPLOYEE_SALARY=8000.0; INCREMENTED_SALARY=220.0\n"
-        + "EMPLOYEE_ID=150; EMPLOYEE_NAME=Sebastian Sebastian; EMPLOYEE_SALARY=7000.0; INCREMENTED_SALARY=165.0\n"
-        + "EMPLOYEE_ID=110; EMPLOYEE_NAME=Theodore Theodore; EMPLOYEE_SALARY=11500.0; INCREMENTED_SALARY=121.0\n";
-
-    Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(viewSql);
-    assertThat(CalciteAssert.toString(resultSet), is(result));
-    resultSet.close();
-
-    ResultSet viewResultSet =
-        statement.executeQuery("select * from \"POST\".\"V_EMP\"");
-    assertThat(CalciteAssert.toString(viewResultSet), is(result));
-    statement.close();
-    connection.close();
-  }
-
-  /**
-   * Tests that IS NULL/IS NOT NULL is properly implemented for non-strict
-   * functions.
-   */
-  @Test public void testNotNullImplementor() {
-    final CalciteAssert.AssertThat with = withUdf();
-    with.query(
-        "select upper(\"adhoc\".my_str(\"name\")) as p from \"adhoc\".EMPLOYEES")
-        .returns("P=<BILL>\n"
-            + "P=<ERIC>\n"
-            + "P=<SEBASTIAN>\n"
-            + "P=<THEODORE>\n");
-    with.query("select \"name\" as p from \"adhoc\".EMPLOYEES\n"
-        + "where \"adhoc\".my_str(\"name\") is not null")
-        .returns("P=Bill\n"
-            + "P=Eric\n"
-            + "P=Sebastian\n"
-            + "P=Theodore\n");
-    with.query("select \"name\" as p from \"adhoc\".EMPLOYEES\n"
-        + "where \"adhoc\".my_str(upper(\"name\")) is not null")
-        .returns("P=Bill\n"
-            + "P=Eric\n"
-            + "P=Sebastian\n"
-            + "P=Theodore\n");
-    with.query("select \"name\" as p from \"adhoc\".EMPLOYEES\n"
-        + "where upper(\"adhoc\".my_str(\"name\")) is not null")
-        .returns("P=Bill\n"
-            + "P=Eric\n"
-            + "P=Sebastian\n"
-            + "P=Theodore\n");
-    with.query("select \"name\" as p from \"adhoc\".EMPLOYEES\n"
-        + "where \"adhoc\".my_str(\"name\") is null")
-        .returns("");
-    with.query("select \"name\" as p from \"adhoc\".EMPLOYEES\n"
-        + "where \"adhoc\".my_str(upper(\"adhoc\".my_str(\"name\")"
-        + ")) ='8'")
-        .returns("");
-  }
-
-  /** Tests derived return type of user-defined function. */
-  @Test public void testUdfDerivedReturnType() {
-    final CalciteAssert.AssertThat with = withUdf();
-    with.query(
-        "select max(\"adhoc\".my_double(\"deptno\")) as p from \"adhoc\".EMPLOYEES")
-        .returns("P=40\n");
-    with.query("select max(\"adhoc\".my_str(\"name\")) as p\n"
-        + "from \"adhoc\".EMPLOYEES\n"
-        + "where \"adhoc\".my_str(\"name\") is null")
-        .returns("P=null\n");
-  }
-
-  /** Tests a user-defined function that has multiple overloads. */
-  @Test public void testUdfOverloaded() {
-    final CalciteAssert.AssertThat with = withUdf();
-    with.query("values (\"adhoc\".count_args(),\n"
-        + " \"adhoc\".count_args(0),\n"
-        + " \"adhoc\".count_args(0, 0))")
-        .returns("EXPR$0=0; EXPR$1=1; EXPR$2=2\n");
-    with.query("select max(\"adhoc\".count_args()) as p0,\n"
-        + " min(\"adhoc\".count_args(0)) as p1,\n"
-        + " max(\"adhoc\".count_args(0, 0)) as p2\n"
-        + "from \"adhoc\".EMPLOYEES limit 1")
-        .returns("P0=0; P1=1; P2=2\n");
-  }
-
-  /** Tests passing parameters to user-defined function by name. */
-  @Test public void testUdfArgumentName() {
-    final CalciteAssert.AssertThat with = withUdf();
-    // arguments in physical order
-    with.query("values (\"adhoc\".my_left(\"s\" => 'hello', \"n\" => 3))")
-        .returns("EXPR$0=hel\n");
-    // arguments in reverse order
-    with.query("values (\"adhoc\".my_left(\"n\" => 3, \"s\" => 'hello'))")
-        .returns("EXPR$0=hel\n");
-    with.query("values (\"adhoc\".my_left(\"n\" => 1 + 2, \"s\" => 'hello'))")
-        .returns("EXPR$0=hel\n");
-    // duplicate argument names
-    with.query("values (\"adhoc\".my_left(\"n\" => 3, \"n\" => 2, \"s\" => 'hello'))")
-        .throws_("Duplicate argument name 'n'");
-    // invalid argument names
-    with.query("values (\"adhoc\".my_left(\"n\" => 3, \"m\" => 2, \"s\" => 'h'))")
-        .throws_("No match found for function signature "
-            + "MY_LEFT(n => <NUMERIC>, m => <NUMERIC>, s => <CHARACTER>)");
-    // missing arguments
-    with.query("values (\"adhoc\".my_left(\"n\" => 3))")
-        .throws_("No match found for function signature MY_LEFT(n => <NUMERIC>)");
-    with.query("values (\"adhoc\".my_left(\"s\" => 'hello'))")
-        .throws_("No match found for function signature MY_LEFT(s => <CHARACTER>)");
-    // arguments of wrong type
-    with.query("values (\"adhoc\".my_left(\"n\" => 'hello', \"s\" => 'x'))")
-        .throws_("No match found for function signature "
-            + "MY_LEFT(n => <CHARACTER>, s => <CHARACTER>)");
-    with.query("values (\"adhoc\".my_left(\"n\" => 1, \"s\" => 0))")
-        .throws_("No match found for function signature "
-            + "MY_LEFT(n => <NUMERIC>, s => <NUMERIC>)");
-  }
-
-  /** Tests calling a user-defined function some of whose parameters are
-   * optional. */
-  @Test public void testUdfArgumentOptional() {
-    final CalciteAssert.AssertThat with = withUdf();
-    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4,e=>5))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
-    with.query("values (\"adhoc\".abcde(1,2,3,4,CAST(NULL AS INTEGER)))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
-    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
-    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: null, e: null}\n");
-    with.query("values (\"adhoc\".abcde(a=>1,e=>5,c=>3))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: 5}\n");
-    with.query("values (\"adhoc\".abcde(1,2,3))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: null, e: null}\n");
-    with.query("values (\"adhoc\".abcde(1,2,3,4))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
-    with.query("values (\"adhoc\".abcde(1,2,3,4,5))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
-    with.query("values (\"adhoc\".abcde(1,2))")
-        .throws_("No match found for function signature ABCDE(<NUMERIC>, <NUMERIC>)");
-    with.query("values (\"adhoc\".abcde(1,DEFAULT,3))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
-    with.query("values (\"adhoc\".abcde(1,DEFAULT,'abcde'))")
-        .throws_("No match found for function signature ABCDE(<NUMERIC>, <ANY>, <CHARACTER>)");
-    with.query("values (\"adhoc\".abcde(true))")
-        .throws_("No match found for function signature ABCDE(<BOOLEAN>)");
-    with.query("values (\"adhoc\".abcde(true,DEFAULT))")
-        .throws_("No match found for function signature ABCDE(<BOOLEAN>, <ANY>)");
-    with.query("values (\"adhoc\".abcde(1,DEFAULT,3,DEFAULT))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
-    with.query("values (\"adhoc\".abcde(1,2,DEFAULT))")
-        .throws_("DEFAULT is only allowed for optional parameters");
-    with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>DEFAULT))")
-        .throws_("DEFAULT is only allowed for optional parameters");
-    with.query("values (\"adhoc\".abcde(a=>1,b=>DEFAULT,c=>3))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
-  }
-
-  /** Test for
-   * {@link org.apache.calcite.runtime.CalciteResource#requireDefaultConstructor(String)}. */
-  @Test public void testUserDefinedFunction2() throws Exception {
-    withBadUdf(AwkwardFunction.class)
-        .connectThrows(
-            "Declaring class 'org.apache.calcite.test.JdbcTest$AwkwardFunction' of non-static user-defined function must have a public constructor with zero parameters");
-  }
-
-  /** Tests user-defined function, with multiple methods per class. */
-  @Test public void testUserDefinedFunctionWithMethodName() throws Exception {
-    // java.lang.Math has abs(int) and abs(double).
-    final CalciteAssert.AssertThat with = withUdf();
-    with.query("values abs(-4)").returnsValue("4");
-    with.query("values abs(-4.5)").returnsValue("4.5");
-
-    // 3 overloads of "fun1", another method "fun2", but method "nonStatic"
-    // cannot be used as a function
-    with.query("values \"adhoc\".\"fun1\"(2)").returnsValue("4");
-    with.query("values \"adhoc\".\"fun1\"(2, 3)").returnsValue("5");
-    with.query("values \"adhoc\".\"fun1\"('Foo Bar')").returnsValue("foo bar");
-    with.query("values \"adhoc\".\"fun2\"(10)").returnsValue("30");
-    with.query("values \"adhoc\".\"nonStatic\"(2)")
-        .throws_("No match found for function signature nonStatic(<NUMERIC>)");
-  }
-
-  /** Tests user-defined aggregate function. */
-  @Test public void testUserDefinedAggregateFunction() throws Exception {
-    final String empDept = EmpDeptTableFactory.class.getName();
-    final String sum = MyStaticSumFunction.class.getName();
-    final String sum2 = MySumFunction.class.getName();
-    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'adhoc',\n"
-        + "       tables: [\n"
-        + "         {\n"
-        + "           name: 'EMPLOYEES',\n"
-        + "           type: 'custom',\n"
-        + "           factory: '" + empDept + "',\n"
-        + "           operand: {'foo': true, 'bar': 345}\n"
-        + "         }\n"
-        + "       ],\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'MY_SUM',\n"
-        + "           className: '" + sum + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'MY_SUM2',\n"
-        + "           className: '" + sum2 + "'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .withDefaultSchema("adhoc");
-    with.withDefaultSchema(null)
-        .query(
-            "select \"adhoc\".my_sum(\"deptno\") as p from \"adhoc\".EMPLOYEES\n")
-        .returns("P=50\n");
-    with.query("select my_sum(\"empid\"), \"deptno\" as p from EMPLOYEES\n")
-        .throws_(
-            "Expression 'deptno' is not being grouped");
-    with.query("select my_sum(\"deptno\") as p from EMPLOYEES\n")
-        .returns("P=50\n");
-    with.query("select my_sum(\"name\") as p from EMPLOYEES\n")
-        .throws_(
-            "Cannot apply 'MY_SUM' to arguments of type 'MY_SUM(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. Supported form(s): 'MY_SUM(<NUMERIC>)");
-    with.query("select my_sum(\"deptno\", 1) as p from EMPLOYEES\n")
-        .throws_(
-            "No match found for function signature MY_SUM(<NUMERIC>, <NUMERIC>)");
-    with.query("select my_sum() as p from EMPLOYEES\n")
-        .throws_(
-            "No match found for function signature MY_SUM()");
-    with.query("select \"deptno\", my_sum(\"deptno\") as p from EMPLOYEES\n"
-        + "group by \"deptno\"")
-        .returnsUnordered(
-            "deptno=20; P=20",
-            "deptno=10; P=30");
-    with.query("select \"deptno\", my_sum2(\"deptno\") as p from EMPLOYEES\n"
-        + "group by \"deptno\"")
-        .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
-  }
-
-  /** Test for
-   * {@link org.apache.calcite.runtime.CalciteResource#firstParameterOfAdd(String)}. */
-  @Test public void testUserDefinedAggregateFunction3() throws Exception {
-    withBadUdf(SumFunctionBadIAdd.class).connectThrows(
-        "Caused by: java.lang.RuntimeException: In user-defined aggregate class 'org.apache.calcite.test.JdbcTest$SumFunctionBadIAdd', first parameter to 'add' method must be the accumulator (the return type of the 'init' method)");
-  }
-
-  private static CalciteAssert.AssertThat withBadUdf(Class clazz) {
-    final String empDept = EmpDeptTableFactory.class.getName();
-    final String className = clazz.getName();
-    return CalciteAssert.model("{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'adhoc',\n"
-        + "       tables: [\n"
-        + "         {\n"
-        + "           name: 'EMPLOYEES',\n"
-        + "           type: 'custom',\n"
-        + "           factory: '" + empDept + "',\n"
-        + "           operand: {'foo': true, 'bar': 345}\n"
-        + "         }\n"
-        + "       ],\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'AWKWARD',\n"
-        + "           className: '" + className + "'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .withDefaultSchema("adhoc");
-  }
-
-  /** Tests user-defined aggregate function with FILTER.
-   *
-   * <p>Also tests that we do not try to push ADAF to JDBC source. */
-  @Test public void testUserDefinedAggregateFunctionWithFilter() throws Exception {
-    final String sum = MyStaticSumFunction.class.getName();
-    final String sum2 = MySumFunction.class.getName();
-    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + SCOTT_SCHEMA
-        + ",\n"
-        + "     {\n"
-        + "       name: 'adhoc',\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'MY_SUM',\n"
-        + "           className: '" + sum + "'\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'MY_SUM2',\n"
-        + "           className: '" + sum2 + "'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .withDefaultSchema("adhoc");
-    with.query("select deptno, \"adhoc\".my_sum(deptno) as p\n"
-            + "from scott.emp\n"
-            + "group by deptno\n")
-        .returns(
-            "DEPTNO=20; P=100\n"
-                + "DEPTNO=10; P=30\n"
-                + "DEPTNO=30; P=180\n");
-
-    with.query("select deptno,\n"
-            + "  \"adhoc\".my_sum(deptno) filter (where job = 'CLERK') as c,\n"
-            + "  \"adhoc\".my_sum(deptno) filter (where job = 'XXX') as x\n"
-            + "from scott.emp\n"
-            + "group by deptno\n")
-        .returns(
-            "DEPTNO=20; C=40; X=0\n"
-                + "DEPTNO=10; C=10; X=0\n"
-                + "DEPTNO=30; C=30; X=0\n");
-  }
-
-  /** Tests resolution of functions using schema paths. */
-  @Test public void testPath() throws Exception {
-    final String name = MyPlusFunction.class.getName();
-    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'adhoc',\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'MY_PLUS',\n"
-        + "           className: '" + name + "'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     },\n"
-        + "     {\n"
-        + "       name: 'adhoc2',\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'MY_PLUS2',\n"
-        + "           className: '" + name + "'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     },\n"
-        + "     {\n"
-        + "       name: 'adhoc3',\n"
-        + "       path: ['adhoc2','adhoc3'],\n"
-        + "       functions: [\n"
-        + "         {\n"
-        + "           name: 'MY_PLUS3',\n"
-        + "           className: '" + name + "'\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}");
-
-    final String err = "No match found for function signature";
-    final String res = "EXPR$0=2\n";
-
-    // adhoc can see own function MY_PLUS but not adhoc2.MY_PLUS2 unless
-    // qualified
-    final CalciteAssert.AssertThat adhoc = with.withDefaultSchema("adhoc");
-    adhoc.query("values MY_PLUS(1, 1)").returns(res);
-    adhoc.query("values MY_PLUS2(1, 1)").throws_(err);
-    adhoc.query("values \"adhoc2\".MY_PLUS(1, 1)").throws_(err);
-    adhoc.query("values \"adhoc2\".MY_PLUS2(1, 1)").returns(res);
-
-    // adhoc2 can see own function MY_PLUS2 but not adhoc2.MY_PLUS unless
-    // qualified
-    final CalciteAssert.AssertThat adhoc2 = with.withDefaultSchema("adhoc2");
-    adhoc2.query("values MY_PLUS2(1, 1)").returns(res);
-    adhoc2.query("values MY_PLUS(1, 1)").throws_(err);
-    adhoc2.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
-
-    // adhoc3 can see own adhoc2.MY_PLUS2 because in path, with or without
-    // qualification, but can only see adhoc.MY_PLUS with qualification
-    final CalciteAssert.AssertThat adhoc3 = with.withDefaultSchema("adhoc3");
-    adhoc3.query("values MY_PLUS2(1, 1)").returns(res);
-    adhoc3.query("values MY_PLUS(1, 1)").throws_(err);
-    adhoc3.query("values \"adhoc\".MY_PLUS(1, 1)").returns(res);
-  }
-
   @Test public void testExplain() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().with(CalciteAssert.Config.FOODMART_CLONE);
@@ -6903,37 +6204,12 @@ public class JdbcTest {
     };
 
     public QueryableTable foo(int count) {
-      return generateStrings(count);
+      return Smalls.generateStrings(count);
     }
 
     public TranslatableTable view(String s) {
-      return JdbcTest.view(s);
+      return Smalls.view(s);
     }
-  }
-
-  public static TranslatableTable view(String s) {
-    return new ViewTable(Object.class,
-        new RelProtoDataType() {
-          public RelDataType apply(RelDataTypeFactory typeFactory) {
-            return typeFactory.builder().add("c", SqlTypeName.INTEGER)
-                .build();
-          }
-        }, "values (1), (3), " + s, ImmutableList.<String>of());
-  }
-
-  public static TranslatableTable str(Object o, Object p) {
-    assertThat(RexLiteral.validConstant(o, Litmus.THROW), is(true));
-    assertThat(RexLiteral.validConstant(p, Litmus.THROW), is(true));
-    return new ViewTable(Object.class,
-        new RelProtoDataType() {
-          public RelDataType apply(RelDataTypeFactory typeFactory) {
-            return typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100)
-                .build();
-          }
-        },
-        "values " + SqlDialect.CALCITE.quoteStringLiteral(o.toString())
-            + ", " + SqlDialect.CALCITE.quoteStringLiteral(p.toString()),
-        ImmutableList.<String>of());
   }
 
   public static class Employee {
@@ -7060,21 +6336,6 @@ public class JdbcTest {
   }
 
   //CHECKSTYLE: ON
-
-  /** Class with int and String fields. */
-  public static class IntString {
-    public final int n;
-    public final String s;
-
-    public IntString(int n, String s) {
-      this.n = n;
-      this.s = s;
-    }
-
-    public String toString() {
-      return "{n=" + n + ", s=" + s + "}";
-    }
-  }
 
   /** Abstract base class for implementations of {@link ModifiableTable}. */
   public abstract static class AbstractModifiableTable
@@ -7277,274 +6538,6 @@ public class JdbcTest {
     public MyTable2[] mytable2 = { new MyTable2() };
   }
 
-  /** Example of a UDF with a non-static {@code eval} method,
-   * and named parameters. */
-  public static class MyPlusFunction {
-    public int eval(@Parameter(name = "x") int x, @Parameter(name = "y") int y) {
-      return x + y;
-    }
-  }
-
-  /** Example of a UDF with named parameters. */
-  public static class MyLeftFunction {
-    public String eval(@Parameter(name = "s") String s,
-        @Parameter(name = "n") int n) {
-      return s.substring(0, n);
-    }
-  }
-
-  /** Example of a UDF with named parameters, some of them optional. */
-  public static class MyAbcdeFunction {
-    public String eval(@Parameter(name = "A", optional = false) Integer a,
-        @Parameter(name = "B", optional = true) Integer b,
-        @Parameter(name = "C", optional = false) Integer c,
-        @Parameter(name = "D", optional = true) Integer d,
-        @Parameter(name = "E", optional = true) Integer e) {
-      return "{a: " + a + ", b: " + b +  ", c: " + c +  ", d: " + d  + ", e: "
-          + e + "}";
-    }
-  }
-
-  /** Example of a non-strict UDF. (Does something useful when passed NULL.) */
-  public static class MyToStringFunction {
-    public static String eval(@Parameter(name = "o") Object o) {
-      if (o == null) {
-        return "<null>";
-      }
-      return "<" + o.toString() + ">";
-    }
-  }
-
-  /** Example of a UDF with a static {@code eval} method. Class is abstract,
-   * but code-generator should not need to instantiate it. */
-  public abstract static class MyDoubleFunction {
-    private MyDoubleFunction() {
-    }
-
-    public static int eval(int x) {
-      return x * 2;
-    }
-  }
-
-  /** User-defined function with two arguments. */
-  public static class MyIncrement {
-    public float eval(int x, int y) {
-      return x + x * y / 100;
-    }
-  }
-
-  /** Example of a UDF that has overloaded UDFs (same name, different args). */
-  public abstract static class CountArgs0Function {
-    private CountArgs0Function() {}
-
-    public static int eval() {
-      return 0;
-    }
-  }
-
-  /** See {@link CountArgs0Function}. */
-  public abstract static class CountArgs1Function {
-    private CountArgs1Function() {}
-
-    public static int eval(int x) {
-      return 1;
-    }
-  }
-
-  /** See {@link CountArgs0Function}. */
-  public abstract static class CountArgs2Function {
-    private CountArgs2Function() {}
-
-    public static int eval(int x, int y) {
-      return 2;
-    }
-  }
-
-  /** Example of a UDF class that needs to be instantiated but cannot be. */
-  public abstract static class AwkwardFunction {
-    private AwkwardFunction() {
-    }
-
-    public int eval(int x) {
-      return 0;
-    }
-  }
-
-  /** UDF class that has multiple methods, some overloaded. */
-  public static class MultipleFunction {
-    private MultipleFunction() {}
-
-    // Three overloads
-    public static String fun1(String x) { return x.toLowerCase(); }
-    public static int fun1(int x) { return x * 2; }
-    public static int fun1(int x, int y) { return x + y; }
-
-    // Another method
-    public static int fun2(int x) { return x * 3; }
-
-    // Non-static method cannot be used because constructor is private
-    public int nonStatic(int x) { return x * 3; }
-  }
-
-  /** Example of a user-defined aggregate function (UDAF). */
-  public static class MySumFunction {
-    public MySumFunction() {
-    }
-    public long init() {
-      return 0L;
-    }
-    public long add(long accumulator, int v) {
-      return accumulator + v;
-    }
-    public long merge(long accumulator0, long accumulator1) {
-      return accumulator0 + accumulator1;
-    }
-    public long result(long accumulator) {
-      return accumulator;
-    }
-  }
-
-  /** Example of a user-defined aggregate function (UDAF), whose methods are
-   * static. */
-  public static class MyStaticSumFunction {
-    public static long init() {
-      return 0L;
-    }
-    public static long add(long accumulator, int v) {
-      return accumulator + v;
-    }
-    public static long merge(long accumulator0, long accumulator1) {
-      return accumulator0 + accumulator1;
-    }
-    public static long result(long accumulator) {
-      return accumulator;
-    }
-  }
-
-  /** User-defined function. */
-  public static class SumFunctionBadIAdd {
-    public long init() {
-      return 0L;
-    }
-    public long add(short accumulator, int v) {
-      return accumulator + v;
-    }
-  }
-
-  /** User-defined table-macro function. */
-  public static class TableMacroFunction {
-    public TranslatableTable eval(String s) {
-      return view(s);
-    }
-  }
-
-  /** User-defined table-macro function whose eval method is static. */
-  public static class StaticTableMacroFunction {
-    public static TranslatableTable eval(String s) {
-      return view(s);
-    }
-  }
-
-  /** User-defined table-macro function with named and optional parameters. */
-  public static class TableMacroFunctionWithNamedParameters {
-    public TranslatableTable eval(
-        @Parameter(name = "R", optional = true) String r,
-        @Parameter(name = "S") String s,
-        @Parameter(name = "T", optional = true) Integer t) {
-      final StringBuilder sb = new StringBuilder();
-      abc(sb, r);
-      abc(sb, s);
-      abc(sb, t);
-      return view(sb.toString());
-    }
-
-    private void abc(StringBuilder sb, Object s) {
-      if (s != null) {
-        if (sb.length() > 0) {
-          sb.append(", ");
-        }
-        sb.append('(').append(s).append(')');
-      }
-    }
-  }
-
-  private static QueryableTable oneThreePlus(String s) {
-    List<Integer> items;
-    // Argument is null in case SQL contains function call with expression.
-    // Then the engine calls a function with null arguments to get getRowType.
-    if (s == null) {
-      items = ImmutableList.of();
-    } else {
-      Integer latest = Integer.parseInt(s.substring(1, s.length() - 1));
-      items = ImmutableList.of(1, 3, latest);
-    }
-    final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);
-    return new AbstractQueryableTable(Integer.class) {
-      public <E> Queryable<E> asQueryable(
-          QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-        //noinspection unchecked
-        return (Queryable<E>) enumerable.asQueryable();
-      }
-
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.builder().add("c", SqlTypeName.INTEGER).build();
-      }
-    };
-  }
-
-  /** A table function that returns a {@link QueryableTable}. */
-  public static class MyTableFunction {
-    public QueryableTable eval(String s) {
-      return oneThreePlus(s);
-    }
-  }
-
-  /** A table function that returns a {@link QueryableTable} via a
-   * static method. */
-  public static class TestStaticTableFunction {
-    public static QueryableTable eval(String s) {
-      return oneThreePlus(s);
-    }
-  }
-
-  /** The real MazeTable may be found in example/function. This is a cut-down
-   * version to support a test. */
-  public static class MazeTable extends AbstractTable
-      implements ScannableTable {
-
-    private final String content;
-
-    public MazeTable(String content) {
-      this.content = content;
-    }
-
-    public static ScannableTable generate(int width, int height, int seed) {
-      return new MazeTable(String.format("generate(w=%d, h=%d, s=%d)", width, height, seed));
-    }
-
-    public static ScannableTable generate2(
-        @Parameter(name = "WIDTH") int width,
-        @Parameter(name = "HEIGHT") int height,
-        @Parameter(name = "SEED", optional = true) Integer seed) {
-      return new MazeTable(String.format("generate2(w=%d, h=%d, s=%d)", width, height, seed));
-    }
-
-    public static ScannableTable generate3(
-        @Parameter(name = "FOO") String foo) {
-      return new MazeTable(String.format("generate3(foo=%s)", foo));
-    }
-
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return typeFactory.builder()
-          .add("S", SqlTypeName.VARCHAR, 12)
-          .build();
-    }
-
-    public Enumerable<Object[]> scan(DataContext root) {
-      Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
-      return Linq4j.asEnumerable(rows);
-    }
-  }
 }
 
 // End JdbcTest.java

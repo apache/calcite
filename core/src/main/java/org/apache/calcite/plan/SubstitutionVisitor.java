@@ -1150,9 +1150,9 @@ public class SubstitutionVisitor {
       for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
         if (expr.e instanceof RexInputRef) {
           final int target = ((RexInputRef) expr.e).getIndex();
-          exprList.set(expr.i,
+          exprList.set(target,
               rexBuilder.ensureType(expr.e.getType(),
-                  RexInputRef.of(target, input.rowType),
+                  RexInputRef.of(expr.i, input.rowType),
                   false));
         } else {
           throw MatchFailed.INSTANCE;

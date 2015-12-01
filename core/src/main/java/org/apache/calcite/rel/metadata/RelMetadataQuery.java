@@ -89,6 +89,20 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
+   * {@link BuiltInMetadata.RowCount#getRowCount()}
+   * statistic.
+   *
+   * @param rel the relational expression
+   * @return max row count
+   */
+  public static Double getMaxRowCount(RelNode rel) {
+    final BuiltInMetadata.MaxRowCount metadata =
+            rel.metadata(BuiltInMetadata.MaxRowCount.class);
+    return metadata.getMaxRowCount();
+  }
+
+  /**
+   * Returns the
    * {@link BuiltInMetadata.CumulativeCost#getCumulativeCost()}
    * statistic.
    *

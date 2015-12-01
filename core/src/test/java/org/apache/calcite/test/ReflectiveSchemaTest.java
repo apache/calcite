@@ -34,6 +34,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -172,9 +173,9 @@ public class ReflectiveSchemaTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     schema.add("GenerateStrings",
-        TableMacroImpl.create(JdbcTest.GENERATE_STRINGS_METHOD));
+        TableMacroImpl.create(Smalls.GENERATE_STRINGS_METHOD));
     schema.add("StringUnion",
-        TableMacroImpl.create(JdbcTest.STRING_UNION_METHOD));
+        TableMacroImpl.create(Smalls.STRING_UNION_METHOD));
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"

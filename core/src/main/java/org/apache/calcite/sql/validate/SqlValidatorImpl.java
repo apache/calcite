@@ -1022,7 +1022,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else {
         final SqlNodeList selectList =
             new SqlNodeList(SqlParserPos.ZERO);
-        selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+        selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
         return new SqlSelect(node.getParserPosition(), null, selectList, node,
             null, null, null, null, null, null, null);
       }
@@ -1157,7 +1157,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       // otherwise, just use select *
       selectList = new SqlNodeList(SqlParserPos.ZERO);
-      selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+      selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
     }
     SqlNode targetTable = call.getTargetTable();
     if (call.getAlias() != null) {
@@ -1195,8 +1195,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // select on the values row constructor; so we need to extract
     // that via the from clause on the select
     if (insertCall != null) {
-      SqlSelect valuesSelect = (SqlSelect) insertCall.getSource();
-      SqlCall valuesCall = (SqlCall) valuesSelect.getFrom();
+      SqlCall valuesCall = (SqlCall) insertCall.getSource();
       SqlCall rowCall = valuesCall.operand(0);
       selectList =
           new SqlNodeList(
@@ -1308,7 +1307,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   protected SqlSelect createSourceSelectForUpdate(SqlUpdate call) {
     final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
-    selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+    selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
     int ordinal = 0;
     for (SqlNode exp : call.getSourceExpressionList()) {
       // Force unique aliases to avoid a duplicate for Y with
@@ -1337,7 +1336,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   protected SqlSelect createSourceSelectForDelete(SqlDelete call) {
     final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
-    selectList.add(new SqlIdentifier("*", SqlParserPos.ZERO));
+    selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
     SqlNode sourceTable = call.getTargetTable();
     if (call.getAlias() != null) {
       sourceTable =
