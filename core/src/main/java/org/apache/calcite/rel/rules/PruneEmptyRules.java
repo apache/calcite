@@ -71,8 +71,9 @@ public abstract class PruneEmptyRules {
           "Union") {
         public void onMatch(RelOptRuleCall call) {
           LogicalUnion union = call.rel(0);
-          final List<RelNode> childRels = union.getInputs();
-          final List<RelNode> newChildRels = new ArrayList<RelNode>();
+          final List<RelNode> childRels = call.getChildRels(union);
+          assert childRels != null;
+          final List<RelNode> newChildRels = new ArrayList<>();
           for (RelNode childRel : childRels) {
             if (!isEmpty(childRel)) {
               newChildRels.add(childRel);
