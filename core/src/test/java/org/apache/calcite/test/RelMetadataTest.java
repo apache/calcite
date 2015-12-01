@@ -85,6 +85,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -113,9 +114,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private static final double DEFAULT_SELECTIVITY = 0.25;
 
-  private static final double EMP_SIZE = 1000.0;
+  private static final double EMP_SIZE = 14d;
 
-  private static final double DEPT_SIZE = 100.0;
+  private static final double DEPT_SIZE = 4d;
 
   //~ Methods ----------------------------------------------------------------
 
@@ -431,57 +432,222 @@ public class RelMetadataTest extends SqlToRelTestBase {
       double expected) {
     RelNode rel = convertSql(sql);
     Double result = RelMetadataQuery.getRowCount(rel);
-    assertTrue(result != null);
+    assertThat(result, notNullValue());
     assertEquals(expected, result, 0d);
   }
 
-  @Ignore
+  private void checkMaxRowCount(
+      String sql,
+      double expected) {
+    RelNode rel = convertSql(sql);
+    Double result = RelMetadataQuery.getMaxRowCount(rel);
+    assertThat(result, notNullValue());
+    assertEquals(expected, result, 0d);
+  }
+
   @Test public void testRowCountEmp() {
-    checkRowCount(
-        "select * from emp",
-        EMP_SIZE);
+    final String sql = "select * from emp";
+    checkRowCount(sql, EMP_SIZE);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
 
-  @Ignore
   @Test public void testRowCountDept() {
-    checkRowCount(
-        "select * from dept",
-        DEPT_SIZE);
+    final String sql = "select * from dept";
+    checkRowCount(sql, DEPT_SIZE);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
 
-  @Ignore
+  @Test public void testRowCountValues() {
+    final String sql = "select * from (values (1), (2)) as t(c)";
+    checkRowCount(sql, 2);
+    checkMaxRowCount(sql, 2);
+  }
+
   @Test public void testRowCountCartesian() {
-    checkRowCount(
-        "select * from emp,dept",
-        EMP_SIZE * DEPT_SIZE);
+    final String sql = "select * from emp,dept";
+    checkRowCount(sql, EMP_SIZE * DEPT_SIZE);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
 
-  @Ignore
   @Test public void testRowCountJoin() {
-    checkRowCount(
-        "select * from emp inner join dept on emp.deptno = dept.deptno",
-        EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY);
+    final String sql = "select * from emp\n"
+        + "inner join dept on emp.deptno = dept.deptno";
+    checkRowCount(sql, EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
 
-  @Ignore
+  @Test public void testRowCountJoinFinite() {
+    final String sql = "select * from (select * from emp limit 14) as emp\n"
+        + "inner join (select * from dept limit 4) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY);
+    checkMaxRowCount(sql, 56D); // 4 * 14
+  }
+
+  @Test public void testRowCountJoinEmptyFinite() {
+    final String sql = "select * from (select * from emp limit 0) as emp\n"
+        + "inner join (select * from dept limit 4) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 1D); // 0, rounded up to row count's minimum 1
+    checkMaxRowCount(sql, 0D); // 0 * 4
+  }
+
+  @Test public void testRowCountLeftJoinEmptyFinite() {
+    final String sql = "select * from (select * from emp limit 0) as emp\n"
+        + "left join (select * from dept limit 4) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 1D); // 0, rounded up to row count's minimum 1
+    checkMaxRowCount(sql, 0D); // 0 * 4
+  }
+
+  @Test public void testRowCountRightJoinEmptyFinite() {
+    final String sql = "select * from (select * from emp limit 0) as emp\n"
+        + "right join (select * from dept limit 4) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 1D); // 0, rounded up to row count's minimum 1
+    checkMaxRowCount(sql, 4D); // 1 * 4
+  }
+
+  @Test public void testRowCountJoinFiniteEmpty() {
+    final String sql = "select * from (select * from emp limit 7) as emp\n"
+        + "inner join (select * from dept limit 0) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 1D); // 0, rounded up to row count's minimum 1
+    checkMaxRowCount(sql, 0D); // 7 * 0
+  }
+
+  @Test public void testRowCountJoinEmptyEmpty() {
+    final String sql = "select * from (select * from emp limit 0) as emp\n"
+        + "inner join (select * from dept limit 0) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 1D); // 0, rounded up to row count's minimum 1
+    checkMaxRowCount(sql, 0D); // 0 * 0
+  }
+
   @Test public void testRowCountUnion() {
-    checkRowCount(
-        "select ename from emp union all select name from dept",
-        EMP_SIZE + DEPT_SIZE);
+    final String sql = "select ename from emp\n"
+        + "union all\n"
+        + "select name from dept";
+    checkRowCount(sql, EMP_SIZE + DEPT_SIZE);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
 
-  @Ignore
+  @Test public void testRowCountUnionOnFinite() {
+    final String sql = "select ename from (select * from emp limit 100)\n"
+        + "union all\n"
+        + "select name from (select * from dept limit 40)";
+    checkRowCount(sql, EMP_SIZE + DEPT_SIZE);
+    checkMaxRowCount(sql, 140D);
+  }
+
+  @Test public void testRowCountIntersectOnFinite() {
+    final String sql = "select ename from (select * from emp limit 100)\n"
+        + "intersect\n"
+        + "select name from (select * from dept limit 40)";
+    checkRowCount(sql, Math.min(EMP_SIZE, DEPT_SIZE));
+    checkMaxRowCount(sql, 40D);
+  }
+
+  @Test public void testRowCountMinusOnFinite() {
+    final String sql = "select ename from (select * from emp limit 100)\n"
+        + "except\n"
+        + "select name from (select * from dept limit 40)";
+    checkRowCount(sql, 4D);
+    checkMaxRowCount(sql, 100D);
+  }
+
   @Test public void testRowCountFilter() {
-    checkRowCount(
-        "select * from emp where ename='Mathilda'",
-        EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY);
+    final String sql = "select * from emp where ename='Mathilda'";
+    checkRowCount(sql, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
 
-  @Ignore
+  @Test public void testRowCountFilterOnFinite() {
+    final String sql = "select * from (select * from emp limit 10)\n"
+        + "where ename='Mathilda'";
+    checkRowCount(sql, 10D * DEFAULT_EQUAL_SELECTIVITY);
+    checkMaxRowCount(sql, 10D);
+  }
+
   @Test public void testRowCountSort() {
-    checkRowCount(
-        "select * from emp order by ename",
-        EMP_SIZE);
+    final String sql = "select * from emp order by ename";
+    checkRowCount(sql, EMP_SIZE);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void testRowCountSortHighLimit() {
+    final String sql = "select * from emp order by ename limit 123456";
+    checkRowCount(sql, EMP_SIZE);
+    checkMaxRowCount(sql, 123456D);
+  }
+
+  @Test public void testRowCountSortHighOffset() {
+    final String sql = "select * from emp order by ename offset 123456";
+    checkRowCount(sql, 1D);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void testRowCountSortHighOffsetLimit() {
+    final String sql = "select * from emp order by ename limit 5 offset 123456";
+    checkRowCount(sql, 1D);
+    checkMaxRowCount(sql, 5D);
+  }
+
+  @Test public void testRowCountSortLimit() {
+    final String sql = "select * from emp order by ename limit 10";
+    checkRowCount(sql, 10d);
+    checkMaxRowCount(sql, 10d);
+  }
+
+  @Test public void testRowCountSortLimit0() {
+    final String sql = "select * from emp order by ename limit 10";
+    checkRowCount(sql, 10d);
+    checkMaxRowCount(sql, 10d);
+  }
+
+  @Test public void testRowCountSortLimitOffset() {
+    final String sql = "select * from emp order by ename limit 10 offset 5";
+    checkRowCount(sql, 9D); // 14 - 5
+    checkMaxRowCount(sql, 10d);
+  }
+
+  @Test public void testRowCountSortLimitOffsetOnFinite() {
+    final String sql = "select * from (select * from emp limit 12)\n"
+        + "order by ename limit 20 offset 5";
+    checkRowCount(sql, 7d);
+    checkMaxRowCount(sql, 7d);
+  }
+
+  @Test public void testRowCountAggregate() {
+    final String sql = "select deptno from emp group by deptno";
+    checkRowCount(sql, 1.4D);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void testRowCountAggregateGroupingSets() {
+    final String sql = "select deptno from emp\n"
+        + "group by grouping sets ((deptno), (empno, deptno))";
+    checkRowCount(sql, 2.8D); // EMP_SIZE / 10 * 2
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void testRowCountAggregateGroupingSetsOneEmpty() {
+    final String sql = "select deptno from emp\n"
+        + "group by grouping sets ((deptno), ())";
+    checkRowCount(sql, 2.8D);
+    checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void testRowCountAggregateEmptyKey() {
+    final String sql = "select count(*) from emp";
+    checkRowCount(sql, 1D);
+    checkMaxRowCount(sql, 1D);
+  }
+
+  @Test public void testRowCountAggregateEmptyKeyOnEmptyTable() {
+    final String sql = "select count(*) from (select * from emp limit 0)";
+    checkRowCount(sql, 1D);
+    checkMaxRowCount(sql, 1D);
   }
 
   private void checkFilterSelectivity(
@@ -584,11 +750,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testDistinctRowCountTable() {
     // no unique key information is available so return null
     RelNode rel = convertSql("select * from emp where deptno = 10");
-    ImmutableBitSet groupKey = ImmutableBitSet.of();
+    ImmutableBitSet groupKey =
+        ImmutableBitSet.of(rel.getRowType().getFieldNames().indexOf("DEPTNO"));
     Double result =
         RelMetadataQuery.getDistinctRowCount(
             rel, groupKey, null);
-    assertTrue(result == null);
+    assertThat(result, nullValue());
+  }
+
+  @Test public void testDistinctRowCountTableEmptyKey() {
+    RelNode rel = convertSql("select * from emp where deptno = 10");
+    ImmutableBitSet groupKey = ImmutableBitSet.of(); // empty key
+    Double result =
+        RelMetadataQuery.getDistinctRowCount(
+            rel, groupKey, null);
+    assertThat(result, is(1D));
   }
 
   /** Asserts that {@link RelMetadataQuery#getUniqueKeys(RelNode)}

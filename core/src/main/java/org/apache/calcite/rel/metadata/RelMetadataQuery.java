@@ -89,7 +89,7 @@ public abstract class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.RowCount#getRowCount()}
+   * {@link BuiltInMetadata.MaxRowCount#getMaxRowCount()}
    * statistic.
    *
    * @param rel the relational expression
@@ -97,7 +97,7 @@ public abstract class RelMetadataQuery {
    */
   public static Double getMaxRowCount(RelNode rel) {
     final BuiltInMetadata.MaxRowCount metadata =
-            rel.metadata(BuiltInMetadata.MaxRowCount.class);
+        rel.metadata(BuiltInMetadata.MaxRowCount.class);
     return metadata.getMaxRowCount();
   }
 

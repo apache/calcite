@@ -19,6 +19,8 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
@@ -41,16 +43,39 @@ public class RelMdRowCount {
   //~ Methods ----------------------------------------------------------------
 
   public Double getRowCount(Union rel) {
-    double nRows = 0.0;
-
+    double rowCount = 0D;
     for (RelNode input : rel.getInputs()) {
       Double partialRowCount = RelMetadataQuery.getRowCount(input);
       if (partialRowCount == null) {
         return null;
       }
-      nRows += partialRowCount;
+      rowCount += partialRowCount;
     }
-    return nRows;
+    return rowCount;
+  }
+
+  public Double getRowCount(Intersect rel) {
+    Double rowCount = null;
+    for (RelNode input : rel.getInputs()) {
+      Double partialRowCount = RelMetadataQuery.getRowCount(input);
+      if (rowCount == null
+          || partialRowCount != null && partialRowCount < rowCount) {
+        rowCount = partialRowCount;
+      }
+    }
+    return rowCount;
+  }
+
+  public Double getRowCount(Minus rel) {
+    Double rowCount = null;
+    for (RelNode input : rel.getInputs()) {
+      Double partialRowCount = RelMetadataQuery.getRowCount(input);
+      if (rowCount == null
+          || partialRowCount != null && partialRowCount < rowCount) {
+        rowCount = partialRowCount;
+      }
+    }
+    return rowCount;
   }
 
   public Double getRowCount(Filter rel) {
@@ -66,15 +91,17 @@ public class RelMdRowCount {
   }
 
   public Double getRowCount(Sort rel) {
-    final Double rowCount = RelMetadataQuery.getRowCount(rel.getInput());
-    if (rowCount != null && rel.fetch != null) {
-      final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+    Double rowCount = RelMetadataQuery.getRowCount(rel.getInput());
+    if (rowCount == null) {
+      return null;
+    }
+    final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+    rowCount = Math.max(rowCount - offset, 0D);
+
+    if (rel.fetch != null) {
       final int limit = RexLiteral.intValue(rel.fetch);
-      final Double offsetLimit = new Double(offset + limit);
-      // offsetLimit is smaller than rowCount of the input operator
-      // thus, we return the offsetLimit
-      if (offsetLimit < rowCount) {
-        return offsetLimit;
+      if (limit < rowCount) {
+        return (double) limit;
       }
     }
     return rowCount;
@@ -103,10 +130,13 @@ public class RelMdRowCount {
             groupKey,
             null);
     if (distinctRowCount == null) {
-      return RelMetadataQuery.getRowCount(rel.getInput()) / 10;
-    } else {
-      return distinctRowCount;
+      distinctRowCount = RelMetadataQuery.getRowCount(rel.getInput()) / 10D;
     }
+
+    // Grouping sets multiply
+    distinctRowCount *= rel.getGroupSets().size();
+
+    return distinctRowCount;
   }
 
   // Catch-all rule when none of the others apply.

@@ -20,7 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
@@ -49,15 +49,7 @@ public abstract class Minus extends SetOp {
   }
 
   @Override public double getRows() {
-    // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
-    double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
-    for (int i = 1; i < inputs.size(); i++) {
-      dRows -= 0.5 * RelMetadataQuery.getRowCount(inputs.get(i));
-    }
-    if (dRows < 0) {
-      dRows = 0;
-    }
-    return dRows;
+    return RelMdUtil.getMinusRowCount(this);
   }
 }
 

@@ -112,6 +112,11 @@ public class RelMdDistinctRowCount {
       Filter rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     // REVIEW zfong 4/18/06 - In the Broadbase code, duplicates are not
     // removed from the two filter lists.  However, the code below is
     // doing so.
@@ -131,6 +136,11 @@ public class RelMdDistinctRowCount {
       Join rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     return RelMdUtil.getJoinDistinctRowCount(
         rel,
         rel.getJoinType(),
@@ -143,6 +153,11 @@ public class RelMdDistinctRowCount {
       SemiJoin rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getDistinctRowCount
     RexNode newPred = RelMdUtil.makeSemiJoinSelectivityRexNode(rel);
@@ -165,6 +180,11 @@ public class RelMdDistinctRowCount {
       Aggregate rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     // determine which predicates can be applied on the child of the
     // aggregate
     List<RexNode> notPushable = new ArrayList<RexNode>();
@@ -202,6 +222,11 @@ public class RelMdDistinctRowCount {
       Values rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     Double selectivity = RelMdUtil.guessSelectivity(predicate);
 
     // assume half the rows are duplicates
@@ -213,6 +238,11 @@ public class RelMdDistinctRowCount {
       Project rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
     ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();
@@ -278,6 +308,11 @@ public class RelMdDistinctRowCount {
       RelNode rel,
       ImmutableBitSet groupKey,
       RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
     // REVIEW zfong 4/19/06 - Broadbase code does not take into
     // consideration selectivity of predicates passed in.  Also, they
     // assume the rows are unique even if the table is not

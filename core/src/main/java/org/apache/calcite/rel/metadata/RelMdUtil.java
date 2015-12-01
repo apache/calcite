@@ -22,7 +22,9 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rex.RexBuilder;
@@ -445,8 +447,8 @@ public class RelMdUtil {
       RexBuilder rexBuilder,
       RexNode pred1,
       RexNode pred2) {
-    final List<RexNode> unionList = new ArrayList<RexNode>();
-    final Set<String> strings = new HashSet<String>();
+    final List<RexNode> unionList = new ArrayList<>();
+    final Set<String> strings = new HashSet<>();
 
     for (RexNode rex : RelOptUtil.conjunctions(pred1)) {
       if (strings.add(rex.toString())) {
@@ -477,7 +479,7 @@ public class RelMdUtil {
       RexNode pred2) {
     List<RexNode> list1 = RelOptUtil.conjunctions(pred1);
     List<RexNode> list2 = RelOptUtil.conjunctions(pred2);
-    List<RexNode> minusList = new ArrayList<RexNode>();
+    List<RexNode> minusList = new ArrayList<>();
 
     for (RexNode rex1 : list1) {
       boolean add = true;
@@ -629,9 +631,9 @@ public class RelMdUtil {
     RexNode leftPred = null;
     RexNode rightPred = null;
     if (predicate != null) {
-      List<RexNode> leftFilters = new ArrayList<RexNode>();
-      List<RexNode> rightFilters = new ArrayList<RexNode>();
-      List<RexNode> joinFilters = new ArrayList<RexNode>();
+      List<RexNode> leftFilters = new ArrayList<>();
+      List<RexNode> rightFilters = new ArrayList<>();
+      List<RexNode> joinFilters = new ArrayList<>();
       List<RexNode> predList = RelOptUtil.conjunctions(predicate);
 
       RelOptUtil.classifyFilters(
@@ -674,6 +676,53 @@ public class RelMdUtil {
     return RelMdUtil.numDistinctVals(
         distRowCount,
         RelMetadataQuery.getRowCount(joinRel));
+  }
+
+  /** Returns an estimate of the number of rows returned by a {@link Minus}. */
+  public static double getMinusRowCount(Minus minus) {
+    // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
+    final List<RelNode> inputs = minus.getInputs();
+    double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
+    for (int i = 1; i < inputs.size(); i++) {
+      dRows -= 0.5 * RelMetadataQuery.getRowCount(inputs.get(i));
+    }
+    if (dRows < 0) {
+      dRows = 0;
+    }
+    return dRows;
+  }
+
+  /** Returns an estimate of the number of rows returned by a {@link Join}. */
+  public static Double getJoinRowCount(Join join, RexNode condition) {
+    // Row count estimates of 0 will be rounded up to 1.
+    // So, use maxRowCount where the product is very small.
+    final Double left = RelMetadataQuery.getRowCount(join.getLeft());
+    final Double right = RelMetadataQuery.getRowCount(join.getRight());
+    if (left == null || right == null) {
+      return null;
+    }
+    if (left <= 1D || right <= 1D) {
+      Double max = RelMetadataQuery.getMaxRowCount(join);
+      if (max != null && max <= 1D) {
+        return max;
+      }
+    }
+    double product = left * right;
+
+    // TODO:  correlation factor
+    return product * RelMetadataQuery.getSelectivity(join, condition);
+  }
+
+  /** Returns an estimate of the number of rows returned by a
+   * {@link SemiJoin}. */
+  public static Double getSemiJoinRowCount(RelNode left, RelNode right,
+      JoinRelType joinType, RexNode condition) {
+    // TODO:  correlation factor
+    final Double leftCount = RelMetadataQuery.getRowCount(left);
+    if (leftCount == null) {
+      return null;
+    }
+    return leftCount * RexUtil.getSelectivity(condition);
   }
 
   //~ Inner Classes ----------------------------------------------------------

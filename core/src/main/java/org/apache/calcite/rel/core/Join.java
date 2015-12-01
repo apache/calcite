@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -31,6 +32,7 @@ import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -98,7 +100,7 @@ public abstract class Join extends BiRel {
     return ImmutableList.of(condition);
   }
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.condition);
     if (this.condition == condition) {
       return this;
@@ -155,34 +157,29 @@ public abstract class Join extends BiRel {
     return true;
   }
 
-  // implement RelNode
-  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // REVIEW jvs 9-Apr-2006:  Just for now...
     double rowCount = RelMetadataQuery.getRowCount(this);
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 
+  /** @deprecated Use {@link RelMdUtil#getJoinRowCount(Join, RexNode)}. */
+  @Deprecated // to be removed before 2.0
   public static double estimateJoinedRows(
       Join joinRel,
       RexNode condition) {
-    double product =
-        RelMetadataQuery.getRowCount(joinRel.getLeft())
-            * RelMetadataQuery.getRowCount(joinRel.getRight());
-
-    // TODO:  correlation factor
-    return product * RelMetadataQuery.getSelectivity(joinRel, condition);
+    return Util.first(RelMdUtil.getJoinRowCount(joinRel, condition), 1D);
   }
 
-  // implement RelNode
-  public double getRows() {
-    return estimateJoinedRows(this, condition);
+  @Override public double getRows() {
+    return Util.first(RelMdUtil.getJoinRowCount(this, condition), 1D);
   }
 
-  public Set<String> getVariablesStopped() {
+  @Override public Set<String> getVariablesStopped() {
     return variablesStopped;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("condition", condition)
         .item("joinType", joinType.name().toLowerCase())
@@ -192,7 +189,7 @@ public abstract class Join extends BiRel {
             !getSystemFieldList().isEmpty());
   }
 
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return deriveJoinRowType(
         left.getRowType(),
         right.getRowType(),
@@ -295,14 +292,14 @@ public abstract class Join extends BiRel {
         == (systemFieldList.size()
         + leftType.getFieldCount()
         + rightType.getFieldCount()));
-    List<String> nameList = new ArrayList<String>();
-    List<RelDataType> typeList = new ArrayList<RelDataType>();
+    List<String> nameList = new ArrayList<>();
+    final List<RelDataType> typeList = new ArrayList<>();
 
     // use a hashset to keep track of the field names; this is needed
     // to ensure that the contains() call to check for name uniqueness
     // runs in constant time; otherwise, if the number of fields is large,
     // doing a contains() on a list can be expensive
-    HashSet<String> uniqueNameList = new HashSet<String>();
+    final HashSet<String> uniqueNameList = new HashSet<>();
     addFields(systemFieldList, typeList, nameList, uniqueNameList);
     addFields(leftType.getFieldList(), typeList, nameList, uniqueNameList);
     if (rightType != null) {

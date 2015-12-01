@@ -1913,12 +1913,67 @@ public class Util {
     };
   }
 
-  public static <T> T first(T t0, T t1) {
-    return t0 != null ? t0 : t1;
+  /** Returns the first value if it is not null,
+   * otherwise the second value.
+   *
+   * <p>The result may be null.
+   *
+   * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
+   * Groovy or PHP. */
+  public static <T> T first(T v0, T v1) {
+    return v0 != null ? v0 : v1;
   }
 
-  public static <T> Iterable<T> orEmpty(Iterable<T> t0) {
-    return t0 != null ? t0 : ImmutableList.<T>of();
+  /** Unboxes a {@link Double} value,
+   * using a given default value if it is null. */
+  public static double first(Double v0, double v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Float} value,
+   * using a given default value if it is null. */
+  public static float first(Float v0, float v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Integer} value,
+   * using a given default value if it is null. */
+  public static int first(Integer v0, int v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Long} value,
+   * using a given default value if it is null. */
+  public static long first(Long v0, long v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Boolean} value,
+   * using a given default value if it is null. */
+  public static boolean first(Boolean v0, boolean v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Short} value,
+   * using a given default value if it is null. */
+  public static short first(Short v0, short v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Character} value,
+   * using a given default value if it is null. */
+  public static char first(Character v0, char v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  /** Unboxes a {@link Byte} value,
+   * using a given default value if it is null. */
+  public static byte first(Byte v0, byte v1) {
+    return v0 != null ? v0 : v1;
+  }
+
+  public static <T> Iterable<T> orEmpty(Iterable<T> v0) {
+    return v0 != null ? v0 : ImmutableList.<T>of();
   }
 
   /** Returns the last element of a list.

@@ -413,17 +413,17 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-987">[CALCITE-987]
-   * Implement SortUnionTransposeRule</a>. */
+   * Push limit 0 will result in an infinite loop</a>. */
   @Test public void testSortUnionTranspose3() {
     final HepProgram program =
-            HepProgram.builder()
-                    .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
-                    .addRuleInstance(SortUnionTransposeRule.MATCH_NULL_FETCH)
-                    .build();
+        HepProgram.builder()
+            .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
+            .addRuleInstance(SortUnionTransposeRule.MATCH_NULL_FETCH)
+            .build();
     final String sql = "select a.name from dept a\n"
-            + "union all\n"
-            + "select b.name from dept b\n"
-            + "order by name limit 0";
+        + "union all\n"
+        + "select b.name from dept b\n"
+        + "order by name limit 0";
     checkPlanning(program, sql);
   }
 
@@ -1098,7 +1098,7 @@ public class RelOptRulesTest extends RelOptTestBase {
                     typeFactory.createSqlType(SqlTypeName.INTEGER);
                 for (int i = 0; i < 10; i++) {
                   String t = String.valueOf((char) ('A' + i));
-                  MockTable table = MockTable.create(this, schema, t, false);
+                  MockTable table = MockTable.create(this, schema, t, false, 100);
                   table.addColumn(t, intType);
                   registerTable(table);
                 }

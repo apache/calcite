@@ -103,7 +103,7 @@ import java.util.Map;
  */
 public interface SqlValidator {
   /** Whether to follow the SQL standard strictly. */
-  boolean STRICT = Util.first(Boolean.getBoolean("calcite.strict.sql"), false);
+  boolean STRICT = Util.getBooleanProperty("calcite.strict.sql");
 
   //~ Methods ----------------------------------------------------------------
 
@@ -478,7 +478,7 @@ public interface SqlValidator {
    * <li>In FROM ({@link #getFromScope} , you can only see 'foo'.
    *
    * <li>In WHERE ({@link #getWhereScope}), GROUP BY ({@link #getGroupScope}),
-   * SELECT ({@link #getSelectScope}), and the ON clause of the JOIN
+   * SELECT ({@code getSelectScope}), and the ON clause of the JOIN
    * ({@link #getJoinScope}) you can see 'emp', 'dept', and 'foo'.
    *
    * <li>In ORDER BY ({@link #getOrderScope}), you can see the column alias 'x';

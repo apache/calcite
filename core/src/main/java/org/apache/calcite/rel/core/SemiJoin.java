@@ -22,12 +22,12 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -100,9 +100,9 @@ public class SemiJoin extends EquiJoin {
   }
 
   @Override public double getRows() {
-    // TODO:  correlation factor
-    return RelMetadataQuery.getRowCount(left)
-        * RexUtil.getSelectivity(condition);
+    return Util.first(RelMdUtil.getSemiJoinRowCount(left, right, joinType, condition),
+        1D);
+
   }
 
   /**

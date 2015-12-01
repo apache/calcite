@@ -112,7 +112,7 @@ public class CalciteAssert {
 
   /** Whether to enable slow tests. Default is false. */
   public static final boolean ENABLE_SLOW =
-      Util.first(Boolean.getBoolean("calcite.test.slow"), false);
+      Util.getBooleanProperty("calcite.test.slow");
 
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
