@@ -25,11 +25,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -56,16 +57,15 @@ public class VolcanoRuleCall extends RelOptRuleCall {
    * @param planner Planner
    * @param operand First operand of the rule
    * @param rels    Array which will hold the matched relational expressions
+   * @param nodeInputs For each node which matched with {@code matchAnyChildren}
+   *                   = true, a list of the node's inputs
    */
   protected VolcanoRuleCall(
       VolcanoPlanner planner,
       RelOptRuleOperand operand,
-      RelNode[] rels) {
-    super(
-        planner,
-        operand,
-        rels,
-        Collections.<RelNode, List<RelNode>>emptyMap());
+      RelNode[] rels,
+      Map<RelNode, List<RelNode>> nodeInputs) {
+    super(planner, operand, rels, nodeInputs);
     this.volcanoPlanner = planner;
   }
 
@@ -81,7 +81,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     this(
         planner,
         operand,
-        new RelNode[operand.getRule().operands.size()]);
+        new RelNode[operand.getRule().operands.size()],
+        ImmutableMap.<RelNode, List<RelNode>>of());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -222,7 +223,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       }
 
       if (LOGGER.isLoggable(Level.FINE)) {
-        this.generatedRelList = new ArrayList<RelNode>();
+        this.generatedRelList = new ArrayList<>();
       }
 
       getRule().onMatch(this);
@@ -275,7 +276,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
    * @pre solve &lt;= rule.operands.length
    */
   private void matchRecurse(int solve) {
-    if (solve == getRule().operands.size()) {
+    final List<RelOptRuleOperand> operands = getRule().operands;
+    if (solve == operands.size()) {
       // We have matched all operands. Now ask the rule whether it
       // matches; this gives the rule chance to apply side-conditions.
       // If the side-conditions are satisfied, we have a match.
@@ -283,25 +285,28 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         onMatch();
       }
     } else {
-      int operandOrdinal = getOperand0().solveOrder[solve];
-      int previousOperandOrdinal = getOperand0().solveOrder[solve - 1];
+      final int operandOrdinal = operand0.solveOrder[solve];
+      final int previousOperandOrdinal = operand0.solveOrder[solve - 1];
       boolean ascending = operandOrdinal < previousOperandOrdinal;
-      RelOptRuleOperand previousOperand =
-          getRule().operands.get(previousOperandOrdinal);
-      RelOptRuleOperand operand = getRule().operands.get(operandOrdinal);
+      final RelOptRuleOperand previousOperand =
+          operands.get(previousOperandOrdinal);
+      final RelOptRuleOperand operand = operands.get(operandOrdinal);
+      final RelNode previous = rels[previousOperandOrdinal];
 
+      final RelOptRuleOperand parentOperand;
       final Collection<? extends RelNode> successors;
       if (ascending) {
         assert previousOperand.getParent() == operand;
-        final RelNode childRel = rels[previousOperandOrdinal];
-        RelSubset subset = volcanoPlanner.getSubset(childRel);
+        parentOperand = operand;
+        final RelSubset subset = volcanoPlanner.getSubset(previous);
         successors = subset.getParentRels();
       } else {
-        int parentOrdinal = operand.getParent().ordinalInRule;
-        RelNode parentRel = rels[parentOrdinal];
-        List<RelNode> inputs = parentRel.getInputs();
+        parentOperand = previousOperand;
+        final int parentOrdinal = operand.getParent().ordinalInRule;
+        final RelNode parentRel = rels[parentOrdinal];
+        final List<RelNode> inputs = parentRel.getInputs();
         if (operand.ordinalInParent < inputs.size()) {
-          RelSubset subset =
+          final RelSubset subset =
               (RelSubset) inputs.get(operand.ordinalInParent);
           if (operand.getMatchedClass() == RelSubset.class) {
             successors = subset.set.subsets;
@@ -320,17 +325,33 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           continue;
         }
         if (ascending) {
-          // We know that the previous operand was *a* child of
-          // its parent, but now check that it is the *correct*
-          // child
+          // We know that the previous operand was *a* child of its parent,
+          // but now check that it is the *correct* child.
           final RelSubset input =
-              (RelSubset) rel.getInput(
-                  previousOperand.ordinalInParent);
+              (RelSubset) rel.getInput(previousOperand.ordinalInParent);
           List<RelNode> inputRels = input.set.getRelsFromAllSubsets();
-          if (!inputRels.contains(rels[previousOperandOrdinal])) {
+          if (!inputRels.contains(previous)) {
             continue;
           }
         }
+
+        // Assign "childRels" if the operand is UNORDERED.
+        switch (parentOperand.childPolicy) {
+        case UNORDERED:
+          if (ascending) {
+            final List<RelNode> inputs = Lists.newArrayList(rel.getInputs());
+            inputs.set(previousOperand.ordinalInParent, previous);
+            setChildRels(rel, inputs);
+          } else {
+            List<RelNode> inputs = getChildRels(previous);
+            if (inputs == null) {
+              inputs = Lists.newArrayList(previous.getInputs());
+            }
+            inputs.set(operand.ordinalInParent, rel);
+            setChildRels(previous, inputs);
+          }
+        }
+
         rels[operandOrdinal] = rel;
         matchRecurse(solve + 1);
       }
