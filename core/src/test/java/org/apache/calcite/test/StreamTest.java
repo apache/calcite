@@ -248,12 +248,13 @@ public class StreamTest {
                 + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT4=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
                 + "          LogicalTableScan(table=[[STREAMJOINS, ORDERS]])\n"
                 + "        LogicalTableScan(table=[[STREAMJOINS, PRODUCTS]])\n")
-        .explainContains("EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n" +
-            "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], proj#0..4=[{exprs}])\n" +
-            "      EnumerableInterpreter\n" +
-            "        BindableTableScan(table=[[]])\n" +
-            "    EnumerableInterpreter\n" +
-            "      BindableTableScan(table=[[STREAMJOINS, PRODUCTS]])")
+        .explainContains(
+            "EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], proj#0..4=[{exprs}])\n"
+                + "      EnumerableInterpreter\n"
+                + "        BindableTableScan(table=[[]])\n"
+                + "    EnumerableInterpreter\n"
+                + "      BindableTableScan(table=[[STREAMJOINS, PRODUCTS]])")
         .returns(startsWith("ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
             "ROWTIME=2015-02-15 10:24:15; ORDERID=2; SUPPLIERID=0",
             "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
