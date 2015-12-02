@@ -3020,25 +3020,38 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     switch (modality) {
     case STREAM:
-      boolean atLeastOneSupportsModality = false;
-      for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-        if (namespace.right.supportsModality(modality)) {
-          atLeastOneSupportsModality = true;
-        }
-      }
-
-      if (!atLeastOneSupportsModality) {
-        if (fail) {
-          List<String> inputList = new ArrayList<String>();
-          for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-            inputList.add(namespace.left);
+      if (scope.children.size() == 1) {
+        for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+          if (!namespace.right.supportsModality(modality)) {
+            if (fail) {
+              throw newValidationError(namespace.right.getNode(),
+                  Static.RESOURCE.cannotConvertToStream(namespace.left));
+            } else {
+              return false;
+            }
           }
-          String inputs = Joiner.on(", ").join(inputList);
+        }
+      } else {
+        boolean atLeastOneSupportsModality = false;
+        for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+          if (namespace.right.supportsModality(modality)) {
+            atLeastOneSupportsModality = true;
+          }
+        }
 
-          throw newValidationError(select,
-              Static.RESOURCE.cannotStreamResultsForNonStreamingInputs(inputs));
-        } else {
-          return false;
+        if (!atLeastOneSupportsModality) {
+          if (fail) {
+            List<String> inputList = new ArrayList<String>();
+            for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+              inputList.add(namespace.left);
+            }
+            String inputs = Joiner.on(", ").join(inputList);
+
+            throw newValidationError(select,
+                Static.RESOURCE.cannotStreamResultsForNonStreamingInputs(inputs));
+          } else {
+            return false;
+          }
         }
       }
       break;
