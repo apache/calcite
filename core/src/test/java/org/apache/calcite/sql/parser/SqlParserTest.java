@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
@@ -31,6 +32,13 @@ import org.apache.calcite.util.Util;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URL;
 import java.util.Locale;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -2021,7 +2029,10 @@ public class SqlParserTest {
         "(?s).*Encountered \"\\( \\)\" at .*");
   }
 
-  /** Test case for [CALCITE-493]. */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-493">[CALCITE-493]
+   * Add EXTEND clause, for defining columns and their types at query/DML
+   * time</a>. */
   @Test public void testTableExtend() {
     sql("select * from emp extend (x int, y varchar(10) not null)")
         .ok("SELECT *\n"
@@ -5627,6 +5638,56 @@ public class SqlParserTest {
     String jdbcKeywords = metadata.getJdbcKeywords();
     assertTrue(jdbcKeywords.contains(",COLLECT,"));
     assertTrue(!jdbcKeywords.contains(",SELECT,"));
+  }
+
+  /** Generates a copy of {@code reference.md} with the current set of key
+   * words. Fails if the copy is different from the original. */
+  @Test public void testGenerateKeyWords() throws IOException {
+    // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
+    String path = "hsqldb-model.json";
+    final URL inUrl = SqlParserTest.class.getResource("/" + path);
+    String x = inUrl.getFile();
+    assert x.endsWith(path);
+    x = x.substring(0, x.length() - path.length());
+    assert x.endsWith("core/target/test-classes/");
+    x = x.substring(0, x.length() - "core/target/test-classes/".length());
+    final File base = new File(x);
+    final File inFile = new File(base, "site/_docs/reference.md");
+    final File outFile = new File(base, "core/target/surefire/reference.md");
+    outFile.getParentFile().mkdirs();
+    try (BufferedReader r = new BufferedReader(new FileReader(inFile));
+         PrintWriter w = new PrintWriter(new FileWriter(outFile))) {
+      String line;
+      int stage = 0;
+      while ((line = r.readLine()) != null) {
+        if (line.equals("{% comment %} end {% endcomment %}")) {
+          ++stage;
+        }
+        if (stage != 1) {
+          w.println(line);
+        }
+        if (line.equals("{% comment %} start {% endcomment %}")) {
+          ++stage;
+          SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+          int z = 0;
+          for (String s : metadata.getTokens()) {
+            if (z++ > 0) {
+              w.println(",");
+            }
+            if (metadata.isKeyword(s)) {
+              w.print(metadata.isReservedWord(s) ? ("**" + s + "**") : s);
+            }
+          }
+          w.println(".");
+        }
+      }
+    }
+    String diff = DiffTestCase.diff(outFile, inFile);
+    if (!diff.isEmpty()) {
+      throw new AssertionError("Mismatch between " + outFile
+          + " and " + inFile + ":\n"
+          + diff);
+    }
   }
 
   @Test public void testTabStop() {
