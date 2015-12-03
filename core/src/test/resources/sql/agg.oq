@@ -150,6 +150,9 @@ select count(mod(deptno, 20), gender) as c from emps;
 select x = 1 as x1, count(*) as c
 from (values 0, 1, 2, cast(null as integer)) as t(x)
 group by x = 1;
+X1 BOOLEAN(1)
+C BIGINT(19) NOT NULL
+!type
 +-------+---+
 | X1    | C |
 +-------+---+
@@ -664,6 +667,9 @@ select deptno,
   sum(sal) filter (where deptno = 10) sal_10
 from "scott".emp
 group by deptno;
+DEPTNO TINYINT(3)
+SAL_10 DECIMAL(7, 2)
+!type
 +--------+---------+
 | DEPTNO | SAL_10  |
 +--------+---------+

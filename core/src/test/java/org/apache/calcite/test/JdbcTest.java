@@ -4641,10 +4641,26 @@ public class JdbcTest {
             return null;
           }
         };
-    final Quidem quidem = new Quidem(bufferedReader, writer, env);
-    quidem.execute(
-        new Quidem.ConnectionFactory() {
+    final Quidem.NewConnectionFactory connectionFactory =
+        new Quidem.NewConnectionFactory() {
           public Connection connect(String name) throws Exception {
+            return connect(name, false);
+          }
+
+          public Connection connect(String name, boolean reference)
+              throws Exception {
+            if (reference) {
+              if (name.equals("foodmart")) {
+                final ConnectionSpec db =
+                    CalciteAssert.DatabaseInstance.HSQLDB.foodmart;
+                final Connection connection = DriverManager.getConnection(db.url,
+                    db.username,
+                    db.password);
+                connection.setSchema("foodmart");
+                return connection;
+              }
+              return null;
+            }
             if (name.equals("hr")) {
               return CalciteAssert.hr()
                   .connect();
@@ -4700,7 +4716,8 @@ public class JdbcTest {
             }
             throw new RuntimeException("unknown connection '" + name + "'");
           }
-        });
+        };
+    new Quidem(bufferedReader, writer, env, connectionFactory).execute();
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n" + diff);

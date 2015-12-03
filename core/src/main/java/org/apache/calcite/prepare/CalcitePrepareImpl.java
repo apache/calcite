@@ -96,7 +96,6 @@ import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -901,20 +900,24 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         : type.getPrecision();
   }
 
+  /** Returns the type name in string form. Does not include precision, scale
+   * or whether nulls are allowed. Example: "DECIMAL" not "DECIMAL(7, 2)";
+   * "INTEGER" not "JavaType(int)". */
   private static String getTypeName(RelDataType type) {
-    SqlTypeName sqlTypeName = type.getSqlTypeName();
-    if (type instanceof RelDataTypeFactoryImpl.JavaType) {
-      // We'd rather print "INTEGER" than "JavaType(int)".
-      return sqlTypeName.getName();
-    }
+    final SqlTypeName sqlTypeName = type.getSqlTypeName();
     switch (sqlTypeName) {
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_DAY_TIME:
       // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
       return "INTERVAL_"
           + type.getIntervalQualifier().toString().replace(' ', '_');
+    case ARRAY:
+    case MULTISET:
+    case MAP:
+    case ROW:
+      return type.toString(); // e.g. "INTEGER ARRAY"
     default:
-      return type.toString(); // e.g. "VARCHAR(10)", "INTEGER ARRAY"
+      return sqlTypeName.getName(); // e.g. "DECIMAL"
     }
   }
 

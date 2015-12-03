@@ -205,7 +205,7 @@ limitations under the License.
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>quidem</artifactId>
-        <version>0.6</version>
+        <version>0.7</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>

@@ -20,20 +20,7 @@
 
 # The ArrayTable "days" is sorted by "day", so plan must not contain sort
 select * from "days" order by "day";
-+-----+-----------+
-| day | week_day  |
-+-----+-----------+
-|   1 | Sunday    |
-|   2 | Monday    |
-|   3 | Tuesday   |
-|   4 | Wednesday |
-|   5 | Thursday  |
-|   6 | Friday    |
-|   7 | Saturday  |
-+-----+-----------+
-(7 rows)
-
-!ok
+!verify
 EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 
