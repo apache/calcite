@@ -97,10 +97,14 @@ public class RelMdMaxRowCount {
 
   public Double getMaxRowCount(Aggregate rel) {
     if (rel.getGroupSet().isEmpty()) {
+      // Aggregate with no GROUP BY always returns 1 row (even on empty table).
       return 1D;
     }
-    return RelMetadataQuery.getMaxRowCount(rel.getInput())
-        * rel.getGroupSets().size();
+    final Double rowCount = RelMetadataQuery.getMaxRowCount(rel.getInput());
+    if (rowCount == null) {
+      return null;
+    }
+    return rowCount * rel.getGroupSets().size();
   }
 
   public Double getMaxRowCount(Join rel) {
