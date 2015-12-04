@@ -1243,7 +1243,7 @@ public interface Service {
       result = prime * result + ((statementHandle == null) ? 0 : statementHandle.hashCode());
       result = prime * result + ((parameterValues == null) ? 0 : parameterValues.hashCode());
       result = prime * result + (int) (maxRowCount ^ (maxRowCount >>> 32));
-      return 0;
+      return result;
     }
 
     @Override public boolean equals(Object o) {
@@ -1323,8 +1323,10 @@ public interface Service {
     @Override Responses.ExecuteResponse serialize() {
       Responses.ExecuteResponse.Builder builder = Responses.ExecuteResponse.newBuilder();
 
-      for (ResultSetResponse result : results) {
-        builder.addResults(result.serialize());
+      if (null != results) {
+        for (ResultSetResponse result : results) {
+          builder.addResults(result.serialize());
+        }
       }
 
       if (null != rpcMetadata) {
@@ -2065,24 +2067,8 @@ public interface Service {
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o == null || !(o instanceof CloseStatementResponse)) {
-        return false;
-      }
-
-      CloseStatementResponse other = (CloseStatementResponse) o;
-
-      if (null == rpcMetadata) {
-        if (null != other.rpcMetadata) {
-          return false;
-        }
-      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-        return false;
-      }
-
-      return true;
+      return o == this || (o instanceof CloseStatementResponse
+          && Objects.equals(rpcMetadata, ((CloseStatementResponse) o).rpcMetadata));
     }
   }
 
@@ -2254,22 +2240,8 @@ public interface Service {
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (null == o || !(o instanceof OpenConnectionResponse)) {
-        return false;
-      }
-
-      OpenConnectionResponse other = (OpenConnectionResponse) o;
-      if (null == rpcMetadata) {
-        if (null != rpcMetadata) {
-          return false;
-        }
-      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-        return false;
-      }
-      return true;
+      return o == this || ((o instanceof OpenConnectionResponse)
+          && Objects.equals(rpcMetadata, ((OpenConnectionResponse) o).rpcMetadata));
     }
   }
 
@@ -2329,24 +2301,8 @@ public interface Service {
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof CloseConnectionRequest) {
-        CloseConnectionRequest other = (CloseConnectionRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this || ((o instanceof CloseConnectionRequest)
+          && Objects.equals(connectionId, ((CloseConnectionRequest) o).connectionId));
     }
   }
 
@@ -2398,23 +2354,8 @@ public interface Service {
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o == null || !(o instanceof CloseConnectionResponse)) {
-        return false;
-      }
-      CloseConnectionResponse other = (CloseConnectionResponse) o;
-
-      if (null == rpcMetadata) {
-        if (null != other.rpcMetadata) {
-          return false;
-        }
-      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-        return false;
-      }
-
-      return true;
+      return o == this || ((o instanceof CloseConnectionResponse)
+          && Objects.equals(rpcMetadata, ((CloseConnectionResponse) o).rpcMetadata));
     }
   }
 
@@ -3178,21 +3119,8 @@ public interface Service {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (obj == null || !(obj instanceof RpcMetadataResponse)) {
-        return false;
-      }
-
-      RpcMetadataResponse other = (RpcMetadataResponse) obj;
-      if (serverAddress == null) {
-        if (other.serverAddress != null) {
-          return false;
-        }
-      }
-      return serverAddress.equals(other.serverAddress);
+      return this == obj || (obj instanceof RpcMetadataResponse
+          && Objects.equals(serverAddress, ((RpcMetadataResponse) obj).serverAddress));
     }
   }
 }
