@@ -1270,14 +1270,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testPullUpPredicatesFromProject() {
-    final String sql = "select deptno, mgr, x, 'y' as y from (\n"
-        + "  select deptno, mgr, cast(null as integer) as x\n"
+    final String sql = "select deptno, mgr, x, 'y' as y, z from (\n"
+        + "  select deptno, mgr, cast(null as integer) as x, cast('1' as int) as z\n"
         + "  from emp\n"
         + "  where mgr is null and deptno < 10)";
     final RelNode rel = convertSql(sql);
     RelOptPredicateList list = RelMetadataQuery.getPulledUpPredicates(rel);
     assertThat(list.pulledUpPredicates.toString(),
-        is("[IS NULL($1), <($0, 10), IS NULL($2), =($3, 'y')]"));
+        is("[IS NULL($1), <($0, 10), IS NULL($2), =($4, CAST('1'):INTEGER NOT NULL), =($3, 'y')]"));
   }
 
   /** Custom metadata interface. */
