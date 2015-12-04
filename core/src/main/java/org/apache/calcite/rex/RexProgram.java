@@ -853,53 +853,16 @@ public class RexProgram {
   /**
    * Walks over an expression and determines whether it is constant.
    */
-  private class ConstantFinder implements RexVisitor<Boolean> {
-    private ConstantFinder() {
-    }
-
-    public Boolean visitLiteral(RexLiteral literal) {
-      return true;
-    }
-
-    public Boolean visitInputRef(RexInputRef inputRef) {
-      return false;
-    }
-
-    public Boolean visitLocalRef(RexLocalRef localRef) {
+  private class ConstantFinder extends RexUtil.ConstantFinder {
+    @Override public Boolean visitLocalRef(RexLocalRef localRef) {
       final RexNode expr = exprs.get(localRef.index);
       return expr.accept(this);
     }
 
-    public Boolean visitOver(RexOver over) {
-      return false;
-    }
-
-    public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+    @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
       // Correlating variables are constant WITHIN A RESTART, so that's
       // good enough.
       return true;
-    }
-
-    public Boolean visitDynamicParam(RexDynamicParam dynamicParam) {
-      // Dynamic parameters are constant WITHIN A RESTART, so that's
-      // good enough.
-      return true;
-    }
-
-    public Boolean visitCall(RexCall call) {
-      // Constant if operator is deterministic and all operands are
-      // constant.
-      return call.getOperator().isDeterministic()
-          && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
-    }
-
-    public Boolean visitRangeRef(RexRangeRef rangeRef) {
-      return false;
-    }
-
-    public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
-      // "<expr>.FIELD" is constant iff "<expr>" is constant.
-      return fieldAccess.getReferenceExpr().accept(this);
     }
   }
 

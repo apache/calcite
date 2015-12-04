@@ -240,7 +240,7 @@ public class RexUtil {
   /**
    * Walks over an expression and determines whether it is constant.
    */
-  private static class ConstantFinder implements RexVisitor<Boolean> {
+  static class ConstantFinder implements RexVisitor<Boolean> {
     static final ConstantFinder INSTANCE = new ConstantFinder();
 
     public Boolean visitLiteral(RexLiteral literal) {
@@ -260,10 +260,14 @@ public class RexUtil {
     }
 
     public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+      // Correlating variables change when there is an internal restart.
+      // Not good enough for our purposes.
       return false;
     }
 
     public Boolean visitDynamicParam(RexDynamicParam dynamicParam) {
+      // Dynamic parameters are constant WITHIN AN EXECUTION, so that's
+      // good enough.
       return true;
     }
 
@@ -287,7 +291,7 @@ public class RexUtil {
   /**
    * Returns whether node is made up of constants.
    *
-   * @param node to inspect
+   * @param node Node to inspect
    * @return true if node is made up of constants, false otherwise
    */
   public static boolean isConstant(RexNode node) {
@@ -297,7 +301,7 @@ public class RexUtil {
    /**
    * Returns whether a given node contains a RexCall with a specified operator
    *
-   * @param operator to look for
+   * @param operator Operator to look for
    * @param node     a RexNode tree
    */
   public static RexCall findOperatorCall(
