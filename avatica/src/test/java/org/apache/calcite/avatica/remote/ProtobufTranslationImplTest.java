@@ -319,6 +319,11 @@ public class ProtobufTranslationImplTest<T> {
     // More results, no missing statement
     responses.add(new SyncResultsResponse(true, false, rpcMetadata));
 
+    // Some tests to make sure ErrorResponse doesn't fail.
+    responses.add(new ErrorResponse((List<String>) null, null, 0, null, null, null));
+    responses.add(new ErrorResponse(Arrays.asList("stacktrace1", "stacktrace2"), null, 0, null,
+        null, null));
+
     return responses;
   }
 

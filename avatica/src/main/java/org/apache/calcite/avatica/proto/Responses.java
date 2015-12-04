@@ -8499,6 +8499,15 @@ package org.apache.calcite.avatica.proto;
         getExceptionsBytes(int index);
 
     /**
+     * <code>optional bool has_exceptions = 7;</code>
+     *
+     * <pre>
+     * are there stacktraces contained?
+     * </pre>
+     */
+    boolean getHasExceptions();
+
+    /**
      * <code>optional string error_message = 2;</code>
      *
      * <pre>
@@ -8582,6 +8591,7 @@ package org.apache.calcite.avatica.proto;
     }
     private ErrorResponse() {
       exceptions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      hasExceptions_ = false;
       errorMessage_ = "";
       severity_ = 0;
       errorCode_ = 0;
@@ -8657,6 +8667,11 @@ package org.apache.calcite.avatica.proto;
 
               break;
             }
+            case 56: {
+
+              hasExceptions_ = input.readBool();
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -8728,6 +8743,19 @@ package org.apache.calcite.avatica.proto;
     public com.google.protobuf.ByteString
         getExceptionsBytes(int index) {
       return exceptions_.getByteString(index);
+    }
+
+    public static final int HAS_EXCEPTIONS_FIELD_NUMBER = 7;
+    private boolean hasExceptions_;
+    /**
+     * <code>optional bool has_exceptions = 7;</code>
+     *
+     * <pre>
+     * are there stacktraces contained?
+     * </pre>
+     */
+    public boolean getHasExceptions() {
+      return hasExceptions_;
     }
 
     public static final int ERROR_MESSAGE_FIELD_NUMBER = 2;
@@ -8894,6 +8922,9 @@ package org.apache.calcite.avatica.proto;
       if (metadata_ != null) {
         output.writeMessage(6, getMetadata());
       }
+      if (hasExceptions_ != false) {
+        output.writeBool(7, hasExceptions_);
+      }
     }
 
     public int getSerializedSize() {
@@ -8926,6 +8957,10 @@ package org.apache.calcite.avatica.proto;
       if (metadata_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(6, getMetadata());
+      }
+      if (hasExceptions_ != false) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(7, hasExceptions_);
       }
       memoizedSize = size;
       return size;
@@ -9044,6 +9079,8 @@ package org.apache.calcite.avatica.proto;
         super.clear();
         exceptions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
+        hasExceptions_ = false;
+
         errorMessage_ = "";
 
         severity_ = 0;
@@ -9087,6 +9124,7 @@ package org.apache.calcite.avatica.proto;
           bitField0_ = (bitField0_ & ~0x00000001);
         }
         result.exceptions_ = exceptions_;
+        result.hasExceptions_ = hasExceptions_;
         result.errorMessage_ = errorMessage_;
         result.severity_ = severity_;
         result.errorCode_ = errorCode_;
@@ -9121,6 +9159,9 @@ package org.apache.calcite.avatica.proto;
             exceptions_.addAll(other.exceptions_);
           }
           onChanged();
+        }
+        if (other.getHasExceptions() != false) {
+          setHasExceptions(other.getHasExceptions());
         }
         if (!other.getErrorMessage().isEmpty()) {
           errorMessage_ = other.errorMessage_;
@@ -9292,6 +9333,44 @@ package org.apache.calcite.avatica.proto;
   checkByteStringIsUtf8(value);
         ensureExceptionsIsMutable();
         exceptions_.add(value);
+        onChanged();
+        return this;
+      }
+
+      private boolean hasExceptions_ ;
+      /**
+       * <code>optional bool has_exceptions = 7;</code>
+       *
+       * <pre>
+       * are there stacktraces contained?
+       * </pre>
+       */
+      public boolean getHasExceptions() {
+        return hasExceptions_;
+      }
+      /**
+       * <code>optional bool has_exceptions = 7;</code>
+       *
+       * <pre>
+       * are there stacktraces contained?
+       * </pre>
+       */
+      public Builder setHasExceptions(boolean value) {
+        
+        hasExceptions_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool has_exceptions = 7;</code>
+       *
+       * <pre>
+       * are there stacktraces contained?
+       * </pre>
+       */
+      public Builder clearHasExceptions() {
+        
+        hasExceptions_ = false;
         onChanged();
         return this;
       }
@@ -10990,15 +11069,16 @@ package org.apache.calcite.avatica.proto;
       "a\030\003 \001(\0132\014.RpcMetadata\"c\n\030DatabasePropert" +
       "yResponse\022\'\n\005props\030\001 \003(\0132\030.DatabasePrope" +
       "rtyElement\022\036\n\010metadata\030\002 \001(\0132\014.RpcMetada" +
-      "ta\"\236\001\n\rErrorResponse\022\022\n\nexceptions\030\001 \003(\t",
-      "\022\025\n\rerror_message\030\002 \001(\t\022\033\n\010severity\030\003 \001(" +
-      "\0162\t.Severity\022\022\n\nerror_code\030\004 \001(\r\022\021\n\tsql_" +
-      "state\030\005 \001(\t\022\036\n\010metadata\030\006 \001(\0132\014.RpcMetad" +
-      "ata\"f\n\023SyncResultsResponse\022\031\n\021missing_st" +
-      "atement\030\001 \001(\010\022\024\n\014more_results\030\002 \001(\010\022\036\n\010m" +
-      "etadata\030\003 \001(\0132\014.RpcMetadata\"%\n\013RpcMetada" +
-      "ta\022\026\n\016server_address\030\001 \001(\tB\"\n org.apache" +
-      ".calcite.avatica.protob\006proto3"
+      "ta\"\266\001\n\rErrorResponse\022\022\n\nexceptions\030\001 \003(\t",
+      "\022\026\n\016has_exceptions\030\007 \001(\010\022\025\n\rerror_messag" +
+      "e\030\002 \001(\t\022\033\n\010severity\030\003 \001(\0162\t.Severity\022\022\n\n" +
+      "error_code\030\004 \001(\r\022\021\n\tsql_state\030\005 \001(\t\022\036\n\010m" +
+      "etadata\030\006 \001(\0132\014.RpcMetadata\"f\n\023SyncResul" +
+      "tsResponse\022\031\n\021missing_statement\030\001 \001(\010\022\024\n" +
+      "\014more_results\030\002 \001(\010\022\036\n\010metadata\030\003 \001(\0132\014." +
+      "RpcMetadata\"%\n\013RpcMetadata\022\026\n\016server_add" +
+      "ress\030\001 \001(\tB\"\n org.apache.calcite.avatica" +
+      ".protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -11084,7 +11164,7 @@ package org.apache.calcite.avatica.proto;
     internal_static_ErrorResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ErrorResponse_descriptor,
-        new java.lang.String[] { "Exceptions", "ErrorMessage", "Severity", "ErrorCode", "SqlState", "Metadata", });
+        new java.lang.String[] { "Exceptions", "HasExceptions", "ErrorMessage", "Severity", "ErrorCode", "SqlState", "Metadata", });
     internal_static_SyncResultsResponse_descriptor =
       getDescriptor().getMessageTypes().get(12);
     internal_static_SyncResultsResponse_fieldAccessorTable = new

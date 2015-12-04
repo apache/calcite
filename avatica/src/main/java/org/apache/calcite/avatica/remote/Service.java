@@ -2789,13 +2789,32 @@ public interface Service {
       Responses.ErrorResponse msg = (Responses.ErrorResponse) genericMsg;
       Descriptor desc = msg.getDescriptorForType();
 
+      List<String> exceptions = null;
+      if (msg.getHasExceptions()) {
+        exceptions = msg.getExceptionsList();
+      }
+
+      String errorMessage = null;
+      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.ERROR_MESSAGE_FIELD_NUMBER)) {
+        errorMessage = msg.getErrorMessage();
+      }
+
+      String sqlState = null;
+      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.SQL_STATE_FIELD_NUMBER)) {
+        sqlState = msg.getSqlState();
+      }
+
+      AvaticaSeverity severity = null;
+      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.SEVERITY_FIELD_NUMBER)) {
+        severity = AvaticaSeverity.fromProto(msg.getSeverity());
+      }
+
       RpcMetadataResponse metadata = null;
       if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.METADATA_FIELD_NUMBER)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
-      return new ErrorResponse(msg.getExceptionsList(), msg.getErrorMessage(),
-          msg.getErrorCode(), msg.getSqlState(), AvaticaSeverity.fromProto(msg.getSeverity()),
+      return new ErrorResponse(exceptions, errorMessage, msg.getErrorCode(), sqlState, severity,
           metadata);
     }
 
@@ -2806,14 +2825,43 @@ public interface Service {
         builder.setMetadata(rpcMetadata.serialize());
       }
 
-      return builder.addAllExceptions(exceptions).setErrorMessage(errorMessage)
-          .setErrorCode(errorCode).setSqlState(sqlState).setSeverity(severity.toProto()).build();
+      if (null != exceptions) {
+        builder.setHasExceptions(true);
+        builder.addAllExceptions(exceptions);
+      } else {
+        builder.setHasExceptions(false);
+      }
+
+      if (null != errorMessage) {
+        builder.setErrorMessage(errorMessage);
+      }
+
+      if (null != sqlState) {
+        builder.setSqlState(sqlState);
+      }
+
+      if (null != severity) {
+        builder.setSeverity(severity.toProto());
+      }
+
+      return builder.setErrorCode(errorCode).build();
+    }
+
+    @Override public String toString() {
+      StringBuilder sb = new StringBuilder(32);
+      sb.append("ErrorResponse[errorCode=").append(errorCode)
+          .append(", sqlState=").append(sqlState)
+          .append(", severity=").append(severity)
+          .append(", errorMessage=").append(errorMessage)
+          .append(", exceptions=").append(exceptions);
+      return sb.toString();
     }
 
     @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((exceptions == null) ? 0 : exceptions.hashCode());
+      result = prime * result + ((errorMessage == null) ? 0 : errorMessage.hashCode());
       result = prime * result + errorCode;
       result = prime * result + ((sqlState == null) ? 0 : sqlState.hashCode());
       result = prime * result + ((severity == null) ? 0 : severity.hashCode());

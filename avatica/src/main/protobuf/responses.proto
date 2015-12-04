@@ -96,6 +96,7 @@ message DatabasePropertyResponse {
 // Send contextual information about some error over the wire from the server.
 message ErrorResponse {
   repeated string exceptions = 1; // exception stacktraces, many for linked exceptions.
+  bool has_exceptions = 7; // are there stacktraces contained?
   string error_message = 2; // human readable description
   Severity severity = 3;
   uint32 error_code = 4; // numeric identifier for error
