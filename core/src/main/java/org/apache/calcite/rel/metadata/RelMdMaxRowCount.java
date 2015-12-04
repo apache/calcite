@@ -99,8 +99,11 @@ public class RelMdMaxRowCount {
     if (rel.getGroupSet().isEmpty()) {
       return 1D;
     }
-    return RelMetadataQuery.getMaxRowCount(rel.getInput())
-        * rel.getGroupSets().size();
+    final Double inputCt = RelMetadataQuery.getMaxRowCount(rel.getInput());
+    if (inputCt == null) {
+      return null;
+    }
+    return inputCt * rel.getGroupSets().size();
   }
 
   public Double getMaxRowCount(Join rel) {
