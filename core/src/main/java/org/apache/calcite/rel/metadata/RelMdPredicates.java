@@ -34,25 +34,17 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
-import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
@@ -199,7 +191,7 @@ public class RelMdPredicates {
             rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
                 rexBuilder.makeInputRef(project, expr.i), literal));
       } else if (expr.e instanceof RexCall
-                && isDeterministicFuncOnLiterals(expr.e)) {
+                && RexUtil.isConstant(expr.e)) {
         projectPullUpPredicates.add(
             rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
             rexBuilder.makeInputRef(project, expr.i), expr.e));
@@ -340,70 +332,6 @@ public class RelMdPredicates {
   }
 
   /**
-   * Is this expression a deterministic function over literals
-   *
-   * @param expr
-   * @return TRUE if expr is deterministic and all args are constants; FALSE
-   *         otherwise
-   */
-  public static boolean isDeterministicFuncOnLiterals(RexNode expr) {
-    boolean deterministicFuncOnLiterals = true;
-
-    RexVisitor<Void> visitor = new RexVisitorImpl<Void>(true) {
-      @Override
-      public Void visitCall(org.apache.calcite.rex.RexCall call) {
-        if (!call.getOperator().isDeterministic()) {
-          throw new Util.FoundOne(call);
-        }
-        return super.visitCall(call);
-      }
-
-      @Override
-      public Void visitInputRef(RexInputRef inputRef) {
-        throw new Util.FoundOne(inputRef);
-      }
-
-      @Override
-      public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
-        throw new Util.FoundOne(correlVariable);
-      }
-
-      @Override
-      public Void visitLocalRef(RexLocalRef localRef) {
-        throw new Util.FoundOne(localRef);
-      }
-
-      @Override
-      public Void visitOver(RexOver over) {
-        throw new Util.FoundOne(over);
-      }
-
-      @Override
-      public Void visitDynamicParam(RexDynamicParam dynamicParam) {
-        throw new Util.FoundOne(dynamicParam);
-      }
-
-      @Override
-      public Void visitRangeRef(RexRangeRef rangeRef) {
-        throw new Util.FoundOne(rangeRef);
-      }
-
-      @Override
-      public Void visitFieldAccess(RexFieldAccess fieldAccess) {
-        throw new Util.FoundOne(fieldAccess);
-      }
-    };
-
-    try {
-      expr.accept(visitor);
-    } catch (Util.FoundOne e) {
-      deterministicFuncOnLiterals = false;
-    }
-
-    return deterministicFuncOnLiterals;
-  }
-
-  /**
    * Utility to infer predicates from one side of the join that apply on the
    * other side.
    *
@@ -443,8 +371,8 @@ public class RelMdPredicates {
     final RexNode leftChildPredicates;
     final RexNode rightChildPredicates;
 
-    public JoinConditionBasedPredicateInference(Join joinRel,
-            RexNode lPreds, RexNode rPreds) {
+    JoinConditionBasedPredicateInference(Join joinRel, RexNode lPreds,
+                                         RexNode rPreds) {
       this(joinRel, joinRel instanceof SemiJoin, lPreds, rPreds);
     }
 
