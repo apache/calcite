@@ -59,6 +59,7 @@ import static org.junit.Assert.assertThat;
 public class StreamTest {
   public static final String STREAM_SCHEMA_NAME = "STREAMS";
   public static final String INFINITE_STREAM_SCHEMA_NAME = "INFINITE_STREAMS";
+  public static final String STREAMJOINS_SCHEMA_NAME = "STREAMJOINS";
 
   private static String schemaFor(String name, Class<? extends TableFactory> clazz) {
     return "     {\n"
@@ -73,6 +74,27 @@ public class StreamTest {
       + "       } ]\n"
       + "     }";
   }
+
+  private static final String STREAM_JOINS_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "  defaultSchema: 'STREAMJOINS',\n"
+      + "   schemas: [\n"
+      + "     {\n"
+      + "       name: 'STREAMJOINS',\n"
+      + "       tables: [ {\n"
+      + "         type: 'custom',\n"
+      + "         name: 'ORDERS',\n"
+      + "         stream: {\n"
+      + "           stream: true\n"
+      + "         },\n"
+      + "         factory: '" + OrdersStreamTableFactory.class.getName() + "'\n"
+      + "       }, \n"
+      + "       {\n"
+      + "         type: 'custom',\n"
+      + "         name: 'PRODUCTS',\n"
+      + "         factory: '" + ProductsTableFactory.class.getName() + "'\n"
+      + "       }]\n"
+      + "     }]}";
 
   public static final String STREAM_MODEL = "{\n"
       + "  version: '1.0',\n"
@@ -210,6 +232,32 @@ public class StreamTest {
         .explainContains("EnumerableInterpreter\n"
             + "  BindableTableScan(table=[[]])")
         .returnsCount(100);
+  }
+
+  @Test public void testStreamToRelaitonJoin() {
+    CalciteAssert.model(STREAM_JOINS_MODEL)
+        .withDefaultSchema(STREAMJOINS_SCHEMA_NAME)
+        .query("select stream "
+            + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
+            + "from orders join products on orders.product = products.id")
+        .convertContains(
+            "LogicalDelta\n"
+                + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$5])\n"
+                + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], ID0=[$5], SUPPLIER=[$6])\n"
+                + "      LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
+                + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT4=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+                + "          LogicalTableScan(table=[[STREAMJOINS, ORDERS]])\n"
+                + "        LogicalTableScan(table=[[STREAMJOINS, PRODUCTS]])\n")
+        .explainContains(
+            "EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], proj#0..4=[{exprs}])\n"
+                + "      EnumerableInterpreter\n"
+                + "        BindableTableScan(table=[[]])\n"
+                + "    EnumerableInterpreter\n"
+                + "      BindableTableScan(table=[[STREAMJOINS, PRODUCTS]])")
+        .returns(startsWith("ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
+            "ROWTIME=2015-02-15 10:24:15; ORDERID=2; SUPPLIERID=0",
+            "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
   }
 
   private Function<ResultSet, Void> startsWith(String... rows) {
@@ -360,6 +408,66 @@ public class StreamTest {
 
     @Override public Table stream() {
       return this;
+    }
+  }
+
+  /**
+   * Mocks simple relation to use for stream joining test.
+   */
+  public static class ProductsTableFactory implements TableFactory<Table> {
+
+    public ProductsTableFactory(){}
+
+    @Override
+    public Table create(SchemaPlus schema, String name, Map<String, Object> operand,
+                        RelDataType rowType) {
+      final ImmutableList<Object[]> rows = ImmutableList.of(
+        new Object[]{"paint", 1},
+        new Object[]{"paper", 0},
+        new Object[]{"brush", 1}
+      );
+      return new ProductsTable(rows);
+    }
+  }
+
+  /**
+   * Table representing the PRODUCTS relation
+   */
+  public static class ProductsTable implements ScannableTable {
+
+    private final ImmutableList<Object[]> rows;
+
+    public ProductsTable(ImmutableList<Object[]> rows) {
+      this.rows = rows;
+    }
+
+    private final RelProtoDataType protoRowType = new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory a0) {
+        return a0.builder()
+            .add("ID", SqlTypeName.VARCHAR, 32)
+            .add("SUPPLIER", SqlTypeName.INTEGER)
+            .build();
+      }
+    };
+
+    @Override
+    public Enumerable<Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(rows);
+    }
+
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return protoRowType.apply(typeFactory);
+    }
+
+    @Override
+    public Statistic getStatistic() {
+      return Statistics.of(200d, ImmutableList.<ImmutableBitSet>of());
+    }
+
+    @Override
+    public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
     }
   }
 }

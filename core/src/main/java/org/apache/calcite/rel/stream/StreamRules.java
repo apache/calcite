@@ -24,16 +24,19 @@ import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.Util;
@@ -56,7 +59,9 @@ public class StreamRules {
           new DeltaAggregateTransposeRule(),
           new DeltaSortTransposeRule(),
           new DeltaUnionTransposeRule(),
-          new DeltaTableScanRule());
+          new DeltaJoinTransposeRule(),
+          new DeltaTableScanRule(),
+          new DeltaTableScanToEmptyRule());
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
   public static class DeltaProjectTransposeRule extends RelOptRule {
@@ -191,6 +196,74 @@ public class StreamRules {
             LogicalTableScan.create(cluster, relOptTable2);
         call.transformTo(newScan);
       }
+    }
+  }
+
+  /**
+   * Planner rule that converts {@link Delta} over a {@link TableScan} of
+   * a table other than {@link org.apache.calcite.schema.StreamableTable} to Empty.
+   */
+  public static class DeltaTableScanToEmptyRule extends RelOptRule {
+    private DeltaTableScanToEmptyRule() {
+      super(
+          operand(Delta.class,
+              operand(TableScan.class, none())));
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Delta delta = call.rel(0);
+      final TableScan scan = call.rel(1);
+      final RelOptCluster cluster = delta.getCluster();
+      final RelOptTable relOptTable = scan.getTable();
+      final StreamableTable streamableTable =
+          relOptTable.unwrap(StreamableTable.class);
+      if (streamableTable == null) {
+        call.transformTo(LogicalValues.createEmpty(cluster, delta.getRowType()));
+      }
+    }
+  }
+
+
+  /**
+   * Planner rule that pushes a {@link Delta} through a {@link Join}.
+   *
+   * Product rule [1] is applied to implement the transpose:
+   * stream(x join y)" = "x join stream(y) union all stream(x) join y
+   *
+   * [1] https://en.wikipedia.org/wiki/Product_rule
+   */
+  public static class DeltaJoinTransposeRule extends RelOptRule {
+
+    public DeltaJoinTransposeRule() {
+      super(
+          operand(Delta.class,
+              operand(Join.class, any())));
+    }
+
+    @Override
+    public void onMatch(RelOptRuleCall call) {
+      final Delta delta = call.rel(0);
+      final Join join = call.rel(1);
+      final RelOptCluster cluster = delta.getCluster();
+      RelNode left = join.getLeft();
+      RelNode right = join.getRight();
+
+      final LogicalDelta rightWithDelta = LogicalDelta.create(right);
+      final LogicalJoin joinL = LogicalJoin.create(left, rightWithDelta, join.getCondition(),
+          join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone(),
+          ImmutableList.copyOf(join.getSystemFieldList()));
+
+      final LogicalDelta leftWithDelta = LogicalDelta.create(left);
+      final LogicalJoin joinR = LogicalJoin.create(leftWithDelta, right, join.getCondition(),
+          join.getJoinType(), join.getVariablesStopped(), join.isSemiJoinDone(),
+          ImmutableList.copyOf(join.getSystemFieldList()));
+
+      List<RelNode> inputsToUnion = Lists.newArrayList();
+      inputsToUnion.add(joinL);
+      inputsToUnion.add(joinR);
+
+      final LogicalUnion newNode = LogicalUnion.create(inputsToUnion, true);
+      call.transformTo(newNode);
     }
   }
 }
