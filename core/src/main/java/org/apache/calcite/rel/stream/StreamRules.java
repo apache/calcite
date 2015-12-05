@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -36,9 +37,9 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -201,7 +202,8 @@ public class StreamRules {
 
   /**
    * Planner rule that converts {@link Delta} over a {@link TableScan} of
-   * a table other than {@link org.apache.calcite.schema.StreamableTable} to Empty.
+   * a table other than {@link org.apache.calcite.schema.StreamableTable} to
+   * an empty {@link Values}.
    */
   public static class DeltaTableScanToEmptyRule extends RelOptRule {
     private DeltaTableScanToEmptyRule() {
@@ -213,24 +215,25 @@ public class StreamRules {
     @Override public void onMatch(RelOptRuleCall call) {
       final Delta delta = call.rel(0);
       final TableScan scan = call.rel(1);
-      final RelOptCluster cluster = delta.getCluster();
       final RelOptTable relOptTable = scan.getTable();
       final StreamableTable streamableTable =
           relOptTable.unwrap(StreamableTable.class);
+      final RelBuilder builder = call.builder();
       if (streamableTable == null) {
-        call.transformTo(LogicalValues.createEmpty(cluster, delta.getRowType()));
+        call.transformTo(builder.values(delta.getRowType()).build());
       }
     }
   }
 
-
   /**
    * Planner rule that pushes a {@link Delta} through a {@link Join}.
    *
-   * Product rule [1] is applied to implement the transpose:
-   * stream(x join y)" = "x join stream(y) union all stream(x) join y
+   * <p>We apply something analogous to the
+   * <a href="https://en.wikipedia.org/wiki/Product_rule">product rule of
+   * differential calculus</a> to implement the transpose:
    *
-   * [1] https://en.wikipedia.org/wiki/Product_rule
+   * <blockquote><code>stream(x join y) &rarr;
+   * x join stream(y) union all stream(x) join y</code></blockquote>
    */
   public static class DeltaJoinTransposeRule extends RelOptRule {
 
@@ -240,13 +243,12 @@ public class StreamRules {
               operand(Join.class, any())));
     }
 
-    @Override
     public void onMatch(RelOptRuleCall call) {
       final Delta delta = call.rel(0);
+      Util.discard(delta);
       final Join join = call.rel(1);
-      final RelOptCluster cluster = delta.getCluster();
-      RelNode left = join.getLeft();
-      RelNode right = join.getRight();
+      final RelNode left = join.getLeft();
+      final RelNode right = join.getRight();
 
       final LogicalDelta rightWithDelta = LogicalDelta.create(right);
       final LogicalJoin joinL = LogicalJoin.create(left, rightWithDelta, join.getCondition(),

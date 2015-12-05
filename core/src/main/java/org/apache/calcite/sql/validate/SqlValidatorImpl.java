@@ -3032,14 +3032,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           }
         }
       } else {
-        boolean atLeastOneSupportsModality = false;
+        int supportsModalityCount = 0;
         for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
           if (namespace.right.supportsModality(modality)) {
-            atLeastOneSupportsModality = true;
+            ++supportsModalityCount;
           }
         }
 
-        if (!atLeastOneSupportsModality) {
+        if (supportsModalityCount == 0) {
           if (fail) {
             List<String> inputList = new ArrayList<String>();
             for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {

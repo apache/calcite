@@ -135,7 +135,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private static String cannotStreamResultsForNonStreamingInputs(String inputs) {
     return "Cannot stream results of a query with no streaming inputs: '"
         + inputs
-        + "'. At least one input should be convertable to a stream.";
+        + "'. At least one input should be convertible to a stream";
   }
 
   @Test public void testMultipleSameAsPass() {

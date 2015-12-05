@@ -59,7 +59,7 @@ import static org.junit.Assert.assertThat;
 public class StreamTest {
   public static final String STREAM_SCHEMA_NAME = "STREAMS";
   public static final String INFINITE_STREAM_SCHEMA_NAME = "INFINITE_STREAMS";
-  public static final String STREAMJOINS_SCHEMA_NAME = "STREAMJOINS";
+  public static final String STREAM_JOINS_SCHEMA_NAME = "STREAM_JOINS";
 
   private static String schemaFor(String name, Class<? extends TableFactory> clazz) {
     return "     {\n"
@@ -77,10 +77,10 @@ public class StreamTest {
 
   private static final String STREAM_JOINS_MODEL = "{\n"
       + "  version: '1.0',\n"
-      + "  defaultSchema: 'STREAMJOINS',\n"
+      + "  defaultSchema: 'STREAM_JOINS',\n"
       + "   schemas: [\n"
       + "     {\n"
-      + "       name: 'STREAMJOINS',\n"
+      + "       name: 'STREAM_JOINS',\n"
       + "       tables: [ {\n"
       + "         type: 'custom',\n"
       + "         name: 'ORDERS',\n"
@@ -234,30 +234,31 @@ public class StreamTest {
         .returnsCount(100);
   }
 
-  @Test public void testStreamToRelaitonJoin() {
+  @Test public void testStreamToRelationJoin() {
     CalciteAssert.model(STREAM_JOINS_MODEL)
-        .withDefaultSchema(STREAMJOINS_SCHEMA_NAME)
+        .withDefaultSchema(STREAM_JOINS_SCHEMA_NAME)
         .query("select stream "
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
-        .convertContains(
-            "LogicalDelta\n"
-                + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$5])\n"
-                + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], ID0=[$5], SUPPLIER=[$6])\n"
-                + "      LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-                + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT4=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
-                + "          LogicalTableScan(table=[[STREAMJOINS, ORDERS]])\n"
-                + "        LogicalTableScan(table=[[STREAMJOINS, PRODUCTS]])\n")
+        .convertContains("LogicalDelta\n"
+            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$5])\n"
+            + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], ID0=[$5], SUPPLIER=[$6])\n"
+            + "      LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT4=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+            + "          LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
+            + "        LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
-            + "EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
+            + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], proj#0..4=[{exprs}])\n"
             + "      EnumerableInterpreter\n"
             + "        BindableTableScan(table=[[]])\n"
             + "    EnumerableInterpreter\n"
-            + "      BindableTableScan(table=[[STREAMJOINS, PRODUCTS]])")
-        .returns(startsWith("ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
-            "ROWTIME=2015-02-15 10:24:15; ORDERID=2; SUPPLIERID=0",
-            "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
+            + "      BindableTableScan(table=[[STREAM_JOINS, PRODUCTS]])")
+        .returns(
+            startsWith("ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
+                "ROWTIME=2015-02-15 10:24:15; ORDERID=2; SUPPLIERID=0",
+                "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
   }
 
   private Function<ResultSet, Void> startsWith(String... rows) {
@@ -324,14 +325,14 @@ public class StreamTest {
 
     public Table create(SchemaPlus schema, String name,
         Map<String, Object> operand, RelDataType rowType) {
-      final ImmutableList<Object[]> rows = ImmutableList.of(
-          new Object[] {ts(10, 15, 0), 1, "paint", 10},
-          new Object[] {ts(10, 24, 15), 2, "paper", 5},
-          new Object[] {ts(10, 24, 45), 3, "brush", 12},
-          new Object[] {ts(10, 58, 0), 4, "paint", 3},
-          new Object[] {ts(11, 10, 0), 5, "paint", 3});
-
-      return new OrdersTable(rows);
+      final Object[][] rows = {
+        {ts(10, 15, 0), 1, "paint", 10},
+        {ts(10, 24, 15), 2, "paper", 5},
+        {ts(10, 24, 45), 3, "brush", 12},
+        {ts(10, 58, 0), 4, "paint", 3},
+        {ts(11, 10, 0), 5, "paint", 3}
+      };
+      return new OrdersTable(ImmutableList.copyOf(rows));
     }
 
     private Object ts(int h, int m, int s) {
@@ -406,35 +407,30 @@ public class StreamTest {
       });
     }
 
-    @Override public Table stream() {
+    public Table stream() {
       return this;
     }
   }
 
   /**
-   * Mocks simple relation to use for stream joining test.
+   * Mocks a simple relation to use for stream joining test.
    */
   public static class ProductsTableFactory implements TableFactory<Table> {
-
-    public ProductsTableFactory(){}
-
-    @Override
-    public Table create(SchemaPlus schema, String name, Map<String, Object> operand,
-                        RelDataType rowType) {
-      final ImmutableList<Object[]> rows = ImmutableList.of(
-        new Object[]{"paint", 1},
-        new Object[]{"paper", 0},
-        new Object[]{"brush", 1}
-      );
-      return new ProductsTable(rows);
+    public Table create(SchemaPlus schema, String name,
+        Map<String, Object> operand, RelDataType rowType) {
+      final Object[][] rows = {
+        {"paint", 1},
+        {"paper", 0},
+        {"brush", 1}
+      };
+      return new ProductsTable(ImmutableList.copyOf(rows));
     }
   }
 
   /**
-   * Table representing the PRODUCTS relation
+   * Table representing the PRODUCTS relation.
    */
   public static class ProductsTable implements ScannableTable {
-
     private final ImmutableList<Object[]> rows;
 
     public ProductsTable(ImmutableList<Object[]> rows) {
@@ -450,22 +446,18 @@ public class StreamTest {
       }
     };
 
-    @Override
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(rows);
     }
 
-    @Override
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return protoRowType.apply(typeFactory);
     }
 
-    @Override
     public Statistic getStatistic() {
       return Statistics.of(200d, ImmutableList.<ImmutableBitSet>of());
     }
 
-    @Override
     public Schema.TableType getJdbcTableType() {
       return Schema.TableType.TABLE;
     }

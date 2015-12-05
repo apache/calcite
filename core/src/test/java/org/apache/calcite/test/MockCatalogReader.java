@@ -252,7 +252,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     // Register "PRODUCTS" table.
     MockTable productsTable = MockTable.create(this, salesSchema, "PRODUCTS",
-        false);
+        false, 200D);
     productsTable.addColumn("PRODUCTID", intType);
     productsTable.addColumn("NAME", varchar20Type);
     productsTable.addColumn("SUPPLIERID", intType);
@@ -260,7 +260,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
-        false);
+        false, 10D);
     suppliersTable.addColumn("SUPPLIERID", intType);
     suppliersTable.addColumn("NAME", varchar20Type);
     suppliersTable.addColumn("CITY", intType);
