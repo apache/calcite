@@ -25,7 +25,6 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.test.SqlValidatorTestCase;
 
-import java.io.Closeable;
 import java.sql.ResultSet;
 
 /**
@@ -41,7 +40,7 @@ import java.sql.ResultSet;
  * queries in different ways, for example, using a C++ versus Java calculator.
  * An implementation might even ignore certain calls altogether.
  */
-public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
+public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   //~ Enums ------------------------------------------------------------------
 
   /**

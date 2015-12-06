@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import java.io.Closeable;
-
 /**
  * Supports a simple iteration over a collection.
  *
@@ -28,7 +26,7 @@ import java.io.Closeable;
  *
  * @param <T> Element type
  */
-public interface Enumerator<T> extends Closeable {
+public interface Enumerator<T> extends AutoCloseable {
   /**
    * Gets the current element in the collection.
    *
