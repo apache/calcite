@@ -27,7 +27,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.Limit;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -176,23 +175,9 @@ public class RelToSqlConverter {
       return visitSort((Sort) e);
     } else if (e instanceof TableModify) {
       return visitTableModify((TableModify) e);
-    } else if (e instanceof Limit) {
-      return visitLimit((Limit) e);
     } else {
       throw new AssertionError("Need to Implement for " + e.getClass().getName()); // TODO:
     }
-  }
-
-  public Result visitLimit(Limit e) {
-    final Result x = visitChild(0, e.getInput());
-    final Builder builder = x.builder(e, Clause.FETCH, Clause.OFFSET);
-    final SqlNode fetch = builder.context.toSql(null, e.getFetch());
-    builder.setfetch(fetch);
-    if (e.getOffset() != null) {
-      final SqlNode offset = builder.context.toSql(null, e.getOffset());
-      builder.setOffset(offset);
-    }
-    return builder.result();
   }
 
   public Result visitUnion(Union e) {
