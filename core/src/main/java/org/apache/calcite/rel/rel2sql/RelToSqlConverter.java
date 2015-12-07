@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -78,6 +77,9 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -241,6 +243,7 @@ public class RelToSqlConverter {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
       addSelect(selectList, sqlExpr, e.getRowType());
     }
+
     builder.setSelect(new SqlNodeList(selectList, POS));
     return builder.result();
   }
@@ -249,8 +252,13 @@ public class RelToSqlConverter {
   public Result visitAggregate(Aggregate e) {
     // "select a, b, sum(x) from ( ... ) group by a, b"
     final Result x = visitChild(0, e.getInput());
-    final Builder builder =
-        x.builder(e, Clause.GROUP_BY);
+    final Builder builder;
+    if (e.getInput() instanceof Project) {
+      builder = x.builder(e);
+      builder.clauses.add(Clause.GROUP_BY);
+    } else {
+      builder = x.builder(e, Clause.GROUP_BY);
+    }
     List<SqlNode> groupByList = Expressions.list();
     final List<SqlNode> selectList = new ArrayList<>();
     for (int group : e.getGroupSet()) {
@@ -393,39 +401,39 @@ public class RelToSqlConverter {
     final SqlLiteral nullLiteral = SqlLiteral.createNull(POS);
     final SqlNode wrappedOperand;
     switch (sqlDialect.getDatabaseProduct()) {
+    case MYSQL:
+    case HSQLDB:
+      caseOperand = countCall;
+      final SqlNodeList selectList = new SqlNodeList(POS);
+      selectList.add(nullLiteral);
+      final SqlNode unionOperand;
+      switch (sqlDialect.getDatabaseProduct()) {
       case MYSQL:
-      case HSQLDB:
-        caseOperand = countCall;
-        final SqlNodeList selectList = new SqlNodeList(POS);
-        selectList.add(nullLiteral);
-        final SqlNode unionOperand;
-        switch (sqlDialect.getDatabaseProduct()) {
-          case MYSQL:
-            wrappedOperand = operand;
-            unionOperand = new SqlSelect(POS, SqlNodeList.EMPTY, selectList,
-                null, null, null, null, SqlNodeList.EMPTY, null, null, null);
-            break;
-          default:
-            wrappedOperand = SqlStdOperatorTable.MIN.createCall(POS, operand);
-            unionOperand = SqlStdOperatorTable.VALUES.createCall(POS,
-                SqlLiteral.createApproxNumeric("0", POS));
-        }
-
-        SqlCall unionAll = SqlStdOperatorTable.UNION_ALL
-            .createCall(POS, unionOperand, unionOperand);
-
-        final SqlNodeList subQuery = new SqlNodeList(POS);
-        subQuery.add(unionAll);
-
-        final SqlNodeList selectList2 = new SqlNodeList(POS);
-        selectList2.add(nullLiteral);
-        elseExpr = SqlStdOperatorTable.SCALAR_QUERY.createCall(POS, subQuery);
+        wrappedOperand = operand;
+        unionOperand = new SqlSelect(POS, SqlNodeList.EMPTY, selectList,
+            null, null, null, null, SqlNodeList.EMPTY, null, null, null);
         break;
-
       default:
-        LOGGER.info("SINGLE_VALUE rewrite not supported for "
-            + sqlDialect.getDatabaseProduct());
-        return aggCall;
+        wrappedOperand = SqlStdOperatorTable.MIN.createCall(POS, operand);
+        unionOperand = SqlStdOperatorTable.VALUES.createCall(POS,
+            SqlLiteral.createApproxNumeric("0", POS));
+      }
+
+      SqlCall unionAll = SqlStdOperatorTable.UNION_ALL
+          .createCall(POS, unionOperand, unionOperand);
+
+      final SqlNodeList subQuery = new SqlNodeList(POS);
+      subQuery.add(unionAll);
+
+      final SqlNodeList selectList2 = new SqlNodeList(POS);
+      selectList2.add(nullLiteral);
+      elseExpr = SqlStdOperatorTable.SCALAR_QUERY.createCall(POS, subQuery);
+      break;
+
+    default:
+      LOGGER.info("SINGLE_VALUE rewrite not supported for "
+          + sqlDialect.getDatabaseProduct());
+      return aggCall;
     }
 
     final SqlNodeList whenList = new SqlNodeList(POS);
@@ -512,86 +520,86 @@ public class RelToSqlConverter {
     final List<RexNode> operands;
     final SqlOperator op;
     switch (node.getKind()) {
-      case AND:
-      case OR:
-        operands = ((RexCall) node).getOperands();
-        op = ((RexCall) node).getOperator();
-        SqlNode sqlCondition = null;
-        for (RexNode operand : operands) {
-          SqlNode x = convertConditionToSqlNode(operand, leftContext,
-              rightContext, leftFieldCount);
-          if (sqlCondition == null) {
-            sqlCondition = x;
-          } else {
-            sqlCondition = op.createCall(POS, sqlCondition, x);
-          }
+    case AND:
+    case OR:
+      operands = ((RexCall) node).getOperands();
+      op = ((RexCall) node).getOperator();
+      SqlNode sqlCondition = null;
+      for (RexNode operand : operands) {
+        SqlNode x = convertConditionToSqlNode(operand, leftContext,
+            rightContext, leftFieldCount);
+        if (sqlCondition == null) {
+          sqlCondition = x;
+        } else {
+          sqlCondition = op.createCall(POS, sqlCondition, x);
         }
-        return sqlCondition;
+      }
+      return sqlCondition;
 
-      case EQUALS:
-      case IS_NOT_DISTINCT_FROM:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_THAN_OR_EQUAL:
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-        operands = ((RexCall) node).getOperands();
-        op = ((RexCall) node).getOperator();
-        if (operands.get(0) instanceof RexInputRef
-            && operands.get(1) instanceof RexInputRef) {
-          final RexInputRef op0 = (RexInputRef) operands.get(0);
-          final RexInputRef op1 = (RexInputRef) operands.get(1);
+    case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
+    case NOT_EQUALS:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+      operands = ((RexCall) node).getOperands();
+      op = ((RexCall) node).getOperator();
+      if (operands.get(0) instanceof RexInputRef
+          && operands.get(1) instanceof RexInputRef) {
+        final RexInputRef op0 = (RexInputRef) operands.get(0);
+        final RexInputRef op1 = (RexInputRef) operands.get(1);
 
-          if (op0.getIndex() < leftFieldCount
-              && op1.getIndex() >= leftFieldCount) {
-            // Arguments were of form 'op0 = op1'
-            return op.createCall(POS,
-                leftContext.field(op0.getIndex()),
-                rightContext.field(op1.getIndex() - leftFieldCount));
-          }
-          if (op1.getIndex() < leftFieldCount
-              && op0.getIndex() >= leftFieldCount) {
-            // Arguments were of form 'op1 = op0'
-            return reverseOperatorDirection(op).createCall(POS,
-                leftContext.field(op1.getIndex()),
-                rightContext.field(op0.getIndex() - leftFieldCount));
-          }
+        if (op0.getIndex() < leftFieldCount
+            && op1.getIndex() >= leftFieldCount) {
+          // Arguments were of form 'op0 = op1'
+          return op.createCall(POS,
+              leftContext.field(op0.getIndex()),
+              rightContext.field(op1.getIndex() - leftFieldCount));
         }
+        if (op1.getIndex() < leftFieldCount
+            && op0.getIndex() >= leftFieldCount) {
+          // Arguments were of form 'op1 = op0'
+          return reverseOperatorDirection(op).createCall(POS,
+              leftContext.field(op1.getIndex()),
+              rightContext.field(op0.getIndex() - leftFieldCount));
+        }
+      }
     }
     throw new AssertionError(node);
   }
 
   private static SqlOperator reverseOperatorDirection(SqlOperator op) {
     switch (op.kind) {
-      case GREATER_THAN:
-        return SqlStdOperatorTable.LESS_THAN;
-      case GREATER_THAN_OR_EQUAL:
-        return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
-      case LESS_THAN:
-        return SqlStdOperatorTable.GREATER_THAN;
-      case LESS_THAN_OR_EQUAL:
-        return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
-      case EQUALS:
-      case IS_NOT_DISTINCT_FROM:
-      case NOT_EQUALS:
-        return op;
-      default:
-        throw new AssertionError(op);
+    case GREATER_THAN:
+      return SqlStdOperatorTable.LESS_THAN;
+    case GREATER_THAN_OR_EQUAL:
+      return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+    case LESS_THAN:
+      return SqlStdOperatorTable.GREATER_THAN;
+    case LESS_THAN_OR_EQUAL:
+      return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+    case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
+    case NOT_EQUALS:
+      return op;
+    default:
+      throw new AssertionError(op);
     }
   }
 
   private static JoinType joinType(JoinRelType joinType) {
     switch (joinType) {
-      case LEFT:
-        return JoinType.LEFT;
-      case RIGHT:
-        return JoinType.RIGHT;
-      case INNER:
-        return JoinType.INNER;
-      case FULL:
-        return JoinType.FULL;
-      default:
-        throw new AssertionError(joinType);
+    case LEFT:
+      return JoinType.LEFT;
+    case RIGHT:
+      return JoinType.RIGHT;
+    case INNER:
+      return JoinType.INNER;
+    case FULL:
+      return JoinType.FULL;
+    default:
+      throw new AssertionError(joinType);
     }
   }
 
@@ -621,97 +629,97 @@ public class RelToSqlConverter {
      */
     SqlNode toSql(RexProgram program, RexNode rex) {
       switch (rex.getKind()) {
-        case LOCAL_REF:
-          final int index = ((RexLocalRef) rex).getIndex();
-          return toSql(program, program.getExprList().get(index));
+      case LOCAL_REF:
+        final int index = ((RexLocalRef) rex).getIndex();
+        return toSql(program, program.getExprList().get(index));
 
-        case INPUT_REF:
-          return field(((RexInputRef) rex).getIndex());
+      case INPUT_REF:
+        return field(((RexInputRef) rex).getIndex());
 
-        case LITERAL:
-          final RexLiteral literal = (RexLiteral) rex;
-          if (literal.getTypeName() == SqlTypeName.SYMBOL) {
-            final SqlLiteral.SqlSymbol symbol =
-                (SqlLiteral.SqlSymbol) literal.getValue();
-            return SqlLiteral.createSymbol(symbol, POS);
+      case LITERAL:
+        final RexLiteral literal = (RexLiteral) rex;
+        if (literal.getTypeName() == SqlTypeName.SYMBOL) {
+          final SqlLiteral.SqlSymbol symbol =
+              (SqlLiteral.SqlSymbol) literal.getValue();
+          return SqlLiteral.createSymbol(symbol, POS);
+        }
+        switch (literal.getTypeName().getFamily()) {
+        case CHARACTER:
+          return SqlLiteral.createCharString((String) literal.getValue2(), POS);
+        case NUMERIC:
+        case EXACT_NUMERIC:
+          return SqlLiteral.createExactNumeric(literal.getValue().toString(),
+              POS);
+        case APPROXIMATE_NUMERIC:
+          return SqlLiteral.createApproxNumeric(
+              literal.getValue().toString(), POS);
+        case BOOLEAN:
+          return SqlLiteral.createBoolean((Boolean) literal.getValue(), POS);
+        case DATE:
+          return SqlLiteral.createDate((Calendar) literal.getValue(), POS);
+        case TIME:
+          return SqlLiteral.createTime((Calendar) literal.getValue(),
+              literal.getType().getPrecision(), POS);
+        case TIMESTAMP:
+          return SqlLiteral.createTimestamp((Calendar) literal.getValue(),
+              literal.getType().getPrecision(), POS);
+        case ANY:
+        case NULL:
+          switch (literal.getTypeName()) {
+          case NULL:
+            return SqlLiteral.createNull(POS);
+          // fall through
           }
-          switch (literal.getTypeName().getFamily()) {
-            case CHARACTER:
-              return SqlLiteral.createCharString((String) literal.getValue2(), POS);
-            case NUMERIC:
-            case EXACT_NUMERIC:
-              return SqlLiteral.createExactNumeric(literal.getValue().toString(),
-                  POS);
-            case APPROXIMATE_NUMERIC:
-              return SqlLiteral.createApproxNumeric(
-                  literal.getValue().toString(), POS);
-            case BOOLEAN:
-              return SqlLiteral.createBoolean((Boolean) literal.getValue(), POS);
-            case DATE:
-              return SqlLiteral.createDate((Calendar) literal.getValue(), POS);
-            case TIME:
-              return SqlLiteral.createTime((Calendar) literal.getValue(),
-                  literal.getType().getPrecision(), POS);
-            case TIMESTAMP:
-              return SqlLiteral.createTimestamp((Calendar) literal.getValue(),
-                  literal.getType().getPrecision(), POS);
-            case ANY:
-            case NULL:
-              switch (literal.getTypeName()) {
-                case NULL:
-                  return SqlLiteral.createNull(POS);
-                // fall through
-              }
-            default:
-              throw new AssertionError(literal + ": " + literal.getTypeName());
-          }
-        case CASE:
-          final RexCall caseCall = (RexCall) rex;
-          final List<SqlNode> caseNodeList =
-              toSql(program, caseCall.getOperands());
-          final SqlNode valueNode;
-          final List<SqlNode> whenList = Expressions.list();
-          final List<SqlNode> thenList = Expressions.list();
-          final SqlNode elseNode;
-          if (caseNodeList.size() % 2 == 0) {
-            // switched:
-            //   "case x when v1 then t1 when v2 then t2 ... else e end"
-            valueNode = caseNodeList.get(0);
-            for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
-              whenList.add(caseNodeList.get(i));
-              thenList.add(caseNodeList.get(i + 1));
-            }
-          } else {
-            // other: "case when w1 then t1 when w2 then t2 ... else e end"
-            valueNode = null;
-            for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
-              whenList.add(caseNodeList.get(i));
-              thenList.add(caseNodeList.get(i + 1));
-            }
-          }
-          elseNode = caseNodeList.get(caseNodeList.size() - 1);
-          return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
-              new SqlNodeList(thenList, POS), elseNode);
-
         default:
-          final RexCall call = (RexCall) rex;
-          final SqlOperator op = call.getOperator();
-          final List<SqlNode> nodeList = toSql(program, call.getOperands());
-          switch (rex.getKind()) {
-            case CAST:
-              if (!ignoreCast) {
-                nodeList.add(toSql(call.getType()));
-              } else {
-                assert nodeList.size() == 1;
-                return nodeList.get(0);
-              }
+          throw new AssertionError(literal + ": " + literal.getTypeName());
+        }
+      case CASE:
+        final RexCall caseCall = (RexCall) rex;
+        final List<SqlNode> caseNodeList =
+            toSql(program, caseCall.getOperands());
+        final SqlNode valueNode;
+        final List<SqlNode> whenList = Expressions.list();
+        final List<SqlNode> thenList = Expressions.list();
+        final SqlNode elseNode;
+        if (caseNodeList.size() % 2 == 0) {
+          // switched:
+          //   "case x when v1 then t1 when v2 then t2 ... else e end"
+          valueNode = caseNodeList.get(0);
+          for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
+            whenList.add(caseNodeList.get(i));
+            thenList.add(caseNodeList.get(i + 1));
           }
-          if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
-            // In RexNode trees, OR and AND have any number of children;
-            // SqlCall requires exactly 2. So, convert to a left-deep binary tree.
-            return createLeftCall(op, nodeList);
+        } else {
+          // other: "case when w1 then t1 when w2 then t2 ... else e end"
+          valueNode = null;
+          for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
+            whenList.add(caseNodeList.get(i));
+            thenList.add(caseNodeList.get(i + 1));
           }
-          return op.createCall(new SqlNodeList(nodeList, POS));
+        }
+        elseNode = caseNodeList.get(caseNodeList.size() - 1);
+        return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
+            new SqlNodeList(thenList, POS), elseNode);
+
+      default:
+        final RexCall call = (RexCall) rex;
+        final SqlOperator op = call.getOperator();
+        final List<SqlNode> nodeList = toSql(program, call.getOperands());
+        switch (rex.getKind()) {
+        case CAST:
+          if (!ignoreCast) {
+            nodeList.add(toSql(call.getType()));
+          } else {
+            assert nodeList.size() == 1;
+            return nodeList.get(0);
+          }
+        }
+        if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
+          // In RexNode trees, OR and AND have any number of children;
+          // SqlCall requires exactly 2. So, convert to a left-deep binary tree.
+          return createLeftCall(op, nodeList);
+        }
+        return op.createCall(new SqlNodeList(nodeList, POS));
       }
     }
 
@@ -727,17 +735,17 @@ public class RelToSqlConverter {
 
     private SqlNode toSql(RelDataType type) {
       switch (dialect.getDatabaseProduct()) {
-        case MYSQL:
-          switch (type.getSqlTypeName()) {
-            case VARCHAR:
-              // MySQL doesn't have a VARCHAR type, only CHAR.
-              return new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
-                  type.getPrecision(), -1, null, null, POS);
-            case INTEGER:
-              return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", POS),
-                  type.getPrecision(), -1, null, null, POS);
-          }
-          break;
+      case MYSQL:
+        switch (type.getSqlTypeName()) {
+        case VARCHAR:
+          // MySQL doesn't have a VARCHAR type, only CHAR.
+          return new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
+              type.getPrecision(), -1, null, null, POS);
+        case INTEGER:
+          return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", POS),
+              type.getPrecision(), -1, null, null, POS);
+        }
+        break;
       }
       if (type instanceof BasicSqlType) {
         return new SqlDataTypeSpec(
@@ -799,17 +807,17 @@ public class RelToSqlConverter {
     public SqlNode toSql(RelFieldCollation collation) {
       SqlNode node = field(collation.getFieldIndex());
       switch (collation.getDirection()) {
-        case DESCENDING:
-        case STRICTLY_DESCENDING:
-          node = SqlStdOperatorTable.DESC.createCall(POS, node);
+      case DESCENDING:
+      case STRICTLY_DESCENDING:
+        node = SqlStdOperatorTable.DESC.createCall(POS, node);
       }
       switch (collation.nullDirection) {
-        case FIRST:
-          node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
-          break;
-        case LAST:
-          node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
-          break;
+      case FIRST:
+        node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
+        break;
+      case LAST:
+        node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+        break;
       }
       return node;
     }
@@ -903,8 +911,12 @@ public class RelToSqlConverter {
     public Builder builder(RelNode rel, Clause... clauses) {
       final Clause maxClause = maxClause();
       boolean needNew = false;
+      // If old and new clause are equal and belong to below set,
+      // then new SELECT wrap is not required
+      Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
       for (Clause clause : clauses) {
-        if (maxClause.ordinal() >= clause.ordinal()) {
+        if (maxClause.ordinal() > clause.ordinal()
+            || (maxClause.equals(clause) && !nonWrapSet.contains(clause))) {
           needNew = true;
         }
       }
@@ -925,8 +937,8 @@ public class RelToSqlConverter {
           public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
-              case AS:
-                return ((SqlCall) selectItem).operand(0);
+            case AS:
+              return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
           }
