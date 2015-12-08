@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.jdbc;
 
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -30,7 +29,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
@@ -63,33 +61,20 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.schema.ModifiableTable;
-import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlSetOperator;
-import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -104,8 +89,6 @@ public class JdbcRules {
   }
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
-
-  private static final SqlParserPos POS = SqlParserPos.ZERO;
 
   public static List<RelOptRule> rules(JdbcConvention out) {
     return ImmutableList.<RelOptRule>of(
@@ -268,28 +251,8 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      final JdbcImplementor.Result leftResult =
-          implementor.visitChild(0, left);
-      final JdbcImplementor.Result rightResult =
-          implementor.visitChild(1, right);
-      final JdbcImplementor.Context leftContext = leftResult.qualifiedContext();
-      final JdbcImplementor.Context rightContext =
-          rightResult.qualifiedContext();
-      SqlNode sqlCondition = SqlImplementor.convertConditionToSqlNode(condition,
-          leftContext,
-          rightContext,
-          left.getRowType().getFieldCount());
-      SqlNode join =
-          new SqlJoin(POS,
-              leftResult.asFrom(),
-              SqlLiteral.createBoolean(false, POS),
-              SqlImplementor.joinType(joinType).symbol(POS),
-              rightResult.asFrom(),
-              JoinConditionType.ON.symbol(POS),
-              sqlCondition);
-      return implementor.result(join, leftResult, rightResult);
+      return implementor.implement(this);
     }
-
   }
 
   /**
@@ -360,25 +323,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      JdbcImplementor.Result x = implementor.visitChild(0, getInput());
-      final JdbcImplementor.Builder builder =
-          program.getCondition() != null
-              ? x.builder(this, JdbcImplementor.Clause.FROM,
-                  JdbcImplementor.Clause.WHERE)
-              : x.builder(this, JdbcImplementor.Clause.FROM);
-      if (!SqlImplementor.isStar(program)) {
-        final List<SqlNode> selectList = new ArrayList<>();
-        for (RexLocalRef ref : program.getProjectList()) {
-          SqlNode sqlExpr = builder.context.toSql(program, ref);
-          implementor.addSelect(selectList, sqlExpr, getRowType());
-        }
-        builder.setSelect(new SqlNodeList(selectList, POS));
-      }
-      if (program.getCondition() != null) {
-        builder.setWhere(
-            builder.context.toSql(program, program.getCondition()));
-      }
-      return builder.result();
+      return implementor.implement(this);
     }
   }
 
@@ -438,19 +383,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      JdbcImplementor.Result x = implementor.visitChild(0, getInput());
-      if (SqlImplementor.isStar(exps, getInput().getRowType())) {
-        return x;
-      }
-      final JdbcImplementor.Builder builder =
-          x.builder(this, JdbcImplementor.Clause.SELECT);
-      final List<SqlNode> selectList = new ArrayList<>();
-      for (RexNode ref : exps) {
-        SqlNode sqlExpr = builder.context.toSql(null, ref);
-        implementor.addSelect(selectList, sqlExpr, getRowType());
-      }
-      builder.setSelect(new SqlNodeList(selectList, POS));
-      return builder.result();
+      return implementor.implement(this);
     }
   }
 
@@ -493,11 +426,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      JdbcImplementor.Result x = implementor.visitChild(0, getInput());
-      final JdbcImplementor.Builder builder =
-          x.builder(this, JdbcImplementor.Clause.WHERE);
-      builder.setWhere(builder.context.toSql(null, condition));
-      return builder.result();
+      return implementor.implement(this);
     }
   }
 
@@ -580,34 +509,8 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      // "select a, b, sum(x) from ( ... ) group by a, b"
-      final JdbcImplementor.Result x = implementor.visitChild(0, getInput());
-      final JdbcImplementor.Builder builder =
-          x.builder(this, JdbcImplementor.Clause.GROUP_BY);
-      List<SqlNode> groupByList = Expressions.list();
-      final List<SqlNode> selectList = new ArrayList<>();
-      for (int group : groupSet) {
-        final SqlNode field = builder.context.field(group);
-        implementor.addSelect(selectList, field, getRowType());
-        groupByList.add(field);
-      }
-      for (AggregateCall aggCall : aggCalls) {
-        SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
-        if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
-          aggCallSqlNode =
-              SqlImplementor.rewriteSingleValueExpr(aggCallSqlNode, implementor.dialect);
-        }
-        implementor.addSelect(selectList, aggCallSqlNode, getRowType());
-      }
-      builder.setSelect(new SqlNodeList(selectList, POS));
-      if (!groupByList.isEmpty() || aggCalls.isEmpty()) {
-        // Some databases don't support "GROUP BY ()". We can omit it as long
-        // as there is at least one aggregate function.
-        builder.setGroupBy(new SqlNodeList(groupByList, POS));
-      }
-      return builder.result();
+      return implementor.implement(this);
     }
-
   }
 
   /**
@@ -654,25 +557,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      final JdbcImplementor.Result x = implementor.visitChild(0, getInput());
-      final JdbcImplementor.Builder builder =
-          x.builder(this, JdbcImplementor.Clause.ORDER_BY);
-      List<SqlNode> orderByList = Expressions.list();
-      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
-        if (fieldCollation.nullDirection
-            != RelFieldCollation.NullDirection.UNSPECIFIED
-            && implementor.dialect.getDatabaseProduct()
-               == SqlDialect.DatabaseProduct.MYSQL) {
-          orderByList.add(
-              SqlImplementor.ISNULL_FUNCTION.createCall(POS,
-                  builder.context.field(fieldCollation.getFieldIndex())));
-          fieldCollation = new RelFieldCollation(fieldCollation.getFieldIndex(),
-              fieldCollation.getDirection());
-        }
-        orderByList.add(builder.context.toSql(fieldCollation));
-      }
-      builder.setOrderBy(new SqlNodeList(orderByList, POS));
-      return builder.result();
+      return implementor.implement(this);
     }
   }
 
@@ -714,10 +599,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      final SqlSetOperator operator = all
-          ? SqlStdOperatorTable.UNION_ALL
-          : SqlStdOperatorTable.UNION;
-      return SqlImplementor.setOpToSql(implementor, operator, this);
+      return implementor.implement(this);
     }
   }
 
@@ -761,11 +643,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      return SqlImplementor.setOpToSql(implementor,
-          all
-              ? SqlStdOperatorTable.INTERSECT_ALL
-              : SqlStdOperatorTable.INTERSECT,
-          this);
+      return implementor.implement(this);
     }
   }
 
@@ -804,11 +682,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      return SqlImplementor.setOpToSql(implementor,
-          all
-              ? SqlStdOperatorTable.EXCEPT_ALL
-              : SqlStdOperatorTable.EXCEPT,
-          this);
+      return implementor.implement(this);
     }
   }
 
@@ -879,7 +753,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      throw new AssertionError(); // TODO:
+      return implementor.implement(this);
     }
   }
 
@@ -909,37 +783,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      final List<String> fields = getRowType().getFieldNames();
-      final List<JdbcImplementor.Clause> clauses = Collections.singletonList(
-          JdbcImplementor.Clause.SELECT);
-      final List<Pair<String, RelDataType>> pairs = ImmutableList.of();
-      final JdbcImplementor.Context context =
-          implementor.aliasContext(pairs, false);
-      final List<SqlSelect> selects = new ArrayList<>();
-      for (List<RexLiteral> tuple : tuples) {
-        final List<SqlNode> selectList = new ArrayList<>();
-        for (Pair<RexLiteral, String> literal : Pair.zip(tuple, fields)) {
-          selectList.add(
-              SqlStdOperatorTable.AS.createCall(
-                  POS,
-                  context.toSql(null, literal.left),
-                  new SqlIdentifier(literal.right, POS)));
-        }
-        selects.add(
-            new SqlSelect(POS, SqlNodeList.EMPTY,
-                new SqlNodeList(selectList, POS), null, null, null,
-                null, null, null, null, null));
-      }
-      SqlNode query = null;
-      for (SqlSelect select : selects) {
-        if (query == null) {
-          query = select;
-        } else {
-          query = SqlStdOperatorTable.UNION_ALL.createCall(POS, query,
-              select);
-        }
-      }
-      return implementor.result(query, clauses, this);
+      return implementor.implement(this);
     }
   }
 }

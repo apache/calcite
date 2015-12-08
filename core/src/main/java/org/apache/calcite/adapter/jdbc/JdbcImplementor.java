@@ -18,21 +18,29 @@ package org.apache.calcite.adapter.jdbc;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.Util;
+
+import java.util.Collections;
 
 /**
  * State for generating a SQL statement.
  */
-public class JdbcImplementor extends SqlImplementor {
+public class JdbcImplementor extends RelToSqlConverter {
   public JdbcImplementor(SqlDialect dialect, JavaTypeFactory typeFactory) {
     super(dialect);
     Util.discard(typeFactory);
   }
 
-  public Result visitChild(int i, RelNode e) {
-    return ((JdbcRel) e).implement(this);
+  /** @see #dispatch */
+  public Result visit(JdbcTableScan scan) {
+    return result(scan.jdbcTable.tableName(),
+        Collections.singletonList(Clause.FROM), scan);
+  }
+
+  public Result implement(RelNode node) {
+    return dispatch(node);
   }
 }
 
