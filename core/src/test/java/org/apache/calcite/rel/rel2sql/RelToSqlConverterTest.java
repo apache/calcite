@@ -345,3 +345,5 @@ public class RelToSqlConverterTest {
             + "ON \"department\".\"department_id\" = \"t1\".\"department_id\"");
   }
 }
+
+// End RelToSqlConverterTest.java

@@ -102,7 +102,7 @@ public class RelToSqlConverter {
   public static final SqlParserPos POS = SqlParserPos.ZERO;
 
   final SqlDialect dialect;
-  private final Set<String> aliasSet = new LinkedHashSet<String>();
+  private final Set<String> aliasSet = new LinkedHashSet<>();
 
   private final Map<String, SqlNode> ordinalMap = new HashMap<>();
 
@@ -130,8 +130,7 @@ public class RelToSqlConverter {
    * relational expressions.)
    */
   public Result result(SqlNode join, Result leftResult, Result rightResult) {
-    final List<Pair<String, RelDataType>> list =
-        new ArrayList<Pair<String, RelDataType>>();
+    final List<Pair<String, RelDataType>> list = new ArrayList<>();
     list.addAll(leftResult.aliases);
     list.addAll(rightResult.aliases);
     return new Result(join, Expressions.list(Clause.FROM), null, list);
@@ -351,7 +350,8 @@ public class RelToSqlConverter {
             ISNULL_FUNCTION.createCall(POS,
                 builder.context.field(fieldCollation.getFieldIndex())));
         fieldCollation = new RelFieldCollation(fieldCollation.getFieldIndex(),
-            fieldCollation.getDirection());
+            fieldCollation.getDirection(),
+            RelFieldCollation.NullDirection.UNSPECIFIED);
       }
       orderByList.add(builder.context.toSql(fieldCollation));
     }
@@ -796,13 +796,15 @@ public class RelToSqlConverter {
       case STRICTLY_DESCENDING:
         node = SqlStdOperatorTable.DESC.createCall(POS, node);
       }
-      switch (collation.nullDirection) {
-      case FIRST:
-        node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
-        break;
-      case LAST:
-        node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
-        break;
+      if (collation.nullDirection != dialect.defaultNullDirection(collation.direction)) {
+        switch (collation.nullDirection) {
+        case FIRST:
+          node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
+          break;
+        case LAST:
+          node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+          break;
+        }
       }
       return node;
     }
@@ -918,7 +920,6 @@ public class RelToSqlConverter {
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
         newContext = new Context(selectList.size()) {
-          @Override
           public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
@@ -1056,3 +1057,5 @@ public class RelToSqlConverter {
     FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
 }
+
+// End RelToSqlConverter.java
