@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -59,6 +58,7 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -69,30 +69,18 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.JoinConditionType;
-import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
-import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -150,53 +138,6 @@ public class JdbcRules {
     MYSQL_AGG_FUNCS = builder.build();
   }
 
-  private static void addSelect(
-      List<SqlNode> selectList, SqlNode node, RelDataType rowType) {
-    String name = rowType.getFieldNames().get(selectList.size());
-    String alias = SqlValidatorUtil.getAlias(node, -1);
-    if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.AS.createCall(
-          POS, node, new SqlIdentifier(name, POS));
-    }
-    selectList.add(node);
-  }
-
-  private static JdbcImplementor.Result setOpToSql(JdbcImplementor implementor,
-      SqlSetOperator operator, JdbcRel rel) {
-    List<SqlNode> list = Expressions.list();
-    for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
-      final JdbcImplementor.Result result =
-          implementor.visitChild(input.i, input.e);
-      list.add(result.asSelect());
-    }
-    final SqlCall node = operator.createCall(new SqlNodeList(list, POS));
-    final List<JdbcImplementor.Clause> clauses =
-        Expressions.list(JdbcImplementor.Clause.SET_OP);
-    return implementor.result(node, clauses, rel);
-  }
-
-  private static boolean isStar(List<RexNode> exps, RelDataType inputRowType) {
-    int i = 0;
-    for (RexNode ref : exps) {
-      if (!(ref instanceof RexInputRef)) {
-        return false;
-      } else if (((RexInputRef) ref).getIndex() != i++) {
-        return false;
-      }
-    }
-    return i == inputRowType.getFieldCount();
-  }
-
-  private static boolean isStar(RexProgram program) {
-    int i = 0;
-    for (RexLocalRef ref : program.getProjectList()) {
-      if (ref.getIndex() != i++) {
-        return false;
-      }
-    }
-    return i == program.getInputRowType().getFieldCount();
-  }
-
   /** Abstract base class for rule that converts to JDBC. */
   abstract static class JdbcConverterRule extends ConverterRule {
     protected final JdbcConvention out;
@@ -247,7 +188,7 @@ public class JdbcRules {
      * Returns whether a condition is supported by {@link JdbcJoin}.
      *
      * <p>Corresponds to the capabilities of
-     * {@link JdbcJoin#convertConditionToSqlNode}.
+     * {@link SqlImplementor#convertConditionToSqlNode}.
      *
      * @param node Condition
      * @return Whether condition is supported
@@ -334,7 +275,7 @@ public class JdbcRules {
       final JdbcImplementor.Context leftContext = leftResult.qualifiedContext();
       final JdbcImplementor.Context rightContext =
           rightResult.qualifiedContext();
-      SqlNode sqlCondition = convertConditionToSqlNode(condition,
+      SqlNode sqlCondition = SqlImplementor.convertConditionToSqlNode(condition,
           leftContext,
           rightContext,
           left.getRowType().getFieldCount());
@@ -342,117 +283,13 @@ public class JdbcRules {
           new SqlJoin(POS,
               leftResult.asFrom(),
               SqlLiteral.createBoolean(false, POS),
-              joinType(joinType).symbol(POS),
+              SqlImplementor.joinType(joinType).symbol(POS),
               rightResult.asFrom(),
               JoinConditionType.ON.symbol(POS),
               sqlCondition);
       return implementor.result(join, leftResult, rightResult);
     }
 
-    /**
-     * Convert {@link RexNode} condition into {@link SqlNode}
-     *
-     * @param node            condition Node
-     * @param leftContext     LeftContext
-     * @param rightContext    RightContext
-     * @param leftFieldCount  Number of field on left result
-     * @return SqlJoin which represent the condition
-     */
-    private SqlNode convertConditionToSqlNode(RexNode node,
-        JdbcImplementor.Context leftContext,
-        JdbcImplementor.Context rightContext, int leftFieldCount) {
-      if (!(node instanceof RexCall)) {
-        throw new AssertionError(node);
-      }
-      final List<RexNode> operands;
-      final SqlOperator op;
-      switch (node.getKind()) {
-      case AND:
-      case OR:
-        operands = ((RexCall) node).getOperands();
-        op = ((RexCall) node).getOperator();
-        SqlNode sqlCondition = null;
-        for (RexNode operand : operands) {
-          SqlNode x = convertConditionToSqlNode(operand, leftContext,
-              rightContext, leftFieldCount);
-          if (sqlCondition == null) {
-            sqlCondition = x;
-          } else {
-            sqlCondition = op.createCall(POS, sqlCondition, x);
-          }
-        }
-        return sqlCondition;
-
-      case EQUALS:
-      case IS_NOT_DISTINCT_FROM:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_THAN_OR_EQUAL:
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-        operands = ((RexCall) node).getOperands();
-        op = ((RexCall) node).getOperator();
-        if (operands.size() == 2
-            && operands.get(0) instanceof RexInputRef
-            && operands.get(1) instanceof RexInputRef) {
-          final RexInputRef op0 = (RexInputRef) operands.get(0);
-          final RexInputRef op1 = (RexInputRef) operands.get(1);
-
-          if (op0.getIndex() < leftFieldCount
-              && op1.getIndex() >= leftFieldCount) {
-            // Arguments were of form 'op0 = op1'
-            return op.createCall(POS,
-                leftContext.field(op0.getIndex()),
-                rightContext.field(op1.getIndex() - leftFieldCount));
-          }
-          if (op1.getIndex() < leftFieldCount
-              && op0.getIndex() >= leftFieldCount) {
-            // Arguments were of form 'op1 = op0'
-            return reverseOperatorDirection(op).createCall(POS,
-                leftContext.field(op1.getIndex()),
-                rightContext.field(op0.getIndex() - leftFieldCount));
-          }
-        }
-        final JdbcImplementor.Context joinContext =
-            leftContext.implementor().joinContext(leftContext, rightContext);
-        return joinContext.toSql(null, node);
-      }
-      throw new AssertionError(node);
-    }
-
-    private static SqlOperator reverseOperatorDirection(SqlOperator op) {
-      switch (op.kind) {
-      case GREATER_THAN:
-        return SqlStdOperatorTable.LESS_THAN;
-      case GREATER_THAN_OR_EQUAL:
-        return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
-      case LESS_THAN:
-        return SqlStdOperatorTable.GREATER_THAN;
-      case LESS_THAN_OR_EQUAL:
-        return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
-      case EQUALS:
-      case IS_NOT_DISTINCT_FROM:
-      case NOT_EQUALS:
-        return op;
-      default:
-        throw new AssertionError(op);
-      }
-    }
-
-    private static JoinType joinType(JoinRelType joinType) {
-      switch (joinType) {
-      case LEFT:
-        return JoinType.LEFT;
-      case RIGHT:
-        return JoinType.RIGHT;
-      case INNER:
-        return JoinType.INNER;
-      case FULL:
-        return JoinType.FULL;
-      default:
-        throw new AssertionError(joinType);
-      }
-    }
   }
 
   /**
@@ -529,11 +366,11 @@ public class JdbcRules {
               ? x.builder(this, JdbcImplementor.Clause.FROM,
                   JdbcImplementor.Clause.WHERE)
               : x.builder(this, JdbcImplementor.Clause.FROM);
-      if (!isStar(program)) {
+      if (!SqlImplementor.isStar(program)) {
         final List<SqlNode> selectList = new ArrayList<>();
         for (RexLocalRef ref : program.getProjectList()) {
           SqlNode sqlExpr = builder.context.toSql(program, ref);
-          addSelect(selectList, sqlExpr, getRowType());
+          implementor.addSelect(selectList, sqlExpr, getRowType());
         }
         builder.setSelect(new SqlNodeList(selectList, POS));
       }
@@ -602,7 +439,7 @@ public class JdbcRules {
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       JdbcImplementor.Result x = implementor.visitChild(0, getInput());
-      if (isStar(exps, getInput().getRowType())) {
+      if (SqlImplementor.isStar(exps, getInput().getRowType())) {
         return x;
       }
       final JdbcImplementor.Builder builder =
@@ -610,7 +447,7 @@ public class JdbcRules {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : exps) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
-        addSelect(selectList, sqlExpr, getRowType());
+        implementor.addSelect(selectList, sqlExpr, getRowType());
       }
       builder.setSelect(new SqlNodeList(selectList, POS));
       return builder.result();
@@ -693,6 +530,18 @@ public class JdbcRules {
     }
   }
 
+  /** Returns whether this JDBC data source can implement a given aggregate
+   * function. */
+  private static boolean canImplement(SqlAggFunction aggregation,
+      SqlDialect sqlDialect) {
+    switch (sqlDialect.getDatabaseProduct()) {
+    case MYSQL:
+      return MYSQL_AGG_FUNCS.contains(aggregation);
+    default:
+      return AGG_FUNCS.contains(aggregation);
+    }
+  }
+
   /** Aggregate operator implemented in JDBC convention. */
   public static class JdbcAggregate extends Aggregate implements JdbcRel {
     public JdbcAggregate(
@@ -714,18 +563,6 @@ public class JdbcRules {
           throw new InvalidRelException("cannot implement aggregate function "
               + aggCall.getAggregation());
         }
-      }
-    }
-
-    /** Returns whether this JDBC data source can implement a given aggregate
-     * function. */
-    private boolean canImplement(SqlAggFunction aggregation,
-        SqlDialect sqlDialect) {
-      switch (sqlDialect.getDatabaseProduct()) {
-      case MYSQL:
-        return MYSQL_AGG_FUNCS.contains(aggregation);
-      default:
-        return AGG_FUNCS.contains(aggregation);
       }
     }
 
@@ -751,16 +588,16 @@ public class JdbcRules {
       final List<SqlNode> selectList = new ArrayList<>();
       for (int group : groupSet) {
         final SqlNode field = builder.context.field(group);
-        addSelect(selectList, field, getRowType());
+        implementor.addSelect(selectList, field, getRowType());
         groupByList.add(field);
       }
       for (AggregateCall aggCall : aggCalls) {
         SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
         if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
           aggCallSqlNode =
-              rewriteSingleValueExpr(aggCallSqlNode, implementor.dialect);
+              SqlImplementor.rewriteSingleValueExpr(aggCallSqlNode, implementor.dialect);
         }
-        addSelect(selectList, aggCallSqlNode, getRowType());
+        implementor.addSelect(selectList, aggCallSqlNode, getRowType());
       }
       builder.setSelect(new SqlNodeList(selectList, POS));
       if (!groupByList.isEmpty() || aggCalls.isEmpty()) {
@@ -771,84 +608,6 @@ public class JdbcRules {
       return builder.result();
     }
 
-    /** Rewrite SINGLE_VALUE into expression based on database variants
-     *  E.g. HSQLDB, MYSQL, ORACLE, etc
-     */
-    private SqlNode rewriteSingleValueExpr(SqlNode aggCall,
-        SqlDialect sqlDialect) {
-      final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
-      final SqlNode caseOperand;
-      final SqlNode elseExpr;
-      final SqlNode countCall =
-          SqlStdOperatorTable.COUNT.createCall(POS, operand);
-
-      final SqlLiteral nullLiteral = SqlLiteral.createNull(POS);
-      final SqlNode wrappedOperand;
-      switch (sqlDialect.getDatabaseProduct()) {
-      case MYSQL:
-      case HSQLDB:
-        // For MySQL, generate
-        //   CASE COUNT(*)
-        //   WHEN 0 THEN NULL
-        //   WHEN 1 THEN <result>
-        //   ELSE (SELECT NULL UNION ALL SELECT NULL)
-        //   END
-        //
-        // For hsqldb, generate
-        //   CASE COUNT(*)
-        //   WHEN 0 THEN NULL
-        //   WHEN 1 THEN MIN(<result>)
-        //   ELSE (VALUES 1 UNION ALL VALUES 1)
-        //   END
-        caseOperand = countCall;
-
-        final SqlNodeList selectList = new SqlNodeList(POS);
-        selectList.add(nullLiteral);
-        final SqlNode unionOperand;
-        switch (sqlDialect.getDatabaseProduct()) {
-        case MYSQL:
-          wrappedOperand = operand;
-          unionOperand = new SqlSelect(POS, SqlNodeList.EMPTY, selectList,
-              null, null, null, null, SqlNodeList.EMPTY, null, null, null);
-          break;
-        default:
-          wrappedOperand = SqlStdOperatorTable.MIN.createCall(POS, operand);
-          unionOperand = SqlStdOperatorTable.VALUES.createCall(POS,
-              SqlLiteral.createApproxNumeric("0", POS));
-        }
-
-        SqlCall unionAll = SqlStdOperatorTable.UNION_ALL
-            .createCall(POS, unionOperand, unionOperand);
-
-        final SqlNodeList subQuery = new SqlNodeList(POS);
-        subQuery.add(unionAll);
-
-        final SqlNodeList selectList2 = new SqlNodeList(POS);
-        selectList2.add(nullLiteral);
-        elseExpr = SqlStdOperatorTable.SCALAR_QUERY.createCall(POS, subQuery);
-        break;
-
-      default:
-        LOGGER.fine("SINGLE_VALUE rewrite not supported for "
-            + sqlDialect.getDatabaseProduct());
-        return aggCall;
-      }
-
-      final SqlNodeList whenList = new SqlNodeList(POS);
-      whenList.add(SqlLiteral.createExactNumeric("0", POS));
-      whenList.add(SqlLiteral.createExactNumeric("1", POS));
-
-      final SqlNodeList thenList = new SqlNodeList(POS);
-      thenList.add(nullLiteral);
-      thenList.add(wrappedOperand);
-
-      SqlNode caseExpr =
-          new SqlCase(POS, caseOperand, whenList, thenList, elseExpr);
-
-      LOGGER.fine("SINGLE_VALUE rewritten into [" + caseExpr + "]");
-
-      return caseExpr;
-    }
   }
 
   /**
@@ -905,7 +664,7 @@ public class JdbcRules {
             && implementor.dialect.getDatabaseProduct()
                == SqlDialect.DatabaseProduct.MYSQL) {
           orderByList.add(
-              ISNULL_FUNCTION.createCall(POS,
+              SqlImplementor.ISNULL_FUNCTION.createCall(POS,
                   builder.context.field(fieldCollation.getFieldIndex())));
           fieldCollation = new RelFieldCollation(fieldCollation.getFieldIndex(),
               fieldCollation.getDirection());
@@ -916,12 +675,6 @@ public class JdbcRules {
       return builder.result();
     }
   }
-
-  /** MySQL specific function. */
-  private static final SqlFunction ISNULL_FUNCTION =
-      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
-          OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
 
   /**
    * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalUnion} to a
@@ -964,7 +717,7 @@ public class JdbcRules {
       final SqlSetOperator operator = all
           ? SqlStdOperatorTable.UNION_ALL
           : SqlStdOperatorTable.UNION;
-      return setOpToSql(implementor, operator, this);
+      return SqlImplementor.setOpToSql(implementor, operator, this);
     }
   }
 
@@ -1008,7 +761,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      return setOpToSql(implementor,
+      return SqlImplementor.setOpToSql(implementor,
           all
               ? SqlStdOperatorTable.INTERSECT_ALL
               : SqlStdOperatorTable.INTERSECT,
@@ -1051,7 +804,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      return setOpToSql(implementor,
+      return SqlImplementor.setOpToSql(implementor,
           all
               ? SqlStdOperatorTable.EXCEPT_ALL
               : SqlStdOperatorTable.EXCEPT,
