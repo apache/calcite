@@ -740,6 +740,8 @@ public interface SqlValidator {
 
   void validateWithItem(SqlWithItem withItem);
 
+  void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id);
+
   SqlValidatorScope getWithScope(SqlNode withItem);
 }
 

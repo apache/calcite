@@ -1427,6 +1427,26 @@ public class UtilTest {
   /** Dummy method for {@link #testParameterName()} to inspect. */
   public static void foo(int i, @Parameter(name = "j") int j) {
   }
+
+  @Test public void testListToString() {
+    checkListToString("x");
+    checkListToString("");
+    checkListToString();
+    checkListToString("ab", "c", "");
+    checkListToString("ab", "c", "", "de");
+    checkListToString("ab", "c.");
+    checkListToString("ab", "c.d");
+    checkListToString("ab", ".d");
+    checkListToString(".ab", "d");
+    checkListToString(".a", "d");
+    checkListToString("a.", "d");
+  }
+
+  private void checkListToString(String... strings) {
+    final List<String> list = ImmutableList.copyOf(strings);
+    final String asString = Util.listToString(list);
+    assertThat(Util.stringToList(asString), is(list));
+  }
 }
 
 // End UtilTest.java

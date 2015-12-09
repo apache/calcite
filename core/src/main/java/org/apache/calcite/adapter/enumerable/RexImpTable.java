@@ -31,6 +31,8 @@ import org.apache.calcite.linq4j.tree.OptimizeVisitor;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -188,8 +190,7 @@ public class RexImpTable {
   public static final MemberExpression BOXED_TRUE_EXPR =
       Expressions.field(null, Boolean.class, "TRUE");
 
-  private final Map<SqlOperator, CallImplementor> map =
-      new HashMap<SqlOperator, CallImplementor>();
+  private final Map<SqlOperator, CallImplementor> map = new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
       Maps.newHashMap();
   private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>>
@@ -304,10 +305,10 @@ public class RexImpTable {
 
     // Sequences
     defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
-        new MethodImplementor(BuiltInMethod.SEQUENCE_CURRENT_VALUE.method),
+        new SequenceImplementor(BuiltInMethod.SEQUENCE_CURRENT_VALUE.method),
         false);
     defineImplementor(NEXT_VALUE, NullPolicy.STRICT,
-        new MethodImplementor(BuiltInMethod.SEQUENCE_NEXT_VALUE.method),
+        new SequenceImplementor(BuiltInMethod.SEQUENCE_NEXT_VALUE.method),
         false);
 
     // System functions
@@ -363,10 +364,7 @@ public class RexImpTable {
         } catch (InstantiationException e) {
           throw new IllegalStateException(
               "Unable to instantiate aggregate implementor " + constructor, e);
-        } catch (IllegalAccessException e) {
-          throw new IllegalStateException(
-              "Error while creating aggregate implementor " + constructor, e);
-        } catch (InvocationTargetException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
           throw new IllegalStateException(
               "Error while creating aggregate implementor " + constructor, e);
         }
@@ -646,7 +644,7 @@ public class RexImpTable {
   private static List<RexNode> harmonize(
       final RexToLixTranslator translator, final List<RexNode> operands) {
     int nullCount = 0;
-    final List<RelDataType> types = new ArrayList<RelDataType>();
+    final List<RelDataType> types = new ArrayList<>();
     final RelDataTypeFactory typeFactory =
         translator.builder.getTypeFactory();
     for (RexNode operand : operands) {
@@ -672,7 +670,7 @@ public class RexImpTable {
       return operands;
     }
     assert (nullCount > 0) == type.isNullable();
-    final List<RexNode> list = new ArrayList<RexNode>();
+    final List<RexNode> list = new ArrayList<>();
     for (RexNode operand : operands) {
       list.add(
           translator.builder.ensureType(type, operand, false));
@@ -755,7 +753,7 @@ public class RexImpTable {
       NullAs nullAs,
       NullPolicy nullPolicy,
       NotNullImplementor implementor) {
-    final List<Expression> list = new ArrayList<Expression>();
+    final List<Expression> list = new ArrayList<>();
     switch (nullAs) {
     case NULL:
       // v0 == null || v1 == null ? null : f(v0, v1)
@@ -806,7 +804,7 @@ public class RexImpTable {
       // The cases with setNullable above might not help since the same
       // RexNode can be referred via multiple ways: RexNode itself, RexLocalRef,
       // and may be others.
-      Map<RexNode, Boolean> nullable = new HashMap<RexNode, Boolean>();
+      final Map<RexNode, Boolean> nullable = new HashMap<>();
       if (nullPolicy == NullPolicy.STRICT) {
         // The arguments should be not nullable if STRICT operator is computed
         // in nulls NOT_POSSIBLE mode
@@ -1134,7 +1132,7 @@ public class RexImpTable {
         AggAddContext add) {
       List<Expression> acc = add.accumulator();
       List<Expression> aggArgs = add.arguments();
-      List<Expression> args = new ArrayList<Expression>(aggArgs.size() + 1);
+      List<Expression> args = new ArrayList<>(aggArgs.size() + 1);
       args.add(acc.get(0));
       args.addAll(aggArgs);
       add.currentBlock().add(
@@ -1515,6 +1513,26 @@ public class RexImpTable {
         return Expressions.call(translatedOperands.get(0), method,
             Util.skip(translatedOperands, 1));
       }
+    }
+  }
+
+  /** Implementor for a function that generates calls to a given method. */
+  private static class SequenceImplementor extends MethodImplementor {
+    SequenceImplementor(Method method) {
+      super(method);
+    }
+
+    public Expression implement(
+        RexToLixTranslator translator,
+        RexCall call,
+        List<Expression> translatedOperands) {
+      assert translatedOperands.size() == 1;
+      ConstantExpression x = (ConstantExpression) translatedOperands.get(0);
+      List<String> names = Util.stringToList((String) x.value);
+      RelOptTable table =
+          Prepare.CatalogReader.THREAD_LOCAL.get().getTable(names);
+      System.out.println("Now, do something with table " + table);
+      return super.implement(translator, call, translatedOperands);
     }
   }
 

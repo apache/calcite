@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -27,6 +28,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Feature;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
@@ -3203,6 +3205,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(withItem.query,
             RESOURCE.duplicateColumnAndNoColumnList(fieldNames.get(i)));
       }
+    }
+  }
+
+  public void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id) {
+    // Resolve identifier as a table.
+    final SqlValidatorNamespace ns = scope.getTableNamespace(id.names);
+    if (ns == null) {
+      throw newValidationError(id, RESOURCE.tableNameNotFound(id.toString()));
+    }
+
+    // We've found a table. But is it a sequence?
+    if (!(ns instanceof TableNamespace)) {
+      throw newValidationError(id, RESOURCE.notASequence(id.toString()));
+    }
+    final SqlValidatorTable table = ns.getTable();
+    final Table table1 = ((RelOptTable) table).unwrap(Table.class);
+    switch (table1.getJdbcTableType()) {
+    case SEQUENCE:
+    case TEMPORARY_SEQUENCE:
+      break;
+    default:
+      throw newValidationError(id, RESOURCE.notASequence(id.toString()));
     }
   }
 

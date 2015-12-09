@@ -1172,8 +1172,13 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           enumerable = EnumerableCalc.create(enumerable, program);
         }
 
-        bindable = EnumerableInterpretable.toBindable(internalParameters,
-            context.spark(), enumerable, prefer);
+        try {
+          CatalogReader.THREAD_LOCAL.set(catalogReader);
+          bindable = EnumerableInterpretable.toBindable(internalParameters,
+              context.spark(), enumerable, prefer);
+        } finally {
+          CatalogReader.THREAD_LOCAL.remove();
+        }
       }
 
       if (timingTracer != null) {

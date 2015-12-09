@@ -382,6 +382,8 @@ public abstract class Prepare {
     CatalogReader withSchemaPath(List<String> schemaPath);
 
     PreparingTable getTable(List<String> names);
+
+    ThreadLocal<CatalogReader> THREAD_LOCAL = new ThreadLocal<>();
   }
 
   /** Definition of a table, for the purposes of the validator and planner. */

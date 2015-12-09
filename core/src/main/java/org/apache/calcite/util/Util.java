@@ -2120,6 +2120,58 @@ public class Util {
     return true;
   }
 
+  /** Converts ["ab", "c"] to "ab"."c". */
+  public static String listToString(List<String> list) {
+    final StringBuilder b = new StringBuilder();
+    for (String s : list) {
+      if (b.length() > 0) {
+        b.append(".");
+      }
+      b.append('"');
+      b.append(s.replace("\"", "\"\""));
+      b.append('"');
+    }
+    return b.toString();
+  }
+
+  public static List<String> stringToList(String s) {
+    if (s.isEmpty()) {
+      return ImmutableList.of();
+    }
+    final ImmutableList.Builder<String> builder = ImmutableList.builder();
+    final StringBuilder b = new StringBuilder();
+    int i = 0;
+    for (;;) {
+      char c = s.charAt(i);
+      if (c != '"') {
+        throw new IllegalArgumentException();
+      }
+      for (;;) {
+        c = s.charAt(++i);
+        if (c == '"') {
+          if (i == s.length() - 1) {
+            break;
+          }
+          ++i;
+          c = s.charAt(i);
+          if (c == '.') {
+            break;
+          }
+          if (c != '"') {
+            throw new IllegalArgumentException();
+          }
+        }
+        b.append(c);
+      }
+      builder.add(b.toString());
+      b.setLength(0);
+      if (++i >= s.length()) {
+        break;
+      }
+    }
+    return builder.build();
+  }
+
   /** Converts a number into human-readable form, with 3 digits and a "K", "M"
    * or "G" multiplier for thousands, millions or billions.
    *

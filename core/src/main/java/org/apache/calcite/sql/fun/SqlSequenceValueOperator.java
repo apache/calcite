@@ -19,12 +19,16 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+
+import java.util.List;
 
 /** Operator that returns the current or next value of a sequence. */
 public class SqlSequenceValueOperator extends SqlSpecialOperator {
@@ -54,6 +58,11 @@ public class SqlSequenceValueOperator extends SqlSpecialOperator {
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,
       SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    List<SqlNode> operands = call.getOperandList();
+    assert operands.size() == 1;
+    assert operands.get(0) instanceof SqlIdentifier;
+    SqlIdentifier id = (SqlIdentifier) operands.get(0);
+    validator.validateSequenceValue(scope, id);
   }
 }
 

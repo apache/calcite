@@ -19,7 +19,7 @@
 !use seq
 !set outputformat mysql
 
-select next value for my_seq as c from (values 1, 2);
+select next value for "my_seq" as c from (values 1, 2);
 +---+
 | C |
 +---+
@@ -29,7 +29,7 @@ select next value for my_seq as c from (values 1, 2);
 (2 rows)
 
 !ok
-select current value for my_seq as c from (values 1, 2);
+select current value for "my_seq" as c from (values 1, 2);
 +---+
 | C |
 +---+
@@ -39,6 +39,29 @@ select current value for my_seq as c from (values 1, 2);
 (2 rows)
 
 !ok
+
+select next value for "my_seq" as c from (values 1, 2);
+C BIGINT(19) NOT NULL
+!type
+
+# Qualified with schema name
+select next value for "s"."my_seq" as c from (values 1, 2);
+C BIGINT(19) NOT NULL
+!type
+
+select next value for "unknown_seq" as c from (values 1, 2);
+From line 1, column 23 to line 1, column 35: Table 'unknown_seq' not found
+!error
+
+# Qualified with bad schema name
+select next value for "unknown_schema"."my_seq" as c from (values 1, 2);
+From line 1, column 23 to line 1, column 47: Table 'unknown_schema.my_seq' not found
+!error
+
+# Table found, but not a sequence
+select next value for "metadata".tables as c from (values 1, 2);
+From line 1, column 23 to line 1, column 39: Table 'metadata.TABLES' is not a sequence
+!error
 
 # Sequences appear in the catalog as tables of type 'SEQUENCE'
 select * from "metadata".tables;

@@ -695,7 +695,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final List<SqlNode> operands = call.getOperandList();
     assert operands.size() == 1;
     assert operands.get(0) instanceof SqlIdentifier;
-    String key = ((SqlIdentifier) operands.get(0)).names.toString();
+    final SqlIdentifier id = (SqlIdentifier) operands.get(0);
+    final String key = Util.listToString(id.names);
     RelDataType returnType =
         cx.getValidator().getValidatedNodeType(call);
     return cx.getRexBuilder().makeCall(returnType, fun,
