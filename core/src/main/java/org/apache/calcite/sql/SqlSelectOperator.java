@@ -236,6 +236,26 @@ public class SqlSelectOperator extends SqlOperator {
       unparseListClause(writer, select.orderBy);
       writer.endList(orderFrame);
     }
+    if (select.offset != null) {
+      final SqlWriter.Frame offsetFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
+      writer.newlineAndIndent();
+      writer.keyword("OFFSET");
+      select.offset.unparse(writer, -1, -1);
+      writer.keyword("ROWS");
+      writer.endList(offsetFrame);
+    }
+    if (select.fetch != null) {
+      final SqlWriter.Frame fetchFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.FETCH);
+      writer.newlineAndIndent();
+      writer.keyword("FETCH");
+      writer.keyword("NEXT");
+      select.fetch.unparse(writer, -1, -1);
+      writer.keyword("ROWS");
+      writer.keyword("ONLY");
+      writer.endList(fetchFrame);
+    }
     writer.endList(selectFrame);
   }
 
