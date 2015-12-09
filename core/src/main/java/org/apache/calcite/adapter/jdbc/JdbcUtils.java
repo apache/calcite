@@ -77,13 +77,7 @@ final class JdbcUtils {
         List key = ImmutableList.of(productName, productVersion);
         SqlDialect dialect = map.get(key);
         if (dialect == null) {
-          final SqlDialect.DatabaseProduct product =
-              SqlDialect.getProduct(productName, productVersion);
-          dialect =
-              new SqlDialect(
-                  product,
-                  productName,
-                  metaData.getIdentifierQuoteString());
+          dialect = SqlDialect.create(metaData);
           map.put(key, dialect);
           map0.put(dataSource, dialect);
         }

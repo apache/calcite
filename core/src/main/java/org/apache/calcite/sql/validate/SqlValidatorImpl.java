@@ -82,6 +82,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -3016,17 +3017,47 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public boolean validateModality(SqlSelect select, SqlModality modality,
       boolean fail) {
     final SelectScope scope = getRawSelectScope(select);
-    for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-      if (!namespace.right.supportsModality(modality)) {
-        switch (modality) {
-        case STREAM:
+
+    switch (modality) {
+    case STREAM:
+      if (scope.children.size() == 1) {
+        for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+          if (!namespace.right.supportsModality(modality)) {
+            if (fail) {
+              throw newValidationError(namespace.right.getNode(),
+                  Static.RESOURCE.cannotConvertToStream(namespace.left));
+            } else {
+              return false;
+            }
+          }
+        }
+      } else {
+        int supportsModalityCount = 0;
+        for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+          if (namespace.right.supportsModality(modality)) {
+            ++supportsModalityCount;
+          }
+        }
+
+        if (supportsModalityCount == 0) {
           if (fail) {
-            throw newValidationError(namespace.right.getNode(),
-                Static.RESOURCE.cannotConvertToStream(namespace.left));
+            List<String> inputList = new ArrayList<String>();
+            for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+              inputList.add(namespace.left);
+            }
+            String inputs = Joiner.on(", ").join(inputList);
+
+            throw newValidationError(select,
+                Static.RESOURCE.cannotStreamResultsForNonStreamingInputs(inputs));
           } else {
             return false;
           }
-        default:
+        }
+      }
+      break;
+    default:
+      for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
+        if (!namespace.right.supportsModality(modality)) {
           if (fail) {
             throw newValidationError(namespace.right.getNode(),
                 Static.RESOURCE.cannotConvertToRelation(namespace.left));

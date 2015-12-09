@@ -578,7 +578,7 @@ public class PlannerTest {
         "select * from (select * from \"emps\") as t\n"
             + "where \"name\" like '%e%'");
     final SqlDialect hiveDialect =
-        new SqlDialect(SqlDialect.DatabaseProduct.HIVE, "Hive", null);
+        SqlDialect.DatabaseProduct.HIVE.getDialect();
     assertThat(Util.toLinux(parse.toSqlString(hiveDialect).getSql()),
         equalTo("SELECT *\n"
             + "FROM (SELECT *\n"

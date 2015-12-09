@@ -603,6 +603,9 @@ public interface CalciteResource {
 
   @BaseMessage("Table ''{0}'' not found")
   ExInst<CalciteException> tableNotFound(String tableName);
+
+  @BaseMessage("Cannot stream results of a query with no streaming inputs: ''{0}''. At least one input should be convertible to a stream")
+  ExInst<SqlValidatorException> cannotStreamResultsForNonStreamingInputs(String inputs);
 }
 
 // End CalciteResource.java

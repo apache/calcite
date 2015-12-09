@@ -250,6 +250,22 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     shipmentsStream.addColumn("ORDERID", intType);
     registerTable(shipmentsStream);
 
+    // Register "PRODUCTS" table.
+    MockTable productsTable = MockTable.create(this, salesSchema, "PRODUCTS",
+        false, 200D);
+    productsTable.addColumn("PRODUCTID", intType);
+    productsTable.addColumn("NAME", varchar20Type);
+    productsTable.addColumn("SUPPLIERID", intType);
+    registerTable(productsTable);
+
+    // Register "SUPPLIERS" table.
+    MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
+        false, 10D);
+    suppliersTable.addColumn("SUPPLIERID", intType);
+    suppliersTable.addColumn("NAME", varchar20Type);
+    suppliersTable.addColumn("CITY", intType);
+    registerTable(suppliersTable);
+
     // Register "EMP_20" view.
     // Same columns as "EMP",
     // but "DEPTNO" not visible and set to 20 by default

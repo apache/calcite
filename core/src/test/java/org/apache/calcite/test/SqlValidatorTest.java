@@ -132,6 +132,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     return "Cannot convert stream '" + table + "' to relation";
   }
 
+  private static String cannotStreamResultsForNonStreamingInputs(String inputs) {
+    return "Cannot stream results of a query with no streaming inputs: '"
+        + inputs
+        + "'. At least one input should be convertible to a stream";
+  }
+
   @Test public void testMultipleSameAsPass() {
     check("select 1 as again,2 as \"again\", 3 as AGAiN from (values (true))");
   }
@@ -7413,6 +7419,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select stream *\n"
         + "from orders\n"
         + "order by floor(rowtime to hour), rowtime desc").ok();
+  }
+
+  @Test public void testStreamJoin() {
+    sql("select stream \n"
+        + "orders.rowtime as rowtime, orders.orderId as orderId, products.supplierId as supplierId \n"
+        + "from orders join products on orders.productId = products.productId").ok();
+    sql("^select stream *\n"
+        + "from products join suppliers on products.supplierId = suppliers.supplierId^")
+        .fails(cannotStreamResultsForNonStreamingInputs("PRODUCTS, SUPPLIERS"));
   }
 
   @Test public void testNew() {

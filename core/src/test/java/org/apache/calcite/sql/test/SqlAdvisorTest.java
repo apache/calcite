@@ -72,7 +72,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.BONUS)",
           "TABLE(CATALOG.SALES.ORDERS)",
           "TABLE(CATALOG.SALES.SALGRADE)",
-          "TABLE(CATALOG.SALES.SHIPMENTS)");
+          "TABLE(CATALOG.SALES.SHIPMENTS)",
+          "TABLE(CATALOG.SALES.PRODUCTS)",
+          "TABLE(CATALOG.SALES.SUPPLIERS)");
 
   private static final List<String> SCHEMAS =
       Arrays.asList(

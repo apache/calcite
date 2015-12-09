@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+
+import com.google.common.base.Preconditions;
+
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -56,6 +61,7 @@ public class SqlDialect {
   private final String identifierEndQuoteString;
   private final String identifierEscapedQuote;
   private final DatabaseProduct databaseProduct;
+  private final NullCollation nullCollation;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -82,10 +88,32 @@ public class SqlDialect {
     } catch (SQLException e) {
       throw FakeUtil.newInternal(e, "while detecting database product");
     }
+    String databaseProductVersion;
+    try {
+      databaseProductVersion = databaseMetaData.getDatabaseProductVersion();
+    } catch (SQLException e) {
+      throw FakeUtil.newInternal(e, "while detecting database version");
+    }
     final DatabaseProduct databaseProduct =
-        getProduct(databaseProductName, null);
-    return new SqlDialect(
-        databaseProduct, databaseProductName, identifierQuoteString);
+        getProduct(databaseProductName, databaseProductVersion);
+    NullCollation nullCollation;
+    try {
+      if (databaseMetaData.nullsAreSortedAtEnd()) {
+        nullCollation = NullCollation.LAST;
+      } else if (databaseMetaData.nullsAreSortedAtStart()) {
+        nullCollation = NullCollation.FIRST;
+      } else if (databaseMetaData.nullsAreSortedLow()) {
+        nullCollation = NullCollation.LOW;
+      } else if (databaseMetaData.nullsAreSortedHigh()) {
+        nullCollation = NullCollation.HIGH;
+      } else {
+        throw new IllegalArgumentException("cannot deduce null collation");
+      }
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce null collation", e);
+    }
+    return new SqlDialect(databaseProduct, databaseProductName,
+        identifierQuoteString, nullCollation);
   }
 
   /**
@@ -97,13 +125,32 @@ public class SqlDialect {
    *                              is not supported. If "[", close quote is
    *                              deemed to be "]".
    */
+  @Deprecated // to be removed before 2.0
   public SqlDialect(
       DatabaseProduct databaseProduct,
       String databaseProductName,
       String identifierQuoteString) {
-    assert databaseProduct != null;
-    assert databaseProductName != null;
-    this.databaseProduct = databaseProduct;
+    this(databaseProduct, databaseProductName, identifierQuoteString,
+        NullCollation.HIGH);
+  }
+
+  /**
+   * Creates a SqlDialect.
+   *
+   * @param databaseProduct       Database product; may be UNKNOWN, never null
+   * @param databaseProductName   Database product name from JDBC driver
+   * @param identifierQuoteString String to quote identifiers. Null if quoting
+   *                              is not supported. If "[", close quote is
+   *                              deemed to be "]".
+   * @param nullCollation         Whether NULL values appear first or last
+   */
+  public SqlDialect(
+      DatabaseProduct databaseProduct,
+      String databaseProductName,
+      String identifierQuoteString, NullCollation nullCollation) {
+    Preconditions.checkNotNull(this.nullCollation = nullCollation);
+    Preconditions.checkNotNull(databaseProductName);
+    this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
       if (identifierQuoteString.equals("")) {
@@ -419,6 +466,32 @@ public class SqlDialect {
     }
   }
 
+  /** Returns how NULL values are sorted if an ORDER BY item does not contain
+   * NULLS ASCENDING or NULLS DESCENDING. */
+  public NullCollation getNullCollation() {
+    return nullCollation;
+  }
+
+  /** Returns whether NULL values are sorted first or last, in this dialect,
+   * in an ORDER BY item of a given direction. */
+  public RelFieldCollation.NullDirection defaultNullDirection(
+      RelFieldCollation.Direction direction) {
+    switch (direction) {
+    case ASCENDING:
+    case STRICTLY_ASCENDING:
+      return getNullCollation().last(false)
+          ? RelFieldCollation.NullDirection.LAST
+          : RelFieldCollation.NullDirection.FIRST;
+    case DESCENDING:
+    case STRICTLY_DESCENDING:
+      return getNullCollation().last(true)
+          ? RelFieldCollation.NullDirection.LAST
+          : RelFieldCollation.NullDirection.FIRST;
+    default:
+      return RelFieldCollation.NullDirection.UNSPECIFIED;
+    }
+  }
+
   /**
    * A few utility functions copied from org.apache.calcite.util.Util. We have
    * copied them because we wish to keep SqlDialect's dependencies to a
@@ -478,31 +551,31 @@ public class SqlDialect {
    * whether the database allows expressions to appear in the GROUP BY clause.
    */
   public enum DatabaseProduct {
-    ACCESS("Access", "\""),
-    CALCITE("Apache Calcite", "\""),
-    MSSQL("Microsoft SQL Server", "["),
-    MYSQL("MySQL", "`"),
-    ORACLE("Oracle", "\""),
-    DERBY("Apache Derby", null),
-    DB2("IBM DB2", null),
-    FIREBIRD("Firebird", null),
-    H2("H2", "\""),
-    HIVE("Apache Hive", null),
-    INFORMIX("Informix", null),
-    INGRES("Ingres", null),
-    LUCIDDB("LucidDB", "\""),
-    INTERBASE("Interbase", null),
-    PHOENIX("Phoenix", "\""),
-    POSTGRESQL("PostgreSQL", "\""),
-    NETEZZA("Netezza", "\""),
-    INFOBRIGHT("Infobright", "`"),
-    NEOVIEW("Neoview", null),
-    SYBASE("Sybase", null),
-    TERADATA("Teradata", "\""),
-    HSQLDB("Hsqldb", null),
-    VERTICA("Vertica", "\""),
-    SQLSTREAM("SQLstream", "\""),
-    PARACCEL("Paraccel", "\""),
+    ACCESS("Access", "\"", NullCollation.HIGH),
+    CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
+    MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
+    MYSQL("MySQL", "`", NullCollation.HIGH),
+    ORACLE("Oracle", "\"", NullCollation.HIGH),
+    DERBY("Apache Derby", null, NullCollation.HIGH),
+    DB2("IBM DB2", null, NullCollation.HIGH),
+    FIREBIRD("Firebird", null, NullCollation.HIGH),
+    H2("H2", "\"", NullCollation.HIGH),
+    HIVE("Apache Hive", null, NullCollation.HIGH),
+    INFORMIX("Informix", null, NullCollation.HIGH),
+    INGRES("Ingres", null, NullCollation.HIGH),
+    LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
+    INTERBASE("Interbase", null, NullCollation.HIGH),
+    PHOENIX("Phoenix", "\"", NullCollation.HIGH),
+    POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
+    NETEZZA("Netezza", "\"", NullCollation.HIGH),
+    INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
+    NEOVIEW("Neoview", null, NullCollation.HIGH),
+    SYBASE("Sybase", null, NullCollation.HIGH),
+    TERADATA("Teradata", "\"", NullCollation.HIGH),
+    HSQLDB("Hsqldb", null, NullCollation.HIGH),
+    VERTICA("Vertica", "\"", NullCollation.HIGH),
+    SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
+    PARACCEL("Paraccel", "\"", NullCollation.HIGH),
     /**
      * Placeholder for the unknown database.
      *
@@ -510,15 +583,18 @@ public class SqlDialect {
      * do something database-specific like quoting identifiers, don't rely
      * on this dialect to do what you want.
      */
-    UNKNOWN("Unknown", "`");
+    UNKNOWN("Unknown", "`", NullCollation.HIGH);
 
     private SqlDialect dialect = null;
     private String databaseProductName;
     private String quoteString;
+    private final NullCollation nullCollation;
 
-    DatabaseProduct(String databaseProductName, String quoteString) {
+    DatabaseProduct(String databaseProductName, String quoteString,
+        NullCollation nullCollation) {
       this.databaseProductName = databaseProductName;
       this.quoteString = quoteString;
+      this.nullCollation = nullCollation;
     }
 
     /**
@@ -535,7 +611,8 @@ public class SqlDialect {
     public SqlDialect getDialect() {
       if (dialect == null) {
         dialect =
-            new SqlDialect(this, databaseProductName, quoteString);
+            new SqlDialect(this, databaseProductName, quoteString,
+                nullCollation);
       }
       return dialect;
     }
