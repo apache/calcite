@@ -25,6 +25,7 @@ import org.apache.calcite.plan.volcano.TraitPropagationTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
 import org.apache.calcite.rel.RelCollationTest;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
@@ -106,6 +107,7 @@ import org.junit.runners.Suite;
     JdbcFrontLinqBackTest.class,
     JdbcFrontJdbcBackTest.class,
     SqlToRelConverterTest.class,
+    RelToSqlConverterTest.class,
     SqlOperatorTest.class,
     ChunkListTest.class,
     FrameworksTest.class,
