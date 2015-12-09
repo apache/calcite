@@ -310,6 +310,11 @@ public interface SqlWriter {
   void identifier(String name);
 
   /**
+   * Prints the OFFSET/FETCH clause.
+   */
+  void fetchOffset(SqlNode fetch, SqlNode offset);
+
+  /**
    * Prints a new line, and indents.
    */
   void newlineAndIndent();
@@ -456,7 +461,7 @@ public interface SqlWriter {
    * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the mean
    * time, the sub-frame is put onto a stack.
    */
-  public interface Frame {
+  interface Frame {
   }
 
   /** Frame type. */
