@@ -268,7 +268,7 @@ public class RelToSqlConverterTest {
             + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"");
   }
 
-  @Ignore
+  @Ignore("Need to fix this by enhancing dialects")
   @Test
   public void testSelectQueryWithLimitClause() {
     String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
@@ -277,6 +277,43 @@ public class RelToSqlConverterTest {
         "SELECT \"product_id\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "LIMIT 100 OFFSET 10");
+  }
+
+  @Test
+  public void testSelectQueryWithLimitClauseWithoutOrder() {
+    String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT \"product_id\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "OFFSET 10 ROWS\n"
+            + "FETCH NEXT 100 ROWS ONLY");
+  }
+
+  @Test
+  public void testSelectQueryWithLimitOffsetClause() {
+    String query = "select \"product_id\"  from \"product\" order by \"net_weight\" asc"
+        + " limit 100 offset 10";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT \"product_id\", \"net_weight\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "ORDER BY \"net_weight\"\n"
+            + "OFFSET 10 ROWS\n"
+            + "FETCH NEXT 100 ROWS ONLY");
+  }
+
+  @Test
+  public void testSelectQueryWithFetchOffsetClause() {
+    String query = "select \"product_id\"  from \"product\" order by \"product_id\""
+        + " offset 10 rows fetch next 100 rows only";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT \"product_id\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "ORDER BY \"product_id\"\n"
+            + "OFFSET 10 ROWS\n"
+            + "FETCH NEXT 100 ROWS ONLY");
   }
 
   @Test
