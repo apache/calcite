@@ -1660,6 +1660,10 @@ public class SqlParserTest {
         "SELECT 1\n"
             + "FROM `T`\n"
             + "WHERE (`A` > `B`)");
+    check(
+          "select 1 from t\n--select",
+          "SELECT 1\n"
+                  + "FROM `T`");
   }
 
   @Test public void testMultilineComment() {
