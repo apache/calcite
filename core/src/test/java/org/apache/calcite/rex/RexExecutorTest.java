@@ -41,9 +41,11 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -209,6 +211,50 @@ public class RexExecutorTest {
             equalTo((Object) 2L));
       }
     });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1009">[CALCITE-1009]
+   * SelfPopulatingList is not thread-safe</a>. */
+  @Test public void testSelfPopulatingList() {
+    final List<Thread> threads = new ArrayList<>();
+    //noinspection MismatchedQueryAndUpdateOfCollection
+    final List<String> list = new RexSlot.SelfPopulatingList("$", 1);
+    final Random random = new Random();
+    for (int i = 0; i < 10; i++) {
+      threads.add(
+          new Thread() {
+            public void run() {
+              for (int j = 0; j < 1000; j++) {
+                // Random numbers between 0 and ~1m, smaller values more common
+                final int index = random.nextInt(1234567)
+                    >> random.nextInt(16) >> random.nextInt(16);
+                list.get(index);
+              }
+            }
+          });
+    }
+    for (Thread runnable : threads) {
+      runnable.start();
+    }
+    for (Thread runnable : threads) {
+      try {
+        runnable.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    final int size = list.size();
+    for (int i = 0; i < size; i++) {
+      assertThat(list.get(i), is("$" + i));
+    }
+  }
+
+  @Test public void testSelfPopulatingList30() {
+    //noinspection MismatchedQueryAndUpdateOfCollection
+    final List<String> list = new RexSlot.SelfPopulatingList("$", 30);
+    final String s = list.get(30);
+    assertThat(s, is("$30"));
   }
 
   /** Callback for {@link #check}. Test code will typically use {@code builder}

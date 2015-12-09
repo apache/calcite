@@ -89,9 +89,14 @@ public abstract class RexSlot extends RexVariable {
           if (index < 0) {
             throw new IllegalArgumentException();
           }
-          addAll(
-              fromTo(
-                  prefix, size(), Math.max(index + 1, size() * 2)));
+          // Double-checked locking, but safe because CopyOnWriteArrayList.array
+          // is marked volatile, and size() uses array.length.
+          synchronized (this) {
+            final int size = size();
+            if (index >= size) {
+              addAll(fromTo(prefix, size, Math.max(index + 1, size * 2)));
+            }
+          }
         }
       }
     }
