@@ -798,6 +798,17 @@ public class ReflectiveSchemaTest {
     public final BitSet bitSet = new BitSet(0);
   }
 
+  /** Table that has integer and string fields */
+  public static class IntAndString {
+    public final int id;
+    public final String value;
+
+    public IntAndString(int id, String value) {
+      this.id = id;
+      this.value = value;
+    }
+  }
+
   /** Object whose fields are relations. Called "catch-all" because it's OK
    * if tests add new fields. */
   public static class CatchallSchema {
@@ -841,6 +852,13 @@ public class ReflectiveSchemaTest {
 
     public final IntHolder[] primesCustomBoxed =
         new IntHolder[]{new IntHolder(1), new IntHolder(3), new IntHolder(5)};
+
+    public final IntAndString[] nullables = new IntAndString[] {
+      new IntAndString(1, "A"), new IntAndString(2, "B"), new IntAndString(2, "C"),
+      new IntAndString(3, null)};
+
+    public final IntAndString[] bools = new IntAndString[] {
+      new IntAndString(1, "T"), new IntAndString(2, "F"), new IntAndString(3, null)};
   }
 
   /**

@@ -4277,6 +4277,57 @@ public class JdbcTest {
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
   }
 
+  /** Tests CALCITE-980: Not (C='a' or C='b') causes NPE */
+  @Test public void testWhereOrAndNullable() {
+    /* Generates the following code:
+       public boolean moveNext() {
+         while (inputEnumerator.moveNext()) {
+           final Object[] current = (Object[]) inputEnumerator.current();
+           final String inp0_ = current[0] == null ? (String) null : current[0].toString();
+           final String inp1_ = current[1] == null ? (String) null : current[1].toString();
+           if (inp0_ != null && org.apache.calcite.runtime.SqlFunctions.eq(inp0_, "a")
+               && (inp1_ != null && org.apache.calcite.runtime.SqlFunctions.eq(inp1_, "b"))
+               || inp0_ != null && org.apache.calcite.runtime.SqlFunctions.eq(inp0_, "b")
+               && (inp1_ != null && org.apache.calcite.runtime.SqlFunctions.eq(inp1_, "c"))) {
+             return true;
+           }
+         }
+         return false;
+       }
+     */
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query("with tst(c) as (values('a'),('b'),('c'),(cast(null as varchar)))"
+            + " select u.c u, v.c v from tst u, tst v where ((u.c = 'a' and v.c = 'b') or (u.c = 'b' and v.c = 'c'))")
+        .returnsUnordered(
+            "U=a; V=b",
+            "U=b; V=c");
+  }
+
+  /** Tests CALCITE-980: different flavors of boolean logic */
+  @Test public void testBooleansInWhere() throws Exception {
+    checkRun("sql/conditions.oq");
+  }
+
+  /** Tests CALCITE-980: different flavors of boolean logic */
+  @Ignore("Fails with org.codehaus.commons.compiler.CompileException: Line 16, Column 112:"
+      + " Cannot compare types \"int\" and \"java.lang.String\"\n")
+  @Test public void testComparingIntAndString() throws Exception {
+    // if (((...test.ReflectiveSchemaTest.IntAndString) inputEnumerator.current()).id == "T")
+
+    CalciteAssert.that()
+        .withSchema("s",
+            new ReflectiveSchema(
+                new ReflectiveSchemaTest.CatchallSchema()))
+        .query("select a.\"value\", b.\"value\"\n"
+            + "  from \"bools\" a\n"
+            + "     , \"bools\" b\n"
+            + " where b.\"value\" = 'T'\n"
+            + " order by 1, 2")
+        .returnsUnordered(
+            "should fail with 'not a number' sql error while converting text to number");
+  }
+
   /** Tests the LIKE operator. */
   @Test public void testLike() {
     CalciteAssert.that()
