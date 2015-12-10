@@ -28,3 +28,5 @@ public interface AvaticaHandler extends Handler {
   void setServerRpcMetadata(RpcMetadataResponse metadata);
 
 }
+
+// End AvaticaHandler.java

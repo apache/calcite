@@ -146,8 +146,7 @@ public abstract class AbstractHandler<T> implements Handler<T> {
     return sb.toString();
   }
 
-  @Override
-  public void setRpcMetadata(RpcMetadataResponse metadata) {
+  @Override public void setRpcMetadata(RpcMetadataResponse metadata) {
     this.metadata = metadata;
   }
 }

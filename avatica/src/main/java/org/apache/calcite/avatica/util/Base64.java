@@ -231,8 +231,8 @@ public class Base64
 
   private final static byte WHITE_SPACE_ENC = -5; // Indicates white space in encoding
   private final static byte EQUALS_SIGN_ENC = -1; // Indicates equals sign in encoding
-	
-	
+
+
 /* ********  S T A N D A R D   B A S E 6 4   A L P H A B E T  ******** */
 
   /** The 64 valid Base64 values. */
@@ -288,8 +288,8 @@ public class Base64
       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 231 - 243
       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255
   };
-	
-	
+
+
 /* ********  U R L   S A F E   B A S E 6 4   A L P H A B E T  ******** */
 
   /**
@@ -416,7 +416,7 @@ public class Base64
       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255
   };
 
-	
+
 /* ********  D E T E R M I N E   W H I C H   A L H A B E T  ******** */
 
 
@@ -435,7 +435,7 @@ public class Base64
     } else {
       return _STANDARD_ALPHABET;
     }
-  }	// end getAlphabet
+  } // end getAlphabet
 
 
   /**
@@ -453,7 +453,7 @@ public class Base64
     } else {
       return _STANDARD_DECODABET;
     }
-  }	// end getAlphabet
+  } // end getAlphabet
 
 
 

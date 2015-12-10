@@ -76,7 +76,7 @@ limitations under the License.
     <!-- Checks for class design                         -->
     <!-- See http://checkstyle.sf.net/config_design.html -->
       <!-- Utility class should not be instantiated, they must have a
-	   private constructor -->
+           private constructor -->
     <module name="HideUtilityClassConstructor"/>
 
     <!-- Checks for common coding problems               -->
@@ -101,9 +101,9 @@ limitations under the License.
       <!-- Don't declare multiple variables in the same statement -->
     <module name="MultipleVariableDeclarations" />
       <!-- String literals more than one character long should not be
-	   repeated several times -->
+           repeated several times -->
       <!-- the "unchecked" string is also accepted to allow
-	   @SuppressWarnings("unchecked") -->
+           @SuppressWarnings("unchecked") -->
       <!-- Disabling for now until we have a better ignoreStringsRegexp -->
       <!--
     <module name="MultipleStringLiterals" >
@@ -163,7 +163,7 @@ limitations under the License.
     <!-- Checks for Naming Conventions.                  -->
     <!-- See http://checkstyle.sf.net/config_naming.html -->
       <!-- Constant names should obey the traditional all uppercase
-	   naming convention -->
+           naming convention -->
     <module name="ConstantName"/>
     <module name="LocalFinalVariableName">
       <!-- Allow '_' except first. -->

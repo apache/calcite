@@ -33,9 +33,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * An AvaticaHandler implementation which delegates to a provided Jetty Handler instance.
+ * An AvaticaHandler implementation that delegates to a provided Jetty Handler instance.
  *
- * This implementation provides a no-op implementation for
+ * <p>This implementation provides a no-op implementation for
  * {@link #setServerRpcMetadata(RpcMetadataResponse)}.
  */
 public class DelegatingAvaticaHandler implements AvaticaHandler {
@@ -47,80 +47,67 @@ public class DelegatingAvaticaHandler implements AvaticaHandler {
     this.handler = Objects.requireNonNull(handler);
   }
 
-  @Override
-  public void handle(String target, Request baseRequest, HttpServletRequest request,
+  @Override public void handle(String target, Request baseRequest, HttpServletRequest request,
       HttpServletResponse response) throws IOException, ServletException {
     handler.handle(target, baseRequest, request, response);
   }
 
-  @Override
-  public void setServer(Server server) {
+  @Override public void setServer(Server server) {
     handler.setServer(server);
   }
 
-  @Override
-  public Server getServer() {
+  @Override public Server getServer() {
     return handler.getServer();
   }
 
-  @Override
-  public void destroy() {
+  @Override public void destroy() {
     handler.destroy();
   }
 
-  @Override
-  public void start() throws Exception {
+  @Override public void start() throws Exception {
     handler.start();
   }
 
-  @Override
-  public void stop() throws Exception {
+  @Override public void stop() throws Exception {
     handler.stop();
   }
 
-  @Override
-  public boolean isRunning() {
+  @Override public boolean isRunning() {
     return handler.isRunning();
   }
 
-  @Override
-  public boolean isStarted() {
+  @Override public boolean isStarted() {
     return handler.isStarted();
   }
 
-  @Override
-  public boolean isStarting() {
+  @Override public boolean isStarting() {
     return handler.isStarting();
   }
 
-  @Override
-  public boolean isStopping() {
+  @Override public boolean isStopping() {
     return handler.isStopping();
   }
 
-  @Override
-  public boolean isStopped() {
+  @Override public boolean isStopped() {
     return handler.isStopped();
   }
 
-  @Override
-  public boolean isFailed() {
+  @Override public boolean isFailed() {
     return handler.isFailed();
   }
 
-  @Override
-  public void addLifeCycleListener(Listener listener) {
+  @Override public void addLifeCycleListener(Listener listener) {
     handler.addLifeCycleListener(listener);
   }
 
-  @Override
-  public void removeLifeCycleListener(Listener listener) {
+  @Override public void removeLifeCycleListener(Listener listener) {
     handler.removeLifeCycleListener(listener);
   }
 
-  @Override
-  public void setServerRpcMetadata(RpcMetadataResponse metadata) {
+  @Override public void setServerRpcMetadata(RpcMetadataResponse metadata) {
     LOG.warn("Setting RpcMetadata is not implemented for DelegatingAvaticaHandler");
   }
 
 }
+
+// End DelegatingAvaticaHandler.java

@@ -433,7 +433,11 @@ public abstract class SqlImplementor {
     public abstract SqlNode field(int ordinal);
 
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
-     * format. */
+     * format.
+     *
+     * @param program Required only if {@code rex} contains {@link RexLocalRef}
+     * @param rex Expression to convert
+     */
     public SqlNode toSql(RexProgram program, RexNode rex) {
       switch (rex.getKind()) {
       case LOCAL_REF:

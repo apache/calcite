@@ -3131,8 +3131,7 @@ public interface Service {
       this.serverAddress = serverAddress;
     }
 
-    @Override
-    RpcMetadataResponse deserialize(Message genericMsg) {
+    @Override RpcMetadataResponse deserialize(Message genericMsg) {
       if (!(genericMsg instanceof Responses.RpcMetadata)) {
         throw new IllegalArgumentException("Expected RpcMetadata, but got "
             + genericMsg.getClass().getName());
@@ -3141,8 +3140,7 @@ public interface Service {
       return fromProto((Responses.RpcMetadata) genericMsg);
     }
 
-    @Override
-    Responses.RpcMetadata serialize() {
+    @Override Responses.RpcMetadata serialize() {
       return Responses.RpcMetadata.newBuilder().setServerAddress(serverAddress).build();
     }
 
@@ -3157,16 +3155,14 @@ public interface Service {
       return new RpcMetadataResponse(serverAddress);
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((serverAddress == null) ? 0 : serverAddress.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj || (obj instanceof RpcMetadataResponse
           && Objects.equals(serverAddress, ((RpcMetadataResponse) obj).serverAddress));
     }

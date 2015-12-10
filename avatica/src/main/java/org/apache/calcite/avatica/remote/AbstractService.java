@@ -150,8 +150,7 @@ public abstract class AbstractService implements Service {
     return new ExecuteResponse(results, r.missingStatement, rpcMetadata);
   }
 
-  @Override
-  public void setRpcMetadata(RpcMetadataResponse metadata) {
+  @Override public void setRpcMetadata(RpcMetadataResponse metadata) {
     // OK if this is null
     this.rpcMetadata = metadata;
   }

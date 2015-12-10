@@ -295,15 +295,15 @@ public class ProtobufTranslationImplTest<T> {
     }
     responses.add(new DatabasePropertyResponse(propertyMap, rpcMetadata));
 
-    responses.add(new ExecuteResponse(Arrays.asList(results1, results1, results1), false,
-        rpcMetadata));
+    responses.add(
+        new ExecuteResponse(Arrays.asList(results1, results1, results1), false, rpcMetadata));
     responses.add(new FetchResponse(frame, false, false, rpcMetadata));
     responses.add(new FetchResponse(frame, true, true, rpcMetadata));
     responses.add(new FetchResponse(frame, false, true, rpcMetadata));
     responses.add(
         new PrepareResponse(
-            new Meta.StatementHandle("connectionId", Integer.MAX_VALUE,
-                signature), rpcMetadata));
+            new Meta.StatementHandle("connectionId", Integer.MAX_VALUE, signature),
+            rpcMetadata));
 
     StringWriter sw = new StringWriter();
     new Exception().printStackTrace(new PrintWriter(sw));
@@ -321,8 +321,8 @@ public class ProtobufTranslationImplTest<T> {
 
     // Some tests to make sure ErrorResponse doesn't fail.
     responses.add(new ErrorResponse((List<String>) null, null, 0, null, null, null));
-    responses.add(new ErrorResponse(Arrays.asList("stacktrace1", "stacktrace2"), null, 0, null,
-        null, null));
+    responses.add(
+        new ErrorResponse(Arrays.asList("stacktrace1", "stacktrace2"), null, 0, null, null, null));
 
     return responses;
   }

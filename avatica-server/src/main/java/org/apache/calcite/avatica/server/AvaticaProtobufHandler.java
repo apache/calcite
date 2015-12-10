@@ -73,8 +73,7 @@ public class AvaticaProtobufHandler extends AbstractHandler implements AvaticaHa
     }
   }
 
-  @Override
-  public void setServerRpcMetadata(RpcMetadataResponse metadata) {
+  @Override public void setServerRpcMetadata(RpcMetadataResponse metadata) {
     // Set the metadata for the normal service calls
     service.setRpcMetadata(metadata);
     // Also add it to the handler to include with exceptions
