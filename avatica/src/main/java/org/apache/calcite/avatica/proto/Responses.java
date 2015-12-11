@@ -10961,6 +10961,652 @@ package org.apache.calcite.avatica.proto;
 
   }
 
+  public interface CommitResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:CommitResponse)
+      com.google.protobuf.MessageOrBuilder {
+  }
+  /**
+   * Protobuf type {@code CommitResponse}
+   *
+   * <pre>
+   * Response to a commit request
+   * </pre>
+   */
+  public  static final class CommitResponse extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:CommitResponse)
+      CommitResponseOrBuilder {
+    // Use CommitResponse.newBuilder() to construct.
+    private CommitResponse(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+    }
+    private CommitResponse() {
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+    }
+    private CommitResponse(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+      this();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!input.skipField(tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw new RuntimeException(e.setUnfinishedMessage(this));
+      } catch (java.io.IOException e) {
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
+      } finally {
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_CommitResponse_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_CommitResponse_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.calcite.avatica.proto.Responses.CommitResponse.class, org.apache.calcite.avatica.proto.Responses.CommitResponse.Builder.class);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Responses.CommitResponse prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code CommitResponse}
+     *
+     * <pre>
+     * Response to a commit request
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:CommitResponse)
+        org.apache.calcite.avatica.proto.Responses.CommitResponseOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_CommitResponse_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_CommitResponse_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.calcite.avatica.proto.Responses.CommitResponse.class, org.apache.calcite.avatica.proto.Responses.CommitResponse.Builder.class);
+      }
+
+      // Construct using org.apache.calcite.avatica.proto.Responses.CommitResponse.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_CommitResponse_descriptor;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.CommitResponse getDefaultInstanceForType() {
+        return org.apache.calcite.avatica.proto.Responses.CommitResponse.getDefaultInstance();
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.CommitResponse build() {
+        org.apache.calcite.avatica.proto.Responses.CommitResponse result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.CommitResponse buildPartial() {
+        org.apache.calcite.avatica.proto.Responses.CommitResponse result = new org.apache.calcite.avatica.proto.Responses.CommitResponse(this);
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.calcite.avatica.proto.Responses.CommitResponse) {
+          return mergeFrom((org.apache.calcite.avatica.proto.Responses.CommitResponse)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.CommitResponse other) {
+        if (other == org.apache.calcite.avatica.proto.Responses.CommitResponse.getDefaultInstance()) return this;
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.calcite.avatica.proto.Responses.CommitResponse parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.calcite.avatica.proto.Responses.CommitResponse) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:CommitResponse)
+    }
+
+    // @@protoc_insertion_point(class_scope:CommitResponse)
+    private static final org.apache.calcite.avatica.proto.Responses.CommitResponse DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Responses.CommitResponse();
+    }
+
+    public static org.apache.calcite.avatica.proto.Responses.CommitResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<CommitResponse>
+        PARSER = new com.google.protobuf.AbstractParser<CommitResponse>() {
+      public CommitResponse parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new CommitResponse(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<CommitResponse> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<CommitResponse> getParserForType() {
+      return PARSER;
+    }
+
+    public org.apache.calcite.avatica.proto.Responses.CommitResponse getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface RollbackResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:RollbackResponse)
+      com.google.protobuf.MessageOrBuilder {
+  }
+  /**
+   * Protobuf type {@code RollbackResponse}
+   *
+   * <pre>
+   * Response to a rollback request
+   * </pre>
+   */
+  public  static final class RollbackResponse extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:RollbackResponse)
+      RollbackResponseOrBuilder {
+    // Use RollbackResponse.newBuilder() to construct.
+    private RollbackResponse(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+    }
+    private RollbackResponse() {
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+    }
+    private RollbackResponse(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+      this();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!input.skipField(tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw new RuntimeException(e.setUnfinishedMessage(this));
+      } catch (java.io.IOException e) {
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
+      } finally {
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_RollbackResponse_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_RollbackResponse_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.calcite.avatica.proto.Responses.RollbackResponse.class, org.apache.calcite.avatica.proto.Responses.RollbackResponse.Builder.class);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Responses.RollbackResponse prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code RollbackResponse}
+     *
+     * <pre>
+     * Response to a rollback request
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:RollbackResponse)
+        org.apache.calcite.avatica.proto.Responses.RollbackResponseOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_RollbackResponse_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_RollbackResponse_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.calcite.avatica.proto.Responses.RollbackResponse.class, org.apache.calcite.avatica.proto.Responses.RollbackResponse.Builder.class);
+      }
+
+      // Construct using org.apache.calcite.avatica.proto.Responses.RollbackResponse.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_RollbackResponse_descriptor;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.RollbackResponse getDefaultInstanceForType() {
+        return org.apache.calcite.avatica.proto.Responses.RollbackResponse.getDefaultInstance();
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.RollbackResponse build() {
+        org.apache.calcite.avatica.proto.Responses.RollbackResponse result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.RollbackResponse buildPartial() {
+        org.apache.calcite.avatica.proto.Responses.RollbackResponse result = new org.apache.calcite.avatica.proto.Responses.RollbackResponse(this);
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.calcite.avatica.proto.Responses.RollbackResponse) {
+          return mergeFrom((org.apache.calcite.avatica.proto.Responses.RollbackResponse)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.RollbackResponse other) {
+        if (other == org.apache.calcite.avatica.proto.Responses.RollbackResponse.getDefaultInstance()) return this;
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.calcite.avatica.proto.Responses.RollbackResponse parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.calcite.avatica.proto.Responses.RollbackResponse) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:RollbackResponse)
+    }
+
+    // @@protoc_insertion_point(class_scope:RollbackResponse)
+    private static final org.apache.calcite.avatica.proto.Responses.RollbackResponse DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Responses.RollbackResponse();
+    }
+
+    public static org.apache.calcite.avatica.proto.Responses.RollbackResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<RollbackResponse>
+        PARSER = new com.google.protobuf.AbstractParser<RollbackResponse>() {
+      public RollbackResponse parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new RollbackResponse(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<RollbackResponse> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<RollbackResponse> getParserForType() {
+      return PARSER;
+    }
+
+    public org.apache.calcite.avatica.proto.Responses.RollbackResponse getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   private static com.google.protobuf.Descriptors.Descriptor
     internal_static_ResultSetResponse_descriptor;
   private static
@@ -11031,6 +11677,16 @@ package org.apache.calcite.avatica.proto;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_RpcMetadata_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_CommitResponse_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_CommitResponse_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_RollbackResponse_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_RollbackResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -11077,8 +11733,9 @@ package org.apache.calcite.avatica.proto;
       "tsResponse\022\031\n\021missing_statement\030\001 \001(\010\022\024\n" +
       "\014more_results\030\002 \001(\010\022\036\n\010metadata\030\003 \001(\0132\014." +
       "RpcMetadata\"%\n\013RpcMetadata\022\026\n\016server_add" +
-      "ress\030\001 \001(\tB\"\n org.apache.calcite.avatica" +
-      ".protob\006proto3"
+      "ress\030\001 \001(\t\"\020\n\016CommitResponse\"\022\n\020Rollback" +
+      "ResponseB\"\n org.apache.calcite.avatica.p" +
+      "rotob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -11177,6 +11834,18 @@ package org.apache.calcite.avatica.proto;
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_RpcMetadata_descriptor,
         new java.lang.String[] { "ServerAddress", });
+    internal_static_CommitResponse_descriptor =
+      getDescriptor().getMessageTypes().get(14);
+    internal_static_CommitResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_CommitResponse_descriptor,
+        new java.lang.String[] { });
+    internal_static_RollbackResponse_descriptor =
+      getDescriptor().getMessageTypes().get(15);
+    internal_static_RollbackResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_RollbackResponse_descriptor,
+        new java.lang.String[] { });
     org.apache.calcite.avatica.proto.Common.getDescriptor();
   }
 

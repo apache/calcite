@@ -300,6 +300,20 @@ public class LocalService implements Service {
 
     return response;
   }
+
+  public CommitResponse apply(CommitRequest request) {
+    meta.commit(new Meta.ConnectionHandle(request.connectionId));
+
+    // If commit() errors, let the ErrorResponse be sent back via an uncaught Exception.
+    return new CommitResponse();
+  }
+
+  public RollbackResponse apply(RollbackRequest request) {
+    meta.rollback(new Meta.ConnectionHandle(request.connectionId));
+
+    // If rollback() errors, let the ErrorResponse be sent back via an uncaught Exception.
+    return new RollbackResponse();
+  }
 }
 
 // End LocalService.java

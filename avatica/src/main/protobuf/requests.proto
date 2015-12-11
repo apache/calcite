@@ -133,4 +133,13 @@ message SyncResultsRequest {
   QueryState state = 3;
   uint64 offset = 4;
 }
- 
+
+// Request to invoke a commit on a Connection
+message CommitRequest {
+  string connection_id = 1;
+}
+
+// Request to invoke rollback on a Connection
+message RollbackRequest {
+  string connection_id = 1;
+}

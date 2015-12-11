@@ -114,3 +114,13 @@ message SyncResultsResponse {
 message RpcMetadata {
   string server_address = 1; // The host:port of the server
 }
+
+// Response to a commit request
+message CommitResponse {
+
+}
+
+// Response to a rollback request
+message RollbackResponse {
+
+}

@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.proto.Requests.CatalogsRequest;
 import org.apache.calcite.avatica.proto.Requests.CloseConnectionRequest;
 import org.apache.calcite.avatica.proto.Requests.CloseStatementRequest;
 import org.apache.calcite.avatica.proto.Requests.ColumnsRequest;
+import org.apache.calcite.avatica.proto.Requests.CommitRequest;
 import org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest;
 import org.apache.calcite.avatica.proto.Requests.CreateStatementRequest;
 import org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest;
@@ -29,6 +30,7 @@ import org.apache.calcite.avatica.proto.Requests.FetchRequest;
 import org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareRequest;
+import org.apache.calcite.avatica.proto.Requests.RollbackRequest;
 import org.apache.calcite.avatica.proto.Requests.SchemasRequest;
 import org.apache.calcite.avatica.proto.Requests.SyncResultsRequest;
 import org.apache.calcite.avatica.proto.Requests.TableTypesRequest;
@@ -36,6 +38,7 @@ import org.apache.calcite.avatica.proto.Requests.TablesRequest;
 import org.apache.calcite.avatica.proto.Requests.TypeInfoRequest;
 import org.apache.calcite.avatica.proto.Responses.CloseConnectionResponse;
 import org.apache.calcite.avatica.proto.Responses.CloseStatementResponse;
+import org.apache.calcite.avatica.proto.Responses.CommitResponse;
 import org.apache.calcite.avatica.proto.Responses.ConnectionSyncResponse;
 import org.apache.calcite.avatica.proto.Responses.CreateStatementResponse;
 import org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse;
@@ -45,6 +48,7 @@ import org.apache.calcite.avatica.proto.Responses.FetchResponse;
 import org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse;
 import org.apache.calcite.avatica.proto.Responses.PrepareResponse;
 import org.apache.calcite.avatica.proto.Responses.ResultSetResponse;
+import org.apache.calcite.avatica.proto.Responses.RollbackResponse;
 import org.apache.calcite.avatica.proto.Responses.RpcMetadata;
 import org.apache.calcite.avatica.proto.Responses.SyncResultsResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
@@ -112,6 +116,10 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new RequestTranslator(ExecuteRequest.parser(), new Service.ExecuteRequest()));
     reqParsers.put(SyncResultsRequest.class.getName(),
         new RequestTranslator(SyncResultsRequest.parser(), new Service.SyncResultsRequest()));
+    reqParsers.put(CommitRequest.class.getName(),
+        new RequestTranslator(CommitRequest.parser(), new Service.CommitRequest()));
+    reqParsers.put(RollbackRequest.class.getName(),
+        new RequestTranslator(RollbackRequest.parser(), new Service.RollbackRequest()));
 
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 
@@ -148,6 +156,10 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new ResponseTranslator(SyncResultsResponse.parser(), new Service.SyncResultsResponse()));
     respParsers.put(RpcMetadata.class.getName(),
         new ResponseTranslator(RpcMetadata.parser(), new RpcMetadataResponse()));
+    respParsers.put(CommitResponse.class.getName(),
+        new ResponseTranslator(CommitResponse.parser(), new Service.CommitResponse()));
+    respParsers.put(RollbackResponse.class.getName(),
+        new ResponseTranslator(RollbackResponse.parser(), new Service.RollbackResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
   }

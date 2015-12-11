@@ -506,6 +506,93 @@ public class RemoteMetaTest {
     }
   }
 
+  @Test public void testCommitRollback() throws Exception {
+    final String productTable = "commitrollback_products";
+    final String salesTable = "commitrollback_sales";
+    ConnectionSpec.getDatabaseLock().lock();
+    try (final Connection conn = DriverManager.getConnection(url);
+        final Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + productTable));
+      assertFalse(stmt.execute(
+          String.format("CREATE TABLE %s(id integer, stock integer)", productTable)));
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + salesTable));
+      assertFalse(stmt.execute(
+          String.format("CREATE TABLE %s(id integer, units_sold integer)", salesTable)));
+
+      final int productId = 1;
+      // No products and no sales
+      assertFalse(stmt.execute(
+          String.format("INSERT INTO %s VALUES(%d, 0)", productTable, productId)));
+      assertFalse(stmt.execute(
+          String.format("INSERT INTO %s VALUES(%d, 0)", salesTable, productId)));
+
+      conn.setAutoCommit(false);
+      PreparedStatement productStmt = conn.prepareStatement(String.format(
+          "UPDATE %s SET stock = stock + ? WHERE id = ?", productTable));
+      PreparedStatement salesStmt = conn.prepareStatement(String.format(
+          "UPDATE %s SET units_sold = units_sold + ? WHERE id = ?", salesTable));
+
+      // No stock
+      assertEquals(0, getInventory(conn, productTable, productId));
+
+      // Set a stock of 10 for product 1
+      productStmt.setInt(1, 10);
+      productStmt.setInt(2, productId);
+      productStmt.executeUpdate();
+
+      conn.commit();
+      assertEquals(10, getInventory(conn, productTable, productId));
+
+      // Sold 5 items (5 in stock, 5 sold)
+      productStmt.setInt(1, -5);
+      productStmt.setInt(2, productId);
+      productStmt.executeUpdate();
+      salesStmt.setInt(1, 5);
+      salesStmt.setInt(2, productId);
+      salesStmt.executeUpdate();
+
+      conn.commit();
+      // We will definitely see the updated values
+      assertEquals(5, getInventory(conn, productTable, productId));
+      assertEquals(5, getSales(conn, salesTable, productId));
+
+      // Update some "bad" values
+      productStmt.setInt(1, -10);
+      productStmt.setInt(2, productId);
+      productStmt.executeUpdate();
+      salesStmt.setInt(1, 10);
+      salesStmt.setInt(2, productId);
+      salesStmt.executeUpdate();
+
+      // We just went negative, nonsense. Better rollback.
+      conn.rollback();
+
+      // Should still have 5 and 5
+      assertEquals(5, getInventory(conn, productTable, productId));
+      assertEquals(5, getSales(conn, salesTable, productId));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  private int getInventory(Connection conn, String productTable, int productId) throws Exception {
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet results = stmt.executeQuery(String.format(
+          "SELECT stock FROM %s WHERE id = %d", productTable, productId));
+      assertTrue(results.next());
+      return results.getInt(1);
+    }
+  }
+
+  private int getSales(Connection conn, String salesTable, int productId) throws Exception {
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet results = stmt.executeQuery(String.format(
+          "SELECT units_sold FROM %s WHERE id = %d", salesTable, productId));
+      assertTrue(results.next());
+      return results.getInt(1);
+    }
+  }
+
   /** Factory that provides a {@link JdbcMeta}. */
   public static class FullyRemoteJdbcMetaFactory implements Meta.Factory {
 

@@ -658,6 +658,14 @@ public class CalciteMetaImpl extends MetaImpl {
     throw new UnsupportedOperationException();
   }
 
+  @Override public void commit(ConnectionHandle ch) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override public void rollback(ConnectionHandle ch) {
+    throw new UnsupportedOperationException();
+  }
+
   /** Metadata describing a Calcite table. */
   private static class CalciteMetaTable extends MetaTable {
     private final Table calciteTable;

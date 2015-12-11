@@ -33,6 +33,8 @@ import org.apache.calcite.avatica.remote.Service.CloseConnectionResponse;
 import org.apache.calcite.avatica.remote.Service.CloseStatementRequest;
 import org.apache.calcite.avatica.remote.Service.CloseStatementResponse;
 import org.apache.calcite.avatica.remote.Service.ColumnsRequest;
+import org.apache.calcite.avatica.remote.Service.CommitRequest;
+import org.apache.calcite.avatica.remote.Service.CommitResponse;
 import org.apache.calcite.avatica.remote.Service.ConnectionSyncRequest;
 import org.apache.calcite.avatica.remote.Service.ConnectionSyncResponse;
 import org.apache.calcite.avatica.remote.Service.CreateStatementRequest;
@@ -51,6 +53,8 @@ import org.apache.calcite.avatica.remote.Service.PrepareResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 import org.apache.calcite.avatica.remote.Service.ResultSetResponse;
+import org.apache.calcite.avatica.remote.Service.RollbackRequest;
+import org.apache.calcite.avatica.remote.Service.RollbackResponse;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 import org.apache.calcite.avatica.remote.Service.SchemasRequest;
 import org.apache.calcite.avatica.remote.Service.SyncResultsRequest;
@@ -206,6 +210,9 @@ public class ProtobufTranslationImplTest<T> {
     requests.add(new SyncResultsRequest("connectionId2", 54321, getMetadataQueryState1(), 0));
     requests.add(new SyncResultsRequest("connectionId3", 5, getMetadataQueryState2(), 10));
 
+    requests.add(new CommitRequest("connectionId"));
+    requests.add(new RollbackRequest("connectionId"));
+
     return requests;
   }
 
@@ -323,6 +330,9 @@ public class ProtobufTranslationImplTest<T> {
     responses.add(new ErrorResponse((List<String>) null, null, 0, null, null, null));
     responses.add(
         new ErrorResponse(Arrays.asList("stacktrace1", "stacktrace2"), null, 0, null, null, null));
+
+    responses.add(new CommitResponse());
+    responses.add(new RollbackResponse());
 
     return responses;
   }

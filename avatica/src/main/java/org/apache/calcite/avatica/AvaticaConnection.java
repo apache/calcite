@@ -172,11 +172,11 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void commit() throws SQLException {
-    throw helper.unsupported();
+    meta.commit(handle);
   }
 
   public void rollback() throws SQLException {
-    throw helper.unsupported();
+    meta.rollback(handle);
   }
 
   public void close() throws SQLException {
