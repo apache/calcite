@@ -8,12 +8,14 @@ requests:
   - { name: "CloseConnectionRequest" }
   - { name: "CloseStatementRequest" }
   - { name: "ColumnsRequest" }
+  - { name: "CommitRequest" }
   - { name: "ConnectionSyncRequest" }
   - { name: "CreateStatementRequest" }
   - { name: "DatabasePropertyRequest" }
   - { name: "FetchRequest" }
   - { name: "PrepareAndExecuteRequest" }
   - { name: "PrepareRequest" }
+  - { name: "RollbackRequest" }
   - { name: "SchemasRequest" }
   - { name: "TableTypesRequest" }
   - { name: "TablesRequest" }
@@ -41,6 +43,8 @@ responses:
   - { name: "CloseConnectionResponse" }
   - { name: "ConnectionSyncResponse" }
   - { name: "DatabasePropertyResponse" }
+  - { name: "CommitResponse" }
+  - { name: "RollbackResponse" }
 ---
 
 <!--
@@ -151,6 +155,17 @@ There are no extra attributes on this Request.
 
 `columnNamePattern` (optional string) A Java Pattern against column names to limit returned columns.
 
+### CommitRequest
+
+{% highlight json %}
+{
+  "request": "commit",
+  "connectionId": "000000-0000-0000-00000000"
+}
+{% endhighlight %}
+
+`connectionId`: (required string) The identifier of the connection on which to invoke commit.
+
 ### ConnectionSyncRequest
 
 {% highlight json %}
@@ -245,6 +260,17 @@ There are no extra attributes on this Request.
 `sql` (required string) A SQL statement
 
 `maxRowCount` (required long) The maximum number of rows returned in the response.
+
+### RollbackRequest
+
+{% highlight json %}
+{
+  "request": "rollback",
+  "connectionId": "000000-0000-0000-00000000"
+}
+{% endhighlight %}
+
+`connectionId` (required string) The identifier for the connection on which to invoke rollback.
 
 ### SchemasRequest
 
@@ -422,6 +448,26 @@ There are no extra attributes on this Response.
 
 `map` A map of <a href="#databaseproperty">DatabaseProperty</a> to value of that property. The value may be some
 primitive type or an array of primitive types.
+
+### CommitResponse
+
+{% highlight json %}
+{
+  "response": "commit"
+}
+{% endhighlight %}
+
+There are no extra attributes on this Response.
+
+### RollbackResponse
+
+{% highlight json %}
+{
+  "response": "rollback"
+}
+{% endhighlight %}
+
+There are no extra attributes on this Response.
 
 ## Miscellaneous
 

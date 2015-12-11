@@ -832,6 +832,24 @@ public class JdbcMeta implements Meta {
     }
   }
 
+  @Override public void commit(ConnectionHandle ch) {
+    try {
+      final Connection conn = getConnection(ch.id);
+      conn.commit();
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
+  @Override public void rollback(ConnectionHandle ch) {
+    try {
+      final Connection conn = getConnection(ch.id);
+      conn.rollback();
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
   /** Configurable statement cache settings. */
   public enum StatementCacheSettings {
     /** JDBC connection property for setting connection cache concurrency level. */

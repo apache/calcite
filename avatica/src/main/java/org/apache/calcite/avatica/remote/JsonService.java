@@ -206,6 +206,22 @@ public abstract class JsonService extends AbstractService {
       throw handle(e);
     }
   }
+
+  public CommitResponse apply(CommitRequest request) {
+    try {
+      return decode(apply(encode(request)), CommitResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
+  public RollbackResponse apply(RollbackRequest request) {
+    try {
+      return decode(apply(encode(request)), RollbackResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
 }
 
 // End JsonService.java

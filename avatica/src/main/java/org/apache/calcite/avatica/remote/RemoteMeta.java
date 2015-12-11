@@ -370,6 +370,26 @@ class RemoteMeta extends MetaImpl {
       throw e;
     }
   }
+
+  @Override public void commit(final ConnectionHandle ch) {
+    connection.invokeWithRetries(new CallableWithoutException<Void>() {
+      public Void call() {
+        final Service.CommitResponse response =
+            service.apply(new Service.CommitRequest(ch.id));
+        return null;
+      }
+    });
+  }
+
+  @Override public void rollback(final ConnectionHandle ch) {
+    connection.invokeWithRetries(new CallableWithoutException<Void>() {
+      public Void call() {
+        final Service.RollbackResponse response =
+            service.apply(new Service.RollbackRequest(ch.id));
+        return null;
+      }
+    });
+  }
 }
 
 // End RemoteMeta.java

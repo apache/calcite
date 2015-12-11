@@ -289,6 +289,22 @@ public interface Meta {
   boolean syncResults(StatementHandle sh, QueryState state, long offset)
       throws NoSuchStatementException;
 
+  /**
+   * Makes all changes since the last commit/rollback permanent. Analogy to
+   * {@link Connection#commit()}.
+   *
+   * @param ch A reference to the real JDBC Connection.
+   */
+  void commit(ConnectionHandle ch);
+
+  /**
+   * Undoes all changes since the last commit/rollback. Analogy to
+   * {@link Connection#rollback()};
+   *
+   * @param ch A reference to the real JDBC Connection.
+   */
+  void rollback(ConnectionHandle ch);
+
   /** Sync client and server view of connection properties.
    *
    * <p>Note: this interface is considered "experimental" and may undergo further changes as this

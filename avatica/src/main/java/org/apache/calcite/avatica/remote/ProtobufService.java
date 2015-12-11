@@ -103,6 +103,14 @@ public abstract class ProtobufService extends AbstractService {
     return (SyncResultsResponse) _apply(request);
   }
 
+  @Override public CommitResponse apply(CommitRequest request) {
+    return (CommitResponse) _apply(request);
+  }
+
+  @Override public RollbackResponse apply(RollbackRequest request) {
+    return (RollbackResponse) _apply(request);
+  }
+
   /**
    * Determines whether the given message has the field, denoted by the provided number, set.
    *
@@ -113,6 +121,25 @@ public abstract class ProtobufService extends AbstractService {
    */
   public static boolean hasField(Message msg, Descriptor desc, int fieldNum) {
     return msg.hasField(desc.findFieldByNumber(fieldNum));
+  }
+
+  /**
+   * Checks if the provided {@link Message} is an instance of the Class given by
+   * <code>expectedType</code>. Throws an IllegalArgumentException if the message is not of the
+   * expected type, otherwise, it returns the message cast as the expected type.
+   *
+   * @param msg A Protocol Buffer message.
+   * @param expectedType The expected type of the Protocol Buffer message.
+   * @return The msg cast to the concrete Message type.
+   * @throws IllegalArgumentException If the type of the message is not the expectedType.
+   */
+  public static <T extends Message> T castProtobufMessage(Message msg, Class<T> expectedType) {
+    if (!expectedType.isInstance(msg)) {
+      throw new IllegalArgumentException("Expected instance of " + expectedType.getName()
+          + ", but got " + msg.getClass().getName());
+    }
+
+    return expectedType.cast(msg);
   }
 }
 
