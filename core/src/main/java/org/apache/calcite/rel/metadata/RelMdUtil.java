@@ -18,7 +18,6 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -809,10 +808,15 @@ public class RelMdUtil {
   public static boolean checkInputForCollationAndLimit(RelNode input,
       RelCollation collation, RexNode offset, RexNode fetch) {
     // Check if the input is already sorted
-    ImmutableList<RelCollation> inputCollation =
+    ImmutableList<RelCollation> inputCollations =
         RelMetadataQuery.collations(input);
-    final boolean alreadySorted = RelCollations.equal(
-        ImmutableList.of(collation), inputCollation);
+    boolean alreadySorted = false;
+    for (RelCollation inputCollation : inputCollations) {
+      if (inputCollation.satisfies(collation)) {
+        alreadySorted = true;
+        break;
+      }
+    }
     // Check if we are not reducing the number of tuples
     boolean alreadySmaller = true;
     final Double rowCount = RelMetadataQuery.getMaxRowCount(input);
