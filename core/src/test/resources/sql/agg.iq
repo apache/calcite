@@ -1249,6 +1249,135 @@ EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-1016] "GROUP BY constant" on empty relation should return 0 rows
+# Should return 0 rows
+select '1' from "scott".emp where false group by 1;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# Should return 0 rows
+select count('1') from "scott".emp where false group by 1;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# Should return 1 row
+select count('1') from "scott".emp where false group by ();
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Should return 1 row
+select count('1') from "scott".emp where false;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# As above, but on VALUES rather than table
+# Should return 0 rows
+select '1' from (values (1, 2), (3, 4)) where false group by 1;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# Should return 0 rows
+select count('1') from (values (1, 2), (3, 4)) where false group by 1;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# Should return 1 row
+select count('1') from (values (1, 2), (3, 4)) where false group by ();
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Should return 1 row
+select count('1') from (values (1, 2), (3, 4)) where false;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# As above, but on join
+# Should return 0 rows
+select '1' from "scott".emp join "scott".dept using (deptno) where false group by 1;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# Should return 0 rows
+select count('1') from "scott".emp join "scott".dept using (deptno) where false group by 1;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# Should return 1 row
+select count('1') from "scott".emp join "scott".dept using (deptno) where false group by ();
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Should return 1 row
+select count('1') from "scott".emp join "scott".dept using (deptno) where false;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c
