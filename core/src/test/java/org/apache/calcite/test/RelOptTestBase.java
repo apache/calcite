@@ -32,6 +32,8 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -85,6 +87,17 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
   }
 
   /**
+   * Checks that the plan is the same before and after executing a given
+   * planner. Useful for checking circumstances where rules should not fire.
+   *
+   * @param planner Planner
+   * @param sql     SQL query
+   */
+  protected void checkPlanUnchanged(RelOptPlanner planner, String sql) {
+    checkPlanning(tester, null, planner, sql, true);
+  }
+
+  /**
    * Checks the plan for a SQL statement before/after executing a given rule,
    * with a pre-program to prepare the tree.
    *
@@ -93,11 +106,23 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
    * @param planner    Planner
    * @param sql        SQL query
    */
-  protected void checkPlanning(
-      Tester tester,
-      HepProgram preProgram,
-      RelOptPlanner planner,
-      String sql) {
+  protected void checkPlanning(Tester tester, HepProgram preProgram,
+      RelOptPlanner planner, String sql) {
+    checkPlanning(tester, preProgram, planner, sql, false);
+  }
+
+  /**
+   * Checks the plan for a SQL statement before/after executing a given rule,
+   * with a pre-program to prepare the tree.
+   *
+   * @param tester     Tester
+   * @param preProgram Program to execute before comparing before state
+   * @param planner    Planner
+   * @param sql        SQL query
+   * @param unchanged  Whether the rule is to have no effect
+   */
+  protected void checkPlanning(Tester tester, HepProgram preProgram,
+      RelOptPlanner planner, String sql, boolean unchanged) {
     final DiffRepository diffRepos = getDiffRepos();
     String sql2 = diffRepos.expand("sql", sql);
     final RelRoot root = tester.convertSqlToRel(sql2);
@@ -132,7 +157,15 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     RelNode relAfter = planner.findBestExp();
 
     String planAfter = NL + RelOptUtil.toString(relAfter);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    if (unchanged) {
+      assertThat(planAfter, is(planBefore));
+    } else {
+      diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+      if (planBefore.equals(planAfter)) {
+        throw new AssertionError("Expected plan before and after is the same.\n"
+            + "You must use unchanged=true or call checkPlanUnchanged");
+      }
+    }
   }
 }
 
