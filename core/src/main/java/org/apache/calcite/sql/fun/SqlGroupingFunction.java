@@ -26,7 +26,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  *
  * <p>This function is defined in the SQL standard.
  *
- * <p>Some examples are in {@code agg.oq}.
+ * <p>Some examples are in {@code agg.iq}.
  */
 class SqlGroupingFunction extends SqlAbstractGroupFunction {
   public SqlGroupingFunction() {

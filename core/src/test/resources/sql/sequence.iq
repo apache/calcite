@@ -1,4 +1,4 @@
-# sequence.oq - Sequences
+# sequence.iq - Sequences
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -76,4 +76,4 @@ select * from "metadata".tables;
 
 !ok
 
-# End sequence.oq
+# End sequence.iq

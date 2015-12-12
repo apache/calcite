@@ -3058,7 +3058,8 @@ public class JdbcTest {
         .query("select \"store_id\", \"grocery_sqft\" from \"store\"\n"
             + "where \"store_id\" < 10\n"
             + "order by 1 fetch first 5 rows only")
-        .explainContains("PLAN=EnumerableCalc(expr#0..23=[{inputs}], store_id=[$t0], grocery_sqft=[$t16])\n"
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..23=[{inputs}], store_id=[$t0], grocery_sqft=[$t16])\n"
             + "  EnumerableLimit(fetch=[5])\n"
             + "    EnumerableCalc(expr#0..23=[{inputs}], expr#24=[10], expr#25=[<($t0, $t24)], proj#0..23=[{exprs}], $condition=[$t25])\n"
             + "      EnumerableTableScan(table=[[foodmart2, store]])\n")
@@ -4307,7 +4308,7 @@ public class JdbcTest {
 
   /** Tests CALCITE-980: different flavors of boolean logic */
   @Test public void testBooleansInWhere() throws Exception {
-    checkRun("sql/conditions.oq");
+    checkRun("sql/conditions.iq");
   }
 
   /** Tests CALCITE-980: different flavors of boolean logic */
@@ -4613,25 +4614,25 @@ public class JdbcTest {
 
   /** Runs the dummy script, which is checked in empty but which you may
    * use as scratch space during development. */
-  // Do not add '@Ignore'; just remember not to commit changes to dummy.oq
+  // Do not add '@Ignore'; just remember not to commit changes to dummy.iq
   @Test public void testRunDummy() throws Exception {
-    checkRun("sql/dummy.oq");
+    checkRun("sql/dummy.iq");
   }
 
   @Test public void testRunAgg() throws Exception {
-    checkRun("sql/agg.oq");
+    checkRun("sql/agg.iq");
   }
 
   @Test public void testRunJoin() throws Exception {
-    checkRun("sql/join.oq");
+    checkRun("sql/join.iq");
   }
 
   @Test public void testRunOuter() throws Exception {
-    checkRun("sql/outer.oq");
+    checkRun("sql/outer.iq");
   }
 
   @Test public void testRunWinAgg() throws Exception {
-    checkRun("sql/winagg.oq");
+    checkRun("sql/winagg.iq");
   }
 
   @Test public void testRunMisc() throws Exception {
@@ -4641,35 +4642,35 @@ public class JdbcTest {
       // Oracle as the JDBC data source.
       return;
     }
-    checkRun("sql/misc.oq");
+    checkRun("sql/misc.iq");
   }
 
   @Test public void testRunSequence() throws Exception {
-    checkRun("sql/sequence.oq");
+    checkRun("sql/sequence.iq");
   }
 
   @Test public void testRunSort() throws Exception {
-    checkRun("sql/sort.oq");
+    checkRun("sql/sort.iq");
   }
 
   @Test public void testRunScalar() throws Exception {
-    checkRun("sql/scalar.oq");
+    checkRun("sql/scalar.iq");
   }
 
   @Test public void testRunSubquery() throws Exception {
-    checkRun("sql/subquery.oq");
+    checkRun("sql/subquery.iq");
   }
 
   private void checkRun(String path) throws Exception {
     final File inFile;
     final File outFile;
     if (path.startsWith("/")) {
-      // e.g. path = "/tmp/foo.oq"
+      // e.g. path = "/tmp/foo.iq"
       inFile = new File(path);
       outFile = new File(path + ".out");
     } else {
-      // e.g. path = "sql/outer.oq"
-      // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.oq"
+      // e.g. path = "sql/outer.iq"
+      // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
       final URL inUrl = JdbcTest.class.getResource("/" + path);
       String x = inUrl.getFile();
       assert x.endsWith(path);

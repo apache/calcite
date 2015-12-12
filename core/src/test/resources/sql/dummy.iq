@@ -1,4 +1,4 @@
-# dummy.oq - Scratch space
+# dummy.iq - Scratch space
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -20,4 +20,4 @@ values 1;
 EXPR$0
 1
 !ok
-# End dummy.oq
+# End dummy.iq

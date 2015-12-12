@@ -1,4 +1,4 @@
-# sort.oq - Sorting and collation
+# sort.iq - Sorting and collation
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -176,4 +176,4 @@ order by 1;
 
 !ok
 
-# End sort.oq
+# End sort.iq

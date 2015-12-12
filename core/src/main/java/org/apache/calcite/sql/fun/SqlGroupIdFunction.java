@@ -27,7 +27,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * <p>This function is not defined in the SQL standard; our implementation is
  * consistent with Oracle.
  *
- * <p>Some examples are in {@code agg.oq}.
+ * <p>Some examples are in {@code agg.iq}.
  */
 class SqlGroupIdFunction extends SqlAbstractGroupFunction {
   public SqlGroupIdFunction() {

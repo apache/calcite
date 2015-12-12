@@ -1,4 +1,4 @@
-# winagg.oq - Unit tests for windowed aggregation, verified on Postgres
+# winagg.iq - Unit tests for windowed aggregation, verified on Postgres
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -320,4 +320,4 @@ group by deptno, ename;
 
 !ok
 
-# End winagg.oq
+# End winagg.iq

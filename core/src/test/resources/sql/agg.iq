@@ -1,4 +1,4 @@
-# agg.oq - Aggregate functions
+# agg.iq - Aggregate functions
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -1344,4 +1344,4 @@ group by grouping sets(CURRENT_USER);
 
 !ok
 
-# End agg.oq
+# End agg.iq

@@ -1,4 +1,4 @@
-# subquery.oq - Queries involving IN and EXISTS sub-queries
+# subquery.iq - Queries involving IN and EXISTS sub-queries
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -275,4 +275,4 @@ GROUP BY emp.deptno;
 
 !ok
 
-# End subquery.oq
+# End subquery.iq

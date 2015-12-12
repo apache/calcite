@@ -1,4 +1,4 @@
-# join.oq - Join query tests
+# join.iq - Join query tests
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -285,4 +285,4 @@ EnumerableLimit(fetch=[10])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
-# End join.oq
+# End join.iq
