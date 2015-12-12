@@ -98,6 +98,21 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
         .itemIf("fetch", fetch, fetch != null);
   }
 
+  @Override public double getRows() {
+    double rowCount = super.getRows();
+    final int offset =
+        this.offset == null ? 0 : RexLiteral.intValue(this.offset);
+    rowCount = Math.max(rowCount - offset, 0D);
+
+    if (this.fetch != null) {
+      final int limit = RexLiteral.intValue(this.fetch);
+      if (limit < rowCount) {
+        return (double) limit;
+      }
+    }
+    return rowCount;
+  }
+
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();

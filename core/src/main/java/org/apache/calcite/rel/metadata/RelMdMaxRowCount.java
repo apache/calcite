@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
@@ -131,6 +132,21 @@ public class RelMdMaxRowCount {
     // For Values, the maximum row count is the actual row count.
     // This is especially useful if Values is empty.
     return (double) values.getTuples().size();
+  }
+
+  public Double getMaxRowCount(RelSubset rel) {
+    // FIXME This is a short-term fix for CALCITE-1018. A complete
+    // solution will come with CALCITE-794.
+    for (RelNode node : rel.getRels()) {
+      if (node instanceof Sort) {
+        Sort sort = (Sort) node;
+        if (sort.fetch != null) {
+          return (double) RexLiteral.intValue(sort.fetch);
+        }
+      }
+    }
+
+    return Double.POSITIVE_INFINITY;
   }
 
   // Catch-all rule when none of the others apply.
