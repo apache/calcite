@@ -1638,11 +1638,13 @@ public abstract class Mappings {
       if ((target < 0) && mappingType.isMandatorySource()) {
         throw new IllegalArgumentException("Target is required");
       }
-      if ((target >= targetCount) && (targetCount >= 0)) {
+      if ((target >= targetCount) && (targetCount >= 0) && mappingType.isMandatorySource()) {
         throw new IllegalArgumentException(
             "Target must be less than target count, " + targetCount);
       }
-      targets[source] = target;
+      if ((target >= 0) && target < targetCount) {
+        targets[source] = target;
+      }
     }
 
     public void setAll(Mapping mapping) {
