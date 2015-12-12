@@ -1378,6 +1378,33 @@ select count('1') from "scott".emp join "scott".dept using (deptno) where false;
 
 !ok
 
+# [CALCITE-1023] Planner rule that removes Aggregate keys that are constant
+select job, sum(sal) as sum_sal, deptno
+from "scott".emp
+where deptno = 10
+group by deptno, job;
++-----------+---------+--------+
+| JOB       | SUM_SAL | DEPTNO |
++-----------+---------+--------+
+| CLERK     | 1300.00 |     10 |
+| MANAGER   | 2450.00 |     10 |
+| PRESIDENT | 5000.00 |     10 |
++-----------+---------+--------+
+(3 rows)
+
+!ok
+!if (fixed.calcite794) {
+select job, sum(sal) as sum_sal, deptno
+from "scott".emp
+where deptno = 10
+group by deptno, job;
+EnumerableCalc(expr#0..2=[{inputs}], JOB=[$t0], SUM_SAL=[$t2], DEPTNO=[$t1])
+  EnumerableAggregate(group=[{2, 7}], SUM_SAL=[SUM($5)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[10], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!}
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c

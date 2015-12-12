@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Exchange;
@@ -44,8 +45,10 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
@@ -207,9 +210,10 @@ public class RelMdPredicates {
     RelOptPredicateList childInfo =
         RelMetadataQuery.getPulledUpPredicates(child);
 
-    return RelOptPredicateList.of(
-        Iterables.concat(childInfo.pulledUpPredicates,
-            RelOptUtil.conjunctions(filter.getCondition())));
+    return Util.first(childInfo, RelOptPredicateList.EMPTY)
+        .union(
+            RelOptPredicateList.of(
+                RelOptUtil.conjunctions(filter.getCondition())));
   }
 
   /** Infers predicates for a {@link org.apache.calcite.rel.core.SemiJoin}. */
@@ -328,6 +332,21 @@ public class RelMdPredicates {
   public RelOptPredicateList getPredicates(Exchange exchange) {
     RelNode child = exchange.getInput();
     return RelMetadataQuery.getPulledUpPredicates(child);
+  }
+
+  /** @see RelMetadataQuery#getPulledUpPredicates(RelNode) */
+  public RelOptPredicateList getPredicates(RelSubset r) {
+    if (!Bug.CALCITE_794_FIXED) {
+      return RelOptPredicateList.EMPTY;
+    }
+    RelOptPredicateList list = null;
+    for (RelNode r2 : r.getRels()) {
+      RelOptPredicateList list2 = RelMetadataQuery.getPulledUpPredicates(r2);
+      if (list2 != null) {
+        list = list == null ? list2 : list.union(list2);
+      }
+    }
+    return Util.first(list, RelOptPredicateList.EMPTY);
   }
 
   /**

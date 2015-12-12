@@ -199,7 +199,8 @@ ProjectRel(EXPR$0=[1])
     </TestCase>
     <TestCase name="testSemiJoinReduceConstants">
         <Resource name="sql">
-            <![CDATA[select e1.sal from (select * from emp where deptno = 200) as e1
+            <![CDATA[select e1.sal
+from (select * from emp where deptno = 200) as e1
 where e1.deptno in (
   select e2.deptno from emp e2 where e2.sal = 100)]]>
         </Resource>
@@ -3914,7 +3915,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     </TestCase>
     <TestCase name="testPushFilterPastAggThree">
         <Resource name="sql">
-            <![CDATA[select deptno from emp group by deptno having count(*) > 1]]>
+            <![CDATA[select deptno from emp
+group by deptno having count(*) > 1]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -4231,6 +4233,89 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
       LogicalProject(NAME=[$0])
         LogicalProject(NAME=[$1])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateConstantKeyRule">
+        <Resource name="sql">
+            <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(C=[$2])
+  LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(C=[$2])
+  LogicalProject(DEPTNO=[10], SAL=[$0], C=[$1])
+    LogicalAggregate(group=[{1}], C=[COUNT()])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateConstantKeyRule2">
+        <Resource name="sql">
+            <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(C=[$1])
+  LogicalAggregate(group=[{0}], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(C=[$1])
+  LogicalAggregate(group=[{0}], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateConstantKeyRule3">
+        <Resource name="sql">
+            <![CDATA[select job
+from sales.emp
+where sal is null and job = 'Clerk'
+group by sal, job
+having count(*) > 3]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(JOB=[$1])
+  LogicalFilter(condition=[>($2, 3)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
+      LogicalProject(SAL=[$5], JOB=[$2])
+        LogicalFilter(condition=[AND(IS NULL($5), =($2, 'Clerk'))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(JOB=[$1])
+  LogicalFilter(condition=[>($2, 3)])
+    LogicalProject(SAL=[$0], JOB=['Clerk'], $f1=[$1])
+      LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+        LogicalProject(SAL=[$5], JOB=[$2])
+          LogicalFilter(condition=[AND(IS NULL($5), =($2, 'Clerk'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

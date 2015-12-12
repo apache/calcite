@@ -20,7 +20,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 /**
  * Predicates that are known to hold in the output of a particular relational
@@ -74,10 +73,21 @@ public class RelOptPredicateList {
 
   public RelOptPredicateList union(RelOptPredicateList list) {
     return RelOptPredicateList.of(
-        Iterables.concat(pulledUpPredicates, list.pulledUpPredicates),
-        Iterables.concat(leftInferredPredicates, list.leftInferredPredicates),
-        Iterables.concat(rightInferredPredicates,
-            list.rightInferredPredicates));
+        concat(pulledUpPredicates, list.pulledUpPredicates),
+        concat(leftInferredPredicates, list.leftInferredPredicates),
+        concat(rightInferredPredicates, list.rightInferredPredicates));
+  }
+
+  /** Concatenates two immutable lists, avoiding a copy it possible. */
+  private static <E> ImmutableList<E> concat(ImmutableList<E> list1,
+      ImmutableList<E> list2) {
+    if (list1.isEmpty()) {
+      return list2;
+    } else if (list2.isEmpty()) {
+      return list1;
+    } else {
+      return ImmutableList.<E>builder().addAll(list1).addAll(list2).build();
+    }
   }
 
   public RelOptPredicateList shift(int offset) {

@@ -4688,10 +4688,22 @@ public class JdbcTest {
     final Function<String, Object> env =
         new Function<String, Object>() {
           public Object apply(String varName) {
-            if (varName.equals("jdk18")) {
+            switch (varName) {
+            case "jdk18":
               return System.getProperty("java.version").startsWith("1.8");
+            case "fixed":
+              return new Function<String, Object>() {
+                public Object apply(String v) {
+                  switch (v) {
+                  case "calcite794":
+                    return Bug.CALCITE_794_FIXED;
+                  }
+                  return null;
+                }
+              };
+            default:
+              return null;
             }
-            return null;
           }
         };
     final Quidem.NewConnectionFactory connectionFactory =

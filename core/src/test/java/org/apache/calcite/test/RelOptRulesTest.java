@@ -36,6 +36,7 @@ import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.rules.AggregateConstantKeyRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -486,7 +487,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
     final String sql = "select e1.sal\n"
-        + " from (select * from emp where deptno = 200) as e1\n"
+        + "from (select * from emp where deptno = 200) as e1\n"
         + "where e1.deptno in (\n"
         + "  select e2.deptno from emp e2 where e2.sal = 100)";
     checkPlanning(tester.withDecorrelation(false).withTrim(true), preProgram,
@@ -2021,6 +2022,46 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1023">[CALCITE-1023]
+   * Planner rule that removes Aggregate keys that are constant</a>. */
+  @Test public void testAggregateConstantKeyRule() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno, sal";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Tests {@link AggregateConstantKeyRule} where reduction is not possible
+   * because "deptno" is the only key. */
+  @Test public void testAggregateConstantKeyRule2() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Tests {@link AggregateConstantKeyRule} where both keys are constants but
+   * only one can be removed. */
+  @Test public void testAggregateConstantKeyRule3() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .build();
+    final String sql = "select job\n"
+        + "from sales.emp\n"
+        + "where sal is null and job = 'Clerk'\n"
+        + "group by sal, job\n"
+        + "having count(*) > 3";
+    checkPlanning(new HepPlanner(program), sql);
+  }
 }
 
 // End RelOptRulesTest.java
