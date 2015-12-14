@@ -396,7 +396,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     List<Boolean> addCasts = Lists.newArrayList();
     final List<RexNode> removableCasts = Lists.newArrayList();
     final ImmutableMap<RexNode, RexLiteral> constants =
-        predicateConstants(predicates);
+        predicateConstants(rexBuilder, predicates);
     findReducibleExps(rel.getCluster().getTypeFactory(), expList, constants,
         constExps, addCasts, removableCasts);
     if (constExps.isEmpty() && removableCasts.isEmpty()) {
@@ -508,7 +508,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   }
 
   protected static ImmutableMap<RexNode, RexLiteral> predicateConstants(
-      RelOptPredicateList predicates) {
+      RexBuilder rexBuilder, RelOptPredicateList predicates) {
     // We cannot use an ImmutableMap.Builder here. If there are multiple entries
     // with the same key (e.g. "WHERE deptno = 1 AND deptno = 2"), it doesn't
     // matter which we take, so the latter will replace the former.
@@ -521,7 +521,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final Map<RexNode, RexLiteral> map = new HashMap<>();
     final Set<RexNode> excludeSet = new HashSet<>();
     for (RexNode predicate : predicates.pulledUpPredicates) {
-      gatherConstraints(map, predicate, excludeSet);
+      gatherConstraints(predicate, map, excludeSet, rexBuilder);
     }
     final ImmutableMap.Builder<RexNode, RexLiteral> builder =
         ImmutableMap.builder();
@@ -559,8 +559,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
   }
 
-  private static void gatherConstraints(Map<RexNode, RexLiteral> map,
-      RexNode predicate, Set<RexNode> excludeSet) {
+  private static void gatherConstraints(RexNode predicate,
+      Map<RexNode, RexLiteral> map, Set<RexNode> excludeSet,
+      RexBuilder rexBuilder) {
     if (predicate.getKind() != SqlKind.EQUALS) {
       decompose(excludeSet, predicate);
       return;
@@ -575,28 +576,68 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final RexNode right = operands.get(1);
     // note that literals are immutable too and they can only be compared through
     // values.
-    if (right instanceof RexLiteral && !excludeSet.contains(left)) {
-      RexLiteral existedValue = map.get(left);
-      if (existedValue == null) {
-        map.put(left, (RexLiteral) right);
-      } else {
-        if (!existedValue.getValue().equals(((RexLiteral) right).getValue())) {
-          // we found conflict values.
-          map.remove(left);
-          excludeSet.add(left);
+    if (right instanceof RexLiteral) {
+      foo(left, (RexLiteral) right, map, excludeSet, rexBuilder);
+    }
+    if (left instanceof RexLiteral) {
+      foo(right, (RexLiteral) left, map, excludeSet, rexBuilder);
+    }
+  }
+
+  private static void foo(RexNode left, RexLiteral right,
+      Map<RexNode, RexLiteral> map, Set<RexNode> excludeSet,
+      RexBuilder rexBuilder) {
+    if (excludeSet.contains(left)) {
+      return;
+    }
+    final RexLiteral existedValue = map.get(left);
+    if (existedValue == null) {
+      switch (left.getKind()) {
+      case CAST:
+        // Convert "CAST(c) = literal" to "c = literal", as long as it is a
+        // widening cast.
+        final RexNode operand = ((RexCall) left).getOperands().get(0);
+        if (canAssignFrom(left.getType(), operand.getType())) {
+          final RexNode castRight =
+              rexBuilder.makeCast(operand.getType(), right);
+          if (castRight instanceof RexLiteral) {
+            left = operand;
+            right = (RexLiteral) castRight;
+          }
         }
       }
-    } else if (left instanceof RexLiteral && !excludeSet.contains(right)) {
-      RexLiteral existedValue = map.get(right);
-      if (existedValue == null) {
-        map.put(right, (RexLiteral) left);
-      } else {
-        if (!existedValue.getValue().equals(((RexLiteral) left).getValue())) {
-          map.remove(right);
-          excludeSet.add(right);
-        }
+      map.put(left, right);
+    } else {
+      if (!existedValue.getValue().equals(right.getValue())) {
+        // we found conflicting values, e.g. left = 10 and left = 20
+        map.remove(left);
+        excludeSet.add(left);
       }
     }
+  }
+
+  /** Returns whether a value of {@code type2} can be assigned to a variable
+   * of {@code type1}.
+   *
+   * <p>For example:
+   * <ul>
+   *   <li>{@code canAssignFrom(BIGINT, TINYINT)} returns {@code true}</li>
+   *   <li>{@code canAssignFrom(TINYINT, BIGINT)} returns {@code false}</li>
+   *   <li>{@code canAssignFrom(BIGINT, VARCHAR)} returns {@code false}</li>
+   * </ul>
+   */
+  private static boolean canAssignFrom(RelDataType type1, RelDataType type2) {
+    final SqlTypeName name1 = type1.getSqlTypeName();
+    final SqlTypeName name2 = type2.getSqlTypeName();
+    if (name1.getFamily() == name2.getFamily()) {
+      switch (name1.getFamily()) {
+      case NUMERIC:
+        return name1.compareTo(name2) >= 0;
+      default:
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Pushes predicates into a CASE.

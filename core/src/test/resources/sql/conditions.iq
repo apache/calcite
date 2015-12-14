@@ -1,4 +1,4 @@
-# conditions.oq - conditions
+# conditions.iq - conditions
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -257,3 +257,5 @@ select "value" from "nullables" a
 (0 rows)
 
 !ok
+
+# End conditions.iq

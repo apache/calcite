@@ -36,6 +36,7 @@ import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.rules.AggregateConstantKeyRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -229,12 +230,11 @@ public class RelOptRulesTest extends RelOptTestBase {
         HepProgram.builder()
             .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
             .build();
+    final String sql = "select *\n"
+        + "from dept left join emp using (deptno)\n"
+        + "where emp.deptno is not null and emp.sal > 100";
     checkPlanning(tester.withDecorrelation(true).withTrim(true), preProgram,
-        new HepPlanner(program),
-        "select * from dept where exists (\n"
-            + "  select * from emp\n"
-            + "  where emp.deptno = dept.deptno\n"
-            + "  and emp.sal > 100)");
+        new HepPlanner(program), sql);
   }
 
   @Test public void testFullOuterJoinSimplificationToLeftOuter() {
@@ -280,7 +280,8 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " where dname = 'Charlie'");
   }
 
-  private void basePushFilterPastAggWithGroupingSets() throws Exception {
+  private void basePushFilterPastAggWithGroupingSets(boolean unchanged)
+      throws Exception {
     final HepProgram preProgram =
             HepProgram.builder()
                 .addRuleInstance(ProjectMergeRule.INSTANCE)
@@ -290,15 +291,16 @@ public class RelOptRulesTest extends RelOptTestBase {
             HepProgram.builder()
                 .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
                 .build();
-    checkPlanning(tester, preProgram, new HepPlanner(program), "${sql}");
+    checkPlanning(tester, preProgram, new HepPlanner(program), "${sql}",
+        unchanged);
   }
 
   @Test public void testPushFilterPastAggWithGroupingSets1() throws Exception {
-    basePushFilterPastAggWithGroupingSets();
+    basePushFilterPastAggWithGroupingSets(true);
   }
 
   @Test public void testPushFilterPastAggWithGroupingSets2() throws Exception {
-    basePushFilterPastAggWithGroupingSets();
+    basePushFilterPastAggWithGroupingSets(false);
   }
 
   /** Test case for
@@ -316,8 +318,13 @@ public class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-799">[CALCITE-799]
    * Incorrect result for {@code HAVING count(*) > 1}</a>. */
   @Test public void testPushFilterPastAggThree() {
-    checkPlanning(FilterAggregateTransposeRule.INSTANCE,
-        "select deptno from emp group by deptno having count(*) > 1");
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
+            .build();
+    final String sql = "select deptno from emp\n"
+        + "group by deptno having count(*) > 1";
+    checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
   /** Test case for
@@ -473,18 +480,18 @@ public class RelOptRulesTest extends RelOptTestBase {
    * ReduceExpressionsRule tries to reduce SemiJoin condition to non-equi
    * condition</a>. */
   @Test public void testSemiJoinReduceConstants() {
-    final HepProgram preProgram = HepProgram.builder().addRuleInstance(
-        SemiJoinRule.INSTANCE)
-            .build();
-
-    final HepProgram program = HepProgram.builder().addRuleInstance(
-        ReduceExpressionsRule.JOIN_INSTANCE)
-            .build();
+    final HepProgram preProgram = HepProgram.builder()
+        .addRuleInstance(SemiJoinRule.INSTANCE)
+        .build();
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+    final String sql = "select e1.sal\n"
+        + "from (select * from emp where deptno = 200) as e1\n"
+        + "where e1.deptno in (\n"
+        + "  select e2.deptno from emp e2 where e2.sal = 100)";
     checkPlanning(tester.withDecorrelation(false).withTrim(true), preProgram,
-        new HepPlanner(program),
-        "select e1.sal from (select * from emp where deptno = 200) as e1\n"
-            + "where e1.deptno in (\n"
-            + "  select e2.deptno from emp e2 where e2.sal = 100)");
+        new HepPlanner(program), sql, true);
   }
 
   protected void semiJoinTrim() {
@@ -845,10 +852,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
 
-    checkPlanning(program,
-        "select d.deptno"
-            + " from dept d"
-            + " where d.deptno=7 and d.deptno=8");
+    final String sql = "select d.deptno"
+        + " from dept d"
+        + " where d.deptno=7 and d.deptno=8";
+    checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
   /** Test case for
@@ -980,8 +987,9 @@ public class RelOptRulesTest extends RelOptTestBase {
         .setExecutor(null);
 
     // Rule should not fire, but there should be no NPE
-    checkPlanning(program,
-        "select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)");
+    final String sql =
+        "select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)";
+    checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
   @Test public void testAlreadyFalseEliminatesFilter() throws Exception {
@@ -1754,26 +1762,27 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testPushFilterWithRank() throws Exception {
-    HepProgram program = new HepProgramBuilder().addRuleInstance(
-        FilterProjectTransposeRule.INSTANCE).build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterProjectTransposeRule.INSTANCE).build();
     final String sql = "select e1.ename, r\n"
         + "from (\n"
         + "  select ename, "
         + "  rank() over(partition by  deptno order by sal) as r "
         + "  from emp) e1\n"
         + "where r < 2";
-    checkPlanning(program, sql);
+    checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
   @Test public void testPushFilterWithRankExpr() throws Exception {
-    HepProgram program = new HepProgramBuilder().addRuleInstance(
-        FilterProjectTransposeRule.INSTANCE).build();
-    checkPlanning(program, "select e1.ename, r\n"
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterProjectTransposeRule.INSTANCE).build();
+    final String sql = "select e1.ename, r\n"
         + "from (\n"
         + "  select ename,\n"
         + "  rank() over(partition by  deptno order by sal) + 1 as r "
         + "  from emp) e1\n"
-        + "where r < 2");
+        + "where r < 2";
+    checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
   /** Test case for
@@ -1853,7 +1862,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "from (select * from sales.emp where empno = 10) as e "
         + "join sales.dept as d on e.empno < d.deptno "
         + "group by e.empno,d.deptno";
-    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
   }
 
   /** SUM is the easiest aggregate function to split. */
@@ -1977,9 +1986,9 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
     // This one cannot be pushed down
     final String sql = "select * from sales.emp left join (\n"
-            + "select * from sales.dept) using (deptno)\n"
-            + "order by sal, name limit 10";
-    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+        + "select * from sales.dept) using (deptno)\n"
+        + "order by sal, name limit 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
   }
 
   /** Test case for
@@ -2013,6 +2022,46 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1023">[CALCITE-1023]
+   * Planner rule that removes Aggregate keys that are constant</a>. */
+  @Test public void testAggregateConstantKeyRule() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno, sal";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Tests {@link AggregateConstantKeyRule} where reduction is not possible
+   * because "deptno" is the only key. */
+  @Test public void testAggregateConstantKeyRule2() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Tests {@link AggregateConstantKeyRule} where both keys are constants but
+   * only one can be removed. */
+  @Test public void testAggregateConstantKeyRule3() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .build();
+    final String sql = "select job\n"
+        + "from sales.emp\n"
+        + "where sal is null and job = 'Clerk'\n"
+        + "group by sal, job\n"
+        + "having count(*) > 3";
+    checkPlanning(new HepPlanner(program), sql);
+  }
 }
 
 // End RelOptRulesTest.java

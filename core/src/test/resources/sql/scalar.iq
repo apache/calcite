@@ -1,4 +1,4 @@
-# scalar.oq - Scalar sub-queries
+# scalar.iq - Scalar sub-queries
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -213,4 +213,4 @@ select deptno, (select empno from "scott".emp order by empno limit 1) as x from 
 
 !ok
 
-# End scalar.oq
+# End scalar.iq

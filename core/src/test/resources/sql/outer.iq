@@ -1,4 +1,4 @@
-# outer.oq - Various kinds of outer join
+# outer.iq - Various kinds of outer join
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -346,4 +346,4 @@ select * from t1 full join t2 on t1.x = t2.x;
 
 !ok
 
-# End outer.oq
+# End outer.iq
