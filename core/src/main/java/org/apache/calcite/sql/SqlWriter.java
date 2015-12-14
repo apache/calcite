@@ -310,6 +310,16 @@ public interface SqlWriter {
   void identifier(String name);
 
   /**
+   * Prints fetch clause
+   */
+  void fetch(SqlNode fetch);
+
+  /**
+   * Prints offset clause
+   */
+  void offset(SqlNode offset);
+
+  /**
    * Prints a new line, and indents.
    */
   void newlineAndIndent();

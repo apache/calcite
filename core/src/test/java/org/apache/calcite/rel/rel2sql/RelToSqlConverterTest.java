@@ -28,7 +28,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -43,19 +42,24 @@ import static org.junit.Assert.assertTrue;
 public class RelToSqlConverterTest {
   private Planner logicalPlanner = getPlanner(null);
 
-  private void checkRel2Sql(Planner planner, String query, String expectedQeury) {
+  private void checkRel2Sql(Planner planner, String query, String expectedQuery,
+                            SqlDialect dialect) {
     try {
       SqlNode parse = planner.parse(query);
       SqlNode validate = planner.validate(parse);
       RelNode rel = planner.rel(validate).rel;
       final RelToSqlConverter converter =
-          new RelToSqlConverter(SqlDialect.CALCITE);
+          new RelToSqlConverter(dialect);
       final SqlNode sqlNode = converter.visitChild(0, rel).asQuery();
-      assertThat(sqlNode.toSqlString(SqlDialect.CALCITE).getSql(),
-          equalTo(expectedQeury));
+      assertThat(sqlNode.toSqlString(dialect).getSql(),
+          equalTo(expectedQuery));
     } catch (Exception e) {
       assertTrue("Parsing failed throwing error: " + e.getMessage(), false);
     }
+  }
+
+  private void checkRel2Sql(Planner planner, String query, String expectedQuery) {
+    checkRel2Sql(planner, query, expectedQuery, SqlDialect.CALCITE);
   }
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
@@ -268,15 +272,13 @@ public class RelToSqlConverterTest {
             + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"");
   }
 
-  @Ignore("Need to fix this by enhancing dialects")
   @Test
   public void testSelectQueryWithLimitClause() {
     String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
     checkRel2Sql(this.logicalPlanner,
         query,
-        "SELECT \"product_id\"\n"
-            + "FROM \"foodmart\".\"product\"\n"
-            + "LIMIT 100 OFFSET 10");
+        "SELECT product_id\nFROM foodmart.product\nOFFSET 10\nLIMIT 100",
+        SqlDialect.DatabaseProduct.HIVE.getDialect());
   }
 
   @Test

@@ -902,6 +902,38 @@ public class SqlPrettyWriter implements SqlWriter {
     setNeedWhitespace(true);
   }
 
+  public void offset(SqlNode offset) {
+    final SqlWriter.Frame offsetFrame =
+        this.startList(SqlWriter.FrameTypeEnum.OFFSET);
+    this.newlineAndIndent();
+    if (dialect.isUseOffsetOnly()) {
+      this.keyword("OFFSET");
+      offset.unparse(this, -1, -1);
+      this.keyword("ROWS");
+    } else {
+      this.keyword("OFFSET");
+      offset.unparse(this, -1, -1);
+    }
+    this.endList(offsetFrame);
+  }
+
+  public void fetch(SqlNode fetch) {
+    final SqlWriter.Frame fetchFrame =
+        this.startList(SqlWriter.FrameTypeEnum.FETCH);
+    this.newlineAndIndent();
+    if (dialect.isUseFetch()) {
+      this.keyword("FETCH");
+      this.keyword("NEXT");
+      fetch.unparse(this, -1, -1);
+      this.keyword("ROWS");
+      this.keyword("ONLY");
+    } else {
+      this.keyword("LIMIT");
+      fetch.unparse(this, -1, -1);
+    }
+    this.endList(fetchFrame);
+  }
+
   public Frame startFunCall(String funName) {
     keyword(funName);
     setNeedWhitespace(false);

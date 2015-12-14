@@ -62,6 +62,8 @@ public class SqlDialect {
   private final String identifierEscapedQuote;
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
+  private boolean useFetch;
+  private boolean useOffsetOnly;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -113,7 +115,7 @@ public class SqlDialect {
       throw new IllegalArgumentException("cannot deduce null collation", e);
     }
     return new SqlDialect(databaseProduct, databaseProductName,
-        identifierQuoteString, nullCollation);
+        identifierQuoteString, nullCollation, true, true);
   }
 
   /**
@@ -131,7 +133,7 @@ public class SqlDialect {
       String databaseProductName,
       String identifierQuoteString) {
     this(databaseProduct, databaseProductName, identifierQuoteString,
-        NullCollation.HIGH);
+        NullCollation.HIGH, true, true);
   }
 
   /**
@@ -143,11 +145,15 @@ public class SqlDialect {
    *                              is not supported. If "[", close quote is
    *                              deemed to be "]".
    * @param nullCollation         Whether NULL values appear first or last
+   * @param useFetch              Whether to use keyword FETCH or LIMIT
+   * @param useOffsetOnly         Whether to use keyword OFFSET ONLY or OFFSET
    */
   public SqlDialect(
       DatabaseProduct databaseProduct,
       String databaseProductName,
-      String identifierQuoteString, NullCollation nullCollation) {
+      String identifierQuoteString,
+      NullCollation nullCollation,
+      boolean useFetch, boolean useOffsetOnly) {
     Preconditions.checkNotNull(this.nullCollation = nullCollation);
     Preconditions.checkNotNull(databaseProductName);
     this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
@@ -168,6 +174,8 @@ public class SqlDialect {
         identifierQuoteString == null
             ? null
             : this.identifierEndQuoteString + this.identifierEndQuoteString;
+    this.useFetch = useFetch;
+    this.useOffsetOnly = useOffsetOnly;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -232,6 +240,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
+    } else if (upperProductName.equals("REDSHIFT")) {
+      return DatabaseProduct.REDSHIFT;
     } else {
       return DatabaseProduct.UNKNOWN;
     }
@@ -259,6 +269,46 @@ public class SqlDialect {
             identifierEndQuoteString,
             identifierEscapedQuote);
     return identifierQuoteString + val2 + identifierEndQuoteString;
+  }
+
+  /**
+   * Method returns whether FETCH keyword should be used or LIMIT
+   *
+   * @return true, if FETCH keyword needs to be used,
+   * false if LIMIT keyword should be used.
+   */
+  public boolean isUseFetch() {
+    return useFetch;
+  }
+
+  /**
+   * Method sets whether FETCH keyword should be used or LIMIT
+   *
+   * @param useFetch true, if FETCH keyword needs to be used,
+   * false if LIMIT keyword should be used.
+   */
+  public void setUseFetch(boolean useFetch) {
+    this.useFetch = useFetch;
+  }
+
+  /**
+   * Method returns whether OFFSET ONLY should be used or just OFFSET
+   *
+   * @return true, if OFFSET N ONLY needs to be used,
+   * false if OFFSET N should be used.
+   */
+  public boolean isUseOffsetOnly() {
+    return useOffsetOnly;
+  }
+
+  /**
+   * Method sets whether OFFSET ONLY should be used or just OFFSET
+   *
+   * @param useOffsetOnly true, if OFFSET N ONLY needs to be used,
+   * false if OFFSET N should be used.
+   */
+  public void setUseOffsetOnly(boolean useOffsetOnly) {
+    this.useOffsetOnly = useOffsetOnly;
   }
 
   /**
@@ -554,13 +604,13 @@ public class SqlDialect {
     ACCESS("Access", "\"", NullCollation.HIGH),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
     MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
-    MYSQL("MySQL", "`", NullCollation.HIGH),
+    MYSQL("MySQL", "`", NullCollation.HIGH, false, false),
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     H2("H2", "\"", NullCollation.HIGH),
-    HIVE("Apache Hive", null, NullCollation.HIGH),
+    HIVE("Apache Hive", null, NullCollation.HIGH, false, false),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
@@ -576,6 +626,7 @@ public class SqlDialect {
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     PARACCEL("Paraccel", "\"", NullCollation.HIGH),
+    REDSHIFT("Redshift", "\"", NullCollation.HIGH, false, false),
     /**
      * Placeholder for the unknown database.
      *
@@ -589,12 +640,21 @@ public class SqlDialect {
     private String databaseProductName;
     private String quoteString;
     private final NullCollation nullCollation;
+    private final boolean useFetch;
+    private final boolean useOffset;
 
     DatabaseProduct(String databaseProductName, String quoteString,
-        NullCollation nullCollation) {
+                    NullCollation nullCollation) {
+      this(databaseProductName, quoteString, nullCollation, true, true);
+    }
+
+    DatabaseProduct(String databaseProductName, String quoteString,
+        NullCollation nullCollation, boolean useFetch, boolean useOffset) {
       this.databaseProductName = databaseProductName;
       this.quoteString = quoteString;
       this.nullCollation = nullCollation;
+      this.useFetch = useFetch;
+      this.useOffset = useOffset;
     }
 
     /**
@@ -612,7 +672,7 @@ public class SqlDialect {
       if (dialect == null) {
         dialect =
             new SqlDialect(this, databaseProductName, quoteString,
-                nullCollation);
+                nullCollation, useFetch, useOffset);
       }
       return dialect;
     }
