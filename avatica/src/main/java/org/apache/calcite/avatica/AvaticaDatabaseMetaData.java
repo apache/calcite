@@ -88,7 +88,7 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getUserName() throws SQLException {
-    return connection.info.getProperty("user");
+    return connection.getInfo().getProperty("user");
   }
 
   public boolean isReadOnly() throws SQLException {

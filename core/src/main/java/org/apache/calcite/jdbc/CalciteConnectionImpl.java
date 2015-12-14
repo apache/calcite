@@ -135,7 +135,7 @@ abstract class CalciteConnectionImpl
   }
 
   public CalciteConnectionConfig config() {
-    return new CalciteConnectionConfigImpl(info);
+    return new CalciteConnectionConfigImpl(getInfo());
   }
 
   /** Called after the constructor has completed and the model has been
@@ -229,7 +229,7 @@ abstract class CalciteConnectionImpl
   }
 
   public Properties getProperties() {
-    return info;
+    return getInfo();
   }
 
   // QueryProvider methods
