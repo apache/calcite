@@ -236,12 +236,7 @@ public class SqlSelectOperator extends SqlOperator {
       unparseListClause(writer, select.orderBy);
       writer.endList(orderFrame);
     }
-    if (select.offset != null) {
-      writer.offset(select.offset);
-    }
-    if (select.fetch != null) {
-      writer.fetch(select.fetch);
-    }
+    writer.fetchOffset(select.fetch, select.offset);
     writer.endList(selectFrame);
   }
 

@@ -277,7 +277,7 @@ public class RelToSqlConverterTest {
     String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
     checkRel2Sql(this.logicalPlanner,
         query,
-        "SELECT product_id\nFROM foodmart.product\nOFFSET 10\nLIMIT 100",
+        "SELECT product_id\nFROM foodmart.product\nLIMIT 100\nOFFSET 10",
         SqlDialect.DatabaseProduct.HIVE.getDialect());
   }
 

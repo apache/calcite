@@ -62,8 +62,6 @@ public class SqlDialect {
   private final String identifierEscapedQuote;
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
-  private boolean useFetch;
-  private boolean useOffsetOnly;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -115,7 +113,7 @@ public class SqlDialect {
       throw new IllegalArgumentException("cannot deduce null collation", e);
     }
     return new SqlDialect(databaseProduct, databaseProductName,
-        identifierQuoteString, nullCollation, true, true);
+        identifierQuoteString, nullCollation);
   }
 
   /**
@@ -133,7 +131,7 @@ public class SqlDialect {
       String databaseProductName,
       String identifierQuoteString) {
     this(databaseProduct, databaseProductName, identifierQuoteString,
-        NullCollation.HIGH, true, true);
+        NullCollation.HIGH);
   }
 
   /**
@@ -145,15 +143,12 @@ public class SqlDialect {
    *                              is not supported. If "[", close quote is
    *                              deemed to be "]".
    * @param nullCollation         Whether NULL values appear first or last
-   * @param useFetch              Whether to use keyword FETCH or LIMIT
-   * @param useOffsetOnly         Whether to use keyword OFFSET ONLY or OFFSET
    */
   public SqlDialect(
       DatabaseProduct databaseProduct,
       String databaseProductName,
       String identifierQuoteString,
-      NullCollation nullCollation,
-      boolean useFetch, boolean useOffsetOnly) {
+      NullCollation nullCollation) {
     Preconditions.checkNotNull(this.nullCollation = nullCollation);
     Preconditions.checkNotNull(databaseProductName);
     this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
@@ -174,8 +169,6 @@ public class SqlDialect {
         identifierQuoteString == null
             ? null
             : this.identifierEndQuoteString + this.identifierEndQuoteString;
-    this.useFetch = useFetch;
-    this.useOffsetOnly = useOffsetOnly;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -269,46 +262,6 @@ public class SqlDialect {
             identifierEndQuoteString,
             identifierEscapedQuote);
     return identifierQuoteString + val2 + identifierEndQuoteString;
-  }
-
-  /**
-   * Method returns whether FETCH keyword should be used or LIMIT
-   *
-   * @return true, if FETCH keyword needs to be used,
-   * false if LIMIT keyword should be used.
-   */
-  public boolean isUseFetch() {
-    return useFetch;
-  }
-
-  /**
-   * Method sets whether FETCH keyword should be used or LIMIT
-   *
-   * @param useFetch true, if FETCH keyword needs to be used,
-   * false if LIMIT keyword should be used.
-   */
-  public void setUseFetch(boolean useFetch) {
-    this.useFetch = useFetch;
-  }
-
-  /**
-   * Method returns whether OFFSET ONLY should be used or just OFFSET
-   *
-   * @return true, if OFFSET N ONLY needs to be used,
-   * false if OFFSET N should be used.
-   */
-  public boolean isUseOffsetOnly() {
-    return useOffsetOnly;
-  }
-
-  /**
-   * Method sets whether OFFSET ONLY should be used or just OFFSET
-   *
-   * @param useOffsetOnly true, if OFFSET N ONLY needs to be used,
-   * false if OFFSET N should be used.
-   */
-  public void setUseOffsetOnly(boolean useOffsetOnly) {
-    this.useOffsetOnly = useOffsetOnly;
   }
 
   /**
@@ -516,6 +469,22 @@ public class SqlDialect {
     }
   }
 
+  /**
+   * Returns whether the dialect supports OFFSET/FETCH clauses
+   * introduced by SQL:2008, for instance
+   * {@code OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY}
+   */
+  public boolean supportsOffsetFetch() {
+    switch (databaseProduct) {
+    case MYSQL:
+    case HIVE:
+    case REDSHIFT:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
@@ -604,13 +573,13 @@ public class SqlDialect {
     ACCESS("Access", "\"", NullCollation.HIGH),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
     MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
-    MYSQL("MySQL", "`", NullCollation.HIGH, false, false),
+    MYSQL("MySQL", "`", NullCollation.HIGH),
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     H2("H2", "\"", NullCollation.HIGH),
-    HIVE("Apache Hive", null, NullCollation.HIGH, false, false),
+    HIVE("Apache Hive", null, NullCollation.HIGH),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
@@ -626,7 +595,7 @@ public class SqlDialect {
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     PARACCEL("Paraccel", "\"", NullCollation.HIGH),
-    REDSHIFT("Redshift", "\"", NullCollation.HIGH, false, false),
+    REDSHIFT("Redshift", "\"", NullCollation.HIGH),
     /**
      * Placeholder for the unknown database.
      *
@@ -671,8 +640,7 @@ public class SqlDialect {
     public SqlDialect getDialect() {
       if (dialect == null) {
         dialect =
-            new SqlDialect(this, databaseProductName, quoteString,
-                nullCollation, useFetch, useOffset);
+            new SqlDialect(this, databaseProductName, quoteString, nullCollation);
       }
       return dialect;
     }
