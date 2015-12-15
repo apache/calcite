@@ -147,8 +147,7 @@ public class SqlDialect {
   public SqlDialect(
       DatabaseProduct databaseProduct,
       String databaseProductName,
-      String identifierQuoteString,
-      NullCollation nullCollation) {
+      String identifierQuoteString, NullCollation nullCollation) {
     Preconditions.checkNotNull(this.nullCollation = nullCollation);
     Preconditions.checkNotNull(databaseProductName);
     this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
@@ -609,21 +608,12 @@ public class SqlDialect {
     private String databaseProductName;
     private String quoteString;
     private final NullCollation nullCollation;
-    private final boolean useFetch;
-    private final boolean useOffset;
 
     DatabaseProduct(String databaseProductName, String quoteString,
-                    NullCollation nullCollation) {
-      this(databaseProductName, quoteString, nullCollation, true, true);
-    }
-
-    DatabaseProduct(String databaseProductName, String quoteString,
-        NullCollation nullCollation, boolean useFetch, boolean useOffset) {
+        NullCollation nullCollation) {
       this.databaseProductName = databaseProductName;
       this.quoteString = quoteString;
       this.nullCollation = nullCollation;
-      this.useFetch = useFetch;
-      this.useOffset = useOffset;
     }
 
     /**
@@ -640,7 +630,8 @@ public class SqlDialect {
     public SqlDialect getDialect() {
       if (dialect == null) {
         dialect =
-            new SqlDialect(this, databaseProductName, quoteString, nullCollation);
+            new SqlDialect(this, databaseProductName, quoteString,
+                nullCollation);
       }
       return dialect;
     }
