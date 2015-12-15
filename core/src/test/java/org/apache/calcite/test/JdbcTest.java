@@ -4330,6 +4330,23 @@ public class JdbcTest {
             "should fail with 'not a number' sql error while converting text to number");
   }
 
+  @Test public void testTrivialSort() {
+    CalciteAssert.that()
+      .withSchema("s", new ReflectiveSchema(new ReflectiveSchemaTest.CatchallSchema()))
+      .query("select a.\"value\", b.\"value\"\n"
+              + "  from \"bools\" a\n"
+              + "     , \"bools\" b\n"
+              + " offset 0"
+      )
+      .returns("value=T; value=T\n"
+              + "value=T; value=F\n"
+              + "value=T; value=null\n"
+              + "value=F; value=T\n"
+              + "value=F; value=F\n"
+              + "value=F; value=null\n");
+
+  }
+
   /** Tests the LIKE operator. */
   @Test public void testLike() {
     CalciteAssert.that()

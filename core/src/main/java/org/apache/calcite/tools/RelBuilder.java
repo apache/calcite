@@ -1259,10 +1259,15 @@ public class RelBuilder {
     if (addedFields) {
       project(extraNodes);
     }
-    final RelNode sort =
-        sortFactory.createSort(build(), RelCollations.of(fieldCollations),
-            offsetNode, fetchNode);
-    push(sort);
+
+    //skip trivial sort node
+    if (!(offsetNode == null && fetchNode == null && fieldCollations.isEmpty())) {
+      final RelNode sort =
+              sortFactory.createSort(build(), RelCollations.of(fieldCollations),
+                      offsetNode, fetchNode);
+      push(sort);
+    }
+
     if (addedFields) {
       project(originalExtraNodes);
     }
