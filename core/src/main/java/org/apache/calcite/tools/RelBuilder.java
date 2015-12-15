@@ -1223,6 +1223,10 @@ public class RelBuilder {
     }
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
+    if (offsetNode == null && fetchNode == null && fieldCollations.isEmpty()) {
+      return this; // sort is trivial
+    }
+
     final boolean addedFields = extraNodes.size() > originalExtraNodes.size();
     if (fieldCollations.isEmpty()) {
       assert !addedFields;

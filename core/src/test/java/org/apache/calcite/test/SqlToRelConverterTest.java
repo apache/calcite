@@ -1124,6 +1124,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         true);
   }
 
+  @Test public void testOffset0() {
+    tester.assertConvertsTo("select * from emp offset 0", "${plan}");
+  }
+
   /**
    * Test group-by CASE expression involving a non-query IN
    */

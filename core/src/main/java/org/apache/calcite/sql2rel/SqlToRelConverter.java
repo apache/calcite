@@ -814,9 +814,12 @@ public class SqlToRelConverter {
       List<SqlNode> orderExprList,
       SqlNode offset,
       SqlNode fetch) {
-    if (select.getOrderList() == null) {
+    if (select.getOrderList() == null
+        || select.getOrderList().getList().isEmpty()) {
       assert collation.getFieldCollations().isEmpty();
-      if (offset == null && fetch == null) {
+      if ((offset == null
+            || ((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO))
+          && fetch == null) {
         return;
       }
     }

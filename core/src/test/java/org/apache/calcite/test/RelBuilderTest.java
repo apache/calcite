@@ -913,6 +913,23 @@ public class RelBuilderTest {
     assertThat(str(root2), is(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1015">[CALCITE-1015]
+   * OFFSET 0 causes AssertionError</a>. */
+  @Test public void testTrivialSort() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   OFFSET 0
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sortLimit(0, -1, ImmutableList.<RexNode>of())
+            .build();
+    final String expected = "LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testSortByExpression() {
     // Equivalent SQL:
     //   SELECT *

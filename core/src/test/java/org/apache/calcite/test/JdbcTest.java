@@ -4330,6 +4330,27 @@ public class JdbcTest {
             "should fail with 'not a number' sql error while converting text to number");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1015">[CALCITE-1015]
+   * OFFSET 0 causes AssertionError</a>. */
+  @Test public void testTrivialSort() {
+    final String sql = "select a.\"value\", b.\"value\"\n"
+        + "  from \"bools\" a\n"
+        + "     , \"bools\" b\n"
+        + " offset 0";
+    CalciteAssert.that()
+        .withSchema("s",
+            new ReflectiveSchema(
+                new ReflectiveSchemaTest.CatchallSchema()))
+        .query(sql)
+        .returnsUnordered("value=T; value=T",
+            "value=T; value=F",
+            "value=T; value=null",
+            "value=F; value=T",
+            "value=F; value=F",
+            "value=F; value=null");
+  }
+
   /** Tests the LIKE operator. */
   @Test public void testLike() {
     CalciteAssert.that()

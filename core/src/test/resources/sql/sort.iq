@@ -147,6 +147,22 @@ select * from e where empid > 100 limit 5;
 
 !ok
 
+# [CALCITE-1015] OFFSET 0 causes AssertionError
+select * from "hr"."emps" offset 0;
++-------+--------+-----------+---------+------------+
+| empid | deptno | name      | salary  | commission |
++-------+--------+-----------+---------+------------+
+|   100 |     10 | Bill      | 10000.0 |       1000 |
+|   110 |     10 | Theodore  | 11500.0 |        250 |
+|   150 |     10 | Sebastian |  7000.0 |            |
+|   200 |     20 | Eric      |  8000.0 |        500 |
++-------+--------+-----------+---------+------------+
+(4 rows)
+
+!ok
+EnumerableTableScan(table=[[hr, emps]])
+!plan
+
 # [CALCITE-634] Allow ORDER BY aggregate function in SELECT DISTINCT, provided
 # that it occurs in SELECT clause
 select distinct "deptno", count(*) as c
