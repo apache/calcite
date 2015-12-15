@@ -260,14 +260,27 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Sort e) {
-    final Result x = visitChild(0, e.getInput());
-    final Builder builder = x.builder(e, Clause.ORDER_BY);
+    Result x = visitChild(0, e.getInput());
+    Builder builder = x.builder(e, Clause.ORDER_BY);
     List<SqlNode> orderByList = Expressions.list();
     for (RelFieldCollation field : e.getCollation().getFieldCollations()) {
       builder.addOrderItem(orderByList, field);
     }
-    builder.setOrderBy(new SqlNodeList(orderByList, POS));
-    return builder.result();
+    if (!orderByList.isEmpty()) {
+      builder.setOrderBy(new SqlNodeList(orderByList, POS));
+      x = builder.result();
+    }
+    if (e.fetch != null) {
+      builder = x.builder(e, Clause.FETCH);
+      builder.setFetch(builder.context.toSql(null, e.fetch));
+      x = builder.result();
+    }
+    if (e.offset != null) {
+      builder = x.builder(e, Clause.OFFSET);
+      builder.setOffset(builder.context.toSql(null, e.offset));
+      x = builder.result();
+    }
+    return x;
   }
 
   /** @see #dispatch */

@@ -232,6 +232,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
+    } else if (upperProductName.equals("REDSHIFT")) {
+      return DatabaseProduct.REDSHIFT;
     } else {
       return DatabaseProduct.UNKNOWN;
     }
@@ -466,6 +468,22 @@ public class SqlDialect {
     }
   }
 
+  /**
+   * Returns whether the dialect supports OFFSET/FETCH clauses
+   * introduced by SQL:2008, for instance
+   * {@code OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY}
+   */
+  public boolean supportsOffsetFetch() {
+    switch (databaseProduct) {
+    case MYSQL:
+    case HIVE:
+    case REDSHIFT:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
@@ -576,6 +594,7 @@ public class SqlDialect {
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     PARACCEL("Paraccel", "\"", NullCollation.HIGH),
+    REDSHIFT("Redshift", "\"", NullCollation.HIGH),
     /**
      * Placeholder for the unknown database.
      *
