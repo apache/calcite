@@ -244,6 +244,9 @@ limitations under the License.
                 <ignoredUnusedDeclaredDependency>net.hydromatic:foodmart-data-hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
+              <ignoredUsedUndeclaredDependencies>
+                <ignoredUsedUndeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUsedUndeclaredDependency>
+              </ignoredUsedUndeclaredDependencies>
             </configuration>
           </execution>
         </executions>

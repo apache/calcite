@@ -22,8 +22,10 @@ import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.remote.LocalJsonService;
 import org.apache.calcite.avatica.remote.LocalService;
 import org.apache.calcite.avatica.remote.Service;
+import org.apache.calcite.avatica.server.AvaticaJsonHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
+import org.apache.calcite.avatica.server.Main.HandlerFactory;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
@@ -152,7 +154,12 @@ public class CalciteRemoteDriverTest {
   @BeforeClass public static void beforeClass() throws Exception {
     localConnection = CalciteAssert.hr().connect();
 
-    start = Main.start(new String[]{Factory.class.getName()});
+    // Make sure we pick an ephemeral port for the server
+    start = Main.start(new String[]{Factory.class.getName()}, 0, new HandlerFactory() {
+      public AvaticaJsonHandler createHandler(Service service) {
+        return new AvaticaJsonHandler(service);
+      }
+    });
     final int port = start.getPort();
     remoteConnection = DriverManager.getConnection(
         "jdbc:avatica:remote:url=http://localhost:" + port);
