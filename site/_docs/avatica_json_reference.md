@@ -12,39 +12,49 @@ requests:
   - { name: "ConnectionSyncRequest" }
   - { name: "CreateStatementRequest" }
   - { name: "DatabasePropertyRequest" }
+  - { name: "ExecuteRequest" }
   - { name: "FetchRequest" }
+  - { name: "OpenConnectionRequest" }
   - { name: "PrepareAndExecuteRequest" }
   - { name: "PrepareRequest" }
   - { name: "RollbackRequest" }
   - { name: "SchemasRequest" }
+  - { name: "SyncResultsRequest" }
   - { name: "TableTypesRequest" }
   - { name: "TablesRequest" }
   - { name: "TypeInfoRequest" }
 miscellaneous:
-  - { name: "ConnectionProperties" }
-  - { name: "TypedValue" }
-  - { name: "Signature" }
-  - { name: "Frame" }
-  - { name: "StatementHandle" }
-  - { name: "DatabaseProperty" }
-  - { name: "ColumnMetaData" }
   - { name: "AvaticaParameter" }
+  - { name: "AvaticaSeverity" }
   - { name: "AvaticaType" }
-  - { name: "Rep" }
+  - { name: "ColumnMetaData" }
+  - { name: "ConnectionProperties" }
   - { name: "CursorFactory" }
+  - { name: "DatabaseProperty" }
+  - { name: "Frame" }
+  - { name: "QueryState" }
+  - { name: "Rep" }
+  - { name: "RpcMetadata" }
+  - { name: "Signature" }
+  - { name: "StateType" }
+  - { name: "StatementHandle" }
   - { name: "Style" }
+  - { name: "TypedValue" }
 responses:
-  - { name: "ResultSetResponse" }
-  - { name: "ExecuteResponse" }
-  - { name: "PrepareResponse" }
-  - { name: "FetchResponse" }
-  - { name: "CreateStatementResponse" }
-  - { name: "CloseStatementResponse" }
   - { name: "CloseConnectionResponse" }
-  - { name: "ConnectionSyncResponse" }
-  - { name: "DatabasePropertyResponse" }
+  - { name: "CloseStatementResponse" }
   - { name: "CommitResponse" }
+  - { name: "ConnectionSyncResponse" }
+  - { name: "CreateStatementResponse" }
+  - { name: "DatabasePropertyResponse" }
+  - { name: "ErrorResponse" }
+  - { name: "ExecuteResponse" }
+  - { name: "FetchResponse" }
+  - { name: "OpenConnectionResponse" }
+  - { name: "PrepareResponse" }
+  - { name: "ResultSetResponse" }
   - { name: "RollbackResponse" }
+  - { name: "SyncResultsResponse" }
 ---
 
 <!--
@@ -201,6 +211,23 @@ There are no extra attributes on this Request.
 
 There are no extra attributes on this Request.
 
+### ExecuteRequest
+
+{% highlight json %}
+{
+  "request": "execute",
+  "statementHandle": StatementHandle,
+  "parameterValues": [TypedValue, TypedValue, ... ],
+  "maxRowCount": 100
+}
+{% endhighlight %}
+
+`statementHandle` (required object) A <a href="#statementhandle">StatementHandle</a> object.
+
+`parameterValues` (optional array of nested objects) The <a href="#typedvalue">TypedValue</a> for each parameter on the prepared statement.
+
+`maxRowCount` (required long) The maximum number of rows returned in the response.
+
 ### FetchRequest
 
 {% highlight json %}
@@ -222,7 +249,21 @@ There are no extra attributes on this Request.
 
 `fetchMatchRowCount` (required integer) The maximum number of rows to return in the response to this request.
 
-`parameterValues` (optional array of nested objects) The types of the object to set on the prepared statement in use.
+`parameterValues` (optional array of nested objects) The <a href="#typedvalue">TypedValue</a> for each parameter on the prepared statement.
+
+### OpenConnectionRequest
+
+{% highlight json %}
+{
+  "request": "openConnection",
+  "connectionId": "000000-0000-0000-00000000",
+  "info": {"key":"value", ...}
+}
+{% endhighlight %}
+
+`connectionId` (required string) The identifier of the connection to open in the server.
+
+`info` (optional string-to-string map) A Map containing properties to include when creating the Connection.
 
 ### PrepareAndExecuteRequest
 
@@ -260,6 +301,26 @@ There are no extra attributes on this Request.
 `sql` (required string) A SQL statement
 
 `maxRowCount` (required long) The maximum number of rows returned in the response.
+
+### SyncResultsRequest
+
+{% highlight json %}
+{
+  "request": "syncResults",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "state": QueryState,
+  "offset": 200
+}
+{% endhighlight %}
+
+`connectionId` (required string) The identifier for the connection to use.
+
+`statementId` (required integer) The identifier for the statement to use.
+
+`state` (required object) The <a href="#querystate">QueryState</a> object.
+
+`offset` (required long) The offset into the ResultSet to seek to.
 
 ### RollbackRequest
 
@@ -331,6 +392,163 @@ There are no extra attributes on this Request.
 The collection of all JSON objects returned as responses from Avatica. All Responses include a `response` attribute
 which uniquely identifies the concrete Response from all other Responses.
 
+### CloseConnectionResponse
+
+{% highlight json %}
+{
+  "response": "closeConnection",
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### CloseStatementResponse
+
+{% highlight json %}
+{
+  "response": "closeStatement",
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### CommitResponse
+
+{% highlight json %}
+{
+  "response": "commit"
+}
+{% endhighlight %}
+
+There are no extra attributes on this Response.
+
+### ConnectionSyncResponse
+
+{% highlight json %}
+{
+  "response": "connectionSync",
+  "connProps": ConnectionProperties,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`connProps` The <a href="#connectionproperties">ConnectionProperties</a> that were synchronized.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### CreateStatementResponse
+
+{% highlight json %}
+{
+  "response": "createStatement",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`connectionId` The identifier for the connection used to create the statement.
+
+`statementId` The identifier for the created statement.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### DatabasePropertyResponse
+
+{% highlight json %}
+{
+  "response": "databaseProperties",
+  "map": { DatabaseProperty: Object, DatabaseProperty: Object, ... },
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`map` A map of <a href="#databaseproperty">DatabaseProperty</a> to value of that property. The value may be some
+primitive type or an array of primitive types.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### ErrorResponse
+
+{% highlight json %}
+{
+  "response": "error",
+  "exceptions": [ "stacktrace", "stacktrace", ... ],
+  "errorMessage": "The error message",
+  "errorCode": 42,
+  "sqlState": "ABC12",
+  "severity": AvaticaSeverity,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`exceptions` A list of stringified Java StackTraces.
+
+`errorMessage` A human-readable error message.
+
+`errorCode` A numeric code for this error.
+
+`sqlState` A five character alphanumeric code for this error.
+
+`severity` An <a href="#avaticaseverity">AvaticaSeverity</a> object which denotes how critical the error is.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### ExecuteResponse
+
+{% highlight json %}
+{
+  "response": "executeResults",
+  "resultSets": [ ResultSetResponse, ResultSetResponse, ... ],
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`resultSets` An array of <a href="#resultsetresponse">ResultSetResponse</a>s.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### FetchResponse
+
+{% highlight json %}
+{
+  "response": "fetch",
+  "frame": Frame,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`frame` A <a href="#frame">Frame</a> containing the results of the fetch.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### OpenConnectionResponse
+
+{% highlight json %}
+{
+  "response": "openConnection",
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### PrepareResponse
+
+{% highlight json %}
+{
+  "response": "prepare",
+  "statement": StatementHandle,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`statement` A <a href="#statementhandle">StatementHandle</a> object.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
 ### ResultSetResponse
 
 {% highlight json %}
@@ -341,7 +559,8 @@ which uniquely identifies the concrete Response from all other Responses.
   "ownStatement": true,
   "signature": Signature,
   "firstFrame": Frame,
-  "updateCount": 10
+  "updateCount": 10,
+  "rpcMetadata": RpcMetadata
 }
 {% endhighlight %}
 
@@ -359,105 +578,7 @@ statement when the result set is closed. This is used for JDBC metadata result s
 `updateCount` A number which is always `-1` for normal result sets. Any other value denotes a "dummy" result set
 that only contains this count and no additional data.
 
-### ExecuteResponse
-
-{% highlight json %}
-{
-  "response": "executeResults",
-  "resultSets": [ ResultSetResponse, ResultSetResponse, ... ]
-}
-{% endhighlight %}
-
-`resultSets` An array of <a href="#resultsetresponse">ResultSetResponse</a>s.
-
-### PrepareResponse
-
-{% highlight json %}
-{
-  "response": "prepare",
-  "statement": StatementHandle
-}
-{% endhighlight %}
-
-`statement` A <a href="#statementhandle">StatementHandle</a> object.
-
-### FetchResponse
-
-{% highlight json %}
-{
-  "response": "fetch",
-  "frame": Frame
-}
-{% endhighlight %}
-
-`frame` A <a href="#frame">Frame</a> containing the results of the fetch.
-
-### CreateStatementResponse
-
-{% highlight json %}
-{
-  "response": "createStatement",
-  "connectionId": "000000-0000-0000-00000000",
-  "statementId": 12345
-}
-{% endhighlight %}
-
-`connectionId` The identifier for the connection used to create the statement.
-
-`statementId` The identifier for the created statement.
-
-### CloseStatementResponse
-
-{% highlight json %}
-{
-  "response": "closeStatement",
-}
-{% endhighlight %}
-
-This response has no attributes.
-
-### CloseConnectionResponse
-
-{% highlight json %}
-{
-  "response": "closeConnection",
-}
-{% endhighlight %}
-
-There are no extra attributes on this Response.
-
-### ConnectionSyncResponse
-
-{% highlight json %}
-{
-  "response": "connectionSync",
-  "connProps": ConnectionProperties
-}
-{% endhighlight %}
-
-`connProps` The <a href="#connectionproperties">ConnectionProperties</a> that were synchronized.
-
-### DatabasePropertyResponse
-
-{% highlight json %}
-{
-  "response": "databaseProperties",
-  "map": { DatabaseProperty: Object, DatabaseProperty: Object, ... }
-}
-{% endhighlight %}
-
-`map` A map of <a href="#databaseproperty">DatabaseProperty</a> to value of that property. The value may be some
-primitive type or an array of primitive types.
-
-### CommitResponse
-
-{% highlight json %}
-{
-  "response": "commit"
-}
-{% endhighlight %}
-
-There are no extra attributes on this Response.
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### RollbackResponse
 
@@ -469,108 +590,86 @@ There are no extra attributes on this Response.
 
 There are no extra attributes on this Response.
 
+### SyncResultsResponse
+
+{% highlight json %}
+{
+  "response": "syncResults",
+  "moreResults": true,
+  "missingStatement": false,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`moreResults` A boolean which denotes if results exist for the ResultSet being "synced" per the request.
+
+`missingStatement` A boolean which denotes if the statement for the ResultSet still exists.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
 ## Miscellaneous
 
-### ConnectionProperties
+### AvaticaParameter
 
 {% highlight json %}
 {
-  "connProps": "connPropsImpl",
-  "autoCommit": true,
-  "readOnly": true,
-  "transactionIsolation": 0,
-  "catalog": "catalog",
-  "schema": "schema"
+  "signed": true,
+  "precision": 10,
+  "scale": 2,
+  "parameterType": 8,
+  "typeName": "integer",
+  "className": "java.lang.Integer",
+  "name": "number"
 }
 {% endhighlight %}
 
-`autoCommit` (optional boolean) A boolean denoting if autoCommit is enabled for transactions.
+`signed` A boolean denoting whether the column is a signed numeric.
 
-`readOnly` (optional boolean) A boolean denoting if a JDBC connection is read-only.
+`precision` The maximum numeric precision supported by this column.
 
-`transactionIsolation` (optional integer) An integer which denotes the level of transactions isolation per the JDBC
-specification. This value is analogous to the values define in `java.sql.Connection`.
+`scale` The maximum numeric scale supported by this column.
 
-* 0 = Transactions are not supported
-* 1 = Dirty reads, non-repeatable reads and phantom reads may occur.
-* 2 = Dirty reads are prevented, but non-repeatable reads and phantom reads may occur.
-* 4 = Dirty reads and non-repeatable reads are prevented, but phantom reads may occur.
-* 8 = Dirty reads, non-repeatable reads, and phantom reads are all prevented.
+`parameterType` An integer corresponding to the JDBC Types class denoting the column's type.
 
-### TypedValue
+`typeName` The JDBC type name for this column.
 
-{% highlight json %}
-{
-  "type": "type_name",
-  "value": object
-}
-{% endhighlight %}
+`className` The Java class backing the JDBC type for this column.
 
-`type` A name referring to the type of the object stored in `value`.
+`name` The name of the column.
 
-`value` A JSON representation of a JDBC type.
-
-### Signature
-
-{% highlight json %}
-{
-  "columns": [ ColumnMetaData, ColumnMetaData, ... ],
-  "sql": "SELECT * FROM table",
-  "parameters": [ AvaticaParameter, AvaticaParameter, ... ],
-  "cursorFactory": CursorFactory
-}
-{% endhighlight %}
-
-`columns` An array of <a href="#columnmetadata">ColumnMetaData</a> objects denoting the schema of the result set.
-
-`sql` The SQL executed.
-
-`parameters` An array of <a href="#avaticaparameter">AvaticaParameter</a> objects denoting type-specific details.
-
-`cursorFactory` An <a href="#cursorfactory">CursorFactory</a> object representing the Java representation of the frame.
-
-### Frame
-
-{% highlight json %}
-{
-  "offset": 100,
-  "done": true,
-  "rows": [ [ val1, val2, ... ], ... ]
-}
-{% endhighlight %}
-
-`offset` The starting position of these `rows` in the encompassing result set.
-
-`done` A boolean denoting whether more results exist for this result set.
-
-`rows` An array of arrays corresponding to the rows and columns for the result set.
-
-### StatementHandle
-
-{% highlight json %}
-{
-  "connectionId": "000000-0000-0000-00000000",
-  "id": 12345,
-  "signature": Signature
-}
-{% endhighlight %}
-
-`connectionId` The identifier of the connection to which this statement belongs.
-
-`id` The identifier of the statement.
-
-`signature` A <a href="#signature">Signature</a> object for the statement.
-
-### DatabaseProperty
+### AvaticaSeverity
 
 One of:
 
-* "GET_STRING_FUNCTIONS"
-* "GET_NUMERIC_FUNCTIONS"
-* "GET_SYSTEM_FUNCTIONS"
-* "GET_TIME_DATE_FUNCTIONS"
-* "GET_S_Q_L_KEYWORDS"
-* "GET_DEFAULT_TRANSACTION_ISOLATION"
+* `UNKNOWN`
+* `FATAL`
+* `ERROR`
+* `WARNING`
+
+### AvaticaType
+
+{% highlight json %}
+{
+  "type": "scalar",
+  "id": "identifier",
+  "name": "column",
+  "rep": Rep,
+  "columns": [ ColumnMetaData, ColumnMetaData, ... ],
+  "component": AvaticaType
+}
+{% endhighlight %}
+
+`type` One of: `scalar`, `array`, `struct`.
+
+`id` A numeric value corresponding to the type of the object per the JDBC Types class.
+
+`name` The readable name of the JDBC type.
+
+`rep` A nested <a href="#rep">Rep</a> object used by Avatica to hold additional type information.
+
+`columns` For `STRUCT` types, a list of the columns contained in that `STRUCT`.
+
+`component` For `ARRAY` types, the type of the elements contained in that `ARRAY`.
 
 ### ColumnMetaData
 
@@ -643,87 +742,31 @@ One of:
 
 `columnClassName` The name of the Java class backing the column's type.
 
-### AvaticaParameter
+### ConnectionProperties
 
 {% highlight json %}
 {
-  "signed": true,
-  "precision": 10,
-  "scale": 2,
-  "parameterType": 8,
-  "typeName": "integer",
-  "className": "java.lang.Integer",
-  "name": "number"
+  "connProps": "connPropsImpl",
+  "autoCommit": true,
+  "readOnly": true,
+  "transactionIsolation": 0,
+  "catalog": "catalog",
+  "schema": "schema"
 }
 {% endhighlight %}
 
-`signed` A boolean denoting whether the column is a signed numeric.
+`autoCommit` (optional boolean) A boolean denoting if autoCommit is enabled for transactions.
 
-`precision` The maximum numeric precision supported by this column.
+`readOnly` (optional boolean) A boolean denoting if a JDBC connection is read-only.
 
-`scale` The maximum numeric scale supported by this column.
+`transactionIsolation` (optional integer) An integer which denotes the level of transactions isolation per the JDBC
+specification. This value is analogous to the values define in `java.sql.Connection`.
 
-`parameterType` An integer corresponding to the JDBC Types class denoting the column's type.
-
-`typeName` The JDBC type name for this column.
-
-`className` The Java class backing the JDBC type for this column.
-
-`name` The name of the column.
-
-### AvaticaType
-
-{% highlight json %}
-{
-  "type": "scalar",
-  "id": "identifier",
-  "name": "column",
-  "rep": Rep,
-  "columns": [ ColumnMetaData, ColumnMetaData, ... ],
-  "component": AvaticaType
-}
-{% endhighlight %}
-
-`type` One of: `scalar`, `array`, `struct`.
-
-`id` A numeric value corresponding to the type of the object per the JDBC Types class.
-
-`name` The readable name of the JDBC type.
-
-`rep` A nested <a href="#rep">Rep</a> object used by Avatica to hold additional type information.
-
-`columns` For `STRUCT` types, a list of the columns contained in that `STRUCT`.
-
-`component` For `ARRAY` types, the type of the elements contained in that `ARRAY`.
-
-### Rep
-
-One of:
-
-* "PRIMITIVE_BOOLEAN"
-* "PRIMITIVE_BYTE"
-* "PRIMITIVE_CHAR"
-* "PRIMITIVE_SHORT"
-* "PRIMITIVE_INT"
-* "PRIMITIVE_LONG"
-* "PRIMITIVE_FLOAT"
-* "PRIMITIVE_DOUBLE"
-* "BOOLEAN"
-* "BYTE"
-* "CHARACTER"
-* "SHORT"
-* "INTEGER"
-* "LONG"
-* "FLOAT"
-* "DOUBLE"
-* "JAVA_SQL_TIME"
-* "JAVA_SQL_TIMESTAMP"
-* "JAVA_SQL_DATE"
-* "JAVA_UTIL_DATE"
-* "BYTE_STRING"
-* "STRING"
-* "NUMBER"
-* "OBJECT"
+* 0 = Transactions are not supported
+* 1 = Dirty reads, non-repeatable reads and phantom reads may occur.
+* 2 = Dirty reads are prevented, but non-repeatable reads and phantom reads may occur.
+* 4 = Dirty reads and non-repeatable reads are prevented, but phantom reads may occur.
+* 8 = Dirty reads, non-repeatable reads, and phantom reads are all prevented.
 
 ### CursorFactory
 
@@ -737,13 +780,153 @@ One of:
 
 `style` A string denoting the <a href="#style">Style</a> of the contained objects.
 
+### DatabaseProperty
+
+One of:
+
+* `GET_STRING_FUNCTIONS`
+* `GET_NUMERIC_FUNCTIONS`
+* `GET_SYSTEM_FUNCTIONS`
+* `GET_TIME_DATE_FUNCTIONS`
+* `GET_S_Q_L_KEYWORDS`
+* `GET_DEFAULT_TRANSACTION_ISOLATION`
+
+### Frame
+
+{% highlight json %}
+{
+  "offset": 100,
+  "done": true,
+  "rows": [ [ val1, val2, ... ], ... ]
+}
+{% endhighlight %}
+
+`offset` The starting position of these `rows` in the encompassing result set.
+
+`done` A boolean denoting whether more results exist for this result set.
+
+`rows` An array of arrays corresponding to the rows and columns for the result set.
+
+### QueryState
+
+{% highlight json %}
+{
+  "type": StateType,
+  "sql": "SELECT * FROM table",
+  "metaDataOperation": MetaDataOperation,
+  "operationArgs": ["arg0", "arg1", ... ]
+}
+{% endhighlight %}
+
+`type` A <a href="#statetype">StateType</a> object denoting what type of operation backs the ResultSet for this query.
+
+`sql` The SQL statement which created the ResultSet for this query. Required if the `type` is `SQL`.
+
+`metaDataOperation` The DML operation which created the ResultSet for this query. Required if the `type` is `METADATA`.
+
+`operationArgs` The arguments to the invoked DML operation. Required if the `type` is `METADATA`.
+
+### Rep
+
+One of:
+
+* `PRIMITIVE_BOOLEAN`
+* `PRIMITIVE_BYTE`
+* `PRIMITIVE_CHAR`
+* `PRIMITIVE_SHORT`
+* `PRIMITIVE_INT`
+* `PRIMITIVE_LONG`
+* `PRIMITIVE_FLOAT`
+* `PRIMITIVE_DOUBLE`
+* `BOOLEAN`
+* `BYTE`
+* `CHARACTER`
+* `SHORT`
+* `INTEGER`
+* `LONG`
+* `FLOAT`
+* `DOUBLE`
+* `JAVA_SQL_TIME`
+* `JAVA_SQL_TIMESTAMP`
+* `JAVA_SQL_DATE`
+* `JAVA_UTIL_DATE`
+* `BYTE_STRING`
+* `STRING`
+* `NUMBER`
+* `OBJECT`
+
+### RpcMetadata
+
+{% highlight json %}
+{
+  "serverAddress": "http://localhost:8765"
+}
+{% endhighlight %}
+
+`serverAddress` The URL of the server which created this object.
+
+### Signature
+
+{% highlight json %}
+{
+  "columns": [ ColumnMetaData, ColumnMetaData, ... ],
+  "sql": "SELECT * FROM table",
+  "parameters": [ AvaticaParameter, AvaticaParameter, ... ],
+  "cursorFactory": CursorFactory
+}
+{% endhighlight %}
+
+`columns` An array of <a href="#columnmetadata">ColumnMetaData</a> objects denoting the schema of the result set.
+
+`sql` The SQL executed.
+
+`parameters` An array of <a href="#avaticaparameter">AvaticaParameter</a> objects denoting type-specific details.
+
+`cursorFactory` An <a href="#cursorfactory">CursorFactory</a> object representing the Java representation of the frame.
+
+### StateType
+
+One of:
+
+* `SQL`
+* `METADATA`
+
+### StatementHandle
+
+{% highlight json %}
+{
+  "connectionId": "000000-0000-0000-00000000",
+  "id": 12345,
+  "signature": Signature
+}
+{% endhighlight %}
+
+`connectionId` The identifier of the connection to which this statement belongs.
+
+`id` The identifier of the statement.
+
+`signature` A <a href="#signature">Signature</a> object for the statement.
+
 ### Style
 
 One of:
 
-* "OBJECT"
-* "RECORD"
-* "RECORD_PROJECTION"
-* "ARRAY"
-* "LIST"
-* "MAP"
+* `OBJECT`
+* `RECORD`
+* `RECORD_PROJECTION`
+* `ARRAY`
+* `LIST`
+* `MAP`
+
+### TypedValue
+
+{% highlight json %}
+{
+  "type": "type_name",
+  "value": object
+}
+{% endhighlight %}
+
+`type` A name referring to the type of the object stored in `value`.
+
+`value` A JSON representation of a JDBC type.
