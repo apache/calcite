@@ -598,12 +598,13 @@ public class CalciteMetaImpl extends MetaImpl {
     } else {
       iterator = stmt.getResultSet();
     }
-    final List<List<Object>> list = new ArrayList<>();
-    List<List<Object>> rows =
+    final List rows =
         MetaImpl.collect(signature.cursorFactory,
-            LimitIterator.of(iterator, fetchMaxRowCount), list);
-    boolean done = fetchMaxRowCount == 0 || list.size() < fetchMaxRowCount;
-    return new Meta.Frame(offset, done, (List<Object>) (List) rows);
+            LimitIterator.of(iterator, fetchMaxRowCount),
+            new ArrayList<List<Object>>());
+    boolean done = fetchMaxRowCount == 0 || rows.size() < fetchMaxRowCount;
+    @SuppressWarnings("unchecked") List<Object> rows1 = (List<Object>) rows;
+    return new Meta.Frame(offset, done, rows1);
   }
 
   @Override public ExecuteResult execute(StatementHandle h,
@@ -611,26 +612,20 @@ public class CalciteMetaImpl extends MetaImpl {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
     final Signature signature = stmt.getSignature();
-    final Iterator<Object> iterator;
-
-    final Iterable<Object> iterable =
-        _createIterable(h, signature, parameterValues, null);
-    iterator = iterable.iterator();
-    stmt.setResultSet(iterator);
 
     MetaResultSet metaResultSet;
     if (signature.statementType.canUpdate()) {
+      final Iterable<Object> iterable =
+          _createIterable(h, signature, parameterValues, null);
+      final Iterator<Object> iterator = iterable.iterator();
+      stmt.setResultSet(iterator);
       metaResultSet = MetaResultSet.count(h.connectionId, h.id,
           ((Number) iterator.next()).intValue());
     } else {
-      final List<List<Object>> list = new ArrayList<>();
-      List<List<Object>> rows =
-          MetaImpl.collect(signature.cursorFactory,
-              LimitIterator.of(iterator, maxRowCount), list);
-      final boolean done = maxRowCount == 0 || list.size() < maxRowCount;
+      // Don't populate the first frame.
+      // It's not worth saving a round-trip, since we're local.
       final Meta.Frame frame =
-          new Meta.Frame(0, done, (List<Object>) (List) rows);
-
+          new Meta.Frame(0, false, Collections.emptyList());
       metaResultSet =
           MetaResultSet.create(h.connectionId, h.id, false, signature, frame);
     }

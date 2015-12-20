@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.util.Bug;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -199,8 +200,19 @@ public class Enumerables {
 
   /** Converts an {@link Enumerable} over object arrays into an
    * {@link Enumerable} over {@link Row} objects. */
-  public static Enumerable<Row> toRow(final Enumerable<Object[]> enumerator) {
-    return enumerator.select(ARRAY_TO_ROW);
+  public static Enumerable<Row> toRow(final Enumerable<Object[]> enumerable) {
+    return enumerable.select(ARRAY_TO_ROW);
+  }
+
+  /** Converts a supplier of an {@link Enumerable} over object arrays into a
+   * supplier of an {@link Enumerable} over {@link Row} objects. */
+  public static Supplier<Enumerable<Row>>
+  toRow(final Supplier<Enumerable<Object[]>> supplier) {
+    return new Supplier<Enumerable<Row>>() {
+      public Enumerable<Row> get() {
+        return toRow(supplier.get());
+      }
+    };
   }
 
   /** Joins two inputs that are sorted on the key. */

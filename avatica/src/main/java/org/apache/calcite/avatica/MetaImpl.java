@@ -118,7 +118,7 @@ public abstract class MetaImpl implements Meta {
   }
 
   public static List<List<Object>> collect(CursorFactory cursorFactory,
-      Iterable<Object> iterable, List<List<Object>> list) {
+      Iterable<Object> iterable, final List<List<Object>> list) {
     switch (cursorFactory.style) {
     case OBJECT:
       for (Object o : iterable) {

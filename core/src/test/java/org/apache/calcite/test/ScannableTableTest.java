@@ -35,10 +35,13 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -46,14 +49,19 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -281,6 +289,76 @@ public class ScannableTableTest {
     resultSet.close();
     assertThat(buf.toString(),
       equalTo("returnCount=4, projects=[2]"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
+   * In prepared statement, CsvScannableTable.scan is called twice</a>. */
+  @Test public void testPrepared2() throws SQLException {
+    final Properties properties = new Properties();
+    properties.setProperty("caseSensitive", "true");
+    try (final Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", properties)) {
+      final CalciteConnection calciteConnection = connection.unwrap(
+          CalciteConnection.class);
+
+      final AtomicInteger scanCount = new AtomicInteger();
+      final AtomicInteger enumerateCount = new AtomicInteger();
+      final Schema schema =
+          new AbstractSchema() {
+            @Override protected Map<String, Table> getTableMap() {
+              return ImmutableMap.<String, Table>of("TENS",
+                  new SimpleTable() {
+                    private Enumerable<Object[]> superScan(DataContext root) {
+                      return super.scan(root);
+                    }
+
+                    @Override public Enumerable<Object[]>
+                    scan(final DataContext root) {
+                      scanCount.incrementAndGet();
+                      return new AbstractEnumerable<Object[]>() {
+                        public Enumerator<Object[]> enumerator() {
+                          enumerateCount.incrementAndGet();
+                          return superScan(root).enumerator();
+                        }
+                      };
+                    }
+                  });
+            }
+          };
+      calciteConnection.getRootSchema().add("TEST", schema);
+      final String sql = "select * from \"TEST\".\"TENS\" where \"i\" < ?";
+      final PreparedStatement statement =
+          calciteConnection.prepareStatement(sql);
+      assertThat(scanCount.get(), is(0));
+      assertThat(enumerateCount.get(), is(0));
+
+      // First execute
+      statement.setInt(1, 20);
+      assertThat(scanCount.get(), is(0));
+      ResultSet resultSet = statement.executeQuery();
+      assertThat(scanCount.get(), is(1));
+      assertThat(enumerateCount.get(), is(1));
+      assertThat(resultSet,
+          Matchers.returnsUnordered("i=0", "i=10"));
+      assertThat(scanCount.get(), is(1));
+      assertThat(enumerateCount.get(), is(1));
+
+      // Second execute
+      resultSet = statement.executeQuery();
+      assertThat(scanCount.get(), is(2));
+      assertThat(resultSet,
+          Matchers.returnsUnordered("i=0", "i=10"));
+      assertThat(scanCount.get(), is(2));
+
+      // Third execute
+      statement.setInt(1, 30);
+      resultSet = statement.executeQuery();
+      assertThat(scanCount.get(), is(3));
+      assertThat(resultSet,
+          Matchers.returnsUnordered("i=0", "i=10", "i=20"));
+      assertThat(scanCount.get(), is(3));
+    }
   }
 
   /** Table that returns one column via the {@link ScannableTable} interface. */

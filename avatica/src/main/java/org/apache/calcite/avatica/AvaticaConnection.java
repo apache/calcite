@@ -115,7 +115,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   /** Computes the number of retries
-   * {@link #executeQueryInternal(AvaticaStatement, Meta.Signature, Meta.Frame, QueryState)}
+   * {@link AvaticaStatement#executeInternal(Meta.Signature)}
    * should retry before failing. */
   long getNumStatementRetries(Properties props) {
     return Long.valueOf(Objects.requireNonNull(props)
@@ -517,8 +517,9 @@ public abstract class AvaticaConnection implements Connection {
       if (obj instanceof Number) {
         statement.updateCount = ((Number) obj).intValue();
       } else if (obj instanceof List) {
-        statement.updateCount =
-            ((Number) ((List<Object>) obj).get(0)).intValue();
+        @SuppressWarnings("unchecked")
+        final List<Number> numbers = (List<Number>) obj;
+        statement.updateCount = numbers.get(0).intValue();
       } else {
         throw helper.createException("Not a valid return result.");
       }

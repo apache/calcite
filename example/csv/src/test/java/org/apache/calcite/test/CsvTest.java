@@ -16,10 +16,14 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.csv.CsvSchemaFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -29,6 +33,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -271,7 +276,11 @@ public class CsvTest {
   }
 
   private String jsonPath(String model) {
-    final URL url = CsvTest.class.getResource("/" + model + ".json");
+    return resourcePath(model + ".json");
+  }
+
+  private String resourcePath(String path) {
+    final URL url = CsvTest.class.getResource("/" + path);
     String s = url.toString();
     if (s.startsWith("file:")) {
       s = s.substring("file:".length());
@@ -465,6 +474,35 @@ public class CsvTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
+   * In prepared statement, CsvScannableTable.scan is called twice</a>. To see
+   * the bug, place a breakpoint in CsvScannableTable.scan, and note that it is
+   * called twice. It should only be called once. */
+  @Test public void testPrepared() throws SQLException {
+    final Properties properties = new Properties();
+    properties.setProperty("caseSensitive", "true");
+    try (final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", properties)) {
+      final CalciteConnection calciteConnection = connection.unwrap(
+          CalciteConnection.class);
+
+      final Schema schema =
+          new CsvSchemaFactory()
+              .create(calciteConnection.getRootSchema(), null,
+                  ImmutableMap.<String, Object>of("directory",
+                      resourcePath("sales"), "flavor", "scannable"));
+      calciteConnection.getRootSchema().add("TEST", schema);
+      final String sql = "select * from \"TEST\".\"DEPTS\" where \"NAME\" = ?";
+      final PreparedStatement statement2 =
+          calciteConnection.prepareStatement(sql);
+
+      statement2.setString(1, "Sales");
+      final ResultSet resultSet1 = statement2.executeQuery();
+      Function1<ResultSet, Void> expect = expect("DEPTNO=10; NAME=Sales");
+      expect.apply(resultSet1);
+    }
+  }
 }
 
 // End CsvTest.java

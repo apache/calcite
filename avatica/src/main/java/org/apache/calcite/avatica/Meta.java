@@ -253,7 +253,7 @@ public interface Meta {
    * @param parameterValues A list of parameter values; may be empty, not null
    * @param maxRowCount Maximum number of rows to return; negative means
    * no limit
-   * @return Frame, or null if there are no more
+   * @return Execute result
    */
   ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
       long maxRowCount) throws NoSuchStatementException;
