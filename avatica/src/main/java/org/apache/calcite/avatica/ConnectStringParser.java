@@ -142,7 +142,7 @@ public class ConnectStringParser {
   }
 
   /**
-   * Reads "name=value;" or "name=value<EOF>".
+   * Reads "name=value;" or "name=value&lt;EOF&gt;".
    *
    * @throws SQLException error parsing value
    */
@@ -198,7 +198,7 @@ public class ConnectStringParser {
   }
 
   /**
-   * Reads "value;" or "value<EOF>"
+   * Reads "value;" or "value&lt;EOF&gt;"
    *
    * @throws SQLException if find an unterminated quoted value
    */

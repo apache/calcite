@@ -580,8 +580,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * @param operator Operator
      * @param order    Order
      * @pre order != null
-     * @pre order[i] < order.length
-     * @pre order.length > 0
+     * @pre order[i] &lt; order.length
+     * @pre order.length &gt; 0
      * @pre argCounts == order.length
      */
     MakeCall(SqlOperator operator, int argCount, int[] order) {

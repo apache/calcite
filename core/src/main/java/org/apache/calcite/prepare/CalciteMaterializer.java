@@ -53,7 +53,7 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 /**
- * Context for populating a {@link Materialization}.
+ * Context for populating a {@link Prepare.Materialization}.
  */
 class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   public CalciteMaterializer(CalcitePrepareImpl prepare,

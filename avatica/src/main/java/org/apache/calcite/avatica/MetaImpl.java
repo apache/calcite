@@ -830,7 +830,7 @@ public abstract class MetaImpl implements Meta {
   }
 
   /** Iterable that yields an iterator over rows coming from a sequence of
-   * {@link Frame}s. */
+   * {@link Meta.Frame}s. */
   private class FetchIterable implements Iterable<Object> {
     private final AvaticaStatement stmt;
     private final QueryState state;
@@ -850,7 +850,7 @@ public abstract class MetaImpl implements Meta {
     }
   }
 
-  /** Iterator over rows coming from a sequence of {@link Frame}s. */
+  /** Iterator over rows coming from a sequence of {@link Meta.Frame}s. */
   private class FetchIterator implements Iterator<Object> {
     private final AvaticaStatement stmt;
     private final QueryState state;

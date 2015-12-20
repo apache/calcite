@@ -28,7 +28,7 @@ branches:
     - /^branch-.*$/
     - /^[0-9]+-.*$/
 script:
-  mvn -Dsurefire.useFile=false test site
+  mvn -Dsurefire.useFile=false javadoc:javadoc test site
 git:
   depth: 10000
 sudo: false

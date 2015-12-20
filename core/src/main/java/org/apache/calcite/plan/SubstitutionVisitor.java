@@ -568,7 +568,7 @@ public class SubstitutionVisitor {
   }
 
   /**
-   * Represents a replacement action: before => after.
+   * Represents a replacement action: before &rarr; after.
    */
   private static class Replacement {
     final MutableRel before;

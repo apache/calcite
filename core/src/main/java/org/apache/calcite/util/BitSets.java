@@ -313,7 +313,7 @@ public final class BitSets {
   }
 
   /**
-   * Setup equivalence Sets for each position. If i & j are equivalent then
+   * Setup equivalence Sets for each position. If i and j are equivalent then
    * they will have the same equivalence Set. The algorithm computes the
    * closure relation at each position for the position wrt to positions
    * greater than it. Once a closure is computed for a position, the closure

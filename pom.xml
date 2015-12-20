@@ -175,7 +175,7 @@ limitations under the License.
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.11</version>
+        <version>4.12</version>
       </dependency>
       <dependency>
         <groupId>io.airlift.tpch</groupId>
@@ -413,6 +413,44 @@ limitations under the License.
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <!-- This is the configuration used by "mvn javadoc:javadoc". It is
+             configured strict, so that it shows errors such as broken links in
+             javadoc on private methods. The configuration for "mvn site" is
+             under "reporting", and is more lenient. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <links>
+            <link>http://docs.oracle.com/javase/8/docs/api/</link>
+          </links>
+          <excludePackageNames>org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser</excludePackageNames>
+          <tags>
+            <tag>
+              <name>sql.92</name>
+              <placement>a</placement>
+              <head>SQL 92 spec:</head>
+            </tag>
+            <tag>
+              <name>sql.99</name>
+              <placement>a</placement>
+              <head>SQL 99 spec:</head>
+            </tag>
+            <tag>
+              <name>sql.2003</name>
+              <placement>a</placement>
+              <head>SQL 2003 spec:</head>
+            </tag>
+            <tag>
+              <name>pre</name>
+            </tag>
+            <tag>
+              <name>post</name>
+            </tag>
+          </tags>
+          <show>private</show>
+        </configuration>
       </plugin>
       <plugin>
         <!-- Override apache parent POM's definition of release

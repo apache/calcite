@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.avatica;
 
-import org.apache.calcite.avatica.AvaticaConnection.CallableWithoutException;
 import org.apache.calcite.avatica.Meta.MetaResultSet;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
@@ -116,7 +115,8 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   /** Computes the number of retries
-   * {@link #executeInternal(String)} should retry before failing. */
+   * {@link #executeQueryInternal(AvaticaStatement, Meta.Signature, Meta.Frame, QueryState)}
+   * should retry before failing. */
   long getNumStatementRetries(Properties props) {
     return Long.valueOf(Objects.requireNonNull(props)
         .getProperty(NUM_EXECUTE_RETRIES_KEY, NUM_EXECUTE_RETRIES_DEFAULT));

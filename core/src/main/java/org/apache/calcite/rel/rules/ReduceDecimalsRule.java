@@ -1004,10 +1004,10 @@ public class ReduceDecimalsRule extends RelOptRule {
    * Expander that rewrites floor(decimal) expressions:
    *
    * <pre>
-   * if (value < 0)
-   *     (value-0.99...)/(10^scale)
+   * if (value &lt; 0)
+   *     (value - 0.99...) / (10^scale)
    * else
-   *     value/(10^scale)
+   *     value / (10 ^ scale)
    * </pre>
    */
   private class FloorExpander extends RexExpander {
@@ -1053,10 +1053,10 @@ public class ReduceDecimalsRule extends RelOptRule {
    * Expander that rewrites ceiling(decimal) expressions:
    *
    * <pre>
-   * if (value > 0)
-   *     (value+0.99...)/(10^scale)
+   * if (value &gt; 0)
+   *     (value + 0.99...) / (10 ^ scale)
    * else
-   *     value/(10^scale)
+   *     value / (10 ^ scale)
    * </pre>
    */
   private class CeilExpander extends RexExpander {

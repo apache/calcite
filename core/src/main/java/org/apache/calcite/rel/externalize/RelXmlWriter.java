@@ -65,23 +65,22 @@ public class RelXmlWriter extends RelWriterImpl {
    *
    * <blockquote>
    * <code>
-   * &lt;RelNode id="1" type="Join"&gt;<br/>
+   * &lt;RelNode id="1" type="Join"&gt;<br>
    * &nbsp;&nbsp;&lt;Property name="condition"&gt;EMP.DEPTNO =
-   * DEPT.DEPTNO&lt;/Property&gt;<br/>
-   * &nbsp;&nbsp;&lt;Inputs&gt;<br/>
-   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;RelNode id="2" type="Project"&gt;<br/>
+   * DEPT.DEPTNO&lt;/Property&gt;<br>
+   * &nbsp;&nbsp;&lt;Inputs&gt;<br>
+   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;RelNode id="2" type="Project"&gt;<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;Property name="expr1"&gt;x +
-   * y&lt;/Property&gt;<br/>
+   * y&lt;/Property&gt;<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;Property
-   * name="expr2"&gt;45&lt;/Property&gt;<br/>
-   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;/RelNode&gt;<br/>
-   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;RelNode id="3" type="TableAccess"&gt;<br/>
+   * name="expr2"&gt;45&lt;/Property&gt;<br>
+   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;/RelNode&gt;<br>
+   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;RelNode id="3" type="TableAccess"&gt;<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;Property
-   * name="table"&gt;SALES.EMP&lt;/Property&gt;<br/>
-   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;/RelNode&gt;<br/>
-   * &nbsp;&nbsp;&lt;/Inputs&gt;<br/>
-   * &lt;/RelNode&gt;<br/>
-   * </code>
+   * name="table"&gt;SALES.EMP&lt;/Property&gt;<br>
+   * &nbsp;&nbsp;&nbsp;&nbsp;&lt;/RelNode&gt;<br>
+   * &nbsp;&nbsp;&lt;/Inputs&gt;<br>
+   * &lt;/RelNode&gt;</code>
    * </blockquote>
    *
    * @param rel    Relational expression

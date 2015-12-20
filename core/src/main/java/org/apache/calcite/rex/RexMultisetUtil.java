@@ -118,14 +118,16 @@ public class RexMultisetUtil {
   }
 
   /**
-   * Returns true if call is call to <code>CAST</code> and the to/from cast
-   * types are of multiset types
+   * Returns true if {@code call} is a call to <code>CAST</code> and the to/from
+   * cast types are of multiset types.
    */
   public static boolean isMultisetCast(RexCall call) {
-    if (!call.getOperator().equals(SqlStdOperatorTable.CAST)) {
+    switch (call.getKind()) {
+    case CAST:
+      return call.getType().getSqlTypeName() == SqlTypeName.MULTISET;
+    default:
       return false;
     }
-    return call.getType().getSqlTypeName() == SqlTypeName.MULTISET;
   }
 
   /**
@@ -168,7 +170,7 @@ public class RexMultisetUtil {
    * A RexShuttle that traverse all RexNode and counts total number of
    * RexCalls traversed and number of multiset calls traversed.
    *
-   * <p>totalCount >= multisetCount always holds true.
+   * <p>totalCount &ge; multisetCount always holds true.
    */
   private static class RexCallMultisetOperatorCounter
       extends RexVisitorImpl<Void> {

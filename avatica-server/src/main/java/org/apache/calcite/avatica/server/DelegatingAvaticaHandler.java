@@ -36,7 +36,7 @@ import javax.servlet.http.HttpServletResponse;
  * An AvaticaHandler implementation that delegates to a provided Jetty Handler instance.
  *
  * <p>This implementation provides a no-op implementation for
- * {@link #setServerRpcMetadata(RpcMetadataResponse)}.
+ * {@link #setServerRpcMetadata(org.apache.calcite.avatica.remote.Service.RpcMetadataResponse)}.
  */
 public class DelegatingAvaticaHandler implements AvaticaHandler {
   private static final Log LOG = LogFactory.getLog(DelegatingAvaticaHandler.class);

@@ -236,7 +236,7 @@ public class RexImplicationChecker {
    *
    * <ol>
    * <li>Variables should be used only once in both the conjunction against
-   * given set of operations only: >, <, <=, >=, =, !=
+   * given set of operations only: &gt;, &lt;, &le;, &ge;, =; &ne;.
    *
    * <li>All the variables used in second condition should be used even in the
    * first.
@@ -246,14 +246,14 @@ public class RexImplicationChecker {
    * belongs to one of the following sets:
    *
    * <ul>
-   *    <li>(<, <=) X (<, <=)      <i>note: X represents cartesian product</i>
-   *    <li>(> / >=) X (>, >=)
-   *    <li>(=) X (>, >=, <, <=, =, !=)
-   *    <li>(!=, =)
+   *    <li>(&lt;, &le;) X (&lt;, &le;) <i>note: X represents cartesian product</i>
+   *    <li>(&gt; / &ge;) X (&gt;, &ge;)
+   *    <li>(=) X (&gt;, &ge;, &lt;, &le;, =, &ne;)
+   *    <li>(&ne;, =)
    * </ul>
    *
-   * <li>We support utmost 2 operators to be be used for a variable in first
-   * and second usages
+   * <li>We support at most 2 operators to be be used for a variable in first
+   * and second usages.
    *
    * </ol>
    *
@@ -372,10 +372,10 @@ public class RexImplicationChecker {
   /**
    * Visitor that builds a usage map of inputs used by an expression.
    *
-   * <p>E.g: for x > 10 AND y < 20 AND x = 40, usage map is as follows:
+   * <p>E.g: for x &gt; 10 AND y &lt; 20 AND x = 40, usage map is as follows:
    * <ul>
-   * <li>key: x value: {(>, 10),(=, 40), usageCount = 2}
-   * <li>key: y value: {(>, 20), usageCount = 1}
+   * <li>key: x value: {(&gt;, 10),(=, 40), usageCount = 2}
+   * <li>key: y value: {(&gt;, 20), usageCount = 1}
    * </ul>
    */
   private static class InputUsageFinder extends RexVisitorImpl<Void> {

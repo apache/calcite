@@ -1231,7 +1231,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    *
    * @param multiJoin join factors being optimized
    * @param leftTree left subtree of the join tree
-   * @param leftIdx if >=0, only consider filters that reference leftIdx in
+   * @param leftIdx if &ge; 0, only consider filters that reference leftIdx in
    * leftTree; otherwise, consider all filters that reference any factor in
    * leftTree
    * @param rightTree right subtree of the join tree
@@ -1577,7 +1577,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @param multiJoin join factors being optimized
    * @param semiJoinOpt optimal semijoins for each factor
    * @param currJoinTree current join tree being added to
-   * @param leftIdx if >=0, when creating the replacement join, only consider
+   * @param leftIdx if &ge; 0, when creating the replacement join, only consider
    * filters that reference leftIdx in currJoinTree; otherwise, consider all
    * filters that reference any factor in currJoinTree
    * @param factorToAdd new factor whose join can be removed

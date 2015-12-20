@@ -366,11 +366,10 @@ public class RelMdPredicates {
    * <p>So for:
    * <ol>
    * <li>'<code>R1(x) join R2(y) on x = y</code>' a call for
-   * equivalentPredicates on '<code>x > 7</code>' will return '
-   * <code>[y > 7]</code>'
+   * equivalentPredicates on '<code>x &gt; 7</code>' will return '
+   * <code>[y &gt; 7]</code>'
    * <li>'<code>R1(x) join R2(y) on x = y join R3(z) on y = z</code>' a call for
-   * equivalentPredicates on the second join '<code>x > 7</code>' will return '
-   * <code>[y > 7, z > 7]</code>'
+   * equivalentPredicates on the second join '<code>x &gt; 7</code>' will return
    * </ol>
    */
   static class JoinConditionBasedPredicateInference {
@@ -646,14 +645,14 @@ public class RelMdPredicates {
      *
      * <p>The following Mappings will be returned:
      * <pre>
-     * {a->a, b->a, c->c}
-     * {a->a, b->a, c->e}
-     * {a->a, b->b, c->c}
-     * {a->a, b->b, c->e}
-     * {a->b, b->a, c->c}
-     * {a->b, b->a, c->e}
-     * {a->b, b->b, c->c}
-     * {a->b, b->b, c->e}
+     * {a &rarr; a, b &rarr; a, c &rarr; c}
+     * {a &rarr; a, b &rarr; a, c &rarr; e}
+     * {a &rarr; a, b &rarr; b, c &rarr; c}
+     * {a &rarr; a, b &rarr; b, c &rarr; e}
+     * {a &rarr; b, b &rarr; a, c &rarr; c}
+     * {a &rarr; b, b &rarr; a, c &rarr; e}
+     * {a &rarr; b, b &rarr; b, c &rarr; c}
+     * {a &rarr; b, b &rarr; b, c &rarr; e}
      * </pre>
      *
      * <p>which imply the following inferences:
