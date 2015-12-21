@@ -32,6 +32,7 @@
   - avatica_overview
   - avatica_roadmap
   - avatica_json_reference
+  - avatica_protobuf_reference
 
 - title: Reference
   docs:
