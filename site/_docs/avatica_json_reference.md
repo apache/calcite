@@ -38,6 +38,7 @@ miscellaneous:
   - { name: "Signature" }
   - { name: "StateType" }
   - { name: "StatementHandle" }
+  - { name: "StatementType" }
   - { name: "Style" }
   - { name: "TypedValue" }
 responses:
@@ -83,9 +84,8 @@ using any language instead of being limited to Java.
 
 A specification of the JSON request and response objects are documented
 below. Programmatic bindings for these JSON objects are only available
-in Java, so non-Java clients presently must re-implement language
-specific objects on their own. Efforts to use [Protocol Buffers](https://developers.google.com/protocol-buffers/)
-instead are underway that will provide native objects in many languages.
+in Java. For support outside of Java, see the Protocol Buffer
+[bindings]({{ site.baseurl }}/docs/avatica_protobuf_reference.html)
 
 ## Index
 
@@ -112,15 +112,20 @@ which uniquely identifies the concrete Request from all other Requests.
 
 ### CatalogsRequest
 
+This request is used to fetch the available catalog names in the database.
+
 {% highlight json %}
 {
   "request": "getCatalogs",
+  "connectionId": "000000-0000-0000-00000000"
 }
 {% endhighlight %}
 
-There are no extra attributes on this Request.
+`connectionId` (required string) The identifier of the connection to use.
 
 ### CloseConnectionRequest
+
+This request is used to close the Connection object in the Avatica server identified by the given IDs.
 
 {% highlight json %}
 {
@@ -132,6 +137,8 @@ There are no extra attributes on this Request.
 `connectionId` (required string) The identifier of the connection to close.
 
 ### CloseStatementRequest
+
+This request is used to close the Statement object in the Avatica server identified by the given IDs.
 
 {% highlight json %}
 {
@@ -147,15 +154,20 @@ There are no extra attributes on this Request.
 
 ### ColumnsRequest
 
+This request is used to fetch columns in the database given some optional filtering criteria.
+
 {% highlight json %}
 {
   "request": "getColumns",
+  "connectionId": "000000-0000-0000-00000000",
   "catalog": "catalog",
   "schemaPattern": "schema_pattern.*",
   "tableNamePattern": "table_pattern.*",
   "columnNamePattern": "column_pattern.*"
 }
 {% endhighlight %}
+
+`connectionId` (required string) The identifier of the connection on which to fetch the columns.
 
 `catalog` (optional string) The name of a catalog to limit returned columns.
 
@@ -167,6 +179,8 @@ There are no extra attributes on this Request.
 
 ### CommitRequest
 
+This request is used to issue a `commit` on the Connection in the Avatica server identified by the given ID.
+
 {% highlight json %}
 {
   "request": "commit",
@@ -174,9 +188,11 @@ There are no extra attributes on this Request.
 }
 {% endhighlight %}
 
-`connectionId`: (required string) The identifier of the connection on which to invoke commit.
+`connectionId` (required string) The identifier of the connection on which to invoke commit.
 
 ### ConnectionSyncRequest
+
+This request is used to ensure that the client and server have a consistent view of the database properties.
 
 {% highlight json %}
 {
@@ -192,6 +208,8 @@ There are no extra attributes on this Request.
 
 ### CreateStatementRequest
 
+This request is used to create a new Statement in the Avatica server.
+
 {% highlight json %}
 {
   "request": "createStatement",
@@ -203,15 +221,19 @@ There are no extra attributes on this Request.
 
 ### DatabasePropertyRequest
 
+This request is used to fetch all <a href="#databaseproperty">database properties</a>.
+
 {% highlight json %}
 {
   "request": "databaseProperties",
 }
 {% endhighlight %}
 
-There are no extra attributes on this Request.
+`connectionId` (required string) The identifier of the connection to use when fetching the database properties.
 
 ### ExecuteRequest
+
+This request is used to execute a PreparedStatement, optionally with values to bind to the parameters in the Statement.
 
 {% highlight json %}
 {
@@ -230,14 +252,15 @@ There are no extra attributes on this Request.
 
 ### FetchRequest
 
+This request is used to fetch a batch of rows from a Statement previously created.
+
 {% highlight json %}
 {
   "request": "fetch",
   "connectionId": "000000-0000-0000-00000000",
   "statementId": 12345,
   "offset": 0,
-  "fetchMaxRowCount": 100,
-  "parameterValues": [TypedValue, TypedValue, ...]
+  "fetchMaxRowCount": 100
 }
 {% endhighlight %}
 
@@ -249,9 +272,9 @@ There are no extra attributes on this Request.
 
 `fetchMatchRowCount` (required integer) The maximum number of rows to return in the response to this request.
 
-`parameterValues` (optional array of nested objects) The <a href="#typedvalue">TypedValue</a> for each parameter on the prepared statement.
-
 ### OpenConnectionRequest
+
+This request is used to open a new Connection in the Avatica server.
 
 {% highlight json %}
 {
@@ -266,6 +289,8 @@ There are no extra attributes on this Request.
 `info` (optional string-to-string map) A Map containing properties to include when creating the Connection.
 
 ### PrepareAndExecuteRequest
+
+This request is used as a short-hand for create a Statement and fetching the first batch of results in a single call without any parameter substitution.
 
 {% highlight json %}
 {
@@ -287,6 +312,8 @@ There are no extra attributes on this Request.
 
 ### PrepareRequest
 
+This request is used to create create a new Statement with the given query in the Avatica server.
+
 {% highlight json %}
 {
   "request": "prepare",
@@ -303,6 +330,8 @@ There are no extra attributes on this Request.
 `maxRowCount` (required long) The maximum number of rows returned in the response.
 
 ### SyncResultsRequest
+
+This request is used to reset a ResultSet's iterator to a specific offset in the Avatica server.
 
 {% highlight json %}
 {
@@ -324,6 +353,8 @@ There are no extra attributes on this Request.
 
 ### RollbackRequest
 
+This request is used to issue a `rollback` on the Connection in the Avatica server identified by the given ID.
+
 {% highlight json %}
 {
   "request": "rollback",
@@ -335,13 +366,18 @@ There are no extra attributes on this Request.
 
 ### SchemasRequest
 
+This request is used to fetch the schemas matching the provided criteria in the database.
+
 {% highlight json %}
 {
   "request": "getSchemas",
+  "connectionId": "000000-0000-0000-00000000",
   "catalog": "name",
   "schemaPattern": "pattern.*"
 }
 {% endhighlight %}
+
+`connection_id` The identifier for the connection to fetch schemas from.
 
 `catalog` (required string) The name of the catalog to fetch the schema from.
 
@@ -349,19 +385,25 @@ There are no extra attributes on this Request.
 
 ### TableTypesRequest
 
+This request is used to fetch the table types available in this database.
+
 {% highlight json %}
 {
   "request": "getTableTypes",
+  "connectionId": "000000-0000-0000-00000000"
 }
 {% endhighlight %}
 
-There are no extra attributes on this Request.
+`connectionId` The identifier of the connection to fetch the table types from.
 
 ### TablesRequest
+
+This request is used to fetch the tables available in this database filtered by the provided criteria.
 
 {% highlight json %}
 {
   "request": "getTables",
+  "connectionId": "000000-0000-0000-00000000",
   "catalog": "catalog_name",
   "schemaPattern": "schema_pattern.*",
   "tableNamePattern": "table_name_pattern.*",
@@ -371,6 +413,8 @@ There are no extra attributes on this Request.
 
 `catalog` (optional string) The name of a catalog to restrict fetched tables.
 
+`connectionId` The identifier of the connection to fetch the tables from.
+
 `schemaPattern` (optional string) A Java Pattern representing schemas to include in fetched tables.
 
 `tableNamePattern` (optional string) A Java Pattern representing table names to include in fetched tables.
@@ -379,13 +423,16 @@ There are no extra attributes on this Request.
 
 ### TypeInfoRequest
 
+This request is used to fetch the types available in this database.
+
 {% highlight json %}
 {
   "request": "getTypeInfo",
+  "connectionId": "000000-0000-0000-00000000"
 }
 {% endhighlight %}
 
-There are no extra attributes on this Request.
+`connectionId` The identifier of the connection to fetch the types from.
 
 ## Responses
 
@@ -393,6 +440,8 @@ The collection of all JSON objects returned as responses from Avatica. All Respo
 which uniquely identifies the concrete Response from all other Responses.
 
 ### CloseConnectionResponse
+
+A response to the <a href="#closeconnectionrequest">CloseConnectionRequest</a>.
 
 {% highlight json %}
 {
@@ -405,6 +454,8 @@ which uniquely identifies the concrete Response from all other Responses.
 
 ### CloseStatementResponse
 
+A response to the <a href="#closestatementrequest">CloseStatementRequest</a>.
+
 {% highlight json %}
 {
   "response": "closeStatement",
@@ -416,6 +467,8 @@ which uniquely identifies the concrete Response from all other Responses.
 
 ### CommitResponse
 
+A response to the <a href="#commitrequest">CommitRequest</a>.
+
 {% highlight json %}
 {
   "response": "commit"
@@ -425,6 +478,9 @@ which uniquely identifies the concrete Response from all other Responses.
 There are no extra attributes on this Response.
 
 ### ConnectionSyncResponse
+
+A response to the <a href="#connectionsyncrequest">ConnectionSyncRequest</a>. Properties included in the
+response are those of the Connection in the Avatica server.
 
 {% highlight json %}
 {
@@ -439,6 +495,9 @@ There are no extra attributes on this Response.
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### CreateStatementResponse
+
+A response to the <a href="#createstatementrequest">CreateStatementRequest</a>. The ID of the statement
+that was created is included in the response. Clients will use this `statementId` in subsequent calls.
 
 {% highlight json %}
 {
@@ -457,6 +516,9 @@ There are no extra attributes on this Response.
 
 ### DatabasePropertyResponse
 
+A response to the <a href="#databasepropertyrequest">DatabasePropertyRequest</a>. See <a hred="#databaseproperty">DatabaseProperty</a>
+for information on the available property keys.
+
 {% highlight json %}
 {
   "response": "databaseProperties",
@@ -471,6 +533,8 @@ primitive type or an array of primitive types.
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### ErrorResponse
+
+A response when an error was caught executing a request. Any request may return this response.
 
 {% highlight json %}
 {
@@ -498,33 +562,49 @@ primitive type or an array of primitive types.
 
 ### ExecuteResponse
 
+A response to the <a href="#executerequest">ExecuteRequest</a> which contains the results for a metadata query.
+
 {% highlight json %}
 {
   "response": "executeResults",
   "resultSets": [ ResultSetResponse, ResultSetResponse, ... ],
+  "missingStatement": false,
   "rpcMetadata": RpcMetadata
 }
 {% endhighlight %}
 
 `resultSets` An array of <a href="#resultsetresponse">ResultSetResponse</a>s.
 
+`missingStatement` A boolean which denotes if the request failed due to a missing Statement.
+
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### FetchResponse
+
+A response to the <a href="#fetchrequest">FetchRequest</a> which contains the request for the query.
 
 {% highlight json %}
 {
   "response": "fetch",
   "frame": Frame,
+  "missingStatement": false,
+  "missingResults": false,
   "rpcMetadata": RpcMetadata
 }
 {% endhighlight %}
 
 `frame` A <a href="#frame">Frame</a> containing the results of the fetch.
 
+`missingStatement` A boolean which denotes if the request failed due to a missing Statement.
+
+`missingResults` A boolean which denotes if the request failed due to a missing ResultSet.
+
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### OpenConnectionResponse
+
+A response to the <a href="#openconnectionrequest">OpenConnectionRequest</a>. The ID for the connection that
+the client should use in subsequent calls was provided by the client in the request.
 
 {% highlight json %}
 {
@@ -536,6 +616,9 @@ primitive type or an array of primitive types.
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### PrepareResponse
+
+A response to the <a href="#preparerequest">PrepareRequest</a>. This response includes a <a href="#statementhandle">StatementHandle</a>
+which clients must use to fetch the results from the Statement.
 
 {% highlight json %}
 {
@@ -550,6 +633,8 @@ primitive type or an array of primitive types.
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
 ### ResultSetResponse
+
+A response which contains the results and type details from a query.
 
 {% highlight json %}
 {
@@ -582,6 +667,8 @@ that only contains this count and no additional data.
 
 ### RollbackResponse
 
+A response to the <a href="#rollbackrequest">RollBackRequest</a>.
+
 {% highlight json %}
 {
   "response": "rollback"
@@ -591,6 +678,10 @@ that only contains this count and no additional data.
 There are no extra attributes on this Response.
 
 ### SyncResultsResponse
+
+A response to the <a href="#syncresultsrequest">SyncResultsRequest</a>. When `moreResults` is true, a <a href="#fetchrequest">FetchRequest</a>
+should be issued to get the next batch of records. When `missingStatement` is true, the statement must be re-created using <a href="#preparerequest">PrepareRequest</a>
+or the appropriate Request for a DDL request (e.g. <a href="#catalogsrequest">CatalogsRequest</a> or <a href="#schemasrequest">SchemasRequest</a>).
 
 {% highlight json %}
 {
@@ -610,6 +701,9 @@ There are no extra attributes on this Response.
 ## Miscellaneous
 
 ### AvaticaParameter
+
+This object describes the "simple", or scalar, JDBC type representation of a column in a result. This does not include
+complex types such as arrays.
 
 {% highlight json %}
 {
@@ -639,6 +733,8 @@ There are no extra attributes on this Response.
 
 ### AvaticaSeverity
 
+This enumeration describes the various levels of concern for an error in the Avatica server.
+
 One of:
 
 * `UNKNOWN`
@@ -647,6 +743,10 @@ One of:
 * `WARNING`
 
 ### AvaticaType
+
+This object describes a simple or complex type for a column. Complex types will contain
+additional information in the `component` or `columns` attribute which describe the nested
+types of the complex parent type.
 
 {% highlight json %}
 {
@@ -672,6 +772,8 @@ One of:
 `component` For `ARRAY` types, the type of the elements contained in that `ARRAY`.
 
 ### ColumnMetaData
+
+This object represents the JDBC ResultSetMetaData for a column.
 
 {% highlight json %}
 {
@@ -744,6 +846,8 @@ One of:
 
 ### ConnectionProperties
 
+This object represents the properties for a given JDBC Connection.
+
 {% highlight json %}
 {
   "connProps": "connPropsImpl",
@@ -760,7 +864,7 @@ One of:
 `readOnly` (optional boolean) A boolean denoting if a JDBC connection is read-only.
 
 `transactionIsolation` (optional integer) An integer which denotes the level of transactions isolation per the JDBC
-specification. This value is analogous to the values define in `java.sql.Connection`.
+specification. This value is analogous to the values defined in `java.sql.Connection`.
 
 * 0 = Transactions are not supported
 * 1 = Dirty reads, non-repeatable reads and phantom reads may occur.
@@ -768,7 +872,13 @@ specification. This value is analogous to the values define in `java.sql.Connect
 * 4 = Dirty reads and non-repeatable reads are prevented, but phantom reads may occur.
 * 8 = Dirty reads, non-repeatable reads, and phantom reads are all prevented.
 
+`catalog` (optional string) The name of the catalog to include when fetching connection properties.
+
+`schema` (optional string) The name of the schema to include when fetching connection properties.
+
 ### CursorFactory
+
+This object represents the information required to cast untyped objects into the necessary type for some results.
 
 {% highlight json %}
 {
@@ -782,6 +892,8 @@ specification. This value is analogous to the values define in `java.sql.Connect
 
 ### DatabaseProperty
 
+This object represents the exposed database properties for a Connection through the Avatica server.
+
 One of:
 
 * `GET_STRING_FUNCTIONS`
@@ -792,6 +904,9 @@ One of:
 * `GET_DEFAULT_TRANSACTION_ISOLATION`
 
 ### Frame
+
+This object represents a batch of results, tracking the offset into the results and whether more results still exist
+to be fetched in the Avatica server.
 
 {% highlight json %}
 {
@@ -808,6 +923,9 @@ One of:
 `rows` An array of arrays corresponding to the rows and columns for the result set.
 
 ### QueryState
+
+This object represents the way a ResultSet was created in the Avatica server. A ResultSet could be created by a user-provided
+SQL or by a DatabaseMetaData operation with arguments on that operation.
 
 {% highlight json %}
 {
@@ -827,6 +945,8 @@ One of:
 `operationArgs` The arguments to the invoked DML operation. Required if the `type` is `METADATA`.
 
 ### Rep
+
+This enumeration represents the concrete Java type for some value.
 
 One of:
 
@@ -857,22 +977,27 @@ One of:
 
 ### RpcMetadata
 
+This object contains assorted per-call/contextual metadata returned by the Avatica server.
+
 {% highlight json %}
 {
-  "serverAddress": "http://localhost:8765"
+  "serverAddress": "localhost:8765"
 }
 {% endhighlight %}
 
-`serverAddress` The URL of the server which created this object.
+`serverAddress` The `host:port` of the server which created this object.
 
 ### Signature
+
+This object represents the result of preparing a Statement in the Avatica server.
 
 {% highlight json %}
 {
   "columns": [ ColumnMetaData, ColumnMetaData, ... ],
   "sql": "SELECT * FROM table",
   "parameters": [ AvaticaParameter, AvaticaParameter, ... ],
-  "cursorFactory": CursorFactory
+  "cursorFactory": CursorFactory,
+  "statementType": StatementType
 }
 {% endhighlight %}
 
@@ -884,7 +1009,11 @@ One of:
 
 `cursorFactory` An <a href="#cursorfactory">CursorFactory</a> object representing the Java representation of the frame.
 
+`statementType` An <a href="#statementtype">StatementType</a> object representing the type of Statement.
+
 ### StateType
+
+This enumeration denotes whether user-provided SQL or a DatabaseMetaData operation was used to create some ResultSet.
 
 One of:
 
@@ -892,6 +1021,8 @@ One of:
 * `METADATA`
 
 ### StatementHandle
+
+This object encapsulates all of the information of a Statement created in the Avatica server.
 
 {% highlight json %}
 {
@@ -907,7 +1038,28 @@ One of:
 
 `signature` A <a href="#signature">Signature</a> object for the statement.
 
+### StatementType
+
+This enumeration represents what kind the Statement is.
+
+One of:
+
+* `SELECT`
+* `INSERT`
+* `UPDATE`
+* `DELETE`
+* `UPSERT`
+* `MERGE`
+* `OTHER_DML`
+* `CREATE`
+* `DROP`
+* `ALTER`
+* `OTHER_DDL`
+* `CALL`
+
 ### Style
+
+This enumeration represents the generic "class" of type for a value.
 
 One of:
 
@@ -919,6 +1071,8 @@ One of:
 * `MAP`
 
 ### TypedValue
+
+This object encapsulates the type and value for a column in a row.
 
 {% highlight json %}
 {
