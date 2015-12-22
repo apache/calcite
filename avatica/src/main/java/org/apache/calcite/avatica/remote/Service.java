@@ -83,6 +83,27 @@ public interface Service {
     Service create(AvaticaConnection connection);
   }
 
+  /** Base class for request and response. */
+  abstract class Base {
+    static final int PRIME = 31;
+
+    protected static int p(int result, Object o) {
+      return PRIME * result + ((o == null) ? 0 : o.hashCode());
+    }
+
+    protected static int p(int result, boolean v) {
+      return PRIME * result + (v ? 1231 : 1237);
+    }
+
+    protected static int p(int result, int v) {
+      return PRIME * result + v;
+    }
+
+    protected static int p(int result, long v) {
+      return PRIME * result + (int) (v ^ (v >>> 32));
+    }
+  }
+
   /** Base class for all service request messages. */
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
@@ -113,7 +134,7 @@ public interface Service {
       @JsonSubTypes.Type(value = SyncResultsRequest.class, name = "syncResults"),
       @JsonSubTypes.Type(value = CommitRequest.class, name = "commit"),
       @JsonSubTypes.Type(value = RollbackRequest.class, name = "rollback") })
-  abstract class Request {
+  abstract class Request extends Base {
     abstract Response accept(Service service);
     abstract Request deserialize(Message genericMsg);
     abstract Message serialize();
@@ -143,7 +164,7 @@ public interface Service {
       @JsonSubTypes.Type(value = RpcMetadataResponse.class, name = "rpcMetadata"),
       @JsonSubTypes.Type(value = CommitResponse.class, name = "commit"),
       @JsonSubTypes.Type(value = RollbackResponse.class, name = "rollback") })
-  abstract class Response {
+  abstract class Response extends Base {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
   }
@@ -191,29 +212,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return connectionId == null ? 0 : connectionId.hashCode();
+      int result = 1;
+      result = p(result, connectionId);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-
-      if (o instanceof CatalogsRequest) {
-        CatalogsRequest other = (CatalogsRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof CatalogsRequest
+          && Objects.equals(connectionId, ((CatalogsRequest) o).connectionId);
     }
   }
 
@@ -261,31 +268,18 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return connectionId == null ? 0 : connectionId.hashCode();
+      int result = 1;
+      result = p(result, connectionId);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-
-      if (o instanceof DatabasePropertyRequest) {
-        DatabasePropertyRequest other = (DatabasePropertyRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof DatabasePropertyRequest
+          && Objects.equals(connectionId, ((DatabasePropertyRequest) o).connectionId);
     }
   }
+
   /** Request for
    * {@link Meta#getSchemas(Meta.ConnectionHandle, String, Meta.Pat)}. */
   class SchemasRequest extends Request {
@@ -352,51 +346,19 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
-      result = prime * result + ((schemaPattern == null) ? 0 : schemaPattern.hashCode());
+      result = p(result, connectionId);
+      result = p(result, catalog);
+      result = p(result, schemaPattern);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof SchemasRequest) {
-        SchemasRequest other = (SchemasRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == catalog) {
-          // We're null, other is not
-          if (null != other.catalog) {
-            return false;
-          }
-        } else if (!catalog.equals(other.catalog)) {
-          return false;
-        }
-
-        if (null == schemaPattern) {
-          // We're null, they're not
-          if (null != other.schemaPattern) {
-            return false;
-          }
-        } else if (!catalog.equals(other.catalog)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof SchemasRequest
+          && Objects.equals(connectionId, ((SchemasRequest) o).connectionId)
+          && Objects.equals(catalog, ((SchemasRequest) o).catalog)
+          && Objects.equals(schemaPattern, ((SchemasRequest) o).schemaPattern);
     }
   }
 
@@ -497,67 +459,23 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
-      result = prime * result + ((schemaPattern == null) ? 0 : schemaPattern.hashCode());
-      result = prime * result + ((tableNamePattern == null) ? 0 : tableNamePattern.hashCode());
-      result = prime * result + ((typeList == null) ? 0 : typeList.hashCode());
+      result = p(result, connectionId);
+      result = p(result, catalog);
+      result = p(result, schemaPattern);
+      result = p(result, tableNamePattern);
+      result = p(result, typeList);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof TablesRequest) {
-        TablesRequest other = (TablesRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == catalog) {
-          if (null != other.catalog) {
-            return false;
-          }
-        } else if (!catalog.equals(other.catalog)) {
-          return false;
-        }
-
-        if (null == schemaPattern) {
-          if (null != other.schemaPattern) {
-            return false;
-          }
-        } else if (!schemaPattern.equals(other.schemaPattern)) {
-          return false;
-        }
-
-        if (null == tableNamePattern) {
-          if (null != other.tableNamePattern) {
-            return false;
-          }
-        } else if (!tableNamePattern.equals(other.tableNamePattern)) {
-          return false;
-        }
-
-        if (null == typeList) {
-          if (null != other.typeList) {
-            return false;
-          }
-        } else if (null == other.typeList || !typeList.equals(other.typeList)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof TablesRequest
+          && Objects.equals(connectionId, ((TablesRequest) o).connectionId)
+          && Objects.equals(catalog, ((TablesRequest) o).catalog)
+          && Objects.equals(schemaPattern, ((TablesRequest) o).schemaPattern)
+          && Objects.equals(tableNamePattern, ((TablesRequest) o).tableNamePattern)
+          && Objects.equals(typeList, ((TablesRequest) o).typeList);
     }
   }
 
@@ -604,28 +522,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return connectionId == null ? 0 : connectionId.hashCode();
+      int result = 1;
+      result = p(result, connectionId);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof TableTypesRequest) {
-        TableTypesRequest other = (TableTypesRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof TableTypesRequest
+          && Objects.equals(connectionId, ((TableTypesRequest) o).connectionId);
     }
   }
 
@@ -724,67 +629,23 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
-      result = prime * result + ((columnNamePattern == null) ? 0 : columnNamePattern.hashCode());
-      result = prime * result + ((schemaPattern == null) ? 0 : schemaPattern.hashCode());
-      result = prime * result + ((tableNamePattern == null) ? 0 : tableNamePattern.hashCode());
+      result = p(result, connectionId);
+      result = p(result, catalog);
+      result = p(result, columnNamePattern);
+      result = p(result, schemaPattern);
+      result = p(result, tableNamePattern);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof ColumnsRequest) {
-        ColumnsRequest other = (ColumnsRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == catalog) {
-          if (null != other.catalog) {
-            return false;
-          }
-        } else if (!catalog.equals(other.catalog)) {
-          return false;
-        }
-
-        if (null == schemaPattern) {
-          if (null != other.schemaPattern) {
-            return false;
-          }
-        } else if (!schemaPattern.equals(other.schemaPattern)) {
-          return false;
-        }
-
-        if (null == tableNamePattern) {
-          if (null != other.tableNamePattern) {
-            return false;
-          }
-        } else if (!tableNamePattern.equals(other.tableNamePattern)) {
-          return false;
-        }
-
-        if (null == columnNamePattern) {
-          if (null != other.columnNamePattern) {
-            return false;
-          }
-        } else if (!columnNamePattern.equals(other.columnNamePattern)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof ColumnsRequest
+          && Objects.equals(connectionId, ((ColumnsRequest) o).connectionId)
+          && Objects.equals(catalog, ((ColumnsRequest) o).catalog)
+          && Objects.equals(schemaPattern, ((ColumnsRequest) o).schemaPattern)
+          && Objects.equals(tableNamePattern, ((ColumnsRequest) o).tableNamePattern)
+          && Objects.equals(columnNamePattern, ((ColumnsRequest) o).columnNamePattern);
     }
   }
 
@@ -830,28 +691,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return connectionId == null ? 0 : connectionId.hashCode();
+      int result = 1;
+      result = p(result, connectionId);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof TypeInfoRequest) {
-        TypeInfoRequest other = (TypeInfoRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof TypeInfoRequest
+          && Objects.equals(connectionId, ((TypeInfoRequest) o).connectionId);
     }
   }
 
@@ -965,62 +813,27 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + ((firstFrame == null) ? 0 : firstFrame.hashCode());
-      result = prime * result + (ownStatement ? 1231 : 1237);
-      result = prime * result + ((signature == null) ? 0 : signature.hashCode());
-      result = prime * result + statementId;
-      result = prime * result + (int) (updateCount ^ (updateCount >>> 32));
-      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      result = p(result, connectionId);
+      result = p(result, firstFrame);
+      result = p(result, ownStatement);
+      result = p(result, signature);
+      result = p(result, statementId);
+      result = p(result, updateCount);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof ResultSetResponse) {
-        ResultSetResponse other = (ResultSetResponse) o;
-
-        if (connectionId == null) {
-          if (other.connectionId != null) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (firstFrame == null) {
-          if (other.firstFrame != null) {
-            return false;
-          }
-        } else if (!firstFrame.equals(other.firstFrame)) {
-          return false;
-        }
-
-        if (signature == null) {
-          if (other.signature != null) {
-            return false;
-          }
-        } else if (!signature.equals(other.signature)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return ownStatement == other.ownStatement && statementId == other.statementId
-            && updateCount == other.updateCount;
-      }
-
-      return false;
+      return o == this
+          || o instanceof ResultSetResponse
+          && statementId == ((ResultSetResponse) o).statementId
+          && ownStatement == ((ResultSetResponse) o).ownStatement
+          && updateCount == ((ResultSetResponse) o).updateCount
+          && Objects.equals(connectionId, ((ResultSetResponse) o).connectionId)
+          && Objects.equals(firstFrame, ((ResultSetResponse) o).firstFrame)
+          && Objects.equals(signature, ((ResultSetResponse) o).signature)
+          && Objects.equals(rpcMetadata, ((ResultSetResponse) o).rpcMetadata);
     }
   }
 
@@ -1092,42 +905,21 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + (int) (maxRowCount ^ (maxRowCount >>> 32));
-      result = prime * result + ((sql == null) ? 0 : sql.hashCode());
-      result = prime * result + statementId;
+      result = p(result, connectionId);
+      result = p(result, maxRowCount);
+      result = p(result, sql);
+      result = p(result, statementId);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof PrepareAndExecuteRequest) {
-        PrepareAndExecuteRequest other = (PrepareAndExecuteRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == sql) {
-          if (null != other.sql) {
-            return false;
-          }
-        } else if (!sql.equals(other.sql)) {
-          return false;
-        }
-
-        return statementId == other.statementId && maxRowCount == other.maxRowCount;
-      }
-
-      return false;
+      return o == this
+          || o instanceof PrepareAndExecuteRequest
+          && statementId == ((PrepareAndExecuteRequest) o).statementId
+          && maxRowCount == ((PrepareAndExecuteRequest) o).maxRowCount
+          && Objects.equals(connectionId, ((PrepareAndExecuteRequest) o).connectionId)
+          && Objects.equals(sql, ((PrepareAndExecuteRequest) o).sql);
     }
   }
 
@@ -1206,40 +998,19 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((statementHandle == null) ? 0 : statementHandle.hashCode());
-      result = prime * result + ((parameterValues == null) ? 0 : parameterValues.hashCode());
-      result = prime * result + (int) (maxRowCount ^ (maxRowCount >>> 32));
+      result = p(result, statementHandle);
+      result = p(result, parameterValues);
+      result = p(result, maxRowCount);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof ExecuteRequest) {
-        ExecuteRequest other = (ExecuteRequest) o;
-
-        if (statementHandle == null) {
-          if (other.statementHandle != null) {
-            return false;
-          }
-        } else if (!statementHandle.equals(other.statementHandle)) {
-          return false;
-        }
-
-        if (null == parameterValues) {
-          if (null != other.parameterValues) {
-            return false;
-          }
-        } else if (!parameterValues.equals(other.parameterValues)) {
-          return false;
-        }
-
-        return maxRowCount == other.maxRowCount;
-      }
-      return false;
+      return o == this
+          || o instanceof ExecuteRequest
+          && maxRowCount == ((ExecuteRequest) o).maxRowCount
+          && Objects.equals(statementHandle, ((ExecuteRequest) o).statementHandle)
+          && Objects.equals(parameterValues, ((ExecuteRequest) o).parameterValues);
     }
   }
 
@@ -1301,40 +1072,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((results == null) ? 0 : results.hashCode());
-      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      result = p(result, results);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof ExecuteResponse) {
-        ExecuteResponse other = (ExecuteResponse) o;
-
-        if (null == results) {
-          if (null != other.results) {
-            return false;
-          }
-        } else if (!results.equals(other.results)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != other.rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof ExecuteResponse
+          && Objects.equals(results, ((ExecuteResponse) o).results)
+          && Objects.equals(rpcMetadata, ((ExecuteResponse) o).rpcMetadata);
     }
   }
 
@@ -1398,41 +1146,19 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + (int) (maxRowCount ^ (maxRowCount >>> 32));
-      result = prime * result + ((sql == null) ? 0 : sql.hashCode());
+      result = p(result, connectionId);
+      result = p(result, maxRowCount);
+      result = p(result, sql);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof PrepareRequest) {
-        PrepareRequest other = (PrepareRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == sql) {
-          if (null != other.sql) {
-            return false;
-          }
-        } else if (!sql.equals(other.sql)) {
-          return false;
-        }
-
-        return maxRowCount == other.maxRowCount;
-      }
-
-      return false;
+      return o == this
+          || o instanceof PrepareRequest
+          && maxRowCount == ((PrepareRequest) o).maxRowCount
+          && Objects.equals(connectionId, ((PrepareRequest) o).connectionId)
+          && Objects.equals(sql, ((PrepareRequest) o).sql);
     }
   }
 
@@ -1483,40 +1209,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((statement == null) ? 0 : statement.hashCode());
-      result = prime * result + ((null == rpcMetadata) ? 0 : rpcMetadata.hashCode());
+      result = p(result, statement);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof PrepareResponse) {
-        PrepareResponse other = (PrepareResponse) o;
-
-        if (statement == null) {
-          if (other.statement != null) {
-            return false;
-          }
-        } else if (!statement.equals(other.statement)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != other.rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof PrepareResponse
+          && Objects.equals(statement, ((PrepareResponse) o).statement)
+          && Objects.equals(rpcMetadata, ((PrepareResponse) o).rpcMetadata);
     }
   }
 
@@ -1582,36 +1285,21 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + fetchMaxRowCount;
-      result = prime * result + (int) (offset ^ (offset >>> 32));
-      result = prime * result + statementId;
+      result = p(result, connectionId);
+      result = p(result, fetchMaxRowCount);
+      result = p(result, offset);
+      result = p(result, statementId);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof FetchRequest) {
-        FetchRequest other = (FetchRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else {
-          if (!connectionId.equals(other.connectionId)) {
-            return false;
-          }
-        }
-
-        return offset == other.offset && fetchMaxRowCount == other.fetchMaxRowCount;
-      }
-
-      return false;
+      return o == this
+          || o instanceof FetchRequest
+          && statementId == ((FetchRequest) o).statementId
+          && offset == ((FetchRequest) o).offset
+          && fetchMaxRowCount == ((FetchRequest) o).fetchMaxRowCount
+          && Objects.equals(connectionId, ((FetchRequest) o).connectionId);
     }
   }
 
@@ -1669,40 +1357,18 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((frame == null) ? 0 : frame.hashCode());
-      result = prime * result + ((null == rpcMetadata) ? 0 : rpcMetadata.hashCode());
+      result = p(result, frame);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof FetchResponse) {
-        FetchResponse other = (FetchResponse) o;
-
-        if (frame == null) {
-          if (other.frame != null) {
-            return false;
-          }
-        } else if (!frame.equals(other.frame)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != other.rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return missingStatement == other.missingStatement;
-      }
-
-      return false;
+      return o == this
+          || o instanceof FetchResponse
+          && Objects.equals(frame, ((FetchResponse) o).frame)
+          && Objects.equals(rpcMetadata, ((FetchResponse) o).rpcMetadata)
+          && missingStatement == ((FetchResponse) o).missingStatement;
     }
   }
 
@@ -1751,31 +1417,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = p(result, connectionId);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof CreateStatementRequest) {
-        CreateStatementRequest other = (CreateStatementRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof CreateStatementRequest
+          && Objects.equals(connectionId, ((CreateStatementRequest) o).connectionId);
     }
   }
 
@@ -1840,41 +1490,19 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + statementId;
-      result = prime * result + ((null == rpcMetadata) ? 0 : rpcMetadata.hashCode());
+      result = p(result, connectionId);
+      result = p(result, statementId);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof CreateStatementResponse) {
-        CreateStatementResponse other = (CreateStatementResponse) o;
-
-        if (connectionId == null) {
-          if (other.connectionId != null) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != other.rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return statementId == other.statementId;
-      }
-
-      return false;
+      return o == this
+          || o instanceof CreateStatementResponse
+          && statementId == ((CreateStatementResponse) o).statementId
+          && Objects.equals(connectionId, ((CreateStatementResponse) o).connectionId)
+          && Objects.equals(rpcMetadata, ((CreateStatementResponse) o).rpcMetadata);
     }
   }
 
@@ -1926,32 +1554,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + statementId;
+      result = p(result, connectionId);
+      result = p(result, statementId);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof CloseStatementRequest) {
-        CloseStatementRequest other = (CloseStatementRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        return statementId == other.statementId;
-      }
-
-      return false;
+      return o == this
+          || o instanceof CloseStatementRequest
+          && statementId == ((CloseStatementRequest) o).statementId
+          && Objects.equals(connectionId, ((CloseStatementRequest) o).connectionId);
     }
   }
 
@@ -1995,12 +1608,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return (null == rpcMetadata) ? 0 : rpcMetadata.hashCode();
+      int result = 1;
+      result = p(result, rpcMetadata);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      return o == this || (o instanceof CloseStatementResponse
-          && Objects.equals(rpcMetadata, ((CloseStatementResponse) o).rpcMetadata));
+      return o == this
+          || o instanceof CloseStatementResponse
+          && Objects.equals(rpcMetadata, ((CloseStatementResponse) o).rpcMetadata);
     }
   }
 
@@ -2083,40 +1699,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + ((info == null) ? 0 : info.hashCode());
+      result = p(result, connectionId);
+      result = p(result, info);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof OpenConnectionRequest) {
-        OpenConnectionRequest other = (OpenConnectionRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == info) {
-          if (null != other.info) {
-            return false;
-          }
-        } else if (!info.equals(other.info)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof OpenConnectionRequest
+          && Objects.equals(connectionId, ((OpenConnectionRequest) o).connectionId)
+          && Objects.equals(info, ((OpenConnectionRequest) o).info);
     }
   }
 
@@ -2160,12 +1753,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return (null == rpcMetadata) ? 0 : rpcMetadata.hashCode();
+      int result = 1;
+      result = p(result, rpcMetadata);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      return o == this || ((o instanceof OpenConnectionResponse)
-          && Objects.equals(rpcMetadata, ((OpenConnectionResponse) o).rpcMetadata));
+      return o == this
+          || o instanceof OpenConnectionResponse
+          && Objects.equals(rpcMetadata, ((OpenConnectionResponse) o).rpcMetadata);
     }
   }
 
@@ -2214,15 +1810,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = p(result, connectionId);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      return o == this || ((o instanceof CloseConnectionRequest)
-          && Objects.equals(connectionId, ((CloseConnectionRequest) o).connectionId));
+      return o == this
+          || o instanceof CloseConnectionRequest
+          && Objects.equals(connectionId, ((CloseConnectionRequest) o).connectionId);
     }
   }
 
@@ -2266,12 +1862,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return (null == rpcMetadata) ? 0 : rpcMetadata.hashCode();
+      int result = 1;
+      result = p(result, rpcMetadata);
+      return result;
     }
 
     @Override public boolean equals(Object o) {
-      return o == this || ((o instanceof CloseConnectionResponse)
-          && Objects.equals(rpcMetadata, ((CloseConnectionResponse) o).rpcMetadata));
+      return o == this
+          || o instanceof CloseConnectionResponse
+          && Objects.equals(rpcMetadata, ((CloseConnectionResponse) o).rpcMetadata);
     }
   }
 
@@ -2332,40 +1931,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connProps == null) ? 0 : connProps.hashCode());
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = p(result, connProps);
+      result = p(result, connectionId);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof ConnectionSyncRequest) {
-        ConnectionSyncRequest other = (ConnectionSyncRequest) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == connProps) {
-          if (null != other.connProps) {
-            return false;
-          }
-        } else if (!connProps.equals(other.connProps)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof ConnectionSyncRequest
+          && Objects.equals(connectionId, ((ConnectionSyncRequest) o).connectionId)
+          && Objects.equals(connProps, ((ConnectionSyncRequest) o).connProps);
     }
   }
 
@@ -2418,40 +1994,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connProps == null) ? 0 : connProps.hashCode());
-      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      result = p(result, connProps);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof ConnectionSyncResponse) {
-        ConnectionSyncResponse other = (ConnectionSyncResponse) o;
-
-        if (null == connProps) {
-          if (null != other.connProps) {
-            return false;
-          }
-        } else if (!connProps.equals(other.connProps)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != other.rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof ConnectionSyncResponse
+          && Objects.equals(connProps, ((ConnectionSyncResponse) o).connProps)
+          && Objects.equals(rpcMetadata, ((ConnectionSyncResponse) o).rpcMetadata);
     }
   }
 
@@ -2504,7 +2057,7 @@ public interface Service {
             throw new IllegalArgumentException("Expected INTEGER, but got " + value.getType());
           }
 
-          obj = Integer.valueOf((int) value.getNumberValue());
+          obj = (int) value.getNumberValue();
           break;
         default:
           throw new RuntimeException("Unhandled DatabaseProperty");
@@ -2570,40 +2123,17 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((map == null) ? 0 : map.hashCode());
-      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      result = p(result, map);
+      result = p(result, rpcMetadata);
       return result;
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof DatabasePropertyResponse) {
-        DatabasePropertyResponse other = (DatabasePropertyResponse) o;
-
-        if (null == map) {
-          if (null != other.map) {
-            return false;
-          }
-        } else if (!map.equals(other.map)) {
-          return false;
-        }
-
-        if (null == rpcMetadata) {
-          if (null != other.rpcMetadata) {
-            return false;
-          }
-        } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof DatabasePropertyResponse
+          && Objects.equals(map, ((DatabasePropertyResponse) o).map)
+          && Objects.equals(rpcMetadata, ((DatabasePropertyResponse) o).rpcMetadata);
     }
   }
 
@@ -2613,7 +2143,7 @@ public interface Service {
    * transport over the wire. Thus, {@link Service#apply} will never return
    * an ErrorResponse.
    */
-  public class ErrorResponse extends Response {
+  class ErrorResponse extends Response {
     public static final int UNKNOWN_ERROR_CODE = -1;
     public static final int MISSING_CONNECTION_ERROR_CODE = 1;
 
@@ -2679,8 +2209,10 @@ public interface Service {
     }
 
     static String toString(Exception e) {
+      //noinspection ThrowableResultOfMethodCallIgnored
+      Objects.requireNonNull(e);
       StringWriter sw = new StringWriter();
-      Objects.requireNonNull(e).printStackTrace(new PrintWriter(sw));
+      e.printStackTrace(new PrintWriter(sw));
       return sw.toString();
     }
 
@@ -2758,67 +2290,25 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((exceptions == null) ? 0 : exceptions.hashCode());
-      result = prime * result + ((errorMessage == null) ? 0 : errorMessage.hashCode());
-      result = prime * result + errorCode;
-      result = prime * result + ((sqlState == null) ? 0 : sqlState.hashCode());
-      result = prime * result + ((severity == null) ? 0 : severity.hashCode());
-      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      result = p(result, exceptions);
+      result = p(result, errorMessage);
+      result = p(result, errorCode);
+      result = p(result, sqlState);
+      result = p(result, severity);
+      result = p(result, rpcMetadata);
       return result;
     }
 
-    @Override public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (!(obj instanceof ErrorResponse)) {
-        return false;
-      }
-
-      ErrorResponse other = (ErrorResponse) obj;
-      if (exceptions == null) {
-        if (other.exceptions != null) {
-          return false;
-        }
-      } else if (!exceptions.equals(other.exceptions)) {
-        return false;
-      }
-
-      if (errorMessage == null) {
-        if (other.errorMessage != null) {
-          return false;
-        }
-      } else if (!errorMessage.equals(other.errorMessage)) {
-        return false;
-      }
-
-      if (errorCode != other.errorCode) {
-        return false;
-      }
-
-      if (sqlState == null) {
-        if (other.sqlState != null) {
-          return false;
-        }
-      } else if (!sqlState.equals(other.sqlState)) {
-        return false;
-      }
-
-      if (severity != other.severity) {
-        return false;
-      }
-
-      if (null == rpcMetadata) {
-        if (null != other.rpcMetadata) {
-          return false;
-        }
-      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-        return false;
-      }
-
-      return true;
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof ErrorResponse
+          && errorCode == ((ErrorResponse) o).errorCode
+          && severity == ((ErrorResponse) o).severity
+          && Objects.equals(exceptions, ((ErrorResponse) o).exceptions)
+          && Objects.equals(errorMessage, ((ErrorResponse) o).errorMessage)
+          && Objects.equals(sqlState, ((ErrorResponse) o).sqlState)
+          && Objects.equals(rpcMetadata, ((ErrorResponse) o).rpcMetadata);
     }
 
     public AvaticaClientRuntimeException toException() {
@@ -2905,51 +2395,21 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + (int) (offset ^ (offset >>> 32));
-      result = prime * result + ((state == null) ? 0 : state.hashCode());
-      result = prime * result + statementId;
+      result = p(result, connectionId);
+      result = p(result, offset);
+      result = p(result, state);
+      result = p(result, statementId);
       return result;
     }
 
-    @Override public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (null == obj || !(obj instanceof SyncResultsRequest)) {
-        return false;
-      }
-
-      SyncResultsRequest other = (SyncResultsRequest) obj;
-
-      if (connectionId == null) {
-        if (other.connectionId != null) {
-          return false;
-        }
-      } else if (!connectionId.equals(other.connectionId)) {
-        return false;
-      }
-
-      if (offset != other.offset) {
-        return false;
-      }
-
-      if (state == null) {
-        if (other.state != null) {
-          return false;
-        }
-      } else if (!state.equals(other.state)) {
-        return false;
-      }
-
-      if (statementId != other.statementId) {
-        return false;
-      }
-
-      return true;
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof SyncResultsRequest
+          && statementId == ((SyncResultsRequest) o).statementId
+          && offset == ((SyncResultsRequest) o).offset
+          && Objects.equals(connectionId, ((SyncResultsRequest) o).connectionId)
+          && Objects.equals(state, ((SyncResultsRequest) o).state);
     }
   }
 
@@ -2999,33 +2459,19 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + (missingStatement ? 1231 : 1237);
-      result = prime * result + (moreResults ? 1231 : 1237);
-      result = prime * result + ((rpcMetadata == null) ? 0 : rpcMetadata.hashCode());
+      result = p(result, missingStatement);
+      result = p(result, moreResults);
+      result = p(result, rpcMetadata);
       return result;
     }
 
-    @Override public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null || !(obj instanceof SyncResultsResponse)) {
-        return false;
-      }
-
-      SyncResultsResponse other = (SyncResultsResponse) obj;
-
-      if (null == rpcMetadata) {
-        if (null != other.rpcMetadata) {
-          return false;
-        }
-      } else if (!rpcMetadata.equals(other.rpcMetadata)) {
-        return false;
-      }
-
-      return missingStatement == other.missingStatement && moreResults == other.moreResults;
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof SyncResultsResponse
+          && missingStatement == ((SyncResultsResponse) o).missingStatement
+          && moreResults == ((SyncResultsResponse) o).moreResults
+          && Objects.equals(rpcMetadata, ((SyncResultsResponse) o).rpcMetadata);
     }
   }
 
@@ -3035,7 +2481,7 @@ public interface Service {
    * This isn't really a "response", but we want to be able to be able to convert it to protobuf
    * and back again, so ignore that there isn't an explicit endpoint for it.
    */
-  public class RpcMetadataResponse extends Response {
+  class RpcMetadataResponse extends Response {
     public final String serverAddress;
 
     public RpcMetadataResponse() {
@@ -3069,15 +2515,15 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((serverAddress == null) ? 0 : serverAddress.hashCode());
+      result = p(result, serverAddress);
       return result;
     }
 
-    @Override public boolean equals(Object obj) {
-      return this == obj || (obj instanceof RpcMetadataResponse
-          && Objects.equals(serverAddress, ((RpcMetadataResponse) obj).serverAddress));
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof RpcMetadataResponse
+          && Objects.equals(serverAddress, ((RpcMetadataResponse) o).serverAddress);
     }
   }
 
@@ -3123,17 +2569,16 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = p(result, connectionId);
       return result;
     }
 
-    @Override public boolean equals(Object obj) {
-      return this == obj || (obj instanceof CommitRequest
-          && Objects.equals(connectionId, ((CommitRequest) obj).connectionId));
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof CommitRequest
+          && Objects.equals(connectionId, ((CommitRequest) o).connectionId);
     }
-
   }
 
   /**
@@ -3154,13 +2599,13 @@ public interface Service {
       return Responses.CommitResponse.newBuilder().build();
     }
 
-
     @Override public int hashCode() {
-      return 0;
+      return 1;
     }
 
-    @Override public boolean equals(Object obj) {
-      return this == obj || obj instanceof CommitResponse;
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof CommitResponse;
     }
   }
 
@@ -3206,17 +2651,16 @@ public interface Service {
       return builder.build();
     }
 
-
     @Override public int hashCode() {
-      final int prime = 31;
       int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
+      result = p(result, connectionId);
       return result;
     }
 
-    @Override public boolean equals(Object obj) {
-      return this == obj || (obj instanceof RollbackRequest
-          && Objects.equals(connectionId, ((RollbackRequest) obj).connectionId));
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof RollbackRequest
+          && Objects.equals(connectionId, ((RollbackRequest) o).connectionId);
     }
   }
 
@@ -3238,11 +2682,12 @@ public interface Service {
     }
 
     @Override public int hashCode() {
-      return 0;
+      return 1;
     }
 
-    @Override public boolean equals(Object obj) {
-      return this == obj || obj instanceof RollbackResponse;
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof RollbackResponse;
     }
   }
 
