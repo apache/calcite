@@ -43,7 +43,8 @@ public abstract class TestUtil {
       if (expected == null) {
         return;
       } else {
-        String message = "Expected:\n" + expected
+        String message = "Expected:\n"
+            + expected
             + "\nActual: null";
         throw new ComparisonFailure(message, expected, null);
       }
@@ -54,9 +55,12 @@ public abstract class TestUtil {
     String s = toJavaString(actual);
 
     String message =
-        "Expected:\n" + expected
-        + "\nActual:\n " + actual
-        + "\nActual java:\n" + s + '\n';
+        "Expected:\n"
+        + expected
+        + "\nActual:\n"
+        + actual
+        + "\nActual java:\n"
+        + s + '\n';
     throw new ComparisonFailure(message, expected, actual);
   }
 

@@ -502,7 +502,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
         if (rel2 != null) {
           if (CalcitePrepareImpl.DEBUG) {
-            System.out.println("use lattice:\n" + RelOptUtil.toString(rel2));
+            System.out.println("use lattice:\n"
+                + RelOptUtil.toString(rel2));
           }
           latticeUses.add(Pair.of(lattice, rel2));
         }

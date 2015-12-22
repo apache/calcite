@@ -743,12 +743,14 @@ public class MongoAdapterIT {
     CalciteAssert.that()
         .enable(enabled())
         .with(ZIPS)
-        .query("select count(*) as c from zips\n" + q)
+        .query("select count(*) as c from zips\n"
+            + q)
         .returns("C=" + expected + "\n");
     CalciteAssert.that()
         .enable(enabled())
         .with(ZIPS)
-        .query("select * from zips\n" + q)
+        .query("select * from zips\n"
+            + q)
         .returnsCount(expected);
   }
 

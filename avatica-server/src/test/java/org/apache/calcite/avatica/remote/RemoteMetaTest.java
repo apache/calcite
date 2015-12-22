@@ -513,24 +513,28 @@ public class RemoteMetaTest {
     try (final Connection conn = DriverManager.getConnection(url);
         final Statement stmt = conn.createStatement()) {
       assertFalse(stmt.execute("DROP TABLE IF EXISTS " + productTable));
-      assertFalse(stmt.execute(
-          String.format("CREATE TABLE %s(id integer, stock integer)", productTable)));
+      assertFalse(
+          stmt.execute(
+              String.format("CREATE TABLE %s(id integer, stock integer)", productTable)));
       assertFalse(stmt.execute("DROP TABLE IF EXISTS " + salesTable));
-      assertFalse(stmt.execute(
-          String.format("CREATE TABLE %s(id integer, units_sold integer)", salesTable)));
+      assertFalse(
+          stmt.execute(
+              String.format("CREATE TABLE %s(id integer, units_sold integer)", salesTable)));
 
       final int productId = 1;
       // No products and no sales
-      assertFalse(stmt.execute(
-          String.format("INSERT INTO %s VALUES(%d, 0)", productTable, productId)));
-      assertFalse(stmt.execute(
-          String.format("INSERT INTO %s VALUES(%d, 0)", salesTable, productId)));
+      assertFalse(
+          stmt.execute(
+              String.format("INSERT INTO %s VALUES(%d, 0)", productTable, productId)));
+      assertFalse(
+          stmt.execute(
+              String.format("INSERT INTO %s VALUES(%d, 0)", salesTable, productId)));
 
       conn.setAutoCommit(false);
-      PreparedStatement productStmt = conn.prepareStatement(String.format(
-          "UPDATE %s SET stock = stock + ? WHERE id = ?", productTable));
-      PreparedStatement salesStmt = conn.prepareStatement(String.format(
-          "UPDATE %s SET units_sold = units_sold + ? WHERE id = ?", salesTable));
+      PreparedStatement productStmt = conn.prepareStatement(
+          String.format("UPDATE %s SET stock = stock + ? WHERE id = ?", productTable));
+      PreparedStatement salesStmt = conn.prepareStatement(
+          String.format("UPDATE %s SET units_sold = units_sold + ? WHERE id = ?", salesTable));
 
       // No stock
       assertEquals(0, getInventory(conn, productTable, productId));
@@ -577,8 +581,8 @@ public class RemoteMetaTest {
 
   private int getInventory(Connection conn, String productTable, int productId) throws Exception {
     try (Statement stmt = conn.createStatement()) {
-      ResultSet results = stmt.executeQuery(String.format(
-          "SELECT stock FROM %s WHERE id = %d", productTable, productId));
+      ResultSet results = stmt.executeQuery(
+          String.format("SELECT stock FROM %s WHERE id = %d", productTable, productId));
       assertTrue(results.next());
       return results.getInt(1);
     }
@@ -586,8 +590,8 @@ public class RemoteMetaTest {
 
   private int getSales(Connection conn, String salesTable, int productId) throws Exception {
     try (Statement stmt = conn.createStatement()) {
-      ResultSet results = stmt.executeQuery(String.format(
-          "SELECT units_sold FROM %s WHERE id = %d", salesTable, productId));
+      ResultSet results = stmt.executeQuery(
+          String.format("SELECT units_sold FROM %s WHERE id = %d", salesTable, productId));
       assertTrue(results.next());
       return results.getInt(1);
     }

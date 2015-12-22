@@ -381,8 +381,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       } catch (IOException ignore) {
         StringWriter sw = new StringWriter();
         ignore.printStackTrace(new PrintWriter(sw));
-        LOGGER.warning(
-            ignore.getMessage() + "\n" + sw);
+        LOGGER.warning(ignore.getMessage() + "\n"
+            + sw);
       }
     }
 
@@ -423,8 +423,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       } catch (IOException ignore) {
         StringWriter sw = new StringWriter();
         ignore.printStackTrace(new PrintWriter(sw));
-        LOGGER.warning(
-            ignore.getMessage() + "\n" + sw);
+        LOGGER.warning(ignore.getMessage() + "\n"
+            + sw);
       }
       return false;
     }

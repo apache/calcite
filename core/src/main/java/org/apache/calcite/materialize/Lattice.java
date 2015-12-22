@@ -327,7 +327,8 @@ public class Lattice {
       }
     }
     if (CalcitePrepareImpl.DEBUG) {
-      System.out.println("Lattice SQL:\n" + buf);
+      System.out.println("Lattice SQL:\n"
+          + buf);
     }
     buf.append(groupBuf);
     return buf.toString();

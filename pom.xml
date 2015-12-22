@@ -396,6 +396,13 @@ limitations under the License.
             </goals>
           </execution>
         </executions>
+        <dependencies>
+          <dependency>
+            <groupId>net.hydromatic</groupId>
+            <artifactId>toolbox</artifactId>
+            <version>0.2</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <!-- override default version 2.8 for access to additional config settings -->

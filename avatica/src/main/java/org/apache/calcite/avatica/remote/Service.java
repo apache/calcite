@@ -3095,13 +3095,11 @@ public interface Service {
       this.connectionId = connectionId;
     }
 
-    @Override
-    CommitResponse accept(Service service) {
+    @Override CommitResponse accept(Service service) {
       return service.apply(this);
     }
 
-    @Override
-    CommitRequest deserialize(Message genericMsg) {
+    @Override CommitRequest deserialize(Message genericMsg) {
       final Requests.CommitRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.CommitRequest.class);
       final Descriptor desc = msg.getDescriptorForType();
@@ -3114,8 +3112,7 @@ public interface Service {
       return new CommitRequest(connectionId);
     }
 
-    @Override
-    Requests.CommitRequest serialize() {
+    @Override Requests.CommitRequest serialize() {
       Requests.CommitRequest.Builder builder = Requests.CommitRequest.newBuilder();
 
       if (null != connectionId) {
@@ -3125,16 +3122,14 @@ public interface Service {
       return builder.build();
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj || (obj instanceof CommitRequest
           && Objects.equals(connectionId, ((CommitRequest) obj).connectionId));
     }
@@ -3148,27 +3143,23 @@ public interface Service {
 
     CommitResponse() {}
 
-    @Override
-    CommitResponse deserialize(Message genericMsg) {
+    @Override CommitResponse deserialize(Message genericMsg) {
       // Checks the type of genericMsg
       ProtobufService.castProtobufMessage(genericMsg, Responses.CommitResponse.class);
 
       return new CommitResponse();
     }
 
-    @Override
-    Responses.CommitResponse serialize() {
+    @Override Responses.CommitResponse serialize() {
       return Responses.CommitResponse.newBuilder().build();
     }
 
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj || obj instanceof CommitResponse;
     }
   }
@@ -3216,16 +3207,14 @@ public interface Service {
     }
 
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
       return result;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj || (obj instanceof RollbackRequest
           && Objects.equals(connectionId, ((RollbackRequest) obj).connectionId));
     }
@@ -3248,14 +3237,11 @@ public interface Service {
       return Responses.RollbackResponse.newBuilder().build();
     }
 
-
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       return 0;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj || obj instanceof RollbackResponse;
     }
   }

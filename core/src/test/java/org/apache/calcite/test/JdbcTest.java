@@ -4806,7 +4806,8 @@ public class JdbcTest {
     new Quidem(bufferedReader, writer, env, connectionFactory).execute();
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
-      fail("Files differ: " + outFile + " " + inFile + "\n" + diff);
+      fail("Files differ: " + outFile + " " + inFile + "\n"
+          + diff);
     }
   }
 
