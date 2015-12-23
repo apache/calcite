@@ -268,7 +268,7 @@ public abstract class FilterJoinRule extends RelOptRule {
     // create a FilterRel on top of the join if needed
     relBuilder.filter(
         RexUtil.fixUp(rexBuilder, aboveFilters,
-            RelOptUtil.getFieldTypeList(newJoinRel.getRowType())));
+            RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
 
     call.transformTo(relBuilder.build());
   }

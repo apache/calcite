@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -148,10 +149,11 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       relBefore = prePlanner.findBestExp();
     }
 
-    assertTrue(relBefore != null);
+    assertThat(relBefore, notNullValue());
 
     String planBefore = NL + RelOptUtil.toString(relBefore);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    SqlToRelTestBase.assertValid(relBefore);
 
     planner.setRoot(relBefore);
     RelNode relAfter = planner.findBestExp();
@@ -166,6 +168,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
             + "You must use unchanged=true or call checkPlanUnchanged");
       }
     }
+    SqlToRelTestBase.assertValid(relAfter);
   }
 }
 

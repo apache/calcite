@@ -114,6 +114,18 @@ public abstract class SqlToRelTestBase {
     return null;
   }
 
+  /**
+   * Checks that every node of a relational expression is valid.
+   *
+   * @param rel Relational expression
+   */
+  public static void assertValid(RelNode rel) {
+    SqlToRelConverterTest.RelValidityChecker checker =
+        new SqlToRelConverterTest.RelValidityChecker();
+    checker.go(rel);
+    assertEquals(0, checker.invalidCount);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
@@ -619,18 +631,6 @@ public abstract class SqlToRelTestBase {
      */
     public RelFieldTrimmer createFieldTrimmer(RelBuilder relBuilder) {
       return new RelFieldTrimmer(getValidator(), relBuilder);
-    }
-
-    /**
-     * Checks that every node of a relational expression is valid.
-     *
-     * @param rel Relational expression
-     */
-    protected void assertValid(RelNode rel) {
-      SqlToRelConverterTest.RelValidityChecker checker =
-          new SqlToRelConverterTest.RelValidityChecker();
-      checker.go(rel);
-      assertEquals(0, checker.invalidCount);
     }
 
     public DiffRepository getDiffRepos() {
