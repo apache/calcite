@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
@@ -302,7 +303,7 @@ public class DiffRepository {
   private synchronized String get(
       final String testCaseName,
       String resourceName) {
-    Element testCaseElement = getTestCaseElement(testCaseName, true);
+    Element testCaseElement = getTestCaseElement(testCaseName, true, null);
     if (testCaseElement == null) {
       if (baseRepository != null) {
         return baseRepository.get(testCaseName, resourceName);
@@ -355,17 +356,18 @@ public class DiffRepository {
    */
   private synchronized Element getTestCaseElement(
       final String testCaseName,
-      boolean checkOverride) {
+      boolean checkOverride,
+      List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
         Element testCase = (Element) child;
-        if (testCaseName.equals(
-            testCase.getAttribute(TEST_CASE_NAME_ATTR))) {
+        final String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
+        if (testCaseName.equals(name)) {
           if (checkOverride
               && (baseRepository != null)
-              && (baseRepository.getTestCaseElement(testCaseName, false) != null)
+              && (baseRepository.getTestCaseElement(testCaseName, false, null) != null)
               && !"true".equals(
                   testCase.getAttribute(TEST_CASE_OVERRIDES_ATTR))) {
             throw new RuntimeException(
@@ -374,6 +376,9 @@ public class DiffRepository {
                 + "not specify 'overrides=true'");
           }
           return testCase;
+        }
+        if (elements != null) {
+          elements.add(Pair.of(name, testCase));
         }
       }
     }
@@ -456,11 +461,13 @@ public class DiffRepository {
       String testCaseName,
       String resourceName,
       String value) {
-    Element testCaseElement = getTestCaseElement(testCaseName, true);
+    final List<Pair<String, Element>> map = new ArrayList<>();
+    Element testCaseElement = getTestCaseElement(testCaseName, true, map);
     if (testCaseElement == null) {
       testCaseElement = doc.createElement(TEST_CASE_TAG);
       testCaseElement.setAttribute(TEST_CASE_NAME_ATTR, testCaseName);
-      root.appendChild(testCaseElement);
+      Node refElement = ref(testCaseName, map);
+      root.insertBefore(testCaseElement, refElement);
     }
     Element resourceElement =
         getResourceElement(testCaseElement, resourceName, true);
@@ -477,6 +484,39 @@ public class DiffRepository {
 
     // Write out the document.
     flushDoc();
+  }
+
+  private Node ref(String testCaseName, List<Pair<String, Element>> map) {
+    if (map.isEmpty()) {
+      return null;
+    }
+    // Compute the position that the new element should be if the map were
+    // sorted.
+    int i = 0;
+    final List<String> names = Pair.left(map);
+    for (String s : names) {
+      if (s.compareToIgnoreCase(testCaseName) <= 0) {
+        ++i;
+      }
+    }
+    // Starting at a proportional position in the list,
+    // move forwards through lesser names, then
+    // move backwards through greater names.
+    //
+    // The intended effect is that if the list is already sorted, the new item
+    // will end up in exactly the right position, and if the list is not sorted,
+    // the new item will end up in approximately the right position.
+    while (i < map.size()
+        && names.get(i).compareToIgnoreCase(testCaseName) < 0) {
+      ++i;
+    }
+    if (i >= map.size() - 1) {
+      return null;
+    }
+    while (i >= 0 && names.get(i).compareToIgnoreCase(testCaseName) > 0) {
+      --i;
+    }
+    return map.get(i + 1).right;
   }
 
   /**
