@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -97,6 +98,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -819,6 +821,31 @@ public class RelMetadataTest extends SqlToRelTestBase {
     Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
     assertThat(result.isEmpty(), is(true));
     assertUniqueConsistent(rel);
+  }
+
+  @Test public void testCorrelateUniqueKeys() {
+    final String sql = "select *\n"
+        + "from (select distinct deptno from emp) as e,\n"
+        + "  lateral (\n"
+        + "    select * from dept where dept.deptno = e.deptno)";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+
+    assertThat(rel, isA((Class) Project.class));
+    final Project project = (Project) rel;
+    final Set<ImmutableBitSet> result = mq.getUniqueKeys(project);
+    assertThat(result, sortsAs("[{0}]"));
+    if (false) {
+      assertUniqueConsistent(project);
+    }
+
+    assertThat(project.getInput(), isA((Class) Correlate.class));
+    final Correlate correlate = (Correlate) project.getInput();
+    final Set<ImmutableBitSet> result2 = mq.getUniqueKeys(correlate);
+    assertThat(result2, sortsAs("[{0}]"));
+    if (false) {
+      assertUniqueConsistent(correlate);
+    }
   }
 
   @Test public void testGroupByEmptyUniqueKeys() {
