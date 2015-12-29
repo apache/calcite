@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
@@ -184,17 +185,13 @@ public abstract class Prepare {
       SqlNode sqlQuery,
       Class runtimeContextClass,
       SqlValidator validator,
-      boolean needsValidation,
-      List<Materialization> materializations,
-      List<CalciteSchema.LatticeEntry> lattices) {
+      boolean needsValidation) {
     return prepareSql(
         sqlQuery,
         sqlQuery,
         runtimeContextClass,
         validator,
-        needsValidation,
-        materializations,
-        lattices);
+        needsValidation);
   }
 
   public PreparedResult prepareSql(
@@ -202,9 +199,7 @@ public abstract class Prepare {
       SqlNode sqlNodeOriginal,
       Class runtimeContextClass,
       SqlValidator validator,
-      boolean needsValidation,
-      List<Materialization> materializations,
-      List<CalciteSchema.LatticeEntry> lattices) {
+      boolean needsValidation) {
     queryString = sqlQuery.toString();
 
     init(runtimeContextClass);
@@ -273,13 +268,13 @@ public abstract class Prepare {
       switch (explainDepth) {
       case PHYSICAL:
       default:
-        root = optimize(root, materializations, lattices);
+        root = optimize(root, getMaterializations(), getLattices());
         return createPreparedExplanation(
             null, parameterRowType, root, explainAsXml, detailLevel);
       }
     }
 
-    root = optimize(root, materializations, lattices);
+    root = optimize(root, getMaterializations(), getLattices());
 
     if (timingTracer != null) {
       timingTracer.traceTime("end optimization");
@@ -327,6 +322,10 @@ public abstract class Prepare {
 
   protected abstract RelNode decorrelate(SqlToRelConverter sqlToRelConverter,
       SqlNode query, RelNode rootRel);
+
+  protected abstract List<Materialization> getMaterializations();
+
+  protected abstract List<LatticeEntry> getLattices();
 
   /**
    * Walks over a tree of relational expressions, replacing each
@@ -557,6 +556,8 @@ public abstract class Prepare {
     final CalciteSchema.TableEntry materializedTable;
     /** The query that derives the data. */
     final String sql;
+    /** The schema path for the query. */
+    final List<String> viewSchemaPath;
     /** Relational expression for the table. Usually a
      * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
     RelNode tableRel;
@@ -566,11 +567,12 @@ public abstract class Prepare {
     private RelOptTable starRelOptTable;
 
     public Materialization(CalciteSchema.TableEntry materializedTable,
-        String sql) {
+        String sql, List<String> viewSchemaPath) {
       assert materializedTable != null;
       assert sql != null;
       this.materializedTable = materializedTable;
       this.sql = sql;
+      this.viewSchemaPath = viewSchemaPath;
     }
 
     public void materialize(RelNode queryRel,

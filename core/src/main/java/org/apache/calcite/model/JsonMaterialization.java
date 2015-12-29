@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.model;
 
+import java.util.List;
+
 /**
  * Element that describes how a table is a materialization of a query.
  *
@@ -33,6 +35,8 @@ public class JsonMaterialization {
    * multi-line SQL string, separated by newlines).
    */
   public Object sql;
+
+  public List<String> viewSchemaPath;
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

@@ -103,7 +103,9 @@ public class MaterializedViewTable extends ViewTable {
     private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
         List<String> viewSchemaPath, String suggestedTableName,
         boolean existing) {
-      super(schema, viewSql, viewSchemaPath, Boolean.TRUE);
+      super(schema, viewSql,
+          viewSchemaPath != null ? viewSchemaPath : schema.path(null),
+          Boolean.TRUE);
       this.key = Preconditions.checkNotNull(
           MaterializationService.instance().defineMaterialization(
               schema, null, viewSql, schemaPath, suggestedTableName, true,

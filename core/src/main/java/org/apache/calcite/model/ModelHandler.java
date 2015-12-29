@@ -280,8 +280,8 @@ public class ModelHandler {
       }
       schema.add(viewName,
           MaterializedViewTable.create(calciteSchema,
-              jsonMaterialization.getSql(), null, jsonMaterialization.table,
-              existing));
+              jsonMaterialization.getSql(), jsonMaterialization.viewSchemaPath,
+              jsonMaterialization.table, existing));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
           e);

@@ -902,6 +902,49 @@ public class MaterializationTest {
     }
   }
 
+  @Test public void testViewSchemaPath() {
+    try {
+      Prepare.THREAD_TRIM.set(true);
+      MaterializationService.setThreadLocal();
+      final String m = "select empno, deptno from emp";
+      final String q = "select deptno from scott.emp";
+      final List<String> path = ImmutableList.of("SCOTT");
+      final JsonBuilder builder = new JsonBuilder();
+      final String model = "{\n"
+          + "  version: '1.0',\n"
+          + "  defaultSchema: 'hr',\n"
+          + "  schemas: [\n"
+          + JdbcTest.SCOTT_SCHEMA
+          + "  ,\n"
+          + "    {\n"
+          + "      materializations: [\n"
+          + "        {\n"
+          + "          table: 'm0',\n"
+          + "          view: 'm0v',\n"
+          + "          sql: " + builder.toJsonString(m) + ",\n"
+          + "          viewSchemaPath: " + builder.toJsonString(path)
+          + "        }\n"
+          + "      ],\n"
+          + "      type: 'custom',\n"
+          + "      name: 'hr',\n"
+          + "      factory: 'org.apache.calcite.adapter.java.ReflectiveSchema$Factory',\n"
+          + "      operand: {\n"
+          + "        class: 'org.apache.calcite.test.JdbcTest$HrSchema'\n"
+          + "      }\n"
+          + "    }\n"
+          + "  ]\n"
+          + "}\n";
+      CalciteAssert.that()
+          .withModel(model)
+          .query(q)
+          .enableMaterializations(true)
+          .explainMatches("", CONTAINS_M0)
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
   @Test public void testSingleMaterializationMultiUsage() {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"

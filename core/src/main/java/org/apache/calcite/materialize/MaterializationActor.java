@@ -54,6 +54,7 @@ class MaterializationActor {
     CalciteSchema.TableEntry materializedTable;
     final String sql;
     final RelDataType rowType;
+    final List<String> viewSchemaPath;
 
     /** Creates a materialization.
      *
@@ -70,13 +71,15 @@ class MaterializationActor {
         CalciteSchema rootSchema,
         CalciteSchema.TableEntry materializedTable,
         String sql,
-        RelDataType rowType) {
+        RelDataType rowType,
+        List<String> viewSchemaPath) {
       this.key = key;
       this.rootSchema = Preconditions.checkNotNull(rootSchema);
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;
       this.rowType = rowType;
+      this.viewSchemaPath = viewSchemaPath;
     }
   }
 

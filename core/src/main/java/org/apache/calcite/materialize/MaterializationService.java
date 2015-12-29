@@ -145,7 +145,7 @@ public class MaterializationService {
     final MaterializationKey key = new MaterializationKey();
     final MaterializationActor.Materialization materialization =
         new MaterializationActor.Materialization(key, schema.root(),
-            tableEntry, viewSql, rowType);
+            tableEntry, viewSql, rowType, viewSchemaPath);
     actor.keyMap.put(materialization.key, materialization);
     actor.keyBySql.put(queryKey, materialization.key);
     if (tileKey != null) {
@@ -318,7 +318,7 @@ public class MaterializationService {
           && materialization.materializedTable != null) {
         list.add(
             new Prepare.Materialization(materialization.materializedTable,
-                materialization.sql));
+                materialization.sql, materialization.viewSchemaPath));
       }
     }
     return list;
