@@ -36,7 +36,6 @@ import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
-import org.apache.calcite.rel.rules.AggregateConstantKeyRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -2027,7 +2026,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Planner rule that removes Aggregate keys that are constant</a>. */
   @Test public void testAggregateConstantKeyRule() {
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .addRuleInstance(AggregateProjectPullUpConstantsRule.INSTANCE2)
         .build();
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -2036,11 +2035,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(new HepPlanner(program), sql);
   }
 
-  /** Tests {@link AggregateConstantKeyRule} where reduction is not possible
-   * because "deptno" is the only key. */
+  /** Tests {@link AggregateProjectPullUpConstantsRule} where reduction is not
+   * possible because "deptno" is the only key. */
   @Test public void testAggregateConstantKeyRule2() {
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .addRuleInstance(AggregateProjectPullUpConstantsRule.INSTANCE2)
         .build();
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -2049,11 +2048,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
-  /** Tests {@link AggregateConstantKeyRule} where both keys are constants but
-   * only one can be removed. */
+  /** Tests {@link AggregateProjectPullUpConstantsRule} where both keys are
+   * constants but only one can be removed. */
   @Test public void testAggregateConstantKeyRule3() {
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateConstantKeyRule.INSTANCE)
+        .addRuleInstance(AggregateProjectPullUpConstantsRule.INSTANCE2)
         .build();
     final String sql = "select job\n"
         + "from sales.emp\n"
