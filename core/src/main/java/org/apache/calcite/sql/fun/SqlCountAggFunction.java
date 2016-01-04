@@ -48,7 +48,7 @@ public class SqlCountAggFunction extends SqlAggFunction {
     super(
         "COUNT",
         null,
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.COUNT,
         ReturnTypes.BIGINT,
         null,
         SqlValidator.STRICT

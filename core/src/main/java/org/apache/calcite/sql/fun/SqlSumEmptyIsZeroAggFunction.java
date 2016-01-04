@@ -42,7 +42,7 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
   SqlSumEmptyIsZeroAggFunction() {
     super("$SUM0",
         null,
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.SUM0,
         ReturnTypes.AGG_SUM_EMPTY_IS_ZERO,
         null,
         OperandTypes.NUMERIC,

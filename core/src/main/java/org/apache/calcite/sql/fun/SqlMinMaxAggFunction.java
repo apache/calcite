@@ -26,6 +26,9 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -57,62 +60,72 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
 
   //~ Instance fields --------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   public final List<RelDataType> argTypes;
-  private final boolean isMin;
-  private final int kind;
+  private final int minMaxKind;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlMinMaxAggFunction(
-      List<RelDataType> argTypes,
-      boolean isMin,
-      int kind) {
-    super(
-        isMin ? "MIN" : "MAX",
+  /** Creates a SqlMinMaxAggFunction. */
+  public SqlMinMaxAggFunction(SqlKind kind) {
+    super(kind.name(),
         null,
-        SqlKind.OTHER_FUNCTION,
+        kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.COMPARABLE_ORDERED,
         SqlFunctionCategory.SYSTEM,
         false,
         false);
-    this.argTypes = argTypes;
-    this.isMin = isMin;
-    this.kind = kind;
+    this.argTypes = ImmutableList.of();
+    this.minMaxKind = MINMAX_COMPARABLE;
+    Preconditions.checkArgument(kind == SqlKind.MIN
+        || kind == SqlKind.MAX);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlMinMaxAggFunction(
+      List<RelDataType> argTypes,
+      boolean isMin,
+      int minMaxKind) {
+    this(isMin ? SqlKind.MIN : SqlKind.MAX);
+    assert argTypes.isEmpty();
+    assert minMaxKind == MINMAX_COMPARABLE;
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   public boolean isMin() {
-    return isMin;
+    return kind == SqlKind.MIN;
   }
 
+  @Deprecated // to be removed before 2.0
   public int getMinMaxKind() {
-    return kind;
+    return minMaxKind;
   }
 
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    switch (kind) {
+    switch (minMaxKind) {
     case MINMAX_PRIMITIVE:
     case MINMAX_COMPARABLE:
       return argTypes;
     case MINMAX_COMPARATOR:
       return argTypes.subList(1, 2);
     default:
-      throw Util.newInternal("bad kind: " + kind);
+      throw Util.newInternal("bad kind: " + minMaxKind);
     }
   }
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    switch (kind) {
+    switch (minMaxKind) {
     case MINMAX_PRIMITIVE:
     case MINMAX_COMPARABLE:
       return argTypes.get(0);
     case MINMAX_COMPARATOR:
       return argTypes.get(1);
     default:
-      throw Util.newInternal("bad kind: " + kind);
+      throw Util.newInternal("bad kind: " + minMaxKind);
     }
   }
 

@@ -625,6 +625,74 @@ public enum SqlKind {
   /** The internal {@code GROUP_ID()} function. */
   GROUP_ID,
 
+  // Aggregate functions
+
+  /** The {@code COUNT} aggregate function. */
+  COUNT,
+
+  /** The {@code SUM} aggregate function. */
+  SUM,
+
+  /** The {@code SUM0} aggregate function. */
+  SUM0,
+
+  /** The {@code MIN} aggregate function. */
+  MIN,
+
+  /** The {@code MAX} aggregate function. */
+  MAX,
+
+  /** The {@code LEAD} aggregate function. */
+  LEAD,
+
+  /** The {@code LAG} aggregate function. */
+  LAG,
+
+  /** The {@code FIRST_VALUE} aggregate function. */
+  FIRST_VALUE,
+
+  /** The {@code LAST_VALUE} aggregate function. */
+  LAST_VALUE,
+
+  /** The {@code COVAR_POP} aggregate function. */
+  COVAR_POP,
+
+  /** The {@code COVAR_SAMP} aggregate function. */
+  COVAR_SAMP,
+
+  /** The {@code REGR_SXX} aggregate function. */
+  REGR_SXX,
+
+  /** The {@code REGR_SYY} aggregate function. */
+  REGR_SYY,
+
+  /** The {@code AVG} aggregate function. */
+  AVG,
+
+  /** The {@code STDDEV_POP} aggregate function. */
+  STDDEV_POP,
+
+  /** The {@code STDDEV_SAMP} aggregate function. */
+  STDDEV_SAMP,
+
+  /** The {@code VAR_POP} aggregate function. */
+  VAR_POP,
+
+  /** The {@code VAR_SAMP} aggregate function. */
+  VAR_SAMP,
+
+  /** The {@code NTILE} aggregate function. */
+  NTILE,
+
+  /** The {@code COLLECT} aggregate function. */
+  COLLECT,
+
+  /** The {@code FUSION} aggregate function. */
+  FUSION,
+
+  /** The {@code SINGLE_VALUE} aggregate function. */
+  SINGLE_VALUE,
+
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
 
@@ -699,10 +767,21 @@ public enum SqlKind {
       EnumSet.of(UNION, INTERSECT, EXCEPT);
 
   /**
+   * Category consisting of all built-in aggregate functions.
+   */
+  public static final EnumSet<SqlKind> AGGREGATE =
+      EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
+          LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_SXX, REGR_SYY,
+          AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
+          FUSION, SINGLE_VALUE);
+
+  /**
    * Category consisting of all expression operators.
    *
    * <p>A node is an expression if it is NOT one of the following:
    * {@link #AS},
+   * {@link #ARGUMENT_ASSIGNMENT},
+   * {@link #DEFAULT},
    * {@link #DESCENDING},
    * {@link #SELECT},
    * {@link #JOIN},
@@ -715,17 +794,19 @@ public enum SqlKind {
    * {@link #FOLLOWING},
    * {@link #ORDER_BY},
    * {@link #COLLECTION_TABLE},
-   * {@link #TABLESAMPLE}.
+   * {@link #TABLESAMPLE},
+   * or an aggregate function.
    */
   public static final Set<SqlKind> EXPRESSION =
       EnumSet.complementOf(
-          EnumSet.of(
-              AS, ARGUMENT_ASSIGNMENT, DEFAULT,
-              DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
-              SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
-              LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
-              NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-              VALUES, WITH, WITH_ITEM));
+          concat(
+              EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
+                  DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
+                  SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
+                  LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
+                  NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
+                  VALUES, WITH, WITH_ITEM),
+              AGGREGATE));
 
   /**
    * Category consisting of all DML operators.

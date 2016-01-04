@@ -35,6 +35,7 @@ import java.util.List;
 public class SqlSingleValueAggFunction extends SqlAggFunction {
   //~ Instance fields --------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   private final RelDataType type;
 
   //~ Constructors -----------------------------------------------------------
@@ -44,7 +45,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
     super(
         "SINGLE_VALUE",
         null,
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.SINGLE_VALUE,
         ReturnTypes.ARG0,
         null,
         OperandTypes.ANY,
@@ -64,6 +65,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
     return type;
   }
 
+  @Deprecated // to be removed before 2.0
   public RelDataType getType() {
     return type;
   }

@@ -16,23 +16,13 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Operator which aggregates sets of values into a result.
  */
 public class SqlRankFunction extends SqlAggFunction {
-  //~ Instance fields --------------------------------------------------------
-
-  private final RelDataType type = null;
-
   //~ Constructors -----------------------------------------------------------
 
   public SqlRankFunction(String name, boolean requiresOrder) {
@@ -54,13 +44,6 @@ public class SqlRankFunction extends SqlAggFunction {
     return false;
   }
 
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    return type;
-  }
-
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    return ImmutableList.of(type);
-  }
 }
 
 // End SqlRankFunction.java

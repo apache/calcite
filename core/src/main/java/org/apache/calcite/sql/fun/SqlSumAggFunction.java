@@ -39,6 +39,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
 
   //~ Instance fields --------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   private final RelDataType type;
 
   //~ Constructors -----------------------------------------------------------
@@ -47,7 +48,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
     super(
         "SUM",
         null,
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.SUM,
         ReturnTypes.AGG_SUM,
         null,
         OperandTypes.NUMERIC,
@@ -63,6 +64,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
     return ImmutableList.of(type);
   }
 
+  @Deprecated // to be removed before 2.0
   public RelDataType getType() {
     return type;
   }

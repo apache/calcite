@@ -29,15 +29,16 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 /**
- * <code>HistogramAgg</code> is base operator which supports the Histogram
- * MIN/MAX aggregatoin functions. which returns the sum of the values which go
+ * <code>HISTOGRAM</code> is the base operator that supports the Histogram
+ * MIN/MAX aggregate functions. It returns the sum of the values which go
  * into it. It has precisely one argument of numeric type (<code>int</code>,
- * <code>long</code>, <code>float</code>, <code>double</code>) results are
- * retrived with (<code>HistogramMin</code>) and (<code>HistogramMax</code>)
+ * <code>long</code>, <code>float</code>, <code>double</code>); results are
+ * retrieved using (<code>HistogramMin</code>) and (<code>HistogramMax</code>).
  */
 public class SqlHistogramAggFunction extends SqlAggFunction {
   //~ Instance fields --------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   private final RelDataType type;
 
   //~ Constructors -----------------------------------------------------------
@@ -62,6 +63,7 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
     return ImmutableList.of(type);
   }
 
+  @Deprecated // to be removed before 2.0
   public RelDataType getType() {
     return type;
   }

@@ -17,16 +17,13 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
+import com.google.common.base.Preconditions;
 
 /**
  * <code>Avg</code> is an aggregator which returns the average of the values
@@ -35,56 +32,49 @@ import java.util.List;
  * double</code>), and the result is the same type.
  */
 public class SqlAvgAggFunction extends SqlAggFunction {
-  //~ Instance fields --------------------------------------------------------
-
-  private final RelDataType type;
-  private final Subtype subtype;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SqlAvgAggFunction
-   *
-   * @param type    Data type
-   * @param subtype Specific function, e.g. AVG or STDDEV_POP
+   * Creates a SqlAvgAggFunction.
    */
-  public SqlAvgAggFunction(
-      RelDataType type,
-      Subtype subtype) {
-    super(
-        subtype.name(),
+  public SqlAvgAggFunction(SqlKind kind) {
+    super(kind.name(),
         null,
-        SqlKind.OTHER_FUNCTION,
+        kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
         false);
-    this.type = type;
-    this.subtype = subtype;
+    Preconditions.checkArgument(kind == SqlKind.AVG
+        || kind == SqlKind.STDDEV_POP
+        || kind == SqlKind.STDDEV_SAMP
+        || kind == SqlKind.VAR_POP
+        || kind == SqlKind.VAR_SAMP);
   }
 
-  //~ Methods ----------------------------------------------------------------
-
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    return ImmutableList.of(type);
+  @Deprecated // to be removed before 2.0
+  public SqlAvgAggFunction(
+      RelDataType type,
+      Subtype subtype) {
+    this(SqlKind.valueOf(subtype.name()));
   }
 
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    return type;
-  }
+    //~ Methods ----------------------------------------------------------------
 
   /**
    * Returns the specific function, e.g. AVG or STDDEV_POP.
    *
    * @return Subtype
    */
+  @Deprecated // to be removed before 2.0
   public Subtype getSubtype() {
-    return subtype;
+    return Subtype.valueOf(kind.name());
   }
 
   /** Sub-type of aggregate function. */
+  @Deprecated // to be removed before 2.0
   public enum Subtype {
     AVG,
     STDDEV_POP,

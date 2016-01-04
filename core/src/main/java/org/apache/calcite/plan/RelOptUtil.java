@@ -64,11 +64,9 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -376,18 +374,9 @@ public abstract class RelOptUtil {
       // doing a min(TRUE)
 
       ret = createProject(ret, ImmutableList.of(extraExpr), null);
-      final List<RelDataType> argTypes =
-          ImmutableList.of(
-              typeFactory.createSqlType(SqlTypeName.BOOLEAN));
-
-      SqlAggFunction minFunction =
-          new SqlMinMaxAggFunction(
-              argTypes,
-              true,
-              SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
       final AggregateCall aggCall =
-          AggregateCall.create(minFunction,
+          AggregateCall.create(SqlStdOperatorTable.MIN,
               false,
               ImmutableList.of(0),
               -1,
@@ -457,15 +446,8 @@ public abstract class RelOptUtil {
 
       ret = createProject(ret, exprs, null);
 
-      final List<RelDataType> argTypes =
-          ImmutableList.of(typeFactory.createSqlType(SqlTypeName.BOOLEAN));
-
-      final SqlAggFunction minFunction =
-          new SqlMinMaxAggFunction(argTypes, true,
-              SqlMinMaxAggFunction.MINMAX_COMPARABLE);
-
       final AggregateCall aggCall =
-          AggregateCall.create(minFunction,
+          AggregateCall.create(SqlStdOperatorTable.MIN,
               false,
               ImmutableList.of(projectedKeyCount),
               -1,

@@ -17,11 +17,15 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+
+import java.util.List;
 
 /**
  * Abstract base class for the definition of an aggregate function: an operator
@@ -118,6 +122,16 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    */
   public final boolean requiresOver() {
     return requiresOver;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    throw new UnsupportedOperationException("remove before calcite-2.0");
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    throw new UnsupportedOperationException("remove before calcite-2.0");
   }
 }
 

@@ -17,16 +17,13 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
+import com.google.common.base.Preconditions;
 
 /**
  * <code>Covar</code> is an aggregator which returns the Covariance of the
@@ -37,53 +34,48 @@ import java.util.List;
 public class SqlCovarAggFunction extends SqlAggFunction {
   //~ Instance fields --------------------------------------------------------
 
-  private final RelDataType type;
-  private final Subtype subtype;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SqlCovarAggFunction.
-   *
-   * @param type    Data type
-   * @param subtype Specific function, e.g. COVAR_POP
    */
-  public SqlCovarAggFunction(RelDataType type, Subtype subtype) {
-    super(subtype.name(),
+  public SqlCovarAggFunction(SqlKind kind) {
+    super(kind.name(),
         null,
-        SqlKind.OTHER_FUNCTION,
+        kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.NUMERIC_NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
         false);
-    this.type = type;
-    this.subtype = subtype;
+    Preconditions.checkArgument(kind == SqlKind.COVAR_POP
+        || kind == SqlKind.COVAR_SAMP
+        || kind == SqlKind.REGR_SXX
+        || kind == SqlKind.REGR_SYY);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlCovarAggFunction(RelDataType type, Subtype subtype) {
+    this(SqlKind.valueOf(subtype.name()));
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    return ImmutableList.of(type);
-  }
-
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    return type;
-  }
 
   /**
    * Returns the specific function, e.g. COVAR_POP or COVAR_SAMP.
    *
    * @return Subtype
    */
+  @Deprecated // to be removed before 2.0
   public Subtype getSubtype() {
-    return subtype;
+    return Subtype.valueOf(kind.name());
   }
 
   /**
    * Enum for defining specific types.
    */
+  @Deprecated // to be removed before 2.0
   public enum Subtype {
     COVAR_POP,
     COVAR_SAMP,

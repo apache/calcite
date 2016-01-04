@@ -16,15 +16,11 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-
-import java.util.List;
 
 /**
  * <code>NTILE</code> aggregate function
@@ -35,7 +31,7 @@ public class SqlNtileAggFunction extends SqlAggFunction {
     super(
         "NTILE",
         null,
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.NTILE,
         ReturnTypes.INTEGER,
         null,
         OperandTypes.POSITIVE_INTEGER_LITERAL,
@@ -44,13 +40,6 @@ public class SqlNtileAggFunction extends SqlAggFunction {
         true);
   }
 
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException("remove before calcite-0.9");
-  }
-
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException("remove before calcite-0.9");
-  }
 }
 
 // End SqlNtileAggFunction.java

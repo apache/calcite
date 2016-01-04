@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -31,6 +30,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -73,30 +73,29 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         }
       });
 
-  public SqlLeadLagAggFunction(boolean isLead) {
-    super(
-        isLead ? "LEAD" : "LAG",
+  public SqlLeadLagAggFunction(SqlKind kind) {
+    super(kind.name(),
         null,
-        SqlKind.OTHER_FUNCTION,
+        kind,
         RETURN_TYPE,
         null,
         OPERAND_TYPES,
         SqlFunctionCategory.NUMERIC,
         false,
         true);
+    Preconditions.checkArgument(kind == SqlKind.LEAD
+        || kind == SqlKind.LAG);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlLeadLagAggFunction(boolean isLead) {
+    this(isLead ? SqlKind.LEAD : SqlKind.LAG);
   }
 
   @Override public boolean allowsFraming() {
     return false;
   }
 
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException("remove before calcite-0.9");
-  }
-
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
-    throw new UnsupportedOperationException("remove before calcite-0.9");
-  }
 }
 
 // End SqlLeadLagAggFunction.java

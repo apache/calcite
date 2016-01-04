@@ -25,6 +25,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -37,17 +38,24 @@ import java.util.List;
 public class SqlFirstLastValueAggFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlFirstLastValueAggFunction(boolean firstFlag) {
+  public SqlFirstLastValueAggFunction(SqlKind kind) {
     super(
-        firstFlag ? "FIRST_VALUE" : "LAST_VALUE",
+        kind.name(),
         null,
-        SqlKind.OTHER_FUNCTION,
+        kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.NUMERIC,
         false,
         true);
+    Preconditions.checkArgument(kind == SqlKind.FIRST_VALUE
+        || kind == SqlKind.LAST_VALUE);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlFirstLastValueAggFunction(boolean firstFlag) {
+    this(firstFlag ? SqlKind.FIRST_VALUE : SqlKind.LAST_VALUE);
   }
 
   //~ Methods ----------------------------------------------------------------
