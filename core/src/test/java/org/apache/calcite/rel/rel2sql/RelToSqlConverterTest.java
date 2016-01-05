@@ -27,6 +27,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
+import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
@@ -51,7 +52,7 @@ public class RelToSqlConverterTest {
       final RelToSqlConverter converter =
           new RelToSqlConverter(dialect);
       final SqlNode sqlNode = converter.visitChild(0, rel).asQuery();
-      assertThat(sqlNode.toSqlString(dialect).getSql(),
+      assertThat(Util.toLinux(sqlNode.toSqlString(dialect).getSql()),
           is(expectedQuery));
     } catch (Exception e) {
       assertTrue("Parsing failed throwing error: " + e.getMessage(), false);
