@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
@@ -29,8 +30,11 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BuiltInMethod;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -44,6 +48,14 @@ import java.util.List;
  * style.
  */
 public class EnumUtils {
+
+  private static final Function<RexNode, Type> REX_TO_INTERNAL_TYPE =
+      new Function<RexNode, Type>() {
+        public Type apply(RexNode node) {
+          return toInternal(node.getType());
+        }
+      };
+
   private EnumUtils() {}
 
   static final boolean BRIDGE_METHODS = true;
@@ -54,7 +66,8 @@ public class EnumUtils {
   static final List<Expression> NO_EXPRS =
       ImmutableList.of();
 
-  public static final String[] LEFT_RIGHT = {"left", "right"};
+  public static final List<String> LEFT_RIGHT =
+      ImmutableList.of("left", "right");
 
   /** Declares a method that overrides another method. */
   public static MethodDeclaration overridingMethodDecl(Method method,
@@ -117,12 +130,10 @@ public class EnumUtils {
   static Expression joinSelector(JoinRelType joinType, PhysType physType,
       List<PhysType> inputPhysTypes) {
     // A parameter for each input.
-    final List<ParameterExpression> parameters =
-        new ArrayList<ParameterExpression>();
+    final List<ParameterExpression> parameters = new ArrayList<>();
 
     // Generate all fields.
-    final List<Expression> expressions =
-        new ArrayList<Expression>();
+    final List<Expression> expressions = new ArrayList<>();
     final int outputFieldCount = physType.getRowType().getFieldCount();
     for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
       final PhysType inputPhysType =
@@ -132,7 +143,7 @@ public class EnumUtils {
       // Function<T> always operates on boxed arguments
       final ParameterExpression parameter =
           Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()),
-              EnumUtils.LEFT_RIGHT[ord.i]);
+              EnumUtils.LEFT_RIGHT.get(ord.i));
       parameters.add(parameter);
       if (expressions.size() == outputFieldCount) {
         // For instance, if semi-join needs to return just the left inputs
@@ -157,6 +168,101 @@ public class EnumUtils {
         Function2.class,
         physType.record(expressions),
         parameters);
+  }
+
+  /** Converts from internal representation to JDBC representation used by
+   * arguments of user-defined functions. For example, converts date values from
+   * {@code int} to {@link java.sql.Date}. */
+  static Expression fromInternal(Expression e, Class<?> targetType) {
+    if (e == ConstantUntypedNull.INSTANCE) {
+      return e;
+    }
+    if (!(e.getType() instanceof Class)) {
+      return e;
+    }
+    if (targetType.isAssignableFrom((Class) e.getType())) {
+      return e;
+    }
+    if (targetType == java.sql.Date.class) {
+      return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, e);
+    }
+    if (targetType == java.sql.Time.class) {
+      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, e);
+    }
+    if (targetType == java.sql.Timestamp.class) {
+      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, e);
+    }
+    if (Primitive.is(e.type)
+        && Primitive.isBox(targetType)) {
+      // E.g. e is "int", target is "Long", generate "(long) e".
+      return Expressions.convert_(e,
+          Primitive.ofBox(targetType).primitiveClass);
+    }
+    return e;
+  }
+
+  static List<Expression> fromInternal(Class<?>[] targetTypes,
+      List<Expression> expressions) {
+    final List<Expression> list = new ArrayList<>();
+    for (int i = 0; i < expressions.size(); i++) {
+      list.add(fromInternal(expressions.get(i), targetTypes[i]));
+    }
+    return list;
+  }
+
+  static Type fromInternal(Type type) {
+    if (type == java.sql.Date.class || type == java.sql.Time.class) {
+      return int.class;
+    }
+    if (type == java.sql.Timestamp.class) {
+      return long.class;
+    }
+    return type;
+  }
+
+  static Type toInternal(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case DATE:
+    case TIME:
+      return type.isNullable() ? Integer.class : int.class;
+    case TIMESTAMP:
+      return type.isNullable() ? Long.class : long.class;
+    default:
+      return null; // we don't care; use the default storage type
+    }
+  }
+
+  static List<Type> internalTypes(List<? extends RexNode> operandList) {
+    return Lists.transform(operandList, REX_TO_INTERNAL_TYPE);
+  }
+
+  static Expression enforce(final Type storageType,
+      final Expression e) {
+    if (storageType != null && e.type != storageType) {
+      if (e.type == java.sql.Date.class) {
+        if (storageType == int.class) {
+          return Expressions.call(BuiltInMethod.DATE_TO_INT.method, e);
+        }
+        if (storageType == Integer.class) {
+          return Expressions.call(BuiltInMethod.DATE_TO_INT_OPTIONAL.method, e);
+        }
+      } else if (e.type == java.sql.Time.class) {
+        if (storageType == int.class) {
+          return Expressions.call(BuiltInMethod.TIME_TO_INT.method, e);
+        }
+        if (storageType == Integer.class) {
+          return Expressions.call(BuiltInMethod.TIME_TO_INT_OPTIONAL.method, e);
+        }
+      } else if (e.type == java.sql.Timestamp.class) {
+        if (storageType == long.class) {
+          return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, e);
+        }
+        if (storageType == Long.class) {
+          return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, e);
+        }
+      }
+    }
+    return e;
   }
 }
 

@@ -65,13 +65,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     if (!needTrackEmptySet) {
       return subState;
     }
-    boolean hasNullableArgs = false;
-    for (RelDataType type : info.parameterRelTypes()) {
-      if (type.isNullable()) {
-        hasNullableArgs = true;
-        break;
-      }
-    }
+    final boolean hasNullableArgs = anyNullable(info.parameterRelTypes());
     trackNullsPerRow = !(info instanceof WinAggContext) || hasNullableArgs;
 
     List<Type> res = new ArrayList<>(subState.size() + 1);
@@ -80,8 +74,20 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return res;
   }
 
+  private boolean anyNullable(List<? extends RelDataType> types) {
+    for (RelDataType type : types) {
+      if (type.isNullable()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public List<Type> getNotNullState(AggContext info) {
-    return Collections.singletonList(Primitive.unbox(info.returnType()));
+    Type type = info.returnType();
+    type = EnumUtils.fromInternal(type);
+    type = Primitive.unbox(type);
+    return Collections.singletonList(type);
   }
 
   public final void implementReset(AggContext info, AggResetContext reset) {

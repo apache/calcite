@@ -56,6 +56,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
@@ -82,6 +83,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 import javax.sql.DataSource;
 
@@ -254,10 +256,15 @@ public enum BuiltInMethod {
   IS_TRUE(SqlFunctions.class, "isTrue", Boolean.class),
   IS_NOT_FALSE(SqlFunctions.class, "isNotFalse", Boolean.class),
   NOT(SqlFunctions.class, "not", Boolean.class),
+  LESSER(SqlFunctions.class, "lesser", Comparable.class, Comparable.class),
+  GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
   STRING_TO_BOOLEAN(SqlFunctions.class, "toBoolean", String.class),
+  INTERNAL_TO_DATE(SqlFunctions.class, "internalToDate", int.class),
+  INTERNAL_TO_TIME(SqlFunctions.class, "internalToTime", int.class),
+  INTERNAL_TO_TIMESTAMP(SqlFunctions.class, "internalToTimestamp", long.class),
   STRING_TO_DATE(DateTimeUtils.class, "dateStringToUnixDate", String.class),
   STRING_TO_TIME(DateTimeUtils.class, "timeStringToUnixDate", String.class),
   STRING_TO_TIMESTAMP(DateTimeUtils.class, "timestampStringToUnixDate",
@@ -288,8 +295,13 @@ public enum BuiltInMethod {
   BOOLEAN_TO_STRING(SqlFunctions.class, "toString", boolean.class),
   JDBC_ARRAY_TO_LIST(SqlFunctions.class, "arrayToList", java.sql.Array.class),
   OBJECT_TO_STRING(Object.class, "toString"),
-  OBJECTS_EQUAL(com.google.common.base.Objects.class, "equal", Object.class,
-      Object.class),
+  OBJECTS_EQUAL(Objects.class, "equals", Object.class, Object.class),
+  HASH(Utilities.class, "hash", int.class, Object.class),
+  COMPARE(Utilities.class, "compare", Comparable.class, Comparable.class),
+  COMPARE_NULLS_FIRST(Utilities.class, "compareNullsFirst", Comparable.class,
+      Comparable.class),
+  COMPARE_NULLS_LAST(Utilities.class, "compareNullsLast", Comparable.class,
+      Comparable.class),
   ROUND_LONG(SqlFunctions.class, "round", long.class, long.class),
   ROUND_INT(SqlFunctions.class, "round", int.class, int.class),
   DATE_TO_INT(SqlFunctions.class, "toInt", java.util.Date.class),

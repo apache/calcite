@@ -105,6 +105,12 @@ public class UdfTest {
         + "         {\n"
         + "           name: 'COUNT_ARGS',\n"
         + "           className: '"
+        + Smalls.CountArgs1NullableFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'COUNT_ARGS',\n"
+        + "           className: '"
         + Smalls.CountArgs2Function.class.getName()
         + "'\n"
         + "         },\n"
@@ -259,6 +265,14 @@ public class UdfTest {
         + " max(\"adhoc\".count_args(0, 0)) as p2\n"
         + "from \"adhoc\".EMPLOYEES limit 1")
         .returns("P0=0; P1=1; P2=2\n");
+  }
+
+  @Test public void testUdfOverloadedNullable() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values (\"adhoc\".count_args(),\n"
+        + " \"adhoc\".count_args(cast(null as smallint)),\n"
+        + " \"adhoc\".count_args(0, 0))")
+        .returns("EXPR$0=0; EXPR$1=-1; EXPR$2=2\n");
   }
 
   /** Tests passing parameters to user-defined function by name. */
@@ -586,6 +600,54 @@ public class UdfTest {
     with.query("values \"adhoc\".\"timestampFun\"(cast(null as timestamp))")
         .returnsValue("-1");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1041">[CALCITE-1041]
+   * User-defined function returns DATE or TIMESTAMP value</a>. */
+  @Test public void testReturnDate() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values \"adhoc\".\"toDateFun\"(0)")
+        .returnsValue("1970-01-01");
+    with.query("values \"adhoc\".\"toDateFun\"(1)")
+        .returnsValue("1970-01-02");
+    with.query("values \"adhoc\".\"toDateFun\"(cast(null as bigint))")
+        .returnsValue(null);
+    with.query("values \"adhoc\".\"toTimeFun\"(0)")
+        .returnsValue("00:00:00");
+    with.query("values \"adhoc\".\"toTimeFun\"(90000)")
+        .returnsValue("00:01:30");
+    with.query("values \"adhoc\".\"toTimeFun\"(cast(null as bigint))")
+        .returnsValue(null);
+    with.query("values \"adhoc\".\"toTimestampFun\"(0)")
+        .returnsValue("1970-01-01 00:00:00");
+    with.query("values \"adhoc\".\"toTimestampFun\"(86490000)")
+        .returnsValue("1970-01-02 00:01:30");
+    with.query("values \"adhoc\".\"toTimestampFun\"(cast(null as bigint))")
+        .returnsValue(null);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1041">[CALCITE-1041]
+   * User-defined function returns DATE or TIMESTAMP value</a>. */
+  @Test public void testReturnDate2() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("select * from (values 0) as t(c)\n"
+        + "where \"adhoc\".\"toTimestampFun\"(c) in (\n"
+        + "  cast('1970-01-01 00:00:00' as timestamp),\n"
+        + "  cast('1997-02-01 00:00:00' as timestamp))")
+        .returnsValue("0");
+    with.query("select * from (values 0) as t(c)\n"
+        + "where \"adhoc\".\"toTimestampFun\"(c) in (\n"
+        + "  timestamp '1970-01-01 00:00:00',\n"
+        + "  timestamp '1997-02-01 00:00:00')")
+        .returnsValue("0");
+    with.query("select * from (values 0) as t(c)\n"
+        + "where \"adhoc\".\"toTimestampFun\"(c) in (\n"
+        + "  '1970-01-01 00:00:00',\n"
+        + "  '1997-02-01 00:00:00')")
+        .returnsValue("0");
+  }
+
 }
 
 // End UdfTest.java

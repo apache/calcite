@@ -39,7 +39,6 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.Visitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
-import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.base.Function;
@@ -49,6 +48,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -239,9 +239,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
               ? Expressions.equal(
                   Expressions.field(thisParameter, field.getName()),
                   Expressions.field(thatParameter, field.getName()))
-              : Expressions.call(
-                  Utilities.class,
-                  "equal",
+              : Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
                   Expressions.field(thisParameter, field.getName()),
                   Expressions.field(thatParameter, field.getName())));
     }
@@ -270,13 +268,14 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     blockBuilder3.add(
         Expressions.declare(0, hParameter, constantZero));
     for (Types.RecordField field : type.getRecordFields()) {
+      final Method method = BuiltInMethod.HASH.method;
       blockBuilder3.add(
           Expressions.statement(
               Expressions.assign(
                   hParameter,
                   Expressions.call(
-                      Utilities.class,
-                      "hash",
+                      method.getDeclaringClass(),
+                      method.getName(),
                       ImmutableList.of(
                           hParameter,
                           Expressions.field(thisParameter, field))))));
@@ -312,9 +311,11 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     for (Types.RecordField field : type.getRecordFields()) {
       MethodCallExpression compareCall;
       try {
-        compareCall = Expressions.call(
-            Utilities.class,
-            field.nullable() ? "compareNullsLast" : "compare",
+        final Method method = (field.nullable()
+            ? BuiltInMethod.COMPARE_NULLS_LAST
+            : BuiltInMethod.COMPARE).method;
+        compareCall = Expressions.call(method.getDeclaringClass(),
+            method.getName(),
             Expressions.field(thisParameter, field),
             Expressions.field(thatParameter, field));
       } catch (RuntimeException e) {

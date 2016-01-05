@@ -27,18 +27,19 @@ import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ScalarFunction;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMoniker;
@@ -263,14 +264,11 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         OperandTypes.family(typeFamilies, optional);
     final List<RelDataType> paramTypes = toSql(argTypes);
     if (function instanceof ScalarFunction) {
-      return new SqlUserDefinedFunction(name,
-          ReturnTypes.explicit(Schemas.proto((ScalarFunction) function)),
+      return new SqlUserDefinedFunction(name, infer((ScalarFunction) function),
           InferTypes.explicit(argTypes), typeChecker, paramTypes, function);
     } else if (function instanceof AggregateFunction) {
-      final RelDataType returnType =
-          ((AggregateFunction) function).getReturnType(typeFactory);
       return new SqlUserDefinedAggFunction(name,
-          ReturnTypes.explicit(returnType), InferTypes.explicit(argTypes),
+          infer((AggregateFunction) function), InferTypes.explicit(argTypes),
           typeChecker, (AggregateFunction) function);
     } else if (function instanceof TableMacro) {
       return new SqlUserDefinedTableMacro(name, ReturnTypes.CURSOR,
@@ -285,19 +283,41 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
   }
 
+  private SqlReturnTypeInference infer(final ScalarFunction function) {
+    return new SqlReturnTypeInference() {
+      public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+        final RelDataType type = function.getReturnType(typeFactory);
+        return toSql(type);
+      }
+    };
+  }
+
+  private SqlReturnTypeInference infer(final AggregateFunction function) {
+    return new SqlReturnTypeInference() {
+      public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+        final RelDataType type = function.getReturnType(typeFactory);
+        return toSql(type);
+      }
+    };
+  }
+
   private List<RelDataType> toSql(List<RelDataType> types) {
     return Lists.transform(types,
         new com.google.common.base.Function<RelDataType, RelDataType>() {
-          public RelDataType apply(RelDataType input) {
-            if (input instanceof RelDataTypeFactoryImpl.JavaType
-                && ((RelDataTypeFactoryImpl.JavaType) input).getJavaClass()
-                == Object.class) {
-              return typeFactory.createTypeWithNullability(
-                  typeFactory.createSqlType(SqlTypeName.ANY), true);
-            }
-            return typeFactory.toSql(input);
+          public RelDataType apply(RelDataType type) {
+            return toSql(type);
           }
         });
+  }
+
+  private RelDataType toSql(RelDataType type) {
+    if (type instanceof RelDataTypeFactoryImpl.JavaType
+        && ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass()
+        == Object.class) {
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.ANY), true);
+    }
+    return typeFactory.toSql(type);
   }
 
   public List<SqlOperator> getOperatorList() {

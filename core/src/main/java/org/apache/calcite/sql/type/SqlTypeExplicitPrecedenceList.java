@@ -71,6 +71,7 @@ public class SqlTypeExplicitPrecedenceList
       ImmutableMap.<SqlTypeName, SqlTypeExplicitPrecedenceList>builder()
           .put(SqlTypeName.BOOLEAN, list(SqlTypeName.BOOLEAN))
           .put(SqlTypeName.TINYINT, numeric(SqlTypeName.TINYINT))
+          .put(SqlTypeName.SMALLINT, numeric(SqlTypeName.SMALLINT))
           .put(SqlTypeName.INTEGER, numeric(SqlTypeName.INTEGER))
           .put(SqlTypeName.BIGINT, numeric(SqlTypeName.BIGINT))
           .put(SqlTypeName.DECIMAL, numeric(SqlTypeName.DECIMAL))

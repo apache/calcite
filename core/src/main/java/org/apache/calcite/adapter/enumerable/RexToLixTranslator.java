@@ -181,7 +181,7 @@ public class RexToLixTranslator {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
       final RelDataType rowType = outputPhysType.getRowType();
-      storageTypes = new ArrayList<Type>(rowType.getFieldCount());
+      storageTypes = new ArrayList<>(rowType.getFieldCount());
       for (int i = 0; i < rowType.getFieldCount(); i++) {
         storageTypes.add(outputPhysType.getJavaFieldType(i));
       }
@@ -217,6 +217,7 @@ public class RexToLixTranslator {
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
       Type storageType) {
     Expression expression = translate0(expr, nullAs, storageType);
+    expression = EnumUtils.enforce(storageType, expression);
     assert expression != null;
     return list.append("v", expression);
   }
@@ -500,9 +501,7 @@ public class RexToLixTranslator {
       }
       InputGetter getter =
           correlates.apply(((RexCorrelVariable) target).getName());
-      Expression res =
-          getter.field(list, fieldAccess.getField().getIndex(), storageType);
-      return res;
+      return getter.field(list, fieldAccess.getField().getIndex(), storageType);
     default:
       if (expr instanceof RexCall) {
         return translateCall((RexCall) expr, nullAs);
@@ -643,9 +642,17 @@ public class RexToLixTranslator {
   public List<Expression> translateList(
       List<RexNode> operandList,
       RexImpTable.NullAs nullAs) {
-    final List<Expression> list = new ArrayList<Expression>();
-    for (RexNode rex : operandList) {
-      list.add(translate(rex, nullAs));
+    return translateList(operandList, nullAs,
+        EnumUtils.internalTypes(operandList));
+  }
+
+  public List<Expression> translateList(
+      List<RexNode> operandList,
+      RexImpTable.NullAs nullAs,
+      List<? extends Type> storageTypes) {
+    final List<Expression> list = new ArrayList<>();
+    for (Pair<RexNode, ? extends Type> e : Pair.zip(operandList, storageTypes)) {
+      list.add(translate(e.left, nullAs, e.right));
     }
     return list;
   }
@@ -663,7 +670,7 @@ public class RexToLixTranslator {
    * @return translated expressions
    */
   public List<Expression> translateList(List<? extends RexNode> operandList) {
-    return translateList(operandList, null);
+    return translateList(operandList, EnumUtils.internalTypes(operandList));
   }
 
   /**
@@ -682,7 +689,7 @@ public class RexToLixTranslator {
    */
   public List<Expression> translateList(List<? extends RexNode> operandList,
       List<? extends Type> storageTypes) {
-    final List<Expression> list = new ArrayList<Expression>(operandList.size());
+    final List<Expression> list = new ArrayList<>(operandList.size());
 
     for (int i = 0; i < operandList.size(); i++) {
       RexNode rex = operandList.get(i);
@@ -812,6 +819,19 @@ public class RexToLixTranslator {
         }
       }
       return Expressions.box(operand, toBox);
+    } else if (toType == java.sql.Date.class) {
+      // E.g. from "int" or "Integer" to "java.sql.Date",
+      // generate "SqlFunctions.internalToDate".
+      return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
+    } else if (toType == java.sql.Time.class) {
+      // E.g. from "int" or "Integer" to "java.sql.Time",
+      // generate "SqlFunctions.internalToTime".
+      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
+    } else if (toType == java.sql.Timestamp.class) {
+      // E.g. from "long" or "Long" to "java.sql.Timestamp",
+      // generate "SqlFunctions.internalToTimestamp".
+      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
+          operand);
     } else if (toType == BigDecimal.class) {
       if (fromBox != null) {
         // E.g. from "Integer" to "BigDecimal".
@@ -1048,6 +1068,7 @@ public class RexToLixTranslator {
    * it is not null. It is easier to throw (and caller will always handle)
    * than to check exhaustively beforehand. */
   static class AlwaysNull extends ControlFlowException {
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
     public static final AlwaysNull INSTANCE = new AlwaysNull();
 
     private AlwaysNull() {}

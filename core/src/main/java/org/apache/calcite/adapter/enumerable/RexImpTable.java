@@ -1042,9 +1042,12 @@ public class RexImpTable {
       Expression acc = add.accumulator().get(0);
       Expression arg = add.arguments().get(0);
       SqlAggFunction aggregation = info.aggregation();
+      final Method method = (aggregation == MIN
+          ? BuiltInMethod.LESSER
+          : BuiltInMethod.GREATER).method;
       Expression next = Expressions.call(
-          SqlFunctions.class,
-          aggregation == MIN ? "lesser" : "greater",
+          method.getDeclaringClass(),
+          method.getName(),
           acc,
           Expressions.unbox(arg));
       accAdvance(add, acc, next);

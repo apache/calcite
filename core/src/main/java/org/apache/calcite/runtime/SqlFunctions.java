@@ -1040,6 +1040,10 @@ public class SqlFunctions {
         : (Short) cannotConvert(o, short.class);
   }
 
+  /** Converts the Java type used for UDF parameters of SQL DATE type
+   * ({@link java.sql.Date}) to internal representation (int).
+   *
+   * <p>Converse of {@link #internalToDate(int)}. */
   public static int toInt(java.util.Date v) {
     return toInt(v, LOCAL_TZ);
   }
@@ -1062,6 +1066,10 @@ public class SqlFunctions {
     return toLong(v, LOCAL_TZ);
   }
 
+  /** Converts the Java type used for UDF parameters of SQL TIME type
+   * ({@link java.sql.Time}) to internal representation (int).
+   *
+   * <p>Converse of {@link #internalToTime(int)}. */
   public static int toInt(java.sql.Time v) {
     return (int) (toLong(v) % DateTimeUtils.MILLIS_PER_DAY);
   }
@@ -1085,6 +1093,10 @@ public class SqlFunctions {
         : (Integer) cannotConvert(o, int.class);
   }
 
+  /** Converts the Java type used for UDF parameters of SQL TIMESTAMP type
+   * ({@link java.sql.Timestamp}) to internal representation (long).
+   *
+   * <p>Converse of {@link #internalToTimestamp(long)}. */
   public static long toLong(Timestamp v) {
     return toLong(v, LOCAL_TZ);
   }
@@ -1175,33 +1187,34 @@ public class SqlFunctions {
 
   /** Converts the internal representation of a SQL DATE (int) to the Java
    * type used for UDF parameters ({@link java.sql.Date}). */
-  public static java.sql.Date internalToDate(int x) {
-    return new java.sql.Date(x * DateTimeUtils.MILLIS_PER_DAY);
+  public static java.sql.Date internalToDate(int v) {
+    final long t = v * DateTimeUtils.MILLIS_PER_DAY;
+    return new java.sql.Date(t - LOCAL_TZ.getOffset(t));
   }
 
   /** As {@link #internalToDate(int)} but allows nulls. */
-  public static java.sql.Date internalToDate(Integer x) {
-    return x == null ? null : internalToDate(x.intValue());
+  public static java.sql.Date internalToDate(Integer v) {
+    return v == null ? null : internalToDate(v.intValue());
   }
 
   /** Converts the internal representation of a SQL TIME (int) to the Java
    * type used for UDF parameters ({@link java.sql.Time}). */
-  public static java.sql.Time internalToTime(int x) {
-    return new java.sql.Time(x);
+  public static java.sql.Time internalToTime(int v) {
+    return new java.sql.Time(v - LOCAL_TZ.getOffset(v));
   }
 
-  public static java.sql.Time internalToTime(Integer x) {
-    return x == null ? null : internalToTime(x.intValue());
+  public static java.sql.Time internalToTime(Integer v) {
+    return v == null ? null : internalToTime(v.intValue());
   }
 
   /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
    * type used for UDF parameters ({@link java.sql.Timestamp}). */
-  public static java.sql.Timestamp internalToTimestamp(long x) {
-    return new java.sql.Timestamp(x);
+  public static java.sql.Timestamp internalToTimestamp(long v) {
+    return new java.sql.Timestamp(v - LOCAL_TZ.getOffset(v));
   }
 
-  public static java.sql.Timestamp internalToTimestamp(Long x) {
-    return x == null ? null : internalToTimestamp(x.longValue());
+  public static java.sql.Timestamp internalToTimestamp(Long v) {
+    return v == null ? null : internalToTimestamp(v.longValue());
   }
 
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.

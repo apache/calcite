@@ -33,6 +33,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
@@ -418,20 +419,34 @@ public class Smalls {
   public static class AllTypesFunction {
     private AllTypesFunction() {}
 
-    public static long dateFun(java.sql.Date x) { return x == null ? -1L : x.getTime(); }
-    public static long timestampFun(java.sql.Timestamp x) { return x == null ? -1L : x.getTime(); }
-    public static long timeFun(java.sql.Time x) { return x == null ? -1L : x.getTime(); }
+    // We use SqlFunctions.toLong(Date) ratter than Date.getTime(),
+    // and SqlFunctions.internalToTimestamp(long) rather than new Date(long),
+    // because the contract of JDBC (also used by UDFs) is to represent
+    // date-time values in the LOCAL time zone.
 
-    public static java.sql.Date toDateFun(int x) { return new java.sql.Date(x); }
+    public static long dateFun(java.sql.Date v) {
+      return v == null ? -1L : SqlFunctions.toLong(v);
+    }
+    public static long timestampFun(java.sql.Timestamp v) {
+      return v == null ? -1L : SqlFunctions.toLong(v);
+    }
+    public static long timeFun(java.sql.Time v) {
+      return v == null ? -1L : SqlFunctions.toLong(v);
+    }
 
-    public static java.sql.Date toDateFun(Long x) {
-      return x == null ? null : new java.sql.Date(x);
+    /** Overloaded, in a challenging way, with {@link #toDateFun(Long)}. */
+    public static java.sql.Date toDateFun(int v) {
+      return SqlFunctions.internalToDate(v);
     }
-    public static java.sql.Timestamp toTimestampFun(Long x) {
-      return x == null ? null : new java.sql.Timestamp(x);
+
+    public static java.sql.Date toDateFun(Long v) {
+      return v == null ? null : SqlFunctions.internalToDate(v.intValue());
     }
-    public static java.sql.Time toTimeFun(Long x) {
-      return x == null ? null : new java.sql.Time(x);
+    public static java.sql.Timestamp toTimestampFun(Long v) {
+      return SqlFunctions.internalToTimestamp(v);
+    }
+    public static java.sql.Time toTimeFun(Long v) {
+      return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
   }
 

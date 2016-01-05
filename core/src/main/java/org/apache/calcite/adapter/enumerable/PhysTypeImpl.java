@@ -40,6 +40,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.AbstractList;
@@ -301,17 +302,17 @@ public class PhysTypeImpl implements PhysType {
       final boolean descending =
           collation.getDirection()
               == RelFieldCollation.Direction.DESCENDING;
+      final Method method = (fieldNullable(index)
+          ? (nullsFirst ^ descending
+              ? BuiltInMethod.COMPARE_NULLS_FIRST
+              : BuiltInMethod.COMPARE_NULLS_LAST)
+          : BuiltInMethod.COMPARE).method;
       body.add(
           Expressions.statement(
               Expressions.assign(
                   parameterC,
-                  Expressions.call(
-                      Utilities.class,
-                      fieldNullable(index)
-                          ? (nullsFirst ^ descending
-                              ? "compareNullsFirst"
-                              : "compareNullsLast")
-                          : "compare",
+                  Expressions.call(method.getDeclaringClass(),
+                      method.getName(),
                       arg0,
                       arg1))));
       body.add(

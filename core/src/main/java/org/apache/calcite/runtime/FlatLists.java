@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 import java.util.RandomAccess;
 
 /**
@@ -261,8 +262,8 @@ public class FlatLists {
       }
       if (o instanceof Flat2List) {
         Flat2List that = (Flat2List) o;
-        return Utilities.equal(this.t0, that.t0)
-            && Utilities.equal(this.t1, that.t1);
+        return Objects.equals(this.t0, that.t0)
+            && Objects.equals(this.t1, that.t1);
       }
       return Arrays.asList(t0, t1).equals(o);
     }
@@ -386,9 +387,9 @@ public class FlatLists {
       }
       if (o instanceof Flat3List) {
         Flat3List that = (Flat3List) o;
-        return Utilities.equal(this.t0, that.t0)
-            && Utilities.equal(this.t1, that.t1)
-            && Utilities.equal(this.t2, that.t2);
+        return Objects.equals(this.t0, that.t0)
+            && Objects.equals(this.t1, that.t1)
+            && Objects.equals(this.t2, that.t2);
       }
       return o.equals(this);
     }

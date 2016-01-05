@@ -493,7 +493,7 @@ public abstract class SqlUtil {
         final RelDataType argType = p.right;
         final RelDataType paramType = p.left;
         if (argType != null
-            && !SqlTypeUtil.canAssignFrom(paramType, argType)) {
+            && !SqlTypeUtil.canCastFrom(paramType, argType, false)) {
           iter.remove();
           continue loop;
         }

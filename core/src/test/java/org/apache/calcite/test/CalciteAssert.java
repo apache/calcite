@@ -275,7 +275,8 @@ public class CalciteAssert {
             throw new AssertionError("expected 1 column");
           }
           final String resultString = resultSet.getString(1);
-          assertEquals(expected, Util.toLinux(resultString));
+          assertEquals(expected,
+              resultString == null ? null : Util.toLinux(resultString));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
