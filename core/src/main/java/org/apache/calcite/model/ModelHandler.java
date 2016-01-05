@@ -195,8 +195,9 @@ public class ModelHandler {
   }
 
   private void populateSchema(JsonSchema jsonSchema, SchemaPlus schema) {
-    boolean cache = jsonSchema.cache == null || jsonSchema.cache;
-    schema.setCacheEnabled(cache);
+    if (jsonSchema.cache != null) {
+      schema.setCacheEnabled(jsonSchema.cache);
+    }
     final Pair<String, SchemaPlus> pair = Pair.of(jsonSchema.name, schema);
     push(schemaStack, pair);
     jsonSchema.visitChildren(this);
