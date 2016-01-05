@@ -600,6 +600,14 @@ public class RelBuilder {
   /** Creates a call to an aggregate function. */
   public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
       RexNode filter, String alias, Iterable<? extends RexNode> operands) {
+    if (filter != null) {
+      if (filter.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+        throw Static.RESOURCE.filterMustBeBoolean().ex();
+      }
+      if (filter.getType().isNullable()) {
+        filter = call(SqlStdOperatorTable.IS_TRUE, filter);
+      }
+    }
     return new AggCallImpl(aggFunction, distinct, filter, alias,
         ImmutableList.copyOf(operands));
   }

@@ -19,13 +19,13 @@ package org.apache.calcite.linq4j.tree;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,22 +46,20 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * For instance, cast expression will not be factored to a field,
    * but we still need to track its constant status.
    */
-  protected final Map<Expression, Boolean> constants =
-      new IdentityHashMap<Expression, Boolean>();
+  protected final Map<Expression, Boolean> constants = new IdentityHashMap<>();
 
   /**
    * The map that de-duplicates expressions, so the same expressions may reuse
    * the same final static fields.
    */
-  protected final Map<Expression, ParameterExpression> dedup =
-      new HashMap<Expression, ParameterExpression>();
+  protected final Map<Expression, ParameterExpression> dedup = new HashMap<>();
 
   /**
    * The map of all the added final static fields. Allows to identify if the
    * name is occupied or not.
    */
   protected final Map<String, ParameterExpression> fieldsByName =
-      new HashMap<String, ParameterExpression>();
+      new HashMap<>();
 
   // Pre-compiled patterns for generation names for the final static fields
   private static final Pattern NON_ASCII = Pattern.compile("[^0-9a-zA-Z$]+");
@@ -70,10 +68,9 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
       Pattern.compile(Pattern.quote(FIELD_PREFIX));
 
   private static final Set<Class> DETERMINISTIC_CLASSES =
-      new HashSet<Class>(
-          Arrays.<Class>asList(Byte.class, Boolean.class, Short.class,
-              Integer.class, Long.class, BigInteger.class, BigDecimal.class,
-              String.class, Math.class));
+      ImmutableSet.<Class>of(Byte.class, Boolean.class, Short.class,
+          Integer.class, Long.class, BigInteger.class, BigDecimal.class,
+          String.class, Math.class);
 
   /**
    * Creates a child optimizer.
@@ -337,7 +334,8 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    */
   protected boolean allMethodsDeterministic(Class klass) {
     return DETERMINISTIC_CLASSES.contains(klass)
-           || klass.isAnnotationPresent(Deterministic.class);
+        || klass.getCanonicalName().equals("org.apache.calcite.avatica.util.DateTimeUtils")
+        || klass.isAnnotationPresent(Deterministic.class);
   }
 
   /**

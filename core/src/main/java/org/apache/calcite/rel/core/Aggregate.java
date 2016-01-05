@@ -140,10 +140,17 @@ public abstract class Aggregate extends SingleRel {
     assert groupSet.length() <= child.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, true);
-      assert aggCall.filterArg < 0
-          || child.getRowType().getFieldList().get(aggCall.filterArg).getType()
-              .getSqlTypeName() == SqlTypeName.BOOLEAN;
+      Preconditions.checkArgument(aggCall.filterArg < 0
+          || isPredicate(child, aggCall.filterArg),
+          "filter must be BOOLEAN NOT NULL");
     }
+  }
+
+  private boolean isPredicate(RelNode input, int index) {
+    final RelDataType type =
+        input.getRowType().getFieldList().get(index).getType();
+    return type.getSqlTypeName() == SqlTypeName.BOOLEAN
+        && !type.isNullable();
   }
 
   /**

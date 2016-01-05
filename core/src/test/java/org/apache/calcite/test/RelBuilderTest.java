@@ -30,6 +30,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -422,6 +423,49 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], indicator=[true], C=[COUNT() FILTER $8])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 100)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  @Test public void testAggregateFilterFails() {
+    // Equivalent SQL:
+    //   SELECT deptno, SUM(sal) FILTER (WHERE comm) AS c
+    //   FROM emp
+    //   GROUP BY deptno
+    try {
+      final RelBuilder builder = RelBuilder.create(config().build());
+      RelNode root =
+          builder.scan("EMP")
+              .aggregate(
+                  builder.groupKey(builder.field("DEPTNO")),
+                  builder.aggregateCall(SqlStdOperatorTable.SUM, false,
+                      builder.field("COMM"), "C", builder.field("SAL")))
+              .build();
+      fail("expected error, got " + root);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("FILTER expression must be of type BOOLEAN"));
+    }
+  }
+
+  @Test public void testAggregateFilterNullable() {
+    // Equivalent SQL:
+    //   SELECT deptno, SUM(sal) FILTER (WHERE comm < 100) AS c
+    //   FROM emp
+    //   GROUP BY deptno
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(
+                builder.groupKey(builder.field("DEPTNO")),
+                builder.aggregateCall(SqlStdOperatorTable.SUM, false,
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field("COMM"), builder.literal(100)), "C",
+                    builder.field("SAL")))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{7}], C=[SUM($5) FILTER $8])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[IS TRUE(<($6, 100))])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
   }

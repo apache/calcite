@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Parameter;
@@ -369,6 +370,15 @@ public class Smalls {
   }
 
   /** See {@link CountArgs0Function}. */
+  public abstract static class CountArgs1NullableFunction {
+    private CountArgs1NullableFunction() {}
+
+    public static int eval(Short x) {
+      return -1;
+    }
+  }
+
+  /** See {@link CountArgs0Function}. */
   public abstract static class CountArgs2Function {
     private CountArgs2Function() {}
 
@@ -404,12 +414,25 @@ public class Smalls {
   }
 
   /** UDF class that provides user-defined functions for each data type. */
+  @Deterministic
   public static class AllTypesFunction {
     private AllTypesFunction() {}
 
     public static long dateFun(java.sql.Date x) { return x == null ? -1L : x.getTime(); }
     public static long timestampFun(java.sql.Timestamp x) { return x == null ? -1L : x.getTime(); }
     public static long timeFun(java.sql.Time x) { return x == null ? -1L : x.getTime(); }
+
+    public static java.sql.Date toDateFun(int x) { return new java.sql.Date(x); }
+
+    public static java.sql.Date toDateFun(Long x) {
+      return x == null ? null : new java.sql.Date(x);
+    }
+    public static java.sql.Timestamp toTimestampFun(Long x) {
+      return x == null ? null : new java.sql.Timestamp(x);
+    }
+    public static java.sql.Time toTimeFun(Long x) {
+      return x == null ? null : new java.sql.Time(x);
+    }
   }
 
   /** Example of a user-defined aggregate function (UDAF). */

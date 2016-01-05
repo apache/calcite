@@ -4506,6 +4506,10 @@ public class SqlToRelConverter {
         if (filter != null) {
           RexNode convertedExpr = bb.convertExpression(filter);
           assert convertedExpr != null;
+          if (convertedExpr.getType().isNullable()) {
+            convertedExpr =
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, convertedExpr);
+          }
           filterArg = lookupOrCreateGroupExpr(convertedExpr);
         }
       } finally {
