@@ -350,6 +350,7 @@ public class CalciteAssert {
     return buf.toString();
   }
 
+  /** @see Matchers#returnsUnordered(String...) */
   static Function<ResultSet, Void> checkResultUnordered(
       final String... lines) {
     return new Function<ResultSet, Void>() {
