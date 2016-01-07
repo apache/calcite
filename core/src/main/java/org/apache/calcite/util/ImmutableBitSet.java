@@ -650,16 +650,16 @@ public class ImmutableBitSet
 
   /** Returns the union of this immutable bit set with a {@link BitSet}. */
   public ImmutableBitSet union(BitSet other) {
-    return builder(this)
+    return rebuild() // remember "this" and try to re-use later
         .addAll(BitSets.toIter(other))
         .build();
   }
 
   /** Returns the union of this bit set with another. */
   public ImmutableBitSet union(ImmutableBitSet other) {
-    return builder(this)
+    return rebuild() // remember "this" and try to re-use later
         .addAll(other)
-        .build();
+        .build(other); // try to re-use "other"
   }
 
   /** Returns the union of a number of bit sets. */
@@ -677,9 +677,9 @@ public class ImmutableBitSet
    *
    *  @see BitSet#andNot(java.util.BitSet) */
   public ImmutableBitSet except(ImmutableBitSet that) {
-    final Builder builder = builder(this);
+    final Builder builder = rebuild();
     builder.removeAll(that);
-    return builder.build(this);
+    return builder.build();
   }
 
   /** Returns a bit set with all the bits set in both this set and in
@@ -687,9 +687,9 @@ public class ImmutableBitSet
    *
    *  @see BitSet#and */
   public ImmutableBitSet intersect(ImmutableBitSet that) {
-    final Builder builder = builder(this);
+    final Builder builder = rebuild();
     builder.intersect(that);
-    return builder.build(this);
+    return builder.build();
   }
 
   /**
@@ -773,12 +773,20 @@ public class ImmutableBitSet
     return words.length == 0;
   }
 
+  /** Creates an empty Builder. */
   public static Builder builder() {
-    return new Builder();
+    return new Builder(EMPTY_LONGS);
   }
 
+  @Deprecated // to be removed before 2.0
   public static Builder builder(ImmutableBitSet bitSet) {
-    return new Builder(bitSet);
+    return bitSet.rebuild();
+  }
+
+  /** Creates a Builder whose initial contents are the same as this
+   * ImmutableBitSet. */
+  public Builder rebuild() {
+    return new Rebuilder(this);
   }
 
   /** Returns the {@code n}th set bit.
@@ -916,12 +924,8 @@ public class ImmutableBitSet
   public static class Builder {
     private long[] words;
 
-    public Builder(ImmutableBitSet bitSet) {
-      words = bitSet.words.clone();
-    }
-
-    public Builder() {
-      words = EMPTY_LONGS;
+    private Builder(long[] words) {
+      this.words = words;
     }
 
     /** Builds an ImmutableBitSet from the contents of this Builder.
@@ -1084,6 +1088,33 @@ public class ImmutableBitSet
         words[i] &= that.words[i];
       }
       trim(x);
+    }
+  }
+
+  /** Refinement of {@link Builder} that remembers its original
+   * {@link org.apache.calcite.util.ImmutableBitSet} and tries to use it
+   * when {@link #build} is called. */
+  private static class Rebuilder extends Builder {
+    private final ImmutableBitSet originalBitSet;
+
+    private Rebuilder(ImmutableBitSet originalBitSet) {
+      super(originalBitSet.words.clone());
+      this.originalBitSet = originalBitSet;
+    }
+
+    @Override public ImmutableBitSet build() {
+      if (wouldEqual(originalBitSet)) {
+        return originalBitSet;
+      }
+      return super.build();
+    }
+
+    @Override public ImmutableBitSet build(ImmutableBitSet bitSet) {
+      // We try to re-use both originalBitSet and bitSet.
+      if (wouldEqual(originalBitSet)) {
+        return originalBitSet;
+      }
+      return super.build(bitSet);
     }
   }
 }

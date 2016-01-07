@@ -293,11 +293,14 @@ public class ImmutableBitSetTest {
    * {@link org.apache.calcite.util.ImmutableBitSet.Builder#build(ImmutableBitSet)}. */
   @Test public void testBuilderUseOriginal() {
     final ImmutableBitSet fives = ImmutableBitSet.of(5, 10, 15);
+    final ImmutableBitSet fives1 =
+        fives.rebuild().clear(2).set(10).build();
+    assertTrue(fives1 == fives);
     final ImmutableBitSet fives2 =
-        ImmutableBitSet.builder(fives).clear(2).set(10).build(fives);
+        ImmutableBitSet.builder().addAll(fives).clear(2).set(10).build(fives);
     assertTrue(fives2 == fives);
     final ImmutableBitSet fives3 =
-        ImmutableBitSet.builder(fives).clear(2).set(10).build();
+        ImmutableBitSet.builder().addAll(fives).clear(2).set(10).build();
     assertTrue(fives3 != fives);
     assertTrue(fives3.equals(fives));
     assertTrue(fives3.equals(fives2));
