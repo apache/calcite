@@ -701,8 +701,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final Map<RelNode, Integer> mapNewInputToNewOffset = new HashMap<>();
 
-    // inputRel provides the definition of a correlated variable.
-    // Add to map all the referenced positions(relative to each input rel)
+    // Input provides the definition of a correlated variable.
+    // Add to map all the referenced positions (relative to each input rel).
     for (Correlation corVar : correlations) {
       final int oldCorVarOffset = corVar.field;
 
@@ -2365,14 +2365,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     public int compareTo(Correlation o) {
-      int res = corr.compareTo(o.corr);
-      if (res != 0) {
-        return res;
+      int c = corr.compareTo(o.corr);
+      if (c != 0) {
+        return c;
       }
-      if (field != o.field) {
-        return field - o.field;
+      c = Integer.compare(field, o.field);
+      if (c != 0) {
+        return c;
       }
-      return uniqueKey - o.uniqueKey;
+      return Integer.compare(uniqueKey, o.uniqueKey);
     }
   }
 
@@ -2545,24 +2546,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
                     corrIdGenerator++);
             mapFieldAccessToCorVar.put(fieldAccess, correlation);
             mapRefRelToCorVar.put(rel, correlation);
-/*
-            if (!mapCorVarToCorRel.containsKey(var.id)) {
-              mapCorVarToCorRel.put(var.id, Stacks.peek(stack));
-            }
-*/
           }
           return super.visitFieldAccess(fieldAccess);
-        }
-
-        //@ Override
-        public Void visitCorrelVariable_(RexCorrelVariable var) {
-          final Correlation correlation =
-              new Correlation(var.id, -1, corrIdGenerator++);
-          mapRefRelToCorVar.put(rel, correlation);
-          if (!mapCorVarToCorRel.containsKey(var.id)) {
-            mapCorVarToCorRel.put(var.id, Stacks.peek(stack));
-          }
-          return super.visitCorrelVariable(var);
         }
 
         @Override public Void visitSubQuery(RexSubQuery subQuery) {

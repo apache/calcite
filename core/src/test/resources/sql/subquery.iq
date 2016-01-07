@@ -48,8 +48,8 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[f
             EnumerableValues(tuples=[[{ 0 }]])
           EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
             EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
-      EnumerableAggregate(group=[{0}])
+    EnumerableAggregate(group=[{0, 1}])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
         EnumerableUnion(all=[true])
           EnumerableCalc(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
             EnumerableValues(tuples=[[{ 0 }]])
@@ -274,6 +274,7 @@ GROUP BY emp.deptno;
 
 !ok
 
+!if (fixed.calcite1045) {
 # Correlated IN sub-query in WHERE clause of JOIN
 select empno from "scott".emp as e
 join "scott".dept as d using (deptno)
@@ -306,6 +307,7 @@ EnumerableCalc(expr#0..5=[{inputs}], EMPNO=[$t0])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 !if (fixed.calcite1045) {
 # Correlated NOT IN sub-query in WHERE clause of JOIN

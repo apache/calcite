@@ -20,6 +20,8 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Reference to the current row of a correlating relational expression.
  *
@@ -36,7 +38,7 @@ public class RexCorrelVariable extends RexVariable {
       CorrelationId id,
       RelDataType type) {
     super(id.getName(), type);
-    this.id = id;
+    this.id = Preconditions.checkNotNull(id);
   }
 
   //~ Methods ----------------------------------------------------------------

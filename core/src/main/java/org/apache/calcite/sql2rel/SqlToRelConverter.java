@@ -2847,10 +2847,7 @@ public class SqlToRelConverter {
    * @return Whether to trim unused fields
    */
   public boolean isTrimUnusedFields() {
-    // To work around [CALCITE-842] "Decorrelator gets field offsets confused if
-    // fields have been trimmed", if expansion is disabled, trim fields after
-    // expansion and decorrelation.
-    return trimUnusedFields && expand;
+    return trimUnusedFields;
   }
 
   public void setExpand(boolean expand) {
@@ -3278,14 +3275,8 @@ public class SqlToRelConverter {
     } else {
       qualified = SqlQualified.create(null, 1, null, identifier);
     }
-    RexNode e = bb.lookupExp(qualified);
-    final CorrelationId correlationName;
-    if (e instanceof RexCorrelVariable) {
-      correlationName = ((RexCorrelVariable) e).id;
-    } else {
-      correlationName = null;
-    }
-
+    final RexNode e0 = bb.lookupExp(qualified);
+    RexNode e = e0;
     for (String name : qualified.suffixTranslated()) {
       final boolean caseSensitive = true; // name already fully-qualified
       e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
@@ -3295,10 +3286,11 @@ public class SqlToRelConverter {
       e = adjustInputRef(bb, (RexInputRef) e);
     }
 
-    if (null != correlationName) {
+    if (e0 instanceof RexCorrelVariable) {
       assert e instanceof RexFieldAccess;
       final RexNode prev =
-          bb.mapCorrelateToRex.put(correlationName, (RexFieldAccess) e);
+          bb.mapCorrelateToRex.put(((RexCorrelVariable) e0).id,
+              (RexFieldAccess) e);
       assert prev == null;
     }
     return e;

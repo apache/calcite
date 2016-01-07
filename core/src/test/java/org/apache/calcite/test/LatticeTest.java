@@ -233,7 +233,7 @@ public class LatticeTest {
           .convertMatches(
               CalciteAssert.checkRel(""
                   + "LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-                  + "  LogicalProject($f0=[0])\n"
+                  + "  LogicalProject(DUMMY=[0])\n"
                   + "    StarTableScan(table=[[adhoc, star]])\n",
                   counter));
     } catch (RuntimeException e) {
