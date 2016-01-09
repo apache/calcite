@@ -133,22 +133,27 @@ public class SqlParser {
   }
 
   /**
+   * Parses a <code>SELECT</code> statement and reuses parser.
+   *
+   * @param sql sql to parse
+   * @return A {@link org.apache.calcite.sql.SqlSelect} for a regular <code>
+   * SELECT</code> statement; a {@link org.apache.calcite.sql.SqlBinaryOperator}
+   * for a <code>UNION</code>, <code>INTERSECT</code>, or <code>EXCEPT</code>.
+   * @throws SqlParseException if there is a parse error
+   */
+  public SqlNode parseQuery(String sql) throws SqlParseException {
+    parser.ReInit(new StringReader(sql));
+    return parseQuery();
+  }
+
+  /**
    * Parses an SQL statement.
    *
    * @return top-level SqlNode representing stmt
    * @throws SqlParseException if there is a parse error
    */
   public SqlNode parseStmt() throws SqlParseException {
-    try {
-      return parser.parseSqlStmtEof();
-    } catch (Throwable ex) {
-      if ((ex instanceof CalciteContextException)
-          && (originalInput != null)) {
-        ((CalciteContextException) ex).setOriginalStatement(
-            originalInput);
-      }
-      throw parser.normalizeException(ex);
-    }
+    return parseQuery();
   }
 
   /**
