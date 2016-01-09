@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite;
+package org.apache.calcite.benchmarks;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.Scope;
@@ -123,7 +123,7 @@ public class StatementTest {
     }
   }
 
-  @GenerateMicroBenchmark
+  @Benchmark
   public String prepareBindExecute(HrConnection state) throws SQLException {
     Connection con = state.con;
     Statement st = null;
@@ -143,7 +143,7 @@ public class StatementTest {
     return ename;
   }
 
-  @GenerateMicroBenchmark
+  @Benchmark
   public String bindExecute(HrPreparedStatement state)
       throws SQLException {
     PreparedStatement st = state.ps;
@@ -160,7 +160,7 @@ public class StatementTest {
     return ename;
   }
 
-  @GenerateMicroBenchmark
+  @Benchmark
   public String executeQuery(HrConnection state) throws SQLException {
     Connection con = state.con;
     Statement st = null;
@@ -177,7 +177,7 @@ public class StatementTest {
     return ename;
   }
 
-  @GenerateMicroBenchmark
+  @Benchmark
   public String forEach(HrConnection state) throws SQLException {
     final Employee[] emps = state.hr.emps;
     for (Employee emp : emps) {
