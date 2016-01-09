@@ -55,6 +55,10 @@ limitations under the License.
       <artifactId>jmh-generator-annprocess</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
@@ -64,7 +68,6 @@ limitations under the License.
         <configuration>
           <source>1.6</source>
           <target>1.6</target>
-          <compilerArgument>-proc:none</compilerArgument>
         </configuration>
       </plugin>
       <plugin>
