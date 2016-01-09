@@ -25,6 +25,8 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
+import com.google.common.base.Throwables;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -34,6 +36,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -306,11 +309,10 @@ public class SqlPrettyWriter implements SqlWriter {
     final Bean properties = getBean();
     final String[] propertyNames = properties.getPropertyNames();
     int count = 0;
-    for (int i = 0; i < propertyNames.length; i++) {
-      String key = propertyNames[i];
+    for (String key : propertyNames) {
       final Object value = bean.get(key);
       final Object defaultValue = DEFAULT_BEAN.get(key);
-      if (com.google.common.base.Objects.equal(value, defaultValue)) {
+      if (Objects.equals(value, defaultValue)) {
         continue;
       }
       if (count++ > 0) {
@@ -327,8 +329,7 @@ public class SqlPrettyWriter implements SqlWriter {
     resetSettings();
     final Bean bean = getBean();
     final String[] propertyNames = bean.getPropertyNames();
-    for (int i = 0; i < propertyNames.length; i++) {
-      String propertyName = propertyNames[i];
+    for (String propertyName : propertyNames) {
       final String value = properties.getProperty(propertyName);
       if (value != null) {
         bean.set(propertyName, value);
@@ -662,6 +663,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false);
 
       case FROM_LIST:
+      case JOIN:
         return new FrameImpl(
             frameType,
             keyword,
@@ -849,7 +851,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   protected void whiteSpace() {
     if (needWhitespace) {
-      if (nextWhitespace == NL) {
+      if (nextWhitespace.equals(NL)) {
         newlineAndIndent();
       } else {
         pw.print(nextWhitespace);
@@ -1044,15 +1046,15 @@ public class SqlPrettyWriter implements SqlWriter {
     /**
      * Whether to print a newline before each separator.
      */
-    public boolean newlineBeforeSep;
+    public final boolean newlineBeforeSep;
 
     /**
      * Whether to print a newline after each separator.
      */
-    public boolean newlineAfterSep;
+    public final boolean newlineAfterSep;
     private final boolean newlineBeforeClose;
     private final boolean newlineAfterClose;
-    private boolean newlineAfterOpen;
+    private final boolean newlineAfterOpen;
 
     FrameImpl(
         FrameType frameType,
@@ -1107,18 +1109,14 @@ public class SqlPrettyWriter implements SqlWriter {
    */
   private static class Bean {
     private final SqlPrettyWriter o;
-    private final Map<String, Method> getterMethods =
-        new HashMap<String, Method>();
-    private final Map<String, Method> setterMethods =
-        new HashMap<String, Method>();
+    private final Map<String, Method> getterMethods = new HashMap<>();
+    private final Map<String, Method> setterMethods = new HashMap<>();
 
     Bean(SqlPrettyWriter o) {
       this.o = o;
 
       // Figure out the getter/setter methods for each attribute.
-      final Method[] methods = o.getClass().getMethods();
-      for (int i = 0; i < methods.length; i++) {
-        Method method = methods[i];
+      for (Method method : o.getClass().getMethods()) {
         if (method.getName().startsWith("set")
             && (method.getReturnType() == Void.class)
             && (method.getParameterTypes().length == 1)) {
@@ -1157,13 +1155,9 @@ public class SqlPrettyWriter implements SqlWriter {
     public void set(String name, String value) {
       final Method method = setterMethods.get(name);
       try {
-        method.invoke(
-            o,
-            value);
-      } catch (IllegalAccessException e) {
-        throw Util.newInternal(e);
-      } catch (InvocationTargetException e) {
-        throw Util.newInternal(e);
+        method.invoke(o, value);
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throw Throwables.propagate(e);
       }
     }
 
@@ -1171,18 +1165,16 @@ public class SqlPrettyWriter implements SqlWriter {
       final Method method = getterMethods.get(name);
       try {
         return method.invoke(o);
-      } catch (IllegalAccessException e) {
-        throw Util.newInternal(e);
-      } catch (InvocationTargetException e) {
-        throw Util.newInternal(e);
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throw Throwables.propagate(e);
       }
     }
 
     public String[] getPropertyNames() {
-      final Set<String> names = new HashSet<String>();
+      final Set<String> names = new HashSet<>();
       names.addAll(getterMethods.keySet());
       names.addAll(setterMethods.keySet());
-      return (String[]) names.toArray(new String[names.size()]);
+      return names.toArray(new String[names.size()]);
     }
   }
 }

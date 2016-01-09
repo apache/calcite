@@ -194,6 +194,11 @@ public interface SqlWriter {
     FROM_LIST,
 
     /**
+     * Pair-wise join.
+     */
+    JOIN(false),
+
+    /**
      * WHERE clause.
      */
     WHERE_LIST,
