@@ -64,6 +64,22 @@ limitations under the License.
   <build>
     <plugins>
       <plugin>
+        <!-- This workarounds Maven issue that tries to pass annotation-pre-processed sources
+             when using incremental compilation.
+             More details here: https://bugs.openjdk.java.net/browse/JDK-8067747?focusedCommentId=13872639&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-13872639
+             -->
+        <artifactId>maven-clean-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>clean-on-validate</id>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <source>1.6</source>
