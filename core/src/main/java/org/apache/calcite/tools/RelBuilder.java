@@ -692,9 +692,9 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
-    final RexNode x = RexUtil.composeConjunction(cluster.getRexBuilder(),
-        predicates, true);
-    if (x != null) {
+    final RexNode x = RexUtil.simplify(cluster.getRexBuilder(),
+            RexUtil.composeConjunction(cluster.getRexBuilder(), predicates, false));
+    if (!x.isAlwaysTrue()) {
       final Frame frame = Stacks.pop(stack);
       final RelNode filter = filterFactory.createFilter(frame.rel, x);
       Stacks.push(stack, new Frame(filter, frame.right));

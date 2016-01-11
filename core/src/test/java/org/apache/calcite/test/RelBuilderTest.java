@@ -202,6 +202,28 @@ public class RelBuilderTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testScanFilterOr2() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 20 OR deptno = 20
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.OR,
+                    builder.call(SqlStdOperatorTable.GREATER_THAN,
+                        builder.field("DEPTNO"),
+                        builder.literal(20)),
+                    builder.call(SqlStdOperatorTable.GREATER_THAN,
+                        builder.field("DEPTNO"),
+                        builder.literal(20))))
+            .build();
+    assertThat(str(root),
+        is("LogicalFilter(condition=[>($7, 20)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
   @Test public void testBadFieldName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {
