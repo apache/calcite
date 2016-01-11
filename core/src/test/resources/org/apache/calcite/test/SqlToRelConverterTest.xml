@@ -511,8 +511,7 @@ LogicalProject(EXPR$0=[1])
     <TestCase name="testIntervalLiteralYearToMonth">
         <Resource name="sql">
             <![CDATA[select cast(empno as Integer) * (INTERVAL '1-1' YEAR TO MONTH)
-from emp
-]]>
+from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -524,8 +523,7 @@ LogicalProject(EXPR$0=[*(CAST($0):INTEGER NOT NULL, 13)])
     <TestCase name="testIntervalLiteralHourToMinute">
         <Resource name="sql">
             <![CDATA[select cast(empno as Integer) * (INTERVAL '1:1' HOUR TO MINUTE)
-from emp
-]]>
+from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2394,8 +2392,7 @@ LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
         <Resource name="sql">
             <![CDATA[select avg(deptno) over ()
 from emp
-group by deptno
-]]>
+group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2562,7 +2559,7 @@ and not exists (select * from emp e2 where e1.empno = e2.empno)]]>
             <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], $f0=[$12])
-    LogicalFilter(condition=[NOT(IS NOT NULL($12))])
+    LogicalFilter(condition=[IS NULL($12)])
       LogicalJoin(condition=[=($0, $11)], joinType=[left])
         LogicalJoin(condition=[=($7, $9)], joinType=[inner])
           LogicalFilter(condition=[<($7, 10)])
