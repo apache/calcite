@@ -414,6 +414,11 @@ public abstract class SqlTypeUtil {
     }
   }
 
+  /** Returns whether a type's scale is set. */
+  public static boolean hasScale(RelDataType type) {
+    return type.getScale() != Integer.MIN_VALUE;
+  }
+
   /**
    * Returns the maximum value of an integral type, as a long value
    */

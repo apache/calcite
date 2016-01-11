@@ -362,6 +362,17 @@ public class CsvTest {
         "smart", expect("NAME=Alice"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1051">[CALCITE-1051]
+   * Underflow exception due to scaling IN clause literals</a>. */
+  @Test public void testInToSemiJoinWithoutCast() throws SQLException {
+    final String sql = "SELECT e.name\n"
+        + "FROM emps AS e\n"
+        + "WHERE e.empno in "
+        + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD);
+    checkSql(sql, "smart", expect("NAME=Alice"));
+  }
+
   private String range(int first, int count) {
     final StringBuilder sb = new StringBuilder();
     for (int i = 0; i < count; i++) {
