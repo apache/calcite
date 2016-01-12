@@ -17,21 +17,31 @@
 package org.apache.calcite.avatica.jdbc;
 
 import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.ColumnMetaData.ArrayType;
+import org.apache.calcite.avatica.ColumnMetaData.AvaticaType;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+
+import com.google.common.base.Optional;
 
 import java.sql.Array;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 /** Implementation of {@link org.apache.calcite.avatica.Meta.MetaResultSet}
@@ -88,7 +98,8 @@ class JdbcResultSet extends Meta.MetaResultSet {
       } else {
         fetchRowCount = maxRowCount;
       }
-      final Meta.Frame firstFrame = frame(null, resultSet, 0, fetchRowCount, calendar);
+      final Meta.Frame firstFrame = frame(null, resultSet, 0, fetchRowCount, calendar,
+          Optional.of(signature));
       if (firstFrame.done) {
         resultSet.close();
       }
@@ -115,12 +126,16 @@ class JdbcResultSet extends Meta.MetaResultSet {
   /** Creates a frame containing a given number or unlimited number of rows
    * from a result set. */
   static Meta.Frame frame(StatementInfo info, ResultSet resultSet, long offset,
-      int fetchMaxRowCount, Calendar calendar) throws SQLException {
+      int fetchMaxRowCount, Calendar calendar, Optional<Meta.Signature> sig) throws SQLException {
     final ResultSetMetaData metaData = resultSet.getMetaData();
     final int columnCount = metaData.getColumnCount();
     final int[] types = new int[columnCount];
+    Set<Integer> arrayOffsets = new HashSet<>();
     for (int i = 0; i < types.length; i++) {
       types[i] = metaData.getColumnType(i + 1);
+      if (Types.ARRAY == types[i]) {
+        arrayOffsets.add(i);
+      }
     }
     final List<Object> rows = new ArrayList<>();
     // Meta prepare/prepareAndExecute 0 return 0 row and done
@@ -140,6 +155,28 @@ class JdbcResultSet extends Meta.MetaResultSet {
       Object[] columns = new Object[columnCount];
       for (int j = 0; j < columnCount; j++) {
         columns[j] = getValue(resultSet, types[j], j, calendar);
+        if (arrayOffsets.contains(j)) {
+          // If we have an Array type, our Signature is lacking precision. We can't extract the
+          // component type of an Array from metadata, we have to update it as we're serializing
+          // the ResultSet.
+          final Array array = resultSet.getArray(j + 1);
+          // Only attempt to determine the component type for the array when non-null
+          if (null != array && sig.isPresent()) {
+            ColumnMetaData columnMetaData = sig.get().columns.get(j);
+            ArrayType arrayType = (ArrayType) columnMetaData.type;
+            SqlType componentSqlType = SqlType.valueOf(array.getBaseType());
+
+            // Avatica Server will always return non-primitives to ensure nullable is guaranteed.
+            ColumnMetaData.Rep rep = ColumnMetaData.Rep.serialRepOf(componentSqlType);
+            AvaticaType componentType = ColumnMetaData.scalar(array.getBaseType(),
+                array.getBaseTypeName(), rep);
+            // Update the ArrayType from the Signature
+            arrayType.updateComponentType(componentType);
+
+            // We only need to update the array's type once.
+            arrayOffsets.remove(j);
+          }
+        }
       }
       rows.add(columns);
     }
@@ -186,18 +223,14 @@ class JdbcResultSet extends Meta.MetaResultSet {
       if (null == array) {
         return null;
       }
-      ResultSet arrayValues = array.getResultSet();
-      TreeMap<Integer, Object> map = new TreeMap<>();
-      while (arrayValues.next()) {
-        // column 1 is the index in the array, column 2 is the value.
-        // Recurse on `getValue` to unwrap nested types correctly.
-        // `j` is zero-indexed and incremented for us, thus we have `1` being used twice.
-        map.put(arrayValues.getInt(1), getValue(arrayValues, array.getBaseType(), 1, calendar));
+      try {
+        // Recursively extracts an Array using its ResultSet-representation
+        return extractUsingResultSet(array, calendar);
+      } catch (UnsupportedOperationException | SQLFeatureNotSupportedException e) {
+        // Not every database might implement Array.getResultSet(). This call
+        // assumes a non-nested array (depends on the db if that's a valid assumption)
+        return extractUsingArray(array, calendar);
       }
-      // If the result set is not in the same order as the actual Array, TreeMap fixes that.
-      // Need to make a concrete list to ensure Jackson serialization.
-      //return new ListLike<Object>(new ArrayList<>(map.values()), ListLikeType.ARRAY);
-      return new ArrayList<>(map.values());
     case Types.STRUCT:
       Struct struct = resultSet.getObject(j + 1, Struct.class);
       Object[] attrs = struct.getAttributes();
@@ -209,6 +242,39 @@ class JdbcResultSet extends Meta.MetaResultSet {
     default:
       return resultSet.getObject(j + 1);
     }
+  }
+
+  /**
+   * Converts an Array into a List using {@link Array#getResultSet()}. This implementation is
+   * recursive and can parse multi-dimensional arrays.
+   */
+  static List<?> extractUsingResultSet(Array array, Calendar calendar) throws SQLException {
+    ResultSet arrayValues = array.getResultSet();
+    TreeMap<Integer, Object> map = new TreeMap<>();
+    while (arrayValues.next()) {
+      // column 1 is the index in the array, column 2 is the value.
+      // Recurse on `getValue` to unwrap nested types correctly.
+      // `j` is zero-indexed and incremented for us, thus we have `1` being used twice.
+      map.put(arrayValues.getInt(1), getValue(arrayValues, array.getBaseType(), 1, calendar));
+    }
+    // If the result set is not in the same order as the actual Array, TreeMap fixes that.
+    // Need to make a concrete list to ensure Jackson serialization.
+    return new ArrayList<>(map.values());
+  }
+
+  /**
+   * Converts an Array into a List using {@link Array#getArray()}. This implementation assumes
+   * a non-nested array. Use {link {@link #extractUsingResultSet(Array, Calendar)} if nested
+   * arrays may be possible.
+   */
+  static List<?> extractUsingArray(Array array, Calendar calendar) throws SQLException {
+    // No option but to guess as to what the type actually is...
+    Object o = array.getArray();
+    if (o instanceof List) {
+      return (List<?>) o;
+    }
+    // Assume that it's a Java array.
+    return AvaticaUtils.primitiveList(o);
   }
 }
 

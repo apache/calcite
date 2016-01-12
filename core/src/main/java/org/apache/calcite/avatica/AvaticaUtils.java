@@ -133,7 +133,7 @@ public class AvaticaUtils {
    */
   public static List<?> primitiveList(final Object array) {
     // REVIEW: A per-type list might be more efficient. (Or might not.)
-    return new AbstractList() {
+    return new AbstractList<Object>() {
       public Object get(int index) {
         return java.lang.reflect.Array.get(array, index);
       }

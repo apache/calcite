@@ -16,16 +16,25 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
+import org.apache.calcite.avatica.ColumnMetaData.ScalarType;
 import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.util.ArrayFactoryImpl;
+import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.Unsafe;
 
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.Types;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -33,6 +42,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -202,6 +212,25 @@ public class TypedValueTest {
     TypedValue tv = TypedValue.fromProto(protoTv);
     assertEquals(Rep.BYTE_STRING, tv.type);
     assertEquals(base64Str, tv.value);
+  }
+
+  @Test public void testArrays() {
+    List<Object> serialObj = Arrays.<Object>asList(1, 2, 3, 4);
+    ArrayImpl.Factory factory = new ArrayFactoryImpl(Unsafe.localCalendar().getTimeZone());
+    ScalarType scalarType = ColumnMetaData.scalar(Types.INTEGER, "INTEGER", Rep.INTEGER);
+    Array a1 = factory.createArray(scalarType, serialObj);
+    TypedValue tv1 = TypedValue.ofJdbc(Rep.ARRAY, a1, Unsafe.localCalendar());
+    Object jdbcObj = tv1.toJdbc(Unsafe.localCalendar());
+    assertTrue("The JDBC object is an " + jdbcObj.getClass(), jdbcObj instanceof Array);
+    Object localObj = tv1.toLocal();
+    assertTrue("The local object is an " + localObj.getClass(), localObj instanceof List);
+    Common.TypedValue protoTv1 = tv1.toProto();
+    assertEquals(serialObj.size(), protoTv1.getArrayValueCount());
+    TypedValue tv1Copy = TypedValue.fromProto(protoTv1);
+    Object jdbcObjCopy = tv1Copy.toJdbc(Unsafe.localCalendar());
+    assertTrue("The JDBC object is an " + jdbcObjCopy.getClass(), jdbcObjCopy instanceof Array);
+    Object localObjCopy = tv1Copy.toLocal();
+    assertTrue("The local object is an " + localObjCopy.getClass(), localObjCopy instanceof List);
   }
 }
 

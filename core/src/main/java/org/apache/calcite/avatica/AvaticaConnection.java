@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.ColumnMetaData.AvaticaType;
+import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.Meta.ExecuteBatchResult;
 import org.apache.calcite.avatica.Meta.MetaResultSet;
 import org.apache.calcite.avatica.remote.KerberosConnection;
@@ -23,6 +25,7 @@ import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.avatica.util.ArrayFactoryImpl;
 
 import java.sql.Array;
 import java.sql.Blob;
@@ -391,9 +394,29 @@ public abstract class AvaticaConnection implements Connection {
     throw helper.unsupported();
   }
 
-  public Array createArrayOf(String typeName, Object[] elements)
-      throws SQLException {
-    throw helper.unsupported();
+  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+    @SuppressWarnings("unchecked")
+    List<Object> elementList = (List<Object>) AvaticaUtils.primitiveList(elements);
+    SqlType type;
+    try {
+      type = SqlType.valueOf(typeName);
+    } catch (IllegalArgumentException e) {
+      throw new SQLException("Could not find JDBC type for '" + typeName + "'");
+    }
+    AvaticaType avaticaType = null;
+    switch (type) {
+    case ARRAY:
+      // TODO: Nested ARRAYs
+      throw helper.createException("Cannot create an ARRAY of ARRAY's");
+    case STRUCT:
+      // TODO: ARRAYs of STRUCTs
+      throw helper.createException("Cannot create an ARRAY of STRUCT's");
+    default:
+      // This is an ARRAY, we need to use Objects, not primitives (nullable).
+      avaticaType = ColumnMetaData.scalar(type.id, typeName, Rep.nonPrimitiveRepOf(type));
+    }
+    ArrayFactoryImpl arrayFactory = new ArrayFactoryImpl(getTimeZone());
+    return arrayFactory.createArray(avaticaType, elementList);
   }
 
   public Struct createStruct(String typeName, Object[] attributes)

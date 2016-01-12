@@ -203,7 +203,7 @@ public interface Meta {
    * requires to be not null; derived classes may instead choose to execute the
    * relational expression in {@code signature}. */
   Iterable<Object> createIterable(StatementHandle stmt, QueryState state, Signature signature,
-      List<TypedValue> parameterValues, Frame firstFrame);
+      List<TypedValue> parameters, Frame firstFrame);
 
   /** Prepares a statement.
    *
@@ -929,45 +929,53 @@ public interface Meta {
           continue;
         }
 
+        final Common.Row.Builder rowBuilder = Common.Row.newBuilder();
         if (row instanceof Object[]) {
-          final Common.Row.Builder rowBuilder = Common.Row.newBuilder();
-
+          // If only Object[] was also Iterable.
           for (Object element : (Object[]) row) {
-            final Common.ColumnValue.Builder columnBuilder = Common.ColumnValue.newBuilder();
-
-            if (element instanceof List) {
-              columnBuilder.setHasArrayValue(true);
-              List<?> list = (List<?>) element;
-              // Add each element in the list/array to the column's value
-              for (Object listItem : list) {
-                final Common.TypedValue scalarListItem = serializeScalar(listItem);
-                columnBuilder.addArrayValue(scalarListItem);
-                // Add the deprecated 'value' repeated attribute for backwards compat
-                columnBuilder.addValue(scalarListItem);
-              }
-            } else {
-              // The default value, but still explicit.
-              columnBuilder.setHasArrayValue(false);
-              // Only one value for this column, a scalar.
-              final Common.TypedValue scalarVal = serializeScalar(element);
-              columnBuilder.setScalarValue(scalarVal);
-              // Add the deprecated 'value' repeated attribute for backwards compat
-              columnBuilder.addValue(scalarVal);
-            }
-
-            // Add value to row
-            rowBuilder.addValue(columnBuilder.build());
+            parseColumn(rowBuilder, element);
           }
-
-          // Collect all rows
-          builder.addRows(rowBuilder.build());
+        } else if (row instanceof Iterable) {
+          for (Object element : (Iterable<?>) row) {
+            parseColumn(rowBuilder, element);
+          }
         } else {
           // Can a "row" be a primitive? A struct? Only an Array?
           throw new RuntimeException("Only arrays are supported");
         }
+
+        // Collect all rows
+        builder.addRows(rowBuilder.build());
       }
 
       return builder.build();
+    }
+
+    static void parseColumn(Common.Row.Builder rowBuilder, Object column) {
+      final Common.ColumnValue.Builder columnBuilder = Common.ColumnValue.newBuilder();
+
+      if (column instanceof List) {
+        columnBuilder.setHasArrayValue(true);
+        List<?> list = (List<?>) column;
+        // Add each element in the list/array to the column's value
+        for (Object listItem : list) {
+          final Common.TypedValue scalarListItem = serializeScalar(listItem);
+          columnBuilder.addArrayValue(scalarListItem);
+          // Add the deprecated 'value' repeated attribute for backwards compat
+          columnBuilder.addValue(scalarListItem);
+        }
+      } else {
+        // The default value, but still explicit.
+        columnBuilder.setHasArrayValue(false);
+        // Only one value for this column, a scalar.
+        final Common.TypedValue scalarVal = serializeScalar(column);
+        columnBuilder.setScalarValue(scalarVal);
+        // Add the deprecated 'value' repeated attribute for backwards compat
+        columnBuilder.addValue(scalarVal);
+      }
+
+      // Add value to row
+      rowBuilder.addValue(columnBuilder.build());
     }
 
     static Common.TypedValue serializeScalar(Object element) {
@@ -1046,16 +1054,40 @@ public interface Meta {
       validateColumnValue(column);
 
       if (!column.hasField(SCALAR_VALUE_DESCRIPTOR)) {
-        // Array
+        // The column in this row is an Array (has multiple values)
         List<Object> array = new ArrayList<>(column.getArrayValueCount());
         for (Common.TypedValue arrayValue : column.getArrayValueList()) {
-          array.add(deserializeScalarValue(arrayValue));
+          // Duplicative because of the ColumnValue/TypedValue difference.
+          if (Common.Rep.ARRAY == arrayValue.getType()) {
+            // Each element in this Array is an Array.
+            array.add(parseArray(arrayValue));
+          } else {
+            // The array element is a scalar.
+            array.add(deserializeScalarValue(arrayValue));
+          }
         }
         return array;
       } else {
         // Scalar
         return deserializeScalarValue(column.getScalarValue());
       }
+    }
+
+    /**
+     * Recursively parses a TypedValue while it is an array.
+     */
+    static Object parseArray(Common.TypedValue array) {
+      List<Object> convertedArray = new ArrayList<>(array.getArrayValueCount());
+      for (Common.TypedValue arrayElement : array.getArrayValueList()) {
+        if (Common.Rep.ARRAY == arrayElement.getType()) {
+          // Recurse
+          convertedArray.add(parseArray(arrayElement));
+        } else {
+          // The component type of this array is a scalar.
+          convertedArray.add(deserializeScalarValue(arrayElement));
+        }
+      }
+      return convertedArray;
     }
 
     /**

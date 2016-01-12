@@ -177,9 +177,9 @@ public abstract class AbstractCursor implements Cursor {
           (ColumnMetaData.ArrayType) columnMetaData.type;
       final SlotGetter componentGetter = new SlotGetter();
       final Accessor componentAccessor =
-          createAccessor(ColumnMetaData.dummy(arrayType.component, true),
+          createAccessor(ColumnMetaData.dummy(arrayType.getComponent(), true),
               componentGetter, localCalendar, factory);
-      return new ArrayAccessor(getter, arrayType.component, componentAccessor,
+      return new ArrayAccessor(getter, arrayType.getComponent(), componentAccessor,
           componentGetter, factory);
     case Types.STRUCT:
       switch (columnMetaData.type.rep) {
@@ -201,14 +201,14 @@ public abstract class AbstractCursor implements Cursor {
       }
     case Types.JAVA_OBJECT:
     case Types.OTHER: // e.g. map
-      if (columnMetaData.type.name.startsWith("INTERVAL_")) {
-        int end = columnMetaData.type.name.indexOf("(");
+      if (columnMetaData.type.getName().startsWith("INTERVAL_")) {
+        int end = columnMetaData.type.getName().indexOf("(");
         if (end < 0) {
-          end = columnMetaData.type.name.length();
+          end = columnMetaData.type.getName().length();
         }
         TimeUnitRange range =
             TimeUnitRange.valueOf(
-                columnMetaData.type.name.substring("INTERVAL_".length(), end));
+                columnMetaData.type.getName().substring("INTERVAL_".length(), end));
         if (range.monthly()) {
           return new IntervalYearMonthAccessor(getter, range);
         } else {
@@ -480,8 +480,13 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public byte getByte() throws SQLException {
-      Byte o = (Byte) getObject();
-      return o == null ? 0 : o;
+      Object obj = getObject();
+      if (null == obj) {
+        return 0;
+      } else if (obj instanceof Integer) {
+        return ((Integer) obj).byteValue();
+      }
+      return (Byte) obj;
     }
 
     public long getLong() throws SQLException {
@@ -499,8 +504,13 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public short getShort() throws SQLException {
-      Short o = (Short) getObject();
-      return o == null ? 0 : o;
+      Object obj = getObject();
+      if (null == obj) {
+        return 0;
+      } else if (obj instanceof Integer) {
+        return ((Integer) obj).shortValue();
+      }
+      return (Short) obj;
     }
 
     public long getLong() throws SQLException {
@@ -603,8 +613,13 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public double getDouble() throws SQLException {
-      Double o = (Double) getObject();
-      return o == null ? 0d : o;
+      Object obj = getObject();
+      if (null == obj) {
+        return 0d;
+      } else if (obj instanceof BigDecimal) {
+        return ((BigDecimal) obj).doubleValue();
+      }
+      return (Double) obj;
     }
   }
 
@@ -725,7 +740,11 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public String getString() throws SQLException {
-      return (String) getObject();
+      final Object obj = getObject();
+      if (obj instanceof String) {
+        return (String) obj;
+      }
+      return null == obj ? null : obj.toString();
     }
 
     @Override public byte[] getBytes() throws SQLException {
@@ -792,8 +811,10 @@ public abstract class AbstractCursor implements Cursor {
       if (obj instanceof ByteString) {
         return ((ByteString) obj).getBytes();
       } else if (obj instanceof String) {
-        return ((String) obj).getBytes(StandardCharsets.UTF_8);
+        // Need to unwind the base64 for JSON
+        return ByteString.parseBase64((String) obj);
       } else if (obj instanceof byte[]) {
+        // Protobuf would have a byte array
         return (byte[]) obj;
       } else {
         throw new RuntimeException("Cannot handle " + obj.getClass() + " as bytes");
@@ -1235,7 +1256,7 @@ public abstract class AbstractCursor implements Cursor {
    * Accessor that assumes that the underlying value is an ARRAY;
    * corresponds to {@link java.sql.Types#ARRAY}.
    */
-  static class ArrayAccessor extends AccessorImpl {
+  public static class ArrayAccessor extends AccessorImpl {
     final ColumnMetaData.AvaticaType componentType;
     final Accessor componentAccessor;
     final SlotGetter componentSlotGetter;
@@ -1253,20 +1274,80 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override public Object getObject() throws SQLException {
       final Object object = super.getObject();
-      if (object == null || object instanceof List) {
+      if (object == null || object instanceof ArrayImpl) {
         return object;
+      } else if (object instanceof List) {
+        List<?> list = (List<?>) object;
+        // Run the array values through the component accessor
+        List<Object> convertedValues = new ArrayList<>(list.size());
+        for (Object val : list) {
+          if (null == val) {
+            convertedValues.add(null);
+          } else {
+            // Set the current value in the SlotGetter so we can use the Accessor to coerce it.
+            componentSlotGetter.slot = val;
+            convertedValues.add(convertValue());
+          }
+        }
+        return convertedValues;
       }
-      // The object can be java array in case of user-provided class for row
-      // storage.
+      // The object can be java array in case of user-provided class for row storage.
       return AvaticaUtils.primitiveList(object);
     }
 
-    @Override public Array getArray() throws SQLException {
-      final List list = (List) getObject();
-      if (list == null) {
+    private Object convertValue() throws SQLException {
+      switch (componentType.id) {
+      case Types.BOOLEAN:
+      case Types.BIT:
+        return componentAccessor.getBoolean();
+      case Types.TINYINT:
+        return componentAccessor.getByte();
+      case Types.SMALLINT:
+        return componentAccessor.getShort();
+      case Types.INTEGER:
+        return componentAccessor.getInt();
+      case Types.BIGINT:
+        return componentAccessor.getLong();
+      case Types.FLOAT:
+        return componentAccessor.getFloat();
+      case Types.DOUBLE:
+        return componentAccessor.getDouble();
+      case Types.ARRAY:
+        return componentAccessor.getArray();
+      case Types.CHAR:
+      case Types.VARCHAR:
+      case Types.LONGVARCHAR:
+      case Types.NCHAR:
+      case Types.LONGNVARCHAR:
+        return componentAccessor.getString();
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        return componentAccessor.getBytes();
+      case Types.DECIMAL:
+        return componentAccessor.getBigDecimal();
+      case Types.DATE:
+      case Types.TIME:
+      case Types.TIMESTAMP:
+      case Types.STRUCT:
+      case Types.JAVA_OBJECT:
+        return componentAccessor.getObject();
+      default:
+        throw new IllegalStateException("Unhandled ARRAY component type: " + componentType.rep
+            + ", id: " + componentType.id);
+      }
+    }
+
+    @SuppressWarnings("unchecked") @Override public Array getArray() throws SQLException {
+      final Object o = getObject();
+      if (o == null) {
         return null;
       }
-      return new ArrayImpl(list, this);
+      if (o instanceof ArrayImpl) {
+        return (ArrayImpl) o;
+      }
+      // If it's not an Array already, assume it is a List.
+      return new ArrayImpl((List<Object>) o, this);
     }
 
     @Override public String getString() throws SQLException {
@@ -1291,10 +1372,22 @@ public abstract class AbstractCursor implements Cursor {
       return getStruct();
     }
 
+    @SuppressWarnings("unchecked")
+    @Override public <T> T getObject(Class<T> clz) throws SQLException {
+      // getStruct() is not exposed on Accessor, only AccessorImpl. getObject(Class) is exposed,
+      // so we can make it do the right thing (call getStruct()).
+      if (clz.equals(Struct.class)) {
+        return (T) getStruct();
+      }
+      return super.getObject(clz);
+    }
+
     @Override public Struct getStruct() throws SQLException {
       final Object o = super.getObject();
       if (o == null) {
         return null;
+      } else if (o instanceof StructImpl) {
+        return (StructImpl) o;
       } else if (o instanceof List) {
         return new StructImpl((List) o);
       } else {

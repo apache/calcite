@@ -27,18 +27,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+
 /** Implementation of JDBC {@link Array}. */
 public class ArrayImpl implements Array {
-  private final List list;
+  private final List<Object> list;
   private final AbstractCursor.ArrayAccessor accessor;
 
-  public ArrayImpl(List list, AbstractCursor.ArrayAccessor accessor) {
+  public ArrayImpl(List<Object> list, AbstractCursor.ArrayAccessor accessor) {
     this.list = list;
     this.accessor = accessor;
   }
 
   public String getBaseTypeName() throws SQLException {
-    return accessor.componentType.name;
+    return accessor.componentType.getName();
   }
 
   public int getBaseType() throws SQLException {
@@ -46,11 +47,11 @@ public class ArrayImpl implements Array {
   }
 
   public Object getArray() throws SQLException {
-    return getArray(list);
+    return getArray(list, accessor);
   }
 
   @Override public String toString() {
-    final Iterator iterator = list.iterator();
+    final Iterator<?> iterator = list.iterator();
     if (!iterator.hasNext()) {
       return "[]";
     }
@@ -93,9 +94,10 @@ public class ArrayImpl implements Array {
    * @throws NullPointerException if any element is null
    */
   @SuppressWarnings("unchecked")
-  protected Object getArray(List list) throws SQLException {
+  protected Object getArray(List<?> list, AbstractCursor.ArrayAccessor arrayAccessor)
+      throws SQLException {
     int i = 0;
-    switch (accessor.componentType.rep) {
+    switch (arrayAccessor.componentType.rep) {
     case PRIMITIVE_DOUBLE:
       final double[] doubles = new double[list.size()];
       for (double v : (List<Double>) list) {
@@ -148,56 +150,96 @@ public class ArrayImpl implements Array {
       // fall through
     }
     final Object[] objects = list.toArray();
-    switch (accessor.componentType.id) {
+    switch (arrayAccessor.componentType.id) {
     case Types.ARRAY:
       final AbstractCursor.ArrayAccessor componentAccessor =
-          (AbstractCursor.ArrayAccessor) accessor.componentAccessor;
+          (AbstractCursor.ArrayAccessor) arrayAccessor.componentAccessor;
       for (i = 0; i < objects.length; i++) {
-        objects[i] = new ArrayImpl((List) objects[i], componentAccessor);
+        // Convert the element into a Object[] or primitive array, recurse!
+        objects[i] = getArrayData(objects[i], componentAccessor);
       }
     }
     return objects;
   }
 
-  public Object getArray(Map<String, Class<?>> map) throws SQLException {
+  Object getArrayData(Object o, AbstractCursor.ArrayAccessor componentAccessor)
+      throws SQLException {
+    if (o instanceof List) {
+      return getArray((List<?>) o, componentAccessor);
+    } else if (o instanceof ArrayImpl) {
+      return (ArrayImpl) o;
+    }
+    throw new RuntimeException("Unhandled");
+  }
+
+  @Override public Object getArray(Map<String, Class<?>> map) throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 
-  public Object getArray(long index, int count) throws SQLException {
-    return getArray(list.subList((int) index, count));
+  @Override public Object getArray(long index, int count) throws SQLException {
+    if (index > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Arrays cannot be longer than " + Integer.MAX_VALUE);
+    }
+    // Convert from one-index to zero-index
+    int startIndex = ((int) index) - 1;
+    if (startIndex < 0 || startIndex > list.size()) {
+      throw new IllegalArgumentException("Invalid index: " + index + ". Size = " + list.size());
+    }
+    int endIndex = startIndex + count;
+    if (endIndex > list.size()) {
+      throw new IllegalArgumentException("Invalid count provided. Size = " + list.size()
+          + ", count = " + count);
+    }
+    // End index is non-inclusive
+    return getArray(list.subList(startIndex, endIndex), accessor);
   }
 
-  public Object getArray(long index, int count, Map<String, Class<?>> map)
+  @Override public Object getArray(long index, int count, Map<String, Class<?>> map)
       throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 
-  public ResultSet getResultSet() throws SQLException {
+  @Override public ResultSet getResultSet() throws SQLException {
     return accessor.factory.create(accessor.componentType, list);
   }
 
-  public ResultSet getResultSet(Map<String, Class<?>> map)
+  @Override public ResultSet getResultSet(Map<String, Class<?>> map)
       throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 
-  public ResultSet getResultSet(long index, int count) throws SQLException {
+  @Override public ResultSet getResultSet(long index, int count) throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 
-  public ResultSet getResultSet(long index, int count,
+  @Override public ResultSet getResultSet(long index, int count,
       Map<String, Class<?>> map) throws SQLException {
     throw new UnsupportedOperationException(); // TODO
   }
 
-  public void free() throws SQLException {
+  @Override public void free() throws SQLException {
     // nothing to do
   }
 
-  /** Factory that can create a result set based on a list of values. */
+  /** Factory that can create a ResultSet or Array based on a stream of values. */
   public interface Factory {
-    ResultSet create(ColumnMetaData.AvaticaType elementType,
-        Iterable<Object> iterable);
+
+    /**
+     * Creates a {@link ResultSet} from the given list of values per {@link Array#getResultSet()}.
+     *
+     * @param elementType The type of the elements
+     * @param iterable The elements
+     */
+    ResultSet create(ColumnMetaData.AvaticaType elementType, Iterable<Object> iterable);
+
+    /**
+     * Creates an {@link Array} from the given list of values, converting any primitive values
+     * into the corresponding objects.
+     *
+     * @param elementType The type of the elements
+     * @param elements The elements
+     */
+    Array createArray(ColumnMetaData.AvaticaType elementType, Iterable<Object> elements);
   }
 }
 

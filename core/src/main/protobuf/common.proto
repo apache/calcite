@@ -199,6 +199,9 @@ message TypedValue {
   bytes bytes_value = 5; // binary/varbinary
   double double_value = 6; // big numbers
   bool null = 7; // a null object
+
+  repeated TypedValue array_value = 8; // The Array
+  Rep component_type = 9; // If an Array, the representation for the array values
 }
 
 // The severity of some unexpected outcome to an operation.

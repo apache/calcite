@@ -206,6 +206,34 @@ public class FrameTest {
     List<Common.TypedValue> arrayValues = protoColumns.get(1).getArrayValueList();
     assertEquals(arrayValues, deprecatedValues);
   }
+
+  @Test public void testNestedArraySerialization() {
+    List<Object> rows = new ArrayList<>();
+    // [ "pk", [[1,2], [3,4]] ]
+    rows.add(Arrays.asList("pk", Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4))));
+    Frame frame = new Frame(0, true, rows);
+    // Parse back the list in serialized form
+    Common.Frame protoFrame = frame.toProto();
+    Common.Row protoRow = protoFrame.getRows(0);
+    Common.ColumnValue protoColumn = protoRow.getValue(1);
+    assertTrue(protoColumn.getHasArrayValue());
+    int value = 1;
+    for (Common.TypedValue arrayElement : protoColumn.getArrayValueList()) {
+      assertEquals(Common.Rep.ARRAY, arrayElement.getType());
+      for (Common.TypedValue nestedArrayElement : arrayElement.getArrayValueList()) {
+        assertEquals(Common.Rep.INTEGER, nestedArrayElement.getType());
+        assertEquals(value++, nestedArrayElement.getNumberValue());
+      }
+    }
+
+    Frame newFrame = Frame.fromProto(protoFrame);
+    @SuppressWarnings("unchecked")
+    List<Object> newRow = (List<Object>) newFrame.rows.iterator().next();
+    @SuppressWarnings("unchecked")
+    List<Object> expectedRow = (List<Object>) rows.get(0);
+    assertEquals(expectedRow.get(0), newRow.get(0));
+    assertEquals(expectedRow.get(1), newRow.get(1));
+  }
 }
 
 // End FrameTest.java

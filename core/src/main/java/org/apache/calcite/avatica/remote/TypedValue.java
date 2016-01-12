@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.ColumnMetaData.AvaticaType;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.util.ArrayFactoryImpl;
 import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -30,6 +34,11 @@ import com.google.protobuf.UnsafeByteOperations;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -101,6 +110,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  *     <td>DECIMAL</td>
  *                   <td>BigDecimal</td> <td>Number</td> <td>BigDecimal</td>
  *   </tr>
+ *   <tr>
+ *     <td>ARRAY</td>
+ *                  <td>Array</td> <td>List&lt;Object&gt;</td> <td>List&lt;Object&gt;</td>
+ *   </tr>
  * </table>
  *
  * Note:
@@ -134,6 +147,7 @@ public class TypedValue {
 
   public static final TypedValue NULL =
       new TypedValue(ColumnMetaData.Rep.OBJECT, null);
+  public static final Common.TypedValue NULL_PROTO = NULL.toProto();
 
   /** Type of the value. */
   public final ColumnMetaData.Rep type;
@@ -144,8 +158,16 @@ public class TypedValue {
    * For example, byte arrays are represented as String. */
   public final Object value;
 
+  /** Non-null for ARRAYs, the type of the values stored in the ARRAY. Null for all other cases. */
+  public final ColumnMetaData.Rep componentType;
+
   private TypedValue(ColumnMetaData.Rep rep, Object value) {
+    this(rep, null, value);
+  }
+
+  private TypedValue(ColumnMetaData.Rep rep, ColumnMetaData.Rep componentType, Object value) {
     this.type = rep;
+    this.componentType = componentType;
     this.value = value;
     assert isSerial(rep, value) : "rep: " + rep + ", value: " + value;
   }
@@ -194,7 +216,27 @@ public class TypedValue {
     if (value == null) {
       return NULL;
     }
-    return new TypedValue(rep, jdbcToSerial(rep, value, calendar));
+    final Object serialValue;
+    if (ColumnMetaData.Rep.ARRAY == rep) {
+      // Sanity check that we were given an Array
+      if (null != value && !(value instanceof Array)) {
+        throw new IllegalArgumentException("Provided Rep was ARRAY, but the value was "
+            + value.getClass());
+      }
+      final Array array = (Array) value;
+      try {
+        SqlType type = SqlType.valueOf(array.getBaseType());
+        serialValue = jdbcToSerial(rep, array, calendar, type);
+        // Because an Array may have null entries, we must always return the non-primitive type
+        // variants of the array values.
+        return new TypedValue(rep, Rep.nonPrimitiveRepOf(type), serialValue);
+      } catch (SQLException e) {
+        throw new RuntimeException("Could not extract Array component type", e);
+      }
+    } else {
+      serialValue = jdbcToSerial(rep, value, calendar);
+    }
+    return new TypedValue(rep, serialValue);
   }
 
   /** Creates a TypedValue from a value in JDBC representation,
@@ -251,6 +293,9 @@ public class TypedValue {
           : new BigDecimal(((Number) value).longValue());
     case BYTE_STRING:
       return ByteString.ofBase64((String) value);
+    case ARRAY:
+      //List<Object>
+      return value;
     default:
       throw new IllegalArgumentException("cannot convert " + value + " ("
           + value.getClass() + ") to " + rep);
@@ -266,7 +311,7 @@ public class TypedValue {
     if (value == null) {
       return null;
     }
-    return serialToJdbc(type, value, calendar);
+    return serialToJdbc(type, componentType, value, calendar);
   }
 
   /**
@@ -277,7 +322,8 @@ public class TypedValue {
    * @param calendar A calendar instance
    * @return The JDBC representation of the value.
    */
-  private static Object serialToJdbc(ColumnMetaData.Rep type, Object value, Calendar calendar) {
+  private static Object serialToJdbc(ColumnMetaData.Rep type, ColumnMetaData.Rep componentRep,
+      Object value, Calendar calendar) {
     switch (type) {
     case BYTE_STRING:
       return ByteString.ofBase64((String) value).getBytes();
@@ -291,6 +337,27 @@ public class TypedValue {
       return new java.sql.Time(adjust((Number) value, calendar));
     case JAVA_SQL_TIMESTAMP:
       return new java.sql.Timestamp(adjust((Number) value, calendar));
+    case ARRAY:
+      if (null == value) {
+        return null;
+      }
+      final List<?> list = (List<?>) value;
+      final List<Object> copy = new ArrayList<>(list.size());
+      // Copy the list from the serial representation to a JDBC representation
+      for (Object o : list) {
+        if (null == o) {
+          copy.add(null);
+        } else if (o instanceof TypedValue) {
+          // Protobuf can maintain the TypedValue hierarchy to simplify things
+          copy.add(((TypedValue) o).toJdbc(calendar));
+        } else {
+          // We can't get the above recursion with the JSON serialization
+          copy.add(serialToJdbc(componentRep, null, o, calendar));
+        }
+      }
+      AvaticaType elementType = new AvaticaType(componentRep.typeId, componentRep.name(),
+          componentRep);
+      return new ArrayFactoryImpl(calendar.getTimeZone()).createArray(elementType, copy);
     default:
       return serialToLocal(type, value);
     }
@@ -304,10 +371,18 @@ public class TypedValue {
     return t;
   }
 
+  private static Object jdbcToSerial(ColumnMetaData.Rep rep, Object value,
+      Calendar calendar) {
+    return jdbcToSerial(rep, value, calendar, null);
+  }
+
   /** Converts a value from JDBC format to a type that can be serialized as
    * JSON. */
   private static Object jdbcToSerial(ColumnMetaData.Rep rep, Object value,
-      Calendar calendar) {
+      Calendar calendar, SqlType componentType) {
+    if (null == value) {
+      return null;
+    }
     switch (rep) {
     case BYTE_STRING:
       return new ByteString((byte[]) value).toBase64String();
@@ -326,6 +401,58 @@ public class TypedValue {
         return (int) DateTimeUtils.floorMod(t, DateTimeUtils.MILLIS_PER_DAY);
       default:
         return t;
+      }
+    case ARRAY:
+      Array array = (Array) value;
+      Objects.requireNonNull(componentType, "Component Type must not be null for ARRAYs");
+      try {
+        switch (componentType) {
+        case BINARY:
+        case VARBINARY:
+        case LONGVARBINARY:
+          Object[] byteStrings = (Object[]) array.getArray();
+          List<String> convertedStrings = new ArrayList<>(byteStrings.length);
+          for (Object byteString : byteStrings) {
+            convertedStrings.add(
+                (String) jdbcToSerial(Rep.BYTE_STRING, byteString, calendar, null));
+          }
+          return convertedStrings;
+        case DATE:
+        case TIME:
+          Object[] dates = (Object[]) array.getArray();
+          List<Integer> serializedDates = new ArrayList<>(dates.length);
+          for (Object obj : dates) {
+            Date date = (Date) obj;
+            if (null == obj) {
+              serializedDates.add(null);
+            } else if (componentType == SqlType.DATE) {
+              serializedDates.add((int) jdbcToSerial(Rep.JAVA_SQL_DATE, date, calendar, null));
+            } else if (componentType == SqlType.TIME) {
+              serializedDates.add((int) jdbcToSerial(Rep.JAVA_SQL_TIME, date, calendar, null));
+            } else {
+              throw new RuntimeException("Unexpected type: " + componentType);
+            }
+          }
+          return serializedDates;
+        case TIMESTAMP:
+          Object[] timestamps = (Object[]) array.getArray();
+          List<Long> serializedTimestamps = new ArrayList<>(timestamps.length);
+          for (Object obj : timestamps) {
+            Timestamp timestamp = (Timestamp) obj;
+            if (null == obj) {
+              serializedTimestamps.add(null);
+            } else {
+              serializedTimestamps.add(
+                  (long) jdbcToSerial(Rep.JAVA_SQL_TIMESTAMP, timestamp, calendar, null));
+            }
+          }
+          return serializedTimestamps;
+        default:
+          // Either a primitive array or Object[], converted into List<Object>
+          return AvaticaUtils.primitiveList(array.getArray());
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException("Could not obtain base array object", e);
       }
     default:
       return value;
@@ -363,11 +490,49 @@ public class TypedValue {
     // Protobuf has an explicit BIG_DECIMAL representation enum value.
     if (Common.Rep.NUMBER == protoRep && value instanceof BigDecimal) {
       protoRep = Common.Rep.BIG_DECIMAL;
+    } else if (Common.Rep.ARRAY == protoRep) {
+      // This column value is an Array (many TypedValue's)
+      builder.setType(Common.Rep.ARRAY);
+      // Get the array component's type
+      Common.Rep protoComponentRep = componentType.toProto();
+      // Set the array's component on the message
+      builder.setComponentType(protoComponentRep);
+      // Serialize that array into the builder
+      @SuppressWarnings("unchecked")
+      List<Object> list = (List<Object>) value;
+      return serializeArray(list, builder, protoComponentRep);
     }
 
     // Serialize the type into the protobuf
     writeToProtoWithType(builder, value, protoRep);
 
+    return builder.build();
+  }
+
+  Common.TypedValue serializeArray(List<Object> list, Common.TypedValue.Builder builder,
+      Common.Rep protoArrayComponentRep) {
+    for (Object element : list) {
+      if (element instanceof List) {
+        // We have a list of lists: recursively build up the protobuf
+        @SuppressWarnings("unchecked")
+        List<Object> subList = (List<Object>) element;
+        Common.TypedValue.Builder subListBuilder = Common.TypedValue.newBuilder();
+        // This is "technically" an array, but we just persist the underlying component type
+        subListBuilder.setType(protoArrayComponentRep);
+        Common.TypedValue protoSubList = serializeArray(subList, subListBuilder,
+            protoArrayComponentRep);
+        builder.addArrayValue(protoSubList);
+      } else {
+        // We have a list of "scalars", just serialize the value
+        Common.TypedValue.Builder elementBuilder = Common.TypedValue.newBuilder();
+        if (null == element) {
+          writeToProtoWithType(elementBuilder, null, Common.Rep.NULL);
+        } else {
+          writeToProtoWithType(elementBuilder, element, protoArrayComponentRep);
+        }
+        builder.addArrayValue(elementBuilder.build());
+      }
+    }
     return builder.build();
   }
 
@@ -429,13 +594,31 @@ public class TypedValue {
       return;
     case JAVA_SQL_DATE:
     case JAVA_SQL_TIME:
-      // Persisted as integers
-      builder.setNumberValue(Integer.valueOf((int) o).longValue());
+      long sqlDateOrTime;
+      if (o instanceof java.sql.Date) {
+        sqlDateOrTime = ((java.sql.Date) o).getTime();
+      } else if (o instanceof java.sql.Time) {
+        sqlDateOrTime = ((java.sql.Time) o).getTime();
+      } else if (o instanceof Integer) {
+        sqlDateOrTime = ((Integer) o).longValue();
+      } else {
+        sqlDateOrTime = (long) o;
+      }
+      // Persisted as numbers
+      builder.setNumberValue(sqlDateOrTime);
       return;
     case JAVA_SQL_TIMESTAMP:
     case JAVA_UTIL_DATE:
+      long sqlTimestampOrUtilDate;
+      if (o instanceof java.sql.Timestamp) {
+        sqlTimestampOrUtilDate = ((java.sql.Timestamp) o).getTime();
+      } else if (o instanceof java.util.Date) {
+        sqlTimestampOrUtilDate = ((java.util.Date) o).getTime();
+      } else {
+        sqlTimestampOrUtilDate = (long) o;
+      }
       // Persisted as longs
-      builder.setNumberValue((long) o);
+      builder.setNumberValue(sqlTimestampOrUtilDate);
       return;
     case BIG_INTEGER:
       byte[] byteRep = ((BigInteger) o).toByteArray();
@@ -476,9 +659,10 @@ public class TypedValue {
    */
   public static TypedValue fromProto(Common.TypedValue proto) {
     ColumnMetaData.Rep rep = ColumnMetaData.Rep.fromProto(proto.getType());
+    ColumnMetaData.Rep componentRep = ColumnMetaData.Rep.fromProto(proto.getComponentType());
     Object value = getSerialFromProto(proto);
 
-    return new TypedValue(rep, value);
+    return new TypedValue(rep, componentRep, value);
   }
 
   /**
@@ -547,6 +731,16 @@ public class TypedValue {
       return Long.valueOf(protoValue.getNumberValue());
     case NULL:
       return null;
+    case ARRAY:
+      final List<Common.TypedValue> protoList = protoValue.getArrayValueList();
+      final List<Object> list = new ArrayList<>(protoList.size());
+      for (Common.TypedValue protoElement : protoList) {
+        // Deserialize the TypedValue protobuf into the JDBC type
+        TypedValue listElement = TypedValue.fromProto(protoElement);
+        // Must preserve the TypedValue so serial/jdbc/local conversion can work as expected
+        list.add(listElement);
+      }
+      return list;
     case OBJECT:
       if (protoValue.getNull()) {
         return null;
@@ -569,35 +763,97 @@ public class TypedValue {
    * @param builder The TypedValue protobuf builder
    * @param o The object (value)
    */
-  public static void toProto(Common.TypedValue.Builder builder, Object o) {
+  public static Common.Rep toProto(Common.TypedValue.Builder builder, Object o) {
     // Numbers
     if (o instanceof Byte) {
       writeToProtoWithType(builder, o, Common.Rep.BYTE);
+      return Common.Rep.BYTE;
     } else if (o instanceof Short) {
       writeToProtoWithType(builder, o, Common.Rep.SHORT);
+      return Common.Rep.SHORT;
     } else if (o instanceof Integer) {
       writeToProtoWithType(builder, o, Common.Rep.INTEGER);
+      return Common.Rep.INTEGER;
     } else if (o instanceof Long) {
       writeToProtoWithType(builder, o, Common.Rep.LONG);
+      return Common.Rep.LONG;
     } else if (o instanceof Double) {
       writeToProtoWithType(builder, o, Common.Rep.DOUBLE);
+      return Common.Rep.DOUBLE;
     } else if (o instanceof Float) {
       writeToProtoWithType(builder, ((Float) o).longValue(), Common.Rep.FLOAT);
+      return Common.Rep.FLOAT;
     } else if (o instanceof BigDecimal) {
       writeToProtoWithType(builder, o, Common.Rep.BIG_DECIMAL);
+      return Common.Rep.BIG_DECIMAL;
     // Strings
     } else if (o instanceof String) {
       writeToProtoWithType(builder, o, Common.Rep.STRING);
+      return Common.Rep.STRING;
     } else if (o instanceof Character) {
       writeToProtoWithType(builder, o.toString(), Common.Rep.CHARACTER);
+      return Common.Rep.CHARACTER;
     // Bytes
     } else if (o instanceof byte[]) {
       writeToProtoWithType(builder, o, Common.Rep.BYTE_STRING);
+      return Common.Rep.BYTE_STRING;
     // Boolean
     } else if (o instanceof Boolean) {
       writeToProtoWithType(builder, o, Common.Rep.BOOLEAN);
+      return Common.Rep.BOOLEAN;
+    } else if (o instanceof Timestamp) {
+      writeToProtoWithType(builder, o, Common.Rep.JAVA_SQL_TIMESTAMP);
+      return Common.Rep.JAVA_SQL_TIMESTAMP;
+    } else if (o instanceof Date) {
+      writeToProtoWithType(builder, o, Common.Rep.JAVA_SQL_DATE);
+      return Common.Rep.JAVA_SQL_DATE;
+    } else if (o instanceof Time) {
+      writeToProtoWithType(builder, o, Common.Rep.JAVA_SQL_TIME);
+      return Common.Rep.JAVA_SQL_TIME;
+    } else if (o instanceof List) {
+      // Treat a List as an Array
+      builder.setType(Common.Rep.ARRAY);
+      builder.setComponentType(Common.Rep.OBJECT);
+      boolean setComponentType = false;
+      for (Object listElement : (List<?>) o) {
+        Common.TypedValue.Builder listElementBuilder = Common.TypedValue.newBuilder();
+        // Recurse on each list element
+        Common.Rep componentRep = toProto(listElementBuilder, listElement);
+        if (!setComponentType) {
+          if (Common.Rep.NULL != componentRep) {
+            builder.setComponentType(componentRep);
+          }
+          setComponentType = true;
+        }
+        builder.addArrayValue(listElementBuilder.build());
+      }
+      return Common.Rep.ARRAY;
+    } else if (o instanceof Array) {
+      builder.setType(Common.Rep.ARRAY);
+      Array a = (Array) o;
+      try {
+        ResultSet rs = a.getResultSet();
+        builder.setComponentType(Common.Rep.OBJECT);
+        boolean setComponentType = false;
+        while (rs.next()) {
+          Common.TypedValue.Builder listElementBuilder = Common.TypedValue.newBuilder();
+          Object arrayValue = rs.getObject(2);
+          Common.Rep componentRep = toProto(listElementBuilder, arrayValue);
+          if (!setComponentType) {
+            if (Common.Rep.NULL != componentRep) {
+              builder.setComponentType(componentRep);
+            }
+            setComponentType = true;
+          }
+          builder.addArrayValue(listElementBuilder.build());
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException("Could not serialize ARRAY", e);
+      }
+      return Common.Rep.ARRAY;
     } else if (null == o) {
       writeToProtoWithType(builder, o, Common.Rep.NULL);
+      return Common.Rep.NULL;
     // Unhandled
     } else {
       throw new RuntimeException("Unhandled type in Frame: " + o.getClass());
@@ -617,8 +873,7 @@ public class TypedValue {
     if (null == o) {
       return o;
     }
-    return serialToJdbc(Rep.fromProto(protoValue.getType()), o, calendar);
-    //return protoSerialToJdbc(protoValue.getType(), o, Objects.requireNonNull(calendar));
+    return serialToJdbc(Rep.fromProto(protoValue.getType()), null, o, calendar);
   }
 
   @Override public int hashCode() {

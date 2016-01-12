@@ -316,40 +316,41 @@ public class ColumnMetaData {
    * a {@link java.sql.Date} might be represented as a {@link #PRIMITIVE_INT}
    * if not nullable, or a {@link #JAVA_SQL_DATE}. */
   public enum Rep {
-    PRIMITIVE_BOOLEAN(boolean.class),
-    PRIMITIVE_BYTE(byte.class),
-    PRIMITIVE_CHAR(char.class),
-    PRIMITIVE_SHORT(short.class),
-    PRIMITIVE_INT(int.class),
-    PRIMITIVE_LONG(long.class),
-    PRIMITIVE_FLOAT(float.class),
-    PRIMITIVE_DOUBLE(double.class),
-    BOOLEAN(Boolean.class),
-    BYTE(Byte.class),
-    CHARACTER(Character.class),
-    SHORT(Short.class),
-    INTEGER(Integer.class),
-    LONG(Long.class),
-    FLOAT(Float.class),
-    DOUBLE(Double.class),
-    JAVA_SQL_TIME(Time.class),
-    JAVA_SQL_TIMESTAMP(Timestamp.class),
-    JAVA_SQL_DATE(java.sql.Date.class),
-    JAVA_UTIL_DATE(java.util.Date.class),
-    BYTE_STRING(ByteString.class),
-    STRING(String.class),
+    PRIMITIVE_BOOLEAN(boolean.class, Types.BOOLEAN),
+    PRIMITIVE_BYTE(byte.class, Types.TINYINT),
+    PRIMITIVE_CHAR(char.class, Types.CHAR),
+    PRIMITIVE_SHORT(short.class, Types.SMALLINT),
+    PRIMITIVE_INT(int.class, Types.INTEGER),
+    PRIMITIVE_LONG(long.class, Types.BIGINT),
+    PRIMITIVE_FLOAT(float.class, Types.FLOAT),
+    PRIMITIVE_DOUBLE(double.class, Types.DOUBLE),
+    BOOLEAN(Boolean.class, Types.BOOLEAN),
+    BYTE(Byte.class, Types.TINYINT),
+    CHARACTER(Character.class, Types.CHAR),
+    SHORT(Short.class, Types.SMALLINT),
+    INTEGER(Integer.class, Types.INTEGER),
+    LONG(Long.class, Types.BIGINT),
+    FLOAT(Float.class, Types.FLOAT),
+    DOUBLE(Double.class, Types.DOUBLE),
+    JAVA_SQL_TIME(Time.class, Types.TIME),
+    JAVA_SQL_TIMESTAMP(Timestamp.class, Types.TIMESTAMP),
+    JAVA_SQL_DATE(java.sql.Date.class, Types.DATE),
+    JAVA_UTIL_DATE(java.util.Date.class, Types.DATE),
+    BYTE_STRING(ByteString.class, Types.VARBINARY),
+    STRING(String.class, Types.VARCHAR),
 
     /** Values are represented as some sub-class of {@link Number}.
      * The JSON encoding does this. */
-    NUMBER(Number.class),
+    NUMBER(Number.class, Types.NUMERIC),
 
-    ARRAY(Array.class),
-    MULTISET(List.class),
-    STRUCT(Struct.class),
+    ARRAY(Array.class, Types.ARRAY),
+    MULTISET(List.class, Types.JAVA_OBJECT),
+    STRUCT(Struct.class, Types.JAVA_OBJECT),
 
-    OBJECT(Object.class);
+    OBJECT(Object.class, Types.JAVA_OBJECT);
 
     public final Class clazz;
+    public final int typeId;
 
     public static final Map<Class, Rep> VALUE_MAP;
 
@@ -358,11 +359,13 @@ public class ColumnMetaData {
       for (Rep rep : values()) {
         builder.put(rep.clazz, rep);
       }
+      builder.put(byte[].class, BYTE_STRING);
       VALUE_MAP = Collections.unmodifiableMap(builder);
     }
 
-    Rep(Class clazz) {
+    Rep(Class clazz, int typeId) {
       this.clazz = clazz;
+      this.typeId = typeId;
     }
 
     public static Rep of(Type clazz) {
@@ -429,13 +432,78 @@ public class ColumnMetaData {
     }
 
     public static Rep fromProto(Common.Rep proto) {
-      if (Common.Rep.BIG_DECIMAL == proto) {
+      if (Common.Rep.UNRECOGNIZED == proto) {
+        // Un-set in the message, treat it as null
+        return null;
+      } else if (Common.Rep.BIG_DECIMAL == proto) {
         // BIG_DECIMAL has to come back as a NUMBER
         return Rep.NUMBER;
       } else if (Common.Rep.NULL == proto) {
         return Rep.OBJECT;
       }
       return Rep.valueOf(proto.name());
+    }
+
+    /**
+     * Computes the given JDBC type for a primitive to the corresponding {@link Rep} for the
+     * equivalent Object type. If the provided type is not for a primitive, a {@link Rep} for the
+     * provided Object is returned.
+     *
+     * @param type The type of a value (based on {@link java.sql.Types}).
+     * @return The corresponding non-primitive {@link Rep} for the given {@code type}.
+     */
+    public static ColumnMetaData.Rep nonPrimitiveRepOf(SqlType type) {
+      if (null == type) {
+        throw new NullPointerException();
+      }
+      if (boolean.class == type.clazz) {
+        return ColumnMetaData.Rep.BOOLEAN;
+      } else if (byte.class == type.clazz) {
+        return ColumnMetaData.Rep.BYTE;
+      } else  if (char.class == type.clazz) {
+        return ColumnMetaData.Rep.CHARACTER;
+      } else if (short.class == type.clazz) {
+        return ColumnMetaData.Rep.SHORT;
+      } else if (int.class == type.clazz) {
+        return ColumnMetaData.Rep.INTEGER;
+      } else if (long.class == type.clazz) {
+        return ColumnMetaData.Rep.LONG;
+      } else if (float.class == type.clazz) {
+        return ColumnMetaData.Rep.FLOAT;
+      } else if (double.class == type.clazz) {
+        return ColumnMetaData.Rep.DOUBLE;
+      }
+      return ColumnMetaData.Rep.of(type.clazz);
+    }
+
+    /**
+     * Computes the given JDBC type into the {@link Rep} for the wire (serial) form of that type.
+     *
+     * @param type The type of a value (based on {@link java.sql.Types}).
+     * @return The corresponding {@link Rep} for the serial form of the {@code type}.
+     */
+    public static ColumnMetaData.Rep serialRepOf(SqlType type) {
+      if (null == type) {
+        throw new NullPointerException();
+      }
+      if (boolean.class == type.internal) {
+        return ColumnMetaData.Rep.BOOLEAN;
+      } else if (byte.class == type.internal) {
+        return ColumnMetaData.Rep.BYTE;
+      } else  if (char.class == type.internal) {
+        return ColumnMetaData.Rep.CHARACTER;
+      } else if (short.class == type.internal) {
+        return ColumnMetaData.Rep.SHORT;
+      } else if (int.class == type.internal) {
+        return ColumnMetaData.Rep.INTEGER;
+      } else if (long.class == type.internal) {
+        return ColumnMetaData.Rep.LONG;
+      } else if (float.class == type.internal) {
+        return ColumnMetaData.Rep.FLOAT;
+      } else if (double.class == type.internal) {
+        return ColumnMetaData.Rep.DOUBLE;
+      }
+      return ColumnMetaData.Rep.of(type.internal);
     }
   }
 
@@ -463,6 +531,10 @@ public class ColumnMetaData {
 
     public String columnClassName() {
       return SqlType.valueOf(id).boxedClass().getName();
+    }
+
+    public String getName() {
+      return name;
     }
 
     public AvaticaType setRep(Rep rep) {
@@ -563,7 +635,7 @@ public class ColumnMetaData {
 
   /** Array type. */
   public static class ArrayType extends AvaticaType {
-    public final AvaticaType component;
+    private AvaticaType component;
 
     /**
      * Not for public use. Use {@link ColumnMetaData#array(AvaticaType, String, Rep)}.
@@ -573,6 +645,19 @@ public class ColumnMetaData {
         @JsonProperty("rep") Rep representation, @JsonProperty("component") AvaticaType component) {
       super(type, typeName, representation);
       this.component = component;
+    }
+
+    /**
+     * Updates the component of {@code this} to the given value. This is necessary to provide as
+     * accurate-as-possible of an {@code ArrayType} in the {@code Signature}. It cannot be done
+     * at initial construction of this object.
+     */
+    public void updateComponentType(AvaticaType component) {
+      this.component = Objects.requireNonNull(component);
+    }
+
+    public AvaticaType getComponent() {
+      return component;
     }
 
     @Override public Common.AvaticaType toProto() {

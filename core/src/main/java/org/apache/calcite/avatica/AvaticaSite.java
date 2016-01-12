@@ -398,6 +398,7 @@ public class AvaticaSite {
   }
 
   public void setArray(Array x) {
+    slots[index] = wrap(ColumnMetaData.Rep.ARRAY, x);
   }
 
   public void setNull(int sqlType, String typeName) {

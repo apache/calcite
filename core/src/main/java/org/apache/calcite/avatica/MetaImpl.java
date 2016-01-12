@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.ColumnMetaData.AvaticaType;
 import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.avatica.util.ArrayIteratorCursor;
 import org.apache.calcite.avatica.util.Cursor;
@@ -222,11 +223,18 @@ public abstract class MetaImpl implements Meta {
         Frame.EMPTY);
   }
 
+  private static int intForColumnNullable(boolean nullable) {
+    return nullable ? DatabaseMetaData.columnNullable : DatabaseMetaData.columnNoNulls;
+  }
+
   public static ColumnMetaData columnMetaData(String name, int index,
       Class<?> type, boolean columnNullable) {
-    return columnMetaData(name, index, type, columnNullable
-        ? DatabaseMetaData.columnNullable
-        : DatabaseMetaData.columnNoNulls);
+    return columnMetaData(name, index, type, intForColumnNullable(columnNullable));
+  }
+
+  public static ColumnMetaData columnMetaData(String name, int index, AvaticaType type,
+      boolean columnNullable) {
+    return columnMetaData(name, index, type, intForColumnNullable(columnNullable));
   }
 
   public static ColumnMetaData columnMetaData(String name, int index,
@@ -236,12 +244,17 @@ public abstract class MetaImpl implements Meta {
         ColumnMetaData.Rep.VALUE_MAP.get(type);
     ColumnMetaData.AvaticaType scalarType =
         ColumnMetaData.scalar(pair.sqlType, pair.sqlTypeName, rep);
+    return columnMetaData(name, index, scalarType, columnNullable);
+  }
+
+  public static ColumnMetaData columnMetaData(String name, int index, AvaticaType type,
+      int columnNullable) {
     return new ColumnMetaData(
         index, false, true, false, false,
         columnNullable,
         true, -1, name, name, null,
-        0, 0, null, null, scalarType, true, false, false,
-        scalarType.columnClassName());
+        0, 0, null, null, type, true, false, false,
+        type.columnClassName());
   }
 
   protected static ColumnMetaData.StructType fieldMetaData(Class<?> clazz) {
@@ -1448,6 +1461,8 @@ public abstract class MetaImpl implements Meta {
 
   @Override public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
       Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
+    // `parameterValues` is intentionally unusued (in method signature for historic reasons)
+    // Left to preserve API compatibility with Calcite
     if (firstFrame != null && firstFrame.done) {
       return firstFrame.rows;
     }
@@ -1457,8 +1472,7 @@ public abstract class MetaImpl implements Meta {
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-    return new FetchIterable(stmt, state,
-        firstFrame, parameterValues);
+    return new FetchIterable(stmt, state, firstFrame);
   }
 
   public Frame fetch(AvaticaStatement stmt, List<TypedValue> parameterValues,
@@ -1527,18 +1541,15 @@ public abstract class MetaImpl implements Meta {
     private final AvaticaStatement stmt;
     private final QueryState state;
     private final Frame firstFrame;
-    private final List<TypedValue> parameterValues;
 
-    public FetchIterable(AvaticaStatement stmt, QueryState state, Frame firstFrame,
-        List<TypedValue> parameterValues) {
+    public FetchIterable(AvaticaStatement stmt, QueryState state, Frame firstFrame) {
       this.stmt = stmt;
       this.state = state;
       this.firstFrame = firstFrame;
-      this.parameterValues = parameterValues;
     }
 
     public Iterator<Object> iterator() {
-      return new FetchIterator(stmt, state, firstFrame, parameterValues);
+      return new FetchIterator(stmt, state, firstFrame);
     }
   }
 
@@ -1548,16 +1559,11 @@ public abstract class MetaImpl implements Meta {
     private final QueryState state;
     private Frame frame;
     private Iterator<Object> rows;
-    private List<TypedValue> parameterValues;
-    private List<TypedValue> originalParameterValues;
     private long currentOffset = 0;
 
-    public FetchIterator(AvaticaStatement stmt, QueryState state, Frame firstFrame,
-        List<TypedValue> parameterValues) {
+    public FetchIterator(AvaticaStatement stmt, QueryState state, Frame firstFrame) {
       this.stmt = stmt;
       this.state = state;
-      this.parameterValues = parameterValues;
-      this.originalParameterValues = parameterValues;
       if (firstFrame == null) {
         frame = Frame.MORE;
         rows = EmptyIterator.INSTANCE;
@@ -1620,7 +1626,6 @@ public abstract class MetaImpl implements Meta {
           // Kick back to the top to try to fetch again (in both branches)
           continue;
         }
-        parameterValues = null; // don't execute next time
         if (frame == null) {
           rows = null;
           break;
@@ -1632,8 +1637,6 @@ public abstract class MetaImpl implements Meta {
     }
 
     private void resetStatement() {
-      // If we have to reset the statement, we need to reset the parameterValues too
-      parameterValues = originalParameterValues;
       // Defer to the statement to reset itself
       stmt.resetStatement();
     }

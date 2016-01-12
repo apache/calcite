@@ -138,7 +138,7 @@ public class RemoteDriverTest {
   }
 
   // Run each test with the LocalJsonService and LocalProtobufService
-  @Parameters
+  @Parameters(name = "{0}")
   public static List<Object[]> parameters() {
     List<Object[]> connections = new ArrayList<>();
 
@@ -147,6 +147,7 @@ public class RemoteDriverTest {
 
     connections.add(
       new Object[] {
+        "JSON",
         new Callable<Connection>() {
           public Connection call() {
             try {
@@ -167,6 +168,7 @@ public class RemoteDriverTest {
     // TODO write the ConnectionInternals implementation
     connections.add(
       new Object[] {
+        "PROTOBUF",
         new Callable<Connection>() {
           public Connection call() {
             try {
@@ -191,7 +193,7 @@ public class RemoteDriverTest {
   private final ConnectionInternals localConnectionInternals;
   private final Callable<RequestInspection> requestInspectionCallable;
 
-  public RemoteDriverTest(Callable<Connection> localConnectionCallable,
+  public RemoteDriverTest(String name, Callable<Connection> localConnectionCallable,
       ConnectionInternals internals, Callable<RequestInspection> requestInspectionCallable) {
     this.localConnectionCallable = localConnectionCallable;
     this.localConnectionInternals = internals;
@@ -884,6 +886,7 @@ public class RemoteDriverTest {
       final ResultSet resultSet = ps.executeQuery();
       fail("expected error, got " + resultSet);
     } catch (SQLException e) {
+      LOG.info("Caught expected error", e);
       assertThat(e.getMessage(),
           containsString("exception while executing query: unbound parameter"));
     }

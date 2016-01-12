@@ -50,6 +50,17 @@ public class Unsafe {
   public static Calendar localCalendar() {
     return Calendar.getInstance(Locale.ROOT);
   }
+
+  /**
+   * Returns a {@link java.lang.String}, created from the given format and args,
+   * with the root locale. Analog to {@link String#format(String, Object...)}.
+   *
+   * @param format The format string
+   * @param args Arguments to be substituted into the format string.
+   */
+  public static String formatLocalString(String format, Object... args) {
+    return String.format(Locale.ROOT, format, args);
+  }
 }
 
 // End Unsafe.java

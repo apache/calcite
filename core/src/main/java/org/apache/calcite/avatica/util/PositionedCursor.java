@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.util;
 
 import java.lang.reflect.Field;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +49,19 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
     }
 
     public Object getObject() {
-      Object o = ((Object[]) current())[field];
+      Object collection = current();
+      Object o;
+      if (collection instanceof List) {
+        o = ((List) collection).get(field);
+      } else if (collection instanceof StructImpl) {
+        try {
+          o = ((StructImpl) collection).getAttributes()[field];
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        o = ((Object[]) collection)[field];
+      }
       wasNull[0] = o == null;
       return o;
     }

@@ -26,13 +26,10 @@ import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.Meta.DatabaseProperty;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
+import org.apache.calcite.avatica.remote.AvaticaServersForTest.FullyRemoteJdbcMetaFactory;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.Response;
-import org.apache.calcite.avatica.server.AvaticaJsonHandler;
-import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
-import org.apache.calcite.avatica.server.Main;
-import org.apache.calcite.avatica.server.Main.HandlerFactory;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.avatica.util.FilteredConstants;
 
@@ -62,7 +59,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -86,58 +82,30 @@ import static org.junit.Assert.fail;
 /** Tests covering {@link RemoteMeta}. */
 @RunWith(Parameterized.class)
 public class RemoteMetaTest {
+  private static final AvaticaServersForTest SERVERS = new AvaticaServersForTest();
   private static final Random RANDOM = new Random();
-  private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
-
-  // Keep a reference to the servers we start to clean them up after
-  private static final List<HttpServer> ACTIVE_SERVERS = new ArrayList<>();
 
   private final HttpServer server;
   private final String url;
   private final int port;
   private final Driver.Serialization serialization;
 
-  @Parameters
+  @Parameters(name = "{0}")
   public static List<Object[]> parameters() throws Exception {
-    List<Object[]> params = new ArrayList<>();
-
-    final String[] mainArgs = { FullyRemoteJdbcMetaFactory.class.getName() };
-
-    // Bind to '0' to pluck an ephemeral port instead of expecting a certain one to be free
-
-    final HttpServer jsonServer = Main.start(mainArgs, 0, new HandlerFactory() {
-      @Override public AvaticaJsonHandler createHandler(Service service) {
-        return new AvaticaJsonHandler(service);
-      }
-    });
-    params.add(new Object[] {jsonServer, Driver.Serialization.JSON});
-    ACTIVE_SERVERS.add(jsonServer);
-
-    final HttpServer protobufServer = Main.start(mainArgs, 0, new HandlerFactory() {
-      @Override public AvaticaProtobufHandler createHandler(Service service) {
-        return new AvaticaProtobufHandler(service);
-      }
-    });
-    params.add(new Object[] {protobufServer, Driver.Serialization.PROTOBUF});
-
-    ACTIVE_SERVERS.add(protobufServer);
-
-    return params;
+    SERVERS.startServers();
+    return SERVERS.getJUnitParameters();
   }
 
-  public RemoteMetaTest(HttpServer server, Driver.Serialization serialization) {
+  public RemoteMetaTest(Driver.Serialization serialization, HttpServer server) {
     this.server = server;
     this.port = this.server.getPort();
     this.serialization = serialization;
-    url = "jdbc:avatica:remote:url=http://localhost:" + port + ";serialization="
-        + serialization.name();
+    this.url = SERVERS.getJdbcUrl(port, serialization);
   }
 
   @AfterClass public static void afterClass() throws Exception {
-    for (HttpServer server : ACTIVE_SERVERS) {
-      if (server != null) {
-        server.stop();
-      }
+    if (null != SERVERS) {
+      SERVERS.stopServers();
     }
   }
 
@@ -745,28 +713,6 @@ public class RemoteMetaTest {
     try (final Connection conn = DriverManager.getConnection(url, props)) {
       // The contents of the two properties objects should not have changed after connecting.
       assertEquals(props, originalProps);
-    }
-  }
-
-  /** Factory that provides a {@link JdbcMeta}. */
-  public static class FullyRemoteJdbcMetaFactory implements Meta.Factory {
-
-    private static JdbcMeta instance = null;
-
-    private static JdbcMeta getInstance() {
-      if (instance == null) {
-        try {
-          instance = new JdbcMeta(CONNECTION_SPEC.url, CONNECTION_SPEC.username,
-              CONNECTION_SPEC.password);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      return instance;
-    }
-
-    @Override public Meta create(List<String> args) {
-      return getInstance();
     }
   }
 }
