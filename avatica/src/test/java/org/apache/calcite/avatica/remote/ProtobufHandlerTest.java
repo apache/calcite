@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.Meta.Frame;
 import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.proto.Common.ColumnValue;
 import org.apache.calcite.avatica.proto.Requests;
 import org.apache.calcite.avatica.proto.Responses;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
@@ -113,16 +114,20 @@ public class ProtobufHandlerTest {
     Iterator<Common.ColumnValue> iter = columnValues.iterator();
     assertTrue(iter.hasNext());
     Common.ColumnValue column = iter.next();
-    assertEquals(1, column.getValueCount());
+    assertTrue("The Column should have contained a scalar: " + column,
+        ProtobufService.hasField(column, column.getDescriptorForType(),
+            ColumnValue.SCALAR_VALUE_FIELD_NUMBER));
 
-    Common.TypedValue value = column.getValue(0);
+    Common.TypedValue value = column.getScalarValue();
     assertEquals(Common.Rep.BOOLEAN, value.getType());
     assertEquals(true, value.getBoolValue());
 
     assertTrue(iter.hasNext());
     column = iter.next();
-    assertEquals(1, column.getValueCount());
-    value = column.getValue(0);
+    assertTrue("The Column should have contained a scalar: " + column,
+        ProtobufService.hasField(column, column.getDescriptorForType(),
+            ColumnValue.SCALAR_VALUE_FIELD_NUMBER));
+    value = column.getScalarValue();
     assertEquals(Common.Rep.STRING, value.getType());
     assertEquals("my_string", value.getStringValue());
   }

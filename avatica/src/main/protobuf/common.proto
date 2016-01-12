@@ -182,7 +182,10 @@ message WireMessage {
 
 // A value might be a TypedValue or an Array of TypedValue's
 message ColumnValue {
-  repeated TypedValue value = 1;
+  repeated TypedValue value = 1; // deprecated, use array_value or scalar_value
+  repeated TypedValue array_value = 2;
+  bool has_array_value = 3; // Is an array value set?
+  TypedValue scalar_value = 4;
 }
 
 // Generic wrapper to support any SQL type. Struct-like to work around no polymorphism construct.

@@ -28,12 +28,14 @@ miscellaneous:
   - { name: "AvaticaSeverity" }
   - { name: "AvaticaType" }
   - { name: "ColumnMetaData" }
+  - { name: "ColumnValue" }
   - { name: "ConnectionProperties" }
   - { name: "CursorFactory" }
   - { name: "DatabaseProperty" }
   - { name: "Frame" }
   - { name: "QueryState" }
   - { name: "Rep" }
+  - { name: "Row" }
   - { name: "RpcMetadata" }
   - { name: "Signature" }
   - { name: "StateType" }
@@ -947,11 +949,20 @@ message Row {
 
 {% highlight protobuf %}
 message ColumnValue {
-  repeated TypedValue value = 1;
+  repeated TypedValue value = 1; // Deprecated!
+  repeated ColumnValue array_value = 2;
+  boolean has_array_value = 3;
+  TypedValue scalar_value = 4;
 }
 {% endhighlight %}
 
-`value` A collection of <a href="#typedvalue">TypedValue</a>s.
+`value` The pre Calcite-1.6 means of serializing <a href="#typedvalue">TypedValue</a>s. Not used anymore.
+
+`array_value` The value of this column if it is an array (not a scalar).
+
+`has_array_value` Should be set to true if `array_value` is set.
+
+`scalar_value` The value of this column if it is a scalar (not an array).
 
 ### QueryState
 

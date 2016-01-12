@@ -892,14 +892,17 @@ public interface Meta {
             final Common.ColumnValue.Builder columnBuilder = Common.ColumnValue.newBuilder();
 
             if (element instanceof List) {
+              columnBuilder.setHasArrayValue(true);
               List<?> list = (List<?>) element;
               // Add each element in the list/array to the column's value
               for (Object listItem : list) {
-                columnBuilder.addValue(serializeScalar(listItem));
+                columnBuilder.addArrayValue(serializeScalar(listItem));
               }
             } else {
+              // The default value, but still explicit.
+              columnBuilder.setHasArrayValue(false);
               // Only one value for this column, a scalar.
-              columnBuilder.addValue(serializeScalar(element));
+              columnBuilder.setScalarValue(serializeScalar(element));
             }
 
             // Add value to row
@@ -931,8 +934,7 @@ public interface Meta {
       } else if (element instanceof Long) {
         valueBuilder.setType(Common.Rep.LONG).setNumberValue((Long) element);
       } else if (element instanceof Double) {
-        valueBuilder.setType(Common.Rep.DOUBLE)
-          .setDoubleValue(((Double) element).doubleValue());
+        valueBuilder.setType(Common.Rep.DOUBLE).setDoubleValue((Double) element);
       } else if (element instanceof Float) {
         valueBuilder.setType(Common.Rep.FLOAT).setNumberValue(((Float) element).longValue());
       } else if (element instanceof BigDecimal) {
@@ -967,17 +969,13 @@ public interface Meta {
       for (Common.Row protoRow : proto.getRowsList()) {
         ArrayList<Object> row = new ArrayList<>(protoRow.getValueCount());
         for (Common.ColumnValue protoColumn : protoRow.getValueList()) {
-          Object value;
-          if (protoColumn.getValueCount() > 1) {
-            // Array
-            List<Object> array = new ArrayList<>(protoColumn.getValueCount());
-            for (Common.TypedValue columnValue : protoColumn.getValueList()) {
-              array.add(getScalarValue(columnValue));
-            }
-            value = array;
+          final Object value;
+          if (!isNewStyleColumn(protoColumn)) {
+            // Backward compatibility
+            value = parseOldStyleColumn(protoColumn);
           } else {
-            // Scalar
-            value = getScalarValue(protoColumn.getValue(0));
+            // Current style parsing (separate scalar and array values)
+            value = parseColumn(protoColumn);
           }
 
           row.add(value);
@@ -987,6 +985,82 @@ public interface Meta {
       }
 
       return new Frame(proto.getOffset(), proto.getDone(), parsedRows);
+    }
+
+    /**
+     * Determines whether this message contains the new attributes in the
+     * message. We can't directly test for the negative because our
+     * {@code hasField} trick does not work on repeated fields.
+     *
+     * @param column The protobuf column object
+     * @return True if the message is the new style, false otherwise.
+     */
+    static boolean isNewStyleColumn(Common.ColumnValue column) {
+      final Descriptor desc = column.getDescriptorForType();
+      return ProtobufService.hasField(column, desc, Common.ColumnValue.HAS_ARRAY_VALUE_FIELD_NUMBER)
+          || ProtobufService.hasField(column, desc, Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER);
+    }
+
+    /**
+     * For Calcite 1.5, we made the mistake of using array length to determine when the value for a
+     * column is a scalar or an array. This method performs the old parsing for backwards
+     * compatibility.
+     *
+     * @param column The protobuf ColumnValue object
+     * @return The parsed value for this column
+     */
+    static Object parseOldStyleColumn(Common.ColumnValue column) {
+      if (column.getValueCount() > 1) {
+        List<Object> array = new ArrayList<>(column.getValueCount());
+        for (Common.TypedValue columnValue : column.getValueList()) {
+          array.add(getScalarValue(columnValue));
+        }
+        return array;
+      } else {
+        return getScalarValue(column.getValue(0));
+      }
+    }
+
+    /**
+     * Parses the value for a ColumnValue using the separated array and scalar attributes.
+     *
+     * @param column The protobuf ColumnValue object
+     * @return The parse value for this column
+     */
+    static Object parseColumn(Common.ColumnValue column) {
+      // Verify that we have one or the other (scalar or array)
+      validateColumnValue(column);
+
+      if (!ProtobufService.hasField(column, column.getDescriptorForType(),
+          Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER)) {
+        // Array
+        List<Object> array = new ArrayList<>(column.getArrayValueCount());
+        for (Common.TypedValue arrayValue : column.getArrayValueList()) {
+          array.add(getScalarValue(arrayValue));
+        }
+        return array;
+      } else {
+        // Scalar
+        return getScalarValue(column.getScalarValue());
+      }
+    }
+
+    /**
+     * Verifies that a ColumnValue has only a scalar or array value, not both and not neither.
+     *
+     * @param column The protobuf ColumnValue object
+     * @throws IllegalArgumentException When the above condition is not met
+     */
+    static void validateColumnValue(Common.ColumnValue column) {
+      final boolean hasScalar = ProtobufService.hasField(column, column.getDescriptorForType(),
+          Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER);
+      final boolean hasArrayValue = column.getHasArrayValue();
+
+      // These should always be different
+      if (hasScalar == hasArrayValue) {
+        throw new IllegalArgumentException("A column must have a scalar or array value, not "
+            + (hasScalar ? "both" : "neither"));
+      }
     }
 
     static Object getScalarValue(Common.TypedValue protoElement) {

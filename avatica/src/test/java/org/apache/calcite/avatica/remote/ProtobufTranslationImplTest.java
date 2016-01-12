@@ -19,7 +19,9 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.ColumnMetaData.ArrayType;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
+import org.apache.calcite.avatica.ColumnMetaData.ScalarType;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.Meta.Frame;
@@ -71,6 +73,7 @@ import org.junit.runners.Parameterized.Parameters;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.sql.DatabaseMetaData;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -252,6 +255,16 @@ public class ProtobufTranslationImplTest<T> {
     return requests;
   }
 
+  private static ColumnMetaData getArrayColumnMetaData(ScalarType componentType, int index,
+      String name) {
+    ArrayType arrayType = ColumnMetaData.array(componentType, "Array", Rep.ARRAY);
+    return new ColumnMetaData(
+        index, false, true, false, false, DatabaseMetaData.columnNullable,
+        true, -1, name, name, null,
+        0, 0, null, null, arrayType, true, false, false,
+        "ARRAY");
+  }
+
   /**
    * Generates a collection of Responses whose serialization will be tested.
    */
@@ -262,18 +275,22 @@ public class ProtobufTranslationImplTest<T> {
     // Nested classes (Signature, ColumnMetaData, CursorFactory, etc) are implicitly getting tested)
 
     // Stub out the metadata for a row
+    ScalarType arrayComponentType = ColumnMetaData.scalar(Types.INTEGER, "integer", Rep.INTEGER);
+    ColumnMetaData arrayColumnMetaData = getArrayColumnMetaData(arrayComponentType, 2, "counts");
     List<ColumnMetaData> columns =
         Arrays.asList(MetaImpl.columnMetaData("str", 0, String.class),
-            MetaImpl.columnMetaData("count", 1, Integer.class));
+            MetaImpl.columnMetaData("count", 1, Integer.class),
+            arrayColumnMetaData);
     List<AvaticaParameter> params =
         Arrays.asList(
             new AvaticaParameter(false, 10, 0, Types.VARCHAR, "VARCHAR",
                 String.class.getName(), "str"));
     Meta.CursorFactory cursorFactory = Meta.CursorFactory.create(Style.LIST, Object.class,
-        Arrays.asList("str", "count"));
+        Arrays.asList("str", "count", "counts"));
     // The row values
     List<Object> rows = new ArrayList<>();
-    rows.add(new Object[] {"str_value", 50});
+    rows.add(new Object[] {"str_value1", 50, Arrays.asList(1, 2, 3)});
+    rows.add(new Object[] {"str_value2", 100, Arrays.asList(1)});
 
     // Create the signature and frame using the metadata and values
     Signature signature = Signature.create(columns, "sql", params, cursorFactory,

@@ -12091,27 +12091,93 @@ package org.apache.calcite.avatica.proto;
 
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> 
         getValueList();
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     org.apache.calcite.avatica.proto.Common.TypedValue getValue(int index);
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     int getValueCount();
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
         getValueOrBuilderList();
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getValueOrBuilder(
         int index);
+
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> 
+        getArrayValueList();
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Common.TypedValue getArrayValue(int index);
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    int getArrayValueCount();
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+        getArrayValueOrBuilderList();
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getArrayValueOrBuilder(
+        int index);
+
+    /**
+     * <code>optional bool has_array_value = 3;</code>
+     *
+     * <pre>
+     * Is an array value set?
+     * </pre>
+     */
+    boolean getHasArrayValue();
+
+    /**
+     * <code>optional .TypedValue scalar_value = 4;</code>
+     */
+    boolean hasScalarValue();
+    /**
+     * <code>optional .TypedValue scalar_value = 4;</code>
+     */
+    org.apache.calcite.avatica.proto.Common.TypedValue getScalarValue();
+    /**
+     * <code>optional .TypedValue scalar_value = 4;</code>
+     */
+    org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getScalarValueOrBuilder();
   }
   /**
    * Protobuf type {@code ColumnValue}
@@ -12130,6 +12196,8 @@ package org.apache.calcite.avatica.proto;
     }
     private ColumnValue() {
       value_ = java.util.Collections.emptyList();
+      arrayValue_ = java.util.Collections.emptyList();
+      hasArrayValue_ = false;
     }
 
     @java.lang.Override
@@ -12164,6 +12232,32 @@ package org.apache.calcite.avatica.proto;
               value_.add(input.readMessage(org.apache.calcite.avatica.proto.Common.TypedValue.parser(), extensionRegistry));
               break;
             }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                arrayValue_ = new java.util.ArrayList<org.apache.calcite.avatica.proto.Common.TypedValue>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              arrayValue_.add(input.readMessage(org.apache.calcite.avatica.proto.Common.TypedValue.parser(), extensionRegistry));
+              break;
+            }
+            case 24: {
+
+              hasArrayValue_ = input.readBool();
+              break;
+            }
+            case 34: {
+              org.apache.calcite.avatica.proto.Common.TypedValue.Builder subBuilder = null;
+              if (scalarValue_ != null) {
+                subBuilder = scalarValue_.toBuilder();
+              }
+              scalarValue_ = input.readMessage(org.apache.calcite.avatica.proto.Common.TypedValue.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(scalarValue_);
+                scalarValue_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -12175,6 +12269,9 @@ package org.apache.calcite.avatica.proto;
       } finally {
         if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
           value_ = java.util.Collections.unmodifiableList(value_);
+        }
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          arrayValue_ = java.util.Collections.unmodifiableList(arrayValue_);
         }
         makeExtensionsImmutable();
       }
@@ -12191,16 +12288,25 @@ package org.apache.calcite.avatica.proto;
               org.apache.calcite.avatica.proto.Common.ColumnValue.class, org.apache.calcite.avatica.proto.Common.ColumnValue.Builder.class);
     }
 
+    private int bitField0_;
     public static final int VALUE_FIELD_NUMBER = 1;
     private java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> value_;
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> getValueList() {
       return value_;
     }
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
         getValueOrBuilderList() {
@@ -12208,22 +12314,103 @@ package org.apache.calcite.avatica.proto;
     }
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     public int getValueCount() {
       return value_.size();
     }
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     public org.apache.calcite.avatica.proto.Common.TypedValue getValue(int index) {
       return value_.get(index);
     }
     /**
      * <code>repeated .TypedValue value = 1;</code>
+     *
+     * <pre>
+     * deprecated, use array_value or scalar_value
+     * </pre>
      */
     public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getValueOrBuilder(
         int index) {
       return value_.get(index);
+    }
+
+    public static final int ARRAY_VALUE_FIELD_NUMBER = 2;
+    private java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> arrayValue_;
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> getArrayValueList() {
+      return arrayValue_;
+    }
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+        getArrayValueOrBuilderList() {
+      return arrayValue_;
+    }
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    public int getArrayValueCount() {
+      return arrayValue_.size();
+    }
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Common.TypedValue getArrayValue(int index) {
+      return arrayValue_.get(index);
+    }
+    /**
+     * <code>repeated .TypedValue array_value = 2;</code>
+     */
+    public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getArrayValueOrBuilder(
+        int index) {
+      return arrayValue_.get(index);
+    }
+
+    public static final int HAS_ARRAY_VALUE_FIELD_NUMBER = 3;
+    private boolean hasArrayValue_;
+    /**
+     * <code>optional bool has_array_value = 3;</code>
+     *
+     * <pre>
+     * Is an array value set?
+     * </pre>
+     */
+    public boolean getHasArrayValue() {
+      return hasArrayValue_;
+    }
+
+    public static final int SCALAR_VALUE_FIELD_NUMBER = 4;
+    private org.apache.calcite.avatica.proto.Common.TypedValue scalarValue_;
+    /**
+     * <code>optional .TypedValue scalar_value = 4;</code>
+     */
+    public boolean hasScalarValue() {
+      return scalarValue_ != null;
+    }
+    /**
+     * <code>optional .TypedValue scalar_value = 4;</code>
+     */
+    public org.apache.calcite.avatica.proto.Common.TypedValue getScalarValue() {
+      return scalarValue_ == null ? org.apache.calcite.avatica.proto.Common.TypedValue.getDefaultInstance() : scalarValue_;
+    }
+    /**
+     * <code>optional .TypedValue scalar_value = 4;</code>
+     */
+    public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getScalarValueOrBuilder() {
+      return getScalarValue();
     }
 
     private byte memoizedIsInitialized = -1;
@@ -12241,6 +12428,15 @@ package org.apache.calcite.avatica.proto;
       for (int i = 0; i < value_.size(); i++) {
         output.writeMessage(1, value_.get(i));
       }
+      for (int i = 0; i < arrayValue_.size(); i++) {
+        output.writeMessage(2, arrayValue_.get(i));
+      }
+      if (hasArrayValue_ != false) {
+        output.writeBool(3, hasArrayValue_);
+      }
+      if (scalarValue_ != null) {
+        output.writeMessage(4, getScalarValue());
+      }
     }
 
     public int getSerializedSize() {
@@ -12251,6 +12447,18 @@ package org.apache.calcite.avatica.proto;
       for (int i = 0; i < value_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, value_.get(i));
+      }
+      for (int i = 0; i < arrayValue_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, arrayValue_.get(i));
+      }
+      if (hasArrayValue_ != false) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(3, hasArrayValue_);
+      }
+      if (scalarValue_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, getScalarValue());
       }
       memoizedSize = size;
       return size;
@@ -12364,6 +12572,7 @@ package org.apache.calcite.avatica.proto;
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           getValueFieldBuilder();
+          getArrayValueFieldBuilder();
         }
       }
       public Builder clear() {
@@ -12373,6 +12582,20 @@ package org.apache.calcite.avatica.proto;
           bitField0_ = (bitField0_ & ~0x00000001);
         } else {
           valueBuilder_.clear();
+        }
+        if (arrayValueBuilder_ == null) {
+          arrayValue_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          arrayValueBuilder_.clear();
+        }
+        hasArrayValue_ = false;
+
+        if (scalarValueBuilder_ == null) {
+          scalarValue_ = null;
+        } else {
+          scalarValue_ = null;
+          scalarValueBuilder_ = null;
         }
         return this;
       }
@@ -12397,6 +12620,7 @@ package org.apache.calcite.avatica.proto;
       public org.apache.calcite.avatica.proto.Common.ColumnValue buildPartial() {
         org.apache.calcite.avatica.proto.Common.ColumnValue result = new org.apache.calcite.avatica.proto.Common.ColumnValue(this);
         int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
         if (valueBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001)) {
             value_ = java.util.Collections.unmodifiableList(value_);
@@ -12406,6 +12630,22 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.value_ = valueBuilder_.build();
         }
+        if (arrayValueBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002)) {
+            arrayValue_ = java.util.Collections.unmodifiableList(arrayValue_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.arrayValue_ = arrayValue_;
+        } else {
+          result.arrayValue_ = arrayValueBuilder_.build();
+        }
+        result.hasArrayValue_ = hasArrayValue_;
+        if (scalarValueBuilder_ == null) {
+          result.scalarValue_ = scalarValue_;
+        } else {
+          result.scalarValue_ = scalarValueBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -12446,6 +12686,38 @@ package org.apache.calcite.avatica.proto;
               valueBuilder_.addAllMessages(other.value_);
             }
           }
+        }
+        if (arrayValueBuilder_ == null) {
+          if (!other.arrayValue_.isEmpty()) {
+            if (arrayValue_.isEmpty()) {
+              arrayValue_ = other.arrayValue_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureArrayValueIsMutable();
+              arrayValue_.addAll(other.arrayValue_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.arrayValue_.isEmpty()) {
+            if (arrayValueBuilder_.isEmpty()) {
+              arrayValueBuilder_.dispose();
+              arrayValueBuilder_ = null;
+              arrayValue_ = other.arrayValue_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              arrayValueBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getArrayValueFieldBuilder() : null;
+            } else {
+              arrayValueBuilder_.addAllMessages(other.arrayValue_);
+            }
+          }
+        }
+        if (other.getHasArrayValue() != false) {
+          setHasArrayValue(other.getHasArrayValue());
+        }
+        if (other.hasScalarValue()) {
+          mergeScalarValue(other.getScalarValue());
         }
         onChanged();
         return this;
@@ -12488,6 +12760,10 @@ package org.apache.calcite.avatica.proto;
 
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> getValueList() {
         if (valueBuilder_ == null) {
@@ -12498,6 +12774,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public int getValueCount() {
         if (valueBuilder_ == null) {
@@ -12508,6 +12788,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue getValue(int index) {
         if (valueBuilder_ == null) {
@@ -12518,6 +12802,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder setValue(
           int index, org.apache.calcite.avatica.proto.Common.TypedValue value) {
@@ -12535,6 +12823,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder setValue(
           int index, org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
@@ -12549,6 +12841,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder addValue(org.apache.calcite.avatica.proto.Common.TypedValue value) {
         if (valueBuilder_ == null) {
@@ -12565,6 +12861,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder addValue(
           int index, org.apache.calcite.avatica.proto.Common.TypedValue value) {
@@ -12582,6 +12882,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder addValue(
           org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
@@ -12596,6 +12900,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder addValue(
           int index, org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
@@ -12610,6 +12918,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder addAllValue(
           java.lang.Iterable<? extends org.apache.calcite.avatica.proto.Common.TypedValue> values) {
@@ -12625,6 +12937,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder clearValue() {
         if (valueBuilder_ == null) {
@@ -12638,6 +12954,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public Builder removeValue(int index) {
         if (valueBuilder_ == null) {
@@ -12651,6 +12971,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue.Builder getValueBuilder(
           int index) {
@@ -12658,6 +12982,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getValueOrBuilder(
           int index) {
@@ -12668,6 +12996,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
            getValueOrBuilderList() {
@@ -12679,6 +13011,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue.Builder addValueBuilder() {
         return getValueFieldBuilder().addBuilder(
@@ -12686,6 +13022,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue.Builder addValueBuilder(
           int index) {
@@ -12694,6 +13034,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>repeated .TypedValue value = 1;</code>
+       *
+       * <pre>
+       * deprecated, use array_value or scalar_value
+       * </pre>
        */
       public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder> 
            getValueBuilderList() {
@@ -12712,6 +13056,401 @@ package org.apache.calcite.avatica.proto;
           value_ = null;
         }
         return valueBuilder_;
+      }
+
+      private java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> arrayValue_ =
+        java.util.Collections.emptyList();
+      private void ensureArrayValueIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          arrayValue_ = new java.util.ArrayList<org.apache.calcite.avatica.proto.Common.TypedValue>(arrayValue_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> arrayValueBuilder_;
+
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> getArrayValueList() {
+        if (arrayValueBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(arrayValue_);
+        } else {
+          return arrayValueBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public int getArrayValueCount() {
+        if (arrayValueBuilder_ == null) {
+          return arrayValue_.size();
+        } else {
+          return arrayValueBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValue getArrayValue(int index) {
+        if (arrayValueBuilder_ == null) {
+          return arrayValue_.get(index);
+        } else {
+          return arrayValueBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder setArrayValue(
+          int index, org.apache.calcite.avatica.proto.Common.TypedValue value) {
+        if (arrayValueBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureArrayValueIsMutable();
+          arrayValue_.set(index, value);
+          onChanged();
+        } else {
+          arrayValueBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder setArrayValue(
+          int index, org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
+        if (arrayValueBuilder_ == null) {
+          ensureArrayValueIsMutable();
+          arrayValue_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          arrayValueBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder addArrayValue(org.apache.calcite.avatica.proto.Common.TypedValue value) {
+        if (arrayValueBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureArrayValueIsMutable();
+          arrayValue_.add(value);
+          onChanged();
+        } else {
+          arrayValueBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder addArrayValue(
+          int index, org.apache.calcite.avatica.proto.Common.TypedValue value) {
+        if (arrayValueBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureArrayValueIsMutable();
+          arrayValue_.add(index, value);
+          onChanged();
+        } else {
+          arrayValueBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder addArrayValue(
+          org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
+        if (arrayValueBuilder_ == null) {
+          ensureArrayValueIsMutable();
+          arrayValue_.add(builderForValue.build());
+          onChanged();
+        } else {
+          arrayValueBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder addArrayValue(
+          int index, org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
+        if (arrayValueBuilder_ == null) {
+          ensureArrayValueIsMutable();
+          arrayValue_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          arrayValueBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder addAllArrayValue(
+          java.lang.Iterable<? extends org.apache.calcite.avatica.proto.Common.TypedValue> values) {
+        if (arrayValueBuilder_ == null) {
+          ensureArrayValueIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, arrayValue_);
+          onChanged();
+        } else {
+          arrayValueBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder clearArrayValue() {
+        if (arrayValueBuilder_ == null) {
+          arrayValue_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          arrayValueBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public Builder removeArrayValue(int index) {
+        if (arrayValueBuilder_ == null) {
+          ensureArrayValueIsMutable();
+          arrayValue_.remove(index);
+          onChanged();
+        } else {
+          arrayValueBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValue.Builder getArrayValueBuilder(
+          int index) {
+        return getArrayValueFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getArrayValueOrBuilder(
+          int index) {
+        if (arrayValueBuilder_ == null) {
+          return arrayValue_.get(index);  } else {
+          return arrayValueBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+           getArrayValueOrBuilderList() {
+        if (arrayValueBuilder_ != null) {
+          return arrayValueBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(arrayValue_);
+        }
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValue.Builder addArrayValueBuilder() {
+        return getArrayValueFieldBuilder().addBuilder(
+            org.apache.calcite.avatica.proto.Common.TypedValue.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValue.Builder addArrayValueBuilder(
+          int index) {
+        return getArrayValueFieldBuilder().addBuilder(
+            index, org.apache.calcite.avatica.proto.Common.TypedValue.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .TypedValue array_value = 2;</code>
+       */
+      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder> 
+           getArrayValueBuilderList() {
+        return getArrayValueFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          getArrayValueFieldBuilder() {
+        if (arrayValueBuilder_ == null) {
+          arrayValueBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>(
+                  arrayValue_,
+                  ((bitField0_ & 0x00000002) == 0x00000002),
+                  getParentForChildren(),
+                  isClean());
+          arrayValue_ = null;
+        }
+        return arrayValueBuilder_;
+      }
+
+      private boolean hasArrayValue_ ;
+      /**
+       * <code>optional bool has_array_value = 3;</code>
+       *
+       * <pre>
+       * Is an array value set?
+       * </pre>
+       */
+      public boolean getHasArrayValue() {
+        return hasArrayValue_;
+      }
+      /**
+       * <code>optional bool has_array_value = 3;</code>
+       *
+       * <pre>
+       * Is an array value set?
+       * </pre>
+       */
+      public Builder setHasArrayValue(boolean value) {
+        
+        hasArrayValue_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool has_array_value = 3;</code>
+       *
+       * <pre>
+       * Is an array value set?
+       * </pre>
+       */
+      public Builder clearHasArrayValue() {
+        
+        hasArrayValue_ = false;
+        onChanged();
+        return this;
+      }
+
+      private org.apache.calcite.avatica.proto.Common.TypedValue scalarValue_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> scalarValueBuilder_;
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public boolean hasScalarValue() {
+        return scalarValueBuilder_ != null || scalarValue_ != null;
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValue getScalarValue() {
+        if (scalarValueBuilder_ == null) {
+          return scalarValue_ == null ? org.apache.calcite.avatica.proto.Common.TypedValue.getDefaultInstance() : scalarValue_;
+        } else {
+          return scalarValueBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public Builder setScalarValue(org.apache.calcite.avatica.proto.Common.TypedValue value) {
+        if (scalarValueBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          scalarValue_ = value;
+          onChanged();
+        } else {
+          scalarValueBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public Builder setScalarValue(
+          org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
+        if (scalarValueBuilder_ == null) {
+          scalarValue_ = builderForValue.build();
+          onChanged();
+        } else {
+          scalarValueBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public Builder mergeScalarValue(org.apache.calcite.avatica.proto.Common.TypedValue value) {
+        if (scalarValueBuilder_ == null) {
+          if (scalarValue_ != null) {
+            scalarValue_ =
+              org.apache.calcite.avatica.proto.Common.TypedValue.newBuilder(scalarValue_).mergeFrom(value).buildPartial();
+          } else {
+            scalarValue_ = value;
+          }
+          onChanged();
+        } else {
+          scalarValueBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public Builder clearScalarValue() {
+        if (scalarValueBuilder_ == null) {
+          scalarValue_ = null;
+          onChanged();
+        } else {
+          scalarValue_ = null;
+          scalarValueBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValue.Builder getScalarValueBuilder() {
+        
+        onChanged();
+        return getScalarValueFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getScalarValueOrBuilder() {
+        if (scalarValueBuilder_ != null) {
+          return scalarValueBuilder_.getMessageOrBuilder();
+        } else {
+          return scalarValue_ == null ?
+              org.apache.calcite.avatica.proto.Common.TypedValue.getDefaultInstance() : scalarValue_;
+        }
+      }
+      /**
+       * <code>optional .TypedValue scalar_value = 4;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          getScalarValueFieldBuilder() {
+        if (scalarValueBuilder_ == null) {
+          scalarValueBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>(
+                  getScalarValue(),
+                  getParentForChildren(),
+                  isClean());
+          scalarValue_ = null;
+        }
+        return scalarValueBuilder_;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -16225,59 +16964,61 @@ package org.apache.calcite.avatica.proto;
       "\003(\0132\014.ColumnValue\"3\n\020DatabaseProperty\022\014\n" +
       "\004name\030\001 \001(\t\022\021\n\tfunctions\030\002 \003(\t\"4\n\013WireMe" +
       "ssage\022\014\n\004name\030\001 \001(\t\022\027\n\017wrapped_message\030\002" +
-      " \001(\014\")\n\013ColumnValue\022\032\n\005value\030\001 \003(\0132\013.Typ",
-      "edValue\"\232\001\n\nTypedValue\022\022\n\004type\030\001 \001(\0162\004.R" +
-      "ep\022\022\n\nbool_value\030\002 \001(\010\022\024\n\014string_value\030\003" +
-      " \001(\t\022\024\n\014number_value\030\004 \001(\022\022\024\n\014bytes_valu" +
-      "es\030\005 \001(\014\022\024\n\014double_value\030\006 \001(\001\022\014\n\004null\030\007" +
-      " \001(\010\"\246\002\n\031MetaDataOperationArgument\022\024\n\014st" +
-      "ring_value\030\001 \001(\t\022\022\n\nbool_value\030\002 \001(\010\022\021\n\t" +
-      "int_value\030\003 \001(\021\022\033\n\023string_array_values\030\004" +
-      " \003(\t\022\030\n\020int_array_values\030\005 \003(\021\0225\n\004type\030\006" +
-      " \001(\0162\'.MetaDataOperationArgument.Argumen" +
-      "tType\"^\n\014ArgumentType\022\n\n\006STRING\020\000\022\010\n\004BOO",
-      "L\020\001\022\007\n\003INT\020\002\022\023\n\017REPEATED_STRING\020\003\022\020\n\014REP" +
-      "EATED_INT\020\004\022\010\n\004NULL\020\005\"\260\001\n\nQueryState\022\030\n\004" +
-      "type\030\001 \001(\0162\n.StateType\022\013\n\003sql\030\002 \001(\t\022\036\n\002o" +
-      "p\030\003 \001(\0162\022.MetaDataOperation\022(\n\004args\030\004 \003(" +
-      "\0132\032.MetaDataOperationArgument\022\020\n\010has_arg" +
-      "s\030\005 \001(\010\022\017\n\007has_sql\030\006 \001(\010\022\016\n\006has_op\030\007 \001(\010" +
-      "*\237\001\n\rStatementType\022\n\n\006SELECT\020\000\022\n\n\006INSERT" +
-      "\020\001\022\n\n\006UPDATE\020\002\022\n\n\006DELETE\020\003\022\n\n\006UPSERT\020\004\022\t" +
-      "\n\005MERGE\020\005\022\r\n\tOTHER_DML\020\006\022\n\n\006CREATE\020\007\022\010\n\004" +
-      "DROP\020\010\022\t\n\005ALTER\020\t\022\r\n\tOTHER_DDL\020\n\022\010\n\004CALL",
-      "\020\013*\342\003\n\003Rep\022\025\n\021PRIMITIVE_BOOLEAN\020\000\022\022\n\016PRI" +
-      "MITIVE_BYTE\020\001\022\022\n\016PRIMITIVE_CHAR\020\002\022\023\n\017PRI" +
-      "MITIVE_SHORT\020\003\022\021\n\rPRIMITIVE_INT\020\004\022\022\n\016PRI" +
-      "MITIVE_LONG\020\005\022\023\n\017PRIMITIVE_FLOAT\020\006\022\024\n\020PR" +
-      "IMITIVE_DOUBLE\020\007\022\013\n\007BOOLEAN\020\010\022\010\n\004BYTE\020\t\022" +
-      "\r\n\tCHARACTER\020\n\022\t\n\005SHORT\020\013\022\013\n\007INTEGER\020\014\022\010" +
-      "\n\004LONG\020\r\022\t\n\005FLOAT\020\016\022\n\n\006DOUBLE\020\017\022\017\n\013BIG_I" +
-      "NTEGER\020\031\022\017\n\013BIG_DECIMAL\020\032\022\021\n\rJAVA_SQL_TI" +
-      "ME\020\020\022\026\n\022JAVA_SQL_TIMESTAMP\020\021\022\021\n\rJAVA_SQL" +
-      "_DATE\020\022\022\022\n\016JAVA_UTIL_DATE\020\023\022\017\n\013BYTE_STRI",
-      "NG\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBER\020\026\022\n\n\006OBJECT\020\027" +
-      "\022\010\n\004NULL\020\030\022\t\n\005ARRAY\020\033\022\n\n\006STRUCT\020\034\022\014\n\010MUL" +
-      "TISET\020\035*^\n\010Severity\022\024\n\020UNKNOWN_SEVERITY\020" +
-      "\000\022\022\n\016FATAL_SEVERITY\020\001\022\022\n\016ERROR_SEVERITY\020" +
-      "\002\022\024\n\020WARNING_SEVERITY\020\003*\327\004\n\021MetaDataOper" +
-      "ation\022\022\n\016GET_ATTRIBUTES\020\000\022\033\n\027GET_BEST_RO" +
-      "W_IDENTIFIER\020\001\022\020\n\014GET_CATALOGS\020\002\022\036\n\032GET_" +
-      "CLIENT_INFO_PROPERTIES\020\003\022\031\n\025GET_COLUMN_P" +
-      "RIVILEGES\020\004\022\017\n\013GET_COLUMNS\020\005\022\027\n\023GET_CROS" +
-      "S_REFERENCE\020\006\022\025\n\021GET_EXPORTED_KEYS\020\007\022\030\n\024",
-      "GET_FUNCTION_COLUMNS\020\010\022\021\n\rGET_FUNCTIONS\020" +
-      "\t\022\025\n\021GET_IMPORTED_KEYS\020\n\022\022\n\016GET_INDEX_IN" +
-      "FO\020\013\022\024\n\020GET_PRIMARY_KEYS\020\014\022\031\n\025GET_PROCED" +
-      "URE_COLUMNS\020\r\022\022\n\016GET_PROCEDURES\020\016\022\026\n\022GET" +
-      "_PSEUDO_COLUMNS\020\017\022\017\n\013GET_SCHEMAS\020\020\022\031\n\025GE" +
-      "T_SCHEMAS_WITH_ARGS\020\021\022\024\n\020GET_SUPER_TABLE" +
-      "S\020\022\022\023\n\017GET_SUPER_TYPES\020\023\022\030\n\024GET_TABLE_PR" +
-      "IVILEGES\020\024\022\016\n\nGET_TABLES\020\025\022\023\n\017GET_TABLE_" +
-      "TYPES\020\026\022\021\n\rGET_TYPE_INFO\020\027\022\014\n\010GET_UDTS\020\030" +
-      "\022\027\n\023GET_VERSION_COLUMNS\020\031*\"\n\tStateType\022\007",
-      "\n\003SQL\020\000\022\014\n\010METADATA\020\001B\"\n org.apache.calc" +
-      "ite.avatica.protob\006proto3"
+      " \001(\014\"\207\001\n\013ColumnValue\022\032\n\005value\030\001 \003(\0132\013.Ty",
+      "pedValue\022 \n\013array_value\030\002 \003(\0132\013.TypedVal" +
+      "ue\022\027\n\017has_array_value\030\003 \001(\010\022!\n\014scalar_va" +
+      "lue\030\004 \001(\0132\013.TypedValue\"\232\001\n\nTypedValue\022\022\n" +
+      "\004type\030\001 \001(\0162\004.Rep\022\022\n\nbool_value\030\002 \001(\010\022\024\n" +
+      "\014string_value\030\003 \001(\t\022\024\n\014number_value\030\004 \001(" +
+      "\022\022\024\n\014bytes_values\030\005 \001(\014\022\024\n\014double_value\030" +
+      "\006 \001(\001\022\014\n\004null\030\007 \001(\010\"\246\002\n\031MetaDataOperatio" +
+      "nArgument\022\024\n\014string_value\030\001 \001(\t\022\022\n\nbool_" +
+      "value\030\002 \001(\010\022\021\n\tint_value\030\003 \001(\021\022\033\n\023string" +
+      "_array_values\030\004 \003(\t\022\030\n\020int_array_values\030",
+      "\005 \003(\021\0225\n\004type\030\006 \001(\0162\'.MetaDataOperationA" +
+      "rgument.ArgumentType\"^\n\014ArgumentType\022\n\n\006" +
+      "STRING\020\000\022\010\n\004BOOL\020\001\022\007\n\003INT\020\002\022\023\n\017REPEATED_" +
+      "STRING\020\003\022\020\n\014REPEATED_INT\020\004\022\010\n\004NULL\020\005\"\260\001\n" +
+      "\nQueryState\022\030\n\004type\030\001 \001(\0162\n.StateType\022\013\n" +
+      "\003sql\030\002 \001(\t\022\036\n\002op\030\003 \001(\0162\022.MetaDataOperati" +
+      "on\022(\n\004args\030\004 \003(\0132\032.MetaDataOperationArgu" +
+      "ment\022\020\n\010has_args\030\005 \001(\010\022\017\n\007has_sql\030\006 \001(\010\022" +
+      "\016\n\006has_op\030\007 \001(\010*\237\001\n\rStatementType\022\n\n\006SEL" +
+      "ECT\020\000\022\n\n\006INSERT\020\001\022\n\n\006UPDATE\020\002\022\n\n\006DELETE\020",
+      "\003\022\n\n\006UPSERT\020\004\022\t\n\005MERGE\020\005\022\r\n\tOTHER_DML\020\006\022" +
+      "\n\n\006CREATE\020\007\022\010\n\004DROP\020\010\022\t\n\005ALTER\020\t\022\r\n\tOTHE" +
+      "R_DDL\020\n\022\010\n\004CALL\020\013*\342\003\n\003Rep\022\025\n\021PRIMITIVE_B" +
+      "OOLEAN\020\000\022\022\n\016PRIMITIVE_BYTE\020\001\022\022\n\016PRIMITIV" +
+      "E_CHAR\020\002\022\023\n\017PRIMITIVE_SHORT\020\003\022\021\n\rPRIMITI" +
+      "VE_INT\020\004\022\022\n\016PRIMITIVE_LONG\020\005\022\023\n\017PRIMITIV" +
+      "E_FLOAT\020\006\022\024\n\020PRIMITIVE_DOUBLE\020\007\022\013\n\007BOOLE" +
+      "AN\020\010\022\010\n\004BYTE\020\t\022\r\n\tCHARACTER\020\n\022\t\n\005SHORT\020\013" +
+      "\022\013\n\007INTEGER\020\014\022\010\n\004LONG\020\r\022\t\n\005FLOAT\020\016\022\n\n\006DO" +
+      "UBLE\020\017\022\017\n\013BIG_INTEGER\020\031\022\017\n\013BIG_DECIMAL\020\032",
+      "\022\021\n\rJAVA_SQL_TIME\020\020\022\026\n\022JAVA_SQL_TIMESTAM" +
+      "P\020\021\022\021\n\rJAVA_SQL_DATE\020\022\022\022\n\016JAVA_UTIL_DATE" +
+      "\020\023\022\017\n\013BYTE_STRING\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBE" +
+      "R\020\026\022\n\n\006OBJECT\020\027\022\010\n\004NULL\020\030\022\t\n\005ARRAY\020\033\022\n\n\006" +
+      "STRUCT\020\034\022\014\n\010MULTISET\020\035*^\n\010Severity\022\024\n\020UN" +
+      "KNOWN_SEVERITY\020\000\022\022\n\016FATAL_SEVERITY\020\001\022\022\n\016" +
+      "ERROR_SEVERITY\020\002\022\024\n\020WARNING_SEVERITY\020\003*\327" +
+      "\004\n\021MetaDataOperation\022\022\n\016GET_ATTRIBUTES\020\000" +
+      "\022\033\n\027GET_BEST_ROW_IDENTIFIER\020\001\022\020\n\014GET_CAT" +
+      "ALOGS\020\002\022\036\n\032GET_CLIENT_INFO_PROPERTIES\020\003\022",
+      "\031\n\025GET_COLUMN_PRIVILEGES\020\004\022\017\n\013GET_COLUMN" +
+      "S\020\005\022\027\n\023GET_CROSS_REFERENCE\020\006\022\025\n\021GET_EXPO" +
+      "RTED_KEYS\020\007\022\030\n\024GET_FUNCTION_COLUMNS\020\010\022\021\n" +
+      "\rGET_FUNCTIONS\020\t\022\025\n\021GET_IMPORTED_KEYS\020\n\022" +
+      "\022\n\016GET_INDEX_INFO\020\013\022\024\n\020GET_PRIMARY_KEYS\020" +
+      "\014\022\031\n\025GET_PROCEDURE_COLUMNS\020\r\022\022\n\016GET_PROC" +
+      "EDURES\020\016\022\026\n\022GET_PSEUDO_COLUMNS\020\017\022\017\n\013GET_" +
+      "SCHEMAS\020\020\022\031\n\025GET_SCHEMAS_WITH_ARGS\020\021\022\024\n\020" +
+      "GET_SUPER_TABLES\020\022\022\023\n\017GET_SUPER_TYPES\020\023\022" +
+      "\030\n\024GET_TABLE_PRIVILEGES\020\024\022\016\n\nGET_TABLES\020",
+      "\025\022\023\n\017GET_TABLE_TYPES\020\026\022\021\n\rGET_TYPE_INFO\020" +
+      "\027\022\014\n\010GET_UDTS\020\030\022\027\n\023GET_VERSION_COLUMNS\020\031" +
+      "*\"\n\tStateType\022\007\n\003SQL\020\000\022\014\n\010METADATA\020\001B\"\n " +
+      "org.apache.calcite.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -16362,7 +17103,7 @@ package org.apache.calcite.avatica.proto;
     internal_static_ColumnValue_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ColumnValue_descriptor,
-        new java.lang.String[] { "Value", });
+        new java.lang.String[] { "Value", "ArrayValue", "HasArrayValue", "ScalarValue", });
     internal_static_TypedValue_descriptor =
       getDescriptor().getMessageTypes().get(12);
     internal_static_TypedValue_fieldAccessorTable = new

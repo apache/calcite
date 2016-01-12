@@ -17,22 +17,31 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.Meta.Frame;
+import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.proto.Common.ColumnValue;
+import org.apache.calcite.avatica.proto.Common.TypedValue;
 
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests serialization of {@link Frame}.
  */
 public class FrameTest {
+
+  private static final TypedValue NUMBER_VALUE = TypedValue.newBuilder().setNumberValue(1)
+      .setType(Common.Rep.LONG).build();
 
   private void serializeAndTestEquality(Frame frame) {
     Frame frameCopy = Frame.fromProto(frame.toProto());
@@ -93,6 +102,63 @@ public class FrameTest {
     Frame singleRow = new Frame(0, true, rows);
 
     serializeAndTestEquality(singleRow);
+  }
+
+  @Test public void testMalformedColumnValue() {
+    // Invalid ColumnValue: has an array and scalar
+    final ColumnValue bothAttributesColumnValue = ColumnValue.newBuilder().setHasArrayValue(true)
+        .setScalarValue(NUMBER_VALUE).build();
+    // Note omission of setScalarValue(TypedValue).
+    final ColumnValue neitherAttributeColumnValue = ColumnValue.newBuilder().setHasArrayValue(false)
+        .build();
+
+    try {
+      Frame.validateColumnValue(bothAttributesColumnValue);
+      fail("Validating the ColumnValue should have failed as it has an array and scalar");
+    } catch (IllegalArgumentException e) {
+      // Pass
+    }
+
+    try {
+      Frame.validateColumnValue(neitherAttributeColumnValue);
+      fail("Validating the ColumnValue should have failed as it has neither an array nor scalar");
+    } catch (IllegalArgumentException e) {
+      // Pass
+    }
+  }
+
+  @Test public void testColumnValueBackwardsCompatibility() {
+    // 1
+    final ColumnValue oldStyleScalarValue = ColumnValue.newBuilder().addValue(NUMBER_VALUE).build();
+    // [1, 1]
+    final ColumnValue oldStyleArrayValue = ColumnValue.newBuilder().addValue(NUMBER_VALUE)
+        .addValue(NUMBER_VALUE).build();
+
+    assertFalse(Frame.isNewStyleColumn(oldStyleScalarValue));
+    assertFalse(Frame.isNewStyleColumn(oldStyleArrayValue));
+
+    Object scalar = Frame.parseOldStyleColumn(oldStyleScalarValue);
+    assertEquals(1L, scalar);
+
+    Object array = Frame.parseOldStyleColumn(oldStyleArrayValue);
+    assertEquals(Arrays.asList(1L, 1L), array);
+  }
+
+  @Test public void testColumnValueParsing() {
+    // 1
+    final ColumnValue scalarValue = ColumnValue.newBuilder().setScalarValue(NUMBER_VALUE).build();
+    // [1, 1]
+    final ColumnValue arrayValue = ColumnValue.newBuilder().addArrayValue(NUMBER_VALUE)
+        .addArrayValue(NUMBER_VALUE).setHasArrayValue(true).build();
+
+    assertTrue(Frame.isNewStyleColumn(scalarValue));
+    assertTrue(Frame.isNewStyleColumn(arrayValue));
+
+    Object scalar = Frame.parseColumn(scalarValue);
+    assertEquals(1L, scalar);
+
+    Object array = Frame.parseColumn(arrayValue);
+    assertEquals(Arrays.asList(1L, 1L), array);
   }
 }
 
