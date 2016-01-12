@@ -400,7 +400,7 @@ limitations under the License.
           <dependency>
             <groupId>net.hydromatic</groupId>
             <artifactId>toolbox</artifactId>
-            <version>0.2</version>
+            <version>0.3</version>
           </dependency>
         </dependencies>
       </plugin>
