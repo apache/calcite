@@ -39,10 +39,11 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -60,7 +61,7 @@ public class ReflectiveRelMetadataProvider
     implements RelMetadataProvider, ReflectiveVisitor {
 
   //~ Instance fields --------------------------------------------------------
-  private final Map<Class<RelNode>, UnboundMetadata> map;
+  private final ConcurrentMap<Class<RelNode>, UnboundMetadata> map;
   private final Class<? extends Metadata> metadataClass0;
 
   //~ Constructors -----------------------------------------------------------
@@ -72,7 +73,7 @@ public class ReflectiveRelMetadataProvider
    * @param metadataClass0 Metadata class
    */
   protected ReflectiveRelMetadataProvider(
-      Map<Class<RelNode>, UnboundMetadata> map,
+      ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0) {
     assert !map.isEmpty() : "are your methods named wrong?";
     this.map = map;
@@ -135,7 +136,11 @@ public class ReflectiveRelMetadataProvider
       }
     }
 
-    final Map<Class<RelNode>, UnboundMetadata> methodsMap = new HashMap<>();
+    // This needs to be a councurrent map since RelMetadataProvider are cached in static
+    // fields, thus the map is subject to concurrent modifications later.
+    // See map.put in org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider.apply(
+    // java.lang.Class<? extends org.apache.calcite.rel.RelNode>)
+    final ConcurrentMap<Class<RelNode>, UnboundMetadata> methodsMap = new ConcurrentHashMap<>();
     for (Class<RelNode> key : classes) {
       ImmutableNullableList.Builder<Method> builder =
           ImmutableNullableList.builder();
