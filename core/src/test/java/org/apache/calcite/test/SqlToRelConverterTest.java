@@ -685,7 +685,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testWithInsideScalarSubquery() {
+  @Test public void testWithInsideScalarSubQuery() {
     final String sql = "select (\n"
         + " with dept2 as (select * from dept where deptno > 10)"
         + " select count(*) from dept2) as c\n"
@@ -694,7 +694,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testWithInsideScalarSubqueryRex() {
+  @Test public void testWithInsideScalarSubQueryRex() {
     final String sql = "select (\n"
         + " with dept2 as (select * from dept where deptno > 10)"
         + " select count(*) from dept2) as c\n"
@@ -783,7 +783,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
-  @Test public void testUnnestSubquery() {
+  @Test public void testUnnestSubQuery() {
     check("select*from unnest(multiset(select*from dept))", "${plan}");
   }
 
@@ -797,7 +797,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testMultisetSubquery() {
+  @Test public void testMultisetSubQuery() {
     check(
         "select multiset(select deptno from dept) from (values(true))",
         "${plan}");
@@ -911,21 +911,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInValueListLong() {
-    // Go over the default threshold of 20 to force a subquery.
+    // Go over the default threshold of 20 to force a subQuery.
     check("select empno from emp where deptno in"
             + " (10, 20, 30, 40, 50, 60, 70, 80, 90, 100"
             + ", 110, 120, 130, 140, 150, 160, 170, 180, 190"
             + ", 200, 210, 220, 230)", "${plan}");
   }
 
-  @Test public void testInUncorrelatedSubquery() {
+  @Test public void testInUncorrelatedSubQuery() {
     final String sql = "select empno from emp where deptno in"
         + " (select deptno from dept)";
     sql(sql)
         .convertsTo("${plan}");
   }
 
-  @Test public void testInUncorrelatedSubqueryRex() {
+  @Test public void testInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where deptno in"
         + " (select deptno from dept)";
     sql(sql)
@@ -933,7 +933,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testCompositeInUncorrelatedSubqueryRex() {
+  @Test public void testCompositeInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where (empno, deptno) in"
         + " (select deptno - 10, deptno from dept)";
     sql(sql)
@@ -941,14 +941,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testNotInUncorrelatedSubquery() {
+  @Test public void testNotInUncorrelatedSubQuery() {
     final String sql = "select empno from emp where deptno not in"
         + " (select deptno from dept)";
     sql(sql)
         .convertsTo("${plan}");
   }
 
-  @Test public void testNotInUncorrelatedSubqueryRex() {
+  @Test public void testNotInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where deptno not in"
         + " (select deptno from dept)";
     sql(sql)
@@ -966,7 +966,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testInUncorrelatedSubqueryInSelect() {
+  @Test public void testInUncorrelatedSubQueryInSelect() {
     // In the SELECT clause, the value of IN remains in 3-valued logic
     // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
     // WHERE clause -- so the translation is more complicated.
@@ -977,7 +977,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testInUncorrelatedSubqueryInSelectRex() {
+  @Test public void testInUncorrelatedSubQueryInSelectRex() {
     // In the SELECT clause, the value of IN remains in 3-valued logic
     // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
     // WHERE clause -- so the translation is more complicated.
@@ -989,7 +989,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testInUncorrelatedSubqueryInHavingRex() {
+  @Test public void testInUncorrelatedSubQueryInHavingRex() {
     final String sql = "select sum(sal) as s\n"
         + "from emp\n"
         + "group by deptno\n"
@@ -999,7 +999,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).convertsTo("${plan}");
   }
 
-  @Test public void testUncorrelatedScalarSubqueryInOrderRex() {
+  @Test public void testUncorrelatedScalarSubQueryInOrderRex() {
     final String sql = "select ename\n"
         + "from emp\n"
         + "order by (select case when true then deptno else null end from emp) desc,\n"
@@ -1007,7 +1007,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).convertsTo("${plan}");
   }
 
-  @Test public void testUncorrelatedScalarSubqueryInGroupOrderRex() {
+  @Test public void testUncorrelatedScalarSubQueryInGroupOrderRex() {
     final String sql = "select sum(sal) as s\n"
         + "from emp\n"
         + "group by deptno\n"
@@ -1016,16 +1016,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).convertsTo("${plan}");
   }
 
-  @Test public void testUncorrelatedScalarSubqueryInAggregateRex() {
+  @Test public void testUncorrelatedScalarSubQueryInAggregateRex() {
     final String sql = "select sum((select min(deptno) from emp)) as s\n"
         + "from emp\n"
         + "group by deptno\n";
     sql(sql).expand(false).convertsTo("${plan}");
   }
 
-  /** Plan should be as {@link #testInUncorrelatedSubqueryInSelect}, but with
+  /** Plan should be as {@link #testInUncorrelatedSubQueryInSelect}, but with
    * an extra NOT. Both queries require 3-valued logic. */
-  @Test public void testNotInUncorrelatedSubqueryInSelect() {
+  @Test public void testNotInUncorrelatedSubQueryInSelect() {
     final String sql = "select empno, deptno not in (\n"
         + "  select case when true then deptno else null end from dept)\n"
         + "from emp";
@@ -1033,7 +1033,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testNotInUncorrelatedSubqueryInSelectRex() {
+  @Test public void testNotInUncorrelatedSubQueryInSelectRex() {
     final String sql = "select empno, deptno not in (\n"
         + "  select case when true then deptno else null end from dept)\n"
         + "from emp";
@@ -1044,7 +1044,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Since 'deptno NOT IN (SELECT deptno FROM dept)' can not be null, we
    * generate a simpler plan. */
-  @Test public void testNotInUncorrelatedSubqueryInSelectNotNull() {
+  @Test public void testNotInUncorrelatedSubQueryInSelectNotNull() {
     final String sql = "select empno, deptno not in (\n"
         + "  select deptno from dept)\n"
         + "from emp";
@@ -1052,7 +1052,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan}");
   }
 
-  @Test public void testNotInUncorrelatedSubqueryInSelectNotNullRex() {
+  @Test public void testNotInUncorrelatedSubQueryInSelectNotNullRex() {
     final String sql = "select empno, deptno not in (\n"
         + "  select deptno from dept)\n"
         + "from emp";
@@ -1160,8 +1160,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
-  @Test public void testUnionSubquery() {
-    // union of subquery, inside from list, also values
+  @Test public void testUnionSubQuery() {
+    // union of subQuery, inside from list, also values
     check(
         "select deptno from emp as emp0 cross join\n"
             + " (select empno from emp union all\n"
@@ -1368,7 +1368,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Test group-by CASE expression involving a non-query IN
    */
-  @Test public void testGroupByCaseSubquery() {
+  @Test public void testGroupByCaseSubQuery() {
     sql("SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END\n"
         + "FROM emp\n"
         + "GROUP BY (CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END)")
@@ -1378,7 +1378,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Test aggregate function on a CASE expression involving a non-query IN
    */
-  @Test public void testAggCaseSubquery() {
+  @Test public void testAggCaseSubQuery() {
     sql("SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp")
         .convertsTo("${plan}");
   }
@@ -1391,19 +1391,31 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
             + "FROM emp) GROUP BY empno, EXPR$2").convertsTo("${plan}");
   }
 
-  @Test public void testAggScalarSubquery() {
+  @Test public void testAggScalarSubQuery() {
     sql("SELECT SUM(SELECT min(deptno) FROM dept) FROM emp")
         .convertsTo("${plan}");
   }
 
   /** Test aggregate function on a CASE expression involving IN with a
-   * sub-query */
-  @Ignore("[CALCITE-551] Sub-query inside aggregate function")
-  @Test public void testAggCaseInSubquery() {
-    sql("SELECT SUM(\n"
+   * sub-query.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-551">[CALCITE-551]
+   * Sub-query inside aggregate function</a>.
+   */
+  @Test public void testAggCaseInSubQuery() {
+    final String sql = "SELECT SUM(\n"
         + "  CASE WHEN deptno IN (SELECT deptno FROM dept) THEN 1 ELSE 0 END)\n"
-        + "FROM emp")
-        .convertsTo("${plan}");
+        + "FROM emp";
+    sql(sql).expand(false).convertsTo("${plan}");
+  }
+
+  @Test public void testCorrelatedSubQueryInAggregate() {
+    final String sql = "SELECT SUM(\n"
+        + "  (select char_length(name) from dept\n"
+        + "   where dept.deptno = emp.empno))\n"
+        + "FROM emp";
+    sql(sql).expand(false).convertsTo("${plan}");
   }
 
   /**
@@ -1480,7 +1492,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
    * SqlSingleValueAggFunction is created when it may not be needed</a>.
    */
-  @Test public void testSubqueryAggreFunctionFollowedBySimpleOperation() {
+  @Test public void testSubQueryAggregateFunctionFollowedBySimpleOperation() {
     sql("select deptno\n"
         + "from EMP\n"
         + "where deptno > (select min(deptno) * 2 + 10 from EMP)")
@@ -1492,7 +1504,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
    * SqlSingleValueAggFunction is created when it may not be needed</a>.
    */
-  @Test public void testSubqueryValues() {
+  @Test public void testSubQueryValues() {
     sql("select deptno\n"
         + "from EMP\n"
         + "where deptno > (values 10)")
@@ -1504,7 +1516,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
    * SqlSingleValueAggFunction is created when it may not be needed</a>.
    */
-  @Test public void testSubqueryLimitOne() {
+  @Test public void testSubQueryLimitOne() {
     sql("select deptno\n"
         + "from EMP\n"
         + "where deptno > (select deptno\n"
@@ -1518,7 +1530,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * When look up subqueries, perform the same logic as the way when ones were
    * registered</a>.
    */
-  @Test public void testIdenticalExpressionInSubquery() {
+  @Test public void testIdenticalExpressionInSubQuery() {
     sql("select deptno\n"
         + "from EMP\n"
         + "where deptno in (1, 2) or deptno in (1, 2)")
@@ -1545,7 +1557,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Scan HAVING clause for sub-queries and IN-lists</a>, with a sub-query in
    * the HAVING clause.
    */
-  @Test public void testHavingInSubqueryWithAggrFunction() {
+  @Test public void testHavingInSubQueryWithAggrFunction() {
     sql("select sal\n"
         + "from emp\n"
         + "group by sal\n"
@@ -1639,10 +1651,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
-   * variant involving join with subquery that contains window function and
+   * variant involving join with subQuery that contains window function and
    * GROUP BY</a>.
    */
-  @Test public void testWindowAggInSubqueryJoin() {
+  @Test public void testWindowAggInSubQueryJoin() {
     sql("select T.x, T.y, T.z, emp.empno from (select min(deptno) as x,\n"
             + "   rank() over (order by empno) as y,\n"
             + "   max(empno) over (partition by deptno) as z\n"
@@ -1653,9 +1665,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case (correlated scalar aggregate subquery) for
+   * Test case (correlated scalar aggregate subQuery) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
-   * When de-correlating, push join condition into subquery</a>.
+   * When de-correlating, push join condition into subQuery</a>.
    */
   @Test public void testCorrelationScalarAggAndFilter() {
     final String sql = "SELECT e1.empno\n"
@@ -1676,9 +1688,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case (correlated EXISTS subquery) for
+   * Test case (correlated EXISTS subQuery) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
-   * When de-correlating, push join condition into subquery</a>.
+   * When de-correlating, push join condition into subQuery</a>.
    */
   @Test public void testCorrelationExistsAndFilter() {
     final String sql = "SELECT e1.empno\n"
@@ -1699,9 +1711,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case (correlated NOT EXISTS subquery) for
+   * Test case (correlated NOT EXISTS subQuery) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
-   * When de-correlating, push join condition into subquery</a>.
+   * When de-correlating, push join condition into subQuery</a>.
    */
   @Test public void testCorrelationNotExistsAndFilter() {
     tester.withDecorrelation(true).assertConvertsTo(

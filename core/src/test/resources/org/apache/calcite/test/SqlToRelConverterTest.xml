@@ -117,6 +117,25 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$
             <![CDATA[select deptno, sum(sal), sum(distinct sal), count(*) from emp group by deptno]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCorrelatedSubQueryInAggregate">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(
+  (select char_length(name) from dept
+   where dept.deptno = emp.empno))
+FROM emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f0=[$SCALAR_QUERY({
+LogicalProject(EXPR$0=[CHAR_LENGTH($1)])
+  LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelatedSubQueryInJoin">
         <Resource name="sql">
             <![CDATA[select *
@@ -156,7 +175,7 @@ LogicalProject(EXPR$0=[$0])
             <![CDATA[select*from unnest(multiset[1,2])]]>
         </Resource>
     </TestCase>
-    <TestCase name="testUnnestSubquery">
+    <TestCase name="testUnnestSubQuery">
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1])
@@ -198,7 +217,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], ORDINALITY=[$2])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testMultisetSubquery">
+    <TestCase name="testMultisetSubQuery">
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[$1])
@@ -408,7 +427,7 @@ select 34 from emp
 union all values (30), (45 + 10)]]>
         </Resource>
     </TestCase>
-    <TestCase name="testUnionSubquery">
+    <TestCase name="testUnionSubQuery">
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$7])
@@ -631,7 +650,7 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testInUncorrelatedSubquery">
+    <TestCase name="testInUncorrelatedSubQuery">
         <Resource name="sql">
             <![CDATA[select empno from emp where deptno in (select deptno from dept)]]>
         </Resource>
@@ -1372,7 +1391,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testWithInsideScalarSubquery">
+    <TestCase name="testWithInsideScalarSubQuery">
         <Resource name="sql">
             <![CDATA[select (
  with dept2 as (select * from dept where deptno > 10) select count(*) from dept2) as c
@@ -1704,7 +1723,7 @@ LogicalProject(EMPNO=[$0], X=[$1])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testInUncorrelatedSubqueryInSelect">
+    <TestCase name="testInUncorrelatedSubQueryInSelect">
         <Resource name="sql">
             <![CDATA[select name, deptno in (
   select case when true then deptno else null end from emp)
@@ -1728,7 +1747,7 @@ LogicalProject(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, I
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testNotInUncorrelatedSubqueryInSelect">
+    <TestCase name="testNotInUncorrelatedSubQueryInSelect">
         <Resource name="sql">
             <![CDATA[select empno, deptno not in (
   select case when true then deptno else null end from dept)
@@ -1752,7 +1771,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), t
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testNotInUncorrelatedSubquery">
+    <TestCase name="testNotInUncorrelatedSubQuery">
         <Resource name="sql">
             <![CDATA[select empno from emp where deptno not in (select deptno from dept)]]>
         </Resource>
@@ -1775,7 +1794,7 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testNotInUncorrelatedSubqueryInSelectNotNull">
+    <TestCase name="testNotInUncorrelatedSubQueryInSelectNotNull">
         <Resource name="sql">
             <![CDATA[select empno, deptno not in (
   select deptno from dept)
@@ -2069,7 +2088,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], X=[$2])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testGroupByCaseSubquery">
+    <TestCase name="testGroupByCaseSubQuery">
         <Resource name="sql">
             <![CDATA[SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END
 FROM emp
@@ -2096,7 +2115,7 @@ LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testAggCaseSubquery">
+    <TestCase name="testAggCaseSubQuery">
         <Resource name="sql">
             <![CDATA[SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp]]>
         </Resource>
@@ -2108,14 +2127,24 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testAggCaseInSubquery">
+    <TestCase name="testAggCaseInSubQuery">
         <Resource name="sql">
             <![CDATA[SELECT SUM(
   CASE WHEN deptno IN (SELECT deptno FROM dept) THEN 1 ELSE 0 END)
 FROM emp]]>
         </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f0=[CASE(IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}), 1, 0)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
     </TestCase>
-    <TestCase name="testAggScalarSubquery">
+    <TestCase name="testAggScalarSubQuery">
         <Resource name="sql">
             <![CDATA[SELECT SUM(SELECT min(deptno) FROM dept) FROM emp]]>
         </Resource>
@@ -2201,7 +2230,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testSubqueryAggreFunctionFollowedBySimpleOperation">
+    <TestCase name="testSubQueryAggregateFunctionFollowedBySimpleOperation">
         <Resource name="sql">
             <![CDATA[select deptno
 from EMP
@@ -2220,7 +2249,7 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testSubqueryValues">
+    <TestCase name="testSubQueryValues">
         <Resource name="sql">
             <![CDATA[select deptno
 from EMP
@@ -2236,7 +2265,7 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testSubqueryLimitOne">
+    <TestCase name="testSubQueryLimitOne">
         <Resource name="sql">
             <![CDATA[select deptno
 from EMP
@@ -2255,7 +2284,7 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testIdenticalExpressionInSubquery">
+    <TestCase name="testIdenticalExpressionInSubQuery">
         <Resource name="sql">
             <![CDATA[select deptno
 from EMP
@@ -2287,7 +2316,7 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testHavingInSubqueryWithAggrFunction">
+    <TestCase name="testHavingInSubQueryWithAggrFunction">
         <Resource name="sql">
             <![CDATA[select sal
 from emp
@@ -2467,7 +2496,7 @@ LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testWindowAggInSubqueryJoin">
+    <TestCase name="testWindowAggInSubQueryJoin">
         <Resource name="sql">
             <![CDATA[select T.x, T.y, T.z, emp.empno from (select min(deptno) as x,
    rank() over (order by empno) as y,
@@ -2703,7 +2732,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testWithInsideScalarSubqueryRex">
+    <TestCase name="testWithInsideScalarSubQueryRex">
         <Resource name="sql">
             <![CDATA[select (
  with dept2 as (select * from dept where deptno > 10) select count(*) from dept2) as c
@@ -2742,7 +2771,7 @@ LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testInUncorrelatedSubqueryInSelectRex">
+    <TestCase name="testInUncorrelatedSubQueryInSelectRex">
         <Resource name="sql">
             <![CDATA[select name, deptno in (
   select case when true then deptno else null end from emp)
@@ -2758,7 +2787,7 @@ LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testNotInUncorrelatedSubqueryInSelectNotNullRex">
+    <TestCase name="testNotInUncorrelatedSubQueryInSelectNotNullRex">
         <Resource name="sql">
             <![CDATA[select empno, deptno not in (
   select deptno from dept)
@@ -2774,7 +2803,7 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testNotInUncorrelatedSubqueryRex">
+    <TestCase name="testNotInUncorrelatedSubQueryRex">
         <Resource name="sql">
             <![CDATA[select empno from emp where deptno not in (select deptno from dept)]]>
         </Resource>
@@ -2789,7 +2818,7 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testNotInUncorrelatedSubqueryInSelectRex">
+    <TestCase name="testNotInUncorrelatedSubQueryInSelectRex">
         <Resource name="sql">
             <![CDATA[select empno, deptno not in (
   select case when true then deptno else null end from dept)
@@ -2805,7 +2834,7 @@ LogicalProject(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testInUncorrelatedSubqueryRex">
+    <TestCase name="testInUncorrelatedSubQueryRex">
         <Resource name="sql">
             <![CDATA[select empno from emp where deptno in (select deptno from dept)]]>
         </Resource>
@@ -2840,7 +2869,7 @@ LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testCompositeInUncorrelatedSubqueryRex">
+    <TestCase name="testCompositeInUncorrelatedSubQueryRex">
         <Resource name="sql">
             <![CDATA[select empno from emp where (empno, deptno) in (select deptno - 10, deptno from dept)]]>
         </Resource>
@@ -2892,7 +2921,7 @@ LogicalFilter(condition=[>($0, +($cor0.DEPTNO0, 5))])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testInUncorrelatedSubqueryInHavingRex">
+    <TestCase name="testInUncorrelatedSubQueryInHavingRex">
         <Resource name="sql">
             <![CDATA[select sum(sal) as s
 from emp
@@ -2914,7 +2943,7 @@ LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testUncorrelatedScalarSubqueryInGroupOrderRex">
+    <TestCase name="testUncorrelatedScalarSubQueryInGroupOrderRex">
         <Resource name="sql">
             <![CDATA[select sum(sal) as s
 from emp
@@ -2936,7 +2965,7 @@ LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testUncorrelatedScalarSubqueryInOrderRex">
+    <TestCase name="testUncorrelatedScalarSubQueryInOrderRex">
         <Resource name="sql">
             <![CDATA[select ename
 from emp
@@ -2955,7 +2984,7 @@ LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testUncorrelatedScalarSubqueryInAggregateRex">
+    <TestCase name="testUncorrelatedScalarSubQueryInAggregateRex">
         <Resource name="sql">
             <![CDATA[select sum((select min(deptno) from emp)) as s
 from emp

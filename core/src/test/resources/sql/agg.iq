@@ -591,6 +591,54 @@ from (values cast(-86.4 as float), cast(-100 as float)) as t(v);
 
 !ok
 
+# [CALCITE-551] Sub-query inside aggregate function
+SELECT SUM(
+  CASE WHEN deptno IN (SELECT deptno FROM "scott".dept) THEN 1
+  ELSE 0 END) as s
+FROM "scott".emp;
++----+
+| S  |
++----+
+| 14 |
++----+
+(1 row)
+
+!ok
+
+SELECT SUM((select min(cast(deptno as integer)) from "scott".dept)) as s
+FROM "scott".emp;
++-----+
+| S   |
++-----+
+| 140 |
++-----+
+(1 row)
+
+!ok
+
+# As above, but with GROUP BY
+SELECT SUM((select min(cast(deptno as integer)) from "scott".dept)) as s, deptno
+FROM "scott".emp
+GROUP BY deptno;
++----+--------+
+| S  | DEPTNO |
++----+--------+
+| 30 |     10 |
+| 50 |     20 |
+| 60 |     30 |
++----+--------+
+(3 rows)
+
+!ok
+
+# As above, but with correlation
+!if (fixed.calcite1045) {
+SELECT SUM(
+  (select char_length(dname) from "scott".dept where dept.deptno = emp.empno)) as s
+FROM "scott".emp;
+!ok
+!}
+
 # COLLECT
 select deptno, collect(empno) as empnos
 from "scott".emp
