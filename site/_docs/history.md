@@ -28,6 +28,238 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.6.0">1.6.0</a> / 2016-01-14
+{: #v1-6-0}
+
+As usual in this release, there are new SQL features, improvements to
+planning rules and Avatica, and lots of bug fixes. We'll spotlight a
+couple of features make it easier to handle complex queries.
+
+[<a href="https://issues.apache.org/jira/browse/CALCITE-816">CALCITE-816</a>]
+allows you to represent sub-queries (`EXISTS`, `IN` and scalar) as
+`RexSubQuery`, a kind of expression in the relational algebra. Until
+now, the sql-to-rel converter was burdened with expanding sub-queries,
+and people creating relational algebra directly (or via RelBuilder)
+could only create 'flat' relational expressions. Now we have planner
+rules to expand and de-correlate sub-queries.
+
+Metadata is the fuel that powers query planning. It includes
+traditional query-planning statistics such as cost and row-count
+estimates, but also information such as which columns form unique
+keys, unique and what predicates are known to apply to a relational
+expression's output rows. From the predicates we can deduce which
+columns are constant, and following
+[<a href="https://issues.apache.org/jira/browse/CALCITE-1023">CALCITE-1023</a>]
+we can now remove constant columns from `GROUP BY` keys.
+
+Metadata is often computed recursively, and it is hard to safely and
+efficiently calculate metadata on a graph of `RelNode`s that is large,
+frequently cyclic, and constantly changing.
+[<a href="https://issues.apache.org/jira/browse/CALCITE-794">CALCITE-794</a>]
+introduces a context to each metadata call. That context can detect
+cyclic metadata calls and produce a safe answer to the metadata
+request. It will also allow us to add finer-grained caching and
+further tune the metadata layer.
+
+New features
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-816">CALCITE-816</a>]
+  Represent sub-query as a `RexNode`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-854">CALCITE-854</a>]
+  Implement `UNNEST ... WITH ORDINALITY`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1003">CALCITE-1003</a>]
+  Utility to convert `RelNode` to SQL (Amogh Margoor)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1010">CALCITE-1010</a>]
+    `FETCH/LIMIT` and `OFFSET` in RelToSqlConverter (Amogh Margoor)
+  * Move code from `JdbcImplementor` and `JdbcRules` to new class
+    `SqlImplementor`
+  * Deduce dialect's null collation from `DatabaseMetaData`
+  * Fix `RelToSqlConverterTest` on Windows
+* Following
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-897">CALCITE-897</a>],
+  empty string for `boolean` properties means true
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-992">CALCITE-992</a>]
+  Validate and resolve sequence reference as a `Table` object
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-968">CALCITE-968</a>]
+  Stream-to-relation and stream-to-stream joins (Milinda Pathirage)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1041">CALCITE-1041</a>]
+  User-defined function that returns `DATE` or `TIMESTAMP` value
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-986">CALCITE-986</a>]
+  User-defined function with `DATE` or `TIMESTAMP` parameters
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-958">CALCITE-958</a>]
+  Overloaded Table Functions with named arguments (Julien Le Dem)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-970">CALCITE-970</a>]
+  If `NULLS FIRST`/`NULLS LAST` not specified, sort `NULL` values high
+
+Avatica features and bug fixes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1040">CALCITE-1040</a>]
+  Differentiate better between arrays and scalars in protobuf
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-934">CALCITE-934</a>]
+  Use an OS-assigned ephemeral port for `CalciteRemoteDriverTest`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-767">CALCITE-767</a>]
+  Create Avatica RPC endpoints for commit and rollback commands
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-983">CALCITE-983</a>]
+  Handle nulls in `ErrorResponse`'s protobuf representation better
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-989">CALCITE-989</a>]
+  Add server's address in each response
+* Fix some bugs found by static analysis
+* Make all `equals` and `hashCode` methods uniform
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-962">CALCITE-962</a>]
+  Propagate the cause, not just the cause's message, from `JdbcMeta`
+
+Planner rules
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1057">CALCITE-1057</a>]
+  Add `RelMetadataProvider` parameter to standard planner `Program`s
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1055">CALCITE-1055</a>]
+  `SubQueryRemoveRule` should create `Correlate`, not `Join`, for correlated
+  sub-queries
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-978">CALCITE-978</a>]
+  Enable customizing constant folding rule behavior when a `Filter` simplifies
+  to false (Jason Altekruse)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-977">CALCITE-977</a>]
+  Make the constant expression `Executor` configurable in `FrameworkConfig`
+  (Jason Altekruse)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1058">CALCITE-1058</a>]
+  Add method `RelBuilder.empty`, and rewrite LIMIT 0 and WHERE FALSE to it
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-996">CALCITE-996</a>]
+  Simplify predicate when we create a `Filter` operator
+* Simplify `RexProgram`, in particular `(NOT CASE ... END) IS TRUE`, which
+  occurs in when `NOT IN` is expanded
+* Fix variant of
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-923">CALCITE-923</a>]
+  that occurs in `RelOptRulesTest.testPushFilterPastProject`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1023">CALCITE-1023</a>]
+  and
+  [<a href="https://issues.apache.org/jira/browse/CALCITE-1038">CALCITE-1038</a>]
+  Planner rule that removes `Aggregate` keys that are constant
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1018">CALCITE-1018</a>]
+  `SortJoinTransposeRule` not firing due to `getMaxRowCount(RelSubset)` returning
+  null
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1019">CALCITE-1019</a>]
+  `RelMdUtil.checkInputForCollationAndLimit()` was wrong with `alreadySorted`
+  check
+* Not safe to use '=' for predicates on constant expressions that might be null
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-993">CALCITE-993</a>]
+  Pull up all constant expressions, not just literals, as predicates
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1005">CALCITE-1005</a>]
+  Handle null in `getMaxRowCount` for `Aggregate` (Mike Hinchey)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-995">CALCITE-995</a>]
+  Sort transpose rules might fall in an infinite loop
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-987">CALCITE-987</a>]
+  Pushing `LIMIT 0` results in an infinite loop (Pengcheng Xiong)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-988">CALCITE-988</a>]
+  `FilterToProjectUnifyRule.invert(MutableRel, MutableRel, MutableProject)`
+  works incorrectly
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-969">CALCITE-969</a>]
+  Composite `EnumerableSort` with `DESC` wrongly sorts `NULL` values low
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-959">CALCITE-959</a>]
+  Add description to `SortProjectTransposeRule`'s constructor
+
+Bug fixes, API changes and minor enhancements
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1060">CALCITE-1060</a>]
+  Fix test deadlock by initializing `DriverManager` before registering `AlternatingDriver`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1047">CALCITE-1047</a>]
+  `ChunkList.clear` throws `AssertionError`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1053">CALCITE-1053</a>]
+  CPU spin, `ReflectiveRelMetadataProvider.apply` waiting for `HashMap.get`
+* Upgrade toolbox, to fix line length issue on Windows
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1051">CALCITE-1051</a>]
+  Underflow exception due to scaling IN clause literals (Frankie Bollaert)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-975">CALCITE-975</a>]
+  Allow Planner to return validated row type together with SqlNode
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1020">CALCITE-1020</a>]
+  Add `MILLISECOND` in `TimeUnit` (Pengcheng Xiong)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-794">CALCITE-794</a>]
+  Detect cycles when computing statistics
+  (**This is a breaking change**.)
+* Tune algorithm that deduces the return type of `AND` expression
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-842">CALCITE-842</a>]
+  Decorrelator gets field offsets confused if fields have been trimmed
+* Fix `NullPointerException` in `SqlJoin.toString()`
+* Add `ImmutableBitSet.rebuild()`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-915">CALCITE-915</a>]
+  Tests now unset `ThreadLocal` values on exit
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1036">CALCITE-1036</a>]
+  `DiffRepository` should not insert new resources at the end of the repository
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-955">CALCITE-955</a>]
+  `Litmus` (continuation-passing style for methods that check invariants)
+* `RelBuilder.project` now does nothing if asked to project the identity with
+  the same field names
+* Deprecate some `Util` methods, and upgrade last Maven modules to JDK 1.7
+* Document `RelOptPredicateList`
+* Add `ImmutableNullableList.copyOf(Iterable)`
+* Fix "endPosTable already set" error from `javac`
+* Add benchmark of `Parser.create(sql).parseQuery()`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1042">CALCITE-1042</a>]
+  Ensure that `FILTER` is `BOOLEAN NOT NULL`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1039">CALCITE-1039</a>]
+  Assign a `SqlKind` value for each built-in aggregate function
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1030">CALCITE-1030</a>]
+  JSON `ModelHandler` calling `SchemaPlus.setCacheEnabled()` causes
+  `UnsupportedOperationException` when using `SimpleCalciteSchema`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1028">CALCITE-1028</a>]
+  Move populate materializations after sql-to-rel conversion
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1034">CALCITE-1034</a>]
+  Use a custom checker for code style rules that Checkstyle cannot express
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1032">CALCITE-1032</a>]
+  Verify javadoc of private methods
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1015">CALCITE-1015</a>]
+  `OFFSET 0` causes `AssertionError` (Zhen Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1024">CALCITE-1024</a>]
+  In a planner test, if a rule should have no effect, state that explicitly
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1016">CALCITE-1016</a>]
+  `GROUP BY *constant*` on empty relation should return 0 rows
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1022">CALCITE-1022</a>]
+  Rename `.oq` Quidem files to `.iq`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-980">CALCITE-980</a>]
+  Fix `AND` and `OR` implementation in `Enumerable` convention
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-459">CALCITE-459</a>]
+  When parsing SQL, allow single line comment on last line (Zhen Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1009">CALCITE-1009</a>]
+  `SelfPopulatingList` is not thread-safe
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1008">CALCITE-1008</a>]
+  Replace `Closeable` with `AutoCloseable`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1001">CALCITE-1001</a>]
+  Upgrade to quidem-0.7
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-990">CALCITE-990</a>]
+  In `VolcanoPlanner`, populate `RelOptRuleCall.nodeInputs` for operands of type
+  "any"
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-966">CALCITE-966</a>]
+  `VolcanoPlanner` now clears `ruleNames` in order to avoid rule name
+  conflicting error
+* Factor user-defined function tests from `JdbcTest` to `UdfTest`, and classes
+  into `Smalls`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-974">CALCITE-974</a>]
+  Exception while validating `DELETE` (Yuri Au Yong)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-964">CALCITE-964</a>]
+  Rename `timezone` connection property to `timeZone`
+
+Web site and documentation
+
+* Avatica
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1033">CALCITE-1033</a>]
+    Introduce Avatica protobuf documentation
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1029">CALCITE-1029</a>]
+     Add "purpose" descriptions to Avatica JSON docs
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-984">CALCITE-984</a>]
+    Massive cleanup of Avatica JSON docs
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-861">CALCITE-861</a>]
+  Be explicit that `mvn test` needs to be invoked
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-997">CALCITE-997</a>]
+  Document keywords
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-979">CALCITE-979</a>]
+  Broken links in web site
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-961">CALCITE-961</a>]
+  Web site: Add downloads and Apache navigation links
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-960">CALCITE-960</a>]
+  Download links for pgp, md5, `KEYS` files, and direct from mirrors
+* Remove embedded date-stamps from javadoc; add javadoc for test classes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-965">CALCITE-965</a>]
+  Link to downloads page from each release news item
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.5.0">1.5.0</a> / 2015-11-06
 {: #v1-5-0}
 
@@ -201,6 +433,8 @@ RelBuilder and Piglet
 * Multisets and `COLLECT` in Piglet
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-785">CALCITE-785</a>]
   Add "Piglet", a subset of Pig Latin on top of Calcite algebra
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-869">CALCITE-869</a>]
+  Add `VALUES` command to Piglet
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-868">CALCITE-868</a>]
   Add API to execute queries expressed as `RelNode`
 * In RelBuilder, build expressions by table alias
