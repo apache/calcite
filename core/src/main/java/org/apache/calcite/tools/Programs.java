@@ -102,14 +102,11 @@ public class Programs {
 
   /** Program that converts filters and projects to {@link Calc}s. */
   public static final Program CALC_PROGRAM =
-      hep(CALC_RULES, true, new DefaultRelMetadataProvider());
+      calc(new DefaultRelMetadataProvider());
 
   /** Program that expands sub-queries. */
   public static final Program SUB_QUERY_PROGRAM =
-      hep(
-          ImmutableList.of((RelOptRule) SubQueryRemoveRule.FILTER,
-              SubQueryRemoveRule.PROJECT,
-              SubQueryRemoveRule.JOIN), true, new DefaultRelMetadataProvider());
+      subquery(new DefaultRelMetadataProvider());
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
@@ -260,6 +257,17 @@ public class Programs {
     };
   }
 
+  public static Program calc(RelMetadataProvider metadataProvider) {
+    return hep(CALC_RULES, true, metadataProvider);
+  }
+
+  public static Program subquery(RelMetadataProvider metadataProvider) {
+    return hep(
+        ImmutableList.of((RelOptRule) SubQueryRemoveRule.FILTER,
+            SubQueryRemoveRule.PROJECT,
+            SubQueryRemoveRule.JOIN), true, metadataProvider);
+  }
+
   public static Program getProgram() {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
@@ -271,6 +279,11 @@ public class Programs {
 
   /** Returns the standard program used by Prepare. */
   public static Program standard() {
+    return standard(new DefaultRelMetadataProvider());
+  }
+
+  /** Returns the standard program with user metadata provider. */
+  public static Program standard(RelMetadataProvider metadataProvider) {
 
     final Program program1 =
         new Program() {
@@ -290,14 +303,14 @@ public class Programs {
           }
         };
 
-    return sequence(SUB_QUERY_PROGRAM,
+    return sequence(subquery(metadataProvider),
         new DecorrelateProgram(),
         new TrimFieldsProgram(),
         program1,
 
         // Second planner pass to do physical "tweaks". This the first time that
         // EnumerableCalcRel is introduced.
-        CALC_PROGRAM);
+        calc(metadataProvider));
   }
 
   /** Program backed by a {@link RuleSet}. */
