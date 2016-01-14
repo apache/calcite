@@ -1155,6 +1155,24 @@ public class RelBuilder {
     return true;
   }
 
+  /** Creates a relational expression that reads from an input and throws
+   * all of the rows away.
+   *
+   * <p>Note that this method always pops one relational expression from the
+   * stack. {@code values}, in contrast, does not pop any relational
+   * expressions, and always produces a leaf.
+   *
+   * <p>The default implementation creates a {@link Values} with the same
+   * specified row type as the input, and ignores the input entirely.
+   * But schema-on-query systems such as Drill might override this method to
+   * create a relation expression that retains the input, just to read its
+   * schema.
+   */
+  public RelBuilder empty() {
+    final Frame frame = Stacks.pop(stack);
+    return values(frame.rel.getRowType());
+  }
+
   /** Creates a {@link Values} with a specified row type.
    *
    * <p>This method can handle cases that {@link #values(String[], Object...)}
@@ -1274,6 +1292,9 @@ public class RelBuilder {
     }
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
+    if (offsetNode == null && fetch == 0) {
+      return empty();
+    }
     if (offsetNode == null && fetchNode == null && fieldCollations.isEmpty()) {
       return this; // sort is trivial
     }

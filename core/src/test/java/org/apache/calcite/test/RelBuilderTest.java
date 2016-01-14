@@ -873,6 +873,25 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  @Test public void testEmpty() {
+    // Equivalent SQL:
+    //   SELECT deptno, true FROM dept LIMIT 0
+    // optimized to
+    //   VALUES
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("DEPT")
+            .project(builder.field(0), builder.literal(false))
+            .empty()
+            .build();
+    final String expected =
+        "LogicalValues(tuples=[[]])\n";
+    assertThat(str(root), is(expected));
+    final String expectedType =
+        "RecordType(TINYINT NOT NULL DEPTNO, BOOLEAN NOT NULL $f1) NOT NULL";
+    assertThat(root.getRowType().getFullTypeString(), is(expectedType));
+  }
+
   @Test public void testValues() {
     // Equivalent SQL:
     //   VALUES (true, 1), (false, -50) AS t(a, b)
@@ -1068,6 +1087,20 @@ public class RelBuilderTest {
     final String expected =
         "LogicalSort(sort0=[$7], dir0=[DESC], fetch=[10])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  @Test public void testSortLimit0() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY deptno DESC FETCH 0
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sortLimit(-1, 0, builder.desc(builder.field("DEPTNO")))
+            .build();
+    final String expected = "LogicalValues(tuples=[[]])\n";
     assertThat(str(root), is(expected));
   }
 
