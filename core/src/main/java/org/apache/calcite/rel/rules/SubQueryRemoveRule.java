@@ -156,7 +156,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.aggregateCall(SqlStdOperatorTable.SINGLE_VALUE, false, null,
                 null, builder.field(0)));
       }
-      builder.join(JoinRelType.LEFT);
+      builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
       return field(builder, inputCount, offset);
 
     case IN:
@@ -247,7 +247,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.aggregateCall(SqlStdOperatorTable.COUNT, false, null, "ck",
                 builder.fields()));
         builder.as("ct");
-        builder.join(JoinRelType.INNER);
+        builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
         offset += 2;
         builder.push(e.rel);
         break;

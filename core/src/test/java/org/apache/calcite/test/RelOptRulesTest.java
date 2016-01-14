@@ -2216,6 +2216,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test public void testExpandWhereComparisonCorrelated() throws Exception {
+    final String sql = "select empno\n"
+        + "from sales.emp as e\n"
+        + "where sal = (\n"
+        + "  select max(sal) from sales.emp e2 where e2.empno = e.empno)";
+    checkSubQuery(sql).check();
+  }
+
 }
 
 // End RelOptRulesTest.java
