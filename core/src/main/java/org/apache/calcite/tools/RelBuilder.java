@@ -452,9 +452,13 @@ public class RelBuilder {
     return and(ImmutableList.copyOf(operands));
   }
 
-  /** Creates an AND. */
+  /** Creates an AND.
+   *
+   * <p>Simplifies the expression a little:
+   * {@code e AND TRUE} becomes {@code e};
+   * {@code e AND e2 AND NOT e} becomes {@code e2}. */
   public RexNode and(Iterable<? extends RexNode> operands) {
-    return RexUtil.composeConjunction(cluster.getRexBuilder(), operands, false);
+    return RexUtil.simplifyAnds(cluster.getRexBuilder(), operands);
   }
 
   /** Creates an OR. */
@@ -692,8 +696,10 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
-    final RexNode x = RexUtil.simplify(cluster.getRexBuilder(),
-            RexUtil.composeConjunction(cluster.getRexBuilder(), predicates, false));
+    final RexNode x = RexUtil.simplifyAnds(cluster.getRexBuilder(), predicates);
+    if (x.isAlwaysFalse()) {
+      return empty();
+    }
     if (!x.isAlwaysTrue()) {
       final Frame frame = Stacks.pop(stack);
       final RelNode filter = filterFactory.createFilter(frame.rel, x);
@@ -991,8 +997,7 @@ public class RelBuilder {
    * conditions. */
   public RelBuilder join(JoinRelType joinType,
       Iterable<? extends RexNode> conditions) {
-    return join(joinType,
-        RexUtil.composeConjunction(cluster.getRexBuilder(), conditions, false),
+    return join(joinType, and(conditions),
         ImmutableSet.<CorrelationId>of());
   }
 
@@ -1057,9 +1062,7 @@ public class RelBuilder {
     final Frame right = Stacks.pop(stack);
     final Frame left = Stacks.pop(stack);
     final RelNode semiJoin =
-        semiJoinFactory.createSemiJoin(left.rel, right.rel,
-            RexUtil.composeConjunction(cluster.getRexBuilder(), conditions,
-                false));
+        semiJoinFactory.createSemiJoin(left.rel, right.rel, and(conditions));
     Stacks.push(stack, new Frame(semiJoin, left.right));
     return this;
   }

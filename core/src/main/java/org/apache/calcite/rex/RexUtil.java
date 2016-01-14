@@ -1308,6 +1308,19 @@ public class RexUtil {
     }
   }
 
+  /**
+   * Simplifies a conjunction of boolean expressions.
+   */
+  public static RexNode simplifyAnds(RexBuilder rexBuilder,
+      Iterable<? extends RexNode> nodes) {
+    final List<RexNode> terms = new ArrayList<>();
+    final List<RexNode> notTerms = new ArrayList<>();
+    for (RexNode e : nodes) {
+      RelOptUtil.decomposeConjunction(e, terms, notTerms);
+    }
+    return simplifyAnd2(rexBuilder, terms, notTerms);
+  }
+
   private static RexNode simplifyNot(RexBuilder rexBuilder, RexCall call) {
     final RexNode a = call.getOperands().get(0);
     switch (a.getKind()) {
@@ -1322,6 +1335,17 @@ public class RexUtil {
               ImmutableList.of(((RexCall) a).getOperands().get(0))));
     }
     return call;
+  }
+
+  /** Negates a logical expression by adding or removing a NOT. */
+  public static RexNode not(RexNode e) {
+    switch (e.getKind()) {
+    case NOT:
+      return ((RexCall) e).getOperands().get(0);
+    default:
+      return new RexCall(e.getType(), SqlStdOperatorTable.NOT,
+          ImmutableList.of(e));
+    }
   }
 
   private static RexNode simplifyIs(RexBuilder rexBuilder, RexCall call) {
@@ -1461,30 +1485,23 @@ public class RexUtil {
   }
 
   public static RexNode simplifyAnd(RexBuilder rexBuilder, RexCall e) {
-    final List<RexNode> terms = RelOptUtil.conjunctions(e);
+    final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
-    for (int i = 0; i < terms.size(); i++) {
-      final RexNode term = terms.get(i);
-      switch (term.getKind()) {
-      case NOT:
-        notTerms.add(
-            ((RexCall) term).getOperands().get(0));
-        terms.remove(i);
-        --i;
-        break;
-      case LITERAL:
-        if (!RexLiteral.isNullLiteral(term)) {
-          if (!RexLiteral.booleanValue(term)) {
-            return term; // false
-          } else {
-            terms.remove(i);
-            --i;
-          }
-        }
-      }
+    RelOptUtil.decomposeConjunction(e, terms, notTerms);
+    return simplifyAnd2(rexBuilder, terms, notTerms);
+  }
+
+  public static RexNode simplifyAnd2(RexBuilder rexBuilder,
+      List<RexNode> terms, List<RexNode> notTerms) {
+    if (terms.contains(rexBuilder.makeLiteral(false))) {
+      return rexBuilder.makeLiteral(false);
     }
     if (terms.isEmpty() && notTerms.isEmpty()) {
       return rexBuilder.makeLiteral(true);
+    }
+    if (terms.size() == 1 && notTerms.isEmpty()) {
+      // Make sure "x OR y OR x" (a single-term conjunction) gets simplified.
+      return simplify(rexBuilder, terms.get(0));
     }
     // If one of the not-disjunctions is a disjunction that is wholly
     // contained in the disjunctions list, the expression is not
@@ -1502,8 +1519,8 @@ public class RexUtil {
     // Add the NOT disjunctions back in.
     for (RexNode notDisjunction : notTerms) {
       terms.add(
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.NOT, notDisjunction));
+          simplify(rexBuilder,
+              rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction)));
     }
     return composeConjunction(rexBuilder, terms, false);
   }

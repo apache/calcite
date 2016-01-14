@@ -259,7 +259,7 @@ public class MaterializationTest {
       MaterializationService.setThreadLocal();
       final String m = "select \"salary\", \"commission\",\n"
           + "\"deptno\", \"empid\", \"name\" from \"emps\"";
-      final String v = "select * from \"emps\" where \"salary\" is null";
+      final String v = "select * from \"emps\" where \"name\" is null";
       final String q = "select * from V where \"commission\" is null";
       final JsonBuilder builder = new JsonBuilder();
       final String model = "{\n"

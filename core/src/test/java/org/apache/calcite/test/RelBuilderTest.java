@@ -207,6 +207,10 @@ public class RelBuilderTest {
     //   SELECT *
     //   FROM emp
     //   WHERE deptno = 20 OR deptno = 20
+    // simplifies to
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 20
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -222,6 +226,45 @@ public class RelBuilderTest {
     assertThat(str(root),
         is("LogicalFilter(condition=[>($7, 20)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
+  @Test public void testScanFilterAndFalse() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 20 AND FALSE
+    // simplifies to
+    //   VALUES
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN,
+                    builder.field("DEPTNO"),
+                    builder.literal(20)),
+                builder.literal(false))
+            .build();
+    final String plan = "LogicalValues(tuples=[[]])\n";
+    assertThat(str(root), is(plan));
+  }
+
+  @Test public void testScanFilterAndTrue() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno = 20 AND TRUE
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN,
+                    builder.field("DEPTNO"),
+                    builder.literal(20)),
+                builder.literal(true))
+            .build();
+    final String plan = "LogicalFilter(condition=[>($7, 20)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(plan));
   }
 
   @Test public void testBadFieldName() {
@@ -295,7 +338,7 @@ public class RelBuilderTest {
                 builder.or(
                     builder.equals(builder.field("DEPTNO"),
                         builder.literal(20)),
-                    builder.and(builder.literal(false),
+                    builder.and(builder.literal(null),
                         builder.equals(builder.field("DEPTNO"),
                             builder.literal(10)),
                         builder.and(builder.isNull(builder.field(6)),
@@ -312,8 +355,8 @@ public class RelBuilderTest {
             .build();
     assertThat(str(root),
         is("LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
-                + " $f2=[OR(=($7, 20), AND(false, =($7, 10), IS NULL($6),"
-                + " NOT(IS NOT NULL($7))), =($7, 30))], n2=[IS NULL($2)],"
+                + " $f2=[OR(=($7, 20), AND(null, =($7, 10), IS NULL($6),"
+                + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
                 + " nn2=[IS NOT NULL($3)], $f5=[20], COMM6=[$6], C=[$6])\n"
                 + "  LogicalTableScan(table=[[scott, EMP]])\n"));
   }
@@ -760,7 +803,9 @@ public class RelBuilderTest {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
-    //   LEFT JOIN dept ON emp.deptno = dept.deptno AND emp.empno = 123
+    //   LEFT JOIN dept ON emp.deptno = dept.deptno
+    //     AND emp.empno = 123
+    //     AND dept.deptno IS NOT NULL
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -771,8 +816,11 @@ public class RelBuilderTest {
                     builder.field(2, 1, "DEPTNO")),
                 builder.call(SqlStdOperatorTable.EQUALS,
                     builder.field(2, 0, "EMPNO"),
-                    builder.literal(123)))
+                    builder.literal(123)),
+                builder.call(SqlStdOperatorTable.IS_NOT_NULL,
+                    builder.field(2, 1, "DEPTNO")))
             .build();
+    // Note that "dept.deptno IS NOT NULL" has been simplified away.
     final String expected = ""
         + "LogicalJoin(condition=[AND(=($7, $0), =($0, 123))], joinType=[left])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"

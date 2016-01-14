@@ -771,6 +771,26 @@ public class RexProgramTest {
     checkSimplify(and(aRef, bRef, false_),
         "false");
 
+    // and: remove duplicate "not"s
+    checkSimplify(and(not(aRef), bRef, not(cRef), not(aRef)),
+        "AND(?0.b, NOT(?0.a), NOT(?0.c))");
+
+    // and: "not true" falsifies
+    checkSimplify(and(not(aRef), bRef, not(true_)),
+        "false");
+
+    // and: flatten and remove duplicates
+    checkSimplify(
+        and(aRef, and(and(bRef, not(cRef), dRef, not(eRef)), not(eRef))),
+        "AND(?0.a, ?0.b, ?0.d, NOT(?0.c), NOT(?0.e))");
+
+    // and: expand "... and not(or(x, y))" to "... and not(x) and not(y)"
+    checkSimplify(and(aRef, bRef, not(or(cRef, or(dRef, eRef)))),
+        "AND(?0.a, ?0.b, NOT(?0.c), NOT(?0.d), NOT(?0.e))");
+
+    checkSimplify(and(aRef, bRef, not(or(not(cRef), dRef, not(eRef)))),
+        "AND(?0.a, ?0.b, ?0.c, ?0.e, NOT(?0.d))");
+
     // or: remove duplicates
     checkSimplify(or(aRef, bRef, aRef), "OR(?0.a, ?0.b)");
 

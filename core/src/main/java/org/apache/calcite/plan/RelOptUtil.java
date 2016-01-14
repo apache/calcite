@@ -678,15 +678,11 @@ public abstract class RelOptUtil {
         RexUtil.generateCastExpressions(rexBuilder, castRowType, rowType);
     if (rename) {
       // Use names and types from castRowType.
-      return projectFactory.createProject(
-          rel,
-          castExps,
+      return projectFactory.createProject(rel, castExps,
           castRowType.getFieldNames());
     } else {
       // Use names from rowType, types from castRowType.
-      return projectFactory.createProject(
-          rel,
-          castExps,
+      return projectFactory.createProject(rel, castExps,
           rowType.getFieldNames());
     }
   }
@@ -1928,8 +1924,30 @@ public abstract class RelOptUtil {
       if (e.isAlwaysFalse()) {
         return;
       }
-      notList.add(e);
+      switch (e.getKind()) {
+      case OR:
+        final List<RexNode> ors = new ArrayList<>();
+        decomposeDisjunction(e, ors);
+        for (RexNode or : ors) {
+          switch (or.getKind()) {
+          case NOT:
+            rexList.add(((RexCall) or).operands.get(0));
+            break;
+          default:
+            notList.add(or);
+          }
+        }
+        break;
+      default:
+        notList.add(e);
+      }
       break;
+    case LITERAL:
+      if (!RexLiteral.isNullLiteral(rexPredicate)
+          && RexLiteral.booleanValue(rexPredicate)) {
+        return; // ignore TRUE
+      }
+      // fall through
     default:
       rexList.add(rexPredicate);
       break;
