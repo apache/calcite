@@ -354,13 +354,11 @@ public class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(filterOnJoin)
             .addGroupEnd()
             .build();
-    checkPlanning(tester,
-        preProgram,
-        new HepPlanner(program),
-        "select a.name\n"
-            + "from dept a\n"
-            + "left join dept b on b.deptno > 10\n"
-            + "right join dept c on b.deptno > 10\n");
+    final String sql = "select a.name\n"
+        + "from dept a\n"
+        + "left join dept b on b.deptno > 10\n"
+        + "right join dept c on b.deptno > 10\n";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testJoinProjectTranspose() {
@@ -377,13 +375,11 @@ public class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(JoinProjectTransposeRule.LEFT_PROJECT_INCLUDE_OUTER)
             .addRuleInstance(ProjectMergeRule.INSTANCE)
             .build();
-    checkPlanning(tester,
-        preProgram,
-        new HepPlanner(program),
-        "select a.name\n"
-            + "from dept a\n"
-            + "left join dept b on b.deptno > 10\n"
-            + "right join dept c on b.deptno > 10\n");
+    final String sql = "select a.name\n"
+        + "from dept a\n"
+        + "left join dept b on b.deptno > 10\n"
+        + "right join dept c on b.deptno > 10\n";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   /** Test case for
@@ -1324,6 +1320,36 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select * from emp order by deptno limit 0");
   }
 
+  @Test public void testEmptyAggregate() {
+    HepProgram preProgram = HepProgram.builder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.AGGREGATE_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .build();
+
+    final String sql = "select sum(empno) from emp where false group by deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  @Test public void testEmptyAggregateEmptyKey() {
+    HepProgram preProgram = HepProgram.builder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(PruneEmptyRules.AGGREGATE_INSTANCE)
+        .build();
+
+    final String sql = "select sum(empno) from emp where false";
+    final boolean unchanged = true;
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, unchanged);
+  }
+
   @Test public void testReduceCasts() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
@@ -1475,13 +1501,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
         .build();
-    checkPlanning(tester, preProgram,
-        new HepPlanner(program),
-        "select empno, sal, deptno from ("
-            + "  select empno, sal, deptno"
-            + "  from emp"
-            + "  where sal > 5000)"
-            + "group by empno, sal, deptno");
+    final String sql = "select empno, sal, deptno from ("
+        + "  select empno, sal, deptno"
+        + "  from emp"
+        + "  where sal > 5000)"
+        + "group by empno, sal, deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testPullFilterThroughAggregateGroupingSets()
@@ -1493,13 +1518,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
         .build();
-    checkPlanning(tester, preProgram,
-        new HepPlanner(program),
-        "select empno, sal, deptno from ("
-            + "  select empno, sal, deptno"
-            + "  from emp"
-            + "  where sal > 5000)"
-            + "group by rollup(empno, sal, deptno)");
+    final String sql = "select empno, sal, deptno from ("
+        + "  select empno, sal, deptno"
+        + "  from emp"
+        + "  where sal > 5000)"
+        + "group by rollup(empno, sal, deptno)";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   private void basePullConstantTroughAggregate() throws Exception {
@@ -1590,15 +1614,15 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   public void transitiveInference(RelOptRule... extraRules) throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
-    String sql = diffRepos.expand(null, "${sql}");
+    final String sql = diffRepos.expand(null, "${sql}");
 
-    HepProgram program = new HepProgramBuilder()
+    final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterJoinRule.DUMB_FILTER_ON_JOIN)
         .addRuleInstance(FilterJoinRule.JOIN)
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
         .addRuleInstance(FilterSetOpTransposeRule.INSTANCE)
         .build();
-    HepPlanner planner = new HepPlanner(program);
+    final HepPlanner planner = new HepPlanner(program);
 
     final RelRoot root = tester.convertSqlToRel(sql);
     final RelNode relInitial = root.rel;
@@ -1629,7 +1653,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
         .addRuleCollection(Arrays.asList(extraRules))
         .build();
-    HepPlanner planner2 = new HepPlanner(program2);
+    final HepPlanner planner2 = new HepPlanner(program2);
     planner.registerMetadataProviders(list);
     planner2.setRoot(relBefore);
     RelNode relAfter = planner2.findBestExp();

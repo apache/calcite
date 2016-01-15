@@ -25,11 +25,17 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,33 +77,33 @@ public abstract class PruneEmptyRules {
           "Union") {
         public void onMatch(RelOptRuleCall call) {
           LogicalUnion union = call.rel(0);
-          final List<RelNode> childRels = call.getChildRels(union);
-          assert childRels != null;
-          final List<RelNode> newChildRels = new ArrayList<>();
-          for (RelNode childRel : childRels) {
-            if (!isEmpty(childRel)) {
-              newChildRels.add(childRel);
+          final List<RelNode> inputs = call.getChildRels(union);
+          assert inputs != null;
+          final List<RelNode> newInputs = new ArrayList<>();
+          for (RelNode input : inputs) {
+            if (!isEmpty(input)) {
+              newInputs.add(input);
             }
           }
-          assert newChildRels.size() < childRels.size()
+          assert newInputs.size() < inputs.size()
               : "planner promised us at least one Empty child";
-          RelNode newRel;
-          switch (newChildRels.size()) {
+          final RelBuilder builder = call.builder();
+          switch (newInputs.size()) {
           case 0:
-            newRel = empty(union);
+            builder.push(union).empty();
             break;
           case 1:
-            newRel =
+            builder.push(
                 RelOptUtil.createCastRel(
-                    newChildRels.get(0),
+                    newInputs.get(0),
                     union.getRowType(),
-                    true);
+                    true));
             break;
           default:
-            newRel = LogicalUnion.create(newChildRels, union.all);
+            builder.push(LogicalUnion.create(newInputs, union.all));
             break;
           }
-          call.transformTo(newRel);
+          call.transformTo(builder.build());
         }
       };
 
@@ -117,7 +123,8 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule PROJECT_INSTANCE =
-      new RemoveEmptySingleRule(Project.class, "PruneEmptyProject");
+      new RemoveEmptySingleRule(Project.class, Predicates.<Project>alwaysTrue(),
+          RelFactories.LOGICAL_BUILDER, "PruneEmptyProject");
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
@@ -162,7 +169,7 @@ public abstract class PruneEmptyRules {
           Sort sort = call.rel(0);
           if (sort.fetch != null
               && RexLiteral.intValue(sort.fetch) == 0) {
-            call.transformTo(empty(sort));
+            call.transformTo(call.builder().push(sort).empty().build());
           }
         }
       };
@@ -174,11 +181,15 @@ public abstract class PruneEmptyRules {
    * <p>Examples:
    *
    * <ul>
-   * <li>Aggregate(Empty) becomes Empty
+   * <li>{@code Aggregate(key: [1, 3], Empty)} &rarr; {@code Empty}
+   *
+   * <li>{@code Aggregate(key: [], Empty)} is unchanged, because an aggregate
+   * without a GROUP BY key always returns 1 row, even over empty input
    * </ul>
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
-      new RemoveEmptySingleRule(Aggregate.class, "PruneEmptyAggregate");
+      new RemoveEmptySingleRule(Aggregate.class, Aggregate.IS_NOT_GRAND_TOTAL,
+          RelFactories.LOGICAL_BUILDER, "PruneEmptyAggregate");
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Join}
@@ -204,7 +215,7 @@ public abstract class PruneEmptyRules {
             // emp is empty
             return;
           }
-          call.transformTo(empty(join));
+          call.transformTo(call.builder().push(join).empty().build());
         }
       };
 
@@ -232,30 +243,33 @@ public abstract class PruneEmptyRules {
             // dept is empty
             return;
           }
-          call.transformTo(empty(join));
+          call.transformTo(call.builder().push(join).empty().build());
         }
       };
 
-  /** Creates a {@link org.apache.calcite.rel.core.Values} to replace
-   * {@code node}. */
-  private static Values empty(RelNode node) {
-    return LogicalValues.createEmpty(node.getCluster(), node.getRowType());
-  }
-
   /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
    * filter) on top of the empty relational expression into empty. */
-  private static class RemoveEmptySingleRule extends RelOptRule {
-    public RemoveEmptySingleRule(Class<? extends SingleRel> clazz,
+  public static class RemoveEmptySingleRule extends RelOptRule {
+    /** Creatse a simple RemoveEmptySingleRule. */
+    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
+        String description) {
+      this(clazz, Predicates.<R>alwaysTrue(), RelFactories.LOGICAL_BUILDER,
+          description);
+    }
+
+    /** Creatse a RemoveEmptySingleRule. */
+    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
+        Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {
       super(
-          operand(clazz,
+          operand(clazz, null, predicate,
               operand(Values.class, null, Values.IS_EMPTY, none())),
-          description);
+          relBuilderFactory, description);
     }
 
     public void onMatch(RelOptRuleCall call) {
       SingleRel single = call.rel(0);
-      call.transformTo(empty(single));
+      call.transformTo(call.builder().push(single).empty().build());
     }
   }
 }

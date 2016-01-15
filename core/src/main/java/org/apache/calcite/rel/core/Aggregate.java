@@ -80,6 +80,13 @@ public abstract class Aggregate extends SingleRel {
         }
       };
 
+  public static final Predicate<Aggregate> IS_NOT_GRAND_TOTAL =
+      new Predicate<Aggregate>() {
+        public boolean apply(Aggregate input) {
+          return input.getGroupCount() > 0;
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
   public final boolean indicator;
