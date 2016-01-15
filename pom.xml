@@ -50,6 +50,62 @@ limitations under the License.
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
     <version.minor>6</version.minor>
+
+    <!-- This list is in alphabetical order. -->
+    <airlift-tpch.version>0.1</airlift-tpch.version>
+    <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
+    <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
+    <commons-dbcp.version>1.4</commons-dbcp.version>
+    <commons-lang3.version>3.2</commons-lang3.version>
+    <commons-logging.version>1.1.3</commons-logging.version>
+    <eigenbase-properties.version>1.1.5</eigenbase-properties.version>
+    <findbugs.version>1.3.9</findbugs.version>
+    <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
+    <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
+    <foodmart-queries.version>0.4.1</foodmart-queries.version>
+    <freemarker.version>2.3.19</freemarker.version>
+    <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
+
+    <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
+         but prefer more recent versions. -->
+    <guava.version>14.0.1</guava.version>
+    <h2.version>1.4.185</h2.version>
+    <hamcrest.version>1.3</hamcrest.version>
+    <hsqldb.version>2.3.1</hsqldb.version>
+    <hydromatic-resource.version>0.5.1</hydromatic-resource.version>
+    <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
+    <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
+    <jackson.version>2.1.1</jackson.version>
+    <janino.version>2.7.6</janino.version>
+    <java-diff.version>1.1</java-diff.version>
+    <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
+    <jcip-annotations.version>1.0-1</jcip-annotations.version>
+    <jetty.version>9.2.7.v20150116</jetty.version>
+    <jmh.version>1.11.2</jmh.version>
+    <junit.version>4.12</junit.version>
+    <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
+    <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+
+    <!-- keep failsafe version in sync with surefire; apache 17 has surefire 2.7.2 -->
+    <maven-failsafe-plugin.version>2.7.2</maven-failsafe-plugin.version>
+    <maven-scm-provider.version>1.9.1</maven-scm-provider.version>
+    <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
+    <maven-source-plugin.version>2.4</maven-source-plugin.version>
+    <mockito-all.version>1.10.19</mockito-all.version>
+    <mongo-java-driver.version>2.12.3</mongo-java-driver.version>
+    <mysql-driver.version>5.1.20</mysql-driver.version>
+    <opencsv.version>2.3</opencsv.version>
+    <pentaho-aggdesigner.version>5.1.5-jhyde</pentaho-aggdesigner.version>
+    <postgresql.version>9.3-1102-jdbc3</postgresql.version>
+    <protobuf.version>3.0.0-beta-1</protobuf.version>
+    <quidem.version>0.7</quidem.version>
+    <scala.version>2.10.3</scala.version>
+    <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
+    <servlet.version>3.0.1</servlet.version>
+    <spark.version>0.9.0-incubating</spark.version>
+    <sqlline.version>1.1.9</sqlline.version>
+    <xalan.version>2.7.1</xalan.version>
+    <xerces.version>2.9.1</xerces.version>
   </properties>
 
   <issueManagement>
@@ -123,204 +179,202 @@ limitations under the License.
       <dependency>
         <groupId>commons-dbcp</groupId>
         <artifactId>commons-dbcp</artifactId>
-        <version>1.4</version>
+        <version>${commons-dbcp.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
-        <version>1.1.3</version>
+        <version>${commons-logging.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
-        <version>2.1.1</version>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
-        <version>2.1.1</version>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.1.1</version>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
         <artifactId>jsr305</artifactId>
-        <version>1.3.9</version>
+        <version>${findbugs.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <!-- We support versions as old as 14.0.1 (the version used by Hive)
-             but prefer more recent versions. -->
-        <version>14.0.1</version>
+        <version>${guava.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.0.0-beta-1</version>
+        <version>${protobuf.version}</version>
       </dependency>
       <dependency>
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
-        <version>1.4.185</version>
+        <version>${h2.version}</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
-        <version>3.0.1</version>
+        <version>${servlet.version}</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>${junit.version}</version>
       </dependency>
       <dependency>
         <groupId>io.airlift.tpch</groupId>
         <artifactId>tpch</artifactId>
-        <version>0.1</version>
+        <version>${airlift-tpch.version}</version>
       </dependency>
       <dependency>
         <groupId>mysql</groupId>
         <artifactId>mysql-connector-java</artifactId>
-        <version>5.1.20</version>
+        <version>${mysql-driver.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>eigenbase-properties</artifactId>
-        <version>1.1.5</version>
+        <version>${eigenbase-properties.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>foodmart-data-hsqldb</artifactId>
-        <version>0.3</version>
+        <version>${foodmart-data-hsqldb.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>foodmart-queries</artifactId>
-        <version>0.4.1</version>
+        <version>${foodmart-queries.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>quidem</artifactId>
-        <version>0.7</version>
+        <version>${quidem.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>scott-data-hsqldb</artifactId>
-        <version>0.1</version>
+        <version>${scott-data-hsqldb.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
         <artifactId>tpcds</artifactId>
-        <version>0.4</version>
+        <version>${hydromatic-tpcds.version}</version>
       </dependency>
       <dependency>
         <groupId>net.sf.opencsv</groupId>
         <artifactId>opencsv</artifactId>
-        <version>2.3</version>
+        <version>${opencsv.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.2</version>
+        <version>${commons-lang3.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-all</artifactId>
-        <version>1.10.19</version>
+        <version>${mockito-all.version}</version>
       </dependency>
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>9.3-1102-jdbc3</version>
+        <version>${postgresql.version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-library</artifactId>
-        <version>2.10.3</version>
+        <version>${scala.version}</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
         <artifactId>janino</artifactId>
-        <version>2.7.6</version>
+        <version>${janino.version}</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
         <artifactId>commons-compiler</artifactId>
-        <version>2.7.6</version>
+        <version>${janino.version}</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-core</artifactId>
-        <version>1.3</version>
+        <version>${hamcrest.version}</version>
       </dependency>
       <dependency>
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
-        <version>2.3.1</version>
+        <version>${hsqldb.version}</version>
       </dependency>
       <dependency>
         <groupId>org.incava</groupId>
         <artifactId>java-diff</artifactId>
-        <version>1.1</version>
+        <version>${java-diff.version}</version>
       </dependency>
       <dependency>
         <groupId>org.pentaho</groupId>
         <artifactId>pentaho-aggdesigner-algorithm</artifactId>
-        <version>5.1.5-jhyde</version>
+        <version>${pentaho-aggdesigner.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_2.10</artifactId>
-        <version>0.9.0-incubating</version>
+        <version>${spark.version}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
-        <version>9.2.7.v20150116</version>
+        <version>${jetty.version}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-util</artifactId>
-        <version>9.2.7.v20150116</version>
+        <version>${jetty.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
-        <version>2.12.3</version>
+        <version>${mongo-java-driver.version}</version>
       </dependency>
       <dependency>
         <groupId>org.openjdk.jmh</groupId>
         <artifactId>jmh-core</artifactId>
-        <version>1.11.2</version>
+        <version>${jmh.version}</version>
       </dependency>
       <dependency>
         <groupId>org.openjdk.jmh</groupId>
         <artifactId>jmh-generator-annprocess</artifactId>
-        <version>1.11.2</version>
+        <version>${jmh.version}</version>
       </dependency>
       <dependency>
         <groupId>sqlline</groupId>
         <artifactId>sqlline</artifactId>
-        <version>1.1.9</version>
+        <version>${sqlline.version}</version>
       </dependency>
       <dependency>
         <groupId>xerces</groupId>
         <artifactId>xercesImpl</artifactId>
-        <version>2.9.1</version>
+        <version>${xerces.version}</version>
       </dependency>
       <dependency>
         <groupId>xalan</groupId>
         <artifactId>xalan</artifactId>
-        <version>2.7.1</version>
+        <version>${xalan.version}</version>
       </dependency>
       <dependency>
         <groupId>com.github.stephenc.jcip</groupId>
         <artifactId>jcip-annotations</artifactId>
-        <version>1.0-1</version>
+        <version>${jcip-annotations.version}</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -400,7 +454,7 @@ limitations under the License.
           <dependency>
             <groupId>net.hydromatic</groupId>
             <artifactId>toolbox</artifactId>
-            <version>0.3</version>
+            <version>${hydromatic-toolbox.version}</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -408,7 +462,7 @@ limitations under the License.
         <!-- override default version 2.8 for access to additional config settings -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.10</version>
+        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>
@@ -469,7 +523,7 @@ limitations under the License.
           <dependency>
             <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-gitexe</artifactId>
-            <version>1.9.1</version>
+            <version>${maven-scm-provider.version}</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -516,35 +570,34 @@ limitations under the License.
         <plugin>
           <groupId>com.googlecode.fmpp-maven-plugin</groupId>
           <artifactId>fmpp-maven-plugin</artifactId>
-          <version>1.0</version>
+          <version>${fmpp-maven-plugin.version}</version>
           <dependencies>
             <dependency>
               <groupId>org.freemarker</groupId>
               <artifactId>freemarker</artifactId>
-              <version>2.3.19</version>
+              <version>${freemarker.version}</version>
             </dependency>
           </dependencies>
         </plugin>
         <plugin>
           <groupId>net.hydromatic</groupId>
           <artifactId>hydromatic-resource-maven-plugin</artifactId>
-          <version>0.5.1</version>
+          <version>${hydromatic-resource.version}</version>
         </plugin>
         <plugin>
           <groupId>net.ju-n.maven.plugins</groupId>
           <artifactId>checksum-maven-plugin</artifactId>
-          <version>1.2</version>
+          <version>${checksum-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.12.1</version>
+          <version>${maven-checkstyle-plugin.version}</version>
         </plugin>
         <plugin>
-          <!-- keep version in sync with surefire; apache 17 has surefire 2.7.2 -->
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.7.2</version>
+          <version>${maven-failsafe-plugin.version}</version>
           <executions>
             <execution>
               <id>failsafe-integration-test</id>
@@ -570,12 +623,12 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>2.1</version>
+          <version>${maven-shade-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>2.4</version>
+          <version>${maven-source-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -590,17 +643,17 @@ limitations under the License.
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.9</version>
+          <version>${build-helper-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>javacc-maven-plugin</artifactId>
-          <version>2.4</version>
+          <version>${javacc-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>pl.project13.maven</groupId>
           <artifactId>git-commit-id-plugin</artifactId>
-          <version>2.1.9</version>
+          <version>${git-commit-id-plugin.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
