@@ -68,6 +68,10 @@ public class AlternatingRemoteMetaTest {
 
   static {
     try {
+      // Force DriverManager initialization before we hit AlternatingDriver->Driver.<clinit>
+      // Otherwise Driver.<clinit> -> DriverManager.registerDriver -> scan service provider files
+      // causes a deadlock; see [CALCITE-1060]
+      DriverManager.getDrivers();
       DriverManager.registerDriver(new AlternatingDriver());
     } catch (SQLException e) {
       throw new RuntimeException(e);
