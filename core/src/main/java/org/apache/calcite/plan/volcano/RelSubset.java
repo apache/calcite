@@ -37,6 +37,8 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.Iterables;
 
+import org.slf4j.Logger;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -45,8 +47,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Subset of an equivalence class where all relational expressions have the
@@ -329,16 +329,13 @@ public class RelSubset extends AbstractRelNode {
       // This subset is already in the chain being propagated to. This
       // means that the graph is cyclic, and therefore the cost of this
       // relational expression - not this subset - must be infinite.
-      LOGGER.finer("cyclic: " + this);
+      LOGGER.trace("cyclic: {}", this);
       return;
     }
     try {
       final RelOptCost cost = planner.getCost(rel, mq);
       if (cost.isLt(bestCost)) {
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.finer("Subset cost improved: subset [" + this
-              + "] cost was " + bestCost + " now " + cost);
-        }
+        LOGGER.trace("Subset cost improved: subset [{}] cost was {} now {}", this, bestCost, cost);
 
         bestCost = cost;
         best = rel;
@@ -445,7 +442,7 @@ public class RelSubset extends AbstractRelNode {
           final String dump = sw.toString();
           RuntimeException e =
               new RelOptPlanner.CannotPlanException(dump);
-          LOGGER.throwing(getClass().getName(), "visit", e);
+          LOGGER.trace("Caught exception in class={}, method=visit", getClass().getName(), e);
           throw e;
         }
         p = cheapest;

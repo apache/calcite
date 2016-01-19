@@ -170,7 +170,7 @@ See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 
 To enable tracing, add the following flags to the java command line:
 
-`-Dcalcite.debug=true -Djava.util.logging.config.file=core/src/test/resources/logging.properties`
+`-Dcalcite.debug=true`
 
 The first flag causes Calcite to print the Java code it generates
 (to execute queries) to stdout. It is especially useful if you are debugging
@@ -179,21 +179,24 @@ mysterious problems like this:
 `Exception in thread "main" java.lang.ClassCastException: Integer cannot be cast to Long
   at Baz$1$1.current(Unknown Source)`
 
-The second flag specifies a config file for
-the <a href="http://docs.oracle.com/javase/7/docs/api/java/util/logging/package-summary.html">java.util.logging</a>
-framework. Put the following into core/src/test/resources/logging.properties:
+By default, Calcite uses the Log4j bindings for SLF4J. There is a provided configuration
+file which outputs logging at the INFO level to the console in `core/src/test/resources/log4j.properties`.
+You can modify the level for the rootLogger to increase verbosity or change the level
+for a specific class if you so choose.
 
 {% highlight properties %}
-handlers= java.util.logging.ConsoleHandler
-.level= INFO
-org.apache.calcite.plan.RelOptPlanner.level=FINER
-java.util.logging.ConsoleHandler.level=ALL
+# Change rootLogger level to WARN
+log4j.rootLogger=WARN, A1
+# Increase level to DEBUG for RelOptPlanner
+log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
+# Increase level to TRACE for HepPlanner
+log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
 {% endhighlight %}
 
-The line `org.apache.calcite.plan.RelOptPlanner.level=FINER` tells the planner to produce
-fairly verbose output. You can modify the file to enable other loggers, or to change levels.
-For instance, if you change `FINER` to `FINEST` the planner will give you an account of the
-planning process so detailed that it might fill up your hard drive.
+As the SLF4J replaces the previous use of Java's Logging framework, there is a need
+to map over the previous logging levels to the new library as the levels `FINE`,
+`FINER`, and `FINEST` do not exist in SLF4J. `FINE` was mapped to SLF4J's `DEBUG`
+level, while `FINER` and `FINEST` were mapped to SLF4J's `TRACE`.
 
 ## CSV adapter
 

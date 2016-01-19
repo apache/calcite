@@ -18,12 +18,12 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.function.Function1;
 
-import java.text.MessageFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Helps to run benchmarks by running the same task repeatedly and averaging
@@ -35,7 +35,7 @@ public class Benchmark {
    * higher.
    */
   public static final Logger LOGGER =
-      Logger.getLogger(Benchmark.class.getCanonicalName());
+      LoggerFactory.getLogger(Benchmark.class);
 
   private final Function1<Statistician, Void> function;
   private final int repeat;
@@ -52,13 +52,13 @@ public class Benchmark {
    * Returns whether performance tests are enabled.
    */
   public static boolean enabled() {
-    return LOGGER.isLoggable(Level.FINE);
+    return LOGGER.isDebugEnabled();
   }
 
   static long printDuration(String desc, long t0) {
     final long t1 = System.nanoTime();
     final long duration = t1 - t0;
-    LOGGER.finer(desc + " took " + duration + " nanos");
+    LOGGER.debug("{} took {} nanos", desc, duration);
     return duration;
   }
 
@@ -88,7 +88,7 @@ public class Benchmark {
     }
 
     private void printDurations() {
-      if (!LOGGER.isLoggable(Level.FINE)) {
+      if (!LOGGER.isDebugEnabled()) {
         return;
       }
 
@@ -120,14 +120,13 @@ public class Benchmark {
       }
       final double stddev = Math.sqrt(y / count);
       if (durations.size() == 0) {
-        LOGGER.fine(MessageFormat.format("{0}: {1}", desc, "no runs"));
+        LOGGER.debug("{}: {}", desc, "no runs");
       } else {
-        LOGGER.fine(
-            MessageFormat.format(
-                "{0}: {1} first; {2} +- {3}; {4} min; {5} max; {6} nanos",
+        LOGGER.debug(
+                "{}: {} first; {} +- {}; {} min; {} max; {} nanos",
                 desc,
                 durations.get(0), avg, stddev, coreDurations.get(0),
-                Util.last(coreDurations), durationsString));
+                Util.last(coreDurations), durationsString);
       }
     }
   }

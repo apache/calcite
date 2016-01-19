@@ -18,7 +18,8 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.util.CalciteValidatorException;
 
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // NOTE:  This class gets compiled independently of everything else so that
 // resource generation can use reflection.  That means it must have no
@@ -36,7 +37,7 @@ public class SqlValidatorException extends Exception
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER =
-      Logger.getLogger("org.apache.calcite.runtime.CalciteException");
+      LoggerFactory.getLogger("org.apache.calcite.runtime.CalciteException");
 
   static final long serialVersionUID = -831683113957131387L;
 
@@ -54,8 +55,8 @@ public class SqlValidatorException extends Exception
     super(message, cause);
 
     // TODO: see note in CalciteException constructor
-    LOGGER.throwing("SqlValidatorException", "constructor", this);
-    LOGGER.severe(toString());
+    LOGGER.trace("SqlValidatorException", this);
+    LOGGER.error(toString());
   }
 }
 

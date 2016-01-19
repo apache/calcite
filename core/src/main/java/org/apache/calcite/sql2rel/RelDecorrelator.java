@@ -97,6 +97,8 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 
+import org.slf4j.Logger;
+
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -112,8 +114,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * RelDecorrelator replaces all correlated expressions (corExp) in a relational
@@ -199,8 +199,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
 
-    if (SQL2REL_LOGGER.isLoggable(Level.FINE)) {
-      SQL2REL_LOGGER.fine(
+    if (SQL2REL_LOGGER.isDebugEnabled()) {
+      SQL2REL_LOGGER.debug(
           RelOptUtil.dumpPlan(
               "Plan after removing Correlator",
               newRootRel,
@@ -1741,9 +1741,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         final RelMetadataQuery mq = RelMetadataQuery.instance();
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, right,
             rightJoinKeys)) {
-          SQL2REL_LOGGER.fine(rightJoinKeys.toString()
-              + "are not unique keys for "
-              + right.toString());
+          SQL2REL_LOGGER.debug("{} are not unique keys for {}",
+              rightJoinKeys.toString(), right.toString());
           return;
         }
 
@@ -1956,9 +1955,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         final RelMetadataQuery mq = RelMetadataQuery.instance();
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, left,
             correlatedInputRefJoinKeys)) {
-          SQL2REL_LOGGER.fine(correlatedJoinKeys.toString()
-              + "are not unique keys for "
-              + left.toString());
+          SQL2REL_LOGGER.debug("{} are not unique keys for {}",
+              correlatedJoinKeys.toString(), left.toString());
           return;
         }
 
@@ -2034,7 +2032,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         // fields
         final RelMetadataQuery mq = RelMetadataQuery.instance();
         if (!RelMdUtil.areColumnsDefinitelyUnique(mq, left, allCols)) {
-          SQL2REL_LOGGER.fine("There are no unique keys for " + left);
+          SQL2REL_LOGGER.debug("There are no unique keys for {}", left);
           return;
         }
         //

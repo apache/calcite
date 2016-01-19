@@ -59,11 +59,11 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.slf4j.Logger;
+
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Abstract base for classes that implement
@@ -151,11 +151,8 @@ public abstract class Prepare {
     }
 
     final RelNode rootRel4 = program.run(planner, root.rel, desiredTraits);
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine(
-          "Plan after physical tweaks: "
-          + RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
-    }
+    LOGGER.debug("Plan after physical tweaks: {}",
+        RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
 
     return root.withRel(rootRel4);
   }

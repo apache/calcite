@@ -27,6 +27,8 @@ import org.apache.calcite.util.trace.CalciteLogger;
 
 import com.google.common.base.Throwables;
 
+import org.slf4j.LoggerFactory;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -39,7 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * Pretty printer for SQL statements.
@@ -122,7 +123,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   protected static final CalciteLogger LOGGER =
       new CalciteLogger(
-          Logger.getLogger("org.apache.calcite.sql.pretty.SqlPrettyWriter"));
+          LoggerFactory.getLogger("org.apache.calcite.sql.pretty.SqlPrettyWriter"));
 
   /**
    * Bean holding the default property values.
@@ -870,7 +871,7 @@ public class SqlPrettyWriter implements SqlWriter {
     if (result) {
       nextWhitespace = NL;
     }
-    LOGGER.finest("Token is '" + s + "'; result is " + result);
+    LOGGER.trace("Token is '{}'; result is {}", s, result);
     return result;
   }
 

@@ -106,7 +106,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -808,12 +807,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           injectImportanceBoost();
         }
 
-        if (LOGGER.isLoggable(Level.FINE)) {
-          LOGGER.fine("PLANNER = " + this
-              + "; TICK = " + cumulativeTicks + "/" + tick
-              + "; PHASE = " + phase.toString()
-              + "; COST = " + root.bestCost);
-        }
+        LOGGER.debug("PLANNER = {}; TICK = {}/{}; PHASE = {}; COST = {}",
+            this, cumulativeTicks, tick, phase.toString(), root.bestCost);
 
         VolcanoRuleMatch match = ruleQueue.popMatch(phase);
         if (match == null) {
@@ -830,21 +825,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
       ruleQueue.phaseCompleted(phase);
     }
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isTraceEnabled()) {
       StringWriter sw = new StringWriter();
       final PrintWriter pw = new PrintWriter(sw);
       dump(pw);
       pw.flush();
-      LOGGER.finer(sw.toString());
+      LOGGER.trace(sw.toString());
     }
     RelNode cheapest = root.buildCheapestPlan(this);
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine(
-          "Cheapest plan:\n"
-          + RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Cheapest plan:\n{}", RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
 
-      LOGGER.fine("Provenance:\n"
-          + provenance(cheapest));
+      LOGGER.debug("Provenance:\n{}", provenance(cheapest));
     }
     return cheapest;
   }
@@ -1031,7 +1024,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     final RelSubset subset = registerImpl(rel, set);
 
-    if (LOGGER.isLoggable(Level.FINE)) {
+    if (LOGGER.isDebugEnabled()) {
       validate();
     }
 
@@ -1424,9 +1417,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       final RelNode removed = mapDigestToRel.remove(oldKey);
       assert removed == rel;
       final String newDigest = rel.recomputeDigest();
-      LOGGER.finer(
-          "Rename #" + rel.getId() + " from '" + oldDigest
-          + "' to '" + newDigest + "'");
+      LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
       final Pair<String, RelDataType> key = key(rel);
       final RelNode equivRel = mapDigestToRel.put(key, rel);
       if (equivRel != null) {
@@ -1434,9 +1425,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
         // There's already an equivalent with the same name, and we
         // just knocked it out. Put it back, and forget about 'rel'.
-        LOGGER.finer(
-            "After renaming rel#" + rel.getId()
-            + ", it is now equivalent to rel#" + equivRel.getId());
+        LOGGER.trace("After renaming rel#{} it is now equivalent to rel#{}",
+            rel.getId(), equivRel.getId());
         mapDigestToRel.put(key, equivRel);
 
         RelSubset equivRelSubset = getSubset(equivRel);
@@ -1703,11 +1693,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           Litmus.THROW);
       RelSet equivSet = getSet(equivExp);
       if (equivSet != null) {
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.finer(
-              "Register: rel#" + rel.getId()
-              + " is equivalent to " + equivExp.getDescription());
-        }
+        LOGGER.trace(
+            "Register: rel#{} is equivalent to {}", rel.getId(), equivExp.getDescription());
         return registerSubset(set, getSubset(equivExp));
       }
     }
@@ -1719,11 +1706,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if ((set != null)
           && (set != childSet)
           && (set.equivalentSet == null)) {
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.finer(
-              "Register #" + rel.getId() + " " + rel.getDigest()
-              + " (and merge sets, because it is a conversion)");
-        }
+        LOGGER.trace(
+            "Register #{} {} (and merge sets, because it is a conversion)",
+            rel.getId(), rel.getDigest());
         merge(set, childSet);
         registerCount++;
 
@@ -1778,11 +1763,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final RelNode xx = mapDigestToRel.put(key, rel);
     assert xx == null || xx == rel : rel.getDigest();
 
-    if (LOGGER.isLoggable(Level.FINER)) {
-      LOGGER.finer(
-          "Register " + rel.getDescription()
-          + " in " + subset.getDescription());
-    }
+    LOGGER.trace("Register {} in {}", rel.getDescription(), subset.getDescription());
 
     // This relational expression may have been registered while we
     // recursively registered its children. If this is the case, we're done.
@@ -1852,8 +1833,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if ((set != subset.set)
         && (set != null)
         && (set.equivalentSet == null)) {
-      LOGGER.finer("Register #" + subset.getId() + " " + subset
-          + ", and merge sets");
+      LOGGER.trace("Register #{} {}, and merge sets", subset.getId(), subset);
       merge(set, subset.set);
       registerCount++;
     }

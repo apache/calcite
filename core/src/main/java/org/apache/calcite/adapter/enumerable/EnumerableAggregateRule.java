@@ -47,7 +47,7 @@ class EnumerableAggregateRule extends ConverterRule {
           agg.getGroupSets(),
           agg.getAggCallList());
     } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.fine(e.toString());
+      EnumerableRules.LOGGER.debug(e.toString());
       return null;
     }
   }

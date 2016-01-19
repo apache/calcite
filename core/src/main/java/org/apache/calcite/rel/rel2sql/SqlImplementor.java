@@ -66,6 +66,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -76,14 +79,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * State for generating a SQL statement.
  */
 public abstract class SqlImplementor {
   private static final Logger LOGGER =
-      Logger.getLogger(SqlImplementor.class.getName());
+      LoggerFactory.getLogger(SqlImplementor.class);
 
   public static final SqlParserPos POS = SqlParserPos.ZERO;
 
@@ -168,8 +170,8 @@ public abstract class SqlImplementor {
       break;
 
     default:
-      LOGGER.fine("SINGLE_VALUE rewrite not supported for "
-          + sqlDialect.getDatabaseProduct());
+      LOGGER.debug("SINGLE_VALUE rewrite not supported for {}",
+          sqlDialect.getDatabaseProduct());
       return aggCall;
     }
 
@@ -184,7 +186,7 @@ public abstract class SqlImplementor {
     SqlNode caseExpr =
         new SqlCase(POS, caseOperand, whenList, thenList, elseExpr);
 
-    LOGGER.fine("SINGLE_VALUE rewritten into [" + caseExpr + "]");
+    LOGGER.debug("SINGLE_VALUE rewritten into [{}]", caseExpr);
 
     return caseExpr;
   }

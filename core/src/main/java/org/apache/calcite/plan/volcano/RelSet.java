@@ -28,11 +28,12 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
@@ -232,7 +233,7 @@ class RelSet {
     assert this != otherSet;
     assert this.equivalentSet == null;
     assert otherSet.equivalentSet == null;
-    LOGGER.finer("Merge set#" + otherSet.id + " into set#" + id);
+    LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
 
     // remove from table

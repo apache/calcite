@@ -18,12 +18,12 @@ package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -39,7 +39,7 @@ import javax.servlet.http.HttpServletResponse;
  * {@link #setServerRpcMetadata(org.apache.calcite.avatica.remote.Service.RpcMetadataResponse)}.
  */
 public class DelegatingAvaticaHandler implements AvaticaHandler {
-  private static final Log LOG = LogFactory.getLog(DelegatingAvaticaHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DelegatingAvaticaHandler.class);
 
   private final Handler handler;
 

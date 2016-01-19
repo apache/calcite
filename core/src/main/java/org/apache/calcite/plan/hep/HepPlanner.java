@@ -58,7 +58,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
@@ -222,17 +221,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   void executeInstruction(
       HepInstruction.MatchLimit instruction) {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("Setting match limit to " + instruction.limit);
-    }
+    LOGGER.trace("Setting match limit to {}", instruction.limit);
     currentProgram.matchLimit = instruction.limit;
   }
 
   void executeInstruction(
       HepInstruction.MatchOrder instruction) {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("Setting match limit to " + instruction.order);
-    }
+    LOGGER.trace("Setting match limit to {}", instruction.order);
     currentProgram.matchOrder = instruction.order;
   }
 
@@ -245,11 +240,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       assert instruction.ruleDescription != null;
       instruction.rule =
           getRuleByDescription(instruction.ruleDescription);
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.finest("Looking up rule with description "
-            + instruction.ruleDescription
-            + ", found " + instruction.rule);
-      }
+      LOGGER.trace("Looking up rule with description {}, found {}",
+          instruction.ruleDescription, instruction.rule);
     }
     if (instruction.rule != null) {
       applyRules(
@@ -263,9 +255,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (skippingGroup()) {
       return;
     }
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("Applying rule class " + instruction.ruleClass);
-    }
+    LOGGER.trace("Applying rule class {}", instruction.ruleClass);
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<>();
       for (RelOptRule rule : allRules) {
@@ -336,7 +326,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   void executeInstruction(
       HepInstruction.Subprogram instruction) {
-    LOGGER.finest("Entering subprogram");
+    LOGGER.trace("Entering subprogram");
     for (;;) {
       int nTransformationsBefore = nTransformations;
       executeProgram(instruction.subprogram);
@@ -345,14 +335,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
         break;
       }
     }
-    LOGGER.finest("Leaving subprogram");
+    LOGGER.trace("Leaving subprogram");
   }
 
   void executeInstruction(
       HepInstruction.BeginGroup instruction) {
     assert currentProgram.group == null;
     currentProgram.group = instruction.endGroup;
-    LOGGER.finest("Entering group");
+    LOGGER.trace("Entering group");
   }
 
   void executeInstruction(
@@ -361,7 +351,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     currentProgram.group = null;
     instruction.collecting = false;
     applyRules(instruction.ruleSet, true);
-    LOGGER.finest("Leaving group");
+    LOGGER.trace("Leaving group");
   }
 
   private void applyRules(
@@ -373,9 +363,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("Applying rule set " + rules);
-    }
+    LOGGER.trace("Applying rule set {}", rules);
 
     boolean fullRestartAfterTransformation =
         currentProgram.matchOrder != HepMatchOrder.ARBITRARY;
@@ -651,10 +639,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
       final RelMetadataQuery mq = RelMetadataQuery.instance();
       for (RelNode rel : call.getResults()) {
         RelOptCost thisCost = getCost(rel, mq);
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.finer("considering " + rel
-              + " with cumulative cost=" + thisCost
-              + " and rowcount=" + mq.getRowCount(rel));
+        if (LOGGER.isTraceEnabled()) {
+          // Keep in the isTraceEnabled for the getRowCount method call
+          LOGGER.trace("considering {} with cumulative cost={} and rowcount={}",
+              rel, thisCost, mq.getRowCount(rel));
         }
         if ((bestRel == null) || thisCost.isLt(bestCost)) {
           bestRel = rel;
@@ -892,7 +880,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
     nTransformationsLastGC = nTransformations;
 
-    LOGGER.finest("collecting garbage");
+    LOGGER.trace("collecting garbage");
 
     // Yer basic mark-and-sweep.
     final Set<HepRelVertex> rootSet = new HashSet<>();
@@ -942,7 +930,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   private void dumpGraph() {
-    if (!LOGGER.isLoggable(Level.FINER)) {
+    if (!LOGGER.isTraceEnabled()) {
       return;
     }
 
@@ -964,7 +952,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
           .append('\n');
     }
     sb.append("}");
-    LOGGER.finer(sb.toString());
+    LOGGER.trace(sb.toString());
   }
 
   // implement RelOptPlanner

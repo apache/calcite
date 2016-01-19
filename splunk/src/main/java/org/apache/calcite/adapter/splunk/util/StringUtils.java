@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.adapter.splunk.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Utility methods for encoding and decoding strings for Splunk REST calls.
@@ -150,7 +152,7 @@ public class StringUtils {
   }
 
   public static Logger getClassTracer(Class clazz) {
-    return Logger.getLogger(clazz.getName());
+    return LoggerFactory.getLogger(clazz);
   }
 }
 

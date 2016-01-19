@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 /**
  * Rules and relational operators for the

@@ -33,6 +33,8 @@ import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.slf4j.Logger;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -40,8 +42,6 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -541,13 +541,9 @@ public final class SqlParserUtil {
    * taking operator precedence and associativity into account.
    */
   public static SqlNode toTree(List<Object> list) {
-    if (LOGGER.isLoggable(Level.FINER)) {
-      LOGGER.finer("Attempting to reduce " + list);
-    }
+    LOGGER.trace("Attempting to reduce {}", list);
     final SqlNode node = toTreeEx(list, 0, 0, SqlKind.OTHER);
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine("Reduced " + node);
-    }
+    LOGGER.debug("Reduced {}", node);
     return node;
   }
 
@@ -647,9 +643,7 @@ public final class SqlParserUtil {
                     new SqlNode[]{leftExp, rightExp});
             final SqlCall newExp =
                 current.createCall(callPos, leftExp, rightExp);
-            if (LOGGER.isLoggable(Level.FINE)) {
-              LOGGER.fine("Reduced infix: " + newExp);
-            }
+            LOGGER.debug("Reduced infix: {}", newExp);
 
             // Replace elements {i - 1, i, i + 1} with the new
             // expression.
@@ -681,9 +675,7 @@ public final class SqlParserUtil {
                 currentPos.plusAll(new SqlNode[]{leftExp});
             final SqlCall newExp =
                 current.createCall(callPos, leftExp);
-            if (LOGGER.isLoggable(Level.FINE)) {
-              LOGGER.fine("Reduced postfix: " + newExp);
-            }
+            LOGGER.debug("Reduced postfix: {}", newExp);
 
             // Replace elements {i - 1, i} with the new expression.
             list.remove(i);
@@ -733,9 +725,7 @@ public final class SqlParserUtil {
           }
           if ((previousRight < left) && (right >= nextLeft)) {
             i = specOp.reduceExpr(i, list);
-            if (LOGGER.isLoggable(Level.FINE)) {
-              LOGGER.fine("Reduced special op: " + list.get(i));
-            }
+            LOGGER.debug("Reduced special op: {}", list.get(i));
             break;
           }
           i = nextOrdinal;

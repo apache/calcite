@@ -25,8 +25,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.slf4j.Logger;
+
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
