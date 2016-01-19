@@ -159,6 +159,12 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     return "{1} {0} {2} AND {3}";
   }
 
+  @Override public String getName() {
+    return super.getName()
+        + " "
+        + flag.name();
+  }
+
   public void unparse(
       SqlWriter writer,
       SqlCall call,
@@ -167,7 +173,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     final SqlWriter.Frame frame =
         writer.startList(FRAME_TYPE, "", "");
     call.operand(VALUE_OPERAND).unparse(writer, getLeftPrec(), 0);
-    writer.sep(getName());
+    writer.sep(super.getName());
     writer.sep(flag.name());
 
     // If the expression for the lower bound contains a call to an AND
