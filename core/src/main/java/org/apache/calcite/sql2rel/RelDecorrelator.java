@@ -65,6 +65,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlKind;
@@ -202,11 +203,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug(
-          RelOptUtil.dumpPlan(
-              "Plan after removing Correlator",
-              newRootRel,
-              false,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+          RelOptUtil.dumpPlan("Plan after removing Correlator", newRootRel,
+              SqlExplainFormat.TEXT, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
 
     if (!decorrelator.cm.mapCorVarToCorRel.isEmpty()) {

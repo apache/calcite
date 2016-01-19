@@ -110,6 +110,7 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -1169,10 +1170,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataType resultType,
         RelDataType parameterRowType,
         RelRoot root,
-        boolean explainAsXml,
+        SqlExplainFormat format,
         SqlExplainLevel detailLevel) {
-      return new CalcitePreparedExplain(
-          resultType, parameterRowType, root, explainAsXml, detailLevel);
+      return new CalcitePreparedExplain(resultType, parameterRowType, root,
+          format, detailLevel);
     }
 
     @Override protected PreparedResult implement(RelRoot root) {
@@ -1257,9 +1258,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataType resultType,
         RelDataType parameterRowType,
         RelRoot root,
-        boolean explainAsXml,
+        SqlExplainFormat format,
         SqlExplainLevel detailLevel) {
-      super(resultType, parameterRowType, root, explainAsXml, detailLevel);
+      super(resultType, parameterRowType, root, format, detailLevel);
     }
 
     public Bindable getBindable() {

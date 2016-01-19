@@ -52,6 +52,7 @@ explain:
       EXPLAIN PLAN
       [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
       [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
+      [ AS JSON | AS XML ]
       FOR ( query | insert | update | merge | delete )
 
 describe:
@@ -450,6 +451,7 @@ INVOKER,
 ISOLATION,
 JAVA,
 **JOIN**,
+JSON,
 K,
 KEY,
 KEY_MEMBER,

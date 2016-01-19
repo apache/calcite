@@ -39,11 +39,9 @@ public class RelJsonWriter implements RelWriter {
 
   private final JsonBuilder jsonBuilder;
   private final RelJson relJson;
-  private final Map<RelNode, String> relIdMap =
-      new IdentityHashMap<RelNode, String>();
+  private final Map<RelNode, String> relIdMap = new IdentityHashMap<>();
   private final List<Object> relList;
-  private final List<Pair<String, Object>> values =
-      new ArrayList<Pair<String, Object>>();
+  private final List<Pair<String, Object>> values = new ArrayList<>();
   private String previousId;
 
   //~ Constructors -------------------------------------------------------------
@@ -122,7 +120,7 @@ public class RelJsonWriter implements RelWriter {
         return (List<Object>) value.right;
       }
     }
-    final List<Object> list = new ArrayList<Object>();
+    final List<Object> list = new ArrayList<>();
     values.add(Pair.of(tag, (Object) list));
     return list;
   }

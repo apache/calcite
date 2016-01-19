@@ -2904,11 +2904,30 @@ public class SqlParserTest {
   }
 
   @Test public void testExplain() {
-    check(
-        "explain plan for select * from emps",
-        "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-            + "SELECT *\n"
-            + "FROM `EMPS`");
+    final String sql = "explain plan for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testExplainAsXml() {
+    final String sql = "explain plan as xml for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION AS XML FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testExplainAsJson() {
+    final String sql = "explain plan as json for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION AS JSON FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
   }
 
   @Test public void testExplainWithImpl() {

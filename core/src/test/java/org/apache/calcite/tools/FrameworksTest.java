@@ -40,6 +40,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -114,7 +115,8 @@ public class FrameworksTest {
           }
         });
     String s =
-        RelOptUtil.dumpPlan("", x, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
+        RelOptUtil.dumpPlan("", x, SqlExplainFormat.TEXT,
+            SqlExplainLevel.DIGEST_ATTRIBUTES);
     assertThat(Util.toLinux(s),
         equalTo("EnumerableFilter(condition=[>($1, 1)])\n"
             + "  EnumerableTableScan(table=[[myTable]])\n"));

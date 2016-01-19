@@ -40,6 +40,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlExplain;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -109,7 +110,7 @@ public abstract class Prepare {
       RelDataType resultType,
       RelDataType parameterRowType,
       RelRoot root,
-      boolean explainAsXml,
+      SqlExplainFormat format,
       SqlExplainLevel detailLevel);
 
   /**
@@ -243,15 +244,15 @@ public abstract class Prepare {
     // storage and decorrelation
     if (sqlExplain != null) {
       SqlExplain.Depth explainDepth = sqlExplain.getDepth();
-      boolean explainAsXml = sqlExplain.isXml();
+      SqlExplainFormat format = sqlExplain.getFormat();
       SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
       switch (explainDepth) {
       case TYPE:
-        return createPreparedExplanation(
-            resultType, parameterRowType, null, explainAsXml, detailLevel);
+        return createPreparedExplanation(resultType, parameterRowType, null,
+            format, detailLevel);
       case LOGICAL:
-        return createPreparedExplanation(
-            null, parameterRowType, root, explainAsXml, detailLevel);
+        return createPreparedExplanation(null, parameterRowType, root, format,
+            detailLevel);
       default:
       }
     }
@@ -272,15 +273,12 @@ public abstract class Prepare {
 
     // Display physical plan after decorrelation.
     if (sqlExplain != null) {
-      SqlExplain.Depth explainDepth = sqlExplain.getDepth();
-      boolean explainAsXml = sqlExplain.isXml();
-      SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
-      switch (explainDepth) {
+      switch (sqlExplain.getDepth()) {
       case PHYSICAL:
       default:
         root = optimize(root, getMaterializations(), getLattices());
-        return createPreparedExplanation(
-            null, parameterRowType, root, explainAsXml, detailLevel);
+        return createPreparedExplanation(null, parameterRowType, root,
+            sqlExplain.getFormat(), sqlExplain.getDetailLevel());
       }
     }
 
@@ -403,19 +401,19 @@ public abstract class Prepare {
     private final RelDataType rowType;
     private final RelDataType parameterRowType;
     private final RelRoot root;
-    private final boolean asXml;
+    private final SqlExplainFormat format;
     private final SqlExplainLevel detailLevel;
 
     public PreparedExplain(
         RelDataType rowType,
         RelDataType parameterRowType,
         RelRoot root,
-        boolean asXml,
+        SqlExplainFormat format,
         SqlExplainLevel detailLevel) {
       this.rowType = rowType;
       this.parameterRowType = parameterRowType;
       this.root = root;
-      this.asXml = asXml;
+      this.format = format;
       this.detailLevel = detailLevel;
     }
 
@@ -423,7 +421,7 @@ public abstract class Prepare {
       if (root == null) {
         return RelOptUtil.dumpType(rowType);
       } else {
-        return RelOptUtil.dumpPlan("", root.rel, asXml, detailLevel);
+        return RelOptUtil.dumpPlan("", root.rel, format, detailLevel);
       }
     }
 

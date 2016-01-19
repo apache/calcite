@@ -57,7 +57,7 @@ public class SqlExplain extends SqlCall {
   SqlNode explicandum;
   SqlLiteral detailLevel;
   SqlLiteral depth;
-  SqlLiteral asXml;
+  SqlLiteral format;
   private final int dynamicParameterCount;
 
   //~ Constructors -----------------------------------------------------------
@@ -66,13 +66,13 @@ public class SqlExplain extends SqlCall {
       SqlNode explicandum,
       SqlLiteral detailLevel,
       SqlLiteral depth,
-      SqlLiteral asXml,
+      SqlLiteral format,
       int dynamicParameterCount) {
     super(pos);
     this.explicandum = explicandum;
     this.detailLevel = detailLevel;
     this.depth = depth;
-    this.asXml = asXml;
+    this.format = format;
     this.dynamicParameterCount = dynamicParameterCount;
   }
 
@@ -87,7 +87,7 @@ public class SqlExplain extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(explicandum, detailLevel, depth, asXml);
+    return ImmutableNullableList.of(explicandum, detailLevel, depth, format);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {
@@ -102,7 +102,7 @@ public class SqlExplain extends SqlCall {
       depth = (SqlLiteral) operand;
       break;
     case 3:
-      asXml = (SqlLiteral) operand;
+      format = (SqlLiteral) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -152,10 +152,27 @@ public class SqlExplain extends SqlCall {
   }
 
   /**
-   * Returns whether result is to be in XML format.
+   * Returns the desired output format.
    */
+  public SqlExplainFormat getFormat() {
+    return format.symbolValue(SqlExplainFormat.class);
+  }
+
+  /**
+   * Returns whether result is to be in XML format.
+   *
+   * @deprecated Use {@link #getFormat()}
+   */
+  @Deprecated // to be removed before 2.0
   public boolean isXml() {
-    return asXml.booleanValue();
+    return getFormat() == SqlExplainFormat.XML;
+  }
+
+  /**
+   * Returns whether result is to be in JSON format.
+   */
+  public boolean isJson() {
+    return getFormat() == SqlExplainFormat.XML;
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -184,8 +201,14 @@ public class SqlExplain extends SqlCall {
     default:
       throw new UnsupportedOperationException();
     }
-    if (isXml()) {
+    switch (getFormat()) {
+    case XML:
       writer.keyword("AS XML");
+      break;
+    case JSON:
+      writer.keyword("AS JSON");
+      break;
+    default:
     }
     writer.keyword("FOR");
     writer.newlineAndIndent();

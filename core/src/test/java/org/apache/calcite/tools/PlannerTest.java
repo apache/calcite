@@ -55,6 +55,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -155,7 +156,7 @@ public class PlannerTest {
 
   private String toString(RelNode rel) {
     return Util.toLinux(
-        RelOptUtil.dumpPlan("", rel, false,
+        RelOptUtil.dumpPlan("", rel, SqlExplainFormat.TEXT,
             SqlExplainLevel.DIGEST_ATTRIBUTES));
   }
 

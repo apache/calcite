@@ -52,6 +52,7 @@ import org.apache.calcite.sql.SqlDescribeSchema;
 import org.apache.calcite.sql.SqlDescribeTable;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -1055,18 +1056,18 @@ SqlNode SqlExplain() :
     SqlExplainLevel detailLevel = SqlExplainLevel.EXPPLAN_ATTRIBUTES;
     SqlExplain.Depth depth;
     SqlParserPos pos;
-    boolean asXml;
+    final SqlExplainFormat format;
 }
 {
     <EXPLAIN> <PLAN>
     [ detailLevel = ExplainDetailLevel() ]
     depth = ExplainDepth()
     (
-        <AS> <XML> { asXml = true; }
-        |
-        {
-            asXml = false;
-        }
+        <AS> <XML> { format = SqlExplainFormat.XML; }
+    |
+        <AS> <JSON> { format = SqlExplainFormat.JSON; }
+    |
+        { format = SqlExplainFormat.TEXT; }
     )
     <FOR> stmt = SqlQueryOrDml() {
         pos = getPos();
@@ -1074,7 +1075,7 @@ SqlNode SqlExplain() :
             stmt,
             detailLevel.symbol(SqlParserPos.ZERO),
             depth.symbol(SqlParserPos.ZERO),
-            SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
+            format.symbol(SqlParserPos.ZERO),
             nDynamicParams);
     }
 }
@@ -1196,12 +1197,12 @@ SqlNode SqlDescribe() :
             //   [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
             final SqlExplainLevel detailLevel = SqlExplainLevel.EXPPLAN_ATTRIBUTES;
             final SqlExplain.Depth depth = SqlExplain.Depth.PHYSICAL;
-            final boolean asXml = false;
+            final SqlExplainFormat format = SqlExplainFormat.TEXT;
             return new SqlExplain(pos,
                 stmt,
                 detailLevel.symbol(SqlParserPos.ZERO),
                 depth.symbol(SqlParserPos.ZERO),
-                SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
+                format.symbol(SqlParserPos.ZERO),
                 nDynamicParams);
         }
     )
@@ -5056,6 +5057,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < ISOLATION: "ISOLATION" >
     | < JAVA: "JAVA" >
     | < JOIN: "JOIN" >
+    | < JSON: "JSON" >
     | < K: "K" >
     | < KEY: "KEY" >
     | < KEY_MEMBER: "KEY_MEMBER" >
@@ -5494,6 +5496,7 @@ String CommonNonReservedKeyWord() :
         | <INVOKER>
         | <ISOLATION>
         | <JAVA>
+        | <JSON>
         | <K>
         | <KEY>
         | <KEY_MEMBER>

@@ -97,6 +97,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -511,11 +512,8 @@ public class SqlToRelConverter {
       }
       if (SQL2REL_LOGGER.isDebugEnabled()) {
         SQL2REL_LOGGER.debug(
-            RelOptUtil.dumpPlan(
-                "Plan after trimming unused fields",
-                rootRel,
-                false,
-                SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+            RelOptUtil.dumpPlan("Plan after trimming unused fields", rootRel,
+                SqlExplainFormat.TEXT, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
       }
     }
     return rootRel;
@@ -569,10 +567,8 @@ public class SqlToRelConverter {
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug(
-          RelOptUtil.dumpPlan(
-              "Plan after converting SqlNode to RelNode",
-              result,
-              false,
+          RelOptUtil.dumpPlan("Plan after converting SqlNode to RelNode",
+              result, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
 

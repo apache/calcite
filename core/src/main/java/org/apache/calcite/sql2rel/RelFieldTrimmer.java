@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.RelBuilder;
@@ -164,7 +165,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (SqlToRelConverter.SQL2REL_LOGGER.isDebugEnabled()) {
       SqlToRelConverter.SQL2REL_LOGGER.debug(
           RelOptUtil.dumpPlan("Plan after trimming unused fields",
-              trimResult.left, false, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+              trimResult.left, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
     return trimResult.left;
   }

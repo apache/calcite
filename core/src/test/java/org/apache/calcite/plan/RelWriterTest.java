@@ -27,6 +27,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -172,10 +173,7 @@ public class RelWriterTest {
                 } catch (IOException e) {
                   throw new RuntimeException(e);
                 }
-                return RelOptUtil.dumpPlan(
-                    "",
-                    node,
-                    false,
+                return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
                     SqlExplainLevel.EXPPLAN_ATTRIBUTES);
               }
             });

@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -68,6 +69,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -1728,16 +1730,16 @@ public abstract class RelOptUtil {
    * Dumps a plan as a string.
    *
    * @param header      Header to print before the plan. Ignored if the format
-   *                    is XML.
-   * @param rel         Relational expression to explain.
-   * @param asXml       Whether to format as XML.
-   * @param detailLevel Detail level.
+   *                    is XML
+   * @param rel         Relational expression to explain
+   * @param format      Output format
+   * @param detailLevel Detail level
    * @return Plan
    */
   public static String dumpPlan(
       String header,
       RelNode rel,
-      boolean asXml,
+      SqlExplainFormat format,
       SqlExplainLevel detailLevel) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -1745,14 +1747,30 @@ public abstract class RelOptUtil {
       pw.println(header);
     }
     RelWriter planWriter;
-    if (asXml) {
+    switch (format) {
+    case XML:
       planWriter = new RelXmlWriter(pw, detailLevel);
-    } else {
+      break;
+    case JSON:
+      planWriter = new RelJsonWriter();
+      rel.explain(planWriter);
+      return ((RelJsonWriter) planWriter).asString();
+    default:
       planWriter = new RelWriterImpl(pw, detailLevel, false);
     }
     rel.explain(planWriter);
     pw.flush();
     return sw.toString();
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static String dumpPlan(
+      String header,
+      RelNode rel,
+      boolean asXml,
+      SqlExplainLevel detailLevel) {
+    return dumpPlan(header, rel,
+        asXml ? SqlExplainFormat.XML : SqlExplainFormat.TEXT, detailLevel);
   }
 
   /**

@@ -5477,6 +5477,44 @@ public class JdbcTest {
         CalciteAssert.that().with(CalciteAssert.Config.FOODMART_CLONE);
     with.query("explain plan for values (1, 'ab')")
         .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
+    final String expectedXml = "PLAN=<RelNode type=\"EnumerableValues\">\n"
+        + "\t<Property name=\"tuples\">\n"
+        + "\t\t[{ 1, &#39;ab&#39; }]\t</Property>\n"
+        + "\t<Inputs/>\n"
+        + "</RelNode>\n"
+        + "\n";
+    with.query("explain plan as xml for values (1, 'ab')")
+        .returns(expectedXml);
+    final String expectedJson = "PLAN={\n"
+        + "  \"rels\": [\n"
+        + "    {\n"
+        + "      \"id\": \"0\",\n"
+        + "      \"relOp\": \"org.apache.calcite.adapter.enumerable.EnumerableValues\",\n"
+        + "      \"type\": [\n"
+        + "        {\n"
+        + "          \"type\": \"INTEGER\",\n"
+        + "          \"nullable\": false,\n"
+        + "          \"name\": \"EXPR$0\"\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"type\": \"CHAR\",\n"
+        + "          \"nullable\": false,\n"
+        + "          \"precision\": 2,\n"
+        + "          \"name\": \"EXPR$1\"\n"
+        + "        }\n"
+        + "      ],\n"
+        + "      \"tuples\": [\n"
+        + "        [\n"
+        + "          1,\n"
+        + "          \"ab\"\n"
+        + "        ]\n"
+        + "      ],\n"
+        + "      \"inputs\": []\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}\n";
+    with.query("explain plan as json for values (1, 'ab')")
+        .returns(expectedJson);
     with.query("explain plan with implementation for values (1, 'ab')")
         .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
     with.query("explain plan without implementation for values (1, 'ab')")
