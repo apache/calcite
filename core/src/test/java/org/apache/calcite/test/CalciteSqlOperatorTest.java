@@ -16,10 +16,21 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlOperatorBaseTest;
 import org.apache.calcite.sql.test.SqlTester;
 
+import org.junit.Test;
+
 import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Embodiment of {@link org.apache.calcite.sql.test.SqlOperatorBaseTest}
@@ -44,6 +55,30 @@ public class CalciteSqlOperatorTest extends SqlOperatorBaseTest {
 
   public CalciteSqlOperatorTest() {
     super(false, getHrTester());
+  }
+
+  @Test public void testSqlOperatorOverloading() {
+    final SqlStdOperatorTable operatorTable = SqlStdOperatorTable.instance();
+    for (SqlOperator sqlOperator : operatorTable.getOperatorList()) {
+      String operatorName = sqlOperator.getName();
+      List<SqlOperator> routines = new ArrayList<>();
+      operatorTable.lookupOperatorOverloads(
+        new SqlIdentifier(operatorName, SqlParserPos.ZERO),
+        null,
+        sqlOperator.getSyntax(),
+        routines);
+
+      Iterator<SqlOperator> iter = routines.iterator();
+      while (iter.hasNext()) {
+        SqlOperator operator = iter.next();
+        if (!sqlOperator.getClass().isInstance(operator)) {
+          iter.remove();
+        }
+      }
+
+      assertEquals((String) null, routines.size(), 1);
+      assertEquals((String) null, sqlOperator, routines.get(0));
+    }
   }
 }
 
