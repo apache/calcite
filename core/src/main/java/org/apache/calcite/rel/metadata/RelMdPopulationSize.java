@@ -36,7 +36,8 @@ import java.util.List;
  * RelMdPopulationSize supplies a default implementation of
  * {@link RelMetadataQuery#getPopulationSize} for the standard logical algebra.
  */
-public class RelMdPopulationSize {
+public class RelMdPopulationSize
+    implements MetadataHandler<BuiltInMetadata.PopulationSize> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
@@ -46,6 +47,10 @@ public class RelMdPopulationSize {
   private RelMdPopulationSize() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.PopulationSize> getDef() {
+    return BuiltInMetadata.PopulationSize.DEF;
+  }
 
   public Double getPopulationSize(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {

@@ -30,7 +30,8 @@ import org.apache.calcite.util.BuiltInMethod;
  * @see org.apache.calcite.rel.metadata.RelMetadataQuery#isPhaseTransition
  * @see org.apache.calcite.rel.metadata.RelMetadataQuery#splitCount
  */
-public class RelMdParallelism {
+public class RelMdParallelism
+    implements MetadataHandler<BuiltInMetadata.Parallelism> {
   /** Source for
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism}. */
   public static final RelMetadataProvider SOURCE =
@@ -43,6 +44,10 @@ public class RelMdParallelism {
   protected RelMdParallelism() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.Parallelism> getDef() {
+    return BuiltInMetadata.Parallelism.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Parallelism#isPhaseTransition()},

@@ -33,7 +33,8 @@ import java.util.List;
  * {@link RelMetadataQuery#getPercentageOriginalRows} for the standard logical
  * algebra.
  */
-public class RelMdPercentageOriginalRows {
+public class RelMdPercentageOriginalRows
+    implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
   private static final RelMdPercentageOriginalRows INSTANCE =
       new RelMdPercentageOriginalRows();
 
@@ -52,6 +53,10 @@ public class RelMdPercentageOriginalRows {
   //~ Methods ----------------------------------------------------------------
 
   private RelMdPercentageOriginalRows() {}
+
+  public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
+    return BuiltInMetadata.PercentageOriginalRows.DEF;
+  }
 
   public Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that

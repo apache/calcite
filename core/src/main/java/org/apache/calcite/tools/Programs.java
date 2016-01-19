@@ -102,11 +102,11 @@ public class Programs {
 
   /** Program that converts filters and projects to {@link Calc}s. */
   public static final Program CALC_PROGRAM =
-      calc(new DefaultRelMetadataProvider());
+      calc(DefaultRelMetadataProvider.INSTANCE);
 
   /** Program that expands sub-queries. */
   public static final Program SUB_QUERY_PROGRAM =
-      subquery(new DefaultRelMetadataProvider());
+      subquery(DefaultRelMetadataProvider.INSTANCE);
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
@@ -233,7 +233,7 @@ public class Programs {
               .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
               .build();
           final Program program1 =
-              of(hep, false, new DefaultRelMetadataProvider());
+              of(hep, false, DefaultRelMetadataProvider.INSTANCE);
 
           // Create a program that contains a rule to expand a MultiJoin
           // into heuristically ordered joins.
@@ -279,7 +279,7 @@ public class Programs {
 
   /** Returns the standard program used by Prepare. */
   public static Program standard() {
-    return standard(new DefaultRelMetadataProvider());
+    return standard(DefaultRelMetadataProvider.INSTANCE);
   }
 
   /** Returns the standard program with user metadata provider. */

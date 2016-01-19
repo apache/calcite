@@ -132,9 +132,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     assertTrue(relInitial != null);
 
     List<RelMetadataProvider> list = Lists.newArrayList();
-    DefaultRelMetadataProvider defaultProvider =
-        new DefaultRelMetadataProvider();
-    list.add(defaultProvider);
+    list.add(DefaultRelMetadataProvider.INSTANCE);
     planner.registerMetadataProviders(list);
     RelMetadataProvider plannerChain =
         ChainedRelMetadataProvider.of(list);

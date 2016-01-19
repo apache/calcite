@@ -18,6 +18,9 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
+import java.lang.reflect.Method;
+import java.util.Map;
+
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about
  * relational expressions. This interface is weakly-typed and is not intended to
@@ -26,6 +29,10 @@ import org.apache.calcite.rel.RelNode;
  *
  * <p>For background and motivation, see <a
  * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
+ *
+ * <p>If your provider is not a singleton, we recommend that you implement
+ * {@link Object#equals(Object)} and {@link Object#hashCode()} methods. This
+ * makes the cache of {@link JaninoRelMetadataProvider} more effective.
  */
 public interface RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
@@ -57,6 +64,9 @@ public interface RelMetadataProvider {
   <M extends Metadata> UnboundMetadata<M>
   apply(Class<? extends RelNode> relClass,
       Class<? extends M> metadataClass);
+
+  <M extends Metadata> Map<Method, MetadataHandler<M>>
+  handlers(MetadataDef<M> def);
 }
 
 // End RelMetadataProvider.java

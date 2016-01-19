@@ -77,6 +77,11 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  handlers(MetadataDef<M> def) {
+    return underlyingProvider.handlers(def);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** An entry in the cache. Consists of the cached object and the timestamp

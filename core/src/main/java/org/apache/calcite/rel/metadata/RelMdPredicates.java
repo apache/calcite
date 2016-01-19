@@ -115,11 +115,16 @@ import java.util.SortedMap;
  *   </ul>
  * </ol>
  */
-public class RelMdPredicates {
+public class RelMdPredicates
+    implements MetadataHandler<BuiltInMetadata.Predicates> {
   public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
       .reflectiveSource(BuiltInMethod.PREDICATES.method, new RelMdPredicates());
 
   private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
+
+  public MetadataDef<BuiltInMetadata.Predicates> getDef() {
+    return BuiltInMetadata.Predicates.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Predicates#getPredicates()},

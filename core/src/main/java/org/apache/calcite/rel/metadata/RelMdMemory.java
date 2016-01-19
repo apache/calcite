@@ -27,7 +27,7 @@ import org.apache.calcite.util.BuiltInMethod;
  * @see RelMetadataQuery#isPhaseTransition
  * @see RelMetadataQuery#splitCount
  */
-public class RelMdMemory {
+public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
   /** Source for
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory}. */
   public static final RelMetadataProvider SOURCE =
@@ -41,6 +41,10 @@ public class RelMdMemory {
   protected RelMdMemory() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.Memory> getDef() {
+    return BuiltInMetadata.Memory.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Memory#memory()},

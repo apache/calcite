@@ -45,7 +45,8 @@ import java.util.List;
  * {@link RelMetadataQuery#getDistinctRowCount} for the standard logical
  * algebra.
  */
-public class RelMdDistinctRowCount {
+public class RelMdDistinctRowCount
+    implements MetadataHandler<BuiltInMetadata.DistinctRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.DISTINCT_ROW_COUNT.method, new RelMdDistinctRowCount());
@@ -55,6 +56,10 @@ public class RelMdDistinctRowCount {
   protected RelMdDistinctRowCount() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.DistinctRowCount> getDef() {
+    return BuiltInMetadata.DistinctRowCount.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(ImmutableBitSet, RexNode)},

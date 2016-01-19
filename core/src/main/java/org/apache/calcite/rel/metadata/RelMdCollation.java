@@ -67,7 +67,8 @@ import java.util.TreeSet;
  * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#collations}
  * for the standard logical algebra.
  */
-public class RelMdCollation {
+public class RelMdCollation
+    implements MetadataHandler<BuiltInMetadata.Collation> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.COLLATIONS.method, new RelMdCollation());
@@ -77,6 +78,10 @@ public class RelMdCollation {
   private RelMdCollation() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.Collation> getDef() {
+    return BuiltInMetadata.Collation.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Collation#collations()},

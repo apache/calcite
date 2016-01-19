@@ -25,14 +25,20 @@ import com.google.common.collect.ImmutableList;
  * the methods declared in {@link RelMetadataQuery}.
  */
 public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
+  public static final DefaultRelMetadataProvider INSTANCE =
+      new DefaultRelMetadataProvider();
+
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a new default provider. This provider defines "catch-all"
    * handlers for generic RelNodes, so it should always be given lowest
    * priority when chaining.
+   *
+   * <p>Use this constructor only from a sub-class. Otherwise use the singleton
+   * instance, {@link #INSTANCE}.
    */
-  public DefaultRelMetadataProvider() {
+  protected DefaultRelMetadataProvider() {
     super(
         ImmutableList.of(
             RelMdPercentageOriginalRows.SOURCE,

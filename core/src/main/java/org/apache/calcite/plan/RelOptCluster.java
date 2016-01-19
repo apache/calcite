@@ -81,7 +81,7 @@ public class RelOptCluster {
 
     // set up a default rel metadata provider,
     // giving the planner first crack at everything
-    setMetadataProvider(new DefaultRelMetadataProvider());
+    setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
     this.emptyTraitSet = planner.emptyTraitSet();
     assert emptyTraitSet.size() == planner.getRelTraitDefs().size();
   }

@@ -18,9 +18,16 @@ package org.apache.calcite.plan.hep;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.MetadataDef;
+import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
+
+import com.google.common.collect.ImmutableMap;
+
+import java.lang.reflect.Method;
+import java.util.Map;
 
 /**
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
@@ -28,6 +35,14 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
  */
 class HepRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
+
+  @Override public boolean equals(Object obj) {
+    return obj instanceof HepRelMetadataProvider;
+  }
+
+  @Override public int hashCode() {
+    return 107;
+  }
 
   public <M extends Metadata> UnboundMetadata<M>
   apply(Class<? extends RelNode> relClass,
@@ -45,6 +60,11 @@ class HepRelMetadataProvider implements RelMetadataProvider {
         return function.bind(rel2, mq);
       }
     };
+  }
+
+  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  handlers(MetadataDef<M> def) {
+    return ImmutableMap.of();
   }
 }
 

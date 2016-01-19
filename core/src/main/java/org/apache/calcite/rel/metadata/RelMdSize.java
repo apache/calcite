@@ -56,7 +56,7 @@ import java.util.List;
  * @see RelMetadataQuery#getAverageColumnSizes
  * @see RelMetadataQuery#getAverageColumnSizesNotNull
  */
-public class RelMdSize {
+public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
   /** Source for
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size}. */
   public static final RelMetadataProvider SOURCE =
@@ -72,6 +72,10 @@ public class RelMdSize {
   protected RelMdSize() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.Size> getDef() {
+    return BuiltInMetadata.Size.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Size#averageRowSize()},

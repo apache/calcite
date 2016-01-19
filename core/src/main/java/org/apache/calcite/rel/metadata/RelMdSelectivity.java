@@ -38,7 +38,8 @@ import java.util.List;
  * RelMdSelectivity supplies a default implementation of
  * {@link RelMetadataQuery#getSelectivity} for the standard logical algebra.
  */
-public class RelMdSelectivity {
+public class RelMdSelectivity
+    implements MetadataHandler<BuiltInMetadata.Selectivity> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.SELECTIVITY.method, new RelMdSelectivity());
@@ -49,6 +50,10 @@ public class RelMdSelectivity {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.Selectivity> getDef() {
+    return BuiltInMetadata.Selectivity.DEF;
+  }
 
   public Double getSelectivity(Union rel, RelMetadataQuery mq,
       RexNode predicate) {

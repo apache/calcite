@@ -20,6 +20,7 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.InvocationHandler;
@@ -28,6 +29,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of the {@link RelMetadataProvider}
@@ -51,9 +53,20 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
   protected ChainedRelMetadataProvider(
       ImmutableList<RelMetadataProvider> providers) {
     this.providers = providers;
+    assert !providers.contains(this);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public boolean equals(Object obj) {
+    return obj == this
+        || obj instanceof ChainedRelMetadataProvider
+        && providers.equals(((ChainedRelMetadataProvider) obj).providers);
+  }
+
+  @Override public int hashCode() {
+    return providers.hashCode();
+  }
 
   public <M extends Metadata> UnboundMetadata<M>
   apply(Class<? extends RelNode> relClass,
@@ -89,6 +102,16 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
         }
       };
     }
+  }
+
+  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  handlers(MetadataDef<M> def) {
+    final ImmutableMap.Builder<Method, MetadataHandler<M>> builder =
+        ImmutableMap.builder();
+    for (RelMetadataProvider provider : providers.reverse()) {
+      builder.putAll(provider.handlers(def));
+    }
+    return builder.build();
   }
 
   /** Creates a chain. */

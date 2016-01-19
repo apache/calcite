@@ -38,12 +38,17 @@ import org.apache.calcite.util.Util;
  * RelMdMaxRowCount supplies a default implementation of
  * {@link RelMetadataQuery#getMaxRowCount} for the standard logical algebra.
  */
-public class RelMdMaxRowCount {
+public class RelMdMaxRowCount
+    implements MetadataHandler<BuiltInMetadata.MaxRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.MAX_ROW_COUNT.method, new RelMdMaxRowCount());
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.MaxRowCount> getDef() {
+    return BuiltInMetadata.MaxRowCount.DEF;
+  }
 
   public Double getMaxRowCount(Union rel, RelMetadataQuery mq) {
     double rowCount = 0.0;

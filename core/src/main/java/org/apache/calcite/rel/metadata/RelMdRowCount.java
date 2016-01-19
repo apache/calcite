@@ -44,12 +44,17 @@ import org.apache.calcite.util.Util;
  * RelMdRowCount supplies a default implementation of
  * {@link RelMetadataQuery#getRowCount} for the standard logical algebra.
  */
-public class RelMdRowCount {
+public class RelMdRowCount
+    implements MetadataHandler<BuiltInMetadata.RowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.ROW_COUNT.method, new RelMdRowCount());
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.RowCount> getDef() {
+    return BuiltInMetadata.RowCount.DEF;
+  }
 
   /** Catch-all implementation for
    * {@link BuiltInMetadata.RowCount#getRowCount()},

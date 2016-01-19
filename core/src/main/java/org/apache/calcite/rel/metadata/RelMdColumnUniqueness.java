@@ -55,7 +55,8 @@ import java.util.Set;
  * RelMdColumnUniqueness supplies a default implementation of
  * {@link RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
  */
-public class RelMdColumnUniqueness {
+public class RelMdColumnUniqueness
+    implements MetadataHandler<BuiltInMetadata.ColumnUniqueness> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
@@ -65,6 +66,10 @@ public class RelMdColumnUniqueness {
   private RelMdColumnUniqueness() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.ColumnUniqueness> getDef() {
+    return BuiltInMetadata.ColumnUniqueness.DEF;
+  }
 
   public Boolean areColumnsUnique(TableScan rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {

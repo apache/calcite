@@ -46,7 +46,8 @@ import java.util.List;
  * {@link RelMetadataQuery#distribution}
  * for the standard logical algebra.
  */
-public class RelMdDistribution {
+public class RelMdDistribution
+    implements MetadataHandler<BuiltInMetadata.Distribution> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.DISTRIBUTION.method, new RelMdDistribution());
@@ -56,6 +57,10 @@ public class RelMdDistribution {
   private RelMdDistribution() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.Distribution> getDef() {
+    return BuiltInMetadata.Distribution.DEF;
+  }
 
   /** Fallback method to deduce distribution for any relational expression not
    * handled by a more specific method.

@@ -43,7 +43,8 @@ import java.util.Set;
  * RelMdUniqueKeys supplies a default implementation of
  * {@link RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
  */
-public class RelMdUniqueKeys {
+public class RelMdUniqueKeys
+    implements MetadataHandler<BuiltInMetadata.UniqueKeys> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.UNIQUE_KEYS.method, new RelMdUniqueKeys());
@@ -53,6 +54,10 @@ public class RelMdUniqueKeys {
   private RelMdUniqueKeys() {}
 
   //~ Methods ----------------------------------------------------------------
+
+  public MetadataDef<BuiltInMetadata.UniqueKeys> getDef() {
+    return BuiltInMetadata.UniqueKeys.DEF;
+  }
 
   public Set<ImmutableBitSet> getUniqueKeys(Filter rel, RelMetadataQuery mq,
       boolean ignoreNulls) {

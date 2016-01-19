@@ -18,9 +18,16 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.MetadataDef;
+import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
+
+import com.google.common.collect.ImmutableMap;
+
+import java.lang.reflect.Method;
+import java.util.Map;
 
 /**
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}
@@ -28,6 +35,14 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
  */
 public class VolcanoRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
+
+  @Override public boolean equals(Object obj) {
+    return obj instanceof VolcanoRelMetadataProvider;
+  }
+
+  @Override public int hashCode() {
+    return 103;
+  }
 
   public <M extends Metadata> UnboundMetadata<M>
   apply(Class<? extends RelNode> relClass,
@@ -98,6 +113,11 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
         return null;
       }
     };
+  }
+
+  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  handlers(MetadataDef<M> def) {
+    return ImmutableMap.of();
   }
 }
 
