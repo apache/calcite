@@ -67,11 +67,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -296,6 +299,30 @@ public abstract class SqlOperatorBaseTest {
    */
   @Test public void testDummy() {
   }
+
+  @Test public void testSqlOperatorOverloading() {
+    final SqlStdOperatorTable operatorTable = SqlStdOperatorTable.instance();
+    for (SqlOperator sqlOperator : operatorTable.getOperatorList()) {
+      String operatorName = sqlOperator.getName();
+      List<SqlOperator> routines = new ArrayList<>();
+      operatorTable.lookupOperatorOverloads(
+          new SqlIdentifier(operatorName, SqlParserPos.ZERO),
+          null,
+          sqlOperator.getSyntax(),
+          routines);
+
+      Iterator<SqlOperator> iter = routines.iterator();
+      while (iter.hasNext()) {
+        SqlOperator operator = iter.next();
+        if (!sqlOperator.getClass().isInstance(operator)) {
+          iter.remove();
+        }
+      }
+      assertThat(routines.size(), equalTo(1));
+      assertThat(sqlOperator, equalTo(routines.get(0)));
+    }
+  }
+
 
   @Test public void testBetween() {
     tester.setFor(

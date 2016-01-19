@@ -143,7 +143,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
   }
 
   public void register(SqlOperator op) {
-    operators.put(op.getName(), op);
+    operators.put(op.getName().toUpperCase(), op);
     if (op instanceof SqlBinaryOperator) {
       mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.BINARY), op);
     } else if (op instanceof SqlPrefixOperator) {
@@ -159,7 +159,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * @param function Function to register
    */
   public void register(SqlFunction function) {
-    operators.put(function.getName(), function);
+    operators.put(function.getName().toUpperCase(), function);
     SqlFunctionCategory funcType = function.getFunctionType();
     assert funcType != null
         : "Function type for " + function.getName() + " not set";
