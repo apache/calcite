@@ -110,6 +110,7 @@ public abstract class Prepare {
       RelDataType parameterRowType,
       RelRoot root,
       boolean explainAsXml,
+      boolean explainAsJson,
       SqlExplainLevel detailLevel);
 
   /**
@@ -244,14 +245,17 @@ public abstract class Prepare {
     if (sqlExplain != null) {
       SqlExplain.Depth explainDepth = sqlExplain.getDepth();
       boolean explainAsXml = sqlExplain.isXml();
+      boolean explainAsJson = sqlExplain.isJson();
       SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
       switch (explainDepth) {
       case TYPE:
         return createPreparedExplanation(
-            resultType, parameterRowType, null, explainAsXml, detailLevel);
+            resultType, parameterRowType, null, explainAsXml, explainAsJson,
+            detailLevel);
       case LOGICAL:
         return createPreparedExplanation(
-            null, parameterRowType, root, explainAsXml, detailLevel);
+            null, parameterRowType, root, explainAsXml, explainAsJson,
+            detailLevel);
       default:
       }
     }
@@ -274,13 +278,15 @@ public abstract class Prepare {
     if (sqlExplain != null) {
       SqlExplain.Depth explainDepth = sqlExplain.getDepth();
       boolean explainAsXml = sqlExplain.isXml();
+      boolean explainAsJson = sqlExplain.isJson();
       SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
       switch (explainDepth) {
       case PHYSICAL:
       default:
         root = optimize(root, getMaterializations(), getLattices());
         return createPreparedExplanation(
-            null, parameterRowType, root, explainAsXml, detailLevel);
+            null, parameterRowType, root, explainAsXml, explainAsJson,
+            detailLevel);
       }
     }
 
@@ -404,6 +410,7 @@ public abstract class Prepare {
     private final RelDataType parameterRowType;
     private final RelRoot root;
     private final boolean asXml;
+    private final boolean asJson;
     private final SqlExplainLevel detailLevel;
 
     public PreparedExplain(
@@ -411,11 +418,13 @@ public abstract class Prepare {
         RelDataType parameterRowType,
         RelRoot root,
         boolean asXml,
+        boolean asJson,
         SqlExplainLevel detailLevel) {
       this.rowType = rowType;
       this.parameterRowType = parameterRowType;
       this.root = root;
       this.asXml = asXml;
+      this.asJson = asJson;
       this.detailLevel = detailLevel;
     }
 
@@ -423,7 +432,7 @@ public abstract class Prepare {
       if (root == null) {
         return RelOptUtil.dumpType(rowType);
       } else {
-        return RelOptUtil.dumpPlan("", root.rel, asXml, detailLevel);
+        return RelOptUtil.dumpPlan("", root.rel, asXml, asJson, detailLevel);
       }
     }
 

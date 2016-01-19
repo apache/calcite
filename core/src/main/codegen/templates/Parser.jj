@@ -1056,16 +1056,19 @@ SqlNode SqlExplain() :
     SqlExplain.Depth depth;
     SqlParserPos pos;
     boolean asXml;
+    boolean asJson;
 }
 {
     <EXPLAIN> <PLAN>
     [ detailLevel = ExplainDetailLevel() ]
     depth = ExplainDepth()
     (
-        <AS> <XML> { asXml = true; }
+        <AS> <XML> { asXml = true; asJson = false; }
+        | <AS> <JSON> { asXml = false; asJson = true; }
         |
         {
             asXml = false;
+            asJson = false;
         }
     )
     <FOR> stmt = SqlQueryOrDml() {
@@ -1075,6 +1078,7 @@ SqlNode SqlExplain() :
             detailLevel.symbol(SqlParserPos.ZERO),
             depth.symbol(SqlParserPos.ZERO),
             SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
+            SqlLiteral.createBoolean(asJson, SqlParserPos.ZERO),
             nDynamicParams);
     }
 }
@@ -1197,11 +1201,13 @@ SqlNode SqlDescribe() :
             final SqlExplainLevel detailLevel = SqlExplainLevel.EXPPLAN_ATTRIBUTES;
             final SqlExplain.Depth depth = SqlExplain.Depth.PHYSICAL;
             final boolean asXml = false;
+            final boolean asJson = false;
             return new SqlExplain(pos,
                 stmt,
                 detailLevel.symbol(SqlParserPos.ZERO),
                 depth.symbol(SqlParserPos.ZERO),
                 SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
+                SqlLiteral.createBoolean(asJson, SqlParserPos.ZERO),
                 nDynamicParams);
         }
     )
@@ -5056,6 +5062,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < ISOLATION: "ISOLATION" >
     | < JAVA: "JAVA" >
     | < JOIN: "JOIN" >
+    | < JSON: "JSON" >
     | < K: "K" >
     | < KEY: "KEY" >
     | < KEY_MEMBER: "KEY_MEMBER" >
@@ -5494,6 +5501,7 @@ String CommonNonReservedKeyWord() :
         | <INVOKER>
         | <ISOLATION>
         | <JAVA>
+        | <JSON>
         | <K>
         | <KEY>
         | <KEY_MEMBER>

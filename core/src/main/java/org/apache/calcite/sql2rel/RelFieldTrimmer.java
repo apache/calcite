@@ -164,7 +164,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (SqlToRelConverter.SQL2REL_LOGGER.isDebugEnabled()) {
       SqlToRelConverter.SQL2REL_LOGGER.debug(
           RelOptUtil.dumpPlan("Plan after trimming unused fields",
-              trimResult.left, false, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+              trimResult.left, false, false,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
     return trimResult.left;
   }

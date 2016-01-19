@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -1731,6 +1732,7 @@ public abstract class RelOptUtil {
    *                    is XML.
    * @param rel         Relational expression to explain.
    * @param asXml       Whether to format as XML.
+   * @param asJson       Whether to format as JSON.
    * @param detailLevel Detail level.
    * @return Plan
    */
@@ -1738,6 +1740,7 @@ public abstract class RelOptUtil {
       String header,
       RelNode rel,
       boolean asXml,
+      boolean asJson,
       SqlExplainLevel detailLevel) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -1747,6 +1750,10 @@ public abstract class RelOptUtil {
     RelWriter planWriter;
     if (asXml) {
       planWriter = new RelXmlWriter(pw, detailLevel);
+    } else if (asJson) {
+      planWriter = new RelJsonWriter();
+      rel.explain(planWriter);
+      return ((RelJsonWriter) planWriter).asString();
     } else {
       planWriter = new RelWriterImpl(pw, detailLevel, false);
     }

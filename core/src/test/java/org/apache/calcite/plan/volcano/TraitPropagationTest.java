@@ -107,7 +107,7 @@ public class TraitPropagationTest {
     RelNode planned = run(new PropAction(), RULES);
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
-          RelOptUtil.dumpPlan("LOGICAL PLAN", planned, false,
+          RelOptUtil.dumpPlan("LOGICAL PLAN", planned, false, false,
               SqlExplainLevel.ALL_ATTRIBUTES));
     }
     final RelMetadataQuery mq = RelMetadataQuery.instance();
@@ -172,7 +172,7 @@ public class TraitPropagationTest {
 
       final RelNode rootRel = agg;
 
-      RelOptUtil.dumpPlan("LOGICAL PLAN", rootRel, false,
+      RelOptUtil.dumpPlan("LOGICAL PLAN", rootRel, false, false,
           SqlExplainLevel.DIGEST_ATTRIBUTES);
 
       RelTraitSet desiredTraits = rootRel.getTraitSet().replace(PHYSICAL);

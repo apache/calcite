@@ -31,7 +31,8 @@ public class SqlExplain extends SqlCall {
         @Override public SqlCall createCall(SqlLiteral functionQualifier,
             SqlParserPos pos, SqlNode... operands) {
           return new SqlExplain(pos, operands[0], (SqlLiteral) operands[1],
-              (SqlLiteral) operands[2], (SqlLiteral) operands[3], 0);
+              (SqlLiteral) operands[2], (SqlLiteral) operands[3],
+              (SqlLiteral) operands[4], 0);
         }
       };
 
@@ -58,6 +59,7 @@ public class SqlExplain extends SqlCall {
   SqlLiteral detailLevel;
   SqlLiteral depth;
   SqlLiteral asXml;
+  SqlLiteral asJson;
   private final int dynamicParameterCount;
 
   //~ Constructors -----------------------------------------------------------
@@ -67,12 +69,14 @@ public class SqlExplain extends SqlCall {
       SqlLiteral detailLevel,
       SqlLiteral depth,
       SqlLiteral asXml,
+      SqlLiteral asJson,
       int dynamicParameterCount) {
     super(pos);
     this.explicandum = explicandum;
     this.detailLevel = detailLevel;
     this.depth = depth;
     this.asXml = asXml;
+    this.asJson = asJson;
     this.dynamicParameterCount = dynamicParameterCount;
   }
 
@@ -87,7 +91,8 @@ public class SqlExplain extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(explicandum, detailLevel, depth, asXml);
+    return ImmutableNullableList.of(explicandum, detailLevel, depth, asXml,
+            asJson);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {
@@ -103,6 +108,9 @@ public class SqlExplain extends SqlCall {
       break;
     case 3:
       asXml = (SqlLiteral) operand;
+      break;
+    case 4:
+      asJson = (SqlLiteral) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -158,6 +166,13 @@ public class SqlExplain extends SqlCall {
     return asXml.booleanValue();
   }
 
+  /**
+   * Returns whether result is to be in JSON format.
+   */
+  public boolean isJson() {
+    return asJson.booleanValue();
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("EXPLAIN PLAN");
     switch (getDetailLevel()) {
@@ -186,6 +201,9 @@ public class SqlExplain extends SqlCall {
     }
     if (isXml()) {
       writer.keyword("AS XML");
+    }
+    if (isJson()) {
+      writer.keyword("AS JSON");
     }
     writer.keyword("FOR");
     writer.newlineAndIndent();

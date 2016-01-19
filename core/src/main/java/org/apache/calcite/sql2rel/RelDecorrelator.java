@@ -206,6 +206,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               "Plan after removing Correlator",
               newRootRel,
               false,
+              false,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
 
