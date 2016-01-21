@@ -985,6 +985,112 @@ public class UtilTest {
     assertThat(cab.compareTo(anb) > 0, is(true));
   }
 
+  @Test public void testFlatList2() {
+    checkFlatList(0);
+    checkFlatList(1);
+    checkFlatList(2);
+    checkFlatList(3);
+    checkFlatList(4);
+    checkFlatList(5);
+    checkFlatList(6);
+    checkFlatList(7);
+  }
+
+  private void checkFlatList(int n) {
+    final List<String> emp;
+    final List<Object> emp1;
+    final List<String> eNull;
+    switch (n) {
+    case 0:
+      emp = FlatLists.of();
+      emp1 = FlatLists.<Object>copyOf();
+      eNull = null;
+      break;
+    case 1:
+      emp = FlatLists.of("A");
+      emp1 = FlatLists.copyOf((Object) "A");
+      eNull = null;
+      break;
+    case 2:
+      emp = FlatLists.of("A", "B");
+      emp1 = FlatLists.of((Object) "A", "B");
+      eNull = FlatLists.of("A", null);
+      break;
+    case 3:
+      emp = FlatLists.of("A", "B", "C");
+      emp1 = FlatLists.copyOf((Object) "A", "B", "C");
+      eNull = FlatLists.of("A", null, "C");
+      break;
+    case 4:
+      emp = FlatLists.of("A", "B", "C", "D");
+      emp1 = FlatLists.copyOf((Object) "A", "B", "C", "D");
+      eNull = FlatLists.of("A", null, "C", "D");
+      break;
+    case 5:
+      emp = FlatLists.of("A", "B", "C", "D", "E");
+      emp1 = FlatLists.copyOf((Object) "A", "B", "C", "D", "E");
+      eNull = FlatLists.of("A", null, "C", "D", "E");
+      break;
+    case 6:
+      emp = FlatLists.of("A", "B", "C", "D", "E", "F");
+      emp1 = FlatLists.copyOf((Object) "A", "B", "C", "D", "E", "F");
+      eNull = FlatLists.of("A", null, "C", "D", "E", "F");
+      break;
+    case 7:
+      emp = FlatLists.of("A", "B", "C", "D", "E", "F", "G");
+      emp1 = FlatLists.copyOf((Object) "A", "B", "C", "D", "E", "F", "G");
+      eNull = FlatLists.of("A", null, "C", "D", "E", "F", "G");
+      break;
+    default:
+      throw new AssertionError(n);
+    }
+    final List<String> emp0 =
+        Arrays.asList("A", "B", "C", "D", "E", "F", "G").subList(0, n);
+    final List<String> eNull0 =
+        Arrays.asList("A", null, "C", "D", "E", "F", "G").subList(0, n);
+    assertEquals(emp, emp0);
+    assertEquals(emp, emp1);
+    assertEquals(emp0, emp1);
+    assertEquals(emp1, emp0);
+    assertEquals(emp.hashCode(), emp0.hashCode());
+    assertEquals(emp.hashCode(), emp1.hashCode());
+
+    assertThat(emp.size(), is(n));
+    if (eNull != null) {
+      assertThat(eNull.size(), is(n));
+    }
+
+    final List<String> an = FlatLists.of("A", null);
+    final List<String> an0 = Arrays.asList("A", null);
+    assertEquals(an, an0);
+    assertEquals(an.hashCode(), an0.hashCode());
+
+    if (eNull != null) {
+      assertEquals(eNull, eNull0);
+      assertEquals(eNull.hashCode(), eNull0.hashCode());
+    }
+
+    assertThat(emp.toString(), is(emp1.toString()));
+    if (eNull != null) {
+      assertThat(eNull.toString().length(), is(emp1.toString().length() + 3));
+    }
+
+    // Comparisons
+    assertThat(emp, instanceOf(Comparable.class));
+    if (n < 7) {
+      assertThat(emp1, instanceOf(Comparable.class));
+    }
+    if (eNull != null) {
+      assertThat(eNull, instanceOf(Comparable.class));
+    }
+    @SuppressWarnings("unchecked")
+    final Comparable<List> cemp = (Comparable) emp;
+    assertThat(cemp.compareTo(emp), is(0));
+    if (eNull != null) {
+      assertThat(cemp.compareTo(eNull) < 0, is(false));
+    }
+  }
+
   /**
    * Unit test for {@link AvaticaUtils#toCamelCase(String)}.
    */

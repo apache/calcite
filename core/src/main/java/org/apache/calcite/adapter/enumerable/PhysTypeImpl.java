@@ -591,6 +591,33 @@ public class PhysTypeImpl implements PhysType {
                 BuiltInMethod.LIST3.method,
                 list),
             v1);
+      case 4:
+        return Expressions.lambda(
+            Function1.class,
+            Expressions.call(
+                List.class,
+                null,
+                BuiltInMethod.LIST4.method,
+                list),
+            v1);
+      case 5:
+        return Expressions.lambda(
+            Function1.class,
+            Expressions.call(
+                List.class,
+                null,
+                BuiltInMethod.LIST5.method,
+                list),
+            v1);
+      case 6:
+        return Expressions.lambda(
+            Function1.class,
+            Expressions.call(
+                List.class,
+                null,
+                BuiltInMethod.LIST6.method,
+                list),
+            v1);
       default:
         return Expressions.lambda(
             Function1.class,
