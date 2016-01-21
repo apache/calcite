@@ -193,11 +193,6 @@ log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
 log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
 {% endhighlight %}
 
-As the SLF4J replaces the previous use of Java's Logging framework, there is a need
-to map over the previous logging levels to the new library as the levels `FINE`,
-`FINER`, and `FINEST` do not exist in SLF4J. `FINE` was mapped to SLF4J's `DEBUG`
-level, while `FINER` and `FINEST` were mapped to SLF4J's `TRACE`.
-
 ## CSV adapter
 
 See the [tutorial](/docs/tutorial.html).
