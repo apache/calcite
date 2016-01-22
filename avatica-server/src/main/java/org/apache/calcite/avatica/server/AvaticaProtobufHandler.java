@@ -17,12 +17,18 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.metrics.MetricsUtil;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.ProtobufHandler;
 import org.apache.calcite.avatica.remote.ProtobufTranslation;
 import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
+
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.codahale.metrics.Timer.Context;
+import com.google.common.base.Optional;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -41,35 +47,55 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Jetty handler that executes Avatica JSON request-responses.
  */
-public class AvaticaProtobufHandler extends AbstractHandler implements AvaticaHandler {
+public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAwareAvaticaHandler {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaJsonHandler.class);
 
   private final Service service;
   private final ProtobufHandler pbHandler;
   private final ProtobufTranslation protobufTranslation;
+  private final Optional<MetricRegistry> metrics;
+  private final Timer requestTimer;
+  private final MetricsUtil metricsUtil;
 
   public AvaticaProtobufHandler(Service service) {
+    this(service, Optional.<MetricRegistry>absent());
+  }
+
+  public AvaticaProtobufHandler(Service service, Optional<MetricRegistry> metrics) {
     this.protobufTranslation = new ProtobufTranslationImpl();
     this.service = Objects.requireNonNull(service);
-    this.pbHandler = new ProtobufHandler(service, protobufTranslation);
+    this.pbHandler = new ProtobufHandler(service, protobufTranslation, metrics.orNull());
+
+    // Metrics
+    this.metrics = Objects.requireNonNull(metrics);
+    this.metricsUtil = MetricsUtil.getInstance();
+    this.requestTimer = metricsUtil.getTimer(this.metrics.orNull(), AvaticaProtobufHandler.class,
+        MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME);
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
-    response.setContentType("application/octet-stream;charset=utf-8");
-    response.setStatus(HttpServletResponse.SC_OK);
-    if (request.getMethod().equals("POST")) {
-      byte[] requestBytes;
-      try (ServletInputStream inputStream = request.getInputStream()) {
-        requestBytes = AvaticaUtils.readFullyToBytes(inputStream);
+    final Context ctx = metricsUtil.startTimer(this.requestTimer);
+    try {
+      response.setContentType("application/octet-stream;charset=utf-8");
+      response.setStatus(HttpServletResponse.SC_OK);
+      if (request.getMethod().equals("POST")) {
+        byte[] requestBytes;
+        try (ServletInputStream inputStream = request.getInputStream()) {
+          requestBytes = AvaticaUtils.readFullyToBytes(inputStream);
+        }
+
+        HandlerResponse<byte[]> handlerResponse = pbHandler.apply(requestBytes);
+
+        baseRequest.setHandled(true);
+        response.setStatus(handlerResponse.getStatusCode());
+        response.getOutputStream().write(handlerResponse.getResponse());
       }
-
-      HandlerResponse<byte[]> handlerResponse = pbHandler.apply(requestBytes);
-
-      baseRequest.setHandled(true);
-      response.setStatus(handlerResponse.getStatusCode());
-      response.getOutputStream().write(handlerResponse.getResponse());
+    } finally {
+      if (null != ctx) {
+        ctx.stop();
+      }
     }
   }
 
@@ -79,6 +105,11 @@ public class AvaticaProtobufHandler extends AbstractHandler implements AvaticaHa
     // Also add it to the handler to include with exceptions
     pbHandler.setRpcMetadata(metadata);
   }
+
+  @Override public MetricRegistry getMetrics() {
+    return this.metrics.orNull();
+  }
+
 }
 
 // End AvaticaProtobufHandler.java

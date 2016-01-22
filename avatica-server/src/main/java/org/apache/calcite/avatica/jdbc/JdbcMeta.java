@@ -30,6 +30,9 @@ import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.remote.TypedValue;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
@@ -55,9 +58,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.codahale.metrics.MetricRegistry.name;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
@@ -86,6 +92,7 @@ public class JdbcMeta implements Meta {
   private final Properties info;
   private final Cache<String, Connection> connectionCache;
   private final Cache<Integer, StatementInfo> statementCache;
+  private final Optional<MetricRegistry> metrics;
 
   /**
    * Creates a JdbcMeta.
@@ -116,6 +123,10 @@ public class JdbcMeta implements Meta {
     });
   }
 
+  public JdbcMeta(String url, Properties info) throws SQLException {
+    this(url, info, Optional.<MetricRegistry>absent());
+  }
+
   /**
    * Creates a JdbcMeta.
    *
@@ -125,9 +136,11 @@ public class JdbcMeta implements Meta {
    * connection arguments; normally at least a "user" and
    * "password" property should be included
    */
-  public JdbcMeta(String url, Properties info) throws SQLException {
+  public JdbcMeta(String url, Properties info, Optional<MetricRegistry> metrics)
+      throws SQLException {
     this.url = url;
     this.info = info;
+    this.metrics = Objects.requireNonNull(metrics);
 
     int concurrencyLevel = Integer.parseInt(
         info.getProperty(ConnectionCacheSettings.CONCURRENCY_LEVEL.key(),
@@ -177,6 +190,22 @@ public class JdbcMeta implements Meta {
         .build();
 
     LOG.debug("instantiated statement cache: {}", statementCache.stats());
+
+    // Register some metrics if the facilities to do so were provided.
+    if (metrics.isPresent()) {
+      MetricRegistry registry = metrics.get();
+      registry.register(name(JdbcMeta.class, "ConnectionCacheSize"), new Gauge<Long>() {
+        @Override public Long getValue() {
+          return connectionCache.size();
+        }
+      });
+
+      registry.register(name(JdbcMeta.class, "StatementCacheSize"), new Gauge<Long>() {
+        @Override public Long getValue() {
+          return statementCache.size();
+        }
+      });
+    }
   }
 
   /**

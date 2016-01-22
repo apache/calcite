@@ -58,7 +58,7 @@ public class ProtobufHandlerTest {
     translation = Mockito.mock(ProtobufTranslation.class);
 
     // Real objects
-    handler = new ProtobufHandler(service, translation);
+    handler = new ProtobufHandler(service, translation, null);
   }
 
   @Test

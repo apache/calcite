@@ -167,7 +167,7 @@ public class JsonHandlerTest {
     final List<TypedValue> expectedParameterValues = new ArrayList<>();
     final Service service = new ParameterValuesCheckingService(expectedParameterValues);
     final JsonService jsonService = new LocalJsonService(service);
-    final JsonHandler jsonHandler = new JsonHandler(jsonService);
+    final JsonHandler jsonHandler = new JsonHandler(jsonService, null);
 
     final List<TypedValue> parameterValues = Arrays.asList(
         TypedValue.create("NUMBER", new BigDecimal("123")),

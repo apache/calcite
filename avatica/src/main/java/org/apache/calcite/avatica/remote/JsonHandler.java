@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.metrics.MetricsUtil;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.codahale.metrics.Timer.Context;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -35,8 +39,16 @@ public class JsonHandler extends AbstractHandler<String> {
 
   protected static final ObjectMapper MAPPER = JsonService.MAPPER;
 
-  public JsonHandler(Service service) {
+  final MetricRegistry metrics;
+  final MetricsUtil metricsUtil;
+  final Timer serializationTimer;
+
+  public JsonHandler(Service service, MetricRegistry metrics) {
     super(service);
+    this.metrics = metrics;
+    this.metricsUtil = MetricsUtil.getInstance();
+    this.serializationTimer = metricsUtil.getTimer(metrics, JsonHandler.class,
+        HANDLER_SERIALIZATION_METRICS_NAME);
   }
 
   public HandlerResponse<String> apply(String jsonRequest) {
@@ -44,7 +56,14 @@ public class JsonHandler extends AbstractHandler<String> {
   }
 
   @Override Request decode(String request) throws IOException {
-    return MAPPER.readValue(request, Service.Request.class);
+    final Context ctx = metricsUtil.startTimer(serializationTimer);
+    try {
+      return MAPPER.readValue(request, Service.Request.class);
+    } finally {
+      if (null != ctx) {
+        ctx.stop();
+      }
+    }
   }
 
   /**
@@ -54,9 +73,16 @@ public class JsonHandler extends AbstractHandler<String> {
    * @return A JSON string.
    */
   @Override String encode(Response response) throws IOException {
-    final StringWriter w = new StringWriter();
-    MAPPER.writeValue(w, response);
-    return w.toString();
+    final Context ctx = metricsUtil.startTimer(serializationTimer);
+    try {
+      final StringWriter w = new StringWriter();
+      MAPPER.writeValue(w, response);
+      return w.toString();
+    } finally {
+      if (null != ctx) {
+        ctx.stop();
+      }
+    }
   }
 }
 

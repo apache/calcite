@@ -37,6 +37,9 @@ import javax.servlet.http.HttpServletResponse;
  *
  * <p>This implementation provides a no-op implementation for
  * {@link #setServerRpcMetadata(org.apache.calcite.avatica.remote.Service.RpcMetadataResponse)}.
+ *
+ * Does not implement {@link MetricsAwareAvaticaHandler} as this implementation is only presented
+ * for backwards compatibility.
  */
 public class DelegatingAvaticaHandler implements AvaticaHandler {
   private static final Logger LOG = LoggerFactory.getLogger(DelegatingAvaticaHandler.class);

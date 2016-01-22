@@ -19,6 +19,9 @@ package org.apache.calcite.avatica.server;
 import org.apache.calcite.avatica.remote.Driver;
 import org.apache.calcite.avatica.remote.Service;
 
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Optional;
+
 import org.eclipse.jetty.server.Handler;
 
 /**
@@ -28,16 +31,32 @@ import org.eclipse.jetty.server.Handler;
 public class HandlerFactory {
 
   /**
-   * The desired implementation for the given serialization method.
+   * Constructs the desired implementation for the given serialization method without any
+   * metrics support.
    *
-   * @param serialization The desired message serialization
+   * @param service The underlying {@link Service}.
+   * @param serialization The type of serialization to use.
+   * @return The {@link Handler}.
    */
   public Handler getHandler(Service service, Driver.Serialization serialization) {
+    return getHandler(service, serialization, Optional.<MetricRegistry>absent());
+  }
+
+  /**
+   * Constructs the desired implementation for the given serialization method with metrics.
+   *
+   * @param service The underlying {@link Service}.
+   * @param serialization The desired message serialization.
+   * @param metrics Optionally, a {@link MetricRegistry} instance.
+   * @return The {@link Handler}.
+   */
+  public Handler getHandler(Service service, Driver.Serialization serialization,
+      Optional<MetricRegistry> metrics) {
     switch (serialization) {
     case JSON:
-      return new AvaticaJsonHandler(service);
+      return new AvaticaJsonHandler(service, metrics);
     case PROTOBUF:
-      return new AvaticaProtobufHandler(service);
+      return new AvaticaProtobufHandler(service, metrics);
     default:
       throw new IllegalArgumentException("Unknown Avatica handler for " + serialization.name());
     }
