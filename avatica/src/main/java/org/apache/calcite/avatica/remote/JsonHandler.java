@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.Timer;
+import org.apache.calcite.avatica.metrics.Timer.Context;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 
@@ -35,8 +38,14 @@ public class JsonHandler extends AbstractHandler<String> {
 
   protected static final ObjectMapper MAPPER = JsonService.MAPPER;
 
-  public JsonHandler(Service service) {
+  final MetricsSystem metrics;
+  final Timer serializationTimer;
+
+  public JsonHandler(Service service, MetricsSystem metrics) {
     super(service);
+    this.metrics = metrics;
+    this.serializationTimer = this.metrics.getTimer(
+        MetricsHelper.concat(JsonHandler.class, HANDLER_SERIALIZATION_METRICS_NAME));
   }
 
   public HandlerResponse<String> apply(String jsonRequest) {
@@ -44,7 +53,9 @@ public class JsonHandler extends AbstractHandler<String> {
   }
 
   @Override Request decode(String request) throws IOException {
-    return MAPPER.readValue(request, Service.Request.class);
+    try (final Context ctx = serializationTimer.start()) {
+      return MAPPER.readValue(request, Service.Request.class);
+    }
   }
 
   /**
@@ -54,9 +65,11 @@ public class JsonHandler extends AbstractHandler<String> {
    * @return A JSON string.
    */
   @Override String encode(Response response) throws IOException {
-    final StringWriter w = new StringWriter();
-    MAPPER.writeValue(w, response);
-    return w.toString();
+    try (final Context ctx = serializationTimer.start()) {
+      final StringWriter w = new StringWriter();
+      MAPPER.writeValue(w, response);
+      return w.toString();
+    }
   }
 }
 

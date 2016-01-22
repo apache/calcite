@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.Timer;
+import org.apache.calcite.avatica.metrics.Timer.Context;
 import org.apache.calcite.avatica.remote.Service.Response;
 
 import java.io.IOException;
@@ -28,10 +31,15 @@ import java.io.IOException;
 public class ProtobufHandler extends AbstractHandler<byte[]> {
 
   private final ProtobufTranslation translation;
+  private final MetricsSystem metrics;
+  private final Timer serializationTimer;
 
-  public ProtobufHandler(Service service, ProtobufTranslation translation) {
+  public ProtobufHandler(Service service, ProtobufTranslation translation, MetricsSystem metrics) {
     super(service);
     this.translation = translation;
+    this.metrics = metrics;
+    this.serializationTimer = this.metrics.getTimer(
+        MetricsHelper.concat(ProtobufHandler.class, HANDLER_SERIALIZATION_METRICS_NAME));
   }
 
   @Override public HandlerResponse<byte[]> apply(byte[] requestBytes) {
@@ -39,11 +47,15 @@ public class ProtobufHandler extends AbstractHandler<byte[]> {
   }
 
   @Override Service.Request decode(byte[] serializedRequest) throws IOException {
-    return translation.parseRequest(serializedRequest);
+    try (final Context ctx = serializationTimer.start()) {
+      return translation.parseRequest(serializedRequest);
+    }
   }
 
   @Override byte[] encode(Response response) throws IOException {
-    return translation.serializeResponse(response);
+    try (final Context ctx = serializationTimer.start()) {
+      return translation.serializeResponse(response);
+    }
   }
 }
 

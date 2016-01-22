@@ -17,6 +17,10 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.Timer;
+import org.apache.calcite.avatica.metrics.Timer.Context;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
@@ -27,6 +31,8 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.calcite.avatica.remote.MetricsHelper.concat;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -39,41 +45,56 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Jetty handler that executes Avatica JSON request-responses.
  */
-public class AvaticaJsonHandler extends AbstractHandler implements AvaticaHandler {
+public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareAvaticaHandler {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaJsonHandler.class);
 
   final Service service;
   final JsonHandler jsonHandler;
 
+  final MetricsSystem metrics;
+  final Timer requestTimer;
+
   public AvaticaJsonHandler(Service service) {
+    this(service, NoopMetricsSystem.getInstance());
+  }
+
+  public AvaticaJsonHandler(Service service, MetricsSystem metrics) {
     this.service = Objects.requireNonNull(service);
-    this.jsonHandler = new JsonHandler(service);
+    this.metrics = Objects.requireNonNull(metrics);
+    // Avatica doesn't have a Guava dependency
+    this.jsonHandler = new JsonHandler(service, this.metrics);
+
+    // Metrics
+    this.requestTimer = this.metrics.getTimer(
+        concat(AvaticaJsonHandler.class, MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME));
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
-    response.setContentType("application/json;charset=utf-8");
-    response.setStatus(HttpServletResponse.SC_OK);
-    if (request.getMethod().equals("POST")) {
-      // First look for a request in the header, then look in the body.
-      // The latter allows very large requests without hitting HTTP 413.
-      String rawRequest = request.getHeader("request");
-      if (rawRequest == null) {
-        try (ServletInputStream inputStream = request.getInputStream()) {
-          rawRequest = AvaticaUtils.readFully(inputStream);
+    try (final Context ctx = requestTimer.start()) {
+      response.setContentType("application/json;charset=utf-8");
+      response.setStatus(HttpServletResponse.SC_OK);
+      if (request.getMethod().equals("POST")) {
+        // First look for a request in the header, then look in the body.
+        // The latter allows very large requests without hitting HTTP 413.
+        String rawRequest = request.getHeader("request");
+        if (rawRequest == null) {
+          try (ServletInputStream inputStream = request.getInputStream()) {
+            rawRequest = AvaticaUtils.readFully(inputStream);
+          }
         }
-      }
-      final String jsonRequest =
-          new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
-      LOG.trace("request: {}", jsonRequest);
+        final String jsonRequest =
+            new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
+        LOG.trace("request: {}", jsonRequest);
 
-      final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
-      LOG.trace("response: {}", jsonResponse);
-      baseRequest.setHandled(true);
-      // Set the status code and write out the response.
-      response.setStatus(jsonResponse.getStatusCode());
-      response.getWriter().println(jsonResponse.getResponse());
+        final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
+        LOG.trace("response: {}", jsonResponse);
+        baseRequest.setHandled(true);
+        // Set the status code and write out the response.
+        response.setStatus(jsonResponse.getStatusCode());
+        response.getWriter().println(jsonResponse.getResponse());
+      }
     }
   }
 
@@ -82,6 +103,10 @@ public class AvaticaJsonHandler extends AbstractHandler implements AvaticaHandle
     service.setRpcMetadata(metadata);
     // Also add it to the handler to include with exceptions
     jsonHandler.setRpcMetadata(metadata);
+  }
+
+  @Override public MetricsSystem getMetrics() {
+    return metrics;
   }
 }
 
