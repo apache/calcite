@@ -689,6 +689,11 @@ shortened URLs for the vote proposal and result emails. Examples:
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
 
+Choose a release date.
+This is based on the time when you expect to announce the release.
+This is usually a day after the vote closes.
+Remember that UTC date changes at 4pm Pacific time.
+
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
 and do a bulk update changing their status to "Closed",
@@ -724,9 +729,9 @@ svn add apache-calcite-X.Y.Z
 svn ci
 {% endhighlight %}
 
-Svnpubsub will publish to
-https://dist.apache.org/repos/dist/release/calcite and propagate to
-http://www.apache.org/dyn/closer.cgi/calcite within 24 hours.
+Svnpubsub will publish to the
+[release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
+[mirrors](http://www.apache.org/dyn/closer.cgi/calcite) within 24 hours.
 
 If there are now more than 2 releases, clear out the oldest ones:
 
@@ -741,8 +746,15 @@ The old releases will remain available in the
 
 Add a release note by copying
 [site/_posts/2015-11-10-release-1.5.0.md]({{ site.sourceRoot }}/site/_posts/2015-11-10-release-1.5.0.md),
+generate the javadoc and copy to `site/target/apidocs` and `site/target/testapidocs`,
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
+
+After 24 hours, announce the release by sending an email to
+[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
+You can use
+[the 1.6.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201601.mbox/%3C8DB4C1E5-B322-4A33-8E8F-9858FA6A1119%40apache.org%3E)
+as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site (for Calcite committers)
 {: #publish-the-web-site}

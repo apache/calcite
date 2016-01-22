@@ -25,7 +25,7 @@ This directory contains the code for the Apache Calcite web site,
 ## Setup
 
 1. `cd site`
-2. svn co https://svn.apache.org/repos/asf/calcite/site target
+2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
 3. `sudo apt-get install rubygems ruby2.1-dev zlib1g-dev` (linux)
 4. `sudo gem install bundler github-pages jekyll`
 5. `bundle install`
@@ -34,7 +34,8 @@ This directory contains the code for the Apache Calcite web site,
 
 1. `cd ..`
 2. `mvn -DskipTests site`
-3. `mv target/site/apidocs site/target`
+3. `rm -rf site/target/apidocs site/target/testapidocs`
+4. `mv target/site/apidocs target/site/testapidocs site/target`
 
 ## Running locally
 
