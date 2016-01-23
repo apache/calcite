@@ -117,6 +117,31 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$
             <![CDATA[select deptno, sum(sal), sum(distinct sal), count(*) from emp group by deptno]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCorrelatedSubQueryInJoin">
+        <Resource name="sql">
+            <![CDATA[select *
+from emp as e
+join dept as d using (deptno)
+where d.name = (
+  select max(name)
+  from dept as d2
+  where d2.deptno = d.deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalFilter(condition=[=($10, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+  LogicalProject(NAME=[$1])
+    LogicalFilter(condition=[=($0, $cor0.DEPTNO0)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], variablesSet=[[$cor0]])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUnnest">
         <Resource name="plan">
             <![CDATA[
@@ -2859,7 +2884,7 @@ or exists (select deptno from emp where empno > dept.deptno + 5)]]>
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
   LogicalJoin(condition=[OR(=($0, 1), EXISTS({
-LogicalFilter(condition=[>($0, +($cor0.DEPTNO, 5))])
+LogicalFilter(condition=[>($0, +($cor0.DEPTNO0, 5))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])

@@ -35,7 +35,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -806,11 +805,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   private RelNode getCorRel(Correlation corVar) {
     final RelNode r = cm.mapCorVarToCorRel.get(corVar.corr);
-    RelNode r2 = r.getInput(0);
-    if (r2 instanceof Join) {
-      r2 = r2.getInput(0);
-    }
-    return r2;
+    return r.getInput(0);
   }
 
   private void decorrelateInputWithValueGenerator(RelNode rel) {

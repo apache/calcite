@@ -19,6 +19,7 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -413,6 +414,18 @@ public interface RelDataTypeFactory {
         Iterable<? extends Map.Entry<String, RelDataType>> fields) {
       for (Map.Entry<String, RelDataType> field : fields) {
         add(field.getKey(), field.getValue());
+      }
+      return this;
+    }
+
+    /**
+     * Makes sure that field names are unique.
+     */
+    public FieldInfoBuilder uniquify() {
+      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names);
+      if (uniqueNames != names) {
+        names.clear();
+        names.addAll(uniqueNames);
       }
       return this;
     }

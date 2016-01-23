@@ -47,6 +47,10 @@ public class SqlQualified {
     this.identifier = identifier;
   }
 
+  @Override public String toString() {
+    return "{id: " + identifier.toString() + ", prefix: " + prefixLength + "}";
+  }
+
   public static SqlQualified create(SqlValidatorScope scope, int prefixLength,
       SqlValidatorNamespace namespace, SqlIdentifier identifier) {
     return new SqlQualified(scope, prefixLength, namespace, identifier);

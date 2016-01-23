@@ -4581,19 +4581,21 @@ public class JdbcTest {
     }
   }
 
-  @Ignore("CALCITE-559 Correlated subquery will hit exception in Calcite")
-  @Test public void testJoinCorreScalarSubQ()
-      throws ClassNotFoundException, SQLException {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-559">[CALCITE-559]
+   * Correlated scalar subquery in WHERE gives error</a>. */
+  @Test public void testJoinCorrelatedScalarSubquery() throws SQLException {
+    final String sql = "select e.employee_id, d.department_id "
+        + " from employee e, department d "
+        + " where e.department_id = d.department_id "
+        + " and e.salary > (select avg(e2.salary) "
+        + "                 from employee e2 "
+        + "                 where e2.store_id = e.store_id)";
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .with(Lex.JAVA)
-        .query("select e.employee_id, d.department_id "
-                + " from employee e, department d "
-                + " where e.department_id = d.department_id and "
-                + "       e.salary > (select avg(e2.salary) "
-                + "                       from employee e2 "
-                + " where e2.store_id = e.store_id)")
-        .returnsCount(0);
+        .query(sql)
+        .returnsCount(599);
   }
 
   @Test public void testLeftJoin() {

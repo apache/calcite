@@ -834,6 +834,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).convertsTo("${plan}");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-864">[CALCITE-864]
+   * Correlation variable has incorrect row type if it is populated by right
+   * side of a Join</a>. */
+  @Test public void testCorrelatedSubQueryInJoin() {
+    final String sql = "select *\n"
+        + "from emp as e\n"
+        + "join dept as d using (deptno)\n"
+        + "where d.name = (\n"
+        + "  select max(name)\n"
+        + "  from dept as d2\n"
+        + "  where d2.deptno = d.deptno)";
+    sql(sql).expand(false).convertsTo("${plan}");
+  }
+
   @Test public void testExists() {
     check(
         "select*from emp where exists (select 1 from dept where deptno=55)",

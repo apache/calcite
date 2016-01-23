@@ -160,6 +160,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -2246,8 +2247,8 @@ public class SqlToRelConverter {
         }
       }
 
-      RelDataTypeField field =
-          catalogReader.field(foundNs.getRowType(), originalFieldName);
+      final RelDataTypeField field = foundNs.getRowType().getFieldList()
+          .get(fieldAccess.getField().getIndex() - namespaceOffset);
       int pos = namespaceOffset + field.getIndex();
 
       assert field.getType()
@@ -3275,21 +3276,26 @@ public class SqlToRelConverter {
     } else {
       qualified = SqlQualified.create(null, 1, null, identifier);
     }
-    final RexNode e0 = bb.lookupExp(qualified);
-    RexNode e = e0;
+    final Pair<RexNode, Map<String, Integer>> e0 = bb.lookupExp(qualified);
+    RexNode e = e0.left;
     for (String name : qualified.suffixTranslated()) {
-      final boolean caseSensitive = true; // name already fully-qualified
-      e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+      if (e == e0.left && e0.right != null) {
+        int i = e0.right.get(name);
+        e = rexBuilder.makeFieldAccess(e, i);
+      } else {
+        final boolean caseSensitive = true; // name already fully-qualified
+        e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+      }
     }
     if (e instanceof RexInputRef) {
       // adjust the type to account for nulls introduced by outer joins
       e = adjustInputRef(bb, (RexInputRef) e);
     }
 
-    if (e0 instanceof RexCorrelVariable) {
+    if (e0.left instanceof RexCorrelVariable) {
       assert e instanceof RexFieldAccess;
       final RexNode prev =
-          bb.mapCorrelateToRex.put(((RexCorrelVariable) e0).id,
+          bb.mapCorrelateToRex.put(((RexCorrelVariable) e0.left).id,
               (RexFieldAccess) e);
       assert prev == null;
     }
@@ -3891,14 +3897,14 @@ public class SqlToRelConverter {
      * @return a {@link RexFieldAccess} or {@link RexRangeRef}, or null if
      * not found
      */
-    RexNode lookupExp(SqlQualified qualified) {
+    Pair<RexNode, Map<String, Integer>> lookupExp(SqlQualified qualified) {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
         if (node == null) {
           throw Util.newInternal("Unknown identifier '" + qualified.identifier
               + "' encountered while expanding expression");
         }
-        return node;
+        return Pair.of(node, null);
       }
       int[] offsets = {-1};
       final SqlValidatorScope[] ancestorScopes = {null};
@@ -3917,7 +3923,12 @@ public class SqlToRelConverter {
         int offset = offsets[0];
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());
-        return lookup(offset, rels);
+        final RexNode node = lookup(offset, rels);
+        if (node == null) {
+          return null;
+        } else {
+          return Pair.of(node, null);
+        }
       } else {
         // We're referencing a relational expression which has not been
         // converted yet. This occurs when from items are correlated,
@@ -3926,10 +3937,33 @@ public class SqlToRelConverter {
         assert isParent;
         DeferredLookup lookup =
             new DeferredLookup(this, qualified.identifier.names.get(0));
-        final CorrelationId correlName = cluster.createCorrel();
-        mapCorrelToDeferred.put(correlName, lookup);
-        final RelDataType rowType = foundNs.getRowType();
-        return rexBuilder.makeCorrel(rowType, correlName);
+        final CorrelationId correlId = cluster.createCorrel();
+        mapCorrelToDeferred.put(correlId, lookup);
+        if (offsets[0] < 0) {
+          return Pair.of(rexBuilder.makeCorrel(foundNs.getRowType(), correlId),
+              null);
+        } else {
+          final RelDataTypeFactory.FieldInfoBuilder builder =
+              typeFactory.builder();
+          final ListScope ancestorScope1 = (ListScope) ancestorScopes[0];
+          final ImmutableMap.Builder<String, Integer> fields =
+              ImmutableMap.builder();
+          int i = 0;
+          int offset = 0;
+          for (SqlValidatorNamespace c : ancestorScope1.getChildren()) {
+            builder.addAll(c.getRowType().getFieldList());
+            if (i == offsets[0]) {
+              for (RelDataTypeField field : c.getRowType().getFieldList()) {
+                fields.put(field.getName(), field.getIndex() + offset);
+              }
+            }
+            ++i;
+            offset += c.getRowType().getFieldCount();
+          }
+          final RexNode c =
+              rexBuilder.makeCorrel(builder.uniquify().build(), correlId);
+          return Pair.<RexNode, Map<String, Integer>>of(c, fields.build());
+        }
       }
     }
 
