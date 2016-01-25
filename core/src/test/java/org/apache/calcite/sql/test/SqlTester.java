@@ -21,8 +21,10 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.SqlValidatorTestCase;
 
 import java.sql.ResultSet;
@@ -75,6 +77,13 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   /** Returns a tester that tests conformance to a particular SQL language
    * version. */
   SqlTester withConformance(SqlConformance conformance);
+
+  /** Returns a tester that gets connections from a given factory. */
+  SqlTester withConnectionFactory(
+      CalciteAssert.ConnectionFactory connectionFactory);
+
+  /** Returns a tester that uses a given operator table. */
+  SqlTester withOperatorTable(SqlOperatorTable operatorTable);
 
   /**
    * Tests that a scalar SQL expression returns the expected result and the

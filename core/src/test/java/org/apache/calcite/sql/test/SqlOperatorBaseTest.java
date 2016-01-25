@@ -33,12 +33,14 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -290,6 +292,17 @@ public abstract class SqlOperatorBaseTest {
   @Before
   public void setUp() throws Exception {
     tester.setFor(null);
+  }
+
+  protected SqlTester oracleTester() {
+    return tester.withOperatorTable(
+        ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+            SqlStdOperatorTable.instance()))
+        .withConnectionFactory(
+            CalciteAssert.EMPTY_CONNECTION_FACTORY
+                .with(new CalciteAssert
+                    .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
+                .with("fun", "oracle"));
   }
 
   //--- Tests -----------------------------------------------------------
@@ -4065,6 +4078,79 @@ public abstract class SqlOperatorBaseTest {
     }
   }
 
+  @Test public void testRtrimFunc() {
+    tester.setFor(OracleSqlOperatorTable.RTRIM);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
+    tester1.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
+  }
+
+  @Test public void testLtrimFunc() {
+    tester.setFor(OracleSqlOperatorTable.LTRIM);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
+    tester1.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
+  }
+
+  @Test public void testGreatestFunc() {
+    tester.setFor(OracleSqlOperatorTable.GREATEST);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
+    tester1.checkString("greatest('show', 'on', 'earth')", "show ",
+        "CHAR(5) NOT NULL");
+    tester1.checkScalar("greatest(12, CAST(NULL AS INTEGER), 3)", null, "INTEGER");
+    tester1.checkScalar("greatest(false, true)", true, "BOOLEAN NOT NULL");
+  }
+
+  @Test public void testLeastFunc() {
+    tester.setFor(OracleSqlOperatorTable.LEAST);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
+    tester1.checkString("least('show', 'on', 'earth')", "earth",
+        "CHAR(5) NOT NULL");
+    tester1.checkScalar("least(12, CAST(NULL AS INTEGER), 3)", null, "INTEGER");
+    tester1.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
+  }
+
+  @Test public void testNvlFunc() {
+    tester.setFor(OracleSqlOperatorTable.NVL);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkScalar("nvl(1, 2)", "1", "INTEGER NOT NULL");
+    tester1.checkFails("^nvl(1, true)^", "Parameters must be of the same type",
+        false);
+    tester1.checkScalar("nvl(true, false)", true, "BOOLEAN NOT NULL");
+    tester1.checkScalar("nvl(false, true)", false, "BOOLEAN NOT NULL");
+    tester1.checkString("nvl('abc', 'de')", "abc", "CHAR(3) NOT NULL");
+    tester1.checkString("nvl('abc', 'defg')", "abc ", "CHAR(4) NOT NULL");
+    tester1.checkString("nvl('abc', CAST(NULL AS VARCHAR(20)))", "abc",
+        "VARCHAR(20) NOT NULL");
+    tester1.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
+        "VARCHAR(20) NOT NULL");
+    tester1.checkNull(
+        "nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+  }
+
+  @Test public void testDecodeFunc() {
+    tester.setFor(OracleSqlOperatorTable.DECODE);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkScalar("decode(0, 0, 'a', 1, 'b', 2, 'c')", "a", "CHAR(1)");
+    tester1.checkScalar("decode(1, 0, 'a', 1, 'b', 2, 'c')", "b", "CHAR(1)");
+    // if there are duplicates, take the first match
+    tester1.checkScalar("decode(1, 0, 'a', 1, 'b', 1, 'z', 2, 'c')", "b",
+        "CHAR(1)");
+    // if there's no match, and no "else", return null
+    tester1.checkScalar("decode(3, 0, 'a', 1, 'b', 2, 'c')", null, "CHAR(1)");
+    // if there's no match, return the "else" value
+    tester1.checkScalar("decode(3, 0, 'a', 1, 'b', 2, 'c', 'd')", "d",
+        "CHAR(1) NOT NULL");
+    tester1.checkScalar("decode(1, 0, 'a', 1, 'b', 2, 'c', 'd')", "b",
+        "CHAR(1) NOT NULL");
+    // nulls match
+    tester1.checkScalar("decode(cast(null as integer), 0, 'a',\n"
+        + " cast(null as integer), 'b', 2, 'c', 'd')", "b",
+        "CHAR(1) NOT NULL");
+  }
+
   @Test public void testWindow() {
     if (!enable) {
       return;
@@ -5353,12 +5439,8 @@ public abstract class SqlOperatorBaseTest {
     }
   }
 
-  /**
-   * Creates a {@link org.apache.calcite.sql.test.SqlTester} based on a JDBC
-   * connection.
-   */
-  public static SqlTester tester(Connection connection) {
-    return new TesterImpl(connection);
+  public static SqlTester tester() {
+    return new TesterImpl(DefaultSqlTestFactory.INSTANCE);
   }
 
   /**
@@ -5366,11 +5448,8 @@ public abstract class SqlOperatorBaseTest {
    * JDBC connection.
    */
   protected static class TesterImpl extends SqlTesterImpl {
-    final Connection connection;
-
-    public TesterImpl(Connection connection) {
-      super(DefaultSqlTestFactory.INSTANCE);
-      this.connection = connection;
+    public TesterImpl(SqlTestFactory testFactory) {
+      super(testFactory);
     }
 
     @Override public void check(
@@ -5381,31 +5460,30 @@ public abstract class SqlOperatorBaseTest {
           query,
           typeChecker,
           resultChecker);
-      Statement statement = null;
-      try {
-        statement = connection.createStatement();
+      //noinspection unchecked
+      final CalciteAssert.ConnectionFactory connectionFactory =
+          (CalciteAssert.ConnectionFactory)
+              getFactory().get("connectionFactory");
+      try (Connection connection = connectionFactory.createConnection();
+           Statement statement = connection.createStatement()) {
         final ResultSet resultSet =
             statement.executeQuery(query);
         resultChecker.checkResult(resultSet);
       } catch (Exception e) {
-        throw new RuntimeException(e);
-      } finally {
-        if (statement != null) {
-          try {
-            statement.close();
-          } catch (SQLException e) {
-            // ignore
-          }
-        }
+        throw Throwables.propagate(e);
       }
     }
 
-    public void close() {
-      try {
-        connection.close();
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
-      }
+    @Override protected TesterImpl with(final String name2, final Object value) {
+      return new TesterImpl(
+          new DelegatingSqlTestFactory(factory) {
+            @Override public Object get(String name) {
+              if (name.equals(name2)) {
+                return value;
+              }
+              return super.get(name);
+            }
+          });
     }
   }
 

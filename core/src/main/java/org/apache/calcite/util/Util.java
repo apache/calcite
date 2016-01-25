@@ -81,6 +81,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
@@ -1220,6 +1221,28 @@ public class Util {
   /** Converts a list of strings to a string separated by newlines. */
   public static String lines(Iterable<String> strings) {
     return toString(strings, "", "\n", "");
+  }
+
+  /** Converts a string into tokens. */
+  public static Iterable<String> tokenize(final String s, final String delim) {
+    return new Iterable<String>() {
+      final StringTokenizer t = new StringTokenizer(s, delim);
+      public Iterator<String> iterator() {
+        return new Iterator<String>() {
+          public boolean hasNext() {
+            return t.hasMoreTokens();
+          }
+
+          public String next() {
+            return t.nextToken();
+          }
+
+          public void remove() {
+            throw new UnsupportedOperationException("remove");
+          }
+        };
+      }
+    };
   }
 
   /**

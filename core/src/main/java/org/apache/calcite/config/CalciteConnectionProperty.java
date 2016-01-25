@@ -40,7 +40,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   CREATE_MATERIALIZATIONS("createMaterializations", Type.BOOLEAN, true, false),
 
   /** How NULL values should be sorted if neither NULLS FIRST nor NULLS LAST are
-   * specified. The defult, HIGH, sorts NULL values the same as Oracle. */
+   * specified. The default, HIGH, sorts NULL values the same as Oracle. */
   DEFAULT_NULL_COLLATION("defaultNullCollation", Type.ENUM, NullCollation.HIGH,
       true),
 
@@ -49,6 +49,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
 
   /** Lexical policy. */
   LEX("lex", Type.ENUM, Lex.ORACLE, false),
+
+  /** Collection of built-in functions and operators. Valid values include
+   * "standard" and "oracle". */
+  FUN("fun", Type.STRING, "standard", true),
 
   /** How identifiers are quoted.
    *  If not specified, value from {@link #LEX} is used. */

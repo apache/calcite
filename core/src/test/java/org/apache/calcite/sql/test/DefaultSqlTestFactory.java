@@ -29,6 +29,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockCatalogReader;
 import org.apache.calcite.test.MockSqlOperatorTable;
 
@@ -45,12 +46,19 @@ import com.google.common.collect.ImmutableMap;
 */
 public class DefaultSqlTestFactory implements SqlTestFactory {
   public static final ImmutableMap<String, Object> DEFAULT_OPTIONS =
-      ImmutableMap.of(
-          "quoting", (Object) Quoting.DOUBLE_QUOTE,
-          "quotedCasing", Casing.UNCHANGED,
-          "unquotedCasing", Casing.TO_UPPER,
-          "caseSensitive", true,
-          "conformance", SqlConformance.DEFAULT);
+      ImmutableMap.<String, Object>builder()
+          .put("quoting", Quoting.DOUBLE_QUOTE)
+          .put("quotedCasing", Casing.UNCHANGED)
+          .put("unquotedCasing", Casing.TO_UPPER)
+          .put("caseSensitive", true)
+          .put("conformance", SqlConformance.DEFAULT)
+          .put("operatorTable", SqlStdOperatorTable.instance())
+          .put("connectionFactory",
+              CalciteAssert.EMPTY_CONNECTION_FACTORY
+                  .with(
+                      new CalciteAssert.AddSchemaSpecPostProcessor(
+                          CalciteAssert.SchemaSpec.HR)))
+          .build();
 
   public static final DefaultSqlTestFactory INSTANCE =
       new DefaultSqlTestFactory();
@@ -58,9 +66,10 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   private DefaultSqlTestFactory() {
   }
 
-  public SqlOperatorTable createOperatorTable() {
-    MockSqlOperatorTable opTab =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+  public SqlOperatorTable createOperatorTable(SqlTestFactory factory) {
+    final SqlOperatorTable opTab0 =
+        (SqlOperatorTable) factory.get("operatorTable");
+    MockSqlOperatorTable opTab = new MockSqlOperatorTable(opTab0);
     MockSqlOperatorTable.addRamp(opTab);
     return opTab;
   }
@@ -75,7 +84,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   }
 
   public SqlValidator getValidator(SqlTestFactory factory) {
-    final SqlOperatorTable operatorTable = factory.createOperatorTable();
+    final SqlOperatorTable operatorTable = factory.createOperatorTable(factory);
     final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

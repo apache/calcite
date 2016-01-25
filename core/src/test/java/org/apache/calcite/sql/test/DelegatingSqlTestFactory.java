@@ -46,8 +46,8 @@ public class DelegatingSqlTestFactory implements SqlTestFactory {
     return factory.get(name);
   }
 
-  public SqlOperatorTable createOperatorTable() {
-    return factory.createOperatorTable();
+  public SqlOperatorTable createOperatorTable(SqlTestFactory factory) {
+    return this.factory.createOperatorTable(factory);
   }
 
   public SqlAdvisor createAdvisor(SqlValidatorWithHints validator) {

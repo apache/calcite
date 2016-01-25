@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.util.Util;
@@ -51,6 +52,21 @@ public abstract class SqlTypeTransforms {
               opBinding.getTypeFactory(),
               opBinding.collectOperandTypes(),
               Preconditions.checkNotNull(typeToTransform));
+        }
+      };
+
+  /**
+   * Parameter type-inference transform strategy where a derived type is
+   * transformed into the same type, but nullable if and only if all of a call's
+   * operands are nullable.
+   */
+  public static final SqlTypeTransform TO_NULLABLE_ALL =
+      new SqlTypeTransform() {
+        public RelDataType transformType(SqlOperatorBinding opBinding,
+            RelDataType type) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.createTypeWithNullability(type,
+              SqlTypeUtil.allNullable(opBinding.collectOperandTypes()));
         }
       };
 

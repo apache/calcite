@@ -276,8 +276,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     } catch (SqlParseException e) {
       throw new RuntimeException("parse failed", e);
     }
-    final SqlValidator validator =
-        createSqlValidator(catalogReader, typeFactory);
+    final SqlValidator validator = createSqlValidator(context, catalogReader);
     SqlNode sqlNode1 = validator.validate(sqlNode);
     if (convert) {
       return convert_(
@@ -714,7 +713,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
 
       final SqlValidator validator =
-          createSqlValidator(catalogReader, typeFactory);
+          createSqlValidator(context, catalogReader);
       validator.setIdentifierExpansion(true);
       validator.setDefaultNullCollation(config.defaultNullCollation());
 
@@ -783,11 +782,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         statementType);
   }
 
-  private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader,
-      JavaTypeFactory typeFactory) {
+  private SqlValidator createSqlValidator(Context context,
+      CalciteCatalogReader catalogReader) {
+    final SqlOperatorTable opTab0 =
+        context.config().fun(SqlOperatorTable.class,
+            SqlStdOperatorTable.instance());
     final SqlOperatorTable opTab =
-        ChainedSqlOperatorTable.of(SqlStdOperatorTable.instance(),
-            catalogReader);
+        ChainedSqlOperatorTable.of(opTab0, catalogReader);
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory);
   }
 
@@ -1125,9 +1127,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     protected SqlValidator createSqlValidator(CatalogReader catalogReader) {
-      return prepare.createSqlValidator(
-          (CalciteCatalogReader) catalogReader,
-          (JavaTypeFactory) typeFactory);
+      return prepare.createSqlValidator(context,
+          (CalciteCatalogReader) catalogReader);
     }
 
     @Override protected SqlValidator getSqlValidator() {

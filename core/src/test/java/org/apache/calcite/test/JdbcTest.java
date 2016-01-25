@@ -5960,6 +5960,21 @@ public class JdbcTest {
         .returnsUnordered("empno=1");
   }
 
+  @Test public void testFunOracle() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with("fun", "oracle")
+        .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
+        .returnsUnordered("C=-99",
+            "C=1000",
+            "C=250",
+            "C=500");
+
+    // NVL is not present in the default operator table
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
+        .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
+  }
+
   /** Tests that {@link Hook#PARSE_TREE} works. */
   @Test public void testHook() {
     final int[] callCount = {0};

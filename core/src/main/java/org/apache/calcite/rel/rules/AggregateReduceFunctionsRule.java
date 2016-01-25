@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlAvgAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
@@ -192,9 +193,8 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       return reduceSum(oldAggRel, oldCall, newCalls, aggCallMapping);
     }
     if (oldCall.getAggregation() instanceof SqlAvgAggFunction) {
-      final SqlAvgAggFunction.Subtype subtype =
-          ((SqlAvgAggFunction) oldCall.getAggregation()).getSubtype();
-      switch (subtype) {
+      final SqlKind kind = oldCall.getAggregation().getKind();
+      switch (kind) {
       case AVG:
         // replace original AVG(x) with SUM(x) / COUNT(x)
         return reduceAvg(oldAggRel, oldCall, newCalls, aggCallMapping);
@@ -225,7 +225,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         return reduceStddev(oldAggRel, oldCall, false, false, newCalls,
             aggCallMapping, inputExprs);
       default:
-        throw Util.unexpected(subtype);
+        throw Util.unexpected(kind);
       }
     } else {
       // anything else:  preserve original call

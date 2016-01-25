@@ -128,7 +128,7 @@ public class CalciteAssert {
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
-  private static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
+  public static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
       new MapConnectionFactory(ImmutableMap.<String, String>of(),
           ImmutableList.<ConnectionPostProcessor>of());
 

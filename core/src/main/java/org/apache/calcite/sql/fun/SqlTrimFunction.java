@@ -28,7 +28,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeTransformCascade;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -41,6 +43,21 @@ import java.util.List;
  * Definition of the "TRIM" builtin SQL function.
  */
 public class SqlTrimFunction extends SqlFunction {
+  protected static final SqlTrimFunction INSTANCE =
+      new SqlTrimFunction("TRIM", SqlKind.TRIM,
+          ReturnTypes.cascade(ReturnTypes.ARG2, SqlTypeTransforms.TO_NULLABLE,
+              SqlTypeTransforms.TO_VARYING),
+          OperandTypes.and(
+              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING),
+              // Arguments 1 and 2 must have same type
+              new SameOperandTypeChecker(3) {
+                @Override protected List<Integer>
+                getOperandList(int operandCount) {
+                  return ImmutableList.of(1, 2);
+                }
+              }));
+
   //~ Enums ------------------------------------------------------------------
 
   /**
@@ -76,25 +93,10 @@ public class SqlTrimFunction extends SqlFunction {
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTrimFunction() {
-    super(
-        "TRIM",
-        SqlKind.TRIM,
-        ReturnTypes.cascade(
-            ReturnTypes.ARG2,
-            SqlTypeTransforms.TO_NULLABLE,
-            SqlTypeTransforms.TO_VARYING),
-        null,
-        OperandTypes.and(
-            OperandTypes.family(
-                SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
-            // Arguments 1 and 2 must have same type
-            new SameOperandTypeChecker(3) {
-              @Override protected List<Integer>
-              getOperandList(int operandCount) {
-                return ImmutableList.of(1, 2);
-              }
-            }),
+  public SqlTrimFunction(String name, SqlKind kind,
+      SqlTypeTransformCascade returnTypeInference,
+      SqlSingleOperandTypeChecker operandTypeChecker) {
+    super(name, kind, returnTypeInference, null, operandTypeChecker,
         SqlFunctionCategory.STRING);
   }
 
@@ -158,9 +160,14 @@ public class SqlTrimFunction extends SqlFunction {
     if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
       return false;
     }
-    return SqlTypeUtil.isCharTypeComparable(callBinding,
-        ImmutableList.of(callBinding.operand(1), callBinding.operand(2)),
-        throwOnFailure);
+    switch (kind) {
+    case TRIM:
+      return SqlTypeUtil.isCharTypeComparable(callBinding,
+          ImmutableList.of(callBinding.operand(1), callBinding.operand(2)),
+          throwOnFailure);
+    default:
+      return true;
+    }
   }
 }
 

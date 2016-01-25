@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -42,6 +43,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
@@ -72,7 +74,7 @@ import static org.junit.Assert.fail;
  * that talks to a mock catalog.
  */
 public class SqlTesterImpl implements SqlTester {
-  private final SqlTestFactory factory;
+  protected final SqlTestFactory factory;
 
   public SqlTesterImpl(SqlTestFactory factory) {
     this.factory = factory;
@@ -303,7 +305,16 @@ public class SqlTesterImpl implements SqlTester {
     return with("conformance", conformance);
   }
 
-  private SqlTesterImpl with(final String name2, final Object value) {
+  public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {
+    return with("operatorTable", operatorTable);
+  }
+
+  public SqlTester withConnectionFactory(
+      CalciteAssert.ConnectionFactory connectionFactory) {
+    return with("connectionFactory", connectionFactory);
+  }
+
+  protected SqlTesterImpl with(final String name2, final Object value) {
     return new SqlTesterImpl(
         new DelegatingSqlTestFactory(factory) {
           @Override public Object get(String name) {

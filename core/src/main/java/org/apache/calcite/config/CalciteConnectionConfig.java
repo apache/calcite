@@ -32,6 +32,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean createMaterializations();
   /** @see CalciteConnectionProperty#DEFAULT_NULL_COLLATION */
   NullCollation defaultNullCollation();
+  /** @see CalciteConnectionProperty#FUN */
+  <T> T fun(Class<T> operatorTableClass, T defaultOperatorTable);
   /** @see CalciteConnectionProperty#MODEL */
   String model();
   /** @see CalciteConnectionProperty#LEX */

@@ -331,6 +331,36 @@ public enum SqlKind {
    */
   CASE,
 
+  /**
+   * The "NULLIF" operator.
+   */
+  NULLIF,
+
+  /**
+   * The "COALESCE" operator.
+   */
+  COALESCE,
+
+  /**
+   * The "DECODE" function (Oracle).
+   */
+  DECODE,
+
+  /**
+   * The "NVL" function (Oracle).
+   */
+  NVL,
+
+  /**
+   * The "GREATEST" function (Oracle).
+   */
+  GREATEST,
+
+  /**
+   * The "LEAST" function (Oracle).
+   */
+  LEAST,
+
   // prefix operators
 
   /**
@@ -521,6 +551,16 @@ public enum SqlKind {
    * The "TRIM" function.
    */
   TRIM,
+
+  /**
+   * The "LTRIM" function (Oracle).
+   */
+  LTRIM,
+
+  /**
+   * The "RTRIM" function (Oracle).
+   */
+  RTRIM,
 
   /**
    * Call to a function using JDBC function syntax.
@@ -882,7 +922,7 @@ public enum SqlKind {
    * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
-      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, CAST, JDBC_FN);
+      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN);
 
   /**
    * Category of comparison operators.

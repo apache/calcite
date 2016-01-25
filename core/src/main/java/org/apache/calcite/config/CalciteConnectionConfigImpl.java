@@ -19,7 +19,13 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /** Implementation of {@link CalciteConnectionConfig}. */
@@ -54,6 +60,33 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   public NullCollation defaultNullCollation() {
     return CalciteConnectionProperty.DEFAULT_NULL_COLLATION.wrap(properties)
         .getEnum(NullCollation.class, NullCollation.HIGH);
+  }
+
+  public <T> T fun(Class<T> operatorTableClass, T defaultOperatorTable) {
+    final String fun =
+        CalciteConnectionProperty.FUN.wrap(properties).getString();
+    if (fun == null || fun.equals("") || fun.equals("standard")) {
+      return defaultOperatorTable;
+    }
+    final List<SqlOperatorTable> tables = new ArrayList<>();
+    for (String s : fun.split(",")) {
+      tables.add(operatorTable(s));
+    }
+    return operatorTableClass.cast(
+        ChainedSqlOperatorTable.of(
+            tables.toArray(new SqlOperatorTable[tables.size()])));
+  }
+
+  private static SqlOperatorTable operatorTable(String s) {
+    switch (s) {
+    case "standard":
+      return SqlStdOperatorTable.instance();
+    case "oracle":
+      return ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+          SqlStdOperatorTable.instance());
+    default:
+      throw new IllegalArgumentException("Unknown operator table: " + s);
+    }
   }
 
   public String model() {

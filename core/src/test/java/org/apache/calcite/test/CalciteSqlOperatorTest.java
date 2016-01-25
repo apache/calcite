@@ -17,33 +17,14 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.sql.test.SqlOperatorBaseTest;
-import org.apache.calcite.sql.test.SqlTester;
-
-import java.sql.Connection;
 
 /**
  * Embodiment of {@link org.apache.calcite.sql.test.SqlOperatorBaseTest}
  * that generates SQL statements and executes them using Calcite.
  */
 public class CalciteSqlOperatorTest extends SqlOperatorBaseTest {
-  private static final ThreadLocal<Connection> LOCAL =
-      new ThreadLocal<Connection>() {
-        @Override protected Connection initialValue() {
-          try {
-            return CalciteAssert.that().with(
-                CalciteAssert.SchemaSpec.HR).connect();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      };
-
-  private static SqlTester getHrTester() {
-    return tester(LOCAL.get());
-  }
-
   public CalciteSqlOperatorTest() {
-    super(false, getHrTester());
+    super(false, tester());
   }
 }
 

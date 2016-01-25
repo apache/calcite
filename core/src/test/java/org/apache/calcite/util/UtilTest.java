@@ -228,6 +228,18 @@ public class UtilTest {
   }
 
   /**
+   * Unit-test for {@link Util#tokenize(String, String)}.
+   */
+  @Test public void testTokenize() {
+    final List<String> list = new ArrayList<>();
+    for (String s : Util.tokenize("abc,de,f", ",")) {
+      list.add(s);
+    }
+    assertThat(list.size(), is(3));
+    assertThat(list.toString(), is("[abc, de, f]"));
+  }
+
+  /**
    * Unit-test for {@link BitString}.
    */
   @Test public void testBitString() {

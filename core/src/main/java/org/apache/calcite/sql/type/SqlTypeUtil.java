@@ -207,6 +207,18 @@ public abstract class SqlTypeUtil {
   }
 
   /**
+   * Returns whether all of array of types are nullable.
+   */
+  public static boolean allNullable(List<RelDataType> types) {
+    for (RelDataType type : types) {
+      if (!containsNullable(type)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Returns whether one or more of an array of types is nullable.
    */
   public static boolean containsNullable(List<RelDataType> types) {

@@ -28,7 +28,7 @@ import org.apache.calcite.sql.validate.SqlValidatorWithHints;
  * @see org.apache.calcite.sql.test.SqlTester
 */
 public interface SqlTestFactory {
-  SqlOperatorTable createOperatorTable();
+  SqlOperatorTable createOperatorTable(SqlTestFactory factory);
   SqlParser createParser(SqlTestFactory factory, String sql);
   SqlValidator getValidator(SqlTestFactory factory);
   SqlAdvisor createAdvisor(SqlValidatorWithHints validator);
