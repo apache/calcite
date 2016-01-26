@@ -58,14 +58,15 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -844,7 +845,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     private final List<RexNode> removableCasts;
 
-    private final List<SqlOperator> parentCallTypeStack;
+    private final Deque<SqlOperator> parentCallTypeStack = new ArrayDeque<>();
 
     ReducibleExprLocator(RelDataTypeFactory typeFactory,
         ImmutableMap<RexNode, ? extends RexNode> constants,
@@ -858,7 +859,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       this.addCasts = addCasts;
       this.removableCasts = removableCasts;
       this.stack = Lists.newArrayList();
-      this.parentCallTypeStack = Lists.newArrayList();
     }
 
     public void analyze(RexNode exp) {
@@ -904,7 +904,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       if (parentCallTypeStack.isEmpty()) {
         addCasts.add(false);
       } else {
-        addCasts.add(isUdf(Stacks.peek(parentCallTypeStack)));
+        addCasts.add(isUdf(parentCallTypeStack.peek()));
       }
     }
 
@@ -943,7 +943,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
 
     private void analyzeCall(RexCall call, Constancy callConstancy) {
-      Stacks.push(parentCallTypeStack, call.getOperator());
+      parentCallTypeStack.push(call.getOperator());
 
       // visit operands, pushing their states onto stack
       super.visitCall(call);
@@ -997,7 +997,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       operandStack.clear();
 
       // pop this parent call operator off the stack
-      Stacks.pop(parentCallTypeStack, call.getOperator());
+      parentCallTypeStack.pop();
 
       // push constancy result for this call onto stack
       stack.add(callConstancy);

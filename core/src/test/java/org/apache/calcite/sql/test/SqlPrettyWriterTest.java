@@ -24,7 +24,9 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
+import org.apache.calcite.util.Litmus;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.PrintWriter;
@@ -88,7 +90,7 @@ public class SqlPrettyWriterTest {
     // to the original.
     final String actual2 = actual.replaceAll("`", "\"");
     final SqlNode node2 = parseQuery(actual2);
-    assertTrue(node.equalsDeep(node2, true));
+    assertTrue(node.equalsDeep(node2, Litmus.THROW));
   }
 
   protected void assertExprPrintsTo(
@@ -111,7 +113,7 @@ public class SqlPrettyWriterTest {
     // to the original.
     final String actual2 = actual.replaceAll("`", "\"");
     final SqlNode valuesCall2 = parseQuery("VALUES (" + actual2 + ")");
-    assertTrue(valuesCall.equalsDeep(valuesCall2, true));
+    assertTrue(valuesCall.equalsDeep(valuesCall2, Litmus.THROW));
   }
 
   // ~ Tests ----------------------------------------------------------------
@@ -214,8 +216,8 @@ public class SqlPrettyWriterTest {
     checkSimple(prettyWriter, "${desc}", "${formatted}");
   }
 
-  // test disabled because default SQL parser cannot parse DDL
-  public void _testExplain() {
+  @Ignore("default SQL parser cannot parse DDL")
+  @Test public void testExplain() {
     assertPrintsTo(false, "explain select * from t", "foo");
   }
 
@@ -286,7 +288,7 @@ public class SqlPrettyWriterTest {
             + "union select * from w "
             + "order by a, b",
 
-        // todo: SELECT should not be indended from UNION, like this:
+        // todo: SELECT should not be indented from UNION, like this:
         // UNION
         //     SELECT *
         //     FROM `W`

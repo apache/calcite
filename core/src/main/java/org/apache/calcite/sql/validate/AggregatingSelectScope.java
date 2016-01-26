@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -176,7 +177,7 @@ public class AggregatingSelectScope
   @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
     final Resolved r = this.resolved.get();
     for (Ord<SqlNode> groupExpr : Ord.zip(r.groupExprList)) {
-      if (groupExpr.e.equalsDeep(node, false)) {
+      if (groupExpr.e.equalsDeep(node, Litmus.IGNORE)) {
         if (r.isNullable(groupExpr.i)) {
           return validator.getTypeFactory().createTypeWithNullability(type,
               true);
@@ -272,7 +273,7 @@ public class AggregatingSelectScope
 
     public int lookupGroupingExpr(SqlNode operand) {
       for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
-        if (operand.equalsDeep(groupExpr.e, false)) {
+        if (operand.equalsDeep(groupExpr.e, Litmus.IGNORE)) {
           return groupExpr.i;
         }
       }

@@ -38,6 +38,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -242,7 +243,7 @@ public class SqlValidatorUtil {
   public static List<String> uniquify(
       List<String> nameList,
       Suggester suggester) {
-    Set<String> used = new LinkedHashSet<String>();
+    final Set<String> used = new LinkedHashSet<>();
     int changeCount = 0;
     for (String name : nameList) {
       String uniqueName = uniquify(name, used, suggester);
@@ -252,7 +253,7 @@ public class SqlValidatorUtil {
     }
     return changeCount == 0
         ? nameList
-        : new ArrayList<String>(used);
+        : new ArrayList<>(used);
   }
 
   /**
@@ -329,7 +330,7 @@ public class SqlValidatorUtil {
   public static List<String> deriveNaturalJoinColumnList(
       RelDataType leftRowType,
       RelDataType rightRowType) {
-    List<String> naturalColumnNames = new ArrayList<String>();
+    final List<String> naturalColumnNames = new ArrayList<>();
     final List<String> leftNames = leftRowType.getFieldNames();
     final List<String> rightNames = rightRowType.getFieldNames();
     for (String name : leftNames) {
@@ -348,7 +349,7 @@ public class SqlValidatorUtil {
     // the resulting type will use those from type. These are presumably more
     // canonical.
     final List<RelDataTypeField> fields =
-        new ArrayList<RelDataTypeField>(columnNameList.size());
+        new ArrayList<>(columnNameList.size());
     for (String name : columnNameList) {
       RelDataTypeField field = type.getField(name, caseSensitive, elideRecord);
       fields.add(type.getFieldList().get(field.getIndex()));
@@ -516,7 +517,7 @@ public class SqlValidatorUtil {
 
   private static int lookupGroupExpr(List<SqlNode> groupExprs, SqlNode expr) {
     for (Ord<SqlNode> node : Ord.zip(groupExprs)) {
-      if (node.e.equalsDeep(expr, false)) {
+      if (node.e.equalsDeep(expr, Litmus.IGNORE)) {
         return node.i;
       }
     }
@@ -616,6 +617,7 @@ public class SqlValidatorUtil {
    * Walks over an expression, copying every node, and fully-qualifying every
    * identifier.
    */
+  @Deprecated // to be removed before 2.0
   public static class DeepCopier extends SqlScopedShuttle {
     DeepCopier(SqlValidatorScope scope) {
       super(scope);

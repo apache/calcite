@@ -91,11 +91,13 @@ import com.google.common.collect.Sets;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -107,10 +109,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.apache.calcite.util.Stacks.peek;
-import static org.apache.calcite.util.Stacks.pop;
-import static org.apache.calcite.util.Stacks.push;
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -263,7 +261,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   final Map<RelNode, Provenance> provenanceMap = new HashMap<>();
 
-  private final List<VolcanoRuleCall> ruleCallStack = new ArrayList<>();
+  private final Deque<VolcanoRuleCall> ruleCallStack = new ArrayDeque<>();
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
@@ -1678,12 +1676,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     rel = rel.onRegister(this);
 
     // Record its provenance. (Rule call may be null.)
-    final VolcanoRuleCall ruleCall;
     if (ruleCallStack.isEmpty()) {
-      ruleCall = null;
       provenanceMap.put(rel, Provenance.EMPTY);
     } else {
-      ruleCall = peek(ruleCallStack);
+      final VolcanoRuleCall ruleCall = ruleCallStack.peek();
       provenanceMap.put(
           rel,
           new RuleProvenance(
@@ -1957,9 +1953,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       RelNode rel,
       RelNode equivRel,
       VolcanoRuleCall ruleCall) {
-    push(ruleCallStack, ruleCall);
+    ruleCallStack.push(ruleCall);
     ensureRegistered(rel, equivRel);
-    pop(ruleCallStack, ruleCall);
+    ruleCallStack.pop();
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -20,8 +20,8 @@ import java.io.FilterWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * A helper class for generating formatted text. StackWriter keeps track of
@@ -106,7 +106,7 @@ public class StackWriter extends FilterWriter {
   private int indentationDepth;
   private String indentation;
   private boolean needIndent;
-  private final List<Character> quoteStack = new ArrayList<Character>();
+  private final Deque<Character> quoteStack = new ArrayDeque<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -149,11 +149,12 @@ public class StackWriter extends FilterWriter {
 
   private void pushQuote(Character quoteChar) throws IOException {
     writeQuote(quoteChar);
-    Stacks.push(quoteStack, quoteChar);
+    quoteStack.push(quoteChar);
   }
 
   private void popQuote(Character quoteChar) throws IOException {
-    Stacks.pop(quoteStack, quoteChar);
+    final Character pop = quoteStack.pop();
+    assert pop == quoteChar;
     writeQuote(quoteChar);
   }
 

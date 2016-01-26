@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
@@ -88,7 +89,7 @@ public class SelectScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlSelect select;
-  protected final List<String> windowNames = new ArrayList<String>();
+  protected final List<String> windowNames = new ArrayList<>();
 
   private List<SqlNode> expandedSelectList = null;
 
@@ -167,7 +168,7 @@ public class SelectScope extends ListScope {
         monotonicity = monotonicity.reverse();
         order0 = ((SqlCall) order0).operand(0);
       }
-      if (expr.equalsDeep(order0, false)) {
+      if (expr.equalsDeep(order0, Litmus.IGNORE)) {
         return monotonicity;
       }
     }

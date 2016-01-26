@@ -65,6 +65,7 @@ import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -439,9 +440,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   }
 
   public RelDataType getNamedType(SqlIdentifier typeName) {
-    if (typeName.equalsDeep(
-        addressType.getSqlIdentifier(),
-        false)) {
+    if (typeName.equalsDeep(addressType.getSqlIdentifier(), Litmus.IGNORE)) {
       return addressType;
     } else {
       return null;

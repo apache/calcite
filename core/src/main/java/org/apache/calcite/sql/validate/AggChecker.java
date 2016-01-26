@@ -24,10 +24,10 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.calcite.util.Stacks;
+import org.apache.calcite.util.Litmus;
 
-import com.google.common.collect.Lists;
-
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -39,7 +39,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 class AggChecker extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
-  private final List<SqlValidatorScope> scopes = Lists.newArrayList();
+  private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();
   private final List<SqlNode> groupExprs;
   private boolean distinct;
   private SqlValidatorImpl validator;
@@ -64,14 +64,14 @@ class AggChecker extends SqlBasicVisitor<Void> {
     this.validator = validator;
     this.groupExprs = groupExprs;
     this.distinct = distinct;
-    Stacks.push(this.scopes, scope);
+    this.scopes.push(scope);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   boolean isGroupExpr(SqlNode expr) {
     for (SqlNode groupExpr : groupExprs) {
-      if (groupExpr.equalsDeep(expr, false)) {
+      if (groupExpr.equalsDeep(expr, Litmus.IGNORE)) {
         return true;
       }
     }
@@ -101,7 +101,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
-    final SqlQualified fqId = Stacks.peek(scopes).fullyQualify(id);
+    final SqlQualified fqId = scopes.peek().fullyQualify(id);
     if (isGroupExpr(fqId.identifier)) {
       return null;
     }
@@ -114,7 +114,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   public Void visit(SqlCall call) {
-    final SqlValidatorScope scope = Stacks.peek(scopes);
+    final SqlValidatorScope scope = scopes.peek();
     if (call.getOperator().isAggregator()) {
       if (distinct) {
         if (scope instanceof AggregatingSelectScope) {
@@ -127,7 +127,8 @@ class AggChecker extends SqlBasicVisitor<Void> {
               sqlNode = ((SqlCall) sqlNode).operand(0);
             }
 
-            if (validator.expand(sqlNode, scope).equalsDeep(call, false)) {
+            if (validator.expand(sqlNode, scope)
+                .equalsDeep(call, Litmus.IGNORE)) {
               return null;
             }
           }
@@ -150,7 +151,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
     // Visit the operand in window function
     if (call.getOperator().getKind() == SqlKind.OVER) {
-      SqlCall windowFunction = (SqlCall) call.operand(0);
+      SqlCall windowFunction = call.operand(0);
       if (windowFunction.getOperandList().size() != 0) {
         windowFunction.operand(0).accept(this);
       }
@@ -167,14 +168,14 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
     // Switch to new scope.
     SqlValidatorScope newScope = scope.getOperandScope(call);
-    Stacks.push(scopes, newScope);
+    scopes.push(newScope);
 
     // Visit the operands (only expressions).
     call.getOperator()
         .acceptCall(this, call, true, ArgHandlerImpl.<Void>instance());
 
     // Restore scope.
-    Stacks.pop(scopes, newScope);
+    scopes.pop();
     return null;
   }
 }

@@ -47,22 +47,19 @@ import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
-
-import static org.apache.calcite.util.Stacks.peek;
-import static org.apache.calcite.util.Stacks.pop;
-import static org.apache.calcite.util.Stacks.push;
 
 /**
  * Reads a model and creates schema objects accordingly.
  */
 public class ModelHandler {
   private final CalciteConnection connection;
-  private final List<Pair<String, SchemaPlus>> schemaStack = new ArrayList<>();
+  private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
   Lattice.Builder latticeBuilder;
   Lattice.TileBuilder tileBuilder;
@@ -139,11 +136,12 @@ public class ModelHandler {
   public void visit(JsonRoot root) {
     final Pair<String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
-    push(schemaStack, pair);
+    schemaStack.push(pair);
     for (JsonSchema schema : root.schemas) {
       schema.accept(this);
     }
-    pop(schemaStack, pair);
+    final Pair<String, SchemaPlus> p = schemaStack.pop();
+    assert p == pair;
     if (root.defaultSchema != null) {
       try {
         connection.setSchema(root.defaultSchema);
@@ -199,9 +197,10 @@ public class ModelHandler {
       schema.setCacheEnabled(jsonSchema.cache);
     }
     final Pair<String, SchemaPlus> pair = Pair.of(jsonSchema.name, schema);
-    push(schemaStack, pair);
+    schemaStack.push(pair);
     jsonSchema.visitChildren(this);
-    pop(schemaStack, pair);
+    final Pair<String, SchemaPlus> p = schemaStack.pop();
+    assert p == pair;
   }
 
   public void visit(JsonCustomSchema jsonSchema) {
@@ -356,15 +355,15 @@ public class ModelHandler {
   }
 
   private List<String> currentSchemaPath() {
-    return Collections.singletonList(peek(schemaStack).left);
+    return Collections.singletonList(schemaStack.peek().left);
   }
 
   private SchemaPlus currentSchema() {
-    return peek(schemaStack).right;
+    return schemaStack.peek().right;
   }
 
   private String currentSchemaName() {
-    return peek(schemaStack).left;
+    return schemaStack.peek().left;
   }
 
   private SchemaPlus currentMutableSchema(String elementType) {

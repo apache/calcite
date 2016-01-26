@@ -21,6 +21,7 @@ import java.util.List;
 /**
  * Utilities to make vanilla lists look like stacks.
  */
+@Deprecated // to be removed before 2.0
 public class Stacks {
   private Stacks() {
   }

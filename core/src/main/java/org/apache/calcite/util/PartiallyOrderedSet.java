@@ -18,15 +18,16 @@ package org.apache.calcite.util;
 
 import java.util.AbstractList;
 import java.util.AbstractSet;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -102,8 +103,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   private PartiallyOrderedSet(Ordering<E> ordering, Map<E, Node<E>> map) {
     this.ordering = ordering;
     this.map = map;
-    this.topNode = new TopBottomNode<E>(true);
-    this.bottomNode = new TopBottomNode<E>(false);
+    this.topNode = new TopBottomNode<>(true);
+    this.bottomNode = new TopBottomNode<>(false);
     this.topNode.childList.add(bottomNode);
     this.bottomNode.parentList.add(topNode);
   }
@@ -186,7 +187,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     Set<Node<E>> parents = findParents(e);
     Set<Node<E>> children = findChildren(e);
 
-    node = new Node<E>(e);
+    node = new Node<>(e);
 
     for (Node<E> parent : parents) {
       node.parentList.add(parent);
@@ -213,7 +214,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     }
 
     // Nodes reachable from parents.
-    final Set<Node<E>> childSet = new HashSet<Node<E>>(node.childList);
+    final Set<Node<E>> childSet = new HashSet<>(node.childList);
     for (Node<E> child : children) {
       if (!isDescendantOfAny(child, childSet)) {
         node.childList.add(child);
@@ -239,8 +240,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   private boolean isDescendantOfAny(
       Node<E> node,
       Set<Node<E>> nodeSet) {
-    final ArrayDeque<Node<E>> deque = new ArrayDeque<Node<E>>();
-    final Set<Node<E>> seen = new HashSet<Node<E>>();
+    final Deque<Node<E>> deque = new ArrayDeque<>();
+    final Set<Node<E>> seen = new HashSet<>();
     deque.add(node);
     while (!deque.isEmpty()) {
       final Node<E> node1 = deque.pop();
@@ -257,22 +258,22 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   }
 
   private Set<Node<E>> findChildren(E e) {
-    ArrayDeque<Node<E>> descendants = new ArrayDeque<Node<E>>();
+    final Deque<Node<E>> descendants = new ArrayDeque<>();
     descendants.add(bottomNode);
     return findParentsChildren(e, descendants, false);
   }
 
   private Set<Node<E>> findParents(E e) {
-    ArrayDeque<Node<E>> ancestors = new ArrayDeque<Node<E>>();
+    final Deque<Node<E>> ancestors = new ArrayDeque<>();
     ancestors.add(topNode);
     return findParentsChildren(e, ancestors, true);
   }
 
   private Set<Node<E>> findParentsChildren(
       E e,
-      ArrayDeque<Node<E>> ancestors,
+      Deque<Node<E>> ancestors,
       boolean up) {
-    final Set<Node<E>> parents = new HashSet<Node<E>>();
+    final Set<Node<E>> parents = new HashSet<>();
     while (!ancestors.isEmpty()) {
       final Node<E> ancestor = ancestors.pop();
       assert ancestor.e == null
@@ -400,8 +401,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
         }
       }
     }
-    final Map<Node, Integer> distanceToRoot =
-        new HashMap<Node, Integer>();
+    final Map<Node, Integer> distanceToRoot = new HashMap<>();
     distanceRecurse(distanceToRoot, topNode, 0);
     for (Node<E> node : map.values()) {
       if (!distanceToRoot.containsKey(node)) {
@@ -412,15 +412,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
 
     // For each pair of elements, ensure that elements are related if and
     // only if they are in the ancestors or descendants lists.
-    Map<Node<E>, Set<E>> nodeAncestors = new HashMap<Node<E>, Set<E>>();
-    Map<Node<E>, Set<E>> nodeDescendants = new HashMap<Node<E>, Set<E>>();
+    final Map<Node<E>, Set<E>> nodeAncestors = new HashMap<>();
+    final Map<Node<E>, Set<E>> nodeDescendants = new HashMap<>();
     for (Node<E> node : map.values()) {
-      nodeAncestors.put(
-          node,
-          new HashSet<E>(getAncestors(node.e)));
-      nodeDescendants.put(
-          node,
-          new HashSet<E>(getDescendants(node.e)));
+      nodeAncestors.put(node, new HashSet<>(getAncestors(node.e)));
+      nodeDescendants.put(node, new HashSet<>(getDescendants(node.e)));
     }
     for (Node<E> node1 : map.values()) {
       for (Node<E> node2 : map.values()) {
@@ -504,8 +500,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
 
     // breadth-first search, to iterate over every element once, printing
     // those nearest the top element first
-    final HashSet<E> seen = new HashSet<E>();
-    final ArrayDeque<E> unseen = new ArrayDeque<E>();
+    final Set<E> seen = new HashSet<>();
+    final Deque<E> unseen = new ArrayDeque<>();
     unseen.addAll(getNonChildren());
     while (!unseen.isEmpty()) {
       E e = unseen.pop();
@@ -549,7 +545,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       // children
       return Collections.emptyList();
     } else {
-      return new StripList<E>(node.childList);
+      return new StripList<>(node.childList);
     }
   }
 
@@ -574,7 +570,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       // parents
       return Collections.emptyList();
     } else {
-      return new StripList<E>(node.parentList);
+      return new StripList<>(node.parentList);
     }
   }
 
@@ -583,7 +579,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
         && topNode.childList.get(0).e == null) {
       return Collections.emptyList();
     }
-    return new StripList<E>(topNode.childList);
+    return new StripList<>(topNode.childList);
   }
 
   public List<E> getNonParents() {
@@ -591,7 +587,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
         && bottomNode.parentList.get(0).e == null) {
       return Collections.emptyList();
     }
-    return new StripList<E>(bottomNode.parentList);
+    return new StripList<>(bottomNode.parentList);
   }
 
   @Override public void clear() {
@@ -639,10 +635,10 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     if (c.size() == 1 && c.iterator().next().e == null) {
       return Collections.emptyList();
     }
-    ArrayDeque<Node<E>> deque = new ArrayDeque<Node<E>>(c);
+    final Deque<Node<E>> deque = new ArrayDeque<>(c);
 
-    final Set<Node<E>> seen = new HashSet<Node<E>>();
-    final List<E> list = new ArrayList<E>();
+    final Set<Node<E>> seen = new HashSet<>();
+    final List<E> list = new ArrayList<>();
     while (!deque.isEmpty()) {
       Node<E> node1 = deque.pop();
       list.add(node1.e);
@@ -670,8 +666,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param <E> Element type
    */
   private static class Node<E> {
-    final List<Node<E>> parentList = new ArrayList<Node<E>>();
-    final List<Node<E>> childList = new ArrayList<Node<E>>();
+    final List<Node<E>> parentList = new ArrayList<>();
+    final List<Node<E>> childList = new ArrayList<>();
     final E e;
 
     public Node(E e) {
@@ -748,87 +744,6 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
 
     @Override public int size() {
       return list.size();
-    }
-  }
-
-  /**
-   * Cut-down version of java.util.ArrayDeque, which is not available until
-   * JDK 1.6.
-   *
-   * @param <E> Element type
-   */
-  private static class ArrayDeque<E> {
-    private E[] es; // length must be multiple of 2
-    private int first;
-    private int last;
-
-    public ArrayDeque() {
-      this(16);
-    }
-
-    public ArrayDeque(Collection<E> nodes) {
-      this(nextPowerOf2(nodes.size()));
-      addAll(nodes);
-    }
-
-    private ArrayDeque(int capacity) {
-      first = last = 0;
-      //noinspection unchecked
-      es = (E[]) new Object[capacity];
-    }
-
-    private static int nextPowerOf2(int v) {
-      // Algorithm from
-      // http://graphics.stanford.edu/~seander/bithacks.html
-      v--;
-      v |= v >> 1;
-      v |= v >> 2;
-      v |= v >> 4;
-      v |= v >> 8;
-      v |= v >> 16;
-      v++;
-      return v;
-    }
-
-    @SuppressWarnings({"SuspiciousSystemArraycopy", "unchecked" })
-    private void expand() {
-      Object[] olds = es;
-      es = (E[]) new Object[es.length * 2];
-      System.arraycopy(olds, 0, es, 0, olds.length);
-      if (last <= first) {
-        final int x = last & (olds.length - 1);
-        System.arraycopy(olds, 0, es, olds.length, x);
-        last += olds.length;
-      }
-    }
-
-    public void add(E e) {
-      es[last] = e;
-      last = (last + 1) & (es.length - 1);
-      if (last == first) {
-        expand();
-      }
-    }
-
-    public boolean isEmpty() {
-      return last == first;
-    }
-
-
-    public E pop() {
-      if (last == first) {
-        throw new NoSuchElementException();
-      }
-      E e = es[first];
-      first = (first + 1) & (es.length - 1);
-      return e;
-    }
-
-
-    public void addAll(Collection<E> list) {
-      for (E e : list) {
-        add(e);
-      }
     }
   }
 }

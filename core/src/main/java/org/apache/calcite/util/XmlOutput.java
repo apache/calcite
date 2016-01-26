@@ -23,9 +23,10 @@ import java.io.LineNumberReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.Writer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.Deque;
 
 /**
  * Streaming XML output.
@@ -42,7 +43,7 @@ public class XmlOutput {
   private final PrintWriter out;
 
   // The tagStack is maintained to check that tags are balanced.
-  private final List<String> tagStack = new ArrayList<String>();
+  private final Deque<String> tagStack = new ArrayDeque<>();
 
   // The class maintains an indentation level to improve output quality.
   private int indent;
@@ -210,7 +211,7 @@ public class XmlOutput {
       out.println(">");
     }
     out.flush();
-    Stacks.push(tagStack, tagName);
+    tagStack.push(tagName);
     indent++;
     tagsWritten++;
   }
@@ -245,7 +246,8 @@ public class XmlOutput {
    */
   public void endTag(String tagName) {
     // Check that the end tag matches the corresponding start tag
-    Stacks.pop(tagStack, tagName);
+    String x = tagStack.pop();
+    assert x.equals(tagName);
 
     // Lower the indent and display the end tag
     indent--;

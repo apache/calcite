@@ -58,7 +58,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -73,7 +72,9 @@ import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -118,7 +119,7 @@ public class RelBuilder {
   private final RelFactories.CorrelateFactory correlateFactory;
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
-  private final List<Frame> stack = new ArrayList<>();
+  private final Deque<Frame> stack = new ArrayDeque<>();
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -210,7 +211,7 @@ public class RelBuilder {
    * you need to use previously built expressions as inputs, call
    * {@link #build()} to pop those inputs. */
   public RelBuilder push(RelNode node) {
-    Stacks.push(stack, new Frame(node));
+    stack.push(new Frame(node));
     return this;
   }
 
@@ -227,25 +228,25 @@ public class RelBuilder {
    * <p>Throws if the stack is empty.
    */
   public RelNode build() {
-    return Stacks.pop(stack).rel;
+    return stack.pop().rel;
   }
 
   /** Returns the relational expression at the top of the stack, but does not
    * remove it. */
   public RelNode peek() {
-    return Stacks.peek(stack).rel;
+    return stack.peek().rel;
   }
 
   /** Returns the relational expression {@code n} positions from the top of the
    * stack, but does not remove it. */
   public RelNode peek(int n) {
-    return Stacks.peek(n, stack).rel;
+    return Iterables.get(stack, n).rel;
   }
 
   /** Returns the relational expression {@code n} positions from the top of the
    * stack, but does not remove it. */
   public RelNode peek(int inputCount, int inputOrdinal) {
-    return Stacks.peek(inputCount - 1 - inputOrdinal, stack).rel;
+    return peek(inputCount - 1 - inputOrdinal);
   }
 
   // Methods that return scalar expressions
@@ -333,7 +334,7 @@ public class RelBuilder {
   public RexNode field(String alias, String fieldName) {
     Preconditions.checkNotNull(alias);
     Preconditions.checkNotNull(fieldName);
-    final Frame frame = Stacks.peek(stack);
+    final Frame frame = stack.peek();
     final List<String> aliases = new ArrayList<>();
     int offset = 0;
     for (Pair<String, RelDataType> pair : frame.right) {
@@ -701,9 +702,9 @@ public class RelBuilder {
       return empty();
     }
     if (!x.isAlwaysTrue()) {
-      final Frame frame = Stacks.pop(stack);
+      final Frame frame = stack.pop();
       final RelNode filter = filterFactory.createFilter(frame.rel, x);
-      Stacks.push(stack, new Frame(filter, frame.right));
+      stack.push(new Frame(filter, frame.right));
     }
     return this;
   }
@@ -1009,8 +1010,8 @@ public class RelBuilder {
    * variables. */
   public RelBuilder join(JoinRelType joinType, RexNode condition,
       Set<CorrelationId> variablesSet) {
-    final Frame right = Stacks.pop(stack);
-    final Frame left = Stacks.pop(stack);
+    final Frame right = stack.pop();
+    final Frame left = stack.pop();
     final RelNode join;
     final boolean correlate = variablesSet.size() == 1;
     if (correlate) {
@@ -1030,7 +1031,7 @@ public class RelBuilder {
     final List<Pair<String, RelDataType>> pairs = new ArrayList<>();
     pairs.addAll(left.right);
     pairs.addAll(right.right);
-    Stacks.push(stack, new Frame(join, ImmutableList.copyOf(pairs)));
+    stack.push(new Frame(join, ImmutableList.copyOf(pairs)));
     if (correlate) {
       filter(condition);
     }
@@ -1059,11 +1060,11 @@ public class RelBuilder {
 
   /** Creates a {@link org.apache.calcite.rel.core.SemiJoin}. */
   public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
-    final Frame right = Stacks.pop(stack);
-    final Frame left = Stacks.pop(stack);
+    final Frame right = stack.pop();
+    final Frame left = stack.pop();
     final RelNode semiJoin =
         semiJoinFactory.createSemiJoin(left.rel, right.rel, and(conditions));
-    Stacks.push(stack, new Frame(semiJoin, left.right));
+    stack.push(new Frame(semiJoin, left.right));
     return this;
   }
 
@@ -1074,8 +1075,8 @@ public class RelBuilder {
 
   /** Assigns a table alias to the top entry on the stack. */
   public RelBuilder as(String alias) {
-    final Frame pair = Stacks.pop(stack);
-    Stacks.push(stack,
+    final Frame pair = stack.pop();
+    stack.push(
         new Frame(pair.rel,
             ImmutableList.of(Pair.of(alias, pair.rel.getRowType()))));
     return this;
@@ -1172,7 +1173,7 @@ public class RelBuilder {
    * schema.
    */
   public RelBuilder empty() {
-    final Frame frame = Stacks.pop(stack);
+    final Frame frame = stack.pop();
     return values(frame.rel.getRowType());
   }
 
@@ -1309,7 +1310,7 @@ public class RelBuilder {
       if (top instanceof Sort) {
         final Sort sort2 = (Sort) top;
         if (sort2.offset == null && sort2.fetch == null) {
-          Stacks.pop(stack);
+          stack.pop();
           push(sort2.getInput());
           final RelNode sort =
               sortFactory.createSort(build(), sort2.collation,
@@ -1323,7 +1324,7 @@ public class RelBuilder {
         if (project.getInput() instanceof Sort) {
           final Sort sort2 = (Sort) project.getInput();
           if (sort2.offset == null && sort2.fetch == null) {
-            Stacks.pop(stack);
+            stack.pop();
             push(sort2.getInput());
             final RelNode sort =
                 sortFactory.createSort(build(), sort2.collation,
@@ -1421,7 +1422,7 @@ public class RelBuilder {
   }
 
   protected String getAlias() {
-    final Frame frame = Stacks.peek(stack);
+    final Frame frame = stack.peek();
     return frame.right.size() == 1
         ? frame.right.get(0).left
         : null;

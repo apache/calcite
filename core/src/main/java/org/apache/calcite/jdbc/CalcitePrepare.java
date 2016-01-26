@@ -43,7 +43,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.Stacks;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -52,7 +51,8 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
@@ -66,10 +66,10 @@ public interface CalcitePrepare {
           return new CalcitePrepareImpl();
         }
       };
-  ThreadLocal<ArrayList<Context>> THREAD_CONTEXT_STACK =
-      new ThreadLocal<ArrayList<Context>>() {
-        @Override protected ArrayList<Context> initialValue() {
-          return new ArrayList<>();
+  ThreadLocal<Deque<Context>> THREAD_CONTEXT_STACK =
+      new ThreadLocal<Deque<Context>>() {
+        @Override protected Deque<Context> initialValue() {
+          return new ArrayDeque<>();
         }
       };
 
@@ -174,15 +174,16 @@ public interface CalcitePrepare {
     }
 
     public static void push(Context context) {
-      Stacks.push(THREAD_CONTEXT_STACK.get(), context);
+      THREAD_CONTEXT_STACK.get().push(context);
     }
 
     public static Context peek() {
-      return Stacks.peek(THREAD_CONTEXT_STACK.get());
+      return THREAD_CONTEXT_STACK.get().peek();
     }
 
     public static void pop(Context context) {
-      Stacks.pop(THREAD_CONTEXT_STACK.get(), context);
+      Context x = THREAD_CONTEXT_STACK.get().pop();
+      assert x == context;
     }
 
     /** Implementation of {@link SparkHandler} that either does nothing or

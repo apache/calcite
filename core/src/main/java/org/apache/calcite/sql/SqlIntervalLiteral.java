@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 /**
@@ -122,13 +123,13 @@ public class SqlIntervalLiteral extends SqlLiteral {
       IntervalValue that = (IntervalValue) obj;
       return this.intervalStr.equals(that.intervalStr)
           && (this.sign == that.sign)
-          && this.intervalQualifier.equalsDeep(that.intervalQualifier, false);
+          && this.intervalQualifier.equalsDeep(that.intervalQualifier,
+              Litmus.IGNORE);
     }
 
     public int hashCode() {
       int h = Util.hash(sign, intervalStr);
-      int i = Util.hash(h, intervalQualifier);
-      return i;
+      return Util.hash(h, intervalQualifier);
     }
 
     public SqlIntervalQualifier getIntervalQualifier() {

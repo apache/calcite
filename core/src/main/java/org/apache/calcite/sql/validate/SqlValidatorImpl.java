@@ -77,6 +77,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.BitString;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
@@ -1071,7 +1072,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlNode sqlNode = orderList.get(i);
           SqlNodeList selectList2 = getInnerSelect(node).getSelectList();
           for (Ord<SqlNode> sel : Ord.zip(selectList2)) {
-            if (stripAs(sel.e).equalsDeep(sqlNode, false)) {
+            if (stripAs(sel.e).equalsDeep(sqlNode, Litmus.IGNORE)) {
               orderList.set(i,
                   SqlLiteral.createExactNumeric(Integer.toString(sel.i + 1),
                       SqlParserPos.ZERO));
@@ -3163,7 +3164,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode window1 = windowList.get(i);
       for (int j = i + 1; j < windowList.size(); j++) {
         SqlNode window2 = windowList.get(j);
-        if (window1.equalsDeep(window2, false)) {
+        if (window1.equalsDeep(window2, Litmus.IGNORE)) {
           throw newValidationError(window2, RESOURCE.dupWindowSpec());
         }
       }

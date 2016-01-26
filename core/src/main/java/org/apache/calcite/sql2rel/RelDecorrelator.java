@@ -80,7 +80,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
-import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -99,9 +98,11 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 
 import java.math.BigDecimal;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -2469,7 +2470,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final Holder<Integer> offset = Holder.of(0);
     int corrIdGenerator = 0;
 
-    final List<RelNode> stack = new ArrayList<>();
+    final Deque<RelNode> stack = new ArrayDeque<>();
 
     /** Creates a CorelMap by iterating over a {@link RelNode} tree. */
     CorelMap build(RelNode rel) {
@@ -2480,10 +2481,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     @Override public RelNode visit(LogicalJoin join) {
       try {
-        Stacks.push(stack, join);
+        stack.push(join);
         join.getCondition().accept(rexVisitor(join));
       } finally {
-        Stacks.pop(stack, join);
+        stack.pop();
       }
       return visitJoin(join);
     }
@@ -2509,22 +2510,22 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     @Override public RelNode visit(final LogicalFilter filter) {
       try {
-        Stacks.push(stack, filter);
+        stack.push(filter);
         filter.getCondition().accept(rexVisitor(filter));
       } finally {
-        Stacks.pop(stack, filter);
+        stack.pop();
       }
       return super.visit(filter);
     }
 
     @Override public RelNode visit(LogicalProject project) {
       try {
-        Stacks.push(stack, project);
+        stack.push(project);
         for (RexNode node : project.getProjects()) {
           node.accept(rexVisitor(project));
         }
       } finally {
-        Stacks.pop(stack, project);
+        stack.pop();
       }
       return super.visit(project);
     }

@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.ChunkList;
-import org.apache.calcite.util.Stacks;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -32,11 +31,13 @@ import com.google.common.collect.Multimap;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,15 +69,14 @@ class RuleQueue {
   /**
    * The importance of each subset.
    */
-  final Map<RelSubset, Double> subsetImportances =
-      new HashMap<RelSubset, Double>();
+  final Map<RelSubset, Double> subsetImportances = new HashMap<>();
 
   /**
    * The set of RelSubsets whose importance is currently in an artificially
    * raised state. Typically this only includes RelSubsets which have only
    * logical RelNodes.
    */
-  final Set<RelSubset> boostedSubsets = new HashSet<RelSubset>();
+  final Set<RelSubset> boostedSubsets = new HashSet<>();
 
   /**
    * Map of {@link VolcanoPlannerPhase} to a list of rule-matches. Initially,
@@ -87,8 +87,7 @@ class RuleQueue {
    * work.
    */
   final Map<VolcanoPlannerPhase, PhaseMatchList> matchListMap =
-      new EnumMap<VolcanoPlannerPhase, PhaseMatchList>(
-          VolcanoPlannerPhase.class);
+      new EnumMap<>(VolcanoPlannerPhase.class);
 
   /**
    * Sorts rule-matches into decreasing order of importance.
@@ -115,8 +114,7 @@ class RuleQueue {
   RuleQueue(VolcanoPlanner planner) {
     this.planner = planner;
 
-    phaseRuleMapping = new EnumMap<VolcanoPlannerPhase, Set<String>>(
-        VolcanoPlannerPhase.class);
+    phaseRuleMapping = new EnumMap<>(VolcanoPlannerPhase.class);
 
     // init empty sets for all phases
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
@@ -225,8 +223,8 @@ class RuleQueue {
     if (LOGGER.isLoggable(Level.FINER)) {
       LOGGER.finer("boostImportance(" + factor + ", " + subsets + ")");
     }
-    ArrayList<RelSubset> boostRemovals = new ArrayList<RelSubset>();
-    Iterator<RelSubset> iter = boostedSubsets.iterator();
+    final List<RelSubset> boostRemovals = new ArrayList<>();
+    final Iterator<RelSubset> iter = boostedSubsets.iterator();
     while (iter.hasNext()) {
       RelSubset subset = iter.next();
 
@@ -538,7 +536,7 @@ class RuleQueue {
     //   Project(A, X = X + 0 + 0)
     //   Project(A, X = X + 0 + 0 + 0)
     // also in the same subset. They are valid but useless.
-    final List<RelSubset> subsets = new ArrayList<RelSubset>();
+    final Deque<RelSubset> subsets = new ArrayDeque<>();
     try {
       checkDuplicateSubsets(subsets, match.rule.getOperand(), match.rels);
     } catch (Util.FoundOne e) {
@@ -563,18 +561,19 @@ class RuleQueue {
    *
    * @throws org.apache.calcite.util.Util.FoundOne on match
    */
-  private void checkDuplicateSubsets(List<RelSubset> subsets,
+  private void checkDuplicateSubsets(Deque<RelSubset> subsets,
       RelOptRuleOperand operand, RelNode[] rels) {
     final RelSubset subset = planner.getSubset(rels[operand.ordinalInRule]);
     if (subsets.contains(subset)) {
       throw Util.FoundOne.NULL;
     }
     if (!operand.getChildOperands().isEmpty()) {
-      Stacks.push(subsets, subset);
+      subsets.push(subset);
       for (RelOptRuleOperand childOperand : operand.getChildOperands()) {
         checkDuplicateSubsets(subsets, childOperand, rels);
       }
-      Stacks.pop(subsets, subset);
+      final RelSubset x = subsets.pop();
+      assert x == subset;
     }
   }
 
@@ -696,7 +695,7 @@ class RuleQueue {
      * A set of rule-match names contained in {@link #list}. Allows fast
      * detection of duplicate rule-matches.
      */
-    final Set<String> names = new HashSet<String>();
+    final Set<String> names = new HashSet<>();
 
     /**
      * Multi-map of RelSubset to VolcanoRuleMatches. Used to

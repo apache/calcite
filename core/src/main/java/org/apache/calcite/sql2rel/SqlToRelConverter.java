@@ -2792,17 +2792,15 @@ public class SqlToRelConverter {
     int ordinal = -1;
     for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
       ++ordinal;
-      if (converted.equalsDeep(stripAs(selectItem), false)) {
-        return new RelFieldCollation(
-            ordinal, direction, nullDirection);
+      if (converted.equalsDeep(stripAs(selectItem), Litmus.IGNORE)) {
+        return new RelFieldCollation(ordinal, direction, nullDirection);
       }
     }
 
     for (SqlNode extraExpr : extraExprs) {
       ++ordinal;
-      if (converted.equalsDeep(extraExpr, false)) {
-        return new RelFieldCollation(
-            ordinal, direction, nullDirection);
+      if (converted.equalsDeep(extraExpr, Litmus.IGNORE)) {
+        return new RelFieldCollation(ordinal, direction, nullDirection);
       }
     }
 
@@ -4024,7 +4022,7 @@ public class SqlToRelConverter {
 
     void registerSubquery(SqlNode node, RelOptUtil.Logic logic) {
       for (SubQuery subQuery : subqueryList) {
-        if (node.equalsDeep(subQuery.node, false)) {
+        if (node.equalsDeep(subQuery.node, Litmus.IGNORE)) {
           return;
         }
       }
@@ -4033,7 +4031,7 @@ public class SqlToRelConverter {
 
     SubQuery getSubquery(SqlNode expr) {
       for (SubQuery subQuery : subqueryList) {
-        if (expr.equalsDeep(subQuery.node, false)) {
+        if (expr.equalsDeep(subQuery.node, Litmus.IGNORE)) {
           return subQuery;
         }
       }
@@ -4663,7 +4661,7 @@ public class SqlToRelConverter {
     public int lookupGroupExpr(SqlNode expr) {
       for (int i = 0; i < groupExprs.size(); i++) {
         SqlNode groupExpr = groupExprs.get(i);
-        if (expr.equalsDeep(groupExpr, false)) {
+        if (expr.equalsDeep(groupExpr, Litmus.IGNORE)) {
           return i;
         }
       }
