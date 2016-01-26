@@ -344,6 +344,70 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Looks up a (possibly overloaded) operator from a given
+   * customized or default operator table
+   *
+   * @param opTab operator table to search
+   * @param opBinding description of call
+   * @param argTypes argument types
+   * @return matching operator, or null if none found
+   */
+  public static SqlOperator lookupSqlOperator(
+      SqlOperatorTable opTab,
+      SqlCallBinding opBinding,
+      List<RelDataType> argTypes) {
+    final SqlCall call = opBinding.getCall();
+    final SqlIdentifier operatorName = new SqlIdentifier(
+        call.getOperator().getName(),
+        call.getParserPosition());
+
+    final List<SqlOperator> routines = Lists.newArrayList();
+    opTab.lookupOperatorOverloads(operatorName,
+        null,
+        call.getOperator().getSyntax(),
+        routines);
+
+    // Eliminate routines which don't accept the given argument counts
+    filterRoutinesByParameterCount(routines, argTypes);
+
+    // Eliminate routines which alter the SqlKind
+    filterOperatorRoutinesByKind(routines, opBinding);
+
+    // Eliminate routines which don't accept the given argument types
+    filterOperatorRoutinesByParameterType(routines, opBinding);
+
+    if (routines.isEmpty()) {
+      return opBinding.getOperator();
+    } else {
+      return routines.get(0);
+    }
+  }
+
+  private static void filterOperatorRoutinesByKind(
+      List<SqlOperator> routines,
+      SqlCallBinding opBinding) {
+
+    Iterator<SqlOperator> iter = routines.iterator();
+    while (iter.hasNext()) {
+      SqlOperator operator = iter.next();
+      if (opBinding.getOperator().getKind() != operator.getKind()) {
+        iter.remove();
+      }
+    }
+  }
+
+  private static void filterOperatorRoutinesByParameterType(
+      List<SqlOperator> routines, SqlCallBinding opBinding) {
+    Iterator<SqlOperator> iter = routines.iterator();
+    while (iter.hasNext()) {
+      SqlOperator operator = iter.next();
+      if (!operator.checkOperandTypes(opBinding, false)) {
+        iter.remove();
+      }
+    }
+  }
+
+  /**
    * Looks up all subject routines matching the given name and argument types.
    *
    * @param opTab    operator table to search
@@ -433,12 +497,12 @@ public abstract class SqlUtil {
   }
 
   private static void filterRoutinesByParameterCount(
-      List<SqlFunction> routines,
+      List<? extends SqlOperator> routines,
       List<RelDataType> argTypes) {
-    Iterator<SqlFunction> iter = routines.iterator();
+    Iterator<? extends SqlOperator> iter = routines.iterator();
     while (iter.hasNext()) {
-      SqlFunction function = iter.next();
-      SqlOperandCountRange od = function.getOperandCountRange();
+      SqlOperator operator = iter.next();
+      SqlOperandCountRange od = operator.getOperandCountRange();
       if (!od.isValidCount(argTypes.size())) {
         iter.remove();
       }

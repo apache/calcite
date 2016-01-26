@@ -630,7 +630,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("'a' between 'b' and 'c'");
     checkExp("'' between 2 and 3"); // can implicitly convert CHAR to INTEGER
     checkWholeExpFails("date '2012-02-03' between 2 and 3",
-        "(?s).*Cannot apply 'BETWEEN' to arguments of type.*");
+        "(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
   }
 
   @Test public void testCharsetMismatch() {

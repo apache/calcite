@@ -32,6 +32,8 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.Lists;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -480,12 +482,22 @@ public abstract class SqlOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
+    final List<RelDataType> operandType = Lists.newArrayList();
     for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
       assert nodeType != null;
+      operandType.add(nodeType);
     }
 
-    RelDataType type = validateOperands(validator, scope, call);
+    final SqlOperatorTable opTab = validator.getOperatorTable();
+    final SqlCallBinding opBinding = new SqlCallBinding(validator, scope, call);
+    final SqlOperator operator = SqlUtil.lookupSqlOperator(
+        opTab,
+        opBinding,
+        operandType);
+
+    ((SqlBasicCall) call).setOperator(operator);
+    RelDataType type = call.getOperator().validateOperands(validator, scope, call);
 
     // Validate and determine coercibility and resulting collation
     // name of binary operator if needed.
