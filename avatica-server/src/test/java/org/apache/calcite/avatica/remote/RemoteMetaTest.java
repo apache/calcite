@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaSqlException;
 import org.apache.calcite.avatica.AvaticaStatement;
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
@@ -262,17 +263,19 @@ public class RemoteMetaTest {
   }
 
   @Test public void testRemoteStatementInsert() throws Exception {
-    System.out.println(url);
+    final String t = AvaticaUtils.unique("TEST_TABLE2");
     AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
     Statement statement = conn.createStatement();
-    int status = statement.executeUpdate(
-        "create table if not exists "
-        + "TEST_TABLE2 (id int not null, msg varchar(255) not null)");
+    final String create =
+        String.format("create table if not exists %s ("
+            + "  id int not null, msg varchar(255) not null)", t);
+    int status = statement.executeUpdate(create);
     assertEquals(status, 0);
 
     statement = conn.createStatement();
-    status = statement.executeUpdate("insert into TEST_TABLE2 values ("
-        + "'" + RANDOM.nextInt(Integer.MAX_VALUE) + "', '" + UUID.randomUUID() + "')");
+    final String update = String.format("insert into %s values ('%d', '%s')",
+        t, RANDOM.nextInt(Integer.MAX_VALUE), UUID.randomUUID());
+    status = statement.executeUpdate(update);
     assertEquals(status, 1);
   }
 

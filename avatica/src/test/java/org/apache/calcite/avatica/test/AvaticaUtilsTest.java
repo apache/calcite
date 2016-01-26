@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.junit.Test;
 
 import java.math.BigInteger;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -58,6 +60,26 @@ public class AvaticaUtilsTest {
       assertThat(e.getMessage(),
           is("Property 'java.math.BigInteger.ONE' not valid for plugin type java.math.BigInteger"));
     }
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.avatica.AvaticaUtils#unique(java.lang.String)}. */
+  @Test public void testUnique() {
+    // Below, the "probably" comments indicate the strings that will be
+    // generated the first time you run the test.
+    final Set<String> list = new LinkedHashSet<>();
+    list.add(AvaticaUtils.unique("a")); // probably "a"
+    assertThat(list.size(), is(1));
+    list.add(AvaticaUtils.unique("a")); // probably "a_1"
+    assertThat(list.size(), is(2));
+    list.add(AvaticaUtils.unique("b")); // probably "b"
+    assertThat(list.size(), is(3));
+    list.add(AvaticaUtils.unique("a_1")); // probably "a_1_3"
+    assertThat(list.size(), is(4));
+    list.add(AvaticaUtils.unique("A")); // probably "A"
+    assertThat(list.size(), is(5));
+    list.add(AvaticaUtils.unique("a")); // probably "a_5"
+    assertThat(list.size(), is(6));
   }
 }
 

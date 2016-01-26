@@ -346,10 +346,12 @@ public class RemoteDriverTest {
   }
 
   @Test public void testInsertDrop() throws Exception {
-    final String create = "create table if not exists TEST_TABLE2 ("
-        + "id int not null, "
-        + "msg varchar(3) not null)";
-    final String insert = "insert into TEST_TABLE2 values(1, 'foo')";
+    final String t = AvaticaUtils.unique("TEST_TABLE2");
+    final String create =
+        String.format("create table if not exists %s ("
+            + "id int not null, "
+            + "msg varchar(3) not null)", t);
+    final String insert = String.format("insert into %s values(1, 'foo')", t);
     Connection connection = ljs();
     Statement statement = connection.createStatement();
     statement.execute(create);
@@ -540,12 +542,15 @@ public class RemoteDriverTest {
 
   @Test public void testCreateInsertUpdateDrop() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
-    final String drop = "drop table TEST_TABLE if exists";
-    final String create = "create table TEST_TABLE("
+    final String t = AvaticaUtils.unique("TEST_TABLE");
+    final String drop = String.format("drop table %s if exists", t);
+    final String create = String.format("create table %s("
         + "id int not null, "
-        + "msg varchar(3) not null)";
-    final String insert = "insert into TEST_TABLE values(1, 'foo')";
-    final String update = "update TEST_TABLE set msg='bar' where id=1";
+        + "msg varchar(3) not null)",
+        t);
+    final String insert = String.format("insert into %s values(1, 'foo')", t);
+    final String update =
+        String.format("update %s set msg='bar' where id=1", t);
     try (Connection connection = getLocalConnection();
         Statement statement = connection.createStatement();
         PreparedStatement pstmt = connection.prepareStatement("values 1")) {

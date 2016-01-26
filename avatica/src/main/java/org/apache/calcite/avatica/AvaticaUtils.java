@@ -27,8 +27,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.AbstractList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Avatica utilities. */
 public class AvaticaUtils {
@@ -40,6 +42,8 @@ public class AvaticaUtils {
       method(long.class, Statement.class, "getLargeMaxRows");
   private static final MethodHandle GET_LARGE_UPDATE_COUNT =
       method(void.class, Statement.class, "getLargeUpdateCount");
+
+  private static final Set<String> UNIQUE_STRINGS = new HashSet<>();
 
   private AvaticaUtils() {}
 
@@ -276,6 +280,20 @@ public class AvaticaUtils {
       }
     }
     return statement.getUpdateCount();
+  }
+
+  /** Generates a string that is unique in the execution of the JVM.
+   * It is used by tests to ensure that they create distinct temporary tables.
+   * The strings are never thrown away, so don't put too much in there!
+   * Thread safe. */
+  public static String unique(String base) {
+    synchronized (UNIQUE_STRINGS) {
+      String s = base;
+      while (!UNIQUE_STRINGS.add(s)) {
+        s = base + "_" + UNIQUE_STRINGS.size();
+      }
+      return s;
+    }
   }
 }
 
