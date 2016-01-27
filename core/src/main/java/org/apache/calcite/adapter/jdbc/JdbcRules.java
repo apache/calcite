@@ -76,10 +76,11 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * Rules and relational operators for
@@ -164,7 +165,7 @@ public class JdbcRules {
             join.getVariablesSet(),
             join.getJoinType());
       } catch (InvalidRelException e) {
-        LOGGER.fine(e.toString());
+        LOGGER.debug(e.toString());
         return null;
       }
     }
@@ -467,7 +468,7 @@ public class JdbcRules {
             convert(agg.getInput(), out), agg.indicator, agg.getGroupSet(),
             agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
-        LOGGER.fine(e.toString());
+        LOGGER.debug(e.toString());
         return null;
       }
     }

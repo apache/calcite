@@ -36,12 +36,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * Checks whether one condition logically implies another.
@@ -56,7 +57,7 @@ import java.util.logging.Logger;
  */
 public class RexImplicationChecker {
   private static final CalciteLogger LOGGER =
-      new CalciteLogger(Logger.getLogger(RexImplicationChecker.class.getName()));
+      new CalciteLogger(LoggerFactory.getLogger(RexImplicationChecker.class));
 
   final RexBuilder builder;
   final RexExecutorImpl executor;
@@ -89,7 +90,7 @@ public class RexImplicationChecker {
       return false;
     }
 
-    LOGGER.fine("Checking if " + first.toString() + " => " + second.toString());
+    LOGGER.debug("Checking if {} => {}", first.toString(), second.toString());
 
     RexCall firstCond = (RexCall) first;
     RexCall secondCond = (RexCall) second;
@@ -140,13 +141,13 @@ public class RexImplicationChecker {
         // If f could not imply even one conjunction in
         // secondDnfs, then final implication may be false
         if (!implyOneConjunction) {
-          LOGGER.fine(first + " doesnot imply " + second);
+          LOGGER.debug("{} doesnot imply {}", first, second);
           return false;
         }
       }
     }
 
-    LOGGER.fine(first + " implies " + second);
+    LOGGER.debug("{} implies {}", first, second);
     return true;
   }
 
@@ -160,8 +161,7 @@ public class RexImplicationChecker {
 
     // Check Support
     if (!checkSupport(firstUsageFinder, secondUsageFinder)) {
-      LOGGER.warning("Support for checking " + first
-          + " => " + second + " is not there");
+      LOGGER.warn("Support for checking {} => {} is not there", first, second);
       return false;
     }
 
@@ -220,7 +220,7 @@ public class RexImplicationChecker {
     } catch (Exception e) {
       // TODO: CheckSupport should not allow this exception to be thrown
       // Need to monitor it and handle all the cases raising them.
-      LOGGER.warning("Exception thrown while checking if => " + second + ": " + e.getMessage());
+      LOGGER.warn("Exception thrown while checking if => {}: {}", second, e.getMessage());
       return false;
     }
     return result != null

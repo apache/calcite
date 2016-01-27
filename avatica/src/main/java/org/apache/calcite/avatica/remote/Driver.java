@@ -24,6 +24,9 @@ import org.apache.calcite.avatica.DriverVersion;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
@@ -38,6 +41,7 @@ import java.util.Properties;
  * Avatica Remote JDBC driver.
  */
 public class Driver extends UnregisteredDriver {
+  private static final Logger LOG = LoggerFactory.getLogger(Driver.class);
   public static final String CONNECT_STRING_PREFIX = "jdbc:avatica:remote:";
 
   static {
@@ -99,6 +103,7 @@ public class Driver extends UnregisteredDriver {
       final AvaticaHttpClient httpClient = getHttpClient(connection, config);
       final Serialization serializationType = getSerialization(config);
 
+      LOG.debug("Instantiating {} service", serializationType);
       switch (serializationType) {
       case JSON:
         service = new RemoteService(httpClient);

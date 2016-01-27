@@ -29,6 +29,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
+import org.slf4j.Logger;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
@@ -45,8 +47,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
@@ -220,9 +220,7 @@ class RuleQueue {
    *                importance by 25%)
    */
   public void boostImportance(Collection<RelSubset> subsets, double factor) {
-    if (LOGGER.isLoggable(Level.FINER)) {
-      LOGGER.finer("boostImportance(" + factor + ", " + subsets + ")");
-    }
+    LOGGER.trace("boostImportance({}, {})", factor, subsets);
     final List<RelSubset> boostRemovals = new ArrayList<>();
     final Iterator<RelSubset> iter = boostedSubsets.iterator();
     while (iter.hasNext()) {
@@ -345,11 +343,7 @@ class RuleQueue {
         }
       }
 
-      if (LOGGER.isLoggable(Level.FINEST)) {
-        LOGGER.finest(
-            matchList.phase.toString() + " Rule-match queued: "
-                + matchName);
-      }
+      LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
 
       matchList.list.add(match);
 
@@ -402,19 +396,17 @@ class RuleQueue {
         importance = Math.max(importance, childImportance);
       }
     }
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("Importance of [" + subset + "] is " + importance);
-    }
+    LOGGER.trace("Importance of [{}] is {}", subset, importance);
     return importance;
   }
 
   private void dump() {
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isTraceEnabled()) {
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       dump(pw);
       pw.flush();
-      LOGGER.finer(sw.toString());
+      LOGGER.trace(sw.toString());
     }
   }
 
@@ -461,7 +453,7 @@ class RuleQueue {
       if (matchList.isEmpty()) {
         return null;
       }
-      if (LOGGER.isLoggable(Level.FINEST)) {
+      if (LOGGER.isTraceEnabled()) {
         Collections.sort(matchList, MATCH_COMPARATOR);
         match = matchList.remove(0);
 
@@ -475,7 +467,7 @@ class RuleQueue {
           b.append(importance);
         }
 
-        LOGGER.finest(b.toString());
+        LOGGER.trace(b.toString());
       } else {
         // If we're not tracing, it's not worth the effort of sorting the
         // list to find the minimum.
@@ -494,9 +486,7 @@ class RuleQueue {
       }
 
       if (skipMatch(match)) {
-        if (LOGGER.isLoggable(Level.FINE)) {
-          LOGGER.fine("Skip match: " + match);
-        }
+        LOGGER.debug("Skip match: {}", match);
       } else {
         break;
       }
@@ -510,9 +500,7 @@ class RuleQueue {
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine("Pop match: " + match);
-    }
+    LOGGER.debug("Pop match: {}", match);
     return match;
   }
 
@@ -595,12 +583,8 @@ class RuleQueue {
       alpha = 0.99;
     }
     final double importance = parentImportance * alpha;
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("Importance of [" + child + "] to its parent ["
-          + parent + "] is " + importance + " (parent importance="
-          + parentImportance + ", child cost=" + childCost
-          + ", parent cost=" + parentCost + ")");
-    }
+    LOGGER.trace("Importance of [{}] to its parent [{}] is {} (parent importance={}, child cost={},"
+        + " parent cost={})", child, parent, importance, parentImportance, childCost, parentCost);
     return importance;
   }
 

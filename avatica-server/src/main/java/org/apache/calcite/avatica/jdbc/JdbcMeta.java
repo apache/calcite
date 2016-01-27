@@ -30,13 +30,13 @@ import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.remote.TypedValue;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
@@ -61,7 +61,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
-  private static final Log LOG = LogFactory.getLog(JdbcMeta.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JdbcMeta.class);
 
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
 
@@ -151,9 +151,7 @@ public class JdbcMeta implements Meta {
         .expireAfterAccess(connectionExpiryDuration, connectionExpiryUnit)
         .removalListener(new ConnectionExpiryHandler())
         .build();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("instantiated connection cache: " + connectionCache.stats());
-    }
+    LOG.debug("instantiated connection cache: {}", connectionCache.stats());
 
     concurrencyLevel = Integer.parseInt(
         info.getProperty(StatementCacheSettings.CONCURRENCY_LEVEL.key(),
@@ -177,9 +175,8 @@ public class JdbcMeta implements Meta {
         .expireAfterAccess(connectionExpiryDuration, connectionExpiryUnit)
         .removalListener(new StatementExpiryHandler())
         .build();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("instantiated statement cache: " + statementCache.stats());
-    }
+
+    LOG.debug("instantiated statement cache: {}", statementCache.stats());
   }
 
   /**
@@ -396,10 +393,8 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getBestRowIdentifier(ConnectionHandle ch, String catalog, String schema,
       String table, int scope, boolean nullable) {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("getBestRowIdentifier catalog:" + catalog + " schema:" + schema
-          + " table:" + table + " scope:" + scope + " nullable:" + nullable);
-    }
+    LOG.trace("getBestRowIdentifier catalog:{} schema:{} table:{} scope:{} nullable:{}", catalog,
+        schema, table, scope, nullable);
     try {
       final ResultSet rs =
           getConnection(ch.id).getMetaData().getBestRowIdentifier(catalog, schema,
@@ -413,9 +408,7 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getVersionColumns(ConnectionHandle ch, String catalog, String schema,
       String table) {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("getVersionColumns catalog:" + catalog + " schema:" + schema + " table:" + table);
-    }
+    LOG.trace("getVersionColumns catalog:{} schema:{} table:{}", catalog, schema, table);
     try {
       final ResultSet rs =
           getConnection(ch.id).getMetaData().getVersionColumns(catalog, schema, table);
@@ -428,9 +421,7 @@ public class JdbcMeta implements Meta {
 
   public MetaResultSet getPrimaryKeys(ConnectionHandle ch, String catalog, String schema,
       String table) {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("getPrimaryKeys catalog:" + catalog + " schema:" + schema + " table:" + table);
-    }
+    LOG.trace("getPrimaryKeys catalog:{} schema:{} table:{}", catalog, schema, table);
     try {
       final ResultSet rs =
           getConnection(ch.id).getMetaData().getPrimaryKeys(catalog, schema, table);
@@ -535,9 +526,7 @@ public class JdbcMeta implements Meta {
       final int id = statementIdGenerator.getAndIncrement();
       statementCache.put(id, new StatementInfo(statement));
       StatementHandle h = new StatementHandle(ch.id, id, null);
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("created statement " + h);
-      }
+      LOG.trace("created statement {}", h);
       return h;
     } catch (SQLException e) {
       throw propagate(e);
@@ -547,12 +536,10 @@ public class JdbcMeta implements Meta {
   @Override public void closeStatement(StatementHandle h) {
     StatementInfo info = statementCache.getIfPresent(h.id);
     if (info == null || info.statement == null) {
-      LOG.debug("client requested close unknown statement " + h);
+      LOG.debug("client requested close unknown statement {}", h);
       return;
     }
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("closing statement " + h);
-    }
+    LOG.trace("closing statement {}", h);
     try {
       ResultSet results = info.getResultSet();
       if (info.isResultSetInitialized() && null != results) {
@@ -590,12 +577,10 @@ public class JdbcMeta implements Meta {
   @Override public void closeConnection(ConnectionHandle ch) {
     Connection conn = connectionCache.getIfPresent(ch.id);
     if (conn == null) {
-      LOG.debug("client requested close unknown connection " + ch);
+      LOG.debug("client requested close unknown connection {}", ch);
       return;
     }
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("closing connection " + ch);
-    }
+    LOG.trace("closing connection {}", ch);
     try {
       conn.close();
     } catch (SQLException e) {
@@ -626,9 +611,7 @@ public class JdbcMeta implements Meta {
 
   @Override public ConnectionProperties connectionSync(ConnectionHandle ch,
       ConnectionProperties connProps) {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("syncing properties for connection " + ch);
-    }
+    LOG.trace("syncing properties for connection {}", ch);
     try {
       Connection conn = getConnection(ch.id);
       ConnectionPropertiesImpl props = new ConnectionPropertiesImpl(conn).merge(connProps);
@@ -669,9 +652,7 @@ public class JdbcMeta implements Meta {
       StatementHandle h = new StatementHandle(ch.id, id,
           signature(statement.getMetaData(), statement.getParameterMetaData(),
               sql, statementType));
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("prepared statement " + h);
-      }
+      LOG.trace("prepared statement {}", h);
       return h;
     } catch (SQLException e) {
       throw propagate(e);
@@ -706,9 +687,7 @@ public class JdbcMeta implements Meta {
         resultSets.add(
             JdbcResultSet.create(h.connectionId, h.id, info.getResultSet(), maxRowCount));
       }
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("prepAndExec statement " + h);
-      }
+      LOG.trace("prepAndExec statement {}", h);
       // TODO: review client to ensure statementId is updated when appropriate
       return new ExecuteResult(resultSets);
     } catch (SQLException e) {
@@ -742,10 +721,7 @@ public class JdbcMeta implements Meta {
 
   public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) throws
       NoSuchStatementException, MissingResultsException {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("fetching " + h + " offset:" + offset + " fetchMaxRowCount:"
-          + fetchMaxRowCount);
-    }
+    LOG.trace("fetching {} offset:{} fetchMaxRowCount:{}", h, offset, fetchMaxRowCount);
     try {
       final StatementInfo statementInfo = statementCache.getIfPresent(h.id);
       if (null == statementInfo) {
@@ -935,16 +911,13 @@ public class JdbcMeta implements Meta {
     public void onRemoval(RemovalNotification<String, Connection> notification) {
       String connectionId = notification.getKey();
       Connection doomed = notification.getValue();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Expiring connection " + connectionId + " because "
-                + notification.getCause());
-      }
+      LOG.debug("Expiring connection {} because {}", connectionId, notification.getCause());
       try {
         if (doomed != null) {
           doomed.close();
         }
       } catch (Throwable t) {
-        LOG.info("Exception thrown while expiring connection " + connectionId, t);
+        LOG.info("Exception thrown while expiring connection {}", connectionId, t);
       }
     }
   }
@@ -959,10 +932,7 @@ public class JdbcMeta implements Meta {
         // log/throw?
         return;
       }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Expiring statement " + stmtId + " because "
-                + notification.getCause());
-      }
+      LOG.debug("Expiring statement {} because {}", stmtId, notification.getCause());
       try {
         if (doomed.getResultSet() != null) {
           doomed.getResultSet().close();
@@ -971,7 +941,7 @@ public class JdbcMeta implements Meta {
           doomed.statement.close();
         }
       } catch (Throwable t) {
-        LOG.info("Exception thrown while expiring statement " + stmtId);
+        LOG.info("Exception thrown while expiring statement {}", stmtId, t);
       }
     }
   }

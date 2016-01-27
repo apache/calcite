@@ -37,6 +37,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.slf4j.Logger;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -80,8 +82,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.jar.JarFile;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -235,7 +235,7 @@ public class Util {
       Throwable e,
       Logger logger) {
     if (logger != null) {
-      logger.log(Level.FINER, "Discarding exception", e);
+      logger.debug("Discarding exception", e);
     }
   }
 

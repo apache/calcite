@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.splunk.util;
 
+import org.slf4j.Logger;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,8 +28,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
@@ -156,9 +156,7 @@ public class HttpUtils {
       InputStream in = conn.getInputStream();
       wr.close();
 
-      if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.fine("url: " + url + ", data: " + String.valueOf(data));
-      }
+      LOGGER.debug("url: {}, data: {}", url, String.valueOf(data));
       return in;
     } finally {
       close(wr);

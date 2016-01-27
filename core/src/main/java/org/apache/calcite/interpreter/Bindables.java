@@ -621,7 +621,7 @@ public class Bindables {
             convert(agg.getInput(), traitSet), agg.indicator, agg.getGroupSet(),
             agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
-        RelOptPlanner.LOGGER.fine(e.toString());
+        RelOptPlanner.LOGGER.debug(e.toString());
         return null;
       }
     }

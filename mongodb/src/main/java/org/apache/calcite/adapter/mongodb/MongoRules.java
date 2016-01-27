@@ -46,12 +46,13 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.slf4j.Logger;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * Rules and relational operators for
@@ -518,7 +519,7 @@ public class MongoRules {
             agg.getGroupSets(),
             agg.getAggCallList());
       } catch (InvalidRelException e) {
-        LOGGER.warning(e.toString());
+        LOGGER.warn(e.toString());
         return null;
       }
     }

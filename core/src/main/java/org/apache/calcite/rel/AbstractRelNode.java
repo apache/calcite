@@ -44,14 +44,14 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.slf4j.Logger;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -115,9 +115,7 @@ public abstract class AbstractRelNode implements RelNode {
     this.id = nextId++;
     this.digest = getRelTypeName() + "#" + id;
     this.desc = digest;
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("new " + digest);
-    }
+    LOGGER.trace("new {}", digest);
   }
 
   //~ Methods ----------------------------------------------------------------

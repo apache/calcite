@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -290,19 +289,15 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
     assert ruleCall.getRule().matches(ruleCall);
     if (isRuleExcluded(ruleCall.getRule())) {
-      if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.fine("call#" + ruleCall.id
-            + ": Rule [" + ruleCall.getRule() + "] not fired"
-            + " due to exclusion filter");
-      }
+      LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion filter",
+          ruleCall.id, ruleCall.getRule());
       return;
     }
 
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine(
-          "call#" + ruleCall.id
-          + ": Apply rule [" + ruleCall.getRule() + "] to "
-          + Arrays.toString(ruleCall.rels));
+    if (LOGGER.isDebugEnabled()) {
+      // Leave this wrapped in a conditional to prevent unnecessarily calling Arrays.toString(...)
+      LOGGER.debug("call#{}: Apply rule [{}] to {}",
+          ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels));
     }
 
     if (listener != null) {
@@ -340,11 +335,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       RelOptRuleCall ruleCall,
       RelNode newRel,
       boolean before) {
-    if (before && LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine("call#" + ruleCall.id
-          + ": Rule " + ruleCall.getRule() + " arguments "
-          + Arrays.toString(ruleCall.rels) + " produced "
-          + newRel);
+    if (before && LOGGER.isDebugEnabled()) {
+      LOGGER.debug("call#{}: Rule {} arguments {} produced {}",
+          ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels), newRel);
     }
 
     if (listener != null) {
@@ -365,9 +358,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @param rel chosen rel
    */
   protected void notifyChosen(RelNode rel) {
-    if (LOGGER.isLoggable(Level.FINE)) {
-      LOGGER.fine("For final plan, using " + rel);
-    }
+    LOGGER.debug("For final plan, using {}", rel);
 
     if (listener != null) {
       RelOptListener.RelChosenEvent event =

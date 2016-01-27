@@ -76,6 +76,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import org.slf4j.Logger;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,8 +85,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.apache.calcite.rex.RexUtil.andNot;
 import static org.apache.calcite.rex.RexUtil.removeAll;
@@ -1115,12 +1115,8 @@ public class SubstitutionVisitor {
     protected MutableRel invert(List<Pair<RexNode, String>> namedProjects,
         MutableRel input,
         RexShuttle shuttle) {
-      if (LOGGER.isLoggable(Level.FINER)) {
-        LOGGER.finer("SubstitutionVisitor: invert:\n"
-            + "projects: " + namedProjects + "\n"
-            + "input: " + input + "\n"
-            + "project: " + shuttle + "\n");
-      }
+      LOGGER.trace("SubstitutionVisitor: invert:\nprojects: {}\ninput: {}\nproject: {}\n",
+          namedProjects, input, shuttle);
       final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = input.cluster.getRexBuilder();
       final List<RexNode> projects = Pair.left(namedProjects);
@@ -1139,12 +1135,8 @@ public class SubstitutionVisitor {
 
     protected MutableRel invert(MutableRel model, MutableRel input,
         MutableProject project) {
-      if (LOGGER.isLoggable(Level.FINER)) {
-        LOGGER.finer("SubstitutionVisitor: invert:\n"
-            + "model: " + model + "\n"
-            + "input: " + input + "\n"
-            + "project: " + project + "\n");
-      }
+      LOGGER.trace("SubstitutionVisitor: invert:\nmodel: {}\ninput: {}\nproject: {}\n",
+          model, input, project);
       final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = model.cluster.getRexBuilder();
       for (RelDataTypeField field : model.getRowType().getFieldList()) {

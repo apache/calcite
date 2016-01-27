@@ -37,9 +37,9 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.slf4j.Logger;
+
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -61,7 +61,7 @@ PARSER_END(PigletParser)
 JAVACODE
 void debug_message1()
 {
-  LOGGER.log(Level.INFO, getToken(0).image + " , " + getToken(1).image);
+  LOGGER.info("{} , {}", getToken(0).image, getToken(1).image);
 }
 
 JAVACODE String unquotedIdentifier() {

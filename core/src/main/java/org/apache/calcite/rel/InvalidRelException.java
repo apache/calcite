@@ -36,7 +36,7 @@ package org.apache.calcite.rel;
  *
  * <p>The caller that receives an {@code InvalidRelException} (typically a rule
  * attempting to create a relational expression) should log it at
- * {@link java.util.logging.Level#FINE} level.</p>
+ * the DEBUG level.</p>
  */
 public class InvalidRelException extends Exception {
   /**

@@ -18,9 +18,6 @@ package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -28,6 +25,9 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -39,7 +39,7 @@ import java.net.UnknownHostException;
  * {@link #configureConnector(ServerConnector, int)} method in a derived class.
  */
 public class HttpServer {
-  private static final Log LOG = LogFactory.getLog(HttpServer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HttpServer.class);
 
   private Server server;
   private int port = -1;
@@ -96,7 +96,7 @@ public class HttpServer {
     }
     port = connector.getLocalPort();
 
-    LOG.info("Service listening on port " + getPort() + ".");
+    LOG.info("Service listening on port {}.", getPort());
 
     // Set the information about the address for this server
     try {

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.util.trace;
 
+import org.slf4j.Logger;
+
 import java.text.DecimalFormat;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * CalciteTimingTracer provides a mechanism for tracing the timing of a call
@@ -49,14 +49,14 @@ public class CalciteTimingTracer {
   public CalciteTimingTracer(
       Logger logger,
       String startEvent) {
-    if (!logger.isLoggable(Level.FINE)) {
+    if (!logger.isDebugEnabled()) {
       this.logger = null;
       return;
     } else {
       this.logger = logger;
     }
     lastNanoTime = System.nanoTime();
-    logger.fine(startEvent + ":  elapsed nanos=0");
+    logger.debug("{}:  elapsed nanos=0", startEvent);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -73,8 +73,7 @@ public class CalciteTimingTracer {
     long newNanoTime = System.nanoTime();
     long elapsed = newNanoTime - lastNanoTime;
     lastNanoTime = newNanoTime;
-    logger.fine(
-        event + ":  elapsed nanos=" + DECIMAL_FORMAT.format(elapsed));
+    logger.debug("{}:  elapsed nanos={}", event, DECIMAL_FORMAT.format(elapsed));
   }
 }
 

@@ -22,12 +22,13 @@ import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- * Contains all of the {@link java.util.logging.Logger tracers} used within
+ * Contains all of the {@link org.slf4j.Logger tracers} used within
  * org.apache.calcite class libraries.
  *
  * <h3>Note to developers</h3>
@@ -39,8 +40,7 @@ import java.util.logging.Logger;
  *
  * <p>The javadoc in this file is the primary source of information on what
  * tracers are available, so the javadoc against each tracer member must be an
- * up-to-date description of what that tracer does. Be sure to describe what
- * {@link Level tracing level} is required to obtain each category of tracing.
+ * up-to-date description of what that tracer does.
  *
  * <p>In the class where the tracer is used, create a <em>private</em> (or
  * perhaps <em>protected</em>) <em>static final</em> member called <code>
@@ -51,8 +51,7 @@ public abstract class CalciteTrace {
 
   /**
    * The "org.apache.calcite.sql.parser" tracer reports parser events in
-   * {@link org.apache.calcite.sql.parser.SqlParser} and other classes (at level
-   * {@link Level#FINE} or higher).
+   * {@link org.apache.calcite.sql.parser.SqlParser} and other classes at DEBUG.
    */
   public static final Logger PARSER_LOGGER = getParserTracer();
 
@@ -73,30 +72,31 @@ public abstract class CalciteTrace {
    * <p>Levels:
    *
    * <ul>
-   * <li>{@link Level#FINE} prints rules as they fire;
-   * <li>{@link Level#FINER} prints and validates the whole expression pool
-   * and rule queue as each rule fires;
-   * <li>{@link Level#FINEST} prints finer details like rule importances.
+   * <li>{@link Logger#debug(String)} (formerly FINE) prints rules as they fire;
+   * <li>{@link Logger#trace(String)} (formerly FINER) prints and validates the whole expression
+   * pool and rule queue as each rule fires;
+   * <li>{@link Logger#trace(String)} (formerly FINEST) also prints finer details like rule
+   * importances.
    * </ul>
    */
   public static Logger getPlannerTracer() {
-    return Logger.getLogger(RelOptPlanner.class.getName());
+    return LoggerFactory.getLogger(RelOptPlanner.class.getName());
   }
 
   /**
    * The "org.apache.calcite.prepare.Prepare" tracer prints the generated
-   * program at level {@link java.util.logging.Level#FINE} or higher.
+   * program at DEBUG (formerly, FINE)  or higher.
    */
   public static Logger getStatementTracer() {
-    return Logger.getLogger(Prepare.class.getName());
+    return LoggerFactory.getLogger(Prepare.class.getName());
   }
 
   /**
    * The "org.apache.calcite.rel.RelImplementorImpl" tracer reports when
-   * expressions are bound to variables ({@link Level#FINE})
+   * expressions are bound to variables (DEBUG, formerly FINE)
    */
   public static Logger getRelImplementorTracer() {
-    return Logger.getLogger(RelImplementor.class.getName());
+    return LoggerFactory.getLogger(RelImplementor.class);
   }
 
   /**
@@ -106,21 +106,21 @@ public abstract class CalciteTrace {
    * @see CalciteTimingTracer
    */
   public static Logger getSqlTimingTracer() {
-    return Logger.getLogger("org.apache.calcite.sql.timing");
+    return LoggerFactory.getLogger("org.apache.calcite.sql.timing");
   }
 
   /**
    * The "org.apache.calcite.sql.parser" tracer reports parse events.
    */
   public static Logger getParserTracer() {
-    return Logger.getLogger("org.apache.calcite.sql.parser");
+    return LoggerFactory.getLogger("org.apache.calcite.sql.parser");
   }
 
   /**
    * The "org.apache.calcite.sql2rel" tracer reports parse events.
    */
   public static Logger getSqlToRelTracer() {
-    return Logger.getLogger("org.apache.calcite.sql2rel");
+    return LoggerFactory.getLogger("org.apache.calcite.sql2rel");
   }
 
   /**

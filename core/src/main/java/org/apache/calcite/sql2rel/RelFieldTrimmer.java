@@ -73,7 +73,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
@@ -162,8 +161,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (!trimResult.right.isIdentity()) {
       throw new IllegalArgumentException();
     }
-    if (SqlToRelConverter.SQL2REL_LOGGER.isLoggable(Level.FINE)) {
-      SqlToRelConverter.SQL2REL_LOGGER.fine(
+    if (SqlToRelConverter.SQL2REL_LOGGER.isDebugEnabled()) {
+      SqlToRelConverter.SQL2REL_LOGGER.debug(
           RelOptUtil.dumpPlan("Plan after trimming unused fields",
               trimResult.left, false, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }

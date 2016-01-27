@@ -41,11 +41,12 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * Planner rule to push filters and projections to Splunk.
@@ -111,7 +112,7 @@ public class SplunkPushDownRule
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    LOGGER.fine(description);
+    LOGGER.debug(description);
 
     int relLength = call.rels.length;
     SplunkTableScan splunkRel =
@@ -149,7 +150,7 @@ public class SplunkPushDownRule
       SqlOperator op = filterCall.getOperator();
       List<RexNode> operands = filterCall.getOperands();
 
-      LOGGER.fine("fieldNames: " + getFieldsString(topRow));
+      LOGGER.debug("fieldNames: {}", getFieldsString(topRow));
 
       final StringBuilder buf = new StringBuilder();
       if (getFilter(op, operands, buf, topRow.getFieldNames())) {
@@ -165,7 +166,7 @@ public class SplunkPushDownRule
     if (topProj != null) {
       topRow =  topProj.getRowType();
     }
-    LOGGER.fine("pre transformTo fieldNames: " + getFieldsString(topRow));
+    LOGGER.debug("pre transformTo fieldNames: {}", getFieldsString(topRow));
 
     call.transformTo(
         appendSearchString(
@@ -227,7 +228,7 @@ public class SplunkPushDownRule
     // handle top projection (ie reordering and renaming)
     List<RelDataTypeField> newFields = bottomFields;
     if (topProj != null) {
-      LOGGER.fine("topProj: " + String.valueOf(topProj.getPermutation()));
+      LOGGER.debug("topProj: {}", String.valueOf(topProj.getPermutation()));
       newFields = new ArrayList<RelDataTypeField>();
       int i = 0;
       for (RexNode rn : topProj.getProjects()) {
@@ -266,9 +267,9 @@ public class SplunkPushDownRule
             splunkRel.latest,
             resultType.getFieldNames());
 
-    LOGGER.fine(
-        "end of appendSearchString fieldNames: "
-        + rel.getRowType().getFieldNames());
+    LOGGER.debug(
+        "end of appendSearchString fieldNames: {}",
+        rel.getRowType().getFieldNames());
     return rel;
   }
 

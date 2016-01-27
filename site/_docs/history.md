@@ -28,6 +28,20 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## 1.7.0 / (Under Development)
+{: #v1-7-0}
+
+One notable change is that the use of JUL (java.util.logging) has been replaced
+with [SLF4J](http://slf4j.org/). SLF4J provides an API which Calcite can use
+independent of the logging implementation. This ultimately provides additional
+flexibility to users, allowing them to configure Calcite's logging within their
+own chosen logging framework. This work was done in [CALCITE-669](https://issues.apache.org/jira/browse/CALCITE-669).
+
+For users experienced with configuring JUL in Calcite previously, there are some
+differences as some the JUL logging levels do not exist in SLF4J: `FINE`,
+`FINER`, and `FINEST`, specifically. To deal with this, `FINE` was mapped
+to SLF4J's `DEBUG` level, while `FINER` and `FINEST` were mapped to SLF4J's `TRACE`.
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.6.0">1.6.0</a> / 2016-01-22
 {: #v1-6-0}
 
@@ -2327,4 +2341,3 @@ with the other changes in that release.
 {: #linq4j-v0-1-11}
 
 * Initial commit
-

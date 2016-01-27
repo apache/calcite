@@ -16,21 +16,20 @@
  */
 package org.apache.calcite.util.trace;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 /**
  * Small extension to {@link Logger} with some performance improvements.
  *
- * <p>{@link Logger#log(Level level, String msg, Object[] params)} is expensive
+ * <p>{@link Logger#info(String format, Object[] params)} is expensive
  * to call, since the caller must always allocate and fill in the array
- * <code>params</code>, even when <code>level</code> will prevent a message
- * being logged. On the other hand, {@link Logger#log(Level level, String msg)}
- * and {@link Logger#log(Level level, String msg, Object)} do not have this
+ * <code>params</code>, even when the <code>level</code> will prevent a message
+ * being logged. On the other hand, {@link Logger#info(String msg)}
+ * and {@link Logger#info(String msg, Object o)} do not have this
  * problem.
  *
  * <p>As a workaround this class provides
- * {@link #log(Level, String msg, Object, Object)} etc. (The varargs feature of
+ * {@link #info(String msg, Object o1, Object o2)} etc. (The varargs feature of
  * java 1.5 half-solves this problem, by automatically wrapping args in an
  * array, but it does so without testing the level.)
  *
@@ -58,50 +57,139 @@ public class CalciteLogger {
 
   //~ Methods ----------------------------------------------------------------
 
+  // WARN
+
   /**
-   * Conditionally logs a message with two Object parameters
+   * Logs a WARN message with two Object parameters
    */
-  public void log(Level level, String msg, Object arg1, Object arg2) {
-    if (logger.isLoggable(level)) {
-      logger.log(
-          level,
-          msg,
-          new Object[]{arg1, arg2});
+  public void warn(String format, Object arg1, Object arg2) {
+    // slf4j already avoids the array creation for 1 or 2 arg invocations
+    logger.warn(format, arg1, arg2);
+  }
+
+  /**
+   * Conditionally logs a WARN message with three Object parameters
+   */
+  public void warn(String format, Object arg1, Object arg2, Object arg3) {
+    if (logger.isWarnEnabled()) {
+      logger.warn(format, arg1, arg2, arg3);
     }
   }
 
   /**
-   * Conditionally logs a message with three Object parameters
+   * Conditionally logs a WARN message with four Object parameters
    */
-  public void log(
-      Level level,
-      String msg,
-      Object arg1,
-      Object arg2,
-      Object arg3) {
-    if (logger.isLoggable(level)) {
-      logger.log(
-          level,
-          msg,
-          new Object[]{arg1, arg2, arg3});
+  public void warn(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+    if (logger.isWarnEnabled()) {
+      logger.warn(format, arg1, arg2, arg3, arg4);
+    }
+  }
+
+  public void warn(String format, Object... args) {
+    if (logger.isWarnEnabled()) {
+      logger.warn(format, args);
+    }
+  }
+
+  // INFO
+
+  /**
+   * Logs an INFO message with two Object parameters
+   */
+  public void info(String format, Object arg1, Object arg2) {
+    // slf4j already avoids the array creation for 1 or 2 arg invocations
+    logger.info(format, arg1, arg2);
+  }
+
+  /**
+   * Conditionally logs an INFO message with three Object parameters
+   */
+  public void info(String format, Object arg1, Object arg2, Object arg3) {
+    if (logger.isInfoEnabled()) {
+      logger.info(format, arg1, arg2, arg3);
     }
   }
 
   /**
-   * Conditionally logs a message with four Object parameters
+   * Conditionally logs an INFO message with four Object parameters
    */
-  public void log(
-      Level level,
-      String msg,
-      Object arg1,
-      Object arg2,
-      Object arg3,
-      Object arg4) {
-    if (logger.isLoggable(level)) {
-      logger.log(
-          level,
-          msg,
-          new Object[]{arg1, arg2, arg3, arg4});
+  public void info(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+    if (logger.isInfoEnabled()) {
+      logger.info(format, arg1, arg2, arg3, arg4);
+    }
+  }
+
+  public void info(String format, Object... args) {
+    if (logger.isInfoEnabled()) {
+      logger.info(format, args);
+    }
+  }
+
+  // DEBUG
+
+  /**
+   * Logs a DEBUG message with two Object parameters
+   */
+  public void debug(String format, Object arg1, Object arg2) {
+    // slf4j already avoids the array creation for 1 or 2 arg invocations
+    logger.debug(format, arg1, arg2);
+  }
+
+  /**
+   * Conditionally logs a DEBUG message with three Object parameters
+   */
+  public void debug(String format, Object arg1, Object arg2, Object arg3) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(format, arg1, arg2, arg3);
+    }
+  }
+
+  /**
+   * Conditionally logs a DEBUG message with four Object parameters
+   */
+  public void debug(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(format, arg1, arg2, arg3, arg4);
+    }
+  }
+
+  public void debug(String format, Object... args) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(format, args);
+    }
+  }
+
+  // TRACE
+
+  /**
+   * Logs a TRACE message with two Object parameters
+   */
+  public void trace(String format, Object arg1, Object arg2) {
+    // slf4j already avoids the array creation for 1 or 2 arg invocations
+    logger.trace(format, arg1, arg2);
+  }
+
+  /**
+   * Conditionally logs a TRACE message with three Object parameters
+   */
+  public void trace(String format, Object arg1, Object arg2, Object arg3) {
+    if (logger.isTraceEnabled()) {
+      logger.trace(format, arg1, arg2, arg3);
+    }
+  }
+
+  /**
+   * Conditionally logs a TRACE message with four Object parameters
+   */
+  public void trace(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+    if (logger.isTraceEnabled()) {
+      logger.trace(format, arg1, arg2, arg3, arg4);
+    }
+  }
+
+  public void trace(String format, Object... args) {
+    if (logger.isTraceEnabled()) {
+      logger.trace(format, args);
     }
   }
 
@@ -111,48 +199,14 @@ public class CalciteLogger {
     return logger;
   }
 
-  public void log(Level level, String msg) {
-    logger.log(level, msg);
-  }
+  // Hold-over from the previous j.u.logging implementation
 
-  public void log(Level level, String msg, Object param1) {
-    logger.log(level, msg, param1);
-  }
-
-  public void log(Level level, String msg, Object[] params) {
-    logger.log(level, msg, params);
-  }
-
-  public void log(Level level, String msg, Throwable thrown) {
-    logger.log(level, msg, thrown);
-  }
-
-  public void severe(String msg) {
-    logger.severe(msg);
-  }
-
-  public void warning(String msg) {
-    logger.warning(msg);
+  public void warn(String msg) {
+    logger.warn(msg);
   }
 
   public void info(String msg) {
     logger.info(msg);
-  }
-
-  public void config(String msg) {
-    logger.config(msg);
-  }
-
-  public void fine(String msg) {
-    logger.fine(msg);
-  }
-
-  public void finer(String msg) {
-    logger.finer(msg);
-  }
-
-  public void finest(String msg) {
-    logger.finest(msg);
   }
 }
 

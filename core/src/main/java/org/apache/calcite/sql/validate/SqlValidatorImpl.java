@@ -91,6 +91,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import org.slf4j.Logger;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.AbstractList;
@@ -109,8 +111,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -800,9 +800,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
     top = outermostNode;
-    if (TRACER.isLoggable(Level.FINER)) {
-      TRACER.finer("After unconditional rewrite: " + outermostNode.toString());
-    }
+    TRACER.trace("After unconditional rewrite: " + outermostNode.toString());
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
       registerQuery(scope, null, outermostNode, outermostNode, null, false);
     }
@@ -812,9 +810,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // caller later without needing the scope
       deriveType(scope, outermostNode);
     }
-    if (TRACER.isLoggable(Level.FINER)) {
-      TRACER.finer("After validation: " + outermostNode.toString());
-    }
+    TRACER.trace("After validation: " + outermostNode.toString());
     return outermostNode;
   }
 

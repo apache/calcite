@@ -39,11 +39,13 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -70,7 +72,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private static final String ANY = "(?s).*";
 
   protected static final Logger LOGGER =
-      Logger.getLogger(SqlValidatorTest.class.getName());
+      LoggerFactory.getLogger(SqlValidatorTest.class);
 
   private static final String ERR_IN_VALUES_INCOMPATIBLE =
       "Values in expression list must have compatible types";

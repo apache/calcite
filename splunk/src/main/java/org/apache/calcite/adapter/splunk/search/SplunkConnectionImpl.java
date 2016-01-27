@@ -23,6 +23,9 @@ import org.apache.calcite.linq4j.Linq4j;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -37,7 +40,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,7 +51,7 @@ import static org.apache.calcite.adapter.splunk.util.HttpUtils.post;
  */
 public class SplunkConnectionImpl implements SplunkConnection {
   private static final Logger LOGGER =
-      Logger.getLogger(SplunkConnectionImpl.class.getName());
+      LoggerFactory.getLogger(SplunkConnectionImpl.class);
 
   private static final Pattern SESSION_KEY =
       Pattern.compile(
@@ -175,8 +177,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
     } catch (Exception e) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
-      LOGGER.warning(e.getMessage() + "\n"
-          + sw);
+      LOGGER.warn("{}\n{}", e.getMessage(), sw);
       return srl == null ? Linq4j.emptyEnumerator() : null;
     }
   }
@@ -202,8 +203,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
     } catch (IOException ignore) {
       StringWriter sw = new StringWriter();
       ignore.printStackTrace(new PrintWriter(sw));
-      LOGGER.warning(ignore.getMessage() + "\n"
-          + sw);
+      LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
     } finally {
       HttpUtils.close(csvr); // CSVReader closes the input stream too
     }
@@ -381,8 +381,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       } catch (IOException ignore) {
         StringWriter sw = new StringWriter();
         ignore.printStackTrace(new PrintWriter(sw));
-        LOGGER.warning(ignore.getMessage() + "\n"
-            + sw);
+        LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
       }
     }
 
@@ -423,8 +422,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       } catch (IOException ignore) {
         StringWriter sw = new StringWriter();
         ignore.printStackTrace(new PrintWriter(sw));
-        LOGGER.warning(ignore.getMessage() + "\n"
-            + sw);
+        LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
       }
       return false;
     }

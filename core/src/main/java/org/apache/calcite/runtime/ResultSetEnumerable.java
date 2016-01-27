@@ -23,6 +23,9 @@ import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -32,8 +35,6 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 /**
@@ -45,8 +46,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
-  private static final Logger LOGGER = Logger.getLogger(
-      ResultSetEnumerable.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(
+      ResultSetEnumerable.class);
 
   private static final Function1<ResultSet, Function0<Object>>
   AUTO_ROW_BUILDER_FACTORY =
@@ -137,9 +138,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       try {
         statement.setQueryTimeout(10);
       } catch (SQLFeatureNotSupportedException e) {
-        if (LOGGER.isLoggable(Level.FINE)) {
-          LOGGER.fine("Failed to set query timeout.");
-        }
+        LOGGER.debug("Failed to set query timeout.");
       }
       final ResultSet resultSet = statement.executeQuery(sql);
       statement = null;

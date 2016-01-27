@@ -67,7 +67,7 @@ class EnumerableJoinRule extends ConverterRule {
         return new EnumerableThetaJoin(cluster, traitSet, left, right,
             join.getCondition(), join.getVariablesSet(), join.getJoinType());
       } catch (InvalidRelException e) {
-        EnumerableRules.LOGGER.fine(e.toString());
+        EnumerableRules.LOGGER.debug(e.toString());
         return null;
       }
     }
@@ -84,7 +84,7 @@ class EnumerableJoinRule extends ConverterRule {
           join.getVariablesSet(),
           join.getJoinType());
     } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.fine(e.toString());
+      EnumerableRules.LOGGER.debug(e.toString());
       return null;
     }
     if (!info.isEqui()) {

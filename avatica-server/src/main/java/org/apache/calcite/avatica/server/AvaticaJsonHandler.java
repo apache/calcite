@@ -22,11 +22,11 @@ import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -40,7 +40,7 @@ import javax.servlet.http.HttpServletResponse;
  * Jetty handler that executes Avatica JSON request-responses.
  */
 public class AvaticaJsonHandler extends AbstractHandler implements AvaticaHandler {
-  private static final Log LOG = LogFactory.getLog(AvaticaJsonHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AvaticaJsonHandler.class);
 
   final Service service;
   final JsonHandler jsonHandler;
@@ -66,14 +66,10 @@ public class AvaticaJsonHandler extends AbstractHandler implements AvaticaHandle
       }
       final String jsonRequest =
           new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("request: " + jsonRequest);
-      }
+      LOG.trace("request: {}", jsonRequest);
 
       final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("response: " + jsonResponse);
-      }
+      LOG.trace("response: {}", jsonResponse);
       baseRequest.setHandled(true);
       // Set the status code and write out the response.
       response.setStatus(jsonResponse.getStatusCode());

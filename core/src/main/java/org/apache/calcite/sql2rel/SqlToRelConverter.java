@@ -167,6 +167,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.slf4j.Logger;
+
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -181,8 +183,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -533,9 +533,8 @@ public class SqlToRelConverter {
             .replace(RelCollationTraitDef.INSTANCE, collations);
         rootRel = rootRel.copy(traitSet, rootRel.getInputs());
       }
-      boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
-      if (dumpPlan) {
-        SQL2REL_LOGGER.fine(
+      if (SQL2REL_LOGGER.isDebugEnabled()) {
+        SQL2REL_LOGGER.debug(
             RelOptUtil.dumpPlan(
                 "Plan after trimming unused fields",
                 rootRel,
@@ -590,9 +589,8 @@ public class SqlToRelConverter {
     }
     checkConvertedType(query, result);
 
-    boolean dumpPlan = SQL2REL_LOGGER.isLoggable(Level.FINE);
-    if (dumpPlan) {
-      SQL2REL_LOGGER.fine(
+    if (SQL2REL_LOGGER.isDebugEnabled()) {
+      SQL2REL_LOGGER.debug(
           RelOptUtil.dumpPlan(
               "Plan after converting SqlNode to RelNode",
               result,

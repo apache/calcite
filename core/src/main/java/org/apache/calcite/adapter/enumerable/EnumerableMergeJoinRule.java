@@ -102,7 +102,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
           join.getVariablesSet(),
           join.getJoinType());
     } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.fine(e.toString());
+      EnumerableRules.LOGGER.debug(e.toString());
       return null;
     }
     if (!info.isEqui()) {

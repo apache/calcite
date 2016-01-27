@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // NOTE:  This class gets compiled independently of everything else so that
 // resource generation can use reflection.  That means it must have no
@@ -39,7 +40,7 @@ public class CalciteException extends RuntimeException {
   private static final long serialVersionUID = -1314522633397794178L;
 
   private static final Logger LOGGER =
-      Logger.getLogger(CalciteException.class.getName());
+      LoggerFactory.getLogger(CalciteException.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,8 +57,8 @@ public class CalciteException extends RuntimeException {
 
     // TODO: Force the caller to pass in a Logger as a trace argument for
     // better context.  Need to extend ResGen for this.
-    LOGGER.throwing("CalciteException", "constructor", this);
-    LOGGER.severe(toString());
+    LOGGER.trace("CalciteException", this);
+    LOGGER.error(toString());
   }
 }
 
