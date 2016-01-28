@@ -346,4 +346,20 @@ select * from t1 full join t2 on t1.x = t2.x;
 
 !ok
 
+# Outer join condition that references columns from only one side is
+# effectively pushed down. Checked on Oracle.
+!use scott
+select * from "scott".emp right join "scott".dept on sal < 100;
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+|       |       |     |     |          |     |      |        |      10 | ACCOUNTING | NEW YORK |
+|       |       |     |     |          |     |      |        |      20 | RESEARCH   | DALLAS   |
+|       |       |     |     |          |     |      |        |      30 | SALES      | CHICAGO  |
+|       |       |     |     |          |     |      |        |      40 | OPERATIONS | BOSTON   |
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+(4 rows)
+
+!ok
+
 # End outer.iq
