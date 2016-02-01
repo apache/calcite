@@ -61,6 +61,11 @@ public class HadoopMetrics2Reporter extends ScheduledReporter implements Metrics
   private static final Logger LOG = LoggerFactory.getLogger(HadoopMetrics2Reporter.class);
   private static final String EMPTY_STRING = "";
 
+  public static final MetricsInfo RATE_UNIT_LABEL =
+      Interns.info("rate_unit", "The unit of measure for rate metrics");
+  public static final MetricsInfo DURATION_UNIT_LABEL =
+      Interns.info("duration_unit", "The unit of measure of duration metrics");
+
   /**
    * Returns a new {@link Builder} for {@link HadoopMetrics2Reporter}.
    *
@@ -262,8 +267,8 @@ public class HadoopMetrics2Reporter extends ScheduledReporter implements Metrics
       final String name = meterEntry.getKey();
       final Meter meter = meterEntry.getValue();
 
-      addMeter(builder, name, EMPTY_STRING, meter.getMeanRate(), meter.getOneMinuteRate(),
-          meter.getFiveMinuteRate(), meter.getFifteenMinuteRate());
+      addMeter(builder, name, EMPTY_STRING, meter.getCount(), meter.getMeanRate(),
+          meter.getOneMinuteRate(), meter.getFiveMinuteRate(), meter.getFifteenMinuteRate());
 
       meterIterator.remove();
     }
@@ -277,18 +282,18 @@ public class HadoopMetrics2Reporter extends ScheduledReporter implements Metrics
       final Snapshot snapshot = timer.getSnapshot();
 
       // Add the meter info (mean rate and rate over time windows)
-      addMeter(builder, name, EMPTY_STRING, timer.getMeanRate(), timer.getOneMinuteRate(),
-          timer.getFiveMinuteRate(), timer.getFifteenMinuteRate());
+      addMeter(builder, name, EMPTY_STRING, timer.getCount(), timer.getMeanRate(),
+          timer.getOneMinuteRate(), timer.getFiveMinuteRate(), timer.getFifteenMinuteRate());
 
-      addSnapshot(builder, name, EMPTY_STRING, snapshot, timer.getCount());
+      // Count was already added via the meter
+      addSnapshot(builder, name, EMPTY_STRING, snapshot);
 
       timerIterator.remove();
     }
 
     // Add in metadata about what the units the reported metrics are displayed using.
-    builder.tag(Interns.info("rate_unit", "The unit of measure for rate metrics"), getRateUnit());
-    builder.tag(Interns.info("duration_unit", "The unit of measure of duration metrics"),
-        getDurationUnit());
+    builder.tag(RATE_UNIT_LABEL, getRateUnit());
+    builder.tag(DURATION_UNIT_LABEL, getDurationUnit());
   }
 
   /**
@@ -298,13 +303,15 @@ public class HadoopMetrics2Reporter extends ScheduledReporter implements Metrics
    * @param builder A Hadoop-Metrics2 record builder.
    * @param name A base name for this record.
    * @param desc A description for the record.
+   * @param count The number of measured events.
    * @param meanRate The average measured rate.
    * @param oneMinuteRate The measured rate over the past minute.
    * @param fiveMinuteRate The measured rate over the past five minutes
    * @param fifteenMinuteRate The measured rate over the past fifteen minutes.
    */
-  private void addMeter(MetricsRecordBuilder builder, String name, String desc, double meanRate,
-      double oneMinuteRate, double fiveMinuteRate, double fifteenMinuteRate) {
+  private void addMeter(MetricsRecordBuilder builder, String name, String desc, long count,
+      double meanRate, double oneMinuteRate, double fiveMinuteRate, double fifteenMinuteRate) {
+    builder.addGauge(Interns.info(name + "_count", EMPTY_STRING), count);
     builder.addGauge(Interns.info(name + "_mean_rate", EMPTY_STRING), convertRate(meanRate));
     builder.addGauge(Interns.info(name + "_1min_rate", EMPTY_STRING), convertRate(oneMinuteRate));
     builder.addGauge(Interns.info(name + "_5min_rate", EMPTY_STRING), convertRate(fiveMinuteRate));
@@ -325,7 +332,20 @@ public class HadoopMetrics2Reporter extends ScheduledReporter implements Metrics
   private void addSnapshot(MetricsRecordBuilder builder, String name, String desc,
       Snapshot snapshot, long count) {
     builder.addGauge(Interns.info(name + "_count", desc), count);
+    addSnapshot(builder, name, desc, snapshot);
+  }
 
+  /**
+   * Add Dropwizard-Metrics value-distribution data to a Hadoop-Metrics2 record building, converting
+   * the durations to the appropriate unit.
+   *
+   * @param builder A Hadoop-Metrics2 record builder.
+   * @param name A base name for this record.
+   * @param desc A description for this record.
+   * @param snapshot The distribution of measured values.
+   */
+  private void addSnapshot(MetricsRecordBuilder builder, String name, String desc,
+      Snapshot snapshot) {
     builder.addGauge(Interns.info(name + "_mean", desc), convertDuration(snapshot.getMean()));
     builder.addGauge(Interns.info(name + "_min", desc), convertDuration(snapshot.getMin()));
     builder.addGauge(Interns.info(name + "_max", desc), convertDuration(snapshot.getMax()));
@@ -372,6 +392,21 @@ public class HadoopMetrics2Reporter extends ScheduledReporter implements Metrics
   @Override protected String getRateUnit() {
     // Make it "events per rate_unit" to be accurate.
     return "events/" + super.getRateUnit();
+  }
+
+  @Override protected String getDurationUnit() {
+    // Make it visible to the tests
+    return super.getDurationUnit();
+  }
+
+  @Override protected double convertDuration(double duration) {
+    // Make it visible to the tests
+    return super.convertDuration(duration);
+  }
+
+  @Override protected double convertRate(double rate) {
+    // Make it visible to the tests
+    return super.convertRate(rate);
   }
 
   // Getters visible for testing
