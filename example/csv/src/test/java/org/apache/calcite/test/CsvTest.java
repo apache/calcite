@@ -423,6 +423,22 @@ public class CsvTest {
       Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
           resultSet.getTimestamp(3));
 
+
+      resultSet = statement.executeQuery(
+            "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" from \"DATE\" where EMPNO = 200");
+      resultSet.next();
+
+      // time
+      Assert.assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
+      Assert.assertEquals(java.sql.Time.valueOf("13:14:15"),
+            resultSet.getTime(2));
+
+      // timestamp
+      Assert.assertEquals(java.sql.Timestamp.class,
+            resultSet.getTimestamp(3).getClass());
+      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 13:14:15"),
+            resultSet.getTimestamp(3));
+
     }
   }
 }
