@@ -16,28 +16,41 @@
  */
 package org.apache.calcite.avatica.metrics.dropwizard3;
 
-import com.codahale.metrics.Histogram;
+import org.apache.calcite.avatica.metrics.dropwizard3.DropwizardTimer.DropwizardContext;
 
-import java.util.Objects;
+import com.codahale.metrics.Timer;
+import com.codahale.metrics.Timer.Context;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
- * Dropwizard metrics implementation of {@link org.apache.calcite.avatica.metrics.Histogram}.
+ * Test class for {@link DropwizardTimer}
  */
-public class DropwizardHistogram implements org.apache.calcite.avatica.metrics.Histogram {
+public class DropwizardTimerTest {
 
-  private final Histogram histogram;
+  private Timer timer;
+  private Context context;
 
-  public DropwizardHistogram(Histogram histogram) {
-    this.histogram = Objects.requireNonNull(histogram);
+  @Before public void setup() {
+    this.timer = Mockito.mock(Timer.class);
+    this.context = Mockito.mock(Context.class);
   }
 
-  @Override public void update(int value) {
-    histogram.update(value);
+  @Test public void test() {
+    DropwizardTimer dwTimer = new DropwizardTimer(timer);
+
+    Mockito.when(timer.time()).thenReturn(context);
+
+    DropwizardContext dwContext = dwTimer.start();
+
+    dwContext.stop();
+
+    Mockito.verify(timer).time();
+    Mockito.verify(context).stop();
   }
 
-  @Override public void update(long value) {
-    histogram.update(value);
-  }
 }
 
-// End DropwizardHistogram.java
+// End DropwizardTimerTest.java

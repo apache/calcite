@@ -31,7 +31,7 @@ public class DropwizardTimer implements org.apache.calcite.avatica.metrics.Timer
     this.timer = Objects.requireNonNull(timer);
   }
 
-  @Override public Context start() {
+  @Override public DropwizardContext start() {
     return new DropwizardContext(timer.time());
   }
 

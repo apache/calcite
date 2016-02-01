@@ -25,7 +25,7 @@ limitations under the License.
 
   <artifactId>calcite-dropwizard-hadoop-metrics2</artifactId>
   <packaging>jar</packaging>
-  <name>Calcite Dropwizard Hadoop Metrics2</name>
+  <name>Calcite Dropwizard Reporter for Hadoop Metrics2</name>
   <description>A Dropwizard Metrics reporter which also acts as a Hadoop Metrics2 MetricsSource.</description>
 
   <properties>

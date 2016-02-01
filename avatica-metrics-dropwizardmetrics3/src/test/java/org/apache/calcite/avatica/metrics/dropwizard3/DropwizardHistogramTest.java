@@ -18,26 +18,32 @@ package org.apache.calcite.avatica.metrics.dropwizard3;
 
 import com.codahale.metrics.Histogram;
 
-import java.util.Objects;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
- * Dropwizard metrics implementation of {@link org.apache.calcite.avatica.metrics.Histogram}.
+ * Test class for {@link DropwizardHistogram}.
  */
-public class DropwizardHistogram implements org.apache.calcite.avatica.metrics.Histogram {
+public class DropwizardHistogramTest {
 
-  private final Histogram histogram;
+  private Histogram histogram;
 
-  public DropwizardHistogram(Histogram histogram) {
-    this.histogram = Objects.requireNonNull(histogram);
+  @Before public void setup() {
+    this.histogram = Mockito.mock(Histogram.class);
   }
 
-  @Override public void update(int value) {
-    histogram.update(value);
+  @Test public void test() {
+    DropwizardHistogram dwHistogram = new DropwizardHistogram(histogram);
+
+    dwHistogram.update(10);
+
+    dwHistogram.update(100L);
+
+    Mockito.verify(histogram).update(10);
+    Mockito.verify(histogram).update(100L);
   }
 
-  @Override public void update(long value) {
-    histogram.update(value);
-  }
 }
 
-// End DropwizardHistogram.java
+// End DropwizardHistogramTest.java

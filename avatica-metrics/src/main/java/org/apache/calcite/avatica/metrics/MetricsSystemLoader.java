@@ -31,6 +31,7 @@ import java.util.ServiceLoader;
  */
 public class MetricsSystemLoader {
   private static final Logger LOG = LoggerFactory.getLogger(MetricsSystemLoader.class);
+  private static final MetricsSystemLoader INSTANCE = new MetricsSystemLoader();
 
   private MetricsSystemLoader() {}
 
@@ -43,14 +44,11 @@ public class MetricsSystemLoader {
    * @return A {@link MetricsSystem} implementation.
    */
   public static MetricsSystem load(MetricsSystemConfiguration<?> config) {
-    // Pre-check
-    Objects.requireNonNull(config);
+    return INSTANCE._load(Objects.requireNonNull(config));
+  }
 
-    ServiceLoader<MetricsSystemFactory> loader = ServiceLoader.load(MetricsSystemFactory.class);
-    List<MetricsSystemFactory> availableFactories = new ArrayList<>();
-    for (MetricsSystemFactory factory : loader) {
-      availableFactories.add(factory);
-    }
+  MetricsSystem _load(MetricsSystemConfiguration<?> config) {
+    List<MetricsSystemFactory> availableFactories = getFactories();
 
     if (1 == availableFactories.size()) {
       // One and only one instance -- what we want/expect
@@ -74,6 +72,15 @@ public class MetricsSystemLoader {
           + " Using No-op implementation", sb);
       return NoopMetricsSystem.getInstance();
     }
+  }
+
+  List<MetricsSystemFactory> getFactories() {
+    ServiceLoader<MetricsSystemFactory> loader = ServiceLoader.load(MetricsSystemFactory.class);
+    List<MetricsSystemFactory> availableFactories = new ArrayList<>();
+    for (MetricsSystemFactory factory : loader) {
+      availableFactories.add(factory);
+    }
+    return availableFactories;
   }
 }
 

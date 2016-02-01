@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.metrics.dropwizard3;
+package org.apache.calcite.avatica.metrics.noop;
 
-import com.codahale.metrics.Histogram;
+import org.junit.Test;
 
-import java.util.Objects;
+import static org.junit.Assert.assertTrue;
 
 /**
- * Dropwizard metrics implementation of {@link org.apache.calcite.avatica.metrics.Histogram}.
+ * Test class for {@link NoopMetricsSystemFactory}.
  */
-public class DropwizardHistogram implements org.apache.calcite.avatica.metrics.Histogram {
+public class NoopMetricsSystemFactoryTest {
 
-  private final Histogram histogram;
-
-  public DropwizardHistogram(Histogram histogram) {
-    this.histogram = Objects.requireNonNull(histogram);
+  @Test public void testSingleton() {
+    NoopMetricsSystemFactory factory = new NoopMetricsSystemFactory();
+    NoopMetricsSystemConfiguration config = NoopMetricsSystemConfiguration.getInstance();
+    assertTrue("The factory should only return one NoopMetricsSystem instance",
+        factory.create(config) == factory.create(config));
   }
 
-  @Override public void update(int value) {
-    histogram.update(value);
-  }
-
-  @Override public void update(long value) {
-    histogram.update(value);
-  }
 }
 
-// End DropwizardHistogram.java
+// End NoopMetricsSystemFactoryTest.java

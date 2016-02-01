@@ -16,18 +16,18 @@
  */
 package org.apache.calcite.avatica.metrics.noop;
 
-import org.apache.calcite.avatica.metrics.MetricsSystem;
 import org.apache.calcite.avatica.metrics.MetricsSystemConfiguration;
 import org.apache.calcite.avatica.metrics.MetricsSystemFactory;
 
 /**
  * A {@link MetricsSystemFactory} for the {@link NoopMetricsSystem}.
  *
- * No service file is provided for this implementation to avoid it clashing on the classpath.
+ * No service file is provided for this implementation. It is the fallback implementation if
+ * no implementation or more than one implementation is found on the classpath.
  */
 public class NoopMetricsSystemFactory implements MetricsSystemFactory {
 
-  @Override public MetricsSystem create(MetricsSystemConfiguration<?> config) {
+  @Override public NoopMetricsSystem create(MetricsSystemConfiguration<?> config) {
     return NoopMetricsSystem.getInstance();
   }
 }

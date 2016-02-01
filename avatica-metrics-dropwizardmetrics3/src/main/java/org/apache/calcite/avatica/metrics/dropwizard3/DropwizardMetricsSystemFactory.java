@@ -35,7 +35,7 @@ public class DropwizardMetricsSystemFactory implements MetricsSystemFactory {
 
     throw new IllegalStateException("Expected instance of "
         + DropwizardMetricsSystemConfiguration.class.getName() + " but got "
-        + config.getClass().getName());
+        + (null == config ? "null" : config.getClass().getName()));
   }
 }
 

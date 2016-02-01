@@ -16,28 +16,45 @@
  */
 package org.apache.calcite.avatica.metrics.dropwizard3;
 
-import com.codahale.metrics.Histogram;
+import org.apache.calcite.avatica.metrics.Gauge;
 
-import java.util.Objects;
+import org.junit.Test;
+
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
 
 /**
- * Dropwizard metrics implementation of {@link org.apache.calcite.avatica.metrics.Histogram}.
+ * Test class for {@link DropwizardGauge}.
  */
-public class DropwizardHistogram implements org.apache.calcite.avatica.metrics.Histogram {
+public class DropwizardGaugeTest {
 
-  private final Histogram histogram;
+  @Test public void test() {
+    SimpleGauge gauge = new SimpleGauge();
+    DropwizardGauge<Long> dwGauge = new DropwizardGauge<>(gauge);
 
-  public DropwizardHistogram(Histogram histogram) {
-    this.histogram = Objects.requireNonNull(histogram);
+    assertEquals(gauge.getValue(), dwGauge.getValue());
+
+    gauge.setValue(1000L);
+
+    assertEquals(gauge.getValue(), dwGauge.getValue());
   }
 
-  @Override public void update(int value) {
-    histogram.update(value);
-  }
+  /**
+   * Gauge implementation with a setter.
+   */
+  private static class SimpleGauge implements Gauge<Long> {
 
-  @Override public void update(long value) {
-    histogram.update(value);
+    private final AtomicLong value = new AtomicLong(0L);
+
+    @Override public Long getValue() {
+      return this.value.get();
+    }
+
+    public void setValue(long value) {
+      this.value.set(value);
+    }
   }
 }
 
-// End DropwizardHistogram.java
+// End DropwizardGaugeTest.java

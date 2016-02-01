@@ -27,8 +27,8 @@ public class DropwizardGauge<T> implements Gauge<T> {
 
   private final org.apache.calcite.avatica.metrics.Gauge<T> gauge;
 
-  public DropwizardGauge(org.apache.calcite.avatica.metrics.Gauge<T> gauge2) {
-    this.gauge = gauge2;
+  public DropwizardGauge(org.apache.calcite.avatica.metrics.Gauge<T> gauge) {
+    this.gauge = gauge;
   }
 
   @Override public T getValue() {

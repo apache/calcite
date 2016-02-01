@@ -30,7 +30,7 @@ import org.apache.calcite.avatica.metrics.Timer;
  */
 public class NoopMetricsSystem implements MetricsSystem {
 
-  private static final MetricsSystem NOOP_METRICS = new NoopMetricsSystem();
+  private static final NoopMetricsSystem NOOP_METRICS = new NoopMetricsSystem();
 
   private static final Timer TIMER = new NoopTimer();
   private static final Histogram HISTOGRAM = new NoopHistogram();
@@ -40,7 +40,7 @@ public class NoopMetricsSystem implements MetricsSystem {
   /**
    * @return A {@link NoopMetricsSystem} instance.
    */
-  public static MetricsSystem getInstance() {
+  public static NoopMetricsSystem getInstance() {
     return NOOP_METRICS;
   }
 
