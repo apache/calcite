@@ -28,11 +28,11 @@ import org.apache.calcite.avatica.NoSuchConnectionException;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.avatica.metrics.Gauge;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.remote.TypedValue;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
@@ -40,6 +40,8 @@ import com.google.common.cache.RemovalNotification;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.calcite.avatica.remote.MetricsHelper.concat;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
@@ -62,8 +64,6 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.codahale.metrics.MetricRegistry.name;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
 public class JdbcMeta implements Meta {
@@ -92,7 +92,7 @@ public class JdbcMeta implements Meta {
   private final Properties info;
   private final Cache<String, Connection> connectionCache;
   private final Cache<Integer, StatementInfo> statementCache;
-  private final Optional<MetricRegistry> metrics;
+  private final MetricsSystem metrics;
 
   /**
    * Creates a JdbcMeta.
@@ -124,7 +124,7 @@ public class JdbcMeta implements Meta {
   }
 
   public JdbcMeta(String url, Properties info) throws SQLException {
-    this(url, info, Optional.<MetricRegistry>absent());
+    this(url, info, NoopMetricsSystem.getInstance());
   }
 
   /**
@@ -136,7 +136,7 @@ public class JdbcMeta implements Meta {
    * connection arguments; normally at least a "user" and
    * "password" property should be included
    */
-  public JdbcMeta(String url, Properties info, Optional<MetricRegistry> metrics)
+  public JdbcMeta(String url, Properties info, MetricsSystem metrics)
       throws SQLException {
     this.url = url;
     this.info = info;
@@ -191,21 +191,18 @@ public class JdbcMeta implements Meta {
 
     LOG.debug("instantiated statement cache: {}", statementCache.stats());
 
-    // Register some metrics if the facilities to do so were provided.
-    if (metrics.isPresent()) {
-      MetricRegistry registry = metrics.get();
-      registry.register(name(JdbcMeta.class, "ConnectionCacheSize"), new Gauge<Long>() {
-        @Override public Long getValue() {
-          return connectionCache.size();
-        }
-      });
+    // Register some metrics
+    this.metrics.register(concat(JdbcMeta.class, "ConnectionCacheSize"), new Gauge<Long>() {
+      @Override public Long getValue() {
+        return connectionCache.size();
+      }
+    });
 
-      registry.register(name(JdbcMeta.class, "StatementCacheSize"), new Gauge<Long>() {
-        @Override public Long getValue() {
-          return statementCache.size();
-        }
-      });
-    }
+    this.metrics.register(concat(JdbcMeta.class, "StatementCacheSize"), new Gauge<Long>() {
+      @Override public Long getValue() {
+        return statementCache.size();
+      }
+    });
   }
 
   /**

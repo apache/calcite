@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.avatica.server;
 
-import com.codahale.metrics.MetricRegistry;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
 
 /**
  * An {@link AvaticaHandler} that is capable of collecting metrics.
@@ -34,9 +34,9 @@ public interface MetricsAwareAvaticaHandler extends AvaticaHandler {
   String REQUEST_TIMER_NAME = HANDLER_PREFIX + "RequestTimings";
 
   /**
-   * @return An instance of the {@link MetricRegistry} for this AvaticaHandler.
+   * @return An instance of the {@link MetricsSystem} for this AvaticaHandler.
    */
-  MetricRegistry getMetrics();
+  MetricsSystem getMetrics();
 
 }
 

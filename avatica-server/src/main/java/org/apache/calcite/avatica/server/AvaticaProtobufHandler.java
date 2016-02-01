@@ -17,18 +17,17 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
-import org.apache.calcite.avatica.metrics.MetricsUtil;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.Timer;
+import org.apache.calcite.avatica.metrics.Timer.Context;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
+import org.apache.calcite.avatica.remote.MetricsHelper;
 import org.apache.calcite.avatica.remote.ProtobufHandler;
 import org.apache.calcite.avatica.remote.ProtobufTranslation;
 import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
-
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.codahale.metrics.Timer.Context;
-import com.google.common.base.Optional;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -53,30 +52,28 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
   private final Service service;
   private final ProtobufHandler pbHandler;
   private final ProtobufTranslation protobufTranslation;
-  private final Optional<MetricRegistry> metrics;
+  private final MetricsSystem metrics;
   private final Timer requestTimer;
-  private final MetricsUtil metricsUtil;
 
   public AvaticaProtobufHandler(Service service) {
-    this(service, Optional.<MetricRegistry>absent());
+    this(service, NoopMetricsSystem.getInstance());
   }
 
-  public AvaticaProtobufHandler(Service service, Optional<MetricRegistry> metrics) {
+  public AvaticaProtobufHandler(Service service, MetricsSystem metrics) {
     this.protobufTranslation = new ProtobufTranslationImpl();
     this.service = Objects.requireNonNull(service);
-    this.pbHandler = new ProtobufHandler(service, protobufTranslation, metrics.orNull());
-
-    // Metrics
     this.metrics = Objects.requireNonNull(metrics);
-    this.metricsUtil = MetricsUtil.getInstance();
-    this.requestTimer = metricsUtil.getTimer(this.metrics.orNull(), AvaticaProtobufHandler.class,
-        MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME);
+    this.pbHandler = new ProtobufHandler(service, protobufTranslation, metrics);
+
+    this.requestTimer = this.metrics.getTimer(
+        MetricsHelper.concat(AvaticaProtobufHandler.class,
+            MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME));
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
-    final Context ctx = metricsUtil.startTimer(this.requestTimer);
+    final Context ctx = this.requestTimer.start();
     try {
       response.setContentType("application/octet-stream;charset=utf-8");
       response.setStatus(HttpServletResponse.SC_OK);
@@ -93,9 +90,7 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
         response.getOutputStream().write(handlerResponse.getResponse());
       }
     } finally {
-      if (null != ctx) {
-        ctx.stop();
-      }
+      ctx.stop();
     }
   }
 
@@ -106,8 +101,8 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
     pbHandler.setRpcMetadata(metadata);
   }
 
-  @Override public MetricRegistry getMetrics() {
-    return this.metrics.orNull();
+  @Override public MetricsSystem getMetrics() {
+    return this.metrics;
   }
 
 }

@@ -14,13 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.avatica.remote;
 
 /**
- * Metrics for the Avatica JDBC framework.
+ * A utility class to encapsulate common logic in use of metrics implementation.
  */
-@PackageMarker
-package org.apache.calcite.avatica.metrics;
+public class MetricsHelper {
 
-import org.apache.calcite.avatica.util.PackageMarker;
+  private static final String PERIOD = ".";
 
-// End package-info.java
+  private MetricsHelper() {}
+
+  public static String concat(Class<?> clz, String name) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(clz.getName());
+    return sb.append(PERIOD).append(name).toString();
+  }
+
+}
+
+// End MetricsHelper.java

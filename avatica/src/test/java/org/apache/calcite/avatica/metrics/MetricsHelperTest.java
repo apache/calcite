@@ -16,36 +16,27 @@
  */
 package org.apache.calcite.avatica.metrics;
 
-import org.junit.Before;
+import org.apache.calcite.avatica.remote.MetricsHelper;
+
 import org.junit.Test;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
- * Test class for {@link MetricsUtil}.
+ * Test class for {@link MetricsHelper}.
  */
-public class MetricsUtilTest {
+public class MetricsHelperTest {
 
-  private MetricsUtil metricsUtil;
-
-  @Before public void setup() {
-    this.metricsUtil = MetricsUtil.getInstance();
+  @Test(expected = NullPointerException.class) public void testNullConcat() {
+    MetricsHelper.concat(null, "foo");
   }
 
-  @Test public void testSingletonInstance() {
-    assertTrue("Expected to find a singleton instance of MetricsUtil",
-        this.metricsUtil == MetricsUtil.getInstance());
-  }
-
-  @Test public void testNullHandling() {
-    assertNull("Expected a null Histogram",
-        metricsUtil.getHistogram(null, getClass(), "histogram"));
-    assertNull("Expected a null Timer",
-        metricsUtil.getTimer(null, getClass(), "timer"));
-    assertNull("Expected a null Context", metricsUtil.startTimer(null));
+  @Test public void testConcat() {
+    String suffix = "suffix";
+    String finalName = getClass().getName() + "." + suffix;
+    assertEquals(finalName, MetricsHelper.concat(getClass(), suffix));
   }
 
 }
 
-// End MetricsUtilTest.java
+// End MetricsHelperTest.java

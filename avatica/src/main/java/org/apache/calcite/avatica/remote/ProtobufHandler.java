@@ -16,12 +16,10 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.metrics.MetricsUtil;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.Timer;
+import org.apache.calcite.avatica.metrics.Timer.Context;
 import org.apache.calcite.avatica.remote.Service.Response;
-
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.codahale.metrics.Timer.Context;
 
 import java.io.IOException;
 
@@ -33,17 +31,15 @@ import java.io.IOException;
 public class ProtobufHandler extends AbstractHandler<byte[]> {
 
   private final ProtobufTranslation translation;
-  private final MetricRegistry metrics;
-  private final MetricsUtil metricsUtil;
+  private final MetricsSystem metrics;
   private final Timer serializationTimer;
 
-  public ProtobufHandler(Service service, ProtobufTranslation translation, MetricRegistry metrics) {
+  public ProtobufHandler(Service service, ProtobufTranslation translation, MetricsSystem metrics) {
     super(service);
     this.translation = translation;
     this.metrics = metrics;
-    this.metricsUtil = MetricsUtil.getInstance();
-    this.serializationTimer = metricsUtil.getTimer(this.metrics, ProtobufHandler.class,
-        HANDLER_SERIALIZATION_METRICS_NAME);
+    this.serializationTimer = this.metrics.getTimer(
+        MetricsHelper.concat(ProtobufHandler.class, HANDLER_SERIALIZATION_METRICS_NAME));
   }
 
   @Override public HandlerResponse<byte[]> apply(byte[] requestBytes) {
@@ -51,24 +47,20 @@ public class ProtobufHandler extends AbstractHandler<byte[]> {
   }
 
   @Override Service.Request decode(byte[] serializedRequest) throws IOException {
-    Context ctx = metricsUtil.startTimer(serializationTimer);
+    Context ctx = serializationTimer.start();
     try {
       return translation.parseRequest(serializedRequest);
     } finally {
-      if (null != ctx) {
-        ctx.stop();
-      }
+      ctx.stop();
     }
   }
 
   @Override byte[] encode(Response response) throws IOException {
-    Context ctx = metricsUtil.startTimer(serializationTimer);
+    Context ctx = serializationTimer.start();
     try {
       return translation.serializeResponse(response);
     } finally {
-      if (null != ctx) {
-        ctx.stop();
-      }
+      ctx.stop();
     }
   }
 }

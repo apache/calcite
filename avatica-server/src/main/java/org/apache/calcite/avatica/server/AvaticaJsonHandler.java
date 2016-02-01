@@ -17,22 +17,22 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.AvaticaUtils;
-import org.apache.calcite.avatica.metrics.MetricsUtil;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.Timer;
+import org.apache.calcite.avatica.metrics.Timer.Context;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
-
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.codahale.metrics.Timer.Context;
-import com.google.common.base.Optional;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.calcite.avatica.remote.MetricsHelper.concat;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -51,30 +51,28 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
   final Service service;
   final JsonHandler jsonHandler;
 
-  final Optional<MetricRegistry> metrics;
+  final MetricsSystem metrics;
   final Timer requestTimer;
-  final MetricsUtil metricsUtil;
 
   public AvaticaJsonHandler(Service service) {
-    this(service, Optional.<MetricRegistry>absent());
+    this(service, NoopMetricsSystem.getInstance());
   }
 
-  public AvaticaJsonHandler(Service service, Optional<MetricRegistry> metrics) {
+  public AvaticaJsonHandler(Service service, MetricsSystem metrics) {
     this.service = Objects.requireNonNull(service);
     this.metrics = Objects.requireNonNull(metrics);
     // Avatica doesn't have a Guava dependency
-    this.jsonHandler = new JsonHandler(service, this.metrics.orNull());
+    this.jsonHandler = new JsonHandler(service, this.metrics);
 
     // Metrics
-    this.metricsUtil = MetricsUtil.getInstance();
-    this.requestTimer = metricsUtil.getTimer(this.metrics.orNull(), AvaticaJsonHandler.class,
-        MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME);
+    this.requestTimer = this.metrics.getTimer(
+        concat(AvaticaJsonHandler.class, MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME));
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
-    final Context ctx = metricsUtil.startTimer(requestTimer);
+    final Context ctx = requestTimer.start();
     try {
       response.setContentType("application/json;charset=utf-8");
       response.setStatus(HttpServletResponse.SC_OK);
@@ -99,9 +97,7 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
         response.getWriter().println(jsonResponse.getResponse());
       }
     } finally {
-      if (null != ctx) {
-        ctx.stop();
-      }
+      ctx.stop();
     }
   }
 
@@ -112,8 +108,8 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
     jsonHandler.setRpcMetadata(metadata);
   }
 
-  @Override public MetricRegistry getMetrics() {
-    return metrics.orNull();
+  @Override public MetricsSystem getMetrics() {
+    return metrics;
   }
 }
 
