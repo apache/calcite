@@ -28,6 +28,7 @@ import com.google.common.collect.Ordering;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nonnull;
 
 /**
@@ -97,7 +98,7 @@ public class RelDistributions {
     }
 
     @Override public int hashCode() {
-      return Util.hash(type.hashCode(), keys);
+      return Objects.hash(type, keys);
     }
 
     @Override public boolean equals(Object obj) {

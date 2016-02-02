@@ -25,6 +25,7 @@ import com.google.protobuf.Descriptors.Descriptor;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Objects;
 
 /** Concrete implementation of {@link Meta.ConnectionProperties}. Provides additional state
  * tracking to enable {@code RemoteMeta} to lazily push changes up to a query server.
@@ -181,73 +182,20 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
   }
 
   @Override public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((autoCommit == null) ? 0 : autoCommit.hashCode());
-    result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
-    result = prime * result + (isDirty ? 1231 : 1237);
-    result = prime * result + ((readOnly == null) ? 0 : readOnly.hashCode());
-    result = prime * result + ((schema == null) ? 0 : schema.hashCode());
-    result = prime * result
-        + ((transactionIsolation == null) ? 0 : transactionIsolation.hashCode());
-    return result;
+    return Objects.hash(autoCommit, catalog, isDirty, readOnly, schema,
+        transactionIsolation);
   }
 
   @Override public boolean equals(Object o) {
-    if (o == this) {
-      return true;
-    }
-    if (o instanceof ConnectionPropertiesImpl) {
-      ConnectionPropertiesImpl other = (ConnectionPropertiesImpl) o;
-
-      if (null == autoCommit) {
-        if (null != other.autoCommit) {
-          return false;
-        }
-      } else if (!autoCommit.equals(other.autoCommit)) {
-        return false;
-      }
-
-      if (null == catalog) {
-        if (null != other.catalog) {
-          return false;
-        }
-      } else if (!catalog.equals(other.catalog)) {
-        return false;
-      }
-
-      if (isDirty != other.isDirty) {
-        return false;
-      }
-
-      if (null == readOnly) {
-        if (null != other.readOnly) {
-          return false;
-        }
-      } else if (!readOnly.equals(other.readOnly)) {
-        return false;
-      }
-
-      if (null == schema) {
-        if (null != other.schema) {
-          return false;
-        }
-      } else if (!schema.equals(other.schema)) {
-        return false;
-      }
-
-      if (null == transactionIsolation) {
-        if (null != other.transactionIsolation) {
-          return false;
-        }
-      } else if (!transactionIsolation.equals(other.transactionIsolation)) {
-        return false;
-      }
-
-      return true;
-    }
-
-    return false;
+    return o == this
+        || o instanceof ConnectionPropertiesImpl
+        && Objects.equals(autoCommit, ((ConnectionPropertiesImpl) o).autoCommit)
+        && Objects.equals(catalog, ((ConnectionPropertiesImpl) o).catalog)
+        && isDirty == ((ConnectionPropertiesImpl) o).isDirty
+        && Objects.equals(readOnly, ((ConnectionPropertiesImpl) o).readOnly)
+        && Objects.equals(schema, ((ConnectionPropertiesImpl) o).schema)
+        && Objects.equals(transactionIsolation,
+            ((ConnectionPropertiesImpl) o).transactionIsolation);
   }
 
   public Common.ConnectionProperties toProto() {

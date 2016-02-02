@@ -26,6 +26,7 @@ import com.google.common.collect.Multimap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Actor that manages the state of materializations in the system.
@@ -105,7 +106,7 @@ class MaterializationActor {
     }
 
     @Override public int hashCode() {
-      return com.google.common.base.Objects.hashCode(sql, schema, path);
+      return Objects.hash(sql, schema, path);
     }
   }
 }

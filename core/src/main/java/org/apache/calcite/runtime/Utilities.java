@@ -41,40 +41,85 @@ public class Utilities {
     return v == null ? 0 : v.hashCode();
   }
 
+  /** Computes the hash code of a {@code double} value. Equivalent to
+   * {@link Double}{@code .hashCode(double)}, but that method was only
+   * introduced in JDK 1.8.
+   *
+   * @param v Value
+   * @return Hash code
+   */
+  public static int hashCode(double v) {
+    long bits = Double.doubleToLongBits(v);
+    return hashCode(bits);
+  }
+
+  /** Computes the hash code of a {@code float} value. Equivalent to
+   * {@link Float}{@code .hashCode(float)}, but that method was only
+   * introduced in JDK 1.8.
+   *
+   * @param v Value
+   * @return Hash code
+   */
+  public static int hashCode(float v) {
+    return Float.floatToIntBits(v);
+  }
+
+  /** Computes the hash code of a {@code long} value. Equivalent to
+   * {@link Long}{@code .hashCode(long)}, but that method was only
+   * introduced in JDK 1.8.
+   *
+   * @param v Value
+   * @return Hash code
+   */
+  public static int hashCode(long v) {
+    return (int) (v ^ (v >>> 32));
+  }
+
+  /** Computes the hash code of a {@code boolean} value. Equivalent to
+   * {@link Boolean}{@code .hashCode(boolean)}, but that method was only
+   * introduced in JDK 1.8.
+   *
+   * @param v Value
+   * @return Hash code
+   */
+  public static int hashCode(boolean v) {
+    return v ? 1231 : 1237;
+  }
+
   public static int hash(int h, boolean v) {
-    return h * 37 + (v ? 2 : 1);
+    return h * 31 + hashCode(v);
   }
 
   public static int hash(int h, byte v) {
-    return h * 37 + v;
+    return h * 31 + v;
   }
 
   public static int hash(int h, char v) {
-    return h * 37 + v;
+    return h * 31 + v;
   }
 
   public static int hash(int h, short v) {
-    return h * 37 + v;
+    return h * 31 + v;
   }
 
   public static int hash(int h, int v) {
-    return h * 37 + v;
+    return h * 31 + v;
   }
 
   public static int hash(int h, long v) {
-    return h * 37 + (int) (v ^ (v >>> 32));
+    return h * 31 + hashCode(v);
   }
 
   public static int hash(int h, float v) {
-    return hash(h, Float.floatToIntBits(v));
+    return hash(h, hashCode(v));
   }
 
   public static int hash(int h, double v) {
-    return hash(h, Double.doubleToLongBits(v));
+    return hash(h, hashCode(v));
   }
 
   public static int hash(int h, Object v) {
-    return h * 37 + (v == null ? 1 : v.hashCode());
+    return h * 31 + (v == null ? 1 : v.hashCode());
   }
 
   public static int compare(boolean v0, boolean v1) {

@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
+import java.util.Objects;
 
 /**
  * Represents an operation between an expression and a type.
@@ -72,10 +73,7 @@ public class TypeBinaryExpression extends Expression {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + expression.hashCode();
-    result = 31 * result + (type != null ? type.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, super.type, type, expression);
   }
 }
 

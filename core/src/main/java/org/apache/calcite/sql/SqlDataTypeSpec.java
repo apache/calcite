@@ -29,9 +29,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Objects;
-
 import java.nio.charset.Charset;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -254,11 +253,10 @@ public class SqlDataTypeSpec extends SqlNode {
     if (this.scale != that.scale) {
       return litmus.fail(this + "!=" + node);
     }
-    if (!Objects.equal(this.timeZone, that.timeZone)) {
+    if (!Objects.equals(this.timeZone, that.timeZone)) {
       return litmus.fail(this + "!=" + node);
     }
-    if (!com.google.common.base.Objects.equal(this.charSetName,
-        that.charSetName)) {
+    if (!Objects.equals(this.charSetName, that.charSetName)) {
       return litmus.fail(this + "!=" + node);
     }
     return litmus.succeed();

@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a {@code try ... catch ... finally} block.
@@ -29,10 +32,8 @@ public class TryStatement extends Statement {
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
       Statement fynally) {
     super(ExpressionType.Try, body.getType());
-    assert body != null : "body should not be null";
-    assert catchBlocks != null : "catchBlocks should not be null";
-    this.body = body;
-    this.catchBlocks = catchBlocks;
+    this.body = Preconditions.checkNotNull(body);
+    this.catchBlocks = Preconditions.checkNotNull(catchBlocks);
     this.fynally = fynally;
   }
 
@@ -81,11 +82,7 @@ public class TryStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + body.hashCode();
-    result = 31 * result + catchBlocks.hashCode();
-    result = 31 * result + (fynally != null ? fynally.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, type, body, catchBlocks, fynally);
   }
 }
 

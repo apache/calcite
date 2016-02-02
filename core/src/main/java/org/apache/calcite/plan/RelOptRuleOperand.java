@@ -17,13 +17,13 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Operand that determines whether a {@link RelOptRule}
@@ -145,10 +145,7 @@ public class RelOptRuleOperand {
   }
 
   public int hashCode() {
-    int h = clazz.hashCode();
-    h = Util.hash(h, trait);
-    h = Util.hash(h, children);
-    return h;
+    return Objects.hash(clazz, trait, children);
   }
 
   public boolean equals(Object obj) {
@@ -161,7 +158,7 @@ public class RelOptRuleOperand {
     RelOptRuleOperand that = (RelOptRuleOperand) obj;
 
     return (this.clazz == that.clazz)
-        && com.google.common.base.Objects.equal(this.trait, that.trait)
+        && Objects.equals(this.trait, that.trait)
         && this.children.equals(that.children);
   }
 

@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.tree;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents indexing a property or array.
@@ -72,10 +73,7 @@ public class IndexExpression extends Expression {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + array.hashCode();
-    result = 31 * result + indexExpressions.hashCode();
-    return result;
+    return Objects.hash(nodeType, type, array, indexExpressions);
   }
 }
 

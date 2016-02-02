@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Calendar;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -471,7 +472,7 @@ public class SqlLiteral extends SqlNode {
       return false;
     }
     SqlLiteral that = (SqlLiteral) obj;
-    return com.google.common.base.Objects.equal(value, that.value);
+    return Objects.equals(value, that.value);
   }
 
   public int hashCode() {

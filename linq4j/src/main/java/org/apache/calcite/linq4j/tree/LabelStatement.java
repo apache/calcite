@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.Objects;
+
 /**
  * Represents a label, which can be put in any {@link Expression} context. If it
  * is jumped to, it will get the value provided by the corresponding
@@ -57,9 +59,7 @@ public class LabelStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, type, defaultValue);
   }
 }
 

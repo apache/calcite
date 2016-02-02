@@ -39,7 +39,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
@@ -53,6 +52,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Window}
@@ -325,11 +325,7 @@ public final class LogicalWindow extends Window {
     }
 
     @Override public int hashCode() {
-      return com.google.common.base.Objects.hashCode(groupSet,
-          orderKeys,
-          isRows,
-          lowerBound,
-          upperBound);
+      return Objects.hash(groupSet, orderKeys, isRows, lowerBound, upperBound);
     }
 
     @Override public boolean equals(Object obj) {
@@ -337,8 +333,8 @@ public final class LogicalWindow extends Window {
           || obj instanceof WindowKey
           && groupSet.equals(((WindowKey) obj).groupSet)
           && orderKeys.equals(((WindowKey) obj).orderKeys)
-          && Objects.equal(lowerBound, ((WindowKey) obj).lowerBound)
-          && Objects.equal(upperBound, ((WindowKey) obj).upperBound)
+          && Objects.equals(lowerBound, ((WindowKey) obj).lowerBound)
+          && Objects.equals(upperBound, ((WindowKey) obj).upperBound)
           && isRows == ((WindowKey) obj).isRows;
     }
   }

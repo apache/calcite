@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.proto.Common;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 /**
  * Metadata for a parameter.
  */
@@ -72,16 +74,8 @@ public class AvaticaParameter {
   }
 
   @Override public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((className == null) ? 0 : className.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + parameterType;
-    result = prime * result + precision;
-    result = prime * result + scale;
-    result = prime * result + (signed ? 1231 : 1237);
-    result = prime * result + ((typeName == null) ? 0 : typeName.hashCode());
-    return result;
+    return Objects.hash(className, name, parameterType, precision, scale,
+        signed, typeName);
   }
 
   @Override public boolean equals(Object obj) {

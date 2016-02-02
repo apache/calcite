@@ -18,6 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents creating a new array and possibly initializing the elements of the
@@ -94,10 +95,7 @@ public class NewArrayExpression extends Expression {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = super.hashCode();
-      result = 31 * result + dimension;
-      result = 31 * result + (bound != null ? bound.hashCode() : 0);
-      result = 31 * result + (expressions != null ? expressions.hashCode() : 0);
+      result = Objects.hash(nodeType, type, dimension, bound, expressions);
       if (result == 0) {
         result = 1;
       }

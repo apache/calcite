@@ -65,7 +65,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -84,6 +83,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.rex.RexUtil.andNot;
@@ -1688,7 +1688,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(input,
+      return Objects.hash(input,
           PAIRWISE_STRING_EQUIVALENCE.hash(projects));
     }
 
@@ -1734,7 +1734,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(input, condition.toString());
+      return Objects.hash(input, condition.toString());
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1785,7 +1785,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(input, groupSet, aggCalls);
+      return Objects.hash(input, groupSet, aggCalls);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1834,13 +1834,13 @@ public class SubstitutionVisitor {
       return obj == this
           || obj instanceof MutableSort
           && collation.equals(((MutableSort) obj).collation)
-          && Objects.equal(offset, ((MutableSort) obj).offset)
-          && Objects.equal(fetch, ((MutableSort) obj).fetch)
+          && Objects.equals(offset, ((MutableSort) obj).offset)
+          && Objects.equals(fetch, ((MutableSort) obj).fetch)
           && input.equals(((MutableSort) obj).input);
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(input, collation, offset, fetch);
+      return Objects.hash(input, collation, offset, fetch);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -1908,7 +1908,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(type, inputs);
+      return Objects.hash(type, inputs);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {
@@ -2028,7 +2028,7 @@ public class SubstitutionVisitor {
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(left, right, condition.toString(), joinType);
+      return Objects.hash(left, right, condition.toString(), joinType);
     }
 
     @Override public StringBuilder digest(StringBuilder buf) {

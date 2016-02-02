@@ -20,6 +20,8 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Objects;
+
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose
  * output is to be sorted.
@@ -86,7 +88,7 @@ public class RelFieldCollation {
       this.shortString = shortString;
     }
 
-    /** Converts thie direction to a
+    /** Converts the direction to a
      * {@link org.apache.calcite.sql.validate.SqlMonotonicity}. */
     public SqlMonotonicity monotonicity() {
       switch (this) {
@@ -219,22 +221,16 @@ public class RelFieldCollation {
     return copy(fieldIndex + offset);
   }
 
-  // implement Object
-  public boolean equals(Object obj) {
-    if (!(obj instanceof RelFieldCollation)) {
-      return false;
-    }
-    RelFieldCollation other = (RelFieldCollation) obj;
-    return (fieldIndex == other.fieldIndex)
-        && (direction == other.direction)
-        && (nullDirection == other.nullDirection);
+  @Override public boolean equals(Object o) {
+    return this == o
+        || o instanceof RelFieldCollation
+        && fieldIndex == ((RelFieldCollation) o).fieldIndex
+        && direction == ((RelFieldCollation) o).direction
+        && nullDirection == ((RelFieldCollation) o).nullDirection;
   }
 
-  // implement Object
-  public int hashCode() {
-    return this.fieldIndex
-        | (this.direction.ordinal() << 4)
-        | (this.nullDirection.ordinal() << 8);
+  @Override public int hashCode() {
+    return Objects.hash(fieldIndex, direction, nullDirection);
   }
 
   public int getFieldIndex() {

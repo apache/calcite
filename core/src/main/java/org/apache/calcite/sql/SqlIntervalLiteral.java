@@ -19,7 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
-import org.apache.calcite.util.Util;
+
+import java.util.Objects;
 
 /**
  * A SQL literal representing a time interval.
@@ -128,8 +129,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
     }
 
     public int hashCode() {
-      int h = Util.hash(sign, intervalStr);
-      return Util.hash(h, intervalQualifier);
+      return Objects.hash(sign, intervalStr, intervalQualifier);
     }
 
     public SqlIntervalQualifier getIntervalQualifier() {

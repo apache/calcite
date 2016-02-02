@@ -19,6 +19,7 @@ package org.apache.calcite.linq4j.tree;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Declaration of a class.
@@ -101,14 +102,8 @@ public class ClassDeclaration extends MemberDeclaration {
   }
 
   @Override public int hashCode() {
-    int result = modifier;
-    result = 31 * result + classClass.hashCode();
-    result = 31 * result + name.hashCode();
-    result = 31 * result + (memberDeclarations != null ? memberDeclarations
-        .hashCode() : 0);
-    result = 31 * result + (extended != null ? extended.hashCode() : 0);
-    result = 31 * result + (implemented != null ? implemented.hashCode() : 0);
-    return result;
+    return Objects.hash(modifier, classClass, name, memberDeclarations,
+        extended, implemented);
   }
 }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.mapping;
 
+import org.apache.calcite.runtime.Utilities;
+
 import java.util.AbstractList;
 import java.util.List;
 
@@ -56,7 +58,7 @@ public class IntPair {
   }
 
   public int hashCode() {
-    return this.source ^ (this.target << 4);
+    return Utilities.hash(source, target);
   }
 
   /**

@@ -27,6 +27,7 @@ import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a strongly typed lambda expression as a data structure in the form
@@ -254,10 +255,7 @@ public final class FunctionExpression<F extends Function<?>>
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = super.hashCode();
-      result = 31 * result + (function != null ? function.hashCode() : 0);
-      result = 31 * result + (body != null ? body.hashCode() : 0);
-      result = 31 * result + parameterList.hashCode();
+      result = Objects.hash(nodeType, type, function, body, parameterList);
       if (result == 0) {
         result = 1;
       }

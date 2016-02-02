@@ -18,9 +18,9 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.util.Util;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Local variable.
@@ -68,9 +68,7 @@ public class RexLocalRef extends RexSlot {
   }
 
   public int hashCode() {
-    return Util.hash(
-        type.hashCode(),
-        index);
+    return Objects.hash(type, index);
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

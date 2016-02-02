@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents an expression that has a constant value.
@@ -279,9 +280,7 @@ public class ConstantExpression extends Expression {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + (value != null ? value.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, type, value);
   }
 }
 

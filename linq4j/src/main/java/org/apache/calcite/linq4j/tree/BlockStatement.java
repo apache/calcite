@@ -19,6 +19,7 @@ package org.apache.calcite.linq4j.tree;
 import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -40,7 +41,7 @@ public class BlockStatement extends Statement {
   }
 
   private boolean distinctVariables(boolean fail) {
-    Set<String> names = new HashSet<String>();
+    Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {
         String name = ((DeclarationStatement) statement).parameter.name;
@@ -103,8 +104,7 @@ public class BlockStatement extends Statement {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = super.hashCode();
-      result = 31 * result + statements.hashCode();
+      result = Objects.hash(nodeType, type, statements);
       if (result == 0) {
         result = 1;
       }

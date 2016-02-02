@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 
 /**
  * Declaration of a field.
@@ -81,10 +82,7 @@ public class FieldDeclaration extends MemberDeclaration {
   }
 
   @Override public int hashCode() {
-    int result = modifier;
-    result = 31 * result + parameter.hashCode();
-    result = 31 * result + (initializer != null ? initializer.hashCode() : 0);
-    return result;
+    return Objects.hash(modifier, parameter, initializer);
   }
 }
 

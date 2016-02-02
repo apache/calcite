@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -31,16 +33,19 @@ class GroupingImpl<K, V> extends AbstractEnumerable<V>
   private final Collection<V> values;
 
   GroupingImpl(K key, Collection<V> values) {
-    this.key = key;
-    this.values = values;
+    this.key = Preconditions.checkNotNull(key);
+    this.values = Preconditions.checkNotNull(values);
   }
 
   @Override public String toString() {
     return key + ": " + values;
   }
 
+  /** {@inheritDoc}
+   *
+   * <p>Computes hash code consistent with {@link Map.Entry#hashCode()}. */
   @Override public int hashCode() {
-    return (11 + key.hashCode()) * 37 + values.hashCode();
+    return key.hashCode() ^ values.hashCode();
   }
 
   @Override public boolean equals(Object obj) {

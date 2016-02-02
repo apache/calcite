@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -81,22 +82,16 @@ public class SqlParserPos implements Serializable {
   //~ Methods ----------------------------------------------------------------
 
   public int hashCode() {
-    return lineNumber
-        ^ (columnNumber << 2)
-        ^ (endLineNumber << 5)
-        ^ (endColumnNumber << 7);
+    return Objects.hash(lineNumber, columnNumber, endLineNumber, endColumnNumber);
   }
 
-  public boolean equals(Object obj) {
-    if (obj instanceof SqlParserPos) {
-      final SqlParserPos that = (SqlParserPos) obj;
-      return (that.lineNumber == this.lineNumber)
-          && (that.columnNumber == this.columnNumber)
-          && (that.endLineNumber == this.endLineNumber)
-          && (that.endColumnNumber == this.endColumnNumber);
-    } else {
-      return false;
-    }
+  public boolean equals(Object o) {
+    return o == this
+        || o instanceof SqlParserPos
+        && this.lineNumber == ((SqlParserPos) o).lineNumber
+        && this.columnNumber == ((SqlParserPos) o).columnNumber
+        && this.endLineNumber == ((SqlParserPos) o).endLineNumber
+        && this.endColumnNumber == ((SqlParserPos) o).endColumnNumber;
   }
 
   /**

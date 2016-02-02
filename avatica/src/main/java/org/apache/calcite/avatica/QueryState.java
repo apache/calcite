@@ -40,7 +40,7 @@ public class QueryState {
   /**
    * An enumeration that represents how a ResultSet was created.
    */
-  public static enum StateType {
+  public enum StateType {
     SQL,
     METADATA;
 
@@ -451,38 +451,15 @@ public class QueryState {
   }
 
   @Override public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((metaDataOperation == null) ? 0 : metaDataOperation.hashCode());
-    result = prime * result + Arrays.hashCode(operationArgs);
-    result = prime * result + ((sql == null) ? 0 : sql.hashCode());
-    return result;
+    return Objects.hash(metaDataOperation, Arrays.hashCode(operationArgs), sql);
   }
 
-  @Override public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!(obj instanceof QueryState)) {
-      return false;
-    }
-
-    QueryState other = (QueryState) obj;
-    if (metaDataOperation != other.metaDataOperation) {
-      return false;
-    }
-    if (!Arrays.deepEquals(operationArgs, other.operationArgs)) {
-      return false;
-    }
-    if (sql == null) {
-      if (other.sql != null) {
-        return false;
-      }
-    } else if (!sql.equals(other.sql)) {
-      return false;
-    }
-
-    return true;
+  @Override public boolean equals(Object o) {
+    return o == this
+        || o instanceof QueryState
+        && metaDataOperation == ((QueryState) o).metaDataOperation
+        && Arrays.deepEquals(operationArgs, ((QueryState) o).operationArgs)
+        && Objects.equals(sql, ((QueryState) o).sql);
   }
 }
 

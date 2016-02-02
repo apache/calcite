@@ -19,7 +19,8 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.util.Util;
+
+import java.util.Objects;
 
 /**
  * <code>VolcanoCost</code> represents the cost of a plan node.
@@ -119,7 +120,7 @@ class VolcanoCost implements RelOptCost {
   }
 
   @Override public int hashCode() {
-    return Util.hashCode(rowCount) + Util.hashCode(cpu) + Util.hashCode(io);
+    return Objects.hash(rowCount, cpu, io);
   }
 
   public boolean equals(RelOptCost other) {

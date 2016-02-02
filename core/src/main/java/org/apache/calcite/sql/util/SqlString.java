@@ -48,7 +48,8 @@ public class SqlString {
   }
 
   @Override public boolean equals(Object obj) {
-    return obj instanceof SqlString
+    return obj == this
+        || obj instanceof SqlString
         && s.equals(((SqlString) obj).s);
   }
 

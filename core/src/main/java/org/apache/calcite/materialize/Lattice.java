@@ -63,6 +63,7 @@ import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -233,8 +234,7 @@ public class Lattice {
   }
 
   public String sql(ImmutableBitSet groupSet, List<Measure> aggCallList) {
-    final ImmutableBitSet.Builder columnSetBuilder =
-        ImmutableBitSet.builder(groupSet);
+    final ImmutableBitSet.Builder columnSetBuilder = groupSet.rebuild();
     for (Measure call : aggCallList) {
       for (Column arg : call.args) {
         columnSetBuilder.set(arg.ordinal);
@@ -481,7 +481,7 @@ public class Lattice {
     }
 
     @Override public int hashCode() {
-      return com.google.common.base.Objects.hashCode(agg, args);
+      return Objects.hash(agg, args);
     }
 
     @Override public boolean equals(Object obj) {

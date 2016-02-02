@@ -18,8 +18,9 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+
+import java.util.Objects;
 
 /** Definition of a particular combination of dimensions and measures of a
  * lattice that is the basis of a materialization.
@@ -41,7 +42,7 @@ public class TileKey {
   }
 
   @Override public int hashCode() {
-    return Objects.hashCode(lattice, dimensions);
+    return Objects.hash(lattice, dimensions);
   }
 
   @Override public boolean equals(Object obj) {

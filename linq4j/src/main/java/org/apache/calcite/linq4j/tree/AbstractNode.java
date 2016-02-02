@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
+import java.util.Objects;
 
 /**
  * Abstract implementation of {@link Node}.
@@ -95,9 +96,7 @@ public abstract class AbstractNode implements Node {
   }
 
   @Override public int hashCode() {
-    int result = nodeType != null ? nodeType.hashCode() : 0;
-    result = 31 * result + (type != null ? type.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, type);
   }
 }
 

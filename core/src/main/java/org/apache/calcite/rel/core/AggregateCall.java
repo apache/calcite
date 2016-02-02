@@ -24,11 +24,11 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Call to an aggFunction function within an
@@ -184,7 +184,7 @@ public class AggregateCall {
    * @param name New name (may be null)
    */
   public AggregateCall rename(String name) {
-    if (Objects.equal(this.name, name)) {
+    if (Objects.equals(this.name, name)) {
       return this;
     }
     return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
@@ -225,7 +225,7 @@ public class AggregateCall {
   }
 
   @Override public int hashCode() {
-    return aggFunction.hashCode() + argList.hashCode();
+    return Objects.hash(aggFunction, distinct, argList, filterArg);
   }
 
   /**

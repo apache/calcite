@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.Objects;
+
 /**
  * Represents an unconditional jump. This includes return statements, break and
  * continue statements, and other jumps.
@@ -123,11 +125,7 @@ public class GotoStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + kind.hashCode();
-    result = 31 * result + (labelTarget != null ? labelTarget.hashCode() : 0);
-    result = 31 * result + (expression != null ? expression.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, type, kind, labelTarget, expression);
   }
 }
 

@@ -40,6 +40,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import com.google.common.collect.ImmutableSet;
 
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -222,19 +223,15 @@ public class SqlCastFunction extends SqlFunction {
       this.castTo = castTo;
     }
 
-    @Override public boolean equals(Object obj) {
-      // TODO Auto-generated method stub
-      if (obj.getClass() != TypeFamilyCast.class) {
-        return false;
-      }
-      TypeFamilyCast other = (TypeFamilyCast) obj;
-      return this.castFrom.equals(other.castFrom)
-          && this.castTo.equals(other.castTo);
+    @Override public boolean equals(Object o) {
+      return o == this
+          || o instanceof TypeFamilyCast
+          && castFrom.equals(((TypeFamilyCast) o).castFrom)
+          && castTo.equals(((TypeFamilyCast) o).castTo);
     }
 
     @Override public int hashCode() {
-      // TODO Auto-generated method stub
-      return castFrom.hashCode() + castTo.hashCode();
+      return Objects.hash(castFrom, castTo);
     }
   }
 }

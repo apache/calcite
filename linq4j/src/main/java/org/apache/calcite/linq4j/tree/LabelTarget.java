@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.Objects;
+
 /**
  * Used to represent the target of a {@link GotoStatement}.
  */
@@ -44,7 +46,7 @@ public class LabelTarget {
   }
 
   @Override public int hashCode() {
-    return name != null ? name.hashCode() : 0;
+    return Objects.hashCode(name);
   }
 }
 

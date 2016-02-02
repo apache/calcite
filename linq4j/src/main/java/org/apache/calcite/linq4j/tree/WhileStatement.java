@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.Objects;
+
 /**
  * Represents a "while" statement.
  */
@@ -67,10 +69,7 @@ public class WhileStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + condition.hashCode();
-    result = 31 * result + body.hashCode();
-    return result;
+    return Objects.hash(nodeType, type, condition, body);
   }
 }
 

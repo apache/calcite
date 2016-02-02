@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.util.Util;
+import org.apache.calcite.runtime.Utilities;
 
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
@@ -70,7 +70,7 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   @Override public int hashCode() {
-    return Util.hashCode(getRows());
+    return Utilities.hashCode(getRows());
   }
 
   // implement RelOptCost

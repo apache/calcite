@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A generic implementation of {@link SqlMoniker}.
@@ -61,7 +62,7 @@ public class SqlMonikerImpl implements SqlMoniker {
   }
 
   @Override public int hashCode() {
-    return Util.hash(type.ordinal(), names);
+    return Objects.hash(type, names);
   }
 
   public SqlMonikerType getType() {

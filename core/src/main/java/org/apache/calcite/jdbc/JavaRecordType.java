@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelRecordType;
 import com.google.common.base.Preconditions;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Record type based on a Java class. The fields of the type are the fields
@@ -46,7 +47,7 @@ public class JavaRecordType extends RelRecordType {
   }
 
   @Override public int hashCode() {
-    return fieldList.hashCode() ^ clazz.hashCode();
+    return Objects.hash(fieldList, clazz);
   }
 }
 

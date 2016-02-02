@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
@@ -1174,7 +1175,7 @@ public class UtilTest {
     }
   }
 
-  /** Unit test for {@link Util#hashCode(double)}. */
+  /** Unit test for {@link Utilities#hashCode(double)}. */
   @Test public void testHash() {
     checkHash(0d);
     checkHash(1d);
@@ -1187,7 +1188,14 @@ public class UtilTest {
   }
 
   public void checkHash(double v) {
-    assertThat(new Double(v).hashCode(), equalTo(Util.hashCode(v)));
+    assertThat(new Double(v).hashCode(), is(Utilities.hashCode(v)));
+    final long long_ = (long) v;
+    assertThat(new Long(long_).hashCode(), is(Utilities.hashCode(long_)));
+    final float float_ = (float) v;
+    assertThat(new Float(float_).hashCode(), is(Utilities.hashCode(float_)));
+    final boolean boolean_ = v != 0;
+    assertThat(Boolean.valueOf(boolean_).hashCode(),
+        is(Utilities.hashCode(boolean_)));
   }
 
   /** Unit test for {@link Util#startsWith}. */

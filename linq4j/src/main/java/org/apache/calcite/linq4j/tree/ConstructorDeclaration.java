@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Declaration of a constructor.
@@ -106,10 +107,7 @@ public class ConstructorDeclaration extends MemberDeclaration {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = modifier;
-      result = 31 * result + resultType.hashCode();
-      result = 31 * result + parameters.hashCode();
-      result = 31 * result + body.hashCode();
+      result = Objects.hash(modifier, resultType, parameters, body);
       if (result == 0) {
         result = 1;
       }

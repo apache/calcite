@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
+import java.util.Objects;
 
 /**
  * Represents an expression that has a ternary operator.
@@ -83,11 +84,7 @@ public class TernaryExpression extends Expression {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + expression0.hashCode();
-    result = 31 * result + expression1.hashCode();
-    result = 31 * result + expression2.hashCode();
-    return result;
+    return Objects.hash(nodeType, type, expression0, expression1, expression2);
   }
 }
 

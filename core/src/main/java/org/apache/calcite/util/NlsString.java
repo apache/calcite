@@ -20,8 +20,6 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlUtil;
 
-import com.google.common.base.Objects;
-
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
@@ -29,6 +27,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -95,10 +94,7 @@ public class NlsString implements Comparable<NlsString> {
   }
 
   public int hashCode() {
-    int h = value.hashCode();
-    h = Util.hash(h, charsetName);
-    h = Util.hash(h, collation);
-    return h;
+    return Objects.hash(value, charsetName, collation);
   }
 
   public boolean equals(Object obj) {
@@ -106,9 +102,9 @@ public class NlsString implements Comparable<NlsString> {
       return false;
     }
     NlsString that = (NlsString) obj;
-    return Objects.equal(value, that.value)
-        && Objects.equal(charsetName, that.charsetName)
-        && Objects.equal(collation, that.collation);
+    return Objects.equals(value, that.value)
+        && Objects.equals(charsetName, that.charsetName)
+        && Objects.equals(collation, that.collation);
   }
 
   // implement Comparable

@@ -110,6 +110,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -2423,9 +2424,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @Override public int hashCode() {
-      return com.google.common.base.Objects.hashCode(mapRefRelToCorVar,
-          mapCorVarToCorRel,
-          mapFieldAccessToCorVar);
+      return Objects.hash(mapRefRelToCorVar, mapCorVarToCorRel, mapFieldAccessToCorVar);
     }
 
     /** Creates a CorelMap with given contents. */

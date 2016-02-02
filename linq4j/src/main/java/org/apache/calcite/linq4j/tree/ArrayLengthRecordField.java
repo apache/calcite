@@ -18,6 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
+import java.util.Objects;
 
 /**
  * Represents a length field of a RecordType
@@ -78,9 +79,7 @@ public class ArrayLengthRecordField implements Types.RecordField {
   }
 
   @Override public int hashCode() {
-    int result = fieldName.hashCode();
-    result = 31 * result + clazz.hashCode();
-    return result;
+    return Objects.hash(fieldName, clazz);
   }
 }
 

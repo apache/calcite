@@ -34,6 +34,7 @@ import org.apache.calcite.util.Util;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -357,9 +358,8 @@ public abstract class SqlOperator {
     return name.equals(testName);
   }
 
-  // override Object
-  public int hashCode() {
-    return kind.hashCode() + name.hashCode();
+  @Override public int hashCode() {
+    return Objects.hash(kind, name);
   }
 
   /**

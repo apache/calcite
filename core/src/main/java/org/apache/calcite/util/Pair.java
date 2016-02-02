@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 
 import java.io.Serializable;
 import java.util.AbstractList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Pair of objects.
@@ -71,7 +71,7 @@ public class Pair<T1, T2>
    * @return A Pair
    */
   public static <T1, T2> Pair<T1, T2> of(T1 left, T2 right) {
-    return new Pair<T1, T2>(left, right);
+    return new Pair<>(left, right);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -79,18 +79,24 @@ public class Pair<T1, T2>
   public boolean equals(Object obj) {
     return this == obj
         || (obj instanceof Pair)
-        && Objects.equal(this.left, ((Pair) obj).left)
-        && com.google.common.base.Objects.equal(this.right, ((Pair) obj).right);
+        && Objects.equals(this.left, ((Pair) obj).left)
+        && Objects.equals(this.right, ((Pair) obj).right);
   }
 
-  public int hashCode() {
-    int h1 = Util.hash(0, left);
-    return Util.hash(h1, right);
+  /** {@inheritDoc}
+   *
+   * <p>Computes hash code consistent with {@link Map.Entry#hashCode()}. */
+  @Override public int hashCode() {
+    int keyHash = left == null ? 0 : left.hashCode();
+    int valueHash = right == null ? 0 : right.hashCode();
+    return keyHash ^ valueHash;
   }
 
-  public int compareTo(Pair<T1, T2> that) {
+  public int compareTo(@Nonnull Pair<T1, T2> that) {
+    //noinspection unchecked
     int c = compare((Comparable) this.left, (Comparable) that.left);
     if (c == 0) {
+      //noinspection unchecked
       c = compare((Comparable) this.right, (Comparable) that.right);
     }
     return c;
@@ -147,8 +153,8 @@ public class Pair<T1, T2>
    * @param pairs Collection of Pair objects
    * @return map with the same contents as the collection
    */
-  public static <K, V> Map<K, V> toMap(Collection<Pair<K, V>> pairs) {
-    HashMap<K, V> map = new HashMap<K, V>();
+  public static <K, V> Map<K, V> toMap(Iterable<Pair<K, V>> pairs) {
+    final Map<K, V> map = new HashMap<>();
     for (Pair<K, V> pair : pairs) {
       map.put(pair.left, pair.right);
     }

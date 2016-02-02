@@ -18,6 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a constructor call.
@@ -90,11 +91,8 @@ public class NewExpression extends Expression {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = super.hashCode();
-      result = 31 * result + type.hashCode();
-      result = 31 * result + (arguments != null ? arguments.hashCode() : 0);
-      result = 31 * result + (
-          memberDeclarations != null ? memberDeclarations.hashCode() : 0);
+      result = Objects.hash(nodeType, super.type, type, arguments,
+          memberDeclarations);
       if (result == 0) {
         result = 1;
       }

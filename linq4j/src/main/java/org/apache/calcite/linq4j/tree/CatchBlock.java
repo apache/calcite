@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.Objects;
+
 /**
  * Represents a catch statement in a try block.
  */
@@ -51,9 +53,7 @@ public class CatchBlock {
   }
 
   @Override public int hashCode() {
-    int result = parameter != null ? parameter.hashCode() : 0;
-    result = 31 * result + (body != null ? body.hashCode() : 0);
-    return result;
+    return Objects.hash(parameter, body);
   }
 }
 

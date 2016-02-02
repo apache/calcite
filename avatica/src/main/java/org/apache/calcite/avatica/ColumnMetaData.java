@@ -214,150 +214,35 @@ public class ColumnMetaData {
   }
 
   @Override public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + (autoIncrement ? 1231 : 1237);
-    result = prime * result + (caseSensitive ? 1231 : 1237);
-    result = prime * result + ((catalogName == null) ? 0 : catalogName.hashCode());
-    result = prime * result + ((columnClassName == null) ? 0 : columnClassName.hashCode());
-    result = prime * result + ((columnName == null) ? 0 : columnName.hashCode());
-    result = prime * result + (currency ? 1231 : 1237);
-    result = prime * result + (definitelyWritable ? 1231 : 1237);
-    result = prime * result + displaySize;
-    result = prime * result + ((label == null) ? 0 : label.hashCode());
-    result = prime * result + nullable;
-    result = prime * result + ordinal;
-    result = prime * result + precision;
-    result = prime * result + (readOnly ? 1231 : 1237);
-    result = prime * result + scale;
-    result = prime * result + ((schemaName == null) ? 0 : schemaName.hashCode());
-    result = prime * result + (searchable ? 1231 : 1237);
-    result = prime * result + (signed ? 1231 : 1237);
-    result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    result = prime * result + (writable ? 1231 : 1237);
-    return result;
+    return Objects.hash(autoIncrement, caseSensitive, catalogName,
+        columnClassName, columnName, currency, definitelyWritable, displaySize,
+        label, nullable, ordinal, precision, readOnly, scale, schemaName,
+        searchable, signed, tableName, type, writable);
   }
 
-  @Override public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
-    if (obj instanceof ColumnMetaData) {
-      ColumnMetaData other = (ColumnMetaData) obj;
-
-      if (autoIncrement != other.autoIncrement) {
-        return false;
-      }
-
-      if (caseSensitive != other.caseSensitive) {
-        return false;
-      }
-
-      if (null == catalogName) {
-        if (null != other.catalogName) {
-          return false;
-        }
-      } else if (!catalogName.equals(other.catalogName)) {
-        return false;
-      }
-
-      if (null == columnClassName) {
-        if (null != other.columnClassName) {
-          return false;
-        }
-      } else if (!columnClassName.equals(other.columnClassName)) {
-        return false;
-      }
-
-      if (null == columnName) {
-        if (null != other.columnName) {
-          return false;
-        }
-      } else if (!columnName.equals(other.columnName)) {
-        return false;
-      }
-
-      if (currency != other.currency) {
-        return false;
-      }
-
-      if (definitelyWritable != other.definitelyWritable) {
-        return false;
-      }
-
-      if (displaySize != other.displaySize) {
-        return false;
-      }
-
-      if (null == label) {
-        if (null != other.label) {
-          return false;
-        }
-      } else if (!label.equals(other.label)) {
-        return false;
-      }
-
-      if (nullable != other.nullable) {
-        return false;
-      }
-
-      if (ordinal != other.ordinal) {
-        return false;
-      }
-
-      if (precision != other.precision) {
-        return false;
-      }
-
-      if (readOnly != other.readOnly) {
-        return false;
-      }
-
-      if (scale != other.scale) {
-        return false;
-      }
-
-      if (null == schemaName) {
-        if (null != other.schemaName) {
-          return false;
-        }
-      } else if (!schemaName.equals(other.schemaName)) {
-        return false;
-      }
-
-      if (searchable != other.searchable) {
-        return false;
-      }
-
-      if (signed != other.signed) {
-        return false;
-      }
-
-      if (null == tableName) {
-        if (null != other.tableName) {
-          return false;
-        }
-      } else if (!tableName.equals(other.tableName)) {
-        return false;
-      }
-
-      if (null == type) {
-        if (null != other.type) {
-          return false;
-        }
-      } else if (!type.equals(other.type)) {
-        return false;
-      }
-
-      if (writable != other.writable) {
-        return false;
-      }
-
-      return true;
-    }
-
-    return false;
+  @Override public boolean equals(Object o) {
+    return o == this
+        || o instanceof ColumnMetaData
+        && autoIncrement == ((ColumnMetaData) o).autoIncrement
+        && caseSensitive == ((ColumnMetaData) o).caseSensitive
+        && Objects.equals(catalogName, ((ColumnMetaData) o).catalogName)
+        && Objects.equals(columnClassName, ((ColumnMetaData) o).columnClassName)
+        && Objects.equals(columnName, ((ColumnMetaData) o).columnName)
+        && currency == ((ColumnMetaData) o).currency
+        && definitelyWritable == ((ColumnMetaData) o).definitelyWritable
+        && displaySize == ((ColumnMetaData) o).displaySize
+        && Objects.equals(label, ((ColumnMetaData) o).label)
+        && nullable == ((ColumnMetaData) o).nullable
+        && ordinal == ((ColumnMetaData) o).ordinal
+        && precision == ((ColumnMetaData) o).precision
+        && readOnly == ((ColumnMetaData) o).readOnly
+        && scale == ((ColumnMetaData) o).scale
+        && Objects.equals(schemaName, ((ColumnMetaData) o).schemaName)
+        && searchable == ((ColumnMetaData) o).searchable
+        && signed == ((ColumnMetaData) o).signed
+        && Objects.equals(tableName, ((ColumnMetaData) o).tableName)
+        && Objects.equals(type, ((ColumnMetaData) o).type)
+        && writable == ((ColumnMetaData) o).writable;
   }
 
   private static <T> T first(T t0, T t1) {
@@ -603,41 +488,15 @@ public class ColumnMetaData {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + id;
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
-      result = prime * result + ((rep == null) ? 0 : rep.hashCode());
-      return result;
+      return Objects.hash(id, name, rep);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof AvaticaType) {
-        AvaticaType other = (AvaticaType) o;
-
-        if (id != other.id) {
-          return false;
-        }
-
-        if (name == null) {
-          if (other.name != null) {
-            return false;
-          }
-        } else if (!name.equals(other.name)) {
-          return false;
-        }
-
-        if (rep != other.rep) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof AvaticaType
+          && id == ((AvaticaType) o).id
+          && Objects.equals(name, ((AvaticaType) o).name)
+          && rep == ((AvaticaType) o).rep;
     }
   }
 
@@ -674,30 +533,14 @@ public class ColumnMetaData {
     }
 
     @Override public int hashCode() {
-      return 31 * (super.hashCode() + (null == columns ? 0 : columns.hashCode()));
+      return Objects.hash(id, name, rep, columns);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (!super.equals(o)) {
-        return false;
-      }
-
-      if (o instanceof StructType) {
-        StructType other = (StructType) o;
-
-        if (null == columns) {
-          if (null != other.columns) {
-            return false;
-          }
-        }
-
-        return columns.equals(other.columns);
-      }
-
-      return false;
+      return o == this
+          || o instanceof StructType
+          && super.equals(o)
+          && Objects.equals(columns, ((StructType) o).columns);
     }
   }
 
@@ -724,30 +567,14 @@ public class ColumnMetaData {
     }
 
     @Override public int hashCode() {
-      return 31 * (super.hashCode() + (null == component ? 0 : component.hashCode()));
+      return Objects.hash(id, name, rep, component);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (!super.equals(o)) {
-        return false;
-      }
-
-      if (o instanceof ArrayType) {
-        ArrayType other = (ArrayType) o;
-
-        if (null == component) {
-          if (null != other.component) {
-            return false;
-          }
-        }
-
-        return component.equals(other.component);
-      }
-
-      return false;
+      return o == this
+          || o instanceof ArrayType
+          && super.equals(o)
+          && Objects.equals(component, ((ArrayType) o).component);
     }
   }
 }

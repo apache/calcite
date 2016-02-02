@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Declaration of a method.
@@ -105,12 +106,7 @@ public class MethodDeclaration extends MemberDeclaration {
   }
 
   @Override public int hashCode() {
-    int result = modifier;
-    result = 31 * result + name.hashCode();
-    result = 31 * result + resultType.hashCode();
-    result = 31 * result + parameters.hashCode();
-    result = 31 * result + body.hashCode();
-    return result;
+    return Objects.hash(modifier, name, resultType, parameters, body);
   }
 }
 

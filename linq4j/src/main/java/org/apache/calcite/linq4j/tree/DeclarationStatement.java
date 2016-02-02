@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.tree;
 
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 
 /**
  * Expression that declares and optionally initializes a variable.
@@ -101,11 +102,7 @@ public class DeclarationStatement extends Statement {
   }
 
   @Override public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + modifiers;
-    result = 31 * result + parameter.hashCode();
-    result = 31 * result + (initializer != null ? initializer.hashCode() : 0);
-    return result;
+    return Objects.hash(nodeType, type, modifiers, parameter, initializer);
   }
 }
 

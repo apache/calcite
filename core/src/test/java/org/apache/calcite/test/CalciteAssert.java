@@ -40,7 +40,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -75,11 +74,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -1049,7 +1050,7 @@ public class CalciteAssert {
       private static final LoadingCache<ConnectionFactory, Connection> POOL =
           CacheBuilder.newBuilder().build(
               new CacheLoader<ConnectionFactory, Connection>() {
-                public Connection load(ConnectionFactory key) throws Exception {
+                public Connection load(@Nonnull ConnectionFactory key) throws Exception {
                   return key.createConnection();
                 }
               });
@@ -1091,7 +1092,7 @@ public class CalciteAssert {
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(map, postProcessors);
+      return Objects.hash(map, postProcessors);
     }
 
     public Connection createConnection() throws SQLException {

@@ -599,50 +599,16 @@ public interface Meta {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((clazz == null) ? 0 : clazz.hashCode());
-      result = prime * result + ((fieldNames == null) ? 0 : fieldNames.hashCode());
-      result = prime * result + ((fields == null) ? 0 : fields.hashCode());
-      result = prime * result + ((style == null) ? 0 : style.hashCode());
-      return result;
+      return Objects.hash(clazz, fieldNames, fields, style);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof CursorFactory) {
-        CursorFactory other = (CursorFactory) o;
-
-        if (null == clazz) {
-          if (null != other.clazz) {
-            return false;
-          }
-        } else if (!clazz.equals(other.clazz)) {
-          return false;
-        }
-
-        if (null == fieldNames) {
-          if (null != other.fieldNames) {
-            return false;
-          }
-        } else if (!fieldNames.equals(other.fieldNames)) {
-          return false;
-        }
-
-        if (null == fields) {
-          if (null != other.fields) {
-            return false;
-          }
-        } else if (!fields.equals(other.fields)) {
-          return false;
-        }
-
-        return style == other.style;
-      }
-
-      return false;
+      return o == this
+          || o instanceof CursorFactory
+          && Objects.equals(clazz, ((CursorFactory) o).clazz)
+          && Objects.equals(fieldNames, ((CursorFactory) o).fieldNames)
+          && Objects.equals(fields, ((CursorFactory) o).fields)
+          && style == ((CursorFactory) o).style;
     }
   }
 
@@ -666,7 +632,7 @@ public interface Meta {
   }
 
   /** Result of preparing a statement. */
-  public class Signature {
+  class Signature {
     public final List<ColumnMetaData> columns;
     public final String sql;
     public final List<AvaticaParameter> parameters;
@@ -784,63 +750,21 @@ public interface Meta {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((columns == null) ? 0 : columns.hashCode());
-      result = prime * result + ((cursorFactory == null) ? 0 : cursorFactory.hashCode());
-      result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
-      result = prime * result + ((sql == null) ? 0 : sql.hashCode());
-      return result;
+      return Objects.hash(columns, cursorFactory, parameters, sql);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof Signature) {
-        Signature other = (Signature) o;
-
-        if (null == columns) {
-          if (null != other.columns) {
-            return false;
-          }
-        } else if (!columns.equals(other.columns)) {
-          return false;
-        }
-
-        if (null == cursorFactory) {
-          if (null != other.cursorFactory) {
-            return false;
-          }
-        } else if (!cursorFactory.equals(other.cursorFactory)) {
-          return false;
-        }
-
-        if (null == parameters) {
-          if (null != other.parameters) {
-            return false;
-          }
-        } else if (!parameters.equals(other.parameters)) {
-          return false;
-        }
-
-        if (null == sql) {
-          if (null != other.sql) {
-            return false;
-          }
-        } else if (!sql.equals(other.sql)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      return false;
+      return o == this
+          || o instanceof Signature
+          && Objects.equals(columns, ((Signature) o).columns)
+          && Objects.equals(cursorFactory, ((Signature) o).cursorFactory)
+          && Objects.equals(parameters, ((Signature) o).parameters)
+          && Objects.equals(sql, ((Signature) o).sql);
     }
   }
 
   /** A collection of rows. */
-  public class Frame {
+  class Frame {
     /** Frame that has zero rows and is the last frame. */
     public static final Frame EMPTY =
         new Frame(0, true, Collections.emptyList());
@@ -946,7 +870,7 @@ public interface Meta {
           .setStringValue((String) element);
       } else if (element instanceof Character) {
         valueBuilder.setType(Common.Rep.CHARACTER)
-          .setStringValue(((Character) element).toString());
+          .setStringValue(element.toString());
       // Bytes
       } else if (element instanceof byte[]) {
         valueBuilder.setType(Common.Rep.BYTE_STRING)
@@ -1077,7 +1001,7 @@ public interface Meta {
       case FLOAT:
         return Long.valueOf(protoElement.getNumberValue()).floatValue();
       case DOUBLE:
-        return Double.valueOf(protoElement.getDoubleValue());
+        return protoElement.getDoubleValue();
       case NUMBER:
         // TODO more cases here to expand on? BigInteger?
         return BigDecimal.valueOf(protoElement.getDoubleValue());
@@ -1098,78 +1022,72 @@ public interface Meta {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + (done ? 1231 : 1237);
-      result = prime * result + (int) (offset ^ (offset >>> 32));
-      result = prime * result + ((rows == null) ? 0 : rows.hashCode());
-      return result;
+      return Objects.hash(done, offset, rows);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof Frame) {
-        Frame other = (Frame) o;
+      return o == this
+          || o instanceof Frame
+          && equalRows(rows, ((Frame) o).rows)
+          && offset == ((Frame) o).offset
+          && done == ((Frame) o).done;
+    }
 
-        if (null == rows) {
-          if (null != other.rows) {
-            return false;
-          }
-        } else {
-          Iterator<Object> iter1 = rows.iterator();
-          Iterator<Object> iter2 = other.rows.iterator();
-          while (iter1.hasNext() && iter2.hasNext()) {
-            Object obj1 = iter1.next();
-            Object obj2 = iter2.next();
+    private static boolean equalRows(Iterable<Object> rows, Iterable<Object> otherRows) {
+      if (null == rows) {
+        if (null != otherRows) {
+          return false;
+        }
+      } else {
+        Iterator<Object> iter1 = rows.iterator();
+        Iterator<Object> iter2 = otherRows.iterator();
+        while (iter1.hasNext() && iter2.hasNext()) {
+          Object obj1 = iter1.next();
+          Object obj2 = iter2.next();
 
-            // Can't just call equals on an array
-            if (obj1 instanceof Object[]) {
-              if (obj2 instanceof Object[]) {
-                // Compare array and array
-                if (!Arrays.equals((Object[]) obj1, (Object[]) obj2)) {
-                  return false;
-                }
-              } else if (obj2 instanceof List) {
-                // compare array and list
-                @SuppressWarnings("unchecked")
-                List<Object> obj2List = (List<Object>) obj2;
-                if (!Arrays.equals((Object[]) obj1, obj2List.toArray(new Object[0]))) {
-                  return false;
-                }
-              } else {
-                // compare array and something that isn't an array will always fail
+          // Can't just call equals on an array
+          if (obj1 instanceof Object[]) {
+            if (obj2 instanceof Object[]) {
+              // Compare array and array
+              if (!Arrays.equals((Object[]) obj1, (Object[]) obj2)) {
                 return false;
               }
-            } else if (obj1 instanceof List) {
-              if (obj2 instanceof Object[]) {
-                // Compare list and array
-                @SuppressWarnings("unchecked")
-                List<Object> obj1List = (List<Object>) obj1;
-                if (!Arrays.equals(obj1List.toArray(new Object[0]), (Object[]) obj2)) {
-                  return false;
-                }
-              } else if (!obj1.equals(obj2)) {
-                // compare list and something else, let it fall to equals()
+            } else if (obj2 instanceof List) {
+              // compare array and list
+              @SuppressWarnings("unchecked")
+              List<Object> obj2List = (List<Object>) obj2;
+              if (!Arrays.equals((Object[]) obj1, obj2List.toArray())) {
+                return false;
+              }
+            } else {
+              // compare array and something that isn't an array will always fail
+              return false;
+            }
+          } else if (obj1 instanceof List) {
+            if (obj2 instanceof Object[]) {
+              // Compare list and array
+              @SuppressWarnings("unchecked")
+              List<Object> obj1List = (List<Object>) obj1;
+              if (!Arrays.equals(obj1List.toArray(), (Object[]) obj2)) {
                 return false;
               }
             } else if (!obj1.equals(obj2)) {
-              // Not an array, leave it to equals()
+              // compare list and something else, let it fall to equals()
               return false;
             }
-          }
-
-          // More elements in one of the iterables
-          if (iter1.hasNext() || iter2.hasNext()) {
+          } else if (!obj1.equals(obj2)) {
+            // Not an array, leave it to equals()
             return false;
           }
         }
 
-        return offset == other.offset && done == other.done;
+        // More elements in one of the iterables
+        if (iter1.hasNext() || iter2.hasNext()) {
+          return false;
+        }
       }
 
-      return false;
+      return true;
     }
   }
 
@@ -1221,41 +1139,15 @@ public interface Meta {
     }
 
     @Override public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((connectionId == null) ? 0 : connectionId.hashCode());
-      result = prime * result + id;
-      result = prime * result + ((signature == null) ? 0 : signature.hashCode());
-      return result;
+      return Objects.hash(connectionId, id, signature);
     }
 
     @Override public boolean equals(Object o) {
-      if (o == this) {
-        return true;
-      }
-      if (o instanceof StatementHandle) {
-        StatementHandle other = (StatementHandle) o;
-
-        if (null == connectionId) {
-          if (null != other.connectionId) {
-            return false;
-          }
-        } else if (!connectionId.equals(other.connectionId)) {
-          return false;
-        }
-
-        if (null == signature) {
-          if (null != other.signature) {
-            return false;
-          }
-        } else if (!signature.equals(other.signature)) {
-          return false;
-        }
-
-        return id == other.id;
-      }
-
-      return false;
+      return o == this
+          || o instanceof StatementHandle
+          && Objects.equals(connectionId, ((StatementHandle) o).connectionId)
+          && Objects.equals(signature, ((StatementHandle) o).signature)
+          && id == ((StatementHandle) o).id;
     }
   }
 

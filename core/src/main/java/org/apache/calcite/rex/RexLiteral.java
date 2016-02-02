@@ -44,6 +44,7 @@ import java.util.AbstractList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 
 /**
@@ -608,7 +609,7 @@ public class RexLiteral extends RexNode {
   }
 
   public int hashCode() {
-    return com.google.common.base.Objects.hashCode(value, type);
+    return Objects.hash(value, type);
   }
 
   public static Comparable value(RexNode node) {

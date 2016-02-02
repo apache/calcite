@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a call to either a static or an instance method.
@@ -75,9 +76,7 @@ public class MethodCallExpression extends Expression {
     }
     try {
       return method.invoke(target, args);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException("error while evaluating " + this, e);
-    } catch (InvocationTargetException e) {
+    } catch (IllegalAccessException | InvocationTargetException e) {
       throw new RuntimeException("error while evaluating " + this, e);
     }
   }
@@ -134,11 +133,8 @@ public class MethodCallExpression extends Expression {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = super.hashCode();
-      result = 31 * result + method.hashCode();
-      result = 31 * result + (targetExpression != null ? targetExpression
-          .hashCode() : 0);
-      result = 31 * result + expressions.hashCode();
+      result =
+          Objects.hash(nodeType, type, method, targetExpression, expressions);
       if (result == 0) {
         result = 1;
       }

@@ -19,6 +19,7 @@ package org.apache.calcite.linq4j.tree;
 import org.apache.calcite.linq4j.Ord;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents an infinite loop. It can be exited with "break".
@@ -104,11 +105,8 @@ public class ForStatement extends Statement {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = super.hashCode();
-      result = 31 * result + declarations.hashCode();
-      result = 31 * result + (condition != null ? condition.hashCode() : 0);
-      result = 31 * result + (post != null ? post.hashCode() : 0);
-      result = 31 * result + body.hashCode();
+      result =
+          Objects.hash(nodeType, type, declarations, condition, post, body);
       if (result == 0) {
         result = 1;
       }

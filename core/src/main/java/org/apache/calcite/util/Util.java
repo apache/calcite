@@ -29,7 +29,6 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -68,6 +67,7 @@ import java.util.AbstractList;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -78,6 +78,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -263,7 +264,10 @@ public class Util {
 
   /**
    * Combines two integers into a hash code.
+   *
+   * @deprecated Use {@link Objects#hash(Object...)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hash(
       int i,
       int j) {
@@ -273,7 +277,10 @@ public class Util {
   /**
    * Computes a hash code from an existing hash code and an object (which may
    * be null).
+   *
+   * @deprecated Use {@link Objects#hash(Object...)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hash(
       int h,
       Object o) {
@@ -284,22 +291,14 @@ public class Util {
   /**
    * Computes a hash code from an existing hash code and an array of objects
    * (which may be null).
+   *
+   * @deprecated Use {@link Objects#hash(Object...)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hashArray(
       int h,
       Object[] a) {
-    // The hashcode for a null array and an empty array should be different
-    // than h, so use magic numbers.
-    if (a == null) {
-      return hash(h, 19690429);
-    }
-    if (a.length == 0) {
-      return hash(h, 19690721);
-    }
-    for (int i = 0; i < a.length; i++) {
-      h = hash(h, a[i]);
-    }
-    return h;
+    return h ^ Arrays.hashCode(a);
   }
 
   /** Computes the hash code of a {@code double} value. Equivalent to
@@ -308,7 +307,10 @@ public class Util {
    *
    * @param v Value
    * @return Hash code
+   *
+   * @deprecated Use {@link org.apache.calcite.runtime.Utilities#hashCode(double)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hashCode(double v) {
     long bits = Double.doubleToLongBits(v);
     return (int) (bits ^ (bits >>> 32));
@@ -2078,7 +2080,7 @@ public class Util {
         E e = list.get(i);
         for (int j = i - 1; j >= 0; j--) {
           E e1 = list.get(j);
-          if (Objects.equal(e, e1)) {
+          if (Objects.equals(e, e1)) {
             return i;
           }
         }
@@ -2127,7 +2129,7 @@ public class Util {
       return false;
     }
     for (int i = 0; i < size; i++) {
-      if (!Objects.equal(list0.get(i), list1.get(i))) {
+      if (!Objects.equals(list0.get(i), list1.get(i))) {
         return false;
       }
     }
