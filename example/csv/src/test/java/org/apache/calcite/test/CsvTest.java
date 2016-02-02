@@ -425,6 +425,46 @@ public class CsvTest {
 
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1072">[CALCITE-1072]
+   * CSV adapter incorrectly parses TIMESTAMP values after noon</a>. */
+  @Test public void testDateType2() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+
+    try (Connection connection
+        = DriverManager.getConnection("jdbc:calcite:", info)) {
+      Statement statement = connection.createStatement();
+      ResultSet resultSet =
+          statement.executeQuery("select * from \"DATE\" where EMPNO >= 140");
+      int n = 0;
+      while (resultSet.next()) {
+        ++n;
+        final int empId = resultSet.getInt(1);
+        final String date = resultSet.getString(2);
+        final String time = resultSet.getString(3);
+        final String timestamp = resultSet.getString(4);
+        assertThat(date, is("2015-12-31"));
+        switch (empId) {
+        case 140:
+          assertThat(time, is("07:15:56"));
+          assertThat(timestamp, is("2015-12-31 07:15:56"));
+          break;
+        case 150:
+          assertThat(time, is("13:31:21"));
+          assertThat(timestamp, is("2015-12-31 13:31:21"));
+          break;
+        default:
+          throw new AssertionError();
+        }
+      }
+      assertThat(n, is(2));
+      resultSet.close();
+      statement.close();
+    }
+  }
+
 }
 
 // End CsvTest.java

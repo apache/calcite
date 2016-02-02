@@ -56,9 +56,9 @@ class CsvEnumerator<E> implements Enumerator<E> {
   static {
     TimeZone gmt = TimeZone.getTimeZone("GMT");
     TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
-    TIME_FORMAT_TIME = FastDateFormat.getInstance("hh:mm:ss", gmt);
-    TIME_FORMAT_TIMESTAMP = FastDateFormat.getInstance(
-        "yyyy-MM-dd hh:mm:ss", gmt);
+    TIME_FORMAT_TIME = FastDateFormat.getInstance("HH:mm:ss", gmt);
+    TIME_FORMAT_TIMESTAMP =
+        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
   public CsvEnumerator(File file, List<CsvFieldType> fieldTypes) {
@@ -96,8 +96,8 @@ class CsvEnumerator<E> implements Enumerator<E> {
    * of a CSV file. */
   static RelDataType deduceRowType(JavaTypeFactory typeFactory, File file,
       List<CsvFieldType> fieldTypes) {
-    final List<RelDataType> types = new ArrayList<RelDataType>();
-    final List<String> names = new ArrayList<String>();
+    final List<RelDataType> types = new ArrayList<>();
+    final List<String> names = new ArrayList<>();
     CSVReader reader = null;
     try {
       reader = openCsv(file);
