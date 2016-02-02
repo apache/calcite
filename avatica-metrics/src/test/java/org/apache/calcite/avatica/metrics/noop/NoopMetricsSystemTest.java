@@ -29,7 +29,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for {@Link NoopMetricsSystem}.
+ * Tests for {@link NoopMetricsSystem}.
  */
 public class NoopMetricsSystemTest {
 
