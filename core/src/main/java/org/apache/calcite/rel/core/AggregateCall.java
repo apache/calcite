@@ -24,11 +24,12 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Objects;
+
 
 /**
  * Call to an aggFunction function within an
