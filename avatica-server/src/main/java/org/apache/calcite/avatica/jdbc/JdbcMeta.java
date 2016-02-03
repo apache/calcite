@@ -28,6 +28,9 @@ import org.apache.calcite.avatica.NoSuchConnectionException;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.avatica.metrics.Gauge;
+import org.apache.calcite.avatica.metrics.MetricsSystem;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import com.google.common.cache.Cache;
@@ -37,6 +40,8 @@ import com.google.common.cache.RemovalNotification;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.calcite.avatica.remote.MetricsHelper.concat;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
@@ -55,6 +60,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,6 +92,7 @@ public class JdbcMeta implements Meta {
   private final Properties info;
   private final Cache<String, Connection> connectionCache;
   private final Cache<Integer, StatementInfo> statementCache;
+  private final MetricsSystem metrics;
 
   /**
    * Creates a JdbcMeta.
@@ -116,6 +123,10 @@ public class JdbcMeta implements Meta {
     });
   }
 
+  public JdbcMeta(String url, Properties info) throws SQLException {
+    this(url, info, NoopMetricsSystem.getInstance());
+  }
+
   /**
    * Creates a JdbcMeta.
    *
@@ -125,9 +136,11 @@ public class JdbcMeta implements Meta {
    * connection arguments; normally at least a "user" and
    * "password" property should be included
    */
-  public JdbcMeta(String url, Properties info) throws SQLException {
+  public JdbcMeta(String url, Properties info, MetricsSystem metrics)
+      throws SQLException {
     this.url = url;
     this.info = info;
+    this.metrics = Objects.requireNonNull(metrics);
 
     int concurrencyLevel = Integer.parseInt(
         info.getProperty(ConnectionCacheSettings.CONCURRENCY_LEVEL.key(),
@@ -177,6 +190,19 @@ public class JdbcMeta implements Meta {
         .build();
 
     LOG.debug("instantiated statement cache: {}", statementCache.stats());
+
+    // Register some metrics
+    this.metrics.register(concat(JdbcMeta.class, "ConnectionCacheSize"), new Gauge<Long>() {
+      @Override public Long getValue() {
+        return connectionCache.size();
+      }
+    });
+
+    this.metrics.register(concat(JdbcMeta.class, "StatementCacheSize"), new Gauge<Long>() {
+      @Override public Long getValue() {
+        return statementCache.size();
+      }
+    });
   }
 
   /**

@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.Meta.Frame;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.proto.Common.ColumnValue;
 import org.apache.calcite.avatica.proto.Requests;
@@ -58,7 +59,7 @@ public class ProtobufHandlerTest {
     translation = Mockito.mock(ProtobufTranslation.class);
 
     // Real objects
-    handler = new ProtobufHandler(service, translation);
+    handler = new ProtobufHandler(service, translation, NoopMetricsSystem.getInstance());
   }
 
   @Test

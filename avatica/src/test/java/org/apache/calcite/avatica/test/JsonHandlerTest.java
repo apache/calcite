@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.Meta.CursorFactory;
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.JsonService;
 import org.apache.calcite.avatica.remote.LocalJsonService;
@@ -167,7 +168,7 @@ public class JsonHandlerTest {
     final List<TypedValue> expectedParameterValues = new ArrayList<>();
     final Service service = new ParameterValuesCheckingService(expectedParameterValues);
     final JsonService jsonService = new LocalJsonService(service);
-    final JsonHandler jsonHandler = new JsonHandler(jsonService);
+    final JsonHandler jsonHandler = new JsonHandler(jsonService, NoopMetricsSystem.getInstance());
 
     final List<TypedValue> parameterValues = Arrays.asList(
         TypedValue.create("NUMBER", new BigDecimal("123")),
