@@ -34,14 +34,18 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% capture v %}apache-calcite-{{ post.version }}{% endcapture %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
-{% endcomment %}{% if forloop.index0 < 2 %}{% comment %}
+{% endcomment %}{% if forloop.index0 < 1 %}{% comment %}
 {% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "&action=download" %}{% comment %}
 {% endcomment %}{% assign d = "https://www.apache.org/dist" %}{% comment %}
-{% endcomment %}{% else %}{% comment %}
+{% endcomment %}{% elsif forloop.rindex < 8 %}{% comment %}
 {% endcomment %}{% capture p %}http://archive.apache.org/dist/incubator/calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "" %}{% comment %}
 {% endcomment %}{% assign d = "https://archive.apache.org/dist/incubator" %}{% comment %}
+{% endcomment %}{% else %}{% comment %}
+{% endcomment %}{% capture p %}http://archive.apache.org/dist/calcite/{{ v }}{% endcapture %}{% comment %}
+{% endcomment %}{% assign q = "" %}{% comment %}
+{% endcomment %}{% assign d = "https://archive.apache.org/dist" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
