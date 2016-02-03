@@ -43,7 +43,8 @@ class GroupingImpl<K, V> extends AbstractEnumerable<V>
 
   /** {@inheritDoc}
    *
-   * <p>Computes hash code consistent with {@link Map.Entry#hashCode()}. */
+   * <p>Computes hash code consistent with
+   * {@link java.util.Map.Entry#hashCode()}. */
   @Override public int hashCode() {
     return key.hashCode() ^ values.hashCode();
   }

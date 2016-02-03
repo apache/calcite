@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -25,6 +26,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
@@ -373,7 +375,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     //     / nullif(count(x) - 1, 0),
     //     .5)
     final int nGroups = oldAggRel.getGroupCount();
-    final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
+    final RelOptCluster cluster = oldAggRel.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
 
     assert oldCall.getArgList().size() == 1 : oldCall.getArgList();
     final int argOrdinal = oldCall.getArgList().get(0);
@@ -388,15 +392,17 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             SqlStdOperatorTable.MULTIPLY, argRef, argRef);
     final int argSquaredOrdinal = lookupOrAdd(inputExprs, argSquared);
 
+    final Aggregate.AggCallBinding binding =
+        new Aggregate.AggCallBinding(typeFactory, SqlStdOperatorTable.SUM,
+            ImmutableList.of(argRef.getType()), oldAggRel.getGroupCount(),
+            oldCall.filterArg >= 0);
     final AggregateCall sumArgSquaredAggCall =
         AggregateCall.create(
             SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             ImmutableIntList.of(argSquaredOrdinal),
             oldCall.filterArg,
-            oldAggRel.getGroupCount(),
-            oldAggRel.getInput(),
-            null,
+            SqlStdOperatorTable.SUM.inferReturnType(binding),
             null);
     final RexNode sumArgSquared =
         rexBuilder.addAggCall(sumArgSquaredAggCall,

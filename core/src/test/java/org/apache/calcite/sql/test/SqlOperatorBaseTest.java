@@ -4716,16 +4716,15 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("stddev_pop(CAST(NULL AS INTEGER))", "INTEGER");
     checkAggType(tester, "stddev_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
-    if (!enable) {
-      return;
+    if (enable) {
+      // verified on Oracle 10g
+      tester.checkAgg("stddev_pop(x)", values, 1.414213562373095d,
+          0.000000000000001d);
+      // Oracle does not allow distinct
+      tester.checkAgg("stddev_pop(DISTINCT x)", values, 1.5d, 0d);
+      tester.checkAgg("stddev_pop(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
+          values, 0, 0d);
     }
-    // verified on Oracle 10g
-    tester.checkAgg("stddev_pop(x)", values, 1.414213562373095d,
-        0.000000000000001d);
-    // Oracle does not allow distinct
-    tester.checkAgg("stddev_pop(DISTINCT x)", values, 1.5d, 0d);
-    tester.checkAgg("stddev_pop(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
-        values, 0, 0d);
     // with one value
     tester.checkAgg("stddev_pop(x)", new String[]{"5"}, 0, 0d);
     // with zero values
@@ -4745,20 +4744,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("stddev_samp(CAST(NULL AS INTEGER))", "INTEGER");
     checkAggType(tester, "stddev_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
-    if (!enable) {
-      return;
+    if (enable) {
+      // verified on Oracle 10g
+      tester.checkAgg("stddev_samp(x)", values, 1.732050807568877d,
+          0.000000000000001d);
+      // Oracle does not allow distinct
+      tester.checkAgg("stddev_samp(DISTINCT x)", values, 2.121320343559642d,
+          0.000000000000001d);
+      tester.checkAgg(
+          "stddev_samp(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
+          values,
+          null,
+          0d);
     }
-    // verified on Oracle 10g
-    tester.checkAgg("stddev_samp(x)", values, 1.732050807568877d,
-        0.000000000000001d);
-    // Oracle does not allow distinct
-    tester.checkAgg("stddev_samp(DISTINCT x)", values, 2.121320343559642d,
-        0.000000000000001d);
-    tester.checkAgg(
-        "stddev_samp(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
-        values,
-        null,
-        0d);
     // with one value
     tester.checkAgg(
         "stddev_samp(x)",

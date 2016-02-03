@@ -85,7 +85,8 @@ public class Pair<T1, T2>
 
   /** {@inheritDoc}
    *
-   * <p>Computes hash code consistent with {@link Map.Entry#hashCode()}. */
+   * <p>Computes hash code consistent with
+   * {@link java.util.Map.Entry#hashCode()}. */
   @Override public int hashCode() {
     int keyHash = left == null ? 0 : left.hashCode();
     int valueHash = right == null ? 0 : right.hashCode();
