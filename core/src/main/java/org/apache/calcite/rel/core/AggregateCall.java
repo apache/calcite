@@ -102,18 +102,30 @@ public class AggregateCall {
       boolean distinct, List<Integer> argList, int groupCount, RelNode input,
       RelDataType type, String name) {
     return create(aggFunction, distinct, argList, -1, groupCount, input, type,
-        name);
+        name, null);
   }
 
   /** Creates an AggregateCall, inferring its type if {@code type} is null. */
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, List<Integer> argList, int filterArg, int groupCount,
       RelNode input, RelDataType type, String name) {
+    return create(aggFunction, distinct, argList, filterArg, groupCount, input, type,
+            name, null);
+  }
+
+  /** Creates an AggregateCall, inferring its type if {@code type} is null and allowing a
+      list of type overrides for the args */
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, List<Integer> argList, int filterArg, int groupCount,
+      RelNode input, RelDataType type, String name, List<Integer> typeArgList) {
     if (type == null) {
+      if (typeArgList == null) {
+        typeArgList = argList;
+      }
       final RelDataTypeFactory typeFactory =
           input.getCluster().getTypeFactory();
       final List<RelDataType> types =
-          SqlTypeUtil.projectTypes(input.getRowType(), argList);
+          SqlTypeUtil.projectTypes(input.getRowType(), typeArgList);
       final Aggregate.AggCallBinding callBinding =
           new Aggregate.AggCallBinding(typeFactory, aggFunction, types,
               groupCount, filterArg >= 0);
@@ -184,7 +196,7 @@ public class AggregateCall {
    * @param name New name (may be null)
    */
   public AggregateCall rename(String name) {
-    if (Objects.equals(this.name, name)) {
+    if (Objects.equal(this.name, name)) {
       return this;
     }
     return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
@@ -225,7 +237,7 @@ public class AggregateCall {
   }
 
   @Override public int hashCode() {
-    return Objects.hash(aggFunction, distinct, argList, filterArg);
+    return aggFunction.hashCode() + argList.hashCode();
   }
 
   /**

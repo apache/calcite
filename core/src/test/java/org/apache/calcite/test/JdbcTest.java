@@ -1689,6 +1689,11 @@ public class JdbcTest {
         .returnsUnordered("deptno=20");
   }
 
+  @Test public void testStddev() throws Exception {
+    withEmpDept("select stddev_samp(deptno) as s from emp")
+            .returns("S=19\n");
+  }
+
   /** Tests a date literal against a JDBC data source. */
   @Test public void testJdbcDate() {
     CalciteAssert.that()
