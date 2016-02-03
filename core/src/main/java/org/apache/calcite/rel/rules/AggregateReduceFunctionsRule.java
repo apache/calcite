@@ -397,7 +397,8 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
             null,
-            null);
+            null,
+            ImmutableIntList.of(argOrdinal));
     final RexNode sumArgSquared =
         rexBuilder.addAggCall(sumArgSquaredAggCall,
             nGroups,
