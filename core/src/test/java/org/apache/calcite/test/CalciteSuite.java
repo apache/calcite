@@ -133,6 +133,7 @@ import org.junit.runners.Suite;
     // test cases
     TableInRootSchemaTest.class,
     RelMdColumnOriginsTest.class,
+    RelMdDistributionTest.class,
     MultiJdbcSchemaJoinTest.class,
     SqlLineTest.class,
 
