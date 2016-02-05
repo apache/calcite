@@ -549,6 +549,22 @@ public abstract class RelMetadataQuery {
     return b == null || b;
   }
 
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.Distribution#distribution()}
+   * statistic.
+   *
+   * @param rel          the relational expression
+   *
+   * @return description of how the rows in the relational expression are
+   * physically distributed
+   */
+  public RelDistribution getDistribution(RelNode rel) {
+    final BuiltInMetadata.Distribution metadata =
+        rel.metadata(BuiltInMetadata.Distribution.class, this);
+    return metadata.distribution();
+  }
+
   private static boolean isPercentage(Double result, boolean fail) {
     if (result != null) {
       final double d = result;
