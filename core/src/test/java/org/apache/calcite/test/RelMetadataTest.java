@@ -26,6 +26,8 @@ import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -38,6 +40,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -78,14 +81,6 @@ import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -94,6 +89,14 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Unit test for {@link DefaultRelMetadataProvider}. See
@@ -1313,6 +1316,43 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // Uses "IS NOT DISTINCT FROM" rather than "=" because cannot guarantee not null.
     assertThat(list.pulledUpPredicates,
         sortsAs("[IS NOT DISTINCT FROM($0, CASE(=(1, 1), null, 1))]"));
+  }
+
+  @Test public void testDistributionSimple() {
+    RelNode rel = convertSql("select * from emp where deptno = 10");
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelDistribution d = mq.getDistribution(rel);
+    assertThat(d, is(RelDistributions.BROADCAST_DISTRIBUTED));
+  }
+
+  @Test public void testDistributionHash() {
+    final RelNode rel = convertSql("select * from emp");
+    final RelDistribution dist = RelDistributions.hash(ImmutableList.of(1));
+    final LogicalExchange exchange = LogicalExchange.create(rel, dist);
+
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelDistribution d = mq.getDistribution(exchange);
+    assertThat(d, is(dist));
+  }
+
+  @Test public void testDistributionHashEmpty() {
+    final RelNode rel = convertSql("select * from emp");
+    final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
+    final LogicalExchange exchange = LogicalExchange.create(rel, dist);
+
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelDistribution d = mq.getDistribution(exchange);
+    assertThat(d, is(dist));
+  }
+
+  @Test public void testDistributionSingleton() {
+    final RelNode rel = convertSql("select * from emp");
+    final RelDistribution dist = RelDistributions.SINGLETON;
+    final LogicalExchange exchange = LogicalExchange.create(rel, dist);
+
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelDistribution d = mq.getDistribution(exchange);
+    assertThat(d, is(dist));
   }
 
   /**
