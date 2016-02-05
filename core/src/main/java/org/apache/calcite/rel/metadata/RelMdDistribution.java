@@ -63,39 +63,39 @@ public class RelMdDistribution {
    * @param rel Relational expression
    * @return Relational expression's distribution
    */
-  public RelDistribution distribution(RelMetadataQuery mq, RelNode rel) {
+  public RelDistribution distribution(RelNode rel, RelMetadataQuery mq) {
     return RelDistributions.SINGLETON;
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, SingleRel rel) {
+  public RelDistribution distribution(SingleRel rel, RelMetadataQuery mq) {
     return mq.distribution(rel.getInput());
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, BiRel rel) {
+  public RelDistribution distribution(BiRel rel, RelMetadataQuery mq) {
     return mq.distribution(rel.getLeft());
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, SetOp rel) {
+  public RelDistribution distribution(SetOp rel, RelMetadataQuery mq) {
     return mq.distribution(rel.getInputs().get(0));
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, TableScan scan) {
+  public RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
     return table(scan.getTable());
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, Project project) {
+  public RelDistribution distribution(Project project, RelMetadataQuery mq) {
     return project(mq, project.getInput(), project.getProjects());
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, Values values) {
+  public RelDistribution distribution(Values values, RelMetadataQuery mq) {
     return values(values.getRowType(), values.getTuples());
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, Exchange exchange) {
+  public RelDistribution distribution(Exchange exchange, RelMetadataQuery mq) {
     return exchange(exchange.distribution);
   }
 
-  public RelDistribution distribution(RelMetadataQuery mq, HepRelVertex rel) {
+  public RelDistribution distribution(HepRelVertex rel, RelMetadataQuery mq) {
     return mq.distribution(rel.getCurrentRel());
   }
 
