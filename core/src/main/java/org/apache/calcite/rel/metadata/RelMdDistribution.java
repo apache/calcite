@@ -102,7 +102,7 @@ public class RelMdDistribution {
   // Helper methods
 
   /** Helper method to determine a
-   * {@link TableScan}'s collation. */
+   * {@link TableScan}'s distribution. */
   public static RelDistribution table(RelOptTable table) {
     return table.getDistribution();
   }
