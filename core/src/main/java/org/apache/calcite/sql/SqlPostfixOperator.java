@@ -91,7 +91,7 @@ public class SqlPostfixOperator extends SqlOperator {
 
   @Override public boolean validRexOperands(int count, Litmus litmus) {
     if (count != 1) {
-      return litmus.fail("wrong operand count " + count + " for " + this);
+      return litmus.fail("wrong operand count {} for {}", count, this);
     }
     return litmus.succeed();
   }

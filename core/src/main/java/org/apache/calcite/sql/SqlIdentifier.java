@@ -289,15 +289,15 @@ public class SqlIdentifier extends SqlNode {
 
   public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlIdentifier)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     SqlIdentifier that = (SqlIdentifier) node;
     if (this.names.size() != that.names.size()) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     for (int i = 0; i < names.size(); i++) {
       if (!this.names.get(i).equals(that.names.get(i))) {
-        return litmus.fail(this + "!=" + node);
+        return litmus.fail("{} != {}", this, node);
       }
     }
     return litmus.succeed();

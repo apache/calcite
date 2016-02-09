@@ -227,7 +227,7 @@ public abstract class RelOptUtil {
     if (!set.contains(correlationId)) {
       return litmus.succeed();
     } else {
-      return litmus.fail("contains " + correlationId);
+      return litmus.fail("contains {}", correlationId);
     }
   }
 
@@ -1662,11 +1662,9 @@ public abstract class RelOptUtil {
     }
 
     if (type1 != type2) {
-      return litmus.fail("type mismatch:\n"
-          + desc1 + ":\n"
-          + type1.getFullTypeString() + "\n"
-          + desc2 + ":\n"
-          + type2.getFullTypeString());
+      return litmus.fail("type mismatch:\n{}:\n{}\n{}:\n{}",
+          desc1, type1.getFullTypeString(),
+          desc2, type2.getFullTypeString());
     }
     return litmus.succeed();
   }
@@ -1690,11 +1688,9 @@ public abstract class RelOptUtil {
       RelDataType type2,
       Litmus litmus) {
     if (!areRowTypesEqual(type1, type2, false)) {
-      return litmus.fail("Type mismatch:\n"
-          + desc1 + ":\n"
-          + type1.getFullTypeString() + "\n"
-          + desc2 + ":\n"
-          + type2.getFullTypeString());
+      return litmus.fail("Type mismatch:\n{}:\n{}\n{}:\n{}",
+          desc1, type1.getFullTypeString(),
+          desc2, type2.getFullTypeString());
     }
     return litmus.succeed();
   }

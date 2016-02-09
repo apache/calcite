@@ -155,11 +155,11 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlNodeList)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     SqlNodeList that = (SqlNodeList) node;
     if (this.size() != that.size()) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     for (int i = 0; i < list.size(); i++) {
       SqlNode thisChild = list.get(i);

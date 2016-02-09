@@ -79,11 +79,11 @@ public class SqlDynamicParam extends SqlNode {
 
   public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDynamicParam)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     SqlDynamicParam that = (SqlDynamicParam) node;
     if (this.index != that.index) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     return litmus.succeed();
   }

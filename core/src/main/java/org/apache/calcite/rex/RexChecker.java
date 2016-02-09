@@ -111,8 +111,8 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     final int index = ref.getIndex();
     if ((index < 0) || (index >= inputTypeList.size())) {
       ++failCount;
-      return litmus.fail("RexInputRef index " + index
-          + " out of range 0.." + (inputTypeList.size() - 1));
+      return litmus.fail("RexInputRef index {} out of range 0..{}",
+          index, inputTypeList.size() - 1);
     }
     if (!ref.getType().isStruct()
         && !RelOptUtil.eq("ref", ref.getType(), "input",

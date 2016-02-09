@@ -407,11 +407,11 @@ public class SqlLiteral extends SqlNode {
 
   public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlLiteral)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     SqlLiteral that = (SqlLiteral) node;
     if (!this.equals(that)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     return litmus.succeed();
   }

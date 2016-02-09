@@ -521,7 +521,7 @@ public class RexUtil {
         expr.accept(visitor);
       } catch (ForwardRefFinder.IllegalForwardRefException e) {
         Util.swallow(e, null);
-        return litmus.fail("illegal forward reference in " + expr);
+        return litmus.fail("illegal forward reference in {}", expr);
       }
     }
     return litmus.succeed();
@@ -542,7 +542,7 @@ public class RexUtil {
           for (RexNode operand : rexCall.operands) {
             if (!(operand instanceof RexLocalRef)
                 && !(operand instanceof RexLiteral)) {
-              return litmus.fail("contains non trivial agg: " + operand);
+              return litmus.fail("contains non trivial agg: {}", operand);
             }
           }
         }
@@ -680,12 +680,11 @@ public class RexUtil {
     }
     for (int i = 0; i < fields.size(); i++) {
       if (!(exprs.get(i) instanceof RexInputRef)) {
-        return litmus.fail("expr[" + i + "] is not a RexInputRef");
+        return litmus.fail("expr[{}] is not a RexInputRef", i);
       }
       RexInputRef inputRef = (RexInputRef) exprs.get(i);
       if (inputRef.getIndex() != i) {
-        return litmus.fail("expr[" + i + "] has ordinal "
-            + inputRef.getIndex());
+        return litmus.fail("expr[{}] has ordinal {}", i, inputRef.getIndex());
       }
       if (!RelOptUtil.eq("type1",
           exprs.get(i).getType(),

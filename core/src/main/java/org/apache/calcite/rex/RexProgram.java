@@ -766,9 +766,10 @@ public class RexProgram {
     String normalized = normalizedProgram.toString();
     String string = toString();
     if (!normalized.equals(string)) {
-      return litmus.fail("Program is not normalized:\n"
-          + "program:    " + string + "\n"
-          + "normalized: " + normalized + "\n");
+      final String message = "Program is not normalized:\n"
+          + "program:    {}\n"
+          + "normalized: {}\n";
+      return litmus.fail(message, string, normalized);
     }
     return litmus.succeed();
   }

@@ -275,7 +275,7 @@ public class RexLiteral extends RexNode {
       List list = (List) o;
       for (Object o1 : list) {
         if (!validConstant(o1, litmus)) {
-          return litmus.fail("not a constant: " + o1);
+          return litmus.fail("not a constant: {}", o1);
         }
       }
       return litmus.succeed();
@@ -283,15 +283,15 @@ public class RexLiteral extends RexNode {
       @SuppressWarnings("unchecked") final Map<Object, Object> map = (Map) o;
       for (Map.Entry entry : map.entrySet()) {
         if (!validConstant(entry.getKey(), litmus)) {
-          return litmus.fail("not a constant: " + entry.getKey());
+          return litmus.fail("not a constant: {}", entry.getKey());
         }
         if (!validConstant(entry.getValue(), litmus)) {
-          return litmus.fail("not a constant: " + entry.getValue());
+          return litmus.fail("not a constant: {}", entry.getValue());
         }
       }
       return litmus.succeed();
     } else {
-      return litmus.fail("not a constant: " + o);
+      return litmus.fail("not a constant: {}", o);
     }
   }
 

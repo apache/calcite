@@ -217,7 +217,7 @@ public class SqlBinaryOperator extends SqlOperator {
           && count > 2) {
         return true;
       }
-      return litmus.fail("wrong operand count " + count + " for " + this);
+      return litmus.fail("wrong operand count {} for {}", count, this);
     }
     return litmus.succeed();
   }

@@ -1323,7 +1323,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       Litmus ret) {
     for (int value : integers) {
       if (value >= limit) {
-        return ret.fail("out of range; value: " + value + ", limit: " + limit);
+        return ret.fail("out of range; value: {}, limit: {}", value, limit);
       }
     }
     return ret.succeed();

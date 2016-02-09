@@ -140,14 +140,14 @@ public abstract class SqlCall extends SqlNode {
       return true;
     }
     if (!(node instanceof SqlCall)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     SqlCall that = (SqlCall) node;
 
     // Compare operators by name, not identity, because they may not
     // have been resolved yet.
     if (!this.getOperator().getName().equals(that.getOperator().getName())) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     return equalDeep(this.getOperandList(), that.getOperandList(), litmus);
   }

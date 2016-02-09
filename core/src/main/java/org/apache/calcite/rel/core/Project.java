@@ -184,12 +184,12 @@ public abstract class Project extends SingleRel {
     for (RexNode exp : exps) {
       exp.accept(checker);
       if (checker.getFailureCount() > 0) {
-        return litmus.fail(checker.getFailureCount()
-            + " failures in expression " + exp);
+        return litmus.fail("{} failures in expression {}",
+            checker.getFailureCount(), exp);
       }
     }
     if (!Util.isDistinct(rowType.getFieldNames())) {
-      return litmus.fail("field names not distinct: " + rowType);
+      return litmus.fail("field names not distinct: {}", rowType);
     }
     //CHECKSTYLE: IGNORE 1
     if (false && !Util.isDistinct(
@@ -205,7 +205,7 @@ public abstract class Project extends SingleRel {
       // because we need to allow
       //
       //  SELECT a, b FROM c UNION SELECT x, x FROM z
-      return litmus.fail("duplicate expressions: " + exps);
+      return litmus.fail("duplicate expressions: {}", exps);
     }
     return litmus.succeed();
   }

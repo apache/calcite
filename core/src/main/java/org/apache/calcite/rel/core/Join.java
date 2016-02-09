@@ -155,8 +155,8 @@ public abstract class Join extends BiRel {
     }
     if (condition != null) {
       if (condition.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
-        return litmus.fail("condition must be boolean: "
-            + condition.getType());
+        return litmus.fail("condition must be boolean: {}",
+            condition.getType());
       }
       // The input to the condition is a row type consisting of system
       // fields, left fields, and right fields. Very similar to the

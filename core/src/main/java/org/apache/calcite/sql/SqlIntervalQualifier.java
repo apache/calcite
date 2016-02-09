@@ -147,7 +147,7 @@ public class SqlIntervalQualifier extends SqlNode {
     final String thisString = this.toString();
     final String thatString = node.toString();
     if (!thisString.equals(thatString)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     return litmus.succeed();
   }

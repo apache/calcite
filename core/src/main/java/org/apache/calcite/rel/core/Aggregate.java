@@ -382,7 +382,8 @@ public abstract class Aggregate extends SingleRel {
 
   public boolean isValid(Litmus litmus) {
     return super.isValid(litmus)
-        && litmus.check(Util.isDistinct(getRowType().getFieldNames()), getRowType());
+        && litmus.check(Util.isDistinct(getRowType().getFieldNames()),
+            "distinct field names: {}", getRowType());
   }
 
   /**

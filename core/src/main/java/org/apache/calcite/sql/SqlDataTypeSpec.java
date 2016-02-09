@@ -236,7 +236,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
   public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDataTypeSpec)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     SqlDataTypeSpec that = (SqlDataTypeSpec) node;
     if (!SqlNode.equalDeep(
@@ -248,16 +248,16 @@ public class SqlDataTypeSpec extends SqlNode {
       return litmus.fail(null);
     }
     if (this.precision != that.precision) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     if (this.scale != that.scale) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     if (!Objects.equals(this.timeZone, that.timeZone)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     if (!Objects.equals(this.charSetName, that.charSetName)) {
-      return litmus.fail(this + "!=" + node);
+      return litmus.fail("{} != {}", this, node);
     }
     return litmus.succeed();
   }
