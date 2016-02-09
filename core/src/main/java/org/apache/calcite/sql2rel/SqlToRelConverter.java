@@ -1831,8 +1831,17 @@ public class SqlToRelConverter {
     SqlNode windowOrRef = call.operand(1);
     final SqlWindow window =
         validator.resolveWindow(windowOrRef, bb.scope, true);
+    final SqlOperator row_number_function = SqlUtil.lookupRoutine(
+        opTab,
+        SqlStdOperatorTable.ROW_NUMBER.getNameAsId(),
+        ImmutableList.<RelDataType>of(),
+        ImmutableList.<String>of(),
+        SqlStdOperatorTable.ROW_NUMBER.getSyntax(),
+        SqlStdOperatorTable.ROW_NUMBER.getKind(),
+        SqlStdOperatorTable.ROW_NUMBER.getFunctionType());
+
     // ROW_NUMBER() expects specific kind of framing.
-    if (aggCall.getOperator() == SqlStdOperatorTable.ROW_NUMBER) {
+    if (aggCall.getOperator() == row_number_function) {
       window.setLowerBound(SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO));
       window.setUpperBound(SqlWindow.createCurrentRow(SqlParserPos.ZERO));
       window.setRows(SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
