@@ -16,30 +16,26 @@
  */
 package org.apache.calcite.sql.util;
 
-import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlPostfixOperator;
-import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable } interface
+ * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable} interface
  * by reflecting the public fields of a subclass.
  */
 public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
@@ -47,10 +43,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final Multimap<String, SqlOperator> operators = HashMultimap.create();
-
-  private final Map<Pair<String, SqlSyntax>, SqlOperator> mapNameToOp =
-      new HashMap<Pair<String, SqlSyntax>, SqlOperator>();
+  private final Multimap<Key, SqlOperator> operators = HashMultimap.create();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -78,14 +71,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
           SqlOperator op = (SqlOperator) field.get(this);
           register(op);
         }
-      } catch (IllegalArgumentException e) {
-        throw Util.newInternal(
-            e,
-            "Error while initializing operator table");
-      } catch (IllegalAccessException e) {
-        throw Util.newInternal(
-            e,
-            "Error while initializing operator table");
+      } catch (IllegalArgumentException | IllegalAccessException e) {
+        throw Throwables.propagate(e);
       }
     }
   }
@@ -112,7 +99,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     // Always look up built-in operators case-insensitively. Even in sessions
     // with unquotedCasing=UNCHANGED and caseSensitive=true.
     final Collection<SqlOperator> list =
-        operators.get(simpleName.toUpperCase());
+        operators.get(new Key(simpleName, syntax));
     if (list.isEmpty()) {
       return;
     }
@@ -133,40 +120,50 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     case BINARY:
     case PREFIX:
     case POSTFIX:
-      SqlOperator extra = mapNameToOp.get(Pair.of(simpleName, syntax));
-      // REVIEW: should only search operators added during this method?
-      if (extra != null && !operatorList.contains(extra)) {
-        operatorList.add(extra);
+      for (SqlOperator extra : operators.get(new Key(simpleName, syntax))) {
+        // REVIEW: should only search operators added during this method?
+        if (extra != null && !operatorList.contains(extra)) {
+          operatorList.add(extra);
+        }
       }
       break;
     }
   }
 
-  public void register(SqlOperator op) {
-    operators.put(op.getName().toUpperCase(), op);
-    if (op instanceof SqlBinaryOperator) {
-      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.BINARY), op);
-    } else if (op instanceof SqlPrefixOperator) {
-      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.PREFIX), op);
-    } else if (op instanceof SqlPostfixOperator) {
-      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.POSTFIX), op);
-    }
-  }
-
   /**
-   * Registers a function in the table.
-   *
-   * @param function Function to register
+   * Registers a function or operator in the table.
    */
-  public void register(SqlFunction function) {
-    operators.put(function.getName().toUpperCase(), function);
-    SqlFunctionCategory funcType = function.getFunctionType();
-    assert funcType != null
-        : "Function type for " + function.getName() + " not set";
+  public void register(SqlOperator op) {
+    operators.put(new Key(op.getName(), op.getSyntax()), op);
+    if (op instanceof SqlFunction) {
+      SqlFunction function = (SqlFunction) op;
+      SqlFunctionCategory funcType = function.getFunctionType();
+      assert funcType != null
+          : "Function type for " + function.getName() + " not set";
+    }
   }
 
   public List<SqlOperator> getOperatorList() {
     return ImmutableList.copyOf(operators.values());
+  }
+
+  /** Key for looking up operators. The name is stored in upper-case because we
+   * store case-insensitively, even in a case-sensitive session. */
+  private static class Key extends Pair<String, SqlSyntax> {
+    Key(String name, SqlSyntax syntax) {
+      super(name.toUpperCase(), normalize(syntax));
+    }
+
+    private static SqlSyntax normalize(SqlSyntax syntax) {
+      switch (syntax) {
+      case BINARY:
+      case PREFIX:
+      case POSTFIX:
+        return syntax;
+      default:
+        return SqlSyntax.FUNCTION;
+      }
+    }
   }
 }
 

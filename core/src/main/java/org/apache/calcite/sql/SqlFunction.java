@@ -19,7 +19,6 @@ package org.apache.calcite.sql;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -141,16 +140,11 @@ public class SqlFunction extends SqlOperator {
     return sqlIdentifier;
   }
 
-  /**
-   * @return fully qualified name of function
-   */
-  public SqlIdentifier getNameAsId() {
+  @Override public SqlIdentifier getNameAsId() {
     if (sqlIdentifier != null) {
       return sqlIdentifier;
     }
-    return new SqlIdentifier(
-        getName(),
-        SqlParserPos.ZERO);
+    return super.getNameAsId();
   }
 
   /**
@@ -239,38 +233,18 @@ public class SqlFunction extends SqlOperator {
     // Indicate to the validator that we're validating a new function call
     validator.pushFunctionCall();
 
-    List<String> argNames = constructArgNameList(
-        call);
+    final List<String> argNames = constructArgNameList(call);
 
-    List<SqlNode> args = constructOperandList(
-        validator,
-        call,
-        argNames);
+    final List<SqlNode> args = constructOperandList(validator, call, argNames);
 
-    List<RelDataType> argTypes = constructArgTypeList(
-        validator,
-        scope,
-        call,
-        args,
-        convertRowArgToColumnList);
+    final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
+        call, args, convertRowArgToColumnList);
 
-    SqlFunction function = (SqlFunction) SqlUtil.lookupRoutine(
-        validator.getOperatorTable(),
-        getNameAsId(),
-        argTypes,
-        argNames,
-        SqlSyntax.FUNCTION,
-        getKind(),
-        getFunctionType());
+    final SqlFunction function =
+        (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
+            getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind()
+        );
     try {
-      boolean containsRowArg = false;
-      for (SqlNode operand : args) {
-        if (operand.getKind() == SqlKind.ROW && convertRowArgToColumnList) {
-          containsRowArg = true;
-          break;
-        }
-      }
-
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
       // this time, don't convert the row argument to a COLUMN_LIST type;
@@ -278,7 +252,7 @@ public class SqlFunction extends SqlOperator {
       // (corresponding to column references), now that we can set the
       // scope to that of the source cursor referenced by that ColumnList
       // type
-      if (containsRowArg) {
+      if (convertRowArgToColumnList && containsRowArg(args)) {
         if (function == null
             && SqlUtil.matchRoutinesByParameterCount(
                 validator.getOperatorTable(), getNameAsId(), argTypes,
@@ -317,6 +291,15 @@ public class SqlFunction extends SqlOperator {
     } finally {
       validator.popFunctionCall();
     }
+  }
+
+  private boolean containsRowArg(List<SqlNode> args) {
+    for (SqlNode operand : args) {
+      if (operand.getKind() == SqlKind.ROW) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

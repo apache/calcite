@@ -693,6 +693,21 @@ public enum SqlKind {
   /** The {@code SINGLE_VALUE} aggregate function. */
   SINGLE_VALUE,
 
+  /** The {@code ROW_NUMBER} window function. */
+  ROW_NUMBER,
+
+  /** The {@code RANK} window function. */
+  RANK,
+
+  /** The {@code PERCENT_RANK} window function. */
+  PERCENT_RANK,
+
+  /** The {@code DENSE_RANK} window function. */
+  DENSE_RANK,
+
+  /** The {@code ROW_NUMBER} window function. */
+  CUME_DIST,
+
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
 

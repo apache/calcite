@@ -204,6 +204,13 @@ public abstract class SqlOperator {
     return name;
   }
 
+  /**
+   * Returns the fully-qualified name of this operator.
+   */
+  public SqlIdentifier getNameAsId() {
+    return new SqlIdentifier(getName(), SqlParserPos.ZERO);
+  }
+
   public SqlKind getKind() {
     return kind;
   }
@@ -483,29 +490,19 @@ public abstract class SqlOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
+    for (SqlNode operand : call.getOperandList()) {
+      RelDataType nodeType = validator.deriveType(scope, operand);
+      assert nodeType != null;
+    }
 
-    List<SqlNode> args = constructOperandList(
-        validator,
-        call,
-        null);
+    final List<SqlNode> args = constructOperandList(validator, call, null);
 
-    List<RelDataType> argTypes = constructArgTypeList(
-        validator,
-        scope,
-        call,
-        args,
-        false);
+    final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
+        call, args, false);
 
-    SqlOperator sqlOperator = SqlUtil.lookupRoutine(
-        validator.getOperatorTable(),
-        new SqlIdentifier(
-            call.getOperator().getName(),
-            call.getParserPosition()),
-        argTypes,
-        null,
-        getSyntax(),
-        getKind(),
-        null);
+    final SqlOperator sqlOperator =
+        SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
+            argTypes, null, null, getSyntax(), getKind());
 
     ((SqlBasicCall) call).setOperator(sqlOperator);
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
@@ -539,6 +536,18 @@ public abstract class SqlOperator {
       SqlValidator validator,
       SqlCall call,
       List<String> argNames) {
+    if (argNames == null) {
+      return call.getOperandList();
+    }
+    if (argNames.size() < call.getOperandList().size()) {
+      throw validator.newValidationError(call,
+          RESOURCE.someButNotAllArgumentsAreNamed());
+    }
+    final int duplicate = Util.firstDuplicate(argNames);
+    if (duplicate >= 0) {
+      throw validator.newValidationError(call,
+          RESOURCE.duplicateArgumentName(argNames.get(duplicate)));
+    }
     final ImmutableList.Builder<SqlNode> argBuilder = ImmutableList.builder();
     for (SqlNode operand : call.getOperandList()) {
       if (operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
@@ -546,24 +555,7 @@ public abstract class SqlOperator {
         argBuilder.add(operandList.get(0));
       }
     }
-
-    final List<SqlNode> args;
-    if (argNames == null) {
-      args = call.getOperandList();
-    } else {
-      if (argNames.size() < call.getOperandList().size()) {
-        throw validator.newValidationError(call,
-            RESOURCE.someButNotAllArgumentsAreNamed());
-      }
-      int duplicate = Util.firstDuplicate(argNames);
-      if (duplicate >= 0) {
-        throw validator.newValidationError(call,
-            RESOURCE.duplicateArgumentName(argNames.get(duplicate)));
-      }
-      args = argBuilder.build();
-    }
-
-    return args;
+    return argBuilder.build();
   }
 
   protected List<RelDataType> constructArgTypeList(
@@ -593,8 +585,7 @@ public abstract class SqlOperator {
       argTypeBuilder.add(nodeType);
     }
 
-    final List<RelDataType> argTypes = argTypeBuilder.build();
-    return argTypes;
+    return argTypeBuilder.build();
   }
 
   /**

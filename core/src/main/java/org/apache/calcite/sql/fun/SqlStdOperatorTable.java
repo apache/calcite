@@ -859,33 +859,34 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   // WINDOW Rank Functions
   //-------------------------------------------------------------
   /**
-   * <code>CUME_DIST</code> Window function.
+   * <code>CUME_DIST</code> window function.
    */
   public static final SqlRankFunction CUME_DIST =
-      new SqlRankFunction("CUME_DIST", true);
+      new SqlRankFunction(true, SqlKind.CUME_DIST);
 
   /**
-   * <code>DENSE_RANK</code> Window function.
+   * <code>DENSE_RANK</code> window function.
    */
   public static final SqlRankFunction DENSE_RANK =
-      new SqlRankFunction("DENSE_RANK", true);
+      new SqlRankFunction(true, SqlKind.DENSE_RANK);
 
   /**
-   * <code>PERCENT_RANK</code> Window function.
+   * <code>PERCENT_RANK</code> window function.
    */
   public static final SqlRankFunction PERCENT_RANK =
-      new SqlRankFunction("PERCENT_RANK", true);
+      new SqlRankFunction(true, SqlKind.PERCENT_RANK);
 
   /**
-   * <code>RANK</code> Window function.
+   * <code>RANK</code> window function.
    */
-  public static final SqlRankFunction RANK = new SqlRankFunction("RANK", true);
+  public static final SqlRankFunction RANK =
+      new SqlRankFunction(true, SqlKind.RANK);
 
   /**
-   * <code>ROW_NUMBER</code> Window function.
+   * <code>ROW_NUMBER</code> window function.
    */
   public static final SqlRankFunction ROW_NUMBER =
-      new SqlRankFunction("ROW_NUMBER", false);
+      new SqlRankFunction(false, SqlKind.ROW_NUMBER);
 
   //-------------------------------------------------------------
   //                   SPECIAL OPERATORS
