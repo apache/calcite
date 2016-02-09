@@ -94,6 +94,12 @@ your branch to the calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
+## Continuous Integration Testing
+
+Calcite has a collection of Jenkins jobs on ASF-hosted infrastructure.
+They are all organized in a single view and available at
+[https://builds.apache.org/view/A-D/view/Calcite/](https://builds.apache.org/view/A-D/view/Calcite/).
+
 ## Getting started
 
 Calcite is a community, so the first step to joining the project is to introduce yourself.
