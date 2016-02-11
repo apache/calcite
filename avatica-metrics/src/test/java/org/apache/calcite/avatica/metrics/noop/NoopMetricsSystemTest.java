@@ -50,6 +50,8 @@ public class NoopMetricsSystemTest {
     Timer timer = metrics.getTimer("timer");
     Context context = timer.start();
     context.close();
+    Context contextTwo = timer.start();
+    assertTrue("Timer's context should be a singleton", context == contextTwo);
 
     Meter meter = metrics.getMeter("meter");
     meter.mark();

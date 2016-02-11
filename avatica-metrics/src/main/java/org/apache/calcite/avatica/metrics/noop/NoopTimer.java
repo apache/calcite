@@ -24,14 +24,16 @@ import org.apache.calcite.avatica.metrics.Timer.Context;
  */
 public class NoopTimer implements Timer {
 
-  @Override public Context start() {
-    return new NoopContext();
+  private static final NoopContext CONTEXT = new NoopContext();
+
+  @Override public NoopContext start() {
+    return CONTEXT;
   }
 
   /**
    * {@link Context} which does nothing.
    */
-  public class NoopContext implements Context {
+  public static class NoopContext implements Context {
 
     @Override public void close() {}
 
