@@ -52,13 +52,6 @@ $ cd calcite
 $ mvn install
 {% endhighlight %}
 
-If you need to re-build from scratch, clean and install as two separate steps:
-
-{% highlight bash %}
-$ mvn clean
-$ mvn install
-{% endhighlight %}
-
 The HOWTO describes how to
 [build from a source distribution]({{ site.baseurl }}/docs/howto.html#building-from-a-source-distribution),
 [run more or fewer tests]({{ site.baseurl }}/docs/howto.html#running-tests) and

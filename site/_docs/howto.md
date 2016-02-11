@@ -62,6 +62,22 @@ $ cd calcite
 $ mvn install
 {% endhighlight %}
 
+Calcite includes a number of machine-generated codes. By default, these are
+regenerated on every build, but this has the negative side-effect of causing
+a re-compilation of the entire project when the non-machine-generated code
+has not changed. To make sure incremental compilation still works as intended,
+provide the `skipGenerate` command line option with your maven command.
+If you invoke the `clean` lifecycle phase, you must not specify the
+`skipGenerate` option as it will not recompile the necessary code for the build
+to succeed.
+
+{% highlight bash %}
+$ mvn clean
+$ mvn package
+... hacks ...
+$ mvn package -DskipGenerate
+{% endhighlight %}
+
 [Running tests](#running-tests) describes how to run more or fewer
 tests.
 
@@ -71,9 +87,7 @@ The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
 {% highlight bash %}
-# Note: "mvn clean install" does not work; use "mvn clean" then "mvn install"
-$ mvn clean
-$ mvn -DskipTests install
+$ mvn -DskipTests clean install
 $ mvn test
 {% endhighlight %}
 
