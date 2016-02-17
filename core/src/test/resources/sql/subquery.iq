@@ -274,6 +274,17 @@ GROUP BY emp.deptno;
 
 !ok
 
+# [DRILL-4407] Group by subquery causes Java NPE
+select count(*) as c
+from "scott".emp
+group by (select deptno from "scott".emp where empno = 10);
+ C
+----
+ 14
+(1 row)
+
+!ok
+
 !if (fixed.calcite1045) {
 # Correlated IN sub-query in WHERE clause of JOIN
 select empno from "scott".emp as e
