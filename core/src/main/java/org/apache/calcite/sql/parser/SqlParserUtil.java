@@ -20,18 +20,24 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
+import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
+
+import com.google.common.base.Predicate;
 
 import org.slf4j.Logger;
 
@@ -39,6 +45,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
@@ -99,6 +106,7 @@ public final class SqlParserUtil {
   /**
    * @deprecated this method is not localized for Farrago standards
    */
+  @Deprecated // to be removed before 2.0
   public static java.sql.Date parseDate(String s) {
     return java.sql.Date.valueOf(s);
   }
@@ -106,6 +114,7 @@ public final class SqlParserUtil {
   /**
    * @deprecated Does not parse SQL:99 milliseconds
    */
+  @Deprecated // to be removed before 2.0
   public static java.sql.Time parseTime(String s) {
     return java.sql.Time.valueOf(s);
   }
@@ -113,6 +122,7 @@ public final class SqlParserUtil {
   /**
    * @deprecated this method is not localized for Farrago standards
    */
+  @Deprecated // to be removed before 2.0
   public static java.sql.Timestamp parseTimestamp(String s) {
     return java.sql.Timestamp.valueOf(s);
   }
@@ -227,6 +237,7 @@ public final class SqlParserUtil {
    * Parses a Binary string. SQL:99 defines a binary string as a hexstring
    * with EVEN nbr of hex digits.
    */
+  @Deprecated // to be removed before 2.0
   public static byte[] parseBinaryString(String s) {
     s = s.replaceAll(" ", "");
     s = s.replaceAll("\n", "");
@@ -491,6 +502,7 @@ public final class SqlParserUtil {
     return new ParsedCollation(charset, locale, strength);
   }
 
+  @Deprecated // to be removed before 2.0
   public static String[] toStringArray(List<String> list) {
     return list.toArray(new String[list.size()]);
   }
@@ -503,6 +515,7 @@ public final class SqlParserUtil {
     return list.toArray();
   }
 
+  @Deprecated // to be removed before 2.0
   public static String rightTrim(
       String s,
       char c) {
@@ -541,8 +554,14 @@ public final class SqlParserUtil {
    * taking operator precedence and associativity into account.
    */
   public static SqlNode toTree(List<Object> list) {
+    if (list.size() == 1
+        && list.get(0) instanceof SqlNode) {
+      // Short-cut for the simple common case
+      return (SqlNode) list.get(0);
+    }
     LOGGER.trace("Attempting to reduce {}", list);
-    final SqlNode node = toTreeEx(list, 0, 0, SqlKind.OTHER);
+    final OldTokenSequenceImpl tokenSequence = new OldTokenSequenceImpl(list);
+    final SqlNode node = toTreeEx(tokenSequence, 0, 0, SqlKind.OTHER);
     LOGGER.debug("Reduced {}", node);
     return node;
   }
@@ -563,182 +582,58 @@ public final class SqlParserUtil {
    *                    we encounter a token of this kind.
    * @return the root node of the tree which the list condenses into
    */
-  public static SqlNode toTreeEx(
-      List<Object> list,
-      int start,
-      int minPrec,
-      SqlKind stopperKind) {
-// Make several passes over the list, and each pass, coalesce the
-// expressions with the highest precedence.
-  outer:
-    while (true) {
-      final int count = list.size();
-      if (count <= (start + 1)) {
-        break;
-      }
-      int i = start + 1;
-      while (i < count) {
-        SqlOperator previous;
-        SqlOperator current = ((ToTreeListItem) list.get(i)).op;
-        SqlParserPos currentPos = ((ToTreeListItem) list.get(i)).pos;
-        if ((stopperKind != SqlKind.OTHER)
-            && (current.getKind() == stopperKind)) {
-          break outer;
-        }
-        SqlOperator next;
-        int previousRight;
-        int left = current.getLeftPrec();
-        int right = current.getRightPrec();
-        if (left < minPrec) {
-          break outer;
-        }
-        int nextLeft;
-        if (current instanceof SqlBinaryOperator) {
-          if (i == (start + 1)) {
-            previous = null;
-            previousRight = 0;
-          } else {
-            previous = ((ToTreeListItem) list.get(i - 2)).op;
-            previousRight = previous.getRightPrec();
-          }
-          if (i == (count - 2)) {
-            next = null;
-            nextLeft = 0;
-          } else {
-            next = ((ToTreeListItem) list.get(i + 2)).op;
-            nextLeft = next.getLeftPrec();
-            if ((next.getKind() == stopperKind)
-                && (stopperKind != SqlKind.OTHER)) {
-              // Suppose we're looking at 'AND' in
-              //    a BETWEEN b OR c AND d
-              //
-              // Because 'AND' is our stopper token, we still
-              // want to reduce 'b OR c', even though 'AND' has
-              // higher precedence than 'OR'.
-              nextLeft = 0;
+  public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
+      int start, final int minPrec, final SqlKind stopperKind) {
+    final Predicate<PrecedenceClimbingParser.Token> predicate =
+        new Predicate<PrecedenceClimbingParser.Token>() {
+          public boolean apply(PrecedenceClimbingParser.Token t) {
+            if (t instanceof PrecedenceClimbingParser.Op) {
+              final SqlOperator op = ((ToTreeListItem) t.o).op;
+              return stopperKind != SqlKind.OTHER
+                  && op.kind == stopperKind
+                  || minPrec > 0
+                  && op.getLeftPrec() < minPrec;
+            } else {
+              return false;
             }
           }
-          if ((previousRight < left) && (right >= nextLeft)) {
-            // For example,
-            //    i:  0 1 2 3 4 5 6 7 8
-            // list:  a + b * c * d + e
-            // prec: 0 1 2 3 4 3 4 1 2 0
-            //
-            // At i == 3, we have the first '*' operator, and its
-            // surrounding precedences obey the relation 2 < 3 and
-            // 4 >= 3, so we can reduce (b * c) to a single node.
-            SqlNode leftExp = (SqlNode) list.get(i - 1);
+        };
+    PrecedenceClimbingParser parser = list.parser(start, predicate);
+    final int beforeSize = parser.all().size();
+    parser.partialParse();
+    final int afterSize = parser.all().size();
+    final SqlNode node = convert(parser.all().get(0));
+    list.replaceSublist(start, start + beforeSize - afterSize + 1, node);
+    return node;
+  }
 
-            // For example,
-            //    i:  0 1 2 3 4 5 6 7 8
-            // list:  a + b * c * d + e
-            // prec: 0 1 2 3 4 3 4 1 2 0
-            //
-            // At i == 3, we have the first '*' operator, and its
-            // surrounding precedences obey the relation 2 < 3 and
-            // 4 >= 3, so we can reduce (b * c) to a single node.
-            SqlNode rightExp = (SqlNode) list.get(i + 1);
-            SqlParserPos callPos =
-                currentPos.plusAll(
-                    new SqlNode[]{leftExp, rightExp});
-            final SqlCall newExp =
-                current.createCall(callPos, leftExp, rightExp);
-            LOGGER.debug("Reduced infix: {}", newExp);
-
-            // Replace elements {i - 1, i, i + 1} with the new
-            // expression.
-            replaceSublist(list, i - 1, i + 2, newExp);
-            break;
-          }
-          i += 2;
-        } else if (current instanceof SqlPostfixOperator) {
-          if (i == (start + 1)) {
-            previous = null;
-            previousRight = 0;
-          } else {
-            previous = ((ToTreeListItem) list.get(i - 2)).op;
-            previousRight = previous.getRightPrec();
-          }
-          if (previousRight < left) {
-            // For example,
-            //    i:  0 1 2 3 4 5 6 7 8
-            // list:  a + b * c ! + d
-            // prec: 0 1 2 3 4 3 0 2
-            //
-            // At i == 3, we have the postfix '!' operator. Its
-            // high precedence determines that it binds with 'b *
-            // c'. The precedence of the following '+' operator is
-            // irrelevant.
-            SqlNode leftExp = (SqlNode) list.get(i - 1);
-
-            SqlParserPos callPos =
-                currentPos.plusAll(new SqlNode[]{leftExp});
-            final SqlCall newExp =
-                current.createCall(callPos, leftExp);
-            LOGGER.debug("Reduced postfix: {}", newExp);
-
-            // Replace elements {i - 1, i} with the new expression.
-            list.remove(i);
-            list.set(i - 1, newExp);
-            break;
-          }
-          ++i;
-
-          //
-        } else if (current instanceof SqlSpecialOperator) {
-          SqlSpecialOperator specOp = (SqlSpecialOperator) current;
-
-          // We decide to reduce a special operator only on the basis
-          // of what's to the left of it. The operator then decides
-          // how far to the right to chew off.
-          if (i == (start + 1)) {
-            previous = null;
-            previousRight = 0;
-          } else {
-            previous = ((ToTreeListItem) list.get(i - 2)).op;
-            previousRight = previous.getRightPrec();
-          }
-          int nextOrdinal = i + 2;
-          if (i == (count - 2)) {
-            next = null;
-            nextLeft = 0;
-          } else {
-            // find next op
-            next = null;
-            nextLeft = 0;
-            for (; nextOrdinal < count; nextOrdinal++) {
-              Object listItem = list.get(nextOrdinal);
-              if (listItem instanceof ToTreeListItem) {
-                next = ((ToTreeListItem) listItem).op;
-                nextLeft = next.getLeftPrec();
-                if ((stopperKind != SqlKind.OTHER)
-                    && (next.getKind() == stopperKind)) {
-                  break outer;
-                } else {
-                  break;
-                }
-              }
-            }
-          }
-          if (nextLeft < minPrec) {
-            break outer;
-          }
-          if ((previousRight < left) && (right >= nextLeft)) {
-            i = specOp.reduceExpr(i, list);
-            LOGGER.debug("Reduced special op: {}", list.get(i));
-            break;
-          }
-          i = nextOrdinal;
-        } else {
-          throw Util.newInternal("Unexpected operator type: " + current);
-        }
+  private static SqlNode convert(PrecedenceClimbingParser.Token token) {
+    switch (token.type) {
+    case ATOM:
+      return (SqlNode) token.o;
+    case CALL:
+      final PrecedenceClimbingParser.Call call =
+          (PrecedenceClimbingParser.Call) token;
+      final List<SqlNode> list = new ArrayList<>();
+      for (PrecedenceClimbingParser.Token arg : call.args) {
+        list.add(convert(arg));
       }
-
-      // Require the list shrinks each time around -- otherwise we will
-      // never terminate.
-      assert list.size() < count;
+      final ToTreeListItem item = (ToTreeListItem) call.op.o;
+      if (item.op == SqlStdOperatorTable.UNARY_MINUS
+          && list.size() == 1
+          && list.get(0) instanceof SqlNumericLiteral) {
+        return SqlLiteral.createNegative((SqlNumericLiteral) list.get(0),
+            item.pos.plusAll(list));
+      }
+      if (item.op == SqlStdOperatorTable.UNARY_PLUS
+          && list.size() == 1
+          && list.get(0) instanceof SqlNumericLiteral) {
+        return list.get(0);
+      }
+      return item.op.createCall(item.pos.plusAll(list), list);
+    default:
+      throw new AssertionError(token);
     }
-    return (SqlNode) list.get(start);
   }
 
   /**
@@ -810,6 +705,10 @@ public final class SqlParserUtil {
       this.pos = pos;
     }
 
+    public String toString() {
+      return op.toString();
+    }
+
     public SqlOperator getOperator() {
       return op;
     }
@@ -832,6 +731,146 @@ public final class SqlParserUtil {
       this.sql = sql;
       this.cursor = cursor;
       this.pos = pos;
+    }
+  }
+
+  /** Implementation of {@link SqlSpecialOperator.TokenSequence} based on an
+   * existing parser. */
+  private static class TokenSequenceImpl
+      implements SqlSpecialOperator.TokenSequence {
+    final List<PrecedenceClimbingParser.Token> list;
+    final PrecedenceClimbingParser parser;
+
+    private TokenSequenceImpl(PrecedenceClimbingParser parser) {
+      this.parser = parser;
+      this.list = parser.all();
+    }
+
+    public PrecedenceClimbingParser parser(int start, Predicate
+        <PrecedenceClimbingParser.Token> predicate) {
+      return parser.copy(start, predicate);
+    }
+
+    public int size() {
+      return list.size();
+    }
+
+    public SqlOperator op(int i) {
+      return ((ToTreeListItem) list.get(i).o).getOperator();
+    }
+
+    private static SqlParserPos pos(PrecedenceClimbingParser.Token token) {
+      switch (token.type) {
+      case ATOM:
+        return ((SqlNode) token.o).getParserPosition();
+      case CALL:
+        final PrecedenceClimbingParser.Call call =
+            (PrecedenceClimbingParser.Call) token;
+        SqlParserPos pos = ((ToTreeListItem) call.op.o).pos;
+        for (PrecedenceClimbingParser.Token arg : call.args) {
+          pos = pos.plus(pos(arg));
+        }
+        return pos;
+      default:
+        return ((ToTreeListItem) token.o).getPos();
+      }
+    }
+
+    public SqlParserPos pos(int i) {
+      return pos(list.get(i));
+    }
+
+    public boolean isOp(int i) {
+      return list.get(i).o instanceof ToTreeListItem;
+    }
+
+    public SqlNode node(int i) {
+      return convert(list.get(i));
+    }
+
+    public void replaceSublist(int start, int end, SqlNode e) {
+      SqlParserUtil.replaceSublist(list, start, end, parser.atom(e));
+    }
+  }
+
+  /** Implementation of {@link SqlSpecialOperator.TokenSequence}. */
+  private static class OldTokenSequenceImpl
+      implements SqlSpecialOperator.TokenSequence {
+    final List<Object> list;
+
+    private OldTokenSequenceImpl(List<Object> list) {
+      this.list = list;
+    }
+
+    @Override public PrecedenceClimbingParser parser(int start,
+        Predicate<PrecedenceClimbingParser.Token> predicate) {
+      final PrecedenceClimbingParser.Builder builder =
+          new PrecedenceClimbingParser.Builder();
+      for (Object o : Util.skip(list, start)) {
+        if (o instanceof ToTreeListItem) {
+          final ToTreeListItem item = (ToTreeListItem) o;
+          final SqlOperator op = item.getOperator();
+          if (op instanceof SqlPrefixOperator) {
+            builder.prefix(item, op.getLeftPrec());
+          } else if (op instanceof SqlPostfixOperator) {
+            builder.postfix(item, op.getRightPrec());
+          } else if (op instanceof SqlBinaryOperator) {
+            builder.infix(item, op.getLeftPrec(),
+                op.getLeftPrec() < op.getRightPrec());
+          } else if (op instanceof SqlSpecialOperator) {
+            builder.special(item, op.getLeftPrec(), op.getRightPrec(),
+                new PrecedenceClimbingParser.Special() {
+                  public PrecedenceClimbingParser.Result apply(
+                      PrecedenceClimbingParser parser,
+                      PrecedenceClimbingParser.SpecialOp op) {
+                    final List<PrecedenceClimbingParser.Token> tokens =
+                        parser.all();
+                    final SqlSpecialOperator op1 =
+                        (SqlSpecialOperator) ((ToTreeListItem) op.o).op;
+                    SqlSpecialOperator.ReduceResult r =
+                        op1.reduceExpr(tokens.indexOf(op),
+                            new TokenSequenceImpl(parser));
+                    return new PrecedenceClimbingParser.Result(
+                        tokens.get(r.startOrdinal),
+                        tokens.get(r.endOrdinal - 1),
+                        parser.atom(r.node));
+                  }
+                });
+          } else {
+            throw new AssertionError();
+          }
+        } else {
+          builder.atom(o);
+        }
+      }
+      return builder.build();
+    }
+
+    public int size() {
+      return list.size();
+    }
+
+    public SqlOperator op(int i) {
+      return ((ToTreeListItem) list.get(i)).op;
+    }
+
+    public SqlParserPos pos(int i) {
+      final Object o = list.get(i);
+      return o instanceof ToTreeListItem
+          ? ((ToTreeListItem) o).pos
+          : ((SqlNode) o).getParserPosition();
+    }
+
+    public boolean isOp(int i) {
+      return list.get(i) instanceof ToTreeListItem;
+    }
+
+    public SqlNode node(int i) {
+      return (SqlNode) list.get(i);
+    }
+
+    public void replaceSublist(int start, int end, SqlNode e) {
+      SqlParserUtil.replaceSublist(list, start, end, e);
     }
   }
 }

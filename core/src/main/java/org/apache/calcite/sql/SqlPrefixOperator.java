@@ -42,7 +42,7 @@ public class SqlPrefixOperator extends SqlOperator {
     super(
         name,
         kind,
-        leftPrec(0, true),
+        leftPrec(prec, true),
         rightPrec(prec, true),
         returnTypeInference,
         operandTypeInference,

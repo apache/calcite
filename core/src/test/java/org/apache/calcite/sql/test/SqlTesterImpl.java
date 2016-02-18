@@ -113,23 +113,16 @@ public class SqlTesterImpl implements SqlTester {
     } catch (SqlParseException e) {
       String errMessage = e.getMessage();
       if (expectedMsgPattern == null) {
-        e.printStackTrace();
-        throw new AssertionError(
-            "Error while parsing query [" + sap.sql + "]");
-      } else if (
-          (null == errMessage)
-              || !errMessage.matches(expectedMsgPattern)) {
-        e.printStackTrace();
-        throw new AssertionError(
-            "Error did not match expected ["
-                + expectedMsgPattern + "] while parsing query ["
-                + sap.sql + "]");
+        throw new RuntimeException("Error while parsing query:" + sap.sql, e);
+      } else if (errMessage == null
+          || !errMessage.matches(expectedMsgPattern)) {
+        throw new RuntimeException("Error did not match expected ["
+            + expectedMsgPattern + "] while parsing query ["
+            + sap.sql + "]", e);
       }
       return;
     } catch (Throwable e) {
-      e.printStackTrace();
-      throw new AssertionError(
-          "Error while parsing query [" + sap.sql + "]");
+      throw new RuntimeException("Error while parsing query: " + sap.sql, e);
     }
 
     Throwable thrown = null;
@@ -163,11 +156,8 @@ public class SqlTesterImpl implements SqlTester {
     SqlNode sqlNode;
     try {
       sqlNode = parseQuery(sql);
-    } catch (SqlParseException e) {
-      throw new RuntimeException("Error while parsing query [" + sql + "]", e);
     } catch (Throwable e) {
-      e.printStackTrace();
-      throw new AssertionError("Error while parsing query [" + sql + "]");
+      throw new RuntimeException("Error while parsing query: " + sql, e);
     }
     return validator.validate(sqlNode);
   }

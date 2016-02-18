@@ -831,6 +831,24 @@ Note:
 
 ## Operators and functions
 
+### Operator precedence
+
+The operator precedence and associativity, highest to lowest.
+
+| Operator                                          | Associativity
+|:------------------------------------------------- |:-------------
+| .                                                 | left
+| [ ] (array element)                               | left
+| + - (unary plus, minus)                           | right
+| * /                                               | left
+| + -                                               | left
+| BETWEEN, IN, LIKE, SIMILAR                        | -
+| < > = <= >= <>                                    | left
+| IS NULL, IS FALSE, IS NOT TRUE etc.               | -
+| NOT                                               | right
+| AND                                               | left
+| OR                                                | left
+
 ### Comparison operators
 
 | Operator syntax                                   | Description

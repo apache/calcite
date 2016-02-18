@@ -66,7 +66,7 @@ public class SqlInOperator extends SqlBinaryOperator {
     super(
         isNotIn ? "NOT IN" : "IN",
         SqlKind.IN,
-        30,
+        32,
         true,
         ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,

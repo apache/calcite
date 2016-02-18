@@ -23,6 +23,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTester;
@@ -37,6 +38,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -7621,6 +7624,184 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         break;
       }
     }
+  }
+
+  private static int prec(SqlOperator op) {
+    return Math.max(op.getLeftPrec(), op.getRightPrec());
+  }
+
+  /** Tests that operators, sorted by precedence, are in a sane order. Each
+   * operator has a {@link SqlOperator#getLeftPrec() left} and
+   * {@link SqlOperator#getRightPrec()} right} precedence, but we would like
+   * the order to remain the same even if we tweak particular operators'
+   * precedences. If you need to update the expected output, you might also
+   * need to change
+   * <a href="http://calcite.apache.org/docs/reference.html#operator-precedence">
+   * the documentation</a>. */
+  @Test public void testOperatorsSortedByPrecedence() {
+    final StringBuilder b = new StringBuilder();
+    final Comparator<SqlOperator> comparator =
+        new Comparator<SqlOperator>() {
+          public int compare(SqlOperator o1, SqlOperator o2) {
+            int c = Integer.compare(prec(o1), prec(o2));
+            if (c != 0) {
+              return -c;
+            }
+            c = o1.getName().compareTo(o2.getName());
+            if (c != 0) {
+              return c;
+            }
+            return o1.getSyntax().compareTo(o2.getSyntax());
+          }
+        };
+    final List<SqlOperator> operators =
+        SqlStdOperatorTable.instance().getOperatorList();
+    int p = -1;
+    for (SqlOperator op : Ordering.from(comparator).sortedCopy(operators)) {
+      final String type;
+      switch (op.getSyntax()) {
+      case FUNCTION:
+      case FUNCTION_ID:
+      case FUNCTION_STAR:
+      case INTERNAL:
+        continue;
+      case PREFIX:
+        type = "pre";
+        break;
+      case POSTFIX:
+        type = "post";
+        break;
+      case BINARY:
+        if (op.getLeftPrec() < op.getRightPrec()) {
+          type = "left";
+        } else {
+          type = "right";
+        }
+        break;
+      default:
+        if (op instanceof SqlSpecialOperator) {
+          type = "-";
+        } else {
+          continue;
+        }
+      }
+      if (prec(op) != p) {
+        b.append('\n');
+        p = prec(op);
+      }
+      b.append(op.getName())
+          .append(' ')
+          .append(type)
+          .append('\n');
+    }
+    final String expected = "\n"
+        + "ARRAY -\n"
+        + "ARRAY -\n"
+        + "COLUMN_LIST -\n"
+        + "CURSOR -\n"
+        + "LATERAL -\n"
+        + "MAP -\n"
+        + "MAP -\n"
+        + "MULTISET -\n"
+        + "MULTISET -\n"
+        + "ROW -\n"
+        + "TABLE -\n"
+        + "UNNEST -\n"
+        + "\n"
+        + "CURRENT_VALUE -\n"
+        + "DEFAULT -\n"
+        + "ITEM -\n"
+        + "NEXT_VALUE -\n"
+        + "\n"
+        + "$LiteralChain -\n"
+        + "+ pre\n"
+        + "- pre\n"
+        + ". left\n"
+        + "\n"
+        + "* left\n"
+        + "/ left\n"
+        + "/INT left\n"
+        + "|| left\n"
+        + "\n"
+        + "+ left\n"
+        + "- left\n"
+        + "- -\n"
+        + "DATETIME_PLUS -\n"
+        + "EXISTS pre\n"
+        + "\n"
+        + "BETWEEN ASYMMETRIC -\n"
+        + "BETWEEN SYMMETRIC -\n"
+        + "IN left\n"
+        + "LIKE -\n"
+        + "NOT BETWEEN ASYMMETRIC -\n"
+        + "NOT BETWEEN SYMMETRIC -\n"
+        + "NOT IN left\n"
+        + "NOT LIKE -\n"
+        + "NOT SIMILAR TO -\n"
+        + "SIMILAR TO -\n"
+        + "\n"
+        + "$IS_DIFFERENT_FROM left\n"
+        + "< left\n"
+        + "<= left\n"
+        + "<> left\n"
+        + "= left\n"
+        + "> left\n"
+        + ">= left\n"
+        + "IS DISTINCT FROM left\n"
+        + "IS NOT DISTINCT FROM left\n"
+        + "MEMBER OF left\n"
+        + "OVERLAPS -\n"
+        + "SUBMULTISET OF left\n"
+        + "\n"
+        + "IS A SET post\n"
+        + "IS FALSE post\n"
+        + "IS NOT FALSE post\n"
+        + "IS NOT NULL post\n"
+        + "IS NOT TRUE post\n"
+        + "IS NOT UNKNOWN post\n"
+        + "IS NULL post\n"
+        + "IS TRUE post\n"
+        + "IS UNKNOWN post\n"
+        + "\n"
+        + "NOT pre\n"
+        + "\n"
+        + "AND left\n"
+        + "\n"
+        + "OR left\n"
+        + "\n"
+        + "=> -\n"
+        + "AS -\n"
+        + "DESC post\n"
+        + "OVER left\n"
+        + "TABLESAMPLE -\n"
+        + "\n"
+        + "INTERSECT left\n"
+        + "INTERSECT ALL left\n"
+        + "MULTISET INTERSECT left\n"
+        + "MULTISET INTERSECT ALL left\n"
+        + "NULLS FIRST post\n"
+        + "NULLS LAST post\n"
+        + "\n"
+        + "EXCEPT left\n"
+        + "EXCEPT ALL left\n"
+        + "MULTISET EXCEPT left\n"
+        + "MULTISET EXCEPT ALL left\n"
+        + "MULTISET UNION left\n"
+        + "MULTISET UNION ALL left\n"
+        + "UNION left\n"
+        + "UNION ALL left\n"
+        + "\n"
+        + "$throw -\n"
+        + "EXTRACT_DATE -\n"
+        + "FILTER left\n"
+        + "Reinterpret -\n"
+        + "TABLE pre\n"
+        + "VALUES -\n"
+        + "\n"
+        + "CALL pre\n"
+        + "ESCAPE -\n"
+        + "NEW pre\n";
+    assertThat(b.toString(), is(expected));
   }
 
   /** Tests that it is an error to insert into the same column twice, even using

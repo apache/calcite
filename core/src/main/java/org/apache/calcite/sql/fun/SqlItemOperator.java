@@ -26,14 +26,11 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.List;
 
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an
@@ -51,22 +48,18 @@ class SqlItemOperator extends SqlSpecialOperator {
     super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
   }
 
-  @Override public int reduceExpr(int ordinal, List<Object> list) {
-    SqlNode left = (SqlNode) list.get(ordinal - 1);
-    SqlNode right = (SqlNode) list.get(ordinal + 1);
-    final SqlParserUtil.ToTreeListItem treeListItem =
-        (SqlParserUtil.ToTreeListItem) list.get(ordinal);
-    SqlParserUtil.replaceSublist(
-        list,
-        ordinal - 1,
+  @Override public ReduceResult reduceExpr(int ordinal,
+      TokenSequence list) {
+    SqlNode left = list.node(ordinal - 1);
+    SqlNode right = list.node(ordinal + 1);
+    return new ReduceResult(ordinal - 1,
         ordinal + 2,
         createCall(
             left.getParserPosition()
                 .plus(right.getParserPosition())
-                .plus(treeListItem.getPos()),
+                .plus(list.pos(ordinal)),
             left,
             right));
-    return ordinal - 1;
   }
 
   @Override public void unparse(

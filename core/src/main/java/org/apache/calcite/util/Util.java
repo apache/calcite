@@ -2044,7 +2044,7 @@ public class Util {
 
   /** Returns all but the first {@code n} elements of a list. */
   public static <E> List<E> skip(List<E> list, int fromIndex) {
-    return list.subList(fromIndex, list.size());
+    return fromIndex == 0 ? list : list.subList(fromIndex, list.size());
   }
 
   public static List<Integer> range(final int end) {

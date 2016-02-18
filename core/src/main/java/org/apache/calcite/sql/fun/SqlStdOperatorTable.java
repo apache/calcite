@@ -142,7 +142,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBinaryOperator(
           "AND",
           SqlKind.AND,
-          28,
+          24,
           true,
           ReturnTypes.BOOLEAN_NULLABLE_OPTIMIZED,
           InferTypes.BOOLEAN,
@@ -431,7 +431,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBinaryOperator(
           "OR",
           SqlKind.OR,
-          26,
+          22,
           true,
           ReturnTypes.BOOLEAN_NULLABLE_OPTIMIZED,
           InferTypes.BOOLEAN,
@@ -553,7 +553,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS NOT NULL",
           SqlKind.IS_NOT_NULL,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.VARCHAR_1024,
           OperandTypes.ANY);
@@ -562,7 +562,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS NULL",
           SqlKind.IS_NULL,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.VARCHAR_1024,
           OperandTypes.ANY);
@@ -571,7 +571,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS NOT TRUE",
           SqlKind.IS_NOT_TRUE,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -580,7 +580,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS TRUE",
           SqlKind.IS_TRUE,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -589,7 +589,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS NOT FALSE",
           SqlKind.IS_NOT_FALSE,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -598,7 +598,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS FALSE",
           SqlKind.IS_FALSE,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -607,7 +607,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS NOT UNKNOWN",
           SqlKind.IS_NOT_NULL,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -616,7 +616,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS UNKNOWN",
           SqlKind.IS_NULL,
-          30,
+          28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -625,7 +625,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPostfixOperator(
           "IS A SET",
           SqlKind.OTHER,
-          30,
+          28,
           ReturnTypes.BOOLEAN,
           null,
           OperandTypes.MULTISET);
@@ -657,7 +657,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPrefixOperator(
           "NOT",
           SqlKind.NOT,
-          30,
+          26,
           ReturnTypes.ARG0,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN);
@@ -1054,7 +1054,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * SIMILAR TO expression.
    */
   public static final SqlSpecialOperator ESCAPE =
-      new SqlSpecialOperator("Escape", SqlKind.ESCAPE, 30);
+      new SqlSpecialOperator("ESCAPE", SqlKind.ESCAPE, 0);
 
   public static final SqlCaseOperator CASE = SqlCaseOperator.INSTANCE;
 

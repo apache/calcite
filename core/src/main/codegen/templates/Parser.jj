@@ -2556,13 +2556,30 @@ SqlNode Expression(ExprContext exprContext) :
 
 // TODO jvs 15-Nov-2003:  ANY/ALL
 
+void Expression2b(ExprContext exprContext, List<Object> list) :
+{
+    SqlNode e;
+    SqlOperator op;
+}
+{
+    (
+        op = PrefixRowOperator() {
+            checkNonQueryExpression(exprContext);
+            list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
+        }
+    )*
+    e = Expression3(exprContext) {
+        list.add(e);
+    }
+}
+
 /**
  * Parses a binary row expression, or a parenthesized expression of any
  * kind.
  *
  * <p>The result is as a flat list of operators and operands. The top-level
  * call to get an expression should call {@link #Expression}, but lower-level
- * calls should call this, to give the parser the opos to associate
+ * calls should call this, to give the parser the opportunity to associate
  * operator calls.
  *
  * <p>For example 'a = b like c = d' should come out '((a = b) like c) = d'
@@ -2572,17 +2589,15 @@ SqlNode Expression(ExprContext exprContext) :
  */
 List<Object> Expression2(ExprContext exprContext) :
 {
-    List<Object> list, list2;
+    final List<Object> list = new ArrayList();
+    List<Object> list2;
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
-    SqlParserPos pos;
+    SqlParserPos pos = getPos();
 }
 {
-    e = Expression3(exprContext)
-    {
-        list = startList(e);
-    }
+    Expression2b(exprContext, list)
     (
         (
             LOOKAHEAD(2)
@@ -2599,7 +2614,7 @@ List<Object> Expression2(ExprContext exprContext) :
                         op = SqlStdOperatorTable.NOT_IN;
                         pos = getPos();
                     }
-                    |
+                |
                     <IN>
                     {
                         op = SqlStdOperatorTable.IN;
@@ -2622,7 +2637,7 @@ List<Object> Expression2(ExprContext exprContext) :
                         list.add(nodeList);
                     }
                 }
-                |
+            |
                 LOOKAHEAD(2)
                 {
                     checkNonQueryExpression(exprContext);
@@ -2635,10 +2650,10 @@ List<Object> Expression2(ExprContext exprContext) :
                     }
                     [
                         <SYMMETRIC> { op = SqlStdOperatorTable.SYMMETRIC_NOT_BETWEEN; }
-                        |
+                    |
                         <ASYMMETRIC>
                     ]
-                    |
+                |
                     <BETWEEN>
                     {
                         op = SqlStdOperatorTable.BETWEEN;
@@ -2646,7 +2661,7 @@ List<Object> Expression2(ExprContext exprContext) :
                     }
                     [
                         <SYMMETRIC> { op = SqlStdOperatorTable.SYMMETRIC_BETWEEN; }
-                        |
+                    |
                         <ASYMMETRIC>
                     ]
                 )
@@ -2655,7 +2670,7 @@ List<Object> Expression2(ExprContext exprContext) :
                     list.add(new SqlParserUtil.ToTreeListItem(op, pos));
                     list.add(e);
                 }
-                |
+            |
                 {
                     checkNonQueryExpression(exprContext);
                     pos = getPos();
@@ -2664,12 +2679,12 @@ List<Object> Expression2(ExprContext exprContext) :
                     <NOT>
                     (
                         <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
-                        |
+                    |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
                     )
-                    |
+                |
                     <LIKE> { op = SqlStdOperatorTable.LIKE; }
-                    |
+                |
                     <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                 )
                 list2 = Expression2(ExprContext.ACCEPT_SUBQUERY)
@@ -2688,17 +2703,14 @@ List<Object> Expression2(ExprContext exprContext) :
                         list.add(e);
                     }
                 ]
-                |
+            |
                 LOOKAHEAD(3) op = BinaryRowOperator()
                 {
                     checkNonQueryExpression(exprContext);
-                }
-                e = Expression3(ExprContext.ACCEPT_SUBQUERY)
-                {
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
-                    list.add(e);
                 }
-                |
+                Expression2b(ExprContext.ACCEPT_SUBQUERY, list)
+            |
                 <LBRACKET>
                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
                 <RBRACKET>
@@ -2708,7 +2720,7 @@ List<Object> Expression2(ExprContext exprContext) :
                             SqlStdOperatorTable.ITEM, getPos()));
                     list.add(e);
                 }
-                |
+            |
                 {
                     checkNonQueryExpression(exprContext);
                 }
@@ -2764,17 +2776,6 @@ SqlNode Expression3(ExprContext exprContext) :
                 RESOURCE.illegalRowExpression());
         }
         return SqlStdOperatorTable.ROW.createCall(list);
-    }
-    |
-    op = PrefixRowOperator()
-    {
-        prefixRowOpPos = getPos();
-        checkNonQueryExpression(exprContext);
-    }
-    e = Expression3(ExprContext.ACCEPT_SUBQUERY)
-    {
-        SqlParserPos callPos = prefixRowOpPos.plus(e.getParserPosition());
-        return op.createCall(callPos, e);
     }
     |
     {

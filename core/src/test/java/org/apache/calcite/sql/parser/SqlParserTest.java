@@ -744,6 +744,56 @@ public class SqlParserTest {
             + "WHERE (1 AND TRUE)");
   }
 
+  @Test public void testLessThanAssociativity() {
+    checkExp("NOT a = b", "(NOT (`A` = `B`))");
+
+    // comparison operators are left-associative
+    checkExp("x < y < z", "((`X` < `Y`) < `Z`)");
+    checkExp("x < y <= z = a", "(((`X` < `Y`) <= `Z`) = `A`)");
+    checkExp("a = x < y <= z = a", "((((`A` = `X`) < `Y`) <= `Z`) = `A`)");
+
+    // IS NULL has lower precedence than comparison
+    checkExp("a = x is null", "((`A` = `X`) IS NULL)");
+    checkExp("a = x is not null", "((`A` = `X`) IS NOT NULL)");
+
+    // BETWEEN, IN, LIKE have higher precedence than comparison
+    checkExp("a = x between y = b and z = c",
+        "((`A` = (`X` BETWEEN ASYMMETRIC (`Y` = `B`) AND `Z`)) = `C`)");
+    checkExp("a = x like y = b",
+        "((`A` = (`X` LIKE `Y`)) = `B`)");
+    checkExp("a = x not like y = b",
+        "((`A` = (`X` NOT LIKE `Y`)) = `B`)");
+    checkExp("a = x similar to y = b",
+        "((`A` = (`X` SIMILAR TO `Y`)) = `B`)");
+    checkExp("a = x not similar to y = b",
+        "((`A` = (`X` NOT SIMILAR TO `Y`)) = `B`)");
+    checkExp("a = x not in (y, z) = b",
+        "((`A` = (`X` NOT IN (`Y`, `Z`))) = `B`)");
+
+    // LIKE has higher precedence than IS NULL
+    checkExp("a like b is null", "((`A` LIKE `B`) IS NULL)");
+    checkExp("a not like b is not null",
+        "((`A` NOT LIKE `B`) IS NOT NULL)");
+
+    // = has higher precedence than NOT
+    checkExp("NOT a = b", "(NOT (`A` = `B`))");
+    checkExp("NOT a = NOT b", "(NOT (`A` = (NOT `B`)))");
+
+    // IS NULL has higher precedence than NOT
+    checkExp("NOT a IS NULL", "(NOT (`A` IS NULL))");
+    checkExp("NOT a = b IS NOT NULL", "(NOT ((`A` = `B`) IS NOT NULL))");
+
+    // NOT has higher precedence than AND, which  has higher precedence than OR
+    checkExp("NOT a AND NOT b", "((NOT `A`) AND (NOT `B`))");
+    checkExp("NOT a OR NOT b", "((NOT `A`) OR (NOT `B`))");
+    checkExp("NOT a = b AND NOT c = d OR NOT e = f",
+        "(((NOT (`A` = `B`)) AND (NOT (`C` = `D`))) OR (NOT (`E` = `F`)))");
+    checkExp("NOT a = b OR NOT c = d AND NOT e = f",
+        "((NOT (`A` = `B`)) OR ((NOT (`C` = `D`)) AND (NOT (`E` = `F`))))");
+    checkExp("NOT NOT a = b OR NOT NOT c = d",
+        "((NOT (NOT (`A` = `B`))) OR (NOT (NOT (`C` = `D`))))");
+  }
+
   @Test public void testIsBooleans() {
     String[] inOuts = {"NULL", "TRUE", "FALSE", "UNKNOWN"};
 
@@ -752,7 +802,7 @@ public class SqlParserTest {
           "select * from t where nOt fAlSe Is " + inOut,
           "SELECT *\n"
               + "FROM `T`\n"
-              + "WHERE ((NOT FALSE) IS " + inOut + ")");
+              + "WHERE (NOT (FALSE IS " + inOut + "))");
 
       check(
           "select * from t where c1=1.1 IS NOT " + inOut,
@@ -771,7 +821,7 @@ public class SqlParserTest {
     check("select 1 from t where not true is unknown",
         "SELECT 1\n"
             + "FROM `T`\n"
-            + "WHERE ((NOT TRUE) IS UNKNOWN)");
+            + "WHERE (NOT (TRUE IS UNKNOWN))");
 
     check(
         "select * from t where x is unknown is not unknown is false is not false"
@@ -781,11 +831,16 @@ public class SqlParserTest {
             + "WHERE ((((((((`X` IS UNKNOWN) IS NOT UNKNOWN) IS FALSE) IS NOT FALSE) IS TRUE) IS NOT TRUE) IS NULL) IS NOT NULL)");
 
     // combine IS postfix operators with infix (AND) and prefix (NOT) ops
-    check(
-        "select * from t where x is unknown is false and x is unknown is true or not y is unknown is not null",
-        "SELECT *\n"
-            + "FROM `T`\n"
-            + "WHERE ((((`X` IS UNKNOWN) IS FALSE) AND ((`X` IS UNKNOWN) IS TRUE)) OR (((NOT `Y`) IS UNKNOWN) IS NOT NULL))");
+    final String sql = "select * from t "
+        + "where x is unknown is false "
+        + "and x is unknown is true "
+        + "or not y is unknown is not null";
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE ((((`X` IS UNKNOWN) IS FALSE)"
+        + " AND ((`X` IS UNKNOWN) IS TRUE))"
+        + " OR (NOT ((`Y` IS UNKNOWN) IS NOT NULL)))";
+    check(sql, expected);
   }
 
   @Test public void testEqualNotEqual() {
@@ -871,10 +926,10 @@ public class SqlParserTest {
         "values a between b and c + 2 or d and e",
         "VALUES (ROW(((`A` BETWEEN ASYMMETRIC `B` AND (`C` + 2)) OR (`D` AND `E`))))");
 
-    // '=' and BETWEEN have same precedence, and are left-assoc
+    // '=' has slightly lower precedence than BETWEEN; both are left-assoc
     check(
         "values x = a between b and c = d = e",
-        "VALUES (ROW(((((`X` = `A`) BETWEEN ASYMMETRIC `B` AND `C`) = `D`) = `E`)))");
+        "VALUES (ROW((((`X` = (`A` BETWEEN ASYMMETRIC `B` AND `C`)) = `D`) = `E`)))");
 
     // AND doesn't match BETWEEN if it's between parentheses!
     check(
@@ -1147,7 +1202,7 @@ public class SqlParserTest {
     // LIKE has same precedence as '='; LIKE is right-assoc, '=' is left
     check(
         "values a = b like c = d",
-        "VALUES (ROW(((`A` = `B`) LIKE (`C` = `D`))))");
+        "VALUES (ROW(((`A` = (`B` LIKE `C`)) = `D`)))");
 
     // Nested LIKE
     check(
@@ -1228,13 +1283,13 @@ public class SqlParserTest {
   @Test public void testFoo() {
   }
 
-  @Test public void testArthimeticOperators() {
+  @Test public void testArithmeticOperators() {
     checkExp("1-2+3*4/5/6-7", "(((1 - 2) + (((3 * 4) / 5) / 6)) - 7)");
     checkExp("power(2,3)", "POWER(2, 3)");
     checkExp("aBs(-2.3e-2)", "ABS(-2.3E-2)");
     checkExp("MOD(5             ,\t\f\r\n2)", "MOD(5, 2)");
     checkExp("ln(5.43  )", "LN(5.43)");
-    checkExp("log10(- -.2  )", "LOG10((- -0.2))");
+    checkExp("log10(- -.2  )", "LOG10(0.2)");
   }
 
   @Test public void testExists() {
@@ -2297,14 +2352,14 @@ public class SqlParserTest {
     check(
         "values (- -1\n"
             + ")",
-        "VALUES (ROW((- -1)))");
+        "VALUES (ROW(1))");
 
     check(
         "values (--1+\n"
             + "2)",
         "VALUES (ROW(2))");
 
-    // end of multiline commment without start
+    // end of multiline comment without start
     if (Bug.FRG73_FIXED) {
       checkFails("values (1 */ 2)", "xx");
     }
@@ -2380,7 +2435,7 @@ public class SqlParserTest {
     checkExp("1", "1");
     checkExp("+1.", "1");
     checkExp("-1", "-1");
-    checkExp("- -1", "(- -1)");
+    checkExp("- -1", "1");
     checkExp("1.0", "1.0");
     checkExp("-3.2", "-3.2");
     checkExp("1.", "1");
@@ -2437,7 +2492,11 @@ public class SqlParserTest {
   }
 
   @Test public void testPrecedence2() {
-    checkExp("- - 1", "(- -1)"); // two prefices
+    checkExp("- - 1", "1"); // special case for unary minus
+  }
+
+  @Test public void testPrecedence2b() {
+    checkExp("not not 1", "(NOT (NOT 1))"); // two prefixes
   }
 
   @Test public void testPrecedence3() {
@@ -2821,7 +2880,7 @@ public class SqlParserTest {
         "select ^cursor^(select * from emps) from emps",
         "CURSOR expression encountered in illegal context");
     checkFails(
-        "call p(^cursor^(select * from emps))",
+        "call list(^cursor^(select * from emps))",
         "CURSOR expression encountered in illegal context");
     checkFails(
         "select f(^cursor^(select * from emps)) from emps",
@@ -6887,11 +6946,7 @@ public class SqlParserTest {
       try {
         sqlNode = parseStmt(sql);
       } catch (SqlParseException e) {
-        e.printStackTrace();
-        String message = "Received error while parsing SQL '" + sql
-            + "'; error is:\n"
-            + e.toString();
-        throw new AssertionError(message);
+        throw new RuntimeException("Error while parsing SQL: " + sql, e);
       }
       return sqlNode;
     }
@@ -6912,10 +6967,7 @@ public class SqlParserTest {
       try {
         sqlNode = parseExpression(sql);
       } catch (SqlParseException e) {
-        String message = "Received error while parsing SQL '" + sql
-            + "'; error is:\n"
-            + e.toString();
-        throw new RuntimeException(message, e);
+        throw new RuntimeException("Error while parsing expression: " + sql, e);
       }
       return sqlNode;
     }
