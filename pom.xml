@@ -54,6 +54,7 @@ limitations under the License.
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
+    <cassandra-driver-core.version>2.1.9</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <commons-dbcp.version>1.4</commons-dbcp.version>
     <commons-lang3.version>3.2</commons-lang3.version>
@@ -128,6 +129,7 @@ limitations under the License.
     <module>avatica-metrics</module>
     <module>avatica-metrics-dropwizardmetrics3</module>
     <module>avatica-server</module>
+    <module>cassandra</module>
     <module>core</module>
     <module>dropwizard-metrics2</module>
     <module>example</module>
@@ -191,6 +193,11 @@ limitations under the License.
         <groupId>commons-dbcp</groupId>
         <artifactId>commons-dbcp</artifactId>
         <version>${commons-dbcp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.cassandra</groupId>
+        <artifactId>cassandra-driver-core</artifactId>
+        <version>${cassandra-driver-core.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
