@@ -27,7 +27,7 @@ This directory contains the code for the Apache Calcite web site,
 1. `cd site`
 2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
 3. `sudo apt-get install rubygems ruby2.1-dev zlib1g-dev` (linux)
-4. `sudo gem install bundler github-pages jekyll`
+4. `sudo gem install bundler github-pages jekyll jekyll-oembed`
 5. `bundle install`
 
 ## Add javadoc
