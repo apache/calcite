@@ -4846,6 +4846,12 @@ public class JdbcTest {
                           new ReflectiveSchemaTest.CatchallSchema()))
                   .connect();
             }
+            if (name.equals("orinoco")) {
+              return CalciteAssert.that()
+                  .with(CalciteAssert.SchemaSpec.ORINOCO)
+                  .withDefaultSchema("ORINOCO")
+                  .connect();
+            }
             if (name.equals("seq")) {
               final Connection connection = CalciteAssert.that()
                   .withSchema("s", new AbstractSchema())

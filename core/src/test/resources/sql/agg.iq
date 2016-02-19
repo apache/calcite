@@ -1493,6 +1493,37 @@ EnumerableCalc(expr#0..2=[{inputs}], JOB=[$t0], SUM_SAL=[$t2], DEPTNO=[$t1])
 !plan
 !}
 
+!use orinoco
+
+# FLOOR to achieve a 2-hour window
+select floor(rowtime to hour) as rowtime, count(*) as c
+from Orders
+group by floor(rowtime to hour);
++---------------------+---+
+| ROWTIME             | C |
++---------------------+---+
+| 2015-02-15 10:00:00 | 4 |
+| 2015-02-15 11:00:00 | 1 |
++---------------------+---+
+(2 rows)
+
+!ok
+
+# FLOOR applied to intervals, to achieve a 2-hour window
+select rowtime, count(*) as c
+from (
+  select timestamp '1970-1-1 0:0:0' + (floor(timestamp '1970-1-1 0:0:0' + ((rowtime - timestamp '1970-1-1 0:0:0') second) / 2 to hour) - timestamp '1970-1-1 0:0:0') second * 2 as rowtime
+  from Orders)
+group by rowtime;
++---------------------+---+
+| ROWTIME             | C |
++---------------------+---+
+| 2015-02-15 10:00:00 | 5 |
++---------------------+---+
+(1 row)
+
+!ok
+
 # [CALCITE-729] IndexOutOfBoundsException in ROLLUP query on JDBC data source
 !use jdbc_scott
 select deptno, job, count(*) as c

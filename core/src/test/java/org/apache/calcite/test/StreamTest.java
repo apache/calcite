@@ -261,6 +261,33 @@ public class StreamTest {
                 "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
   }
 
+  @Ignore
+  @Test public void testTumbleViaOver() {
+    String sql = "WITH HourlyOrderTotals (rowtime, productId, c, su) AS (\n"
+        + "  SELECT FLOOR(rowtime TO HOUR),\n"
+        + "    productId,\n"
+        + "    COUNT(*),\n"
+        + "    SUM(units)\n"
+        + "  FROM Orders\n"
+        + "  GROUP BY FLOOR(rowtime TO HOUR), productId)\n"
+        + "SELECT STREAM rowtime,\n"
+        + "  productId,\n"
+        + "  SUM(su) OVER w AS su,\n"
+        + "  SUM(c) OVER w AS c\n"
+        + "FROM HourlyTotals\n"
+        + "WINDOW w AS (\n"
+        + "  ORDER BY rowtime\n"
+        + "  PARTITION BY productId\n"
+        + "  RANGE INTERVAL '2' HOUR PRECEDING)\n";
+    String sql2 = ""
+        + "SELECT STREAM rowtime, productId, SUM(units) AS su, COUNT(*) AS c\n"
+        + "FROM Orders\n"
+        + "GROUP BY TUMBLE(rowtime, INTERVAL '1' HOUR)";
+    // sql and sql2 should give same result
+    CalciteAssert.model(STREAM_JOINS_MODEL)
+        .query(sql);
+  }
+
   private Function<ResultSet, Void> startsWith(String... rows) {
     final ImmutableList<String> rowList = ImmutableList.copyOf(rows);
     return new Function<ResultSet, Void>() {
@@ -289,7 +316,7 @@ public class StreamTest {
    * Base table for the Orders table. Manages the base schema used for the test tables and common
    * functions.
    */
-  private abstract static class BaseOrderStreamTable implements ScannableTable, StreamableTable {
+  private abstract static class BaseOrderStreamTable implements ScannableTable {
     protected final RelProtoDataType protoRowType = new RelProtoDataType() {
       public RelDataType apply(RelDataTypeFactory a0) {
         return a0.builder()
@@ -325,6 +352,10 @@ public class StreamTest {
 
     public Table create(SchemaPlus schema, String name,
         Map<String, Object> operand, RelDataType rowType) {
+      return new OrdersTable(getRowList());
+    }
+
+    public static ImmutableList<Object[]> getRowList() {
       final Object[][] rows = {
         {ts(10, 15, 0), 1, "paint", 10},
         {ts(10, 24, 15), 2, "paper", 5},
@@ -332,16 +363,17 @@ public class StreamTest {
         {ts(10, 58, 0), 4, "paint", 3},
         {ts(11, 10, 0), 5, "paint", 3}
       };
-      return new OrdersTable(ImmutableList.copyOf(rows));
+      return ImmutableList.copyOf(rows);
     }
 
-    private Object ts(int h, int m, int s) {
+    private static Object ts(int h, int m, int s) {
       return DateTimeUtils.unixTimestamp(2015, 2, 15, h, m, s);
     }
   }
 
   /** Table representing the ORDERS stream. */
-  public static class OrdersTable extends BaseOrderStreamTable {
+  public static class OrdersTable extends BaseOrderStreamTable
+      implements StreamableTable {
     private final ImmutableList<Object[]> rows;
 
     public OrdersTable(ImmutableList<Object[]> rows) {
@@ -386,7 +418,8 @@ public class StreamTest {
   /**
    * Table representing an infinitely larger ORDERS stream.
    */
-  public static class InfiniteOrdersTable extends BaseOrderStreamTable {
+  public static class InfiniteOrdersTable extends BaseOrderStreamTable
+      implements StreamableTable {
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(new Iterable<Object[]>() {
         @Override public Iterator<Object[]> iterator() {
@@ -409,6 +442,19 @@ public class StreamTest {
 
     public Table stream() {
       return this;
+    }
+  }
+
+  /** Table representing the history of the ORDERS stream. */
+  public static class OrdersHistoryTable extends BaseOrderStreamTable {
+    private final ImmutableList<Object[]> rows;
+
+    public OrdersHistoryTable(ImmutableList<Object[]> rows) {
+      this.rows = rows;
+    }
+
+    public Enumerable<Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(rows);
     }
   }
 

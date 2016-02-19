@@ -678,6 +678,12 @@ public class CalciteAssert {
     case LINGUAL:
       return rootSchema.add("SALES",
           new ReflectiveSchema(new JdbcTest.LingualSchema()));
+    case ORINOCO:
+      final SchemaPlus orinoco = rootSchema.add("ORINOCO", new AbstractSchema());
+      orinoco.add("ORDERS",
+          new StreamTest.OrdersHistoryTable(
+              StreamTest.OrdersStreamTableFactory.getRowList()));
+      return orinoco;
     case POST:
       final SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
       post.add("EMP",
@@ -1581,7 +1587,8 @@ public class CalciteAssert {
     JDBC_SCOTT,
     SCOTT,
     LINGUAL,
-    POST
+    POST,
+    ORINOCO
   }
 
   /** Converts a {@link ResultSet} to string. */
