@@ -205,7 +205,15 @@ at or after 11:00:00, it will never see a row that will contribute to a 10:00:00
 total.
 
 A column or expression that is increasing or decreasing is said to be
-*monotonic*. Without a monotonic expression in the `GROUP BY` clause, Calcite is
+*monotonic*.
+
+If column or expression has values that are slightly out of order,
+and the stream has a mechanism (such as punctuation or watermarks)
+to declare that a particular value will never be seen again, then
+the column or expression is said to be *quasi-monotonic*.
+
+Without a monotonic or quasi-monotonic expression in the `GROUP BY` clause,
+Calcite is
 not able to make progress, and it will not allow the query:
 
 {% highlight sql %}
@@ -217,7 +225,8 @@ not able to make progress, and it will not allow the query:
 ERROR: Streaming aggregation requires at least one monotonic expression in GROUP BY clause
 {% endhighlight %}
 
-Monotonic columns need to be declared in the schema. The monotonicity is
+Monotonic and quasi-monotonic columns need to be declared in the schema.
+The monotonicity is
 enforced when records enter the stream and assumed by queries that read from
 that stream. We recommend that you give each stream a timestamp column called
 `rowtime`, but you can declare others, `orderId`, for example.

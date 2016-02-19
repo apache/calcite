@@ -97,6 +97,14 @@ Apache Kylin meetup, 2014;
 
 <iframe src="//www.slideshare.net/slideshow/embed_code/key/fCGsAedsQiq53V" width="629" height="354" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
 
+## Streaming SQL
+
+At Samza meetup, Mountain View, CA, 2016
+[[video](http://www.ustream.tv/recorded/83322450#to00:55:48)],
+[[slides](http://www.slideshare.net/julianhyde/streaming-sql)].
+
+<iframe src="//www.slideshare.net/slideshow/embed_code/key/rzaptOy3H8K6Gz" width="595" height="485" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
+
 ## More talks
 
 * <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-seattle-2014.pdf?raw=true">Cost-based optimization in Hive 0.14</a> (Seattle, 2014)
