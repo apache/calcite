@@ -183,6 +183,9 @@ public class SqlFunctionsTest {
     assertEquals("2000-02-28", unixDateToString(11015));
     assertEquals("2000-02-29", unixDateToString(11016));
     assertEquals("2000-03-01", unixDateToString(11017));
+    assertEquals("1900-01-01", unixDateToString(-25567));
+    assertEquals("1900-02-28", unixDateToString(-25509));
+    assertEquals("1900-03-01", unixDateToString(-25508));
     assertEquals("1945-02-24", unixDateToString(-9077));
   }
 
@@ -190,13 +193,28 @@ public class SqlFunctionsTest {
     assertEquals(0, ymdToUnixDate(1970, 1, 1));
     assertEquals(365, ymdToUnixDate(1971, 1, 1));
     assertEquals(-365, ymdToUnixDate(1969, 1, 1));
+    assertEquals(11015, ymdToUnixDate(2000, 2, 28));
+    assertEquals(11016, ymdToUnixDate(2000, 2, 29));
     assertEquals(11017, ymdToUnixDate(2000, 3, 1));
     assertEquals(-9077, ymdToUnixDate(1945, 2, 24));
+    assertEquals(-25509, ymdToUnixDate(1900, 2, 28));
+    assertEquals(-25508, ymdToUnixDate(1900, 3, 1));
   }
 
   @Test public void testDateToString() {
     checkDateString("1970-01-01", 0);
-    checkDateString("1971-02-03", 0 + 365 + 31 + 2);
+    //noinspection PointlessArithmeticExpression
+    checkDateString("1971-02-03", 0 + 365 + 31 + (3 - 1));
+    //noinspection PointlessArithmeticExpression
+    checkDateString("1971-02-28", 0 + 365 + 31 + (28 - 1));
+    //noinspection PointlessArithmeticExpression
+    checkDateString("1971-03-01", 0 + 365 + 31 + 28 + (1 - 1));
+    //noinspection PointlessArithmeticExpression
+    checkDateString("1972-02-28", 0 + 365 * 2 + 31 + (28 - 1));
+    //noinspection PointlessArithmeticExpression
+    checkDateString("1972-02-29", 0 + 365 * 2 + 31 + (29 - 1));
+    //noinspection PointlessArithmeticExpression
+    checkDateString("1972-03-01", 0 + 365 * 2 + 31 + 29 + (1 - 1));
   }
 
   private void checkDateString(String s, int d) {
@@ -262,16 +280,30 @@ public class SqlFunctionsTest {
     // All checked using http://aa.usno.navy.mil/data/docs/JulianDate.php.
     // We round up - if JulianDate.php gives 2451544.5, we use 2451545.
     assertThat(ymdToJulian(2014, 4, 3), equalTo(2456751));
+
+    // 2000 is a leap year
     assertThat(ymdToJulian(2000, 1, 1), equalTo(2451545));
+    assertThat(ymdToJulian(2000, 2, 28), equalTo(2451603));
+    assertThat(ymdToJulian(2000, 2, 29), equalTo(2451604));
+    assertThat(ymdToJulian(2000, 3, 1), equalTo(2451605));
+
     assertThat(ymdToJulian(1970, 1, 1), equalTo(2440588));
     assertThat(ymdToJulian(1970, 1, 1), equalTo(EPOCH_JULIAN));
     assertThat(ymdToJulian(1901, 1, 1), equalTo(2415386));
+
+    // 1900 is not a leap year
     assertThat(ymdToJulian(1900, 10, 17), equalTo(2415310));
     assertThat(ymdToJulian(1900, 3, 1), equalTo(2415080));
     assertThat(ymdToJulian(1900, 2, 28), equalTo(2415079));
     assertThat(ymdToJulian(1900, 2, 1), equalTo(2415052));
     assertThat(ymdToJulian(1900, 1, 1), equalTo(2415021));
+
     assertThat(ymdToJulian(1777, 7, 4), equalTo(2370281));
+
+    // 2016 is a leap year
+    assertThat(ymdToJulian(2016, 2, 28), equalTo(2457447));
+    assertThat(ymdToJulian(2016, 2, 29), equalTo(2457448));
+    assertThat(ymdToJulian(2016, 3, 1), equalTo(2457449));
   }
 
   @Test public void testExtract() {
@@ -285,9 +317,15 @@ public class SqlFunctionsTest {
     assertThat(unixDateExtract(TimeUnitRange.MONTH, 364), equalTo(12L));
     assertThat(unixDateExtract(TimeUnitRange.MONTH, 365), equalTo(1L));
 
+    thereAndBack(1900, 1, 1);
+    thereAndBack(1900, 2, 28); // no leap day
+    thereAndBack(1900, 3, 1);
+    thereAndBack(1901, 1, 1);
+    thereAndBack(1901, 2, 28); // no leap day
+    thereAndBack(1901, 3, 1);
     thereAndBack(2000, 1, 1);
     thereAndBack(2000, 2, 28);
-    thereAndBack(2000, 2, 29); // does day
+    thereAndBack(2000, 2, 29); // leap day
     thereAndBack(2000, 3, 1);
     thereAndBack(1964, 1, 1);
     thereAndBack(1964, 2, 28);
@@ -303,6 +341,8 @@ public class SqlFunctionsTest {
     thereAndBack(2004, 2, 28);
     thereAndBack(2004, 2, 29); // leap day
     thereAndBack(2004, 3, 1);
+    thereAndBack(2005, 2, 28); // no leap day
+    thereAndBack(2005, 3, 1);
   }
 
   private void thereAndBack(int year, int month, int day) {
@@ -317,8 +357,26 @@ public class SqlFunctionsTest {
 
   @Test public void testUnixTimestamp() {
     assertThat(unixTimestamp(1970, 1, 1, 0, 0, 0), is(0L));
-    assertThat(unixTimestamp(1970, 1, 2, 0, 0, 0), is(86400000L));
+    final long day = 86400000L;
+    assertThat(unixTimestamp(1970, 1, 2, 0, 0, 0), is(day));
     assertThat(unixTimestamp(1970, 1, 1, 23, 59, 59), is(86399000L));
+
+    // 1900 is not a leap year
+    final long y1900 = -2203977600000L;
+    assertThat(unixTimestamp(1900, 2, 28, 0, 0, 0), is(y1900));
+    assertThat(unixTimestamp(1900, 3, 1, 0, 0, 0), is(y1900 + day));
+
+    // 2000 is a leap year
+    final long y2k = 951696000000L;
+    assertThat(unixTimestamp(2000, 2, 28, 0, 0, 0), is(y2k));
+    assertThat(unixTimestamp(2000, 2, 29, 0, 0, 0), is(y2k + day));
+    assertThat(unixTimestamp(2000, 3, 1, 0, 0, 0), is(y2k + day + day));
+
+    // 2016 is a leap year
+    final long y2016 = 1456617600000L;
+    assertThat(unixTimestamp(2016, 2, 28, 0, 0, 0), is(y2016));
+    assertThat(unixTimestamp(2016, 2, 29, 0, 0, 0), is(y2016 + day));
+    assertThat(unixTimestamp(2016, 3, 1, 0, 0, 0), is(y2016 + day + day));
   }
 
   @Test public void testFloor() {
@@ -335,9 +393,8 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.floor((short) x, (short) y), is((short) result));
     assertThat(SqlFunctions.floor((byte) x, (byte) y), is((byte) result));
     assertThat(
-        SqlFunctions.floor(BigDecimal.valueOf(x), BigDecimal.valueOf(y)), is(
-            BigDecimal.valueOf(
-                result)));
+        SqlFunctions.floor(BigDecimal.valueOf(x), BigDecimal.valueOf(y)),
+        is(BigDecimal.valueOf(result)));
   }
 
   @Test public void testCeil() {
@@ -355,9 +412,8 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.ceil((short) x, (short) y), is((short) result));
     assertThat(SqlFunctions.ceil((byte) x, (byte) y), is((byte) result));
     assertThat(
-        SqlFunctions.ceil(BigDecimal.valueOf(x), BigDecimal.valueOf(y)), is(
-            BigDecimal.valueOf(
-                result)));
+        SqlFunctions.ceil(BigDecimal.valueOf(x), BigDecimal.valueOf(y)),
+        is(BigDecimal.valueOf(result)));
   }
 
   /** Unit test for
@@ -365,7 +421,7 @@ public class SqlFunctionsTest {
   @Test public void testCompare() {
     final List<String> ac = Arrays.asList("a", "c");
     final List<String> abc = Arrays.asList("a", "b", "c");
-    final List<String> a = Arrays.asList("a");
+    final List<String> a = Collections.singletonList("a");
     final List<String> empty = Collections.emptyList();
     assertEquals(0, Utilities.compare(ac, ac));
     assertEquals(0, Utilities.compare(ac, new ArrayList<>(ac)));
