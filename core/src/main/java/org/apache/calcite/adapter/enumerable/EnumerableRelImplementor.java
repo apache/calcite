@@ -185,18 +185,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     final List<ParameterExpression> parameters = new ArrayList<>();
     final ParameterExpression thisParameter =
         Expressions.parameter(type, "this");
-    for (Types.RecordField field : type.getRecordFields()) {
-      final ParameterExpression parameter =
-          Expressions.parameter(field.getType(), field.getName());
-      parameters.add(parameter);
-      blockBuilder.add(
-          Expressions.statement(
-              Expressions.assign(
-                  Expressions.field(
-                      thisParameter,
-                      field),
-                  parameter)));
-    }
+
+    // Here a constructor without parameter is used because the generated
+    // code could cause error if number of fields is too large.
     classDeclaration.memberDeclarations.add(
         Expressions.constructorDecl(
             Modifier.PUBLIC,

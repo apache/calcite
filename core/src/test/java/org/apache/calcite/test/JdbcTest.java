@@ -6345,6 +6345,74 @@ public class JdbcTest {
             });
   }
 
+  @Test public void testAggMultipleMeasures() {
+    try {
+      final Driver driver = new Driver();
+      CalciteConnection connection = (CalciteConnection)
+        driver.connect("jdbc:calcite:", new Properties());
+      SchemaPlus rootSchema = connection.getRootSchema();
+      rootSchema.add("sale", new ReflectiveSchema(new SaleSchema()));
+      connection.setSchema("sale");
+      final Statement statement = connection.createStatement();
+      final ResultSet resultSet =
+        statement.executeQuery("select s.\"prod_id\", sum(s.\"sale\"), sum(s.\"sale_1\"),"
+          + " sum(s.\"sale_2\"), sum(s.\"sale_3\"), sum(s.\"sale_4\"), sum(s.\"sale_5\"),"
+          + " sum(s.\"sale_6\"), sum(s.\"sale_7\"), sum(s.\"sale_8\"), sum(s.\"sale_9\"),"
+          + " sum(s.\"sale_10\"), sum(s.\"sale_11\"), sum(s.\"sale_12\"), sum(s.\"sale_13\"),"
+          + " sum(s.\"sale_14\"), sum(s.\"sale_15\"), sum(s.\"sale_16\"), sum(s.\"sale_17\"),"
+          + " sum(s.\"sale_18\"), sum(s.\"sale_19\"), sum(s.\"sale_20\"), sum(s.\"sale_21\"),"
+          + " sum(s.\"sale_22\"), sum(s.\"sale_23\"), sum(s.\"sale_24\"), sum(s.\"sale_25\"),"
+          + " sum(s.\"sale_26\"), sum(s.\"sale_27\"), sum(s.\"sale_28\"), sum(s.\"sale_29\"),"
+          + " sum(s.\"sale_30\"), sum(s.\"sale_31\"), sum(s.\"sale_32\"), sum(s.\"sale_33\"),"
+          + " sum(s.\"sale_34\"), sum(s.\"sale_35\"), sum(s.\"sale_36\"), sum(s.\"sale_37\"),"
+          + " sum(s.\"sale_38\"), sum(s.\"sale_39\"), sum(s.\"sale_40\"), sum(s.\"sale_41\"),"
+          + " sum(s.\"sale_42\"), sum(s.\"sale_43\"), sum(s.\"sale_44\"), sum(s.\"sale_45\"),"
+          + " sum(s.\"sale_46\"), sum(s.\"sale_47\"), sum(s.\"sale_48\"), sum(s.\"sale_49\"),"
+          + " sum(s.\"sale_50\"), sum(s.\"sale_51\"), sum(s.\"sale_52\"), sum(s.\"sale_53\"),"
+          + " sum(s.\"sale_54\"), sum(s.\"sale_55\"), sum(s.\"sale_56\"), sum(s.\"sale_57\"),"
+          + " sum(s.\"sale_58\"), sum(s.\"sale_59\"), sum(s.\"sale_60\"), sum(s.\"sale_61\"),"
+          + " sum(s.\"sale_62\"), sum(s.\"sale_63\"), sum(s.\"sale_64\"), sum(s.\"sale_65\"),"
+          + " sum(s.\"sale_66\"), sum(s.\"sale_67\"), sum(s.\"sale_68\"), sum(s.\"sale_69\"),"
+          + " sum(s.\"sale_70\"), sum(s.\"sale_71\"), sum(s.\"sale_72\"), sum(s.\"sale_73\"),"
+          + " sum(s.\"sale_74\"), sum(s.\"sale_75\"), sum(s.\"sale_76\"), sum(s.\"sale_77\"),"
+          + " sum(s.\"sale_78\"), sum(s.\"sale_79\"), sum(s.\"sale_80\"), sum(s.\"sale_81\"),"
+          + " sum(s.\"sale_82\"), sum(s.\"sale_83\"), sum(s.\"sale_84\"), sum(s.\"sale_85\"),"
+          + " sum(s.\"sale_86\"), sum(s.\"sale_87\"), sum(s.\"sale_88\"), sum(s.\"sale_89\"),"
+          + " sum(s.\"sale_90\"), sum(s.\"sale_91\"), sum(s.\"sale_92\"), sum(s.\"sale_93\"),"
+          + " sum(s.\"sale_94\"), sum(s.\"sale_95\"), sum(s.\"sale_96\"), sum(s.\"sale_97\"),"
+          + " sum(s.\"sale_98\"), sum(s.\"sale_99\"), sum(s.\"sale_100\"), sum(s.\"sale_101\"),"
+          + " sum(s.\"sale_102\"), sum(s.\"sale_103\"), sum(s.\"sale_104\"), sum(s.\"sale_105\"),"
+          + " sum(s.\"sale_106\"), sum(s.\"sale_107\"), sum(s.\"sale_108\"), sum(s.\"sale_109\"),"
+          + " sum(s.\"sale_110\"), sum(s.\"sale_111\"), sum(s.\"sale_112\"), sum(s.\"sale_113\"),"
+          + " sum(s.\"sale_114\"), sum(s.\"sale_115\"), sum(s.\"sale_116\"), sum(s.\"sale_117\"),"
+          + " sum(s.\"sale_118\"), sum(s.\"sale_119\"), sum(s.\"sale_120\"), sum(s.\"sale_121\"),"
+          + " sum(s.\"sale_122\"), sum(s.\"sale_123\"), sum(s.\"sale_124\"), sum(s.\"sale_125\"),"
+          + " sum(s.\"sale_126\"), sum(s.\"sale_127\"), sum(s.\"sale_128\"), sum(s.\"sale_129\"),"
+          + " sum(s.\"sale_130\"), sum(s.\"sale_131\"), sum(s.\"sale_132\"), sum(s.\"sale_133\"),"
+          + " sum(s.\"sale_134\"), sum(s.\"sale_135\"), sum(s.\"sale_136\"), sum(s.\"sale_137\"),"
+          + " sum(s.\"sale_138\"), sum(s.\"sale_139\"), sum(s.\"sale_140\"), sum(s.\"sale_141\"),"
+          + " sum(s.\"sale_142\"), sum(s.\"sale_143\"), sum(s.\"sale_144\"), sum(s.\"sale_145\"),"
+          + " sum(s.\"sale_146\"), sum(s.\"sale_147\"), sum(s.\"sale_148\"), sum(s.\"sale_149\"),"
+          + " sum(s.\"sale_150\"), sum(s.\"sale_151\"), sum(s.\"sale_152\"), sum(s.\"sale_153\"),"
+          + " sum(s.\"sale_154\"), sum(s.\"sale_155\"), sum(s.\"sale_156\"), sum(s.\"sale_157\"),"
+          + " sum(s.\"sale_158\"), sum(s.\"sale_159\"), sum(s.\"sale_160\"), sum(s.\"sale_161\"),"
+          + " sum(s.\"sale_162\"), sum(s.\"sale_163\"), sum(s.\"sale_164\"), sum(s.\"sale_165\"),"
+          + " sum(s.\"sale_166\"), sum(s.\"sale_167\"), sum(s.\"sale_168\"), sum(s.\"sale_169\"),"
+          + " sum(s.\"sale_170\"), sum(s.\"sale_171\"), sum(s.\"sale_172\"), sum(s.\"sale_173\"),"
+          + " sum(s.\"sale_174\"), sum(s.\"sale_175\"), sum(s.\"sale_176\"), sum(s.\"sale_177\"),"
+          + " sum(s.\"sale_178\"), sum(s.\"sale_179\"), sum(s.\"sale_180\"), sum(s.\"sale_181\"),"
+          + " sum(s.\"sale_182\"), sum(s.\"sale_183\"), sum(s.\"sale_184\"), sum(s.\"sale_185\"),"
+          + " sum(s.\"sale_186\"), sum(s.\"sale_187\"), sum(s.\"sale_188\"), sum(s.\"sale_189\"),"
+          + " sum(s.\"sale_190\"), sum(s.\"sale_191\"), sum(s.\"sale_192\"), sum(s.\"sale_193\"),"
+          + " sum(s.\"sale_194\"), sum(s.\"sale_195\"), sum(s.\"sale_196\"), sum(s.\"sale_197\"),"
+          + " sum(s.\"sale_198\"), sum(s.\"sale_199\")\n"
+          + "from \"sale\".\"prod\" as s group by s.\"prod_id\"\n");
+      resultSet.next();
+    } catch (SQLException e) {
+      fail("unexpected SQLException" + e.getLocalizedMessage());
+    }
+  }
+
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
@@ -6453,6 +6521,226 @@ public class JdbcTest {
 
     @Override public String toString() {
       return "Dependent [empid: " + empid + ", name: " + name + "]";
+    }
+  }
+
+  public static class SaleSchema {
+      @Override
+      public String toString() {
+          return "SaleSchema";
+      }
+
+      public final ProductSale[] prod = {
+          new ProductSale(100, 10)
+      };
+  }
+
+  public static class ProductSale {
+    public final int prod_id;
+    public final double sale;
+    public final double sale_1 = 10;
+    public final double sale_2 = 10;
+    public final double sale_3 = 10;
+    public final double sale_4 = 10;
+    public final double sale_5 = 10;
+    public final double sale_6 = 10;
+    public final double sale_7 = 10;
+    public final double sale_8 = 10;
+    public final double sale_9 = 10;
+    public final double sale_10 = 10;
+    public final double sale_11 = 10;
+    public final double sale_12 = 10;
+    public final double sale_13 = 10;
+    public final double sale_14 = 10;
+    public final double sale_15 = 10;
+    public final double sale_16 = 10;
+    public final double sale_17 = 10;
+    public final double sale_18 = 10;
+    public final double sale_19 = 10;
+    public final double sale_20 = 10;
+    public final double sale_21 = 10;
+    public final double sale_22 = 10;
+    public final double sale_23 = 10;
+    public final double sale_24 = 10;
+    public final double sale_25 = 10;
+    public final double sale_26 = 10;
+    public final double sale_27 = 10;
+    public final double sale_28 = 10;
+    public final double sale_29 = 10;
+    public final double sale_30 = 10;
+    public final double sale_31 = 10;
+    public final double sale_32 = 10;
+    public final double sale_33 = 10;
+    public final double sale_34 = 10;
+    public final double sale_35 = 10;
+    public final double sale_36 = 10;
+    public final double sale_37 = 10;
+    public final double sale_38 = 10;
+    public final double sale_39 = 10;
+    public final double sale_40 = 10;
+    public final double sale_41 = 10;
+    public final double sale_42 = 10;
+    public final double sale_43 = 10;
+    public final double sale_44 = 10;
+    public final double sale_45 = 10;
+    public final double sale_46 = 10;
+    public final double sale_47 = 10;
+    public final double sale_48 = 10;
+    public final double sale_49 = 10;
+    public final double sale_50 = 10;
+    public final double sale_51 = 10;
+    public final double sale_52 = 10;
+    public final double sale_53 = 10;
+    public final double sale_54 = 10;
+    public final double sale_55 = 10;
+    public final double sale_56 = 10;
+    public final double sale_57 = 10;
+    public final double sale_58 = 10;
+    public final double sale_59 = 10;
+    public final double sale_60 = 10;
+    public final double sale_61 = 10;
+    public final double sale_62 = 10;
+    public final double sale_63 = 10;
+    public final double sale_64 = 10;
+    public final double sale_65 = 10;
+    public final double sale_66 = 10;
+    public final double sale_67 = 10;
+    public final double sale_68 = 10;
+    public final double sale_69 = 10;
+    public final double sale_70 = 10;
+    public final double sale_71 = 10;
+    public final double sale_72 = 10;
+    public final double sale_73 = 10;
+    public final double sale_74 = 10;
+    public final double sale_75 = 10;
+    public final double sale_76 = 10;
+    public final double sale_77 = 10;
+    public final double sale_78 = 10;
+    public final double sale_79 = 10;
+    public final double sale_80 = 10;
+    public final double sale_81 = 10;
+    public final double sale_82 = 10;
+    public final double sale_83 = 10;
+    public final double sale_84 = 10;
+    public final double sale_85 = 10;
+    public final double sale_86 = 10;
+    public final double sale_87 = 10;
+    public final double sale_88 = 10;
+    public final double sale_89 = 10;
+    public final double sale_90 = 10;
+    public final double sale_91 = 10;
+    public final double sale_92 = 10;
+    public final double sale_93 = 10;
+    public final double sale_94 = 10;
+    public final double sale_95 = 10;
+    public final double sale_96 = 10;
+    public final double sale_97 = 10;
+    public final double sale_98 = 10;
+    public final double sale_99 = 10;
+    public final double sale_100 = 10;
+    public final double sale_101 = 10;
+    public final double sale_102 = 10;
+    public final double sale_103 = 10;
+    public final double sale_104 = 10;
+    public final double sale_105 = 10;
+    public final double sale_106 = 10;
+    public final double sale_107 = 10;
+    public final double sale_108 = 10;
+    public final double sale_109 = 10;
+    public final double sale_110 = 10;
+    public final double sale_111 = 10;
+    public final double sale_112 = 10;
+    public final double sale_113 = 10;
+    public final double sale_114 = 10;
+    public final double sale_115 = 10;
+    public final double sale_116 = 10;
+    public final double sale_117 = 10;
+    public final double sale_118 = 10;
+    public final double sale_119 = 10;
+    public final double sale_120 = 10;
+    public final double sale_121 = 10;
+    public final double sale_122 = 10;
+    public final double sale_123 = 10;
+    public final double sale_124 = 10;
+    public final double sale_125 = 10;
+    public final double sale_126 = 10;
+    public final double sale_127 = 10;
+    public final double sale_128 = 10;
+    public final double sale_129 = 10;
+    public final double sale_130 = 10;
+    public final double sale_131 = 10;
+    public final double sale_132 = 10;
+    public final double sale_133 = 10;
+    public final double sale_134 = 10;
+    public final double sale_135 = 10;
+    public final double sale_136 = 10;
+    public final double sale_137 = 10;
+    public final double sale_138 = 10;
+    public final double sale_139 = 10;
+    public final double sale_140 = 10;
+    public final double sale_141 = 10;
+    public final double sale_142 = 10;
+    public final double sale_143 = 10;
+    public final double sale_144 = 10;
+    public final double sale_145 = 10;
+    public final double sale_146 = 10;
+    public final double sale_147 = 10;
+    public final double sale_148 = 10;
+    public final double sale_149 = 10;
+    public final double sale_150 = 10;
+    public final double sale_151 = 10;
+    public final double sale_152 = 10;
+    public final double sale_153 = 10;
+    public final double sale_154 = 10;
+    public final double sale_155 = 10;
+    public final double sale_156 = 10;
+    public final double sale_157 = 10;
+    public final double sale_158 = 10;
+    public final double sale_159 = 10;
+    public final double sale_160 = 10;
+    public final double sale_161 = 10;
+    public final double sale_162 = 10;
+    public final double sale_163 = 10;
+    public final double sale_164 = 10;
+    public final double sale_165 = 10;
+    public final double sale_166 = 10;
+    public final double sale_167 = 10;
+    public final double sale_168 = 10;
+    public final double sale_169 = 10;
+    public final double sale_170 = 10;
+    public final double sale_171 = 10;
+    public final double sale_172 = 10;
+    public final double sale_173 = 10;
+    public final double sale_174 = 10;
+    public final double sale_175 = 10;
+    public final double sale_176 = 10;
+    public final double sale_177 = 10;
+    public final double sale_178 = 10;
+    public final double sale_179 = 10;
+    public final double sale_180 = 10;
+    public final double sale_181 = 10;
+    public final double sale_182 = 10;
+    public final double sale_183 = 10;
+    public final double sale_184 = 10;
+    public final double sale_185 = 10;
+    public final double sale_186 = 10;
+    public final double sale_187 = 10;
+    public final double sale_188 = 10;
+    public final double sale_189 = 10;
+    public final double sale_190 = 10;
+    public final double sale_191 = 10;
+    public final double sale_192 = 10;
+    public final double sale_193 = 10;
+    public final double sale_194 = 10;
+    public final double sale_195 = 10;
+    public final double sale_196 = 10;
+    public final double sale_197 = 10;
+    public final double sale_198 = 10;
+    public final double sale_199 = 10;
+
+    public ProductSale(int prod_id, double sale) {
+      this.prod_id = prod_id;
+      this.sale = sale;
     }
   }
 
