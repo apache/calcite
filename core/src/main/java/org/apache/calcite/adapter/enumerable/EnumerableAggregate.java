@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.enumerable.impl.AggAddContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.AggResultContextImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
@@ -27,6 +28,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -252,7 +254,35 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
             typeFactory,
             typeFactory.createSyntheticType(aggStateTypes));
 
-    initBlock.add(accPhysType.record(initExpressions));
+
+    if (accPhysType.getJavaRowType() instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
+      // We have to initialize the SyntheticRecordType instance this way, to avoid using
+      // class constructor with too many parameters.
+      JavaTypeFactoryImpl.SyntheticRecordType synType =
+        (JavaTypeFactoryImpl.SyntheticRecordType) accPhysType.getJavaRowType();
+      final ParameterExpression record0_ =
+        Expressions.parameter(accPhysType.getJavaRowType(), "record0");
+      initBlock.add(Expressions.declare(0, record0_, null));
+      initBlock.add(
+        Expressions.statement(
+          Expressions.assign(
+            record0_,
+            Expressions.new_(accPhysType.getJavaRowType()))));
+      List<Types.RecordField> fieldList = synType.getRecordFields();
+      for (int i = 0; i < initExpressions.size(); i++) {
+        Expression right = initExpressions.get(i);
+        initBlock.add(
+          Expressions.statement(
+            Expressions.assign(
+              Expressions.field(
+                record0_,
+                fieldList.get(i)),
+              right)));
+      }
+      initBlock.add(record0_);
+    } else {
+      initBlock.add(accPhysType.record(initExpressions));
+    }
 
     final Expression accumulatorInitializer =
         builder.append(

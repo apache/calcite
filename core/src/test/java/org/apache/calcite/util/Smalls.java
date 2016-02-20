@@ -585,6 +585,229 @@ public class Smalls {
       return Linq4j.asEnumerable(rows);
     }
   }
+
+  /** Schema containing a {@code prod} table with a lot of columns. */
+  public static class WideSaleSchema {
+    @Override public String toString() {
+      return "WideSaleSchema";
+    }
+
+    @SuppressWarnings("unused")
+    public final WideProductSale[] prod = {
+      new WideProductSale(100, 10)
+    };
+  }
+
+  /** Table with a lot of columns. */
+  @SuppressWarnings("unused")
+  public static class WideProductSale {
+    public final int prodId;
+    public final double sale0;
+    public final double sale1 = 10;
+    public final double sale2 = 10;
+    public final double sale3 = 10;
+    public final double sale4 = 10;
+    public final double sale5 = 10;
+    public final double sale6 = 10;
+    public final double sale7 = 10;
+    public final double sale8 = 10;
+    public final double sale9 = 10;
+    public final double sale10 = 10;
+    public final double sale11 = 10;
+    public final double sale12 = 10;
+    public final double sale13 = 10;
+    public final double sale14 = 10;
+    public final double sale15 = 10;
+    public final double sale16 = 10;
+    public final double sale17 = 10;
+    public final double sale18 = 10;
+    public final double sale19 = 10;
+    public final double sale20 = 10;
+    public final double sale21 = 10;
+    public final double sale22 = 10;
+    public final double sale23 = 10;
+    public final double sale24 = 10;
+    public final double sale25 = 10;
+    public final double sale26 = 10;
+    public final double sale27 = 10;
+    public final double sale28 = 10;
+    public final double sale29 = 10;
+    public final double sale30 = 10;
+    public final double sale31 = 10;
+    public final double sale32 = 10;
+    public final double sale33 = 10;
+    public final double sale34 = 10;
+    public final double sale35 = 10;
+    public final double sale36 = 10;
+    public final double sale37 = 10;
+    public final double sale38 = 10;
+    public final double sale39 = 10;
+    public final double sale40 = 10;
+    public final double sale41 = 10;
+    public final double sale42 = 10;
+    public final double sale43 = 10;
+    public final double sale44 = 10;
+    public final double sale45 = 10;
+    public final double sale46 = 10;
+    public final double sale47 = 10;
+    public final double sale48 = 10;
+    public final double sale49 = 10;
+    public final double sale50 = 10;
+    public final double sale51 = 10;
+    public final double sale52 = 10;
+    public final double sale53 = 10;
+    public final double sale54 = 10;
+    public final double sale55 = 10;
+    public final double sale56 = 10;
+    public final double sale57 = 10;
+    public final double sale58 = 10;
+    public final double sale59 = 10;
+    public final double sale60 = 10;
+    public final double sale61 = 10;
+    public final double sale62 = 10;
+    public final double sale63 = 10;
+    public final double sale64 = 10;
+    public final double sale65 = 10;
+    public final double sale66 = 10;
+    public final double sale67 = 10;
+    public final double sale68 = 10;
+    public final double sale69 = 10;
+    public final double sale70 = 10;
+    public final double sale71 = 10;
+    public final double sale72 = 10;
+    public final double sale73 = 10;
+    public final double sale74 = 10;
+    public final double sale75 = 10;
+    public final double sale76 = 10;
+    public final double sale77 = 10;
+    public final double sale78 = 10;
+    public final double sale79 = 10;
+    public final double sale80 = 10;
+    public final double sale81 = 10;
+    public final double sale82 = 10;
+    public final double sale83 = 10;
+    public final double sale84 = 10;
+    public final double sale85 = 10;
+    public final double sale86 = 10;
+    public final double sale87 = 10;
+    public final double sale88 = 10;
+    public final double sale89 = 10;
+    public final double sale90 = 10;
+    public final double sale91 = 10;
+    public final double sale92 = 10;
+    public final double sale93 = 10;
+    public final double sale94 = 10;
+    public final double sale95 = 10;
+    public final double sale96 = 10;
+    public final double sale97 = 10;
+    public final double sale98 = 10;
+    public final double sale99 = 10;
+    public final double sale100 = 10;
+    public final double sale101 = 10;
+    public final double sale102 = 10;
+    public final double sale103 = 10;
+    public final double sale104 = 10;
+    public final double sale105 = 10;
+    public final double sale106 = 10;
+    public final double sale107 = 10;
+    public final double sale108 = 10;
+    public final double sale109 = 10;
+    public final double sale110 = 10;
+    public final double sale111 = 10;
+    public final double sale112 = 10;
+    public final double sale113 = 10;
+    public final double sale114 = 10;
+    public final double sale115 = 10;
+    public final double sale116 = 10;
+    public final double sale117 = 10;
+    public final double sale118 = 10;
+    public final double sale119 = 10;
+    public final double sale120 = 10;
+    public final double sale121 = 10;
+    public final double sale122 = 10;
+    public final double sale123 = 10;
+    public final double sale124 = 10;
+    public final double sale125 = 10;
+    public final double sale126 = 10;
+    public final double sale127 = 10;
+    public final double sale128 = 10;
+    public final double sale129 = 10;
+    public final double sale130 = 10;
+    public final double sale131 = 10;
+    public final double sale132 = 10;
+    public final double sale133 = 10;
+    public final double sale134 = 10;
+    public final double sale135 = 10;
+    public final double sale136 = 10;
+    public final double sale137 = 10;
+    public final double sale138 = 10;
+    public final double sale139 = 10;
+    public final double sale140 = 10;
+    public final double sale141 = 10;
+    public final double sale142 = 10;
+    public final double sale143 = 10;
+    public final double sale144 = 10;
+    public final double sale145 = 10;
+    public final double sale146 = 10;
+    public final double sale147 = 10;
+    public final double sale148 = 10;
+    public final double sale149 = 10;
+    public final double sale150 = 10;
+    public final double sale151 = 10;
+    public final double sale152 = 10;
+    public final double sale153 = 10;
+    public final double sale154 = 10;
+    public final double sale155 = 10;
+    public final double sale156 = 10;
+    public final double sale157 = 10;
+    public final double sale158 = 10;
+    public final double sale159 = 10;
+    public final double sale160 = 10;
+    public final double sale161 = 10;
+    public final double sale162 = 10;
+    public final double sale163 = 10;
+    public final double sale164 = 10;
+    public final double sale165 = 10;
+    public final double sale166 = 10;
+    public final double sale167 = 10;
+    public final double sale168 = 10;
+    public final double sale169 = 10;
+    public final double sale170 = 10;
+    public final double sale171 = 10;
+    public final double sale172 = 10;
+    public final double sale173 = 10;
+    public final double sale174 = 10;
+    public final double sale175 = 10;
+    public final double sale176 = 10;
+    public final double sale177 = 10;
+    public final double sale178 = 10;
+    public final double sale179 = 10;
+    public final double sale180 = 10;
+    public final double sale181 = 10;
+    public final double sale182 = 10;
+    public final double sale183 = 10;
+    public final double sale184 = 10;
+    public final double sale185 = 10;
+    public final double sale186 = 10;
+    public final double sale187 = 10;
+    public final double sale188 = 10;
+    public final double sale189 = 10;
+    public final double sale190 = 10;
+    public final double sale191 = 10;
+    public final double sale192 = 10;
+    public final double sale193 = 10;
+    public final double sale194 = 10;
+    public final double sale195 = 10;
+    public final double sale196 = 10;
+    public final double sale197 = 10;
+    public final double sale198 = 10;
+    public final double sale199 = 10;
+
+    public WideProductSale(int prodId, double sale) {
+      this.prodId = prodId;
+      this.sale0 = sale;
+    }
+  }
 }
 
 // End Smalls.java

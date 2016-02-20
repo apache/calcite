@@ -6345,6 +6345,56 @@ public class JdbcTest {
             });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1097">[CALCITE-1097]
+   * Exception when executing query with too many aggregation columns</a>. */
+  @Test public void testAggMultipleMeasures() throws SQLException {
+    final Driver driver = new Driver();
+    CalciteConnection connection = (CalciteConnection)
+        driver.connect("jdbc:calcite:", new Properties());
+    SchemaPlus rootSchema = connection.getRootSchema();
+    rootSchema.add("sale", new ReflectiveSchema(new Smalls.WideSaleSchema()));
+    connection.setSchema("sale");
+    final Statement statement = connection.createStatement();
+
+    // 200 columns: sum(sale0) + ... sum(sale199)
+    ResultSet resultSet =
+        statement.executeQuery("select s.\"prodId\"" + sums(200, true) + "\n"
+            + "from \"sale\".\"prod\" as s group by s.\"prodId\"\n");
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getInt(1), is(100));
+    assertThat(resultSet.getInt(2), is(10));
+    assertThat(resultSet.getInt(200), is(10));
+    assertThat(resultSet.next(), is(false));
+
+    // 800 columns:
+    //   sum(sale0 + 0) + ... + sum(sale0 + 100) + ... sum(sale99 + 799)
+    final int n = 800;
+    resultSet =
+        statement.executeQuery("select s.\"prodId\"" + sums(n, false) + "\n"
+            + "from \"sale\".\"prod\" as s group by s.\"prodId\"\n");
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getInt(1), is(100));
+    assertThat(resultSet.getInt(2), is(10));
+    assertThat(resultSet.getInt(n), is(n + 8));
+    assertThat(resultSet.next(), is(false));
+
+    connection.close();
+  }
+
+  private static String sums(int n, boolean c) {
+    final StringBuilder b = new StringBuilder();
+    for (int i = 0; i < n; i++) {
+      if (c) {
+        b.append(", sum(s.\"sale").append(i).append("\")");
+      } else {
+        b.append(", sum(s.\"sale").append(i % 100).append("\"").append(" + ")
+            .append(i).append(")");
+      }
+    }
+    return b.toString();
+  }
+
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
