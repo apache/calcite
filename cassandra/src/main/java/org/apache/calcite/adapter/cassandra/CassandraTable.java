@@ -57,11 +57,17 @@ public class CassandraTable extends AbstractQueryableTable
   List<RelFieldCollation> clusteringOrder;
   private final CassandraSchema schema;
   private final String columnFamily;
+  private final boolean view;
 
-  public CassandraTable(CassandraSchema schema, String columnFamily) {
+  public CassandraTable(CassandraSchema schema, String columnFamily, boolean view) {
     super(Object[].class);
     this.schema = schema;
     this.columnFamily = columnFamily;
+    this.view = view;
+  }
+
+  public CassandraTable(CassandraSchema schema, String columnFamily) {
+    this(schema, columnFamily, false);
   }
 
   public String toString() {
@@ -70,21 +76,21 @@ public class CassandraTable extends AbstractQueryableTable
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType == null) {
-      protoRowType = schema.getRelDataType(columnFamily);
+      protoRowType = schema.getRelDataType(columnFamily, view);
     }
     return protoRowType.apply(typeFactory);
   }
 
   public Pair<List<String>, List<String>> getKeyFields() {
     if (keyFields == null) {
-      keyFields = schema.getKeyFields(columnFamily);
+      keyFields = schema.getKeyFields(columnFamily, view);
     }
     return keyFields;
   }
 
   public List<RelFieldCollation> getClusteringOrder() {
     if (clusteringOrder == null) {
-      clusteringOrder = schema.getClusteringOrder(columnFamily);
+      clusteringOrder = schema.getClusteringOrder(columnFamily, view);
     }
     return clusteringOrder;
   }
