@@ -97,6 +97,15 @@ public class CassandraAdapterIT {
                 + "    CassandraSort(fetch=[1])\n"
                 + "      CassandraFilter(condition=[=(CAST($0):CHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n");
   }
+
+  @Test public void testMaterializedView() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"tweets\" where \"username\"='JmuhsAaMdw'")
+        .enableMaterializations(true)
+        .explainContains("CassandraTableScan(table=[[twissandra, tweets_by_user]])");
+  }
 }
 
 // End CassandraAdapterIT.java
