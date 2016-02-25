@@ -507,6 +507,22 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final List<RexNode> reducedValues = Lists.newArrayList();
     executor.reduce(rexBuilder, constExps2, reducedValues);
 
+    boolean isReduced = false;
+    for (int i = 0; i < constExps2.size(); ++i) {
+      final RexNode origExp = constExps.get(i);
+      final RexNode procExp = reducedValues.get(i);
+      // Use RexNode.digest to judge whether the newly generated RexNode
+      // is equivalent to the original one
+      if (!origExp.toString().equals(procExp.toString())) {
+        isReduced = true;
+        break;
+      }
+    }
+
+    if (!isReduced) {
+      return false;
+    }
+
     // For Project, we have to be sure to preserve the result
     // types, so always cast regardless of the expression type.
     // For other RelNodes like Filter, in general, this isn't necessary,
