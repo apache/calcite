@@ -474,8 +474,10 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         list.add(s);
       }
     }
-    if (ALL_RELS.addAll(list)) {
-      HANDLERS.invalidateAll();
+    synchronized (this) {
+      if (ALL_RELS.addAll(list)) {
+        HANDLERS.invalidateAll();
+      }
     }
   }
 
