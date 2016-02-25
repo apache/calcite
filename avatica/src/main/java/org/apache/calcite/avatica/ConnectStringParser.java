@@ -22,8 +22,8 @@ import java.util.Properties;
 
 /**
  * ConnectStringParser is a utility class that parses or creates a JDBC connect
- * string according to the OLE DB connect string syntax described at <a
- * href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/oledb/htm/oledbconnectionstringsyntax.asp">
+ * string according to the
+ * <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms722656(v=vs.85).aspx">
  * OLE DB Connection String Syntax</a>.
  *
  * <p>This code was adapted from Mondrian's mondrian.olap.Util class.
@@ -32,7 +32,7 @@ import java.util.Properties;
  * <ul>
  * <li>use of regular {@link Properties} for compatibility with the JDBC API
  * (replaces Mondrian's use of its own order-preserving and case-insensitive
- * PropertyList, found in Util.java at link above)</li>
+ * PropertyList)</li>
  *
  * <li>ability to pass to {@link #parse} a pre-existing Properties object into
  * which properties are to be parsed, possibly overriding prior values</li>
@@ -217,7 +217,7 @@ public class ConnectStringParser {
       String value = parseQuoted(c);
 
       // skip over trailing white space
-      while ((i < n) && ((c = s.charAt(i)) == ' ')) {
+      while (i < n && s.charAt(i) == ' ') {
         i++;
       }
       if (i >= n) {
@@ -327,7 +327,7 @@ public class ConnectStringParser {
       // write parameter value
       len = value.length();
       boolean hasSemi = value.indexOf(';') >= 0;
-      boolean hasSQ = value.indexOf("'") >= 0;
+      boolean hasSQ = value.indexOf('\'') >= 0;
       boolean hasDQ = value.indexOf('"') >= 0;
       if (value.startsWith(" ") || value.endsWith(" ")) {
         quote = "'";
@@ -383,6 +383,7 @@ public class ConnectStringParser {
    */
   public static Map<String, String> toMap(
       final Properties properties) {
+    //noinspection unchecked
     return (Map) properties;
   }
 }

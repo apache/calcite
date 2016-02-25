@@ -22,8 +22,6 @@ limitations under the License.
 {% endcomment %}
 -->
 
-* <a href="https://github.com/apache/drill">Apache Drill adapter</a>
-* Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
 * Cassandra adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/package-summary.html">calcite-cassandra</a>)
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
@@ -32,13 +30,46 @@ limitations under the License.
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/mat-calcite-plugin">mat-calcite-plugin</a>)
 
+## Engines
+
+The following standalone engines are powered by Apache Calcite.
+
+* <a href="https://drill.apache.org">Apache Drill</a>
+  uses Calcite for SQL parsing and query optimization
+* <a href="https://flink.apache.org">Apache Flink</a>
+  uses Calcite for parsing both regular and streaming SQL,
+  and for query optimization
+* <a href="https://hive.apache.org">Apache Hive</a>
+  uses Calcite for query optimization
+* <a href="https://kylin.apache.org">Apache Kylin</a>
+  uses Calcite for SQL parsing and query optimization
+* <a href="https://phoenix.apache.org">Apache Phoenix</a>
+  uses Calcite for SQL parsing and query optimization (under development),
+  and also uses Avatica for its remote JDBC driver
+* <a href="https://github.com/milinda/samza-sql">SamzaSQL</a>,
+  an extension to
+  <a href="https://samza.apache.org">Apache Samza</a>,
+  uses Calcite for parsing streaming SQL and query optimization
+* <a href="https://storm.apache.org">Apache Storm</a>
+  uses Calcite for parsing streaming SQL and query optimization
+* Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
+* <a href="https://github.com/twilmes/sql-gremlin">SQL-Gremlin</a>,
+  a SQL interface to a
+  <a href="http://tinkerpop.incubator.apache.org/">Apache TinkerPop</a>-enabled
+  graph database
+
 ## Drivers
 
 * <a href="{{ site.apiRoot }}/org/apache/calcite/jdbc/package-summary.html">JDBC driver</a>
 
 The basic form of the JDBC connect string is
 
-  "jdbc:calcite:?prop=value&prop2=value2&prop3=value3"
+  jdbc:calcite:property=value;property2=value2
+
+where `property`, `property2` are properties as described below.
+(Connect strings are compliant with OLE DB Connect String syntax,
+as implemented by Avatica's
+<a href="{{ site.apiRoot }}/org/apache/calcite/avatica/ConnectStringParser.html">ConnectStringParser</a>.)
 
 JDBC connect string parameters
 
