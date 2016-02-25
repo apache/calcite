@@ -507,6 +507,12 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final List<RexNode> reducedValues = Lists.newArrayList();
     executor.reduce(rexBuilder, constExps2, reducedValues);
 
+    // Use RexNode.digest to judge whether each newly generated RexNode
+    // is equivalent to the original one.
+    if (RexUtil.strings(constExps).equals(RexUtil.strings(reducedValues))) {
+      return false;
+    }
+
     // For Project, we have to be sure to preserve the result
     // types, so always cast regardless of the expression type.
     // For other RelNodes like Filter, in general, this isn't necessary,

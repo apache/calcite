@@ -1903,8 +1903,7 @@ public class RexUtil {
             map.put(conjunction.toString(), conjunction);
           }
         } else {
-          map.keySet().retainAll(
-              Lists.transform(RelOptUtil.conjunctions(node), TO_STRING));
+          map.keySet().retainAll(strings(RelOptUtil.conjunctions(node)));
         }
       }
       return map;
@@ -1928,6 +1927,11 @@ public class RexUtil {
     private RexNode or(Iterable<? extends RexNode> nodes) {
       return composeDisjunction(rexBuilder, nodes, false);
     }
+  }
+
+  /** Transforms a list of expressions to the list of digests. */
+  public static List<String> strings(List<RexNode> list) {
+    return Lists.transform(list, TO_STRING);
   }
 
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
