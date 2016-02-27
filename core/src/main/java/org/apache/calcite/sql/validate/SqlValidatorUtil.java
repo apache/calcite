@@ -54,6 +54,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Utility methods related to validation.
@@ -241,19 +242,67 @@ public class SqlValidatorUtil {
    * Makes sure that the names in a list are unique.
    *
    * <p>Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list. Deprecated in favor of caseSensitive
+   * aware version.
+   *
+   * @param nameList List of strings
+   * @param caseSensitive Whether this uniquification should be case sensitive.
+   * @return List of unique strings
+   */
+  @Deprecated public static List<String> uniquify(List<String> nameList) {
+    return uniquify(nameList, EXPR_SUGGESTER, true);
+  }
+
+
+  /**
+   * Makes sure that the names in a list are unique.
+   *
+   * <p>Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list. Deprecated in favor of caseSensitive aware
+   * version.
+   *
+   * @param nameList List of strings
+   * @param suggester The methodology to generate new names when the duplicate columns are found.
+   * @return List of unique strings
+   */
+  @Deprecated public static List<String> uniquify(List<String> nameList, Suggester suggester) {
+    return uniquify(nameList, suggester, true);
+  }
+
+  /**
+   * Makes sure that the names in a list are unique.
+   *
+   * <p>Does not modify the input list. Returns the input list if the strings
    * are unique, otherwise allocates a new list.
    *
    * @param nameList List of strings
+   * @param caseSensitive Whether this uniquification should be case sensitive.
    * @return List of unique strings
    */
-  public static List<String> uniquify(List<String> nameList) {
-    return uniquify(nameList, EXPR_SUGGESTER);
+  public static List<String> uniquify(List<String> nameList, boolean caseSensitive) {
+    return uniquify(nameList, EXPR_SUGGESTER, caseSensitive);
   }
 
+
+
+  /**
+   * Makes sure that the names in a list are unique.
+   *
+   * <p>Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list.
+   *
+   * @param nameList List of strings
+   * @param suggester The methodology to generate new names when the duplicate columns are found.
+   * @param caseSensitive Whether this uniquification should be case sensitive.
+   * @return List of unique strings
+   */
   public static List<String> uniquify(
       List<String> nameList,
-      Suggester suggester) {
-    final Set<String> used = new LinkedHashSet<>();
+      Suggester suggester,
+      boolean caseSensitive) {
+    final Set<String> used = caseSensitive
+        ? new LinkedHashSet<String>()
+            : new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
     int changeCount = 0;
     for (String name : nameList) {
       String uniqueName = uniquify(name, used, suggester);
@@ -685,7 +734,7 @@ public class SqlValidatorUtil {
 
   /** Suggests candidates for unique names, given the number of attempts so far
    * and the number of expressions in the project list. */
-  interface Suggester {
+  public interface Suggester {
     String apply(String original, int attempt, int size);
   }
 

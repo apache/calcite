@@ -73,6 +73,9 @@ public interface RelDataTypeSystem {
    * argument type.
    */
   RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType);
+
+
+  boolean isSchemaCaseSensitive();
 }
 
 // End RelDataTypeSystem.java

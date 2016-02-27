@@ -1612,12 +1612,16 @@ public abstract class RelOptUtil {
     // fields
     if (newLeftKeyCount > 0) {
       leftRel = createProject(leftRel, newLeftFields,
-          SqlValidatorUtil.uniquify(newLeftFieldNames));
+          SqlValidatorUtil.uniquify(newLeftFieldNames,
+              leftRel.getCluster().getTypeFactory()
+              .getTypeSystem().isSchemaCaseSensitive()));
     }
 
     if (newRightKeyCount > 0) {
       rightRel = createProject(rightRel, newRightFields,
-          SqlValidatorUtil.uniquify(newRightFieldNames));
+          SqlValidatorUtil.uniquify(newRightFieldNames,
+              rightRel.getCluster().getTypeFactory()
+              .getTypeSystem().isSchemaCaseSensitive()));
     }
 
     inputRels[0] = leftRel;
@@ -2838,7 +2842,9 @@ public abstract class RelOptUtil {
         fieldNames == null
             ? null
             : SqlValidatorUtil.uniquify(fieldNames,
-                SqlValidatorUtil.F_SUGGESTER);
+                SqlValidatorUtil.F_SUGGESTER,
+                child.getCluster().getTypeFactory()
+                .getTypeSystem().isSchemaCaseSensitive());
     if (optimize
         && RexUtil.isIdentity(exprs, child.getRowType())) {
       if (child instanceof Project && fieldNames != null) {
