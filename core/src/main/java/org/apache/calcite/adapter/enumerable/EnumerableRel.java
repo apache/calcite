@@ -48,9 +48,7 @@ public interface EnumerableRel
           final RelOptCluster cluster = child.getCluster();
           final RelDataType rowType =
               RexUtil.createStructType(cluster.getTypeFactory(), projects,
-                  fieldNames == null ? null
-                      : SqlValidatorUtil.uniquify(fieldNames,
-                          SqlValidatorUtil.F_SUGGESTER));
+                  fieldNames, SqlValidatorUtil.F_SUGGESTER);
           return EnumerableProject.create(child, projects, rowType);
         }
       };

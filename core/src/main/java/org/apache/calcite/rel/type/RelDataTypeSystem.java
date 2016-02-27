@@ -73,6 +73,10 @@ public interface RelDataTypeSystem {
    * argument type.
    */
   RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType);
+
+  /** Whether two record types are considered distinct if their field names
+   * are the same but in different cases. */
+  boolean isSchemaCaseSensitive();
 }
 
 // End RelDataTypeSystem.java

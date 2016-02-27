@@ -1678,10 +1678,7 @@ public class SubstitutionVisitor {
         List<String> fieldNameList) {
       final RelDataType rowType =
           RexUtil.createStructType(child.cluster.getTypeFactory(), exprList,
-              fieldNameList == null
-                  ? null
-                  : SqlValidatorUtil.uniquify(fieldNameList,
-                      SqlValidatorUtil.F_SUGGESTER));
+              fieldNameList, SqlValidatorUtil.F_SUGGESTER);
       return of(rowType, child, exprList);
     }
 
@@ -2017,8 +2014,9 @@ public class SubstitutionVisitor {
         Set<CorrelationId> variablesStopped) {
       List<RelDataTypeField> fieldList = Collections.emptyList();
       RelDataType rowType =
-          Join.deriveJoinRowType(left.getRowType(), right.getRowType(),
-              joinType, cluster.getTypeFactory(), null, fieldList);
+          SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
+              right.getRowType(), joinType, cluster.getTypeFactory(), null,
+              fieldList);
       return new MutableJoin(rowType, left, right, condition, joinType,
           variablesStopped);
     }

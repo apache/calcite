@@ -49,6 +49,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -1541,7 +1542,10 @@ public abstract class RelOptUtil {
       List<Integer> outputProj) {
     RelNode leftRel = inputRels[0];
     RelNode rightRel = inputRels[1];
-    RexBuilder rexBuilder = leftRel.getCluster().getRexBuilder();
+    final RelOptCluster cluster = leftRel.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelDataTypeSystem typeSystem =
+        cluster.getTypeFactory().getTypeSystem();
 
     int origLeftInputSize = leftRel.getRowType().getFieldCount();
     int origRightInputSize = rightRel.getRowType().getFieldCount();
@@ -1612,12 +1616,14 @@ public abstract class RelOptUtil {
     // fields
     if (newLeftKeyCount > 0) {
       leftRel = createProject(leftRel, newLeftFields,
-          SqlValidatorUtil.uniquify(newLeftFieldNames));
+          SqlValidatorUtil.uniquify(newLeftFieldNames,
+              typeSystem.isSchemaCaseSensitive()));
     }
 
     if (newRightKeyCount > 0) {
       rightRel = createProject(rightRel, newRightFields,
-          SqlValidatorUtil.uniquify(newRightFieldNames));
+          SqlValidatorUtil.uniquify(newRightFieldNames,
+              typeSystem.isSchemaCaseSensitive()));
     }
 
     inputRels[0] = leftRel;
@@ -2834,19 +2840,12 @@ public abstract class RelOptUtil {
       boolean optimize,
       RelFactories.ProjectFactory projectFactory) {
     final RelOptCluster cluster = child.getCluster();
-    final List<String> fieldNames2 =
-        fieldNames == null
-            ? null
-            : SqlValidatorUtil.uniquify(fieldNames,
-                SqlValidatorUtil.F_SUGGESTER);
+    final RelDataType rowType =
+        RexUtil.createStructType(cluster.getTypeFactory(), exprs,
+            fieldNames, SqlValidatorUtil.F_SUGGESTER);
     if (optimize
         && RexUtil.isIdentity(exprs, child.getRowType())) {
       if (child instanceof Project && fieldNames != null) {
-        final RelDataType rowType =
-            RexUtil.createStructType(
-                cluster.getTypeFactory(),
-                exprs,
-                fieldNames2);
         // Rename columns of child projection if desired field names are given.
         Project childProject = (Project) child;
         child = childProject.copy(childProject.getTraitSet(),
@@ -2854,7 +2853,7 @@ public abstract class RelOptUtil {
       }
       return child;
     }
-    return projectFactory.createProject(child, exprs, fieldNames2);
+    return projectFactory.createProject(child, exprs, rowType.getFieldNames());
   }
 
   /**

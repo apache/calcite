@@ -290,7 +290,7 @@ public interface RelDataTypeFactory {
   /**
    * Callback which provides enough information to create fields.
    */
-  public interface FieldInfo {
+  interface FieldInfo {
     /**
      * Returns the number of fields.
      *
@@ -319,9 +319,9 @@ public interface RelDataTypeFactory {
    * Implementation of {@link FieldInfo} that provides a fluid API to build
    * a list of fields.
    */
-  public static class FieldInfoBuilder implements FieldInfo {
-    private final List<String> names = new ArrayList<String>();
-    private final List<RelDataType> types = new ArrayList<RelDataType>();
+  class FieldInfoBuilder implements FieldInfo {
+    private final List<String> names = new ArrayList<>();
+    private final List<RelDataType> types = new ArrayList<>();
 
     private final RelDataTypeFactory typeFactory;
 
@@ -422,7 +422,8 @@ public interface RelDataTypeFactory {
      * Makes sure that field names are unique.
      */
     public FieldInfoBuilder uniquify() {
-      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names);
+      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names,
+          typeFactory.getTypeSystem().isSchemaCaseSensitive());
       if (uniqueNames != names) {
         names.clear();
         names.addAll(uniqueNames);

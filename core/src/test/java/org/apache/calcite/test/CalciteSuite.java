@@ -39,6 +39,8 @@ import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
 import org.apache.calcite.sql.test.SqlTypeNameTest;
 import org.apache.calcite.sql.type.SqlTypeFactoryTest;
+import org.apache.calcite.sql.validate.LexCaseSensitiveTest;
+import org.apache.calcite.sql.validate.SqlValidatorUtilTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
 import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
@@ -99,6 +101,7 @@ import org.junit.runners.Suite;
     RelOptPlanReaderTest.class,
     RexBuilderTest.class,
     SqlTypeFactoryTest.class,
+    SqlValidatorUtilTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
@@ -121,6 +124,7 @@ import org.junit.runners.Suite;
     FrameworksTest.class,
     EnumerableCorrelateTest.class,
     LookupOperatorOverloadsTest.class,
+    LexCaseSensitiveTest.class,
 
     // slow tests (above 1s)
     UdfTest.class,

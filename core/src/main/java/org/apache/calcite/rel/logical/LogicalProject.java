@@ -80,7 +80,7 @@ public final class LogicalProject extends Project {
     this(cluster, cluster.traitSetOf(RelCollations.EMPTY),
         input, projects,
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
-            fieldNames));
+            fieldNames, null));
     Util.discard(flags);
   }
 
@@ -97,14 +97,9 @@ public final class LogicalProject extends Project {
   public static LogicalProject create(final RelNode input,
       final List<? extends RexNode> projects, List<String> fieldNames) {
     final RelOptCluster cluster = input.getCluster();
-    final List<String> fieldNames2 =
-        fieldNames == null
-            ? null
-            : SqlValidatorUtil.uniquify(fieldNames,
-                SqlValidatorUtil.F_SUGGESTER);
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
-            fieldNames2);
+            fieldNames, SqlValidatorUtil.F_SUGGESTER);
     return create(input, projects, rowType);
   }
 

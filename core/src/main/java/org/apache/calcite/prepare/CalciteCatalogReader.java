@@ -351,6 +351,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
 
   public void registerRules(RelOptPlanner planner) throws Exception {
   }
+
+  @Override public boolean isCaseSensitive() {
+    return caseSensitive;
+  }
+
+
 }
 
 // End CalciteCatalogReader.java

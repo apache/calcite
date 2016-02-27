@@ -454,7 +454,8 @@ public class SqlToRelConverter {
     final RelDataType validatedRowType =
         validator.getTypeFactory().createStructType(
             Pair.right(validatedFields),
-            SqlValidatorUtil.uniquify(Pair.left(validatedFields)));
+            SqlValidatorUtil.uniquify(Pair.left(validatedFields),
+                catalogReader.isCaseSensitive()));
 
     final List<RelDataTypeField> convertedFields =
         result.getRowType().getFieldList().subList(0, validatedFields.size());
@@ -3520,7 +3521,7 @@ public class SqlToRelConverter {
       fieldNames.add(deriveAlias(expr, aliases, i));
     }
 
-    fieldNames = SqlValidatorUtil.uniquify(fieldNames);
+    fieldNames = SqlValidatorUtil.uniquify(fieldNames, catalogReader.isCaseSensitive());
 
     bb.setRoot(
         RelOptUtil.createProject(bb.root, exprs, fieldNames),

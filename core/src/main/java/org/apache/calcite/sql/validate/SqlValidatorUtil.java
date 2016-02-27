@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptSchemaWithSampling;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -50,10 +51,12 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Utility methods related to validation.
@@ -187,33 +190,6 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Makes a name distinct from other names which have already been used, adds
-   * it to the list, and returns it.
-   *
-   * @param name      Suggested name, may not be unique
-   * @param nameList  Collection of names already used
-   * @param suggester Base for name when input name is null
-   * @return Unique name
-   */
-  public static String uniquify(
-      String name,
-      Set<String> nameList,
-      Suggester suggester) {
-    if (name != null) {
-      if (nameList.add(name)) {
-        return name;
-      }
-    }
-    final String originalName = name;
-    for (int j = 0;; j++) {
-      name = suggester.apply(originalName, j, nameList.size());
-      if (nameList.add(name)) {
-        return name;
-      }
-    }
-  }
-
-  /**
    * Factory method for {@link SqlValidator}.
    */
   public static SqlValidatorWithHints newValidator(
@@ -238,32 +214,226 @@ public class SqlValidatorUtil {
   }
 
   /**
+   * Makes a name distinct from other names which have already been used, adds
+   * it to the list, and returns it.
+   *
+   * @param name      Suggested name, may not be unique
+   * @param usedNames  Collection of names already used
+   * @param suggester Base for name when input name is null
+   * @return Unique name
+   */
+  public static String uniquify(String name, Set<String> usedNames,
+      Suggester suggester) {
+    if (name != null) {
+      if (usedNames.add(name)) {
+        return name;
+      }
+    }
+    final String originalName = name;
+    for (int j = 0;; j++) {
+      name = suggester.apply(originalName, j, usedNames.size());
+      if (usedNames.add(name)) {
+        return name;
+      }
+    }
+  }
+
+  /**
+   * Makes sure that the names in a list are unique.
+   *
+   * <p>Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list. Deprecated in favor of caseSensitive
+   * aware version.
+   *
+   * @param nameList List of strings
+   * @return List of unique strings
+   */
+  @Deprecated // to be removed before 2.0
+  public static List<String> uniquify(List<String> nameList) {
+    return uniquify(nameList, EXPR_SUGGESTER, true);
+  }
+
+
+  /**
+   * Makes sure that the names in a list are unique.
+   *
+   * <p>Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list.
+   *
+   * @deprecated Use {@link #uniquify(List, Suggester, boolean)}
+   *
+   * @param nameList List of strings
+   * @param suggester How to generate new names if duplicate names are found
+   * @return List of unique strings
+   */
+  @Deprecated // to be removed before 2.0
+  public static List<String> uniquify(List<String> nameList, Suggester suggester) {
+    return uniquify(nameList, suggester, true);
+  }
+
+  /**
    * Makes sure that the names in a list are unique.
    *
    * <p>Does not modify the input list. Returns the input list if the strings
    * are unique, otherwise allocates a new list.
    *
    * @param nameList List of strings
+   * @param caseSensitive Whether upper and lower case names are considered
+   *     distinct
    * @return List of unique strings
    */
-  public static List<String> uniquify(List<String> nameList) {
-    return uniquify(nameList, EXPR_SUGGESTER);
+  public static List<String> uniquify(List<String> nameList,
+      boolean caseSensitive) {
+    return uniquify(nameList, EXPR_SUGGESTER, caseSensitive);
   }
 
+  /**
+   * Makes sure that the names in a list are unique.
+   *
+   * <p>Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list.
+   *
+   * @param nameList List of strings
+   * @param suggester How to generate new names if duplicate names are found
+   * @param caseSensitive Whether upper and lower case names are considered
+   *     distinct
+   * @return List of unique strings
+   */
   public static List<String> uniquify(
       List<String> nameList,
-      Suggester suggester) {
-    final Set<String> used = new LinkedHashSet<>();
+      Suggester suggester,
+      boolean caseSensitive) {
+    final Set<String> used = caseSensitive
+        ? new LinkedHashSet<String>()
+        : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     int changeCount = 0;
+    final List<String> newNameList = new ArrayList<>();
     for (String name : nameList) {
       String uniqueName = uniquify(name, used, suggester);
       if (!uniqueName.equals(name)) {
         ++changeCount;
       }
+      newNameList.add(uniqueName);
     }
     return changeCount == 0
         ? nameList
-        : new ArrayList<>(used);
+        : newNameList;
+  }
+
+  /**
+   * Derives the type of a join relational expression.
+   *
+   * @param leftType        Row type of left input to join
+   * @param rightType       Row type of right input to join
+   * @param joinType        Type of join
+   * @param typeFactory     Type factory
+   * @param fieldNameList   List of names of fields; if null, field names are
+   *                        inherited and made unique
+   * @param systemFieldList List of system fields that will be prefixed to
+   *                        output row type; typically empty but must not be
+   *                        null
+   * @return join type
+   */
+  public static RelDataType deriveJoinRowType(
+      RelDataType leftType,
+      RelDataType rightType,
+      JoinRelType joinType,
+      RelDataTypeFactory typeFactory,
+      List<String> fieldNameList,
+      List<RelDataTypeField> systemFieldList) {
+    assert systemFieldList != null;
+    switch (joinType) {
+    case LEFT:
+      rightType = typeFactory.createTypeWithNullability(rightType, true);
+      break;
+    case RIGHT:
+      leftType = typeFactory.createTypeWithNullability(leftType, true);
+      break;
+    case FULL:
+      leftType = typeFactory.createTypeWithNullability(leftType, true);
+      rightType = typeFactory.createTypeWithNullability(rightType, true);
+      break;
+    default:
+      break;
+    }
+    return createJoinType(typeFactory, leftType, rightType, fieldNameList,
+        systemFieldList);
+  }
+
+  /**
+   * Returns the type the row which results when two relations are joined.
+   *
+   * <p>The resulting row type consists of
+   * the system fields (if any), followed by
+   * the fields of the left type, followed by
+   * the fields of the right type. The field name list, if present, overrides
+   * the original names of the fields.
+   *
+   * @param typeFactory     Type factory
+   * @param leftType        Type of left input to join
+   * @param rightType       Type of right input to join
+   * @param fieldNameList   If not null, overrides the original names of the
+   *                        fields
+   * @param systemFieldList List of system fields that will be prefixed to
+   *                        output row type; typically empty but must not be
+   *                        null
+   * @return type of row which results when two relations are joined
+   */
+  public static RelDataType createJoinType(
+      RelDataTypeFactory typeFactory,
+      RelDataType leftType,
+      RelDataType rightType,
+      List<String> fieldNameList,
+      List<RelDataTypeField> systemFieldList) {
+    assert (fieldNameList == null)
+        || (fieldNameList.size()
+        == (systemFieldList.size()
+        + leftType.getFieldCount()
+        + rightType.getFieldCount()));
+    List<String> nameList = new ArrayList<>();
+    final List<RelDataType> typeList = new ArrayList<>();
+
+    // Use a set to keep track of the field names; this is needed
+    // to ensure that the contains() call to check for name uniqueness
+    // runs in constant time; otherwise, if the number of fields is large,
+    // doing a contains() on a list can be expensive.
+    final Set<String> uniqueNameList =
+        typeFactory.getTypeSystem().isSchemaCaseSensitive()
+            ? new HashSet<String>()
+            : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    addFields(systemFieldList, typeList, nameList, uniqueNameList);
+    addFields(leftType.getFieldList(), typeList, nameList, uniqueNameList);
+    if (rightType != null) {
+      addFields(
+          rightType.getFieldList(), typeList, nameList, uniqueNameList);
+    }
+    if (fieldNameList != null) {
+      assert fieldNameList.size() == nameList.size();
+      nameList = fieldNameList;
+    }
+    return typeFactory.createStructType(typeList, nameList);
+  }
+
+  private static void addFields(List<RelDataTypeField> fieldList,
+      List<RelDataType> typeList, List<String> nameList,
+      Set<String> uniqueNames) {
+    for (RelDataTypeField field : fieldList) {
+      String name = field.getName();
+
+      // Ensure that name is unique from all previous field names
+      if (uniqueNames.contains(name)) {
+        String nameBase = name;
+        for (int j = 0;; j++) {
+          name = nameBase + j;
+          if (!uniqueNames.contains(name)) {
+            break;
+          }
+        }
+      }
+      nameList.add(name);
+      uniqueNames.add(name);
+      typeList.add(field.getType());
+    }
   }
 
   /**
@@ -685,7 +855,7 @@ public class SqlValidatorUtil {
 
   /** Suggests candidates for unique names, given the number of attempts so far
    * and the number of expressions in the project list. */
-  interface Suggester {
+  public interface Suggester {
     String apply(String original, int attempt, int size);
   }
 

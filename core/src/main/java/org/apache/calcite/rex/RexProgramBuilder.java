@@ -423,10 +423,8 @@ public class RexProgramBuilder {
   }
 
   private RelDataType computeOutputRowType() {
-    return RexUtil.createStructType(
-        rexBuilder.typeFactory,
-        projectRefList,
-        projectNameList);
+    return RexUtil.createStructType(rexBuilder.typeFactory, projectRefList,
+        projectNameList, null);
   }
 
   private void generateMissingNames() {
