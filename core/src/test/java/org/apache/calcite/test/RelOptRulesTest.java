@@ -328,6 +328,24 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1109">[CALCITE-1109]
+   * FilterAggregateTransposeRule pushes down incorrect condition</a>. */
+  @Test public void testPushFilterPastAggFour() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+            .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
+            .build();
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+        "select emp.deptno, count(*) from emp where emp.sal > '12' "
+            + "group by emp.deptno\n", false);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-448">[CALCITE-448]
    * FilterIntoJoinRule creates filters containing invalid RexInputRef</a>. */
   @Test public void testPushFilterPastProject() {
