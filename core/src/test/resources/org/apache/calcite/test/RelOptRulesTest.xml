@@ -5114,4 +5114,22 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterPastAggFour">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
+  LogicalFilter(condition=[>(CAST($0):BIGINT NOT NULL, CAST('12'):BIGINT NOT NULL)])
+    LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
+  LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
+    LogicalFilter(condition=[>(CAST($5):BIGINT NOT NULL, CAST('12'):BIGINT NOT NULL)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
