@@ -78,7 +78,7 @@ public abstract class AvaticaConnection implements Connection {
   protected final UnregisteredDriver driver;
   protected final AvaticaFactory factory;
   final String url;
-  protected final Properties info;
+  private final Properties info;
   protected final Meta meta;
   protected final AvaticaDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
@@ -128,7 +128,7 @@ public abstract class AvaticaConnection implements Connection {
    * almost certainly subclass {@link ConnectionConfig} with their own
    * properties. */
   public ConnectionConfig config() {
-    return new ConnectionConfigImpl(info);
+    return new ConnectionConfigImpl(getInfo());
   }
 
   /**
@@ -136,7 +136,7 @@ public abstract class AvaticaConnection implements Connection {
    */
   public void openConnection() {
     // Open the connection on the server
-    this.meta.openConnection(handle, OpenConnectionRequest.serializeProperties(info));
+    this.meta.openConnection(handle, OpenConnectionRequest.serializeProperties(getInfo()));
   }
 
   // Connection methods
@@ -680,6 +680,10 @@ public abstract class AvaticaConnection implements Connection {
       // Shouldn't ever happen.
       throw new IllegalStateException();
     }
+  }
+
+  public Properties getInfo() {
+    return info;
   }
 }
 

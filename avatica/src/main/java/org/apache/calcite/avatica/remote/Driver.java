@@ -129,13 +129,15 @@ public class Driver extends UnregisteredDriver {
    */
   AvaticaHttpClient getHttpClient(AvaticaConnection connection, ConnectionConfig config) {
     URL url;
+    Properties props = connection.getInfo();
+
     try {
       url = new URL(config.url());
     } catch (MalformedURLException e) {
       throw new RuntimeException(e);
     }
 
-    return new AvaticaHttpClientImpl(url);
+    return new AvaticaHttpClientImpl(url, props);
   }
 
   @Override public Connection connect(String url, Properties info)

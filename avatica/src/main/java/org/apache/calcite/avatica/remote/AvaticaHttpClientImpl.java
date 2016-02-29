@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica.remote;
 
+
 import org.apache.calcite.avatica.AvaticaUtils;
 
 import java.io.DataOutputStream;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Properties;
 
 /**
  * A common class to invoke HTTP requests against the Avatica server agnostic of the data being
@@ -30,9 +32,15 @@ import java.net.URL;
  */
 public class AvaticaHttpClientImpl implements AvaticaHttpClient {
   protected final URL url;
+  protected Properties connectionProps = new Properties();
 
   public AvaticaHttpClientImpl(URL url) {
     this.url = url;
+  }
+
+  public AvaticaHttpClientImpl(URL url,  Properties props) {
+    this.url = url;
+    this.connectionProps.putAll(props);
   }
 
   public byte[] send(byte[] request) {
@@ -49,6 +57,7 @@ public class AvaticaHttpClientImpl implements AvaticaHttpClient {
           wr.close();
         }
         final int responseCode = connection.getResponseCode();
+
         final InputStream inputStream;
         if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
           // Could be sitting behind a load-balancer, try again.
@@ -66,7 +75,17 @@ public class AvaticaHttpClientImpl implements AvaticaHttpClient {
   }
 
   HttpURLConnection openConnection() throws IOException {
-    return (HttpURLConnection) url.openConnection();
+
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    String user = this.connectionProps.getProperty("user");
+    String pass = this.connectionProps.getProperty("password");
+    String userpass = user + ":" + pass;
+    String basicAuth =
+        "Basic " + javax.xml.bind.DatatypeConverter.printBase64Binary(userpass.getBytes());
+
+    connection.setRequestProperty("Authorization", basicAuth);
+
+    return connection;
   }
 }
 
