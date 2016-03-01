@@ -94,6 +94,11 @@ public class RexProgramTest {
         equalTo(expected));
   }
 
+  private void checkSimplifyFilter(RexNode node, String expected) {
+    assertThat(RexUtil.simplify(rexBuilder, node, true).toString(),
+        equalTo(expected));
+  }
+
   /** Returns the number of nodes (including leaves) in a Rex tree. */
   private static int nodeCount(RexNode node) {
     int n = 1;
@@ -135,6 +140,22 @@ public class RexProgramTest {
 
   private RexNode eq(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
+
+  private RexNode le(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, n1, n2);
+  }
+
+  private RexNode lt(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, n1, n2);
+  }
+
+  private RexNode ge(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, n1, n2);
+  }
+
+  private RexNode gt(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, n1, n2);
   }
 
   /**
@@ -759,6 +780,7 @@ public class RexProgramTest {
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
     final RexLiteral true_ = rexBuilder.makeLiteral(true);
     final RexLiteral false_ = rexBuilder.makeLiteral(false);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
 
     // and: remove duplicates
     checkSimplify(and(aRef, bRef, aRef), "AND(?0.a, ?0.b)");
@@ -830,6 +852,46 @@ public class RexProgramTest {
     // is not null, applied to not-null value
     checkSimplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, aRef),
         "true");
+
+    // condition, and the inverse - nothing to do due to null values
+    checkSimplify(and(le(aRef, literal1), gt(aRef, literal1)),
+        "AND(<=(?0.a, 1), >(?0.a, 1))");
+
+    checkSimplify(and(le(aRef, literal1), ge(aRef, literal1)),
+        "AND(<=(?0.a, 1), >=(?0.a, 1))");
+
+    checkSimplify(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
+        "AND(<(?0.a, 1), =(?0.a, 1), >=(?0.a, 1))");
+  }
+
+  @Test public void testSimplifyFilter() {
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", booleanType)
+        .add("b", booleanType)
+        .add("c", booleanType)
+        .add("d", booleanType)
+        .add("e", booleanType)
+        .add("f", booleanType)
+        .add("g", booleanType)
+        .add("h", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+
+    // condition, and the inverse
+    checkSimplifyFilter(and(le(aRef, literal1), gt(aRef, literal1)),
+        "false");
+
+    checkSimplifyFilter(and(le(aRef, literal1), ge(aRef, literal1)),
+        "AND(<=(?0.a, 1), >=(?0.a, 1))");
+
+    checkSimplifyFilter(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
+        "false");
   }
 }
 

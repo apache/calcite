@@ -52,8 +52,11 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -304,6 +307,31 @@ public class RexUtil {
    */
   public static boolean isConstant(RexNode node) {
     return node.accept(ConstantFinder.INSTANCE);
+  }
+
+  /**
+   * Returns whether a given expression is deterministic.
+   *
+   * @param e Expression
+   * @return true if tree result is deterministic, false otherwise
+   */
+  public static boolean isDeterministic(RexNode e) {
+    try {
+      RexVisitor<Void> visitor =
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (!call.getOperator().isDeterministic()) {
+                throw Util.FoundOne.NULL;
+              }
+              return null;
+            }
+          };
+      e.accept(visitor);
+      return true;
+    } catch (Util.FoundOne ex) {
+      Util.swallow(ex, null);
+      return false;
+    }
   }
 
    /**
@@ -1283,9 +1311,14 @@ public class RexUtil {
    * </ul>
    */
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
+    return simplify(rexBuilder, e, false);
+  }
+
+  public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
+      boolean unknownAsFalse) {
     switch (e.getKind()) {
     case AND:
-      return simplifyAnd(rexBuilder, (RexCall) e);
+      return simplifyAnd(rexBuilder, (RexCall) e, unknownAsFalse);
     case OR:
       return simplifyOr(rexBuilder, (RexCall) e);
     case NOT:
@@ -1312,10 +1345,18 @@ public class RexUtil {
    */
   public static RexNode simplifyAnds(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
+    return simplifyAnds(rexBuilder, nodes, false);
+  }
+
+  public static RexNode simplifyAnds(RexBuilder rexBuilder,
+      Iterable<? extends RexNode> nodes, boolean unknownAsFalse) {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
     for (RexNode e : nodes) {
       RelOptUtil.decomposeConjunction(e, terms, notTerms);
+    }
+    if (unknownAsFalse) {
+      return simplifyAnd2ForUnknownAsFalse(rexBuilder, terms, notTerms);
     }
     return simplifyAnd2(rexBuilder, terms, notTerms);
   }
@@ -1405,6 +1446,18 @@ public class RexUtil {
       return SqlStdOperatorTable.IS_NOT_TRUE;
     case IS_NOT_NULL:
       return SqlStdOperatorTable.IS_NOT_NULL;
+    case EQUALS:
+      return SqlStdOperatorTable.EQUALS;
+    case NOT_EQUALS:
+      return SqlStdOperatorTable.NOT_EQUALS;
+    case LESS_THAN:
+      return SqlStdOperatorTable.LESS_THAN;
+    case GREATER_THAN:
+      return SqlStdOperatorTable.GREATER_THAN;
+    case LESS_THAN_OR_EQUAL:
+      return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+    case GREATER_THAN_OR_EQUAL:
+      return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
     default:
       throw new AssertionError(kind);
     }
@@ -1432,6 +1485,9 @@ public class RexUtil {
     assert newOperands.size() % 2 == 1;
     switch (newOperands.size()) {
     case 1:
+      if (!call.getType().equals(newOperands.get(0).getType())) {
+        return rexBuilder.makeCast(call.getType(), newOperands.get(0));
+      }
       return newOperands.get(0);
     }
   trueFalse:
@@ -1483,10 +1539,14 @@ public class RexUtil {
     return builder.build();
   }
 
-  public static RexNode simplifyAnd(RexBuilder rexBuilder, RexCall e) {
+  public static RexNode simplifyAnd(RexBuilder rexBuilder, RexCall e,
+      boolean unknownAsFalse) {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
     RelOptUtil.decomposeConjunction(e, terms, notTerms);
+    if (unknownAsFalse) {
+      return simplifyAnd2ForUnknownAsFalse(rexBuilder, terms, notTerms);
+    }
     return simplifyAnd2(rexBuilder, terms, notTerms);
   }
 
@@ -1522,6 +1582,157 @@ public class RexUtil {
               rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction)));
     }
     return composeConjunction(rexBuilder, terms, false);
+  }
+
+  /** As {@link #simplifyAnd2(RexBuilder, List, List)} but we assume that if the expression returns
+   * UNKNOWN it will be interpreted as FALSE. */
+  public static RexNode simplifyAnd2ForUnknownAsFalse(RexBuilder rexBuilder,
+      List<RexNode> terms, List<RexNode> notTerms) {
+    if (terms.contains(rexBuilder.makeLiteral(false))) {
+      return rexBuilder.makeLiteral(false);
+    }
+    if (terms.isEmpty() && notTerms.isEmpty()) {
+      return rexBuilder.makeLiteral(true);
+    }
+    if (terms.size() == 1 && notTerms.isEmpty()) {
+      // Make sure "x OR y OR x" (a single-term conjunction) gets simplified.
+      return simplify(rexBuilder, terms.get(0), true);
+    }
+    // Try to simplify the expression
+    final Set<String> negatedTerms = new HashSet<>();
+    final Set<String> nullOperands = new HashSet<>();
+    final Set<RexNode> notNullOperands = new LinkedHashSet<>();
+    final Set<String> comparedOperands = new HashSet<>();
+    for (int i = 0; i < terms.size(); i++) {
+      final RexNode term = terms.get(i);
+      if (!isDeterministic(term)) {
+        continue;
+      }
+      switch (term.getKind()) {
+      case EQUALS:
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case GREATER_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case GREATER_THAN_OR_EQUAL:
+        RexCall call = (RexCall) term;
+        RexNode left = call.getOperands().get(0);
+        comparedOperands.add(left.toString());
+        // if it is a cast, we include the inner reference
+        if (left.getKind() == SqlKind.CAST) {
+          RexCall leftCast = (RexCall) left;
+          comparedOperands.add(leftCast.getOperands().get(0).toString());
+        }
+        RexNode right = call.getOperands().get(1);
+        comparedOperands.add(right.toString());
+        // if it is a cast, we include the inner reference
+        if (right.getKind() == SqlKind.CAST) {
+          RexCall rightCast = (RexCall) right;
+          comparedOperands.add(rightCast.getOperands().get(0).toString());
+        }
+        // Assume the expression a > 5 is part of a Filter condition.
+        // Then we can derive the negated term: a <= 5.
+        // But as the comparison is string based and thus operands order dependent,
+        // we should also add the inverted negated term: 5 >= a.
+        // Observe that for creating the inverted term we invert the list of operands.
+        RexNode negatedTerm = negate(rexBuilder, call);
+        if (negatedTerm != null) {
+          negatedTerms.add(negatedTerm.toString());
+          RexNode invertNegatedTerm = invert(rexBuilder, (RexCall) negatedTerm);
+          if (invertNegatedTerm != null) {
+            negatedTerms.add(invertNegatedTerm.toString());
+          }
+        }
+        break;
+      case IN:
+        comparedOperands.add(((RexCall) term).operands.get(0).toString());
+        break;
+      case BETWEEN:
+        comparedOperands.add(((RexCall) term).operands.get(1).toString());
+        break;
+      case IS_NOT_NULL:
+        notNullOperands.add(((RexCall) term).getOperands().get(0));
+        terms.remove(i);
+        --i;
+        break;
+      case IS_NULL:
+        nullOperands.add(((RexCall) term).getOperands().get(0).toString());
+      }
+    }
+    // If one column should be null and is in a comparison predicate,
+    // it is not satisfiable.
+    // Example. IS NULL(x) AND x < 5  - not satisfiable
+    if (!Collections.disjoint(nullOperands, comparedOperands)) {
+      return rexBuilder.makeLiteral(false);
+    }
+    // Remove not necessary IS NOT NULL expressions.
+    //
+    // Example. IS NOT NULL(x) AND x < 5  : x < 5
+    for (RexNode operand : notNullOperands) {
+      if (!comparedOperands.contains(operand.toString())) {
+        terms.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operand));
+      }
+    }
+    // If one of the not-disjunctions is a disjunction that is wholly
+    // contained in the disjunctions list, the expression is not
+    // satisfiable.
+    //
+    // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
+    // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
+    // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
+    final Set<String> termsSet = Sets.newHashSet(RexUtil.strings(terms));
+    for (RexNode notDisjunction : notTerms) {
+      if (!isDeterministic(notDisjunction)) {
+        continue;
+      }
+      final List<String> terms2Set = RexUtil.strings(
+              RelOptUtil.conjunctions(notDisjunction));
+      if (termsSet.containsAll(terms2Set)) {
+        return rexBuilder.makeLiteral(false);
+      }
+    }
+    // Add the NOT disjunctions back in.
+    for (RexNode notDisjunction : notTerms) {
+      terms.add(
+          simplify(rexBuilder,
+              rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction), true));
+    }
+    // The negated terms: only deterministic expressions
+    for (String negatedTerm : negatedTerms) {
+      if (termsSet.contains(negatedTerm)) {
+        return rexBuilder.makeLiteral(false);
+      }
+    }
+    return composeConjunction(rexBuilder, terms, false);
+  }
+
+  public static RexNode negate(RexBuilder rexBuilder, RexCall call) {
+    switch (call.getKind()) {
+    case EQUALS:
+    case NOT_EQUALS:
+    case LESS_THAN:
+    case GREATER_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case GREATER_THAN_OR_EQUAL:
+      final SqlOperator op = op(call.getKind().negateNullSafe());
+      return rexBuilder.makeCall(op, call.getOperands());
+    }
+    return null;
+  }
+
+  public static RexNode invert(RexBuilder rexBuilder, RexCall call) {
+    switch (call.getKind()) {
+    case EQUALS:
+    case NOT_EQUALS:
+    case LESS_THAN:
+    case GREATER_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case GREATER_THAN_OR_EQUAL:
+      final SqlOperator op = op(call.getKind().reverse());
+      return rexBuilder.makeCall(op, Lists.reverse(call.getOperands()));
+    }
+    return null;
   }
 
   /** Simplifies OR(x, x) into x, and similar. */
