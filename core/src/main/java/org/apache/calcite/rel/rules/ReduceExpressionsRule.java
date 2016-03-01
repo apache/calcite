@@ -145,7 +145,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final RelMetadataQuery mq = RelMetadataQuery.instance();
       final RelOptPredicateList predicates =
           mq.getPulledUpPredicates(filter.getInput());
-      if (reduceExpressions(filter, expList, predicates)) {
+      if (reduceExpressions(filter, expList, predicates, true)) {
         assert expList.size() == 1;
         newConditionExp = expList.get(0);
         reduced = true;
@@ -434,6 +434,42 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * @return whether reduction found something to change, and succeeded
    */
   protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
+      RelOptPredicateList predicates) {
+    return reduceExpressions(rel, expList, predicates, false);
+  }
+
+  /**
+   * Reduces a list of expressions.
+   *
+   * @param rel     Relational expression
+   * @param expList List of expressions, modified in place
+   * @param predicates Constraints known to hold on input expressions
+   * @param unknownAsFalse Whether UNKNOWN will be treated as FALSE
+   *
+   * @return whether reduction found something to change, and succeeded
+   */
+  protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
+      RelOptPredicateList predicates, boolean unknownAsFalse) {
+    RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+
+    boolean reduced = reduceExpressionsInternal(rel, expList, predicates);
+
+    // Simplify preds in place
+    boolean simplified = false;
+    for (int i = 0; i < expList.size(); i++) {
+      RexNode newExp = RexUtil.simplify(rexBuilder, expList.get(i),
+          unknownAsFalse);
+      if (!newExp.toString().equals(expList.get(i).toString())) {
+        expList.remove(i);
+        expList.add(i, newExp);
+        simplified = true;
+      }
+    }
+
+    return reduced || simplified;
+  }
+
+  protected static boolean reduceExpressionsInternal(RelNode rel, List<RexNode> expList,
       RelOptPredicateList predicates) {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
