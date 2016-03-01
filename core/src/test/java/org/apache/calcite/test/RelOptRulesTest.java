@@ -1209,6 +1209,53 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " where a - b < 21");
   }
 
+  @Test public void testReduceCase() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select case when false then cast(2.1 as float) else cast(1 as integer) end as newcol\n"
+            + " from emp");
+  }
+
+  @Test public void testReduceConstantsIsNull() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select empno from emp where empno=10 and empno is null");
+  }
+
+  @Test public void testReduceConstantsIsNotNull() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select empno from emp where empno=10 and empno is not null");
+  }
+
+
+  @Test public void testReduceConstantsNegated() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select empno from emp where empno=10 and not(empno=10)");
+  }
+
+  @Test public void testReduceConstantsNegatedInverted() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select empno from emp where empno>10 and empno<=10");
+  }
+
   @Ignore // Calcite does not support INSERT yet
   @Test public void testReduceValuesNull() throws Exception {
     // The NULL literal presents pitfalls for value-reduction. Only

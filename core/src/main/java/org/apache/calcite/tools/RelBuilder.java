@@ -697,7 +697,7 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
-    final RexNode x = RexUtil.simplifyAnds(cluster.getRexBuilder(), predicates);
+    final RexNode x = RexUtil.simplifyAnds(cluster.getRexBuilder(), predicates, true);
     if (x.isAlwaysFalse()) {
       return empty();
     }

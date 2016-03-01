@@ -948,6 +948,27 @@ public enum SqlKind {
     }
   }
 
+  /** Returns the kind that you get if you negate this kind.
+   * To conform to null semantics, null value should not be compared. */
+  public SqlKind negateNullSafe() {
+    switch (this) {
+    case EQUALS:
+      return NOT_EQUALS;
+    case NOT_EQUALS:
+      return EQUALS;
+    case LESS_THAN:
+      return GREATER_THAN_OR_EQUAL;
+    case GREATER_THAN:
+      return LESS_THAN_OR_EQUAL;
+    case LESS_THAN_OR_EQUAL:
+      return GREATER_THAN;
+    case GREATER_THAN_OR_EQUAL:
+      return LESS_THAN;
+    default:
+      return this.negate();
+    }
+  }
+
   /**
    * Returns whether this {@code SqlKind} belongs to a given category.
    *
