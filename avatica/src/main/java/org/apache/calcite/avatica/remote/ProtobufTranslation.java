@@ -19,8 +19,6 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import java.io.IOException;
 
 /**
@@ -49,18 +47,18 @@ public interface ProtobufTranslation {
    *
    * @param bytes Serialized protocol buffer request from client
    * @return A Request object for the given bytes
-   * @throws InvalidProtocolBufferException If the protocol buffer cannot be deserialized
+   * @throws IOException If the protocol buffer cannot be deserialized
    */
-  Request parseRequest(byte[] bytes) throws InvalidProtocolBufferException;
+  Request parseRequest(byte[] bytes) throws IOException;
 
   /**
    * Parses a serialized protocol buffer response into a {@link Response}.
    *
    * @param bytes Serialized protocol buffer request from server
    * @return The Response object for the given bytes
-   * @throws InvalidProtocolBufferException If the protocol buffer cannot be deserialized
+   * @throws IOException If the protocol buffer cannot be deserialized
    */
-  Response parseResponse(byte[] bytes) throws InvalidProtocolBufferException;
+  Response parseResponse(byte[] bytes) throws IOException;
 }
 
 // End ProtobufTranslation.java

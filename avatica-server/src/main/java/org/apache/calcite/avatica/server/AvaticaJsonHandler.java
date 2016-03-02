@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.remote.Handler.HandlerResponse;
 import org.apache.calcite.avatica.remote.JsonHandler;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
+import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -54,6 +55,8 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
   final MetricsSystem metrics;
   final Timer requestTimer;
 
+  final ThreadLocal<UnsynchronizedBuffer> threadLocalBuffer;
+
   public AvaticaJsonHandler(Service service) {
     this(service, NoopMetricsSystem.getInstance());
   }
@@ -67,6 +70,12 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
     // Metrics
     this.requestTimer = this.metrics.getTimer(
         concat(AvaticaJsonHandler.class, MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME));
+
+    this.threadLocalBuffer = new ThreadLocal<UnsynchronizedBuffer>() {
+      @Override public UnsynchronizedBuffer initialValue() {
+        return new UnsynchronizedBuffer();
+      }
+    };
   }
 
   public void handle(String target, Request baseRequest,
@@ -80,8 +89,13 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
         // The latter allows very large requests without hitting HTTP 413.
         String rawRequest = request.getHeader("request");
         if (rawRequest == null) {
+          // Avoid a new buffer creation for every HTTP request
+          final UnsynchronizedBuffer buffer = threadLocalBuffer.get();
           try (ServletInputStream inputStream = request.getInputStream()) {
-            rawRequest = AvaticaUtils.readFully(inputStream);
+            rawRequest = AvaticaUtils.readFully(inputStream, buffer);
+          } finally {
+            // Reset the offset into the buffer after we're done
+            buffer.reset();
           }
         }
         final String jsonRequest =

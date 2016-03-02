@@ -16,13 +16,15 @@
  */
 package org.apache.calcite.avatica;
 
-import java.io.ByteArrayOutputStream;
+import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.AbstractList;
@@ -44,6 +46,12 @@ public class AvaticaUtils {
       method(void.class, Statement.class, "getLargeUpdateCount");
 
   private static final Set<String> UNIQUE_STRINGS = new HashSet<>();
+
+  private static final ThreadLocal<byte[]> PER_THREAD_BUFFER  = new ThreadLocal<byte[]>() {
+    @Override protected byte[] initialValue() {
+      return new byte[4096];
+    }
+  };
 
   private AvaticaUtils() {}
 
@@ -200,25 +208,46 @@ public class AvaticaUtils {
 
   /** Reads the contents of an input stream and returns as a string. */
   public static String readFully(InputStream inputStream) throws IOException {
-    return _readFully(inputStream).toString();
+    return readFully(inputStream, new UnsynchronizedBuffer(1024));
   }
 
+  /** Reads the contents of an input stream and returns as a string. */
+  public static String readFully(InputStream inputStream, UnsynchronizedBuffer buffer)
+      throws IOException {
+    // Variant that lets us use a pooled Buffer
+    final byte[] bytes = _readFully(inputStream, buffer);
+    return new String(bytes, 0, bytes.length, StandardCharsets.UTF_8);
+  }
+
+  /** Reads the contents of an input stream and returns as a string. */
   public static byte[] readFullyToBytes(InputStream inputStream) throws IOException {
-    return _readFully(inputStream).toByteArray();
+    return readFullyToBytes(inputStream, new UnsynchronizedBuffer(1024));
   }
 
-  /** Reads the contents of an input stream and returns a ByteArrayOutputStrema. */
-  static ByteArrayOutputStream _readFully(InputStream inputStream) throws IOException {
-    final byte[] bytes = new byte[4096];
-    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+  /** Reads the contents of an input stream and returns as a string. */
+  public static byte[] readFullyToBytes(InputStream inputStream, UnsynchronizedBuffer buffer)
+      throws IOException {
+    // Variant that lets us use a pooled Buffer
+    return _readFully(inputStream, buffer);
+  }
+
+  /**
+   * Reads the contents of an input stream and returns a byte array.
+   *
+   * @param inputStream the input to read from.
+   * @return A byte array whose length is equal to the number of bytes contained.
+   */
+  static byte[] _readFully(InputStream inputStream, UnsynchronizedBuffer buffer)
+      throws IOException {
+    final byte[] bytes = PER_THREAD_BUFFER.get();
     for (;;) {
       int count = inputStream.read(bytes, 0, bytes.length);
       if (count < 0) {
         break;
       }
-      baos.write(bytes, 0, count);
+      buffer.write(bytes, 0, count);
     }
-    return baos;
+    return buffer.toArray();
   }
 
   /** Invokes {@code Statement#setLargeMaxRows}, falling back on

@@ -23,6 +23,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.protobuf.HBaseZeroCopyByteString;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -345,7 +346,7 @@ public class TypedValue {
       break;
     case BYTE_STRING:
     case STRING:
-      builder.setStringValue((String) value);
+      builder.setStringValueBytes(HBaseZeroCopyByteString.wrap(((String) value).getBytes()));
       break;
     case PRIMITIVE_CHAR:
     case CHARACTER:

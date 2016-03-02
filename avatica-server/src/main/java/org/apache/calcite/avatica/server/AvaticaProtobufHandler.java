@@ -28,6 +28,7 @@ import org.apache.calcite.avatica.remote.ProtobufTranslation;
 import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
+import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -55,19 +56,28 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
   private final MetricsSystem metrics;
   private final Timer requestTimer;
 
+  final ThreadLocal<UnsynchronizedBuffer> threadLocalBuffer;
+
   public AvaticaProtobufHandler(Service service) {
     this(service, NoopMetricsSystem.getInstance());
   }
 
   public AvaticaProtobufHandler(Service service, MetricsSystem metrics) {
-    this.protobufTranslation = new ProtobufTranslationImpl();
     this.service = Objects.requireNonNull(service);
     this.metrics = Objects.requireNonNull(metrics);
-    this.pbHandler = new ProtobufHandler(service, protobufTranslation, metrics);
 
     this.requestTimer = this.metrics.getTimer(
         MetricsHelper.concat(AvaticaProtobufHandler.class,
             MetricsAwareAvaticaHandler.REQUEST_TIMER_NAME));
+
+    this.protobufTranslation = new ProtobufTranslationImpl();
+    this.pbHandler = new ProtobufHandler(service, protobufTranslation, metrics);
+
+    this.threadLocalBuffer = new ThreadLocal<UnsynchronizedBuffer>() {
+      @Override public UnsynchronizedBuffer initialValue() {
+        return new UnsynchronizedBuffer();
+      }
+    };
   }
 
   public void handle(String target, Request baseRequest,
@@ -78,8 +88,12 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
       response.setStatus(HttpServletResponse.SC_OK);
       if (request.getMethod().equals("POST")) {
         byte[] requestBytes;
+        // Avoid a new buffer creation for every HTTP request
+        final UnsynchronizedBuffer buffer = threadLocalBuffer.get();
         try (ServletInputStream inputStream = request.getInputStream()) {
-          requestBytes = AvaticaUtils.readFullyToBytes(inputStream);
+          requestBytes = AvaticaUtils.readFullyToBytes(inputStream, buffer);
+        } finally {
+          buffer.reset();
         }
 
         HandlerResponse<byte[]> handlerResponse = pbHandler.apply(requestBytes);

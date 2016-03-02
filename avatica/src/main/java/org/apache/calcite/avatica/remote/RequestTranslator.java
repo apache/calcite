@@ -36,7 +36,8 @@ public class RequestTranslator {
 
   public Service.Request transform(ByteString serializedMessage) throws
       InvalidProtocolBufferException {
-    Message msg = parser.parseFrom(serializedMessage);
+    // This should already be an aliased CodedInputStream from the WireMessage parsing.
+    Message msg = parser.parseFrom(serializedMessage.newCodedInput());
     return impl.deserialize(msg);
   }
 }

@@ -54,17 +54,22 @@ import org.apache.calcite.avatica.proto.Responses.SyncResultsResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
+import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.Message;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Implementation of {@link ProtobufTranslationImpl} that translates
@@ -75,9 +80,10 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
   // Extremely ugly mapping of PB class name into a means to convert it to the POJO
   private static final Map<String, RequestTranslator> REQUEST_PARSERS;
   private static final Map<String, ResponseTranslator> RESPONSE_PARSERS;
+  private static final Map<Class<?>, ByteString> MESSAGE_CLASSES;
 
   static {
-    HashMap<String, RequestTranslator> reqParsers = new HashMap<>();
+    Map<String, RequestTranslator> reqParsers = new ConcurrentHashMap<>();
     reqParsers.put(CatalogsRequest.class.getName(),
         new RequestTranslator(CatalogsRequest.parser(), new Service.CatalogsRequest()));
     reqParsers.put(OpenConnectionRequest.class.getName(),
@@ -123,7 +129,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
 
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 
-    HashMap<String, ResponseTranslator> respParsers = new HashMap<>();
+    Map<String, ResponseTranslator> respParsers = new ConcurrentHashMap<>();
     respParsers.put(OpenConnectionResponse.class.getName(),
         new ResponseTranslator(OpenConnectionResponse.parser(),
             new Service.OpenConnectionResponse()));
@@ -162,7 +168,64 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new ResponseTranslator(RollbackResponse.parser(), new Service.RollbackResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
+
+    Map<Class<?>, ByteString> messageClassNames = new ConcurrentHashMap<>();
+    for (Class<?> msgClz : getAllMessageClasses()) {
+      messageClassNames.put(msgClz, wrapClassName(msgClz));
+    }
+    MESSAGE_CLASSES = Collections.unmodifiableMap(messageClassNames);
   }
+
+  private static List<Class<?>> getAllMessageClasses() {
+    List<Class<?>> messageClasses = new ArrayList<>();
+    messageClasses.add(CatalogsRequest.class);
+    messageClasses.add(CloseConnectionRequest.class);
+    messageClasses.add(CloseStatementRequest.class);
+    messageClasses.add(ColumnsRequest.class);
+    messageClasses.add(CommitRequest.class);
+    messageClasses.add(ConnectionSyncRequest.class);
+    messageClasses.add(CreateStatementRequest.class);
+    messageClasses.add(DatabasePropertyRequest.class);
+    messageClasses.add(ExecuteRequest.class);
+    messageClasses.add(FetchRequest.class);
+    messageClasses.add(OpenConnectionRequest.class);
+    messageClasses.add(PrepareAndExecuteRequest.class);
+    messageClasses.add(PrepareRequest.class);
+    messageClasses.add(RollbackRequest.class);
+    messageClasses.add(SchemasRequest.class);
+    messageClasses.add(SyncResultsRequest.class);
+    messageClasses.add(TableTypesRequest.class);
+    messageClasses.add(TablesRequest.class);
+    messageClasses.add(TypeInfoRequest.class);
+    messageClasses.add(CloseConnectionResponse.class);
+    messageClasses.add(CloseStatementResponse.class);
+    messageClasses.add(CommitResponse.class);
+    messageClasses.add(ConnectionSyncResponse.class);
+    messageClasses.add(CreateStatementResponse.class);
+    messageClasses.add(DatabasePropertyResponse.class);
+    messageClasses.add(ErrorResponse.class);
+    messageClasses.add(ExecuteResponse.class);
+    messageClasses.add(FetchResponse.class);
+    messageClasses.add(OpenConnectionResponse.class);
+    messageClasses.add(PrepareResponse.class);
+    messageClasses.add(ResultSetResponse.class);
+    messageClasses.add(RollbackResponse.class);
+    messageClasses.add(RpcMetadata.class);
+    messageClasses.add(SyncResultsResponse.class);
+
+    return messageClasses;
+  }
+
+  private static ByteString wrapClassName(Class<?> clz) {
+    return HBaseZeroCopyByteString.wrap(clz.getName().getBytes(UTF_8));
+  }
+
+  private final ThreadLocal<UnsynchronizedBuffer> threadLocalBuffer =
+      new ThreadLocal<UnsynchronizedBuffer>() {
+        @Override protected UnsynchronizedBuffer initialValue() {
+          return new UnsynchronizedBuffer();
+        }
+      };
 
   /**
    * Fetches the concrete message's Parser implementation.
@@ -207,42 +270,79 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
   }
 
   @Override public byte[] serializeResponse(Response response) throws IOException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Message responseMsg = response.serialize();
-    serializeMessage(out, responseMsg);
-    return out.toByteArray();
+    // Avoid BAOS for its synchronized write methods, we don't need that concurrency control
+    UnsynchronizedBuffer out = threadLocalBuffer.get();
+    try {
+      Message responseMsg = response.serialize();
+      serializeMessage(out, responseMsg);
+      return out.toArray();
+    } finally {
+      out.reset();
+    }
   }
 
   @Override public byte[] serializeRequest(Request request) throws IOException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Message requestMsg = request.serialize();
-    serializeMessage(out, requestMsg);
-    return out.toByteArray();
+    // Avoid BAOS for its synchronized write methods, we don't need that concurrency control
+    UnsynchronizedBuffer out = threadLocalBuffer.get();
+    try {
+      Message requestMsg = request.serialize();
+      serializeMessage(out, requestMsg);
+      return out.toArray();
+    } finally {
+      out.reset();
+    }
   }
 
   void serializeMessage(OutputStream out, Message msg) throws IOException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    msg.writeTo(baos);
+    // Serialize the protobuf message
+    UnsynchronizedBuffer buffer = threadLocalBuffer.get();
+    ByteString serializedMsg;
+    try {
+      msg.writeTo(buffer);
+      // Make a bytestring from it
+      serializedMsg = HBaseZeroCopyByteString.wrap(buffer.toArray());
+    } finally {
+      buffer.reset();
+    }
 
-    // TODO Using ByteString is copying the bytes of the message which sucks. Could try to
-    // lift the ZeroCopy implementation from HBase.
-    WireMessage wireMsg = WireMessage.newBuilder().setName(msg.getClass().getName()).
-        setWrappedMessage(ByteString.copyFrom(baos.toByteArray())).build();
+    // Wrap the serialized message in a WireMessage
+    WireMessage wireMsg = WireMessage.newBuilder().setNameBytes(getClassNameBytes(msg.getClass()))
+        .setWrappedMessage(serializedMsg).build();
 
+    // Write the WireMessage to the provided OutputStream
     wireMsg.writeTo(out);
   }
 
-  @Override public Request parseRequest(byte[] bytes) throws InvalidProtocolBufferException {
-    WireMessage wireMsg = WireMessage.parseFrom(bytes);
+  ByteString getClassNameBytes(Class<?> clz) {
+    ByteString byteString = MESSAGE_CLASSES.get(clz);
+    if (null == byteString) {
+      throw new IllegalArgumentException("Missing ByteString for " + clz.getName());
+    }
+    return byteString;
+  }
+
+  @Override public Request parseRequest(byte[] bytes) throws IOException {
+    ByteString byteString = HBaseZeroCopyByteString.wrap(bytes);
+    CodedInputStream inputStream = byteString.newCodedInput();
+    // Enable aliasing to avoid an extra copy to get at the serialized Request inside of the
+    // WireMessage.
+    inputStream.enableAliasing(true);
+    WireMessage wireMsg = WireMessage.parseFrom(inputStream);
 
     String serializedMessageClassName = wireMsg.getName();
     RequestTranslator translator = getParserForRequest(serializedMessageClassName);
 
+    // The ByteString should be logical offsets into the original byte array
     return translator.transform(wireMsg.getWrappedMessage());
   }
 
-  @Override public Response parseResponse(byte[] bytes) throws InvalidProtocolBufferException {
-    WireMessage wireMsg = WireMessage.parseFrom(bytes);
+  @Override public Response parseResponse(byte[] bytes) throws IOException {
+    ByteString byteString = HBaseZeroCopyByteString.wrap(bytes);
+    CodedInputStream inputStream = byteString.newCodedInput();
+    // Enable aliasing to avoid an extra copy to get at the serialized Response inside of the
+    // WireMessage.
+    inputStream.enableAliasing(true);
+    WireMessage wireMsg = WireMessage.parseFrom(inputStream);
 
     String serializedMessageClassName = wireMsg.getName();
     ResponseTranslator translator = getParserForResponse(serializedMessageClassName);

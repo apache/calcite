@@ -31,8 +31,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.FieldDescriptor;
+import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.Message;
 
 import java.io.PrintWriter;
@@ -2549,13 +2550,16 @@ public interface Service {
     private static final FieldDescriptor SERVER_ADDRESS_DESCRIPTOR = Responses.RpcMetadata
         .getDescriptor().findFieldByNumber(Responses.RpcMetadata.SERVER_ADDRESS_FIELD_NUMBER);
     public final String serverAddress;
+    private final ByteString serverAddressAsBytes;
 
     public RpcMetadataResponse() {
       this.serverAddress = null;
+      this.serverAddressAsBytes = null;
     }
 
     public RpcMetadataResponse(@JsonProperty("serverAddress") String serverAddress) {
       this.serverAddress = serverAddress;
+      this.serverAddressAsBytes = HBaseZeroCopyByteString.wrap(serverAddress.getBytes());
     }
 
     @Override RpcMetadataResponse deserialize(Message genericMsg) {
@@ -2566,7 +2570,7 @@ public interface Service {
     }
 
     @Override Responses.RpcMetadata serialize() {
-      return Responses.RpcMetadata.newBuilder().setServerAddress(serverAddress).build();
+      return Responses.RpcMetadata.newBuilder().setServerAddressBytes(serverAddressAsBytes).build();
     }
 
     static RpcMetadataResponse fromProto(Responses.RpcMetadata msg) {
