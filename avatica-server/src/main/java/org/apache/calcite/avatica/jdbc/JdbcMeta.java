@@ -788,7 +788,7 @@ public class JdbcMeta implements Meta {
       if (null == statementInfo) {
         throw new NoSuchStatementException(h);
       }
-      final List<MetaResultSet> resultSets = new ArrayList<>();
+      final List<MetaResultSet> resultSets;
       final PreparedStatement preparedStatement =
           (PreparedStatement) statementInfo.statement;
 
@@ -816,16 +816,16 @@ public class JdbcMeta implements Meta {
 
         if (statementInfo.getResultSet() == null) {
           frame = Frame.EMPTY;
-          resultSets.add(JdbcResultSet.empty(h.connectionId, h.id, signature2));
+          resultSets = Collections.<MetaResultSet>singletonList(
+              JdbcResultSet.empty(h.connectionId, h.id, signature2));
         } else {
-          resultSets.add(
-              JdbcResultSet.create(h.connectionId, h.id,
-                  statementInfo.getResultSet(), maxRowCount, signature2));
+          resultSets = Collections.<MetaResultSet>singletonList(
+              JdbcResultSet.create(h.connectionId, h.id, statementInfo.getResultSet(),
+                  maxRowCount, signature2));
         }
       } else {
-        resultSets.add(
-            JdbcResultSet.count(
-                h.connectionId, h.id, preparedStatement.getUpdateCount()));
+        resultSets = Collections.<MetaResultSet>singletonList(
+            JdbcResultSet.count(h.connectionId, h.id, preparedStatement.getUpdateCount()));
       }
 
       return new ExecuteResult(resultSets);

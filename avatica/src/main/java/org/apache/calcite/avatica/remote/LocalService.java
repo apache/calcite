@@ -233,7 +233,7 @@ public class LocalService implements Service {
       final Meta.ExecuteResult executeResult = meta.execute(request.statementHandle,
           request.parameterValues, request.maxRowCount);
 
-      final List<ResultSetResponse> results = new ArrayList<>();
+      final List<ResultSetResponse> results = new ArrayList<>(executeResult.resultSets.size());
       for (Meta.MetaResultSet metaResultSet : executeResult.resultSets) {
         results.add(toResponse(metaResultSet));
       }
