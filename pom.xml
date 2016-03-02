@@ -128,6 +128,7 @@ limitations under the License.
     <module>avatica</module>
     <module>avatica-metrics</module>
     <module>avatica-metrics-dropwizardmetrics3</module>
+    <module>avatica-noop</module>
     <module>avatica-server</module>
     <module>cassandra</module>
     <module>core</module>
@@ -158,6 +159,11 @@ limitations under the License.
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-avatica</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica-noop</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
