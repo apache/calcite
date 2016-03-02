@@ -35,12 +35,109 @@ One notable change is that the use of JUL (java.util.logging) has been replaced
 with [SLF4J](http://slf4j.org/). SLF4J provides an API which Calcite can use
 independent of the logging implementation. This ultimately provides additional
 flexibility to users, allowing them to configure Calcite's logging within their
-own chosen logging framework. This work was done in [CALCITE-669](https://issues.apache.org/jira/browse/CALCITE-669).
+own chosen logging framework. This work was done in
+[[CALCITE-669](https://issues.apache.org/jira/browse/CALCITE-669)].
 
 For users experienced with configuring JUL in Calcite previously, there are some
 differences as some the JUL logging levels do not exist in SLF4J: `FINE`,
 `FINER`, and `FINEST`, specifically. To deal with this, `FINE` was mapped
 to SLF4J's `DEBUG` level, while `FINER` and `FINEST` were mapped to SLF4J's `TRACE`.
+
+Compatibility: This release is tested
+on Linux, Mac OS X, Microsoft Windows;
+using Oracle JDK 1.7, 1.8;
+Guava versions 12.0.1 to 19.0;
+other software versions as specified in `pom.xml`.
+
+New features
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1066">CALCITE-1066</a>]
+  Add Oracle function table, and functions `DECODE`, `NVL`, `LTRIM`, `RTRIM`,
+  `GREATEST`, `LEAST`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1080">CALCITE-1080</a>]
+  Cassandra adapter (Michael Mior)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1062">CALCITE-1062</a>]
+  In validation, lookup a (possibly overloaded) operator from an operator
+  table (Hsuan-Yi Chu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-551">CALCITE-551</a>]
+  Sub-query inside aggregate function
+
+Avatica features and bug fixes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-642">CALCITE-642</a>]
+  Add an avatica-metrics API
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1085">CALCITE-1085</a>]
+    Use a NoopContext singleton in NoopTimer
+
+Planner rules
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1109">CALCITE-1109</a>]
+  Fix up condition when pushing `Filter` through `Aggregate` (Amogh Margoor)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1100">CALCITE-1100</a>]
+  If constant reduction no-ops, don't create a new `RelNode` (Hsuan-Yi Chu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1076">CALCITE-1076</a>]
+  Update `RelMdDistribution` to match other metadata APIs (Ted Xu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1056">CALCITE-1056</a>]
+  In `RelBuilder`, simplify predicates, and optimize away `WHERE FALSE`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1059">CALCITE-1059</a>]
+  Not valid to convert `Aggregate` on empty to empty if its `GROUP BY` key is empty
+
+Bug fixes, API changes and minor enhancements
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1111">CALCITE-1111</a>]
+  Upgrade Guava, and test on a range of Guava versions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1054">CALCITE-1054</a>]
+  Wrong code generation for `TIMESTAMP` values that may be `NULL`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-604">CALCITE-604</a>]
+  Tune metadata by generating a dispatcher at runtime
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1063">CALCITE-1063</a>]
+  Flat lists for 4, 5, 6 elements
+* Add Orinoco schema (streaming retail data), accessible from Quidem scripts
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1097">CALCITE-1097</a>]
+  Exception when executing query with too many aggregation columns (chenzhifa)
+* Add tests for leap days
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-553">CALCITE-553</a>]
+  In maven, enable compiler profiles by default
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1031">CALCITE-1031</a>]
+  In prepared statement, `CsvScannableTable.scan` is called twice
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1046">CALCITE-1046</a>]
+  Matchers for testing SQL query results
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1083">CALCITE-1083</a>]
+  `SqlNode.equalsDeep` has O(n ^ 2) performance
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-998">CALCITE-998</a>]
+  Exception when calling `STDDEV_SAMP`, `STDDEV_POP` (Matthew Shaer)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1071">CALCITE-1071</a>]
+  Improve hash functions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1072">CALCITE-1072</a>]
+  CSV adapter incorrectly parses `TIMESTAMP` values after noon (Chris Albright)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-669">CALCITE-669</a>]
+  Mass removal of Java Logging for SLF4J
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1068">CALCITE-1068</a>]
+  Deprecate `Stacks`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1067">CALCITE-1067</a>]
+  Test failures due to clashing temporary table names
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-864">CALCITE-864</a>]
+  Correlation variable has incorrect row type if it is populated by right side
+  of a Join
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1021">CALCITE-1021</a>]
+  Upgrade Jackson
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-999">CALCITE-999</a>]
+  Clean up maven POM files
+
+Web site and documentation
+
+* Add SQL-Gremlin to Adapters page
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1090">CALCITE-1090</a>]
+  Revise Streaming SQL specification
+* Appoint Josh Elser to PMC
+* Add "Streaming SQL" talk
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-623">CALCITE-623</a>]
+  Add a small blurb to the site about Jenkins for CI
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1070">CALCITE-1070</a>]
+  Upgrade to new Apache logo
+* Document how to announce a release
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1074">CALCITE-1074</a>]
+  Delete old releases from mirroring system
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.6.0">1.6.0</a> / 2016-01-22
 {: #v1-6-0}
@@ -74,6 +171,11 @@ introduces a context to each metadata call. That context can detect
 cyclic metadata calls and produce a safe answer to the metadata
 request. It will also allow us to add finer-grained caching and
 further tune the metadata layer.
+
+Compatibility: This release is tested
+on Linux, Mac OS X, Microsoft Windows;
+using Oracle JDK 1.7, 1.8;
+other software versions as specified in `pom.xml`.
 
 New features
 

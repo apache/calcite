@@ -428,13 +428,24 @@ Before you start:
 * Make sure you are using JDK 1.7 (not 1.8).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Set `version.major` and `version.minor` in `pom.xml`.
-* Make sure build and tests succeed, including with
-  -Dcalcite.test.db={mysql,hsqldb}, -Dcalcite.test.slow,
-  -Dcalcite.test.mongodb, -Dcalcite.test.splunk.
+* Make sure build and tests succeed, including with `-P it,it-oracle`.
+  Supported configurations are:
+  * JDK 1.7, 1.8;
+  * Linux, Mac OS X, and Windows;
+  * Guava versions 12.0.1, 18.0 (the default) and 19.0 (specify `-Dguava.version=x.y`)
+* Optional extra tests:
+  * `-Dcalcite.test.db=mysql`
+  * `-Dcalcite.test.db=hsqldb`
+  * `-Dcalcite.test.slow`
+  * `-Dcalcite.test.mongodb`
+  * `-Dcalcite.test.splunk`
 * Trigger a
   <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
   by merging the latest code into the `julianhyde/coverity_scan` branch,
   and when it completes, make sure that there are no important issues.
+* Add release notes to `site/_docs/history.md`. Include the commit history,
+  and say which versions of Java, Guava and operating systems the release is
+  tested against.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
