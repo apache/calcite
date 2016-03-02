@@ -1129,13 +1129,23 @@ public interface Meta {
     }
 
     public Common.StatementHandle toProto() {
-      return Common.StatementHandle.newBuilder().setConnectionId(connectionId)
-          .setId(id).setSignature(signature.toProto()).build();
+      Common.StatementHandle.Builder builder = Common.StatementHandle.newBuilder()
+          .setConnectionId(connectionId).setId(id);
+      if (null != signature) {
+        builder.setSignature(signature.toProto());
+      }
+      return builder.build();
     }
 
     public static StatementHandle fromProto(Common.StatementHandle protoHandle) {
-      return new StatementHandle(protoHandle.getConnectionId(), protoHandle.getId(),
-          Signature.fromProto(protoHandle.getSignature()));
+      final Descriptor desc = protoHandle.getDescriptorForType();
+      // Signature is optional in the update path for executes.
+      Signature signature = null;
+      if (ProtobufService.hasField(protoHandle, desc,
+          Common.StatementHandle.SIGNATURE_FIELD_NUMBER)) {
+        signature = Signature.fromProto(protoHandle.getSignature());
+      }
+      return new StatementHandle(protoHandle.getConnectionId(), protoHandle.getId(), signature);
     }
 
     @Override public int hashCode() {

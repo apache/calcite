@@ -109,7 +109,7 @@ public abstract class AvaticaPreparedStatement
     this.updateCount = -1;
     final Signature sig = getSignature();
     return getConnection().executeQueryInternal(this, sig, null,
-        new QueryState(sig.sql));
+        new QueryState(sig.sql), false);
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
@@ -121,8 +121,8 @@ public abstract class AvaticaPreparedStatement
   }
 
   public long executeLargeUpdate() throws SQLException {
-    getConnection().executeQueryInternal(this, getSignature(), null,
-        new QueryState(getSignature().sql));
+    getConnection().executeQueryInternal(this, null, null,
+        new QueryState(getSignature().sql), true);
     return updateCount;
   }
 
@@ -203,8 +203,10 @@ public abstract class AvaticaPreparedStatement
 
   public boolean execute() throws SQLException {
     this.updateCount = -1;
+    // We don't know if this is actually an update or a query, so call it a query so we pass the
+    // Signature to the server.
     getConnection().executeQueryInternal(this, getSignature(), null,
-        new QueryState(getSignature().sql));
+        new QueryState(getSignature().sql), false);
     // Result set is null for DML or DDL.
     // Result set is closed if user cancelled the query.
     return openResultSet != null && !openResultSet.isClosed();

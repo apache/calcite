@@ -115,7 +115,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   /** Computes the number of retries
-   * {@link AvaticaStatement#executeInternal(Meta.Signature)}
+   * {@link AvaticaStatement#executeInternal(Meta.Signature, boolean)}
    * should retry before failing. */
   long getNumStatementRetries(Properties props) {
     return Long.valueOf(Objects.requireNonNull(props)
@@ -436,11 +436,13 @@ public abstract class AvaticaConnection implements Connection {
    * @param signature     Prepared query
    * @param firstFrame    First frame of rows, or null if we need to execute
    * @param state         The state used to create the given result
+   * @param isUpdate      Was the caller context via {@link PreparedStatement#executeUpdate()}.
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs
    */
   protected ResultSet executeQueryInternal(AvaticaStatement statement,
-      Meta.Signature signature, Meta.Frame firstFrame, QueryState state) throws SQLException {
+      Meta.Signature signature, Meta.Frame firstFrame, QueryState state, boolean isUpdate)
+      throws SQLException {
     // Close the previous open result set, if there is one.
     Meta.Frame frame = firstFrame;
     Meta.Signature signature2 = signature;
@@ -460,8 +462,15 @@ public abstract class AvaticaConnection implements Connection {
       try {
         if (statement.isWrapperFor(AvaticaPreparedStatement.class)) {
           final AvaticaPreparedStatement pstmt = (AvaticaPreparedStatement) statement;
+          Meta.StatementHandle handle = pstmt.handle;
+          if (isUpdate) {
+            // Make a copy of the StatementHandle, nulling out the Signature.
+            // CALCITE-1086 we don't need to send the Signature to the server
+            // when we're only performing an update. Saves on serialization.
+            handle = new Meta.StatementHandle(handle.connectionId, handle.id, null);
+          }
           final Meta.ExecuteResult executeResult =
-              meta.execute(pstmt.handle, pstmt.getParameterValues(),
+              meta.execute(handle, pstmt.getParameterValues(),
                   statement.getFetchSize());
           final MetaResultSet metaResultSet = executeResult.resultSets.get(0);
           frame = metaResultSet.firstFrame;
@@ -577,8 +586,9 @@ public abstract class AvaticaConnection implements Connection {
     final Meta.StatementHandle h = new Meta.StatementHandle(
         metaResultSet.connectionId, metaResultSet.statementId, null);
     final AvaticaStatement statement = lookupStatement(h);
+    // These are all the metadata operations, no updates
     ResultSet resultSet = executeQueryInternal(statement, metaResultSet.signature.sanitize(),
-        metaResultSet.firstFrame, state);
+        metaResultSet.firstFrame, state, false);
     if (metaResultSet.ownStatement) {
       resultSet.getStatement().closeOnCompletion();
     }

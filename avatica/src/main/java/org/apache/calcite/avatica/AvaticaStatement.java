@@ -456,13 +456,14 @@ public abstract class AvaticaStatement
    * Executes a prepared statement.
    *
    * @param signature Parsed statement
+   * @param isUpdate if the execute is for an update
    *
    * @return as specified by {@link java.sql.Statement#execute(String)}
    * @throws java.sql.SQLException if a database error occurs
    */
-  protected boolean executeInternal(Meta.Signature signature)
+  protected boolean executeInternal(Meta.Signature signature, boolean isUpdate)
       throws SQLException {
-    ResultSet resultSet = executeQueryInternal(signature);
+    ResultSet resultSet = executeQueryInternal(signature, isUpdate);
     // user may have cancelled the query
     if (resultSet.isClosed()) {
       return false;
@@ -474,12 +475,13 @@ public abstract class AvaticaStatement
    * Executes a prepared query, closing any previously open result set.
    *
    * @param signature Parsed query
+   * @param isUpdate If the execute is for an update
    * @return Result set
    * @throws java.sql.SQLException if a database error occurs
    */
-  protected ResultSet executeQueryInternal(Meta.Signature signature)
+  protected ResultSet executeQueryInternal(Meta.Signature signature, boolean isUpdate)
       throws SQLException {
-    return connection.executeQueryInternal(this, signature, null, null);
+    return connection.executeQueryInternal(this, signature, null, null, isUpdate);
   }
 
   /**
