@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.AvaticaHttpClientFactoryImpl;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -40,7 +42,14 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   URL("url", Type.STRING, null, false),
 
   /** Serialization used over remote connections */
-  SERIALIZATION("serialization", Type.STRING, "json", false);
+  SERIALIZATION("serialization", Type.STRING, "json", false),
+
+  /** Factory for constructing http clients. */
+  HTTP_CLIENT_FACTORY("httpclient_factory", Type.PLUGIN,
+      AvaticaHttpClientFactoryImpl.class.getName(), false),
+
+  /** HttpClient implementation class name. */
+  HTTP_CLIENT_IMPL("httpclient_impl", Type.STRING, null, false);
 
   private final String camelName;
   private final Type type;

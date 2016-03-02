@@ -135,7 +135,9 @@ public class Driver extends UnregisteredDriver {
       throw new RuntimeException(e);
     }
 
-    return new AvaticaHttpClientImpl(url);
+    AvaticaHttpClientFactory httpClientFactory = config.httpClientFactory();
+
+    return httpClientFactory.getClient(url, config);
   }
 
   @Override public Connection connect(String url, Properties info)

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
 import org.apache.calcite.avatica.remote.Service;
 
 import java.util.LinkedHashMap;
@@ -49,6 +50,15 @@ public class ConnectionConfigImpl implements ConnectionConfig {
 
   public String serialization() {
     return BuiltInConnectionProperty.SERIALIZATION.wrap(properties).getString();
+  }
+
+  public AvaticaHttpClientFactory httpClientFactory() {
+    return BuiltInConnectionProperty.HTTP_CLIENT_FACTORY.wrap(properties)
+        .getPlugin(AvaticaHttpClientFactory.class, null);
+  }
+
+  public String httpClientClass() {
+    return BuiltInConnectionProperty.HTTP_CLIENT_IMPL.wrap(properties).getString();
   }
 
   /** Converts a {@link Properties} object containing (name, value)

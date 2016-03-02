@@ -14,27 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
-import org.apache.calcite.avatica.remote.Service;
+import org.apache.calcite.avatica.ConnectionConfig;
+
+import java.net.URL;
 
 /**
- * Connection configuration.
+ * A factory for constructing {@link AvaticaHttpClient}'s.
  */
-public interface ConnectionConfig {
-  /** @see BuiltInConnectionProperty#SCHEMA */
-  String schema();
-  /** @see BuiltInConnectionProperty#TIME_ZONE */
-  String timeZone();
-  /** @see BuiltInConnectionProperty#FACTORY */
-  Service.Factory factory();
-  /** @see BuiltInConnectionProperty#URL */
-  String url();
-  /** @see BuiltInConnectionProperty#SERIALIZATION */
-  String serialization();
-  AvaticaHttpClientFactory httpClientFactory();
-  String httpClientClass();
+public interface AvaticaHttpClientFactory {
+
+  /**
+   * Construct the appropriate implementation of {@link AvaticaHttpClient}.
+   *
+   * @param url URL that the client is for.
+   * @param config Configuration to use when constructing the implementation.
+   * @return An instance of {@link AvaticaHttpClient}.
+   */
+  AvaticaHttpClient getClient(URL url, ConnectionConfig config);
+
 }
 
-// End ConnectionConfig.java
+// End AvaticaHttpClientFactory.java
