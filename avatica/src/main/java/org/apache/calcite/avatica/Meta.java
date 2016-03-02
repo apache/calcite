@@ -17,7 +17,6 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.proto.Common;
-import org.apache.calcite.avatica.remote.ProtobufService;
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -26,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 
 import java.lang.reflect.Field;
@@ -476,6 +474,9 @@ public interface Meta {
   /** Information necessary to convert an {@link Iterable} into a
    * {@link org.apache.calcite.avatica.util.Cursor}. */
   final class CursorFactory {
+    private static final FieldDescriptor CLASS_NAME_DESCRIPTOR = Common.CursorFactory.
+        getDescriptor().findFieldByNumber(Common.CursorFactory.CLASS_NAME_FIELD_NUMBER);
+
     public final Style style;
     public final Class clazz;
     @JsonIgnore
@@ -583,10 +584,7 @@ public interface Meta {
       // Reconstruct CursorFactory
       Class<?> clz = null;
 
-      FieldDescriptor clzFieldDesc = proto.getDescriptorForType()
-          .findFieldByNumber(Common.CursorFactory.CLASS_NAME_FIELD_NUMBER);
-
-      if (proto.hasField(clzFieldDesc)) {
+      if (proto.hasField(CLASS_NAME_DESCRIPTOR)) {
         try {
           clz = Class.forName(proto.getClassName());
         } catch (ClassNotFoundException e) {
@@ -632,7 +630,12 @@ public interface Meta {
   }
 
   /** Result of preparing a statement. */
-  class Signature {
+  public class Signature {
+    private static final FieldDescriptor SQL_DESCRIPTOR = Common.Signature
+        .getDescriptor().findFieldByNumber(Common.Signature.SQL_FIELD_NUMBER);
+    private static final FieldDescriptor CURSOR_FACTORY_DESCRIPTOR = Common.Signature
+        .getDescriptor().findFieldByNumber(Common.Signature.CURSOR_FACTORY_FIELD_NUMBER);
+
     public final List<ColumnMetaData> columns;
     public final String sql;
     public final List<AvaticaParameter> parameters;
@@ -731,16 +734,13 @@ public interface Meta {
         parameters.add(AvaticaParameter.fromProto(protoParam));
       }
 
-      final Descriptor desc = protoSignature.getDescriptorForType();
-
       String sql = null;
-      if (ProtobufService.hasField(protoSignature, desc, Common.Signature.SQL_FIELD_NUMBER)) {
+      if (protoSignature.hasField(SQL_DESCRIPTOR)) {
         sql = protoSignature.getSql();
       }
 
       CursorFactory cursorFactory = null;
-      if (ProtobufService.hasField(protoSignature, desc,
-            Common.Signature.CURSOR_FACTORY_FIELD_NUMBER)) {
+      if (protoSignature.hasField(CURSOR_FACTORY_DESCRIPTOR)) {
         cursorFactory = CursorFactory.fromProto(protoSignature.getCursorFactory());
       }
       final Meta.StatementType statementType =
@@ -765,6 +765,10 @@ public interface Meta {
 
   /** A collection of rows. */
   class Frame {
+    private static final FieldDescriptor HAS_ARRAY_VALUE_DESCRIPTOR = Common.ColumnValue
+        .getDescriptor().findFieldByNumber(Common.ColumnValue.HAS_ARRAY_VALUE_FIELD_NUMBER);
+    private static final FieldDescriptor SCALAR_VALUE_DESCRIPTOR = Common.ColumnValue
+        .getDescriptor().findFieldByNumber(Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER);
     /** Frame that has zero rows and is the last frame. */
     public static final Frame EMPTY =
         new Frame(0, true, Collections.emptyList());
@@ -920,9 +924,8 @@ public interface Meta {
      * @return True if the message is the new style, false otherwise.
      */
     static boolean isNewStyleColumn(Common.ColumnValue column) {
-      final Descriptor desc = column.getDescriptorForType();
-      return ProtobufService.hasField(column, desc, Common.ColumnValue.HAS_ARRAY_VALUE_FIELD_NUMBER)
-          || ProtobufService.hasField(column, desc, Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER);
+      return column.hasField(HAS_ARRAY_VALUE_DESCRIPTOR)
+          || column.hasField(SCALAR_VALUE_DESCRIPTOR);
     }
 
     /**
@@ -955,8 +958,7 @@ public interface Meta {
       // Verify that we have one or the other (scalar or array)
       validateColumnValue(column);
 
-      if (!ProtobufService.hasField(column, column.getDescriptorForType(),
-          Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER)) {
+      if (!column.hasField(SCALAR_VALUE_DESCRIPTOR)) {
         // Array
         List<Object> array = new ArrayList<>(column.getArrayValueCount());
         for (Common.TypedValue arrayValue : column.getArrayValueList()) {
@@ -976,8 +978,7 @@ public interface Meta {
      * @throws IllegalArgumentException When the above condition is not met
      */
     static void validateColumnValue(Common.ColumnValue column) {
-      final boolean hasScalar = ProtobufService.hasField(column, column.getDescriptorForType(),
-          Common.ColumnValue.SCALAR_VALUE_FIELD_NUMBER);
+      final boolean hasScalar = column.hasField(SCALAR_VALUE_DESCRIPTOR);
       final boolean hasArrayValue = column.getHasArrayValue();
 
       // These should always be different
@@ -1107,6 +1108,8 @@ public interface Meta {
 
   /** Statement handle. */
   class StatementHandle {
+    private static final FieldDescriptor SIGNATURE_DESCRIPTOR = Common.StatementHandle
+        .getDescriptor().findFieldByNumber(Common.StatementHandle.SIGNATURE_FIELD_NUMBER);
     public final String connectionId;
     public final int id;
 
@@ -1138,11 +1141,9 @@ public interface Meta {
     }
 
     public static StatementHandle fromProto(Common.StatementHandle protoHandle) {
-      final Descriptor desc = protoHandle.getDescriptorForType();
       // Signature is optional in the update path for executes.
       Signature signature = null;
-      if (ProtobufService.hasField(protoHandle, desc,
-          Common.StatementHandle.SIGNATURE_FIELD_NUMBER)) {
+      if (protoHandle.hasField(SIGNATURE_DESCRIPTOR)) {
         signature = Signature.fromProto(protoHandle.getSignature());
       }
       return new StatementHandle(protoHandle.getConnectionId(), protoHandle.getId(), signature);

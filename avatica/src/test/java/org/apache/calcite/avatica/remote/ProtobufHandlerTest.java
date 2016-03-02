@@ -116,8 +116,8 @@ public class ProtobufHandlerTest {
     assertTrue(iter.hasNext());
     Common.ColumnValue column = iter.next();
     assertTrue("The Column should have contained a scalar: " + column,
-        ProtobufService.hasField(column, column.getDescriptorForType(),
-            ColumnValue.SCALAR_VALUE_FIELD_NUMBER));
+        column.hasField(ColumnValue.getDescriptor()
+            .findFieldByNumber(ColumnValue.SCALAR_VALUE_FIELD_NUMBER)));
 
     Common.TypedValue value = column.getScalarValue();
     assertEquals(Common.Rep.BOOLEAN, value.getType());
@@ -126,8 +126,8 @@ public class ProtobufHandlerTest {
     assertTrue(iter.hasNext());
     column = iter.next();
     assertTrue("The Column should have contained a scalar: " + column,
-        ProtobufService.hasField(column, column.getDescriptorForType(),
-            ColumnValue.SCALAR_VALUE_FIELD_NUMBER));
+        column.hasField(ColumnValue.getDescriptor()
+            .findFieldByNumber(ColumnValue.SCALAR_VALUE_FIELD_NUMBER)));
     value = column.getScalarValue();
     assertEquals(Common.Rep.STRING, value.getType());
     assertEquals("my_string", value.getStringValue());

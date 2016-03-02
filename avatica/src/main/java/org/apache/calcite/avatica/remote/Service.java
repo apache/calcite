@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
 
 import java.io.PrintWriter;
@@ -172,6 +172,8 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#getCatalogs(Meta.ConnectionHandle)}. */
   class CatalogsRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.CatalogsRequest.
+        getDescriptor().findFieldByNumber(Requests.CatalogsRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     public CatalogsRequest() {
@@ -190,11 +192,8 @@ public interface Service {
     @Override CatalogsRequest deserialize(Message genericMsg) {
       final Requests.CatalogsRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.CatalogsRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.CatalogsRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -227,6 +226,10 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#getDatabaseProperties(Meta.ConnectionHandle)}. */
   class DatabasePropertyRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR =
+        Requests.DatabasePropertyRequest.getDescriptor().
+        findFieldByNumber(Requests.DatabasePropertyRequest.CONNECTION_ID_FIELD_NUMBER);
+
     public final String connectionId;
 
     public DatabasePropertyRequest() {
@@ -245,11 +248,9 @@ public interface Service {
     @Override DatabasePropertyRequest deserialize(Message genericMsg) {
       final Requests.DatabasePropertyRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.DatabasePropertyRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.DatabasePropertyRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -283,6 +284,13 @@ public interface Service {
   /** Request for
    * {@link Meta#getSchemas(Meta.ConnectionHandle, String, Meta.Pat)}. */
   class SchemasRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.SchemasRequest.
+        getDescriptor().findFieldByNumber(Requests.SchemasRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor CATALOG_DESCRIPTOR = Requests.SchemasRequest.
+        getDescriptor().findFieldByNumber(Requests.SchemasRequest.CATALOG_FIELD_NUMBER);
+    private static final FieldDescriptor SCHEMA_PATTERN_DESCRIPTOR = Requests.SchemasRequest.
+        getDescriptor().findFieldByNumber(Requests.SchemasRequest.SCHEMA_PATTERN_FIELD_NUMBER);
+
     public final String connectionId;
     public final String catalog;
     public final String schemaPattern;
@@ -309,21 +317,19 @@ public interface Service {
     @Override SchemasRequest deserialize(Message genericMsg) {
       final Requests.SchemasRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.SchemasRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc, Requests.SchemasRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       String catalog = null;
-      if (ProtobufService.hasField(msg, desc, Requests.SchemasRequest.CATALOG_FIELD_NUMBER)) {
+      if (msg.hasField(CATALOG_DESCRIPTOR)) {
         catalog = msg.getCatalog();
       }
 
       String schemaPattern = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.SchemasRequest.SCHEMA_PATTERN_FIELD_NUMBER)) {
+      if (msg.hasField(SCHEMA_PATTERN_DESCRIPTOR)) {
         schemaPattern = msg.getSchemaPattern();
       }
 
@@ -366,6 +372,15 @@ public interface Service {
    * {@link Meta#getTables(Meta.ConnectionHandle, String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, java.util.List)}
    */
   class TablesRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.TablesRequest.
+        getDescriptor().findFieldByNumber(Requests.TablesRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor CATALOG_DESCRIPTOR = Requests.TablesRequest.
+        getDescriptor().findFieldByNumber(Requests.TablesRequest.CATALOG_FIELD_NUMBER);
+    private static final FieldDescriptor SCHEMA_PATTERN_DESCRIPTOR = Requests.TablesRequest.
+        getDescriptor().findFieldByNumber(Requests.TablesRequest.SCHEMA_PATTERN_FIELD_NUMBER);
+    private static final FieldDescriptor TABLE_NAME_PATTERN_DESCRIPTOR = Requests.TablesRequest.
+        getDescriptor().findFieldByNumber(Requests.TablesRequest.TABLE_NAME_PATTERN_FIELD_NUMBER);
+
     public final String connectionId;
     public final String catalog;
     public final String schemaPattern;
@@ -400,26 +415,24 @@ public interface Service {
     @Override Request deserialize(Message genericMsg) {
       final Requests.TablesRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.TablesRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc, Requests.TablesRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       String catalog = null;
-      if (ProtobufService.hasField(msg, desc, Requests.TablesRequest.CATALOG_FIELD_NUMBER)) {
+      if (msg.hasField(CATALOG_DESCRIPTOR)) {
         catalog = msg.getCatalog();
       }
 
       String schemaPattern = null;
-      if (ProtobufService.hasField(msg, desc, Requests.TablesRequest.SCHEMA_PATTERN_FIELD_NUMBER)) {
+      if (msg.hasField(SCHEMA_PATTERN_DESCRIPTOR)) {
         schemaPattern = msg.getSchemaPattern();
       }
 
       String tableNamePattern = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.TablesRequest.TABLE_NAME_PATTERN_FIELD_NUMBER)) {
+      if (msg.hasField(TABLE_NAME_PATTERN_DESCRIPTOR)) {
         tableNamePattern = msg.getTableNamePattern();
       }
 
@@ -483,6 +496,8 @@ public interface Service {
    * Request for {@link Meta#getTableTypes(Meta.ConnectionHandle)}.
    */
   class TableTypesRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.TableTypesRequest.
+        getDescriptor().findFieldByNumber(Requests.TableTypesRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     public TableTypesRequest() {
@@ -501,11 +516,9 @@ public interface Service {
     @Override TableTypesRequest deserialize(Message genericMsg) {
       final Requests.TableTypesRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.TableTypesRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.TableTypesRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -538,6 +551,17 @@ public interface Service {
    * {@link Meta#getColumns(Meta.ConnectionHandle, String, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat, org.apache.calcite.avatica.Meta.Pat)}.
    */
   class ColumnsRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.ColumnsRequest.
+        getDescriptor().findFieldByNumber(Requests.ColumnsRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor CATALOG_DESCRIPTOR = Requests.ColumnsRequest.
+        getDescriptor().findFieldByNumber(Requests.ColumnsRequest.CATALOG_FIELD_NUMBER);
+    private static final FieldDescriptor SCHEMA_PATTERN_DESCRIPTOR = Requests.ColumnsRequest.
+        getDescriptor().findFieldByNumber(Requests.ColumnsRequest.SCHEMA_PATTERN_FIELD_NUMBER);
+    private static final FieldDescriptor TABLE_NAME_PATTERN_DESCRIPTOR = Requests.ColumnsRequest.
+        getDescriptor().findFieldByNumber(Requests.ColumnsRequest.TABLE_NAME_PATTERN_FIELD_NUMBER);
+    private static final FieldDescriptor COLUMN_NAME_PATTERN_DESCRIPTOR = Requests.ColumnsRequest.
+        getDescriptor().findFieldByNumber(Requests.ColumnsRequest.COLUMN_NAME_PATTERN_FIELD_NUMBER);
+
     public final String connectionId;
     public final String catalog;
     public final String schemaPattern;
@@ -572,33 +596,29 @@ public interface Service {
     @Override ColumnsRequest deserialize(Message genericMsg) {
       final Requests.ColumnsRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.ColumnsRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc, Requests.ColumnsRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       String catalog = null;
-      if (ProtobufService.hasField(msg, desc, Requests.ColumnsRequest.CATALOG_FIELD_NUMBER)) {
+      if (msg.hasField(CATALOG_DESCRIPTOR)) {
         catalog = msg.getCatalog();
       }
 
       String schemaPattern = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.ColumnsRequest.SCHEMA_PATTERN_FIELD_NUMBER)) {
+      if (msg.hasField(SCHEMA_PATTERN_DESCRIPTOR)) {
         schemaPattern = msg.getSchemaPattern();
       }
 
       String tableNamePattern = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.ColumnsRequest.TABLE_NAME_PATTERN_FIELD_NUMBER)) {
+      if (msg.hasField(TABLE_NAME_PATTERN_DESCRIPTOR)) {
         tableNamePattern = msg.getTableNamePattern();
       }
 
       String columnNamePattern = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.ColumnsRequest.COLUMN_NAME_PATTERN_FIELD_NUMBER)) {
+      if (msg.hasField(COLUMN_NAME_PATTERN_DESCRIPTOR)) {
         columnNamePattern = msg.getColumnNamePattern();
       }
 
@@ -652,6 +672,8 @@ public interface Service {
   /** Request for
    * {@link Meta#getTypeInfo(Meta.ConnectionHandle)}. */
   class TypeInfoRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.TypeInfoRequest.
+        getDescriptor().findFieldByNumber(Requests.TypeInfoRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     public TypeInfoRequest() {
@@ -670,11 +692,9 @@ public interface Service {
     @Override TypeInfoRequest deserialize(Message genericMsg) {
       final Requests.TypeInfoRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.TypeInfoRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.TypeInfoRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -716,6 +736,15 @@ public interface Service {
    * {@link Meta#getTableTypes(Meta.ConnectionHandle)}
    * return this response. */
   class ResultSetResponse extends Response {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Responses.ResultSetResponse.
+        getDescriptor().findFieldByNumber(Responses.ResultSetResponse.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor SIGNATURE_DESCRIPTOR = Responses.ResultSetResponse.
+        getDescriptor().findFieldByNumber(Responses.ResultSetResponse.SIGNATURE_FIELD_NUMBER);
+    private static final FieldDescriptor FIRST_FRAME_DESCRIPTOR = Responses.ResultSetResponse.
+        getDescriptor().findFieldByNumber(Responses.ResultSetResponse.FIRST_FRAME_FIELD_NUMBER);
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.ResultSetResponse.
+        getDescriptor().findFieldByNumber(Responses.ResultSetResponse.METADATA_FIELD_NUMBER);
+
     public final String connectionId;
     public final int statementId;
     public final boolean ownStatement;
@@ -760,27 +789,23 @@ public interface Service {
     }
 
     static ResultSetResponse fromProto(Responses.ResultSetResponse msg) {
-      final Descriptor desc = msg.getDescriptorForType();
-
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.ResultSetResponse.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       Meta.Signature signature = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ResultSetResponse.SIGNATURE_FIELD_NUMBER)) {
+      if (msg.hasField(SIGNATURE_DESCRIPTOR)) {
         signature = Meta.Signature.fromProto(msg.getSignature());
       }
 
       Meta.Frame frame = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.ResultSetResponse.FIRST_FRAME_FIELD_NUMBER)) {
+      if (msg.hasField(FIRST_FRAME_DESCRIPTOR)) {
         frame = Meta.Frame.fromProto(msg.getFirstFrame());
       }
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ResultSetResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -840,6 +865,13 @@ public interface Service {
   /** Request for
    * {@link Meta#prepareAndExecute(Meta.StatementHandle, String, long, Meta.PrepareCallback)}. */
   class PrepareAndExecuteRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.
+        PrepareAndExecuteRequest.getDescriptor().findFieldByNumber(
+            Requests.PrepareAndExecuteRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor SQL_DESCRIPTOR = Requests.
+        PrepareAndExecuteRequest.getDescriptor().findFieldByNumber(
+            Requests.PrepareAndExecuteRequest.SQL_FIELD_NUMBER);
+
     public final String connectionId;
     public final String sql;
     public final long maxRowCount;
@@ -871,16 +903,14 @@ public interface Service {
     @Override PrepareAndExecuteRequest deserialize(Message genericMsg) {
       final Requests.PrepareAndExecuteRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.PrepareAndExecuteRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.PrepareAndExecuteRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       String sql = null;
-      if (ProtobufService.hasField(msg, desc, Requests.PrepareAndExecuteRequest.SQL_FIELD_NUMBER)) {
+      if (msg.hasField(SQL_DESCRIPTOR)) {
         sql = msg.getSql();
       }
 
@@ -926,6 +956,8 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#execute}. */
   class ExecuteRequest extends Request {
+    private static final FieldDescriptor STATEMENT_HANDLE_DESCRIPTOR = Requests.ExecuteRequest.
+        getDescriptor().findFieldByNumber(Requests.ExecuteRequest.STATEMENTHANDLE_FIELD_NUMBER);
     public final Meta.StatementHandle statementHandle;
     public final List<TypedValue> parameterValues;
     public final long maxRowCount;
@@ -953,11 +985,9 @@ public interface Service {
     @Override ExecuteRequest deserialize(Message genericMsg) {
       final Requests.ExecuteRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.ExecuteRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       Meta.StatementHandle statemetnHandle = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.ExecuteRequest.STATEMENTHANDLE_FIELD_NUMBER)) {
+      if (msg.hasField(STATEMENT_HANDLE_DESCRIPTOR)) {
         statemetnHandle = Meta.StatementHandle.fromProto(msg.getStatementHandle());
       }
 
@@ -1017,6 +1047,8 @@ public interface Service {
   /** Response to a
    * {@link org.apache.calcite.avatica.remote.Service.PrepareAndExecuteRequest}. */
   class ExecuteResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.ExecuteResponse.
+        getDescriptor().findFieldByNumber(Responses.ExecuteResponse.METADATA_FIELD_NUMBER);
     public final List<ResultSetResponse> results;
     public boolean missingStatement = false;
     public final RpcMetadataResponse rpcMetadata;
@@ -1038,7 +1070,6 @@ public interface Service {
     @Override ExecuteResponse deserialize(Message genericMsg) {
       final Responses.ExecuteResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.ExecuteResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       List<Responses.ResultSetResponse> msgResults = msg.getResultsList();
       List<ResultSetResponse> copiedResults = new ArrayList<>(msgResults.size());
@@ -1048,7 +1079,7 @@ public interface Service {
       }
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ExecuteResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1089,6 +1120,10 @@ public interface Service {
   /** Request for
    * {@link Meta#prepare(Meta.ConnectionHandle, String, long)}. */
   class PrepareRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.PrepareRequest.
+        getDescriptor().findFieldByNumber(Requests.PrepareRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor SQL_DESCRIPTOR = Requests.PrepareRequest.
+        getDescriptor().findFieldByNumber(Requests.PrepareRequest.SQL_FIELD_NUMBER);
     public final String connectionId;
     public final String sql;
     public final long maxRowCount;
@@ -1116,15 +1151,14 @@ public interface Service {
     @Override PrepareRequest deserialize(Message genericMsg) {
       final Requests.PrepareRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.PrepareRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc, Requests.PrepareRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       String sql = null;
-      if (ProtobufService.hasField(msg, desc, Requests.PrepareRequest.SQL_FIELD_NUMBER)) {
+      if (msg.hasField(SQL_DESCRIPTOR)) {
         sql = msg.getSql();
       }
 
@@ -1165,6 +1199,8 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.PrepareRequest}. */
   class PrepareResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.PrepareResponse.
+        getDescriptor().findFieldByNumber(Responses.PrepareResponse.METADATA_FIELD_NUMBER);
     public final Meta.StatementHandle statement;
     public final RpcMetadataResponse rpcMetadata;
 
@@ -1184,10 +1220,9 @@ public interface Service {
     @Override PrepareResponse deserialize(Message genericMsg) {
       final Responses.PrepareResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.PrepareResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc, Responses.PrepareResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1226,6 +1261,8 @@ public interface Service {
   /** Request for
    * {@link Meta#fetch}. */
   class FetchRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.FetchRequest.
+        getDescriptor().findFieldByNumber(Requests.FetchRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
     public final int statementId;
     public final long offset;
@@ -1259,10 +1296,9 @@ public interface Service {
     @Override FetchRequest deserialize(Message genericMsg) {
       final Requests.FetchRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.FetchRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc, Requests.FetchRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -1306,6 +1342,8 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.FetchRequest}. */
   class FetchResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.FetchResponse.
+        getDescriptor().findFieldByNumber(Responses.FetchResponse.METADATA_FIELD_NUMBER);
     public final Meta.Frame frame;
     public boolean missingStatement = false;
     public boolean missingResults = false;
@@ -1330,10 +1368,9 @@ public interface Service {
     @Override FetchResponse deserialize(Message genericMsg) {
       final Responses.FetchResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.FetchResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc, Responses.FetchResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1375,6 +1412,9 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#createStatement(org.apache.calcite.avatica.Meta.ConnectionHandle)}. */
   class CreateStatementRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.CreateStatementRequest.
+        getDescriptor().findFieldByNumber(
+            Requests.CreateStatementRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     CreateStatementRequest() {
@@ -1394,11 +1434,9 @@ public interface Service {
     @Override CreateStatementRequest deserialize(Message genericMsg) {
       final Requests.CreateStatementRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.CreateStatementRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.CreateStatementRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -1432,6 +1470,12 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CreateStatementRequest}. */
   class CreateStatementResponse extends Response {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Responses.
+        CreateStatementResponse.getDescriptor().findFieldByNumber(
+            Responses.CreateStatementResponse.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.
+        CreateStatementResponse.getDescriptor().findFieldByNumber(
+            Responses.CreateStatementResponse.METADATA_FIELD_NUMBER);
     public final String connectionId;
     public final int statementId;
     public final RpcMetadataResponse rpcMetadata;
@@ -1455,17 +1499,13 @@ public interface Service {
     @Override CreateStatementResponse deserialize(Message genericMsg) {
       final Responses.CreateStatementResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.CreateStatementResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.CreateStatementResponse.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.CreateStatementResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1509,6 +1549,9 @@ public interface Service {
   /** Request for
    * {@link org.apache.calcite.avatica.Meta#closeStatement(org.apache.calcite.avatica.Meta.StatementHandle)}. */
   class CloseStatementRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.CloseStatementRequest.
+        getDescriptor().findFieldByNumber(
+            Requests.CloseStatementRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
     public final int statementId;
 
@@ -1532,11 +1575,9 @@ public interface Service {
     @Override CloseStatementRequest deserialize(Message genericMsg) {
       final Requests.CloseStatementRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.CloseStatementRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.CloseStatementRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -1571,6 +1612,10 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CloseStatementRequest}. */
   class CloseStatementResponse extends Response {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Responses.
+        CloseStatementResponse.getDescriptor().findFieldByNumber(
+            Responses.CloseStatementResponse.METADATA_FIELD_NUMBER);
+
     public final RpcMetadataResponse rpcMetadata;
 
     public CloseStatementResponse() {
@@ -1585,11 +1630,8 @@ public interface Service {
     @Override CloseStatementResponse deserialize(Message genericMsg) {
       final Responses.CloseStatementResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.CloseStatementResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.CloseStatementResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1623,6 +1665,9 @@ public interface Service {
   /** Request for
    * {@link Meta#openConnection}. */
   class OpenConnectionRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.OpenConnectionRequest
+        .getDescriptor().findFieldByNumber(
+            Requests.OpenConnectionRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
     public final Map<String, String> info;
 
@@ -1670,11 +1715,9 @@ public interface Service {
     @Override Request deserialize(Message genericMsg) {
       final Requests.OpenConnectionRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.OpenConnectionRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.OpenConnectionRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -1716,6 +1759,9 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.OpenConnectionRequest}. */
   class OpenConnectionResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.OpenConnectionResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.OpenConnectionResponse.METADATA_FIELD_NUMBER);
     public final RpcMetadataResponse rpcMetadata;
 
     public OpenConnectionResponse() {
@@ -1730,11 +1776,9 @@ public interface Service {
     @Override OpenConnectionResponse deserialize(Message genericMsg) {
       final Responses.OpenConnectionResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.OpenConnectionResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.OpenConnectionResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1768,6 +1812,9 @@ public interface Service {
   /** Request for
    * {@link Meta#closeConnection(org.apache.calcite.avatica.Meta.ConnectionHandle)}. */
   class CloseConnectionRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.CloseConnectionRequest
+        .getDescriptor().findFieldByNumber(
+            Requests.CloseConnectionRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     CloseConnectionRequest() {
@@ -1787,11 +1834,8 @@ public interface Service {
     @Override CloseConnectionRequest deserialize(Message genericMsg) {
       final Requests.CloseConnectionRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.CloseConnectionRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.CloseConnectionRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -1825,6 +1869,10 @@ public interface Service {
   /** Response from
    * {@link org.apache.calcite.avatica.remote.Service.CloseConnectionRequest}. */
   class CloseConnectionResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.CloseConnectionResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.CloseConnectionResponse.METADATA_FIELD_NUMBER);
+
     public final RpcMetadataResponse rpcMetadata;
 
     public CloseConnectionResponse() {
@@ -1839,11 +1887,9 @@ public interface Service {
     @Override CloseConnectionResponse deserialize(Message genericMsg) {
       final Responses.CloseConnectionResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.CloseConnectionResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.CloseConnectionResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -1876,6 +1922,12 @@ public interface Service {
 
   /** Request for {@link Meta#connectionSync(Meta.ConnectionHandle, Meta.ConnectionProperties)}. */
   class ConnectionSyncRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.ConnectionSyncRequest
+        .getDescriptor().findFieldByNumber(
+            Requests.ConnectionSyncRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor CONN_PROPS_DESCRIPTOR = Requests.ConnectionSyncRequest
+        .getDescriptor().findFieldByNumber(Requests.ConnectionSyncRequest.CONN_PROPS_FIELD_NUMBER);
+
     public final String connectionId;
     public final Meta.ConnectionProperties connProps;
 
@@ -1899,17 +1951,14 @@ public interface Service {
     @Override ConnectionSyncRequest deserialize(Message genericMsg) {
       final Requests.ConnectionSyncRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.ConnectionSyncRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.ConnectionSyncRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       Meta.ConnectionProperties connProps = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.ConnectionSyncRequest.CONN_PROPS_FIELD_NUMBER)) {
+      if (msg.hasField(CONN_PROPS_DESCRIPTOR)) {
         connProps = ConnectionPropertiesImpl.fromProto(msg.getConnProps());
       }
 
@@ -1948,6 +1997,8 @@ public interface Service {
   /** Response for
    * {@link Meta#connectionSync(Meta.ConnectionHandle, Meta.ConnectionProperties)}. */
   class ConnectionSyncResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.ConnectionSyncResponse
+        .getDescriptor().findFieldByNumber(Responses.ConnectionSyncResponse.METADATA_FIELD_NUMBER);
     public final Meta.ConnectionProperties connProps;
     public final RpcMetadataResponse rpcMetadata;
 
@@ -1966,11 +2017,8 @@ public interface Service {
     @Override ConnectionSyncResponse deserialize(Message genericMsg) {
       final Responses.ConnectionSyncResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.ConnectionSyncResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.ConnectionSyncResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -2011,6 +2059,9 @@ public interface Service {
   /** Response for
    * {@link Meta#getDatabaseProperties(Meta.ConnectionHandle)}. */
   class DatabasePropertyResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.DatabasePropertyResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.DatabasePropertyResponse.METADATA_FIELD_NUMBER);
     public final Map<Meta.DatabaseProperty, Object> map;
     public final RpcMetadataResponse rpcMetadata;
 
@@ -2029,8 +2080,6 @@ public interface Service {
     @Override DatabasePropertyResponse deserialize(Message genericMsg) {
       final Responses.DatabasePropertyResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.DatabasePropertyResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       HashMap<Meta.DatabaseProperty, Object> properties = new HashMap<>();
       for (Responses.DatabasePropertyElement property : msg.getPropsList()) {
         final Meta.DatabaseProperty dbProp = Meta.DatabaseProperty.fromProto(property.getKey());
@@ -2067,8 +2116,7 @@ public interface Service {
       }
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.DatabasePropertyResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -2143,7 +2191,20 @@ public interface Service {
    * transport over the wire. Thus, {@link Service#apply} will never return
    * an ErrorResponse.
    */
-  class ErrorResponse extends Response {
+  public class ErrorResponse extends Response {
+    private static final FieldDescriptor ERROR_MESSAGE_DESCRIPTOR = Responses.ErrorResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.ErrorResponse.ERROR_MESSAGE_FIELD_NUMBER);
+    private static final FieldDescriptor SQL_DESCRIPTOR = Responses.ErrorResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.ErrorResponse.SQL_STATE_FIELD_NUMBER);
+    private static final FieldDescriptor SEVERITY_DESCRIPTOR = Responses.ErrorResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.ErrorResponse.SEVERITY_FIELD_NUMBER);
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.ErrorResponse
+        .getDescriptor().findFieldByNumber(
+            Responses.ErrorResponse.METADATA_FIELD_NUMBER);
+
     public static final int UNKNOWN_ERROR_CODE = -1;
     public static final int MISSING_CONNECTION_ERROR_CODE = 1;
 
@@ -2219,30 +2280,28 @@ public interface Service {
     @Override ErrorResponse deserialize(Message genericMsg) {
       final Responses.ErrorResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.ErrorResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
-
       List<String> exceptions = null;
       if (msg.getHasExceptions()) {
         exceptions = msg.getExceptionsList();
       }
 
       String errorMessage = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.ERROR_MESSAGE_FIELD_NUMBER)) {
+      if (msg.hasField(ERROR_MESSAGE_DESCRIPTOR)) {
         errorMessage = msg.getErrorMessage();
       }
 
       String sqlState = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.SQL_STATE_FIELD_NUMBER)) {
+      if (msg.hasField(SQL_DESCRIPTOR)) {
         sqlState = msg.getSqlState();
       }
 
       AvaticaSeverity severity = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.SEVERITY_FIELD_NUMBER)) {
+      if (msg.hasField(SEVERITY_DESCRIPTOR)) {
         severity = AvaticaSeverity.fromProto(msg.getSeverity());
       }
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc, Responses.ErrorResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -2321,6 +2380,14 @@ public interface Service {
    * Request for {@link Service#apply(SyncResultsRequest)}
    */
   class SyncResultsRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.SyncResultsRequest
+        .getDescriptor().findFieldByNumber(Requests.SyncResultsRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor STATEMENT_ID_DESCRIPTOR = Requests.SyncResultsRequest
+        .getDescriptor().findFieldByNumber(Requests.SyncResultsRequest.STATEMENT_ID_FIELD_NUMBER);
+    private static final FieldDescriptor STATE_DESCRIPTOR = Requests.SyncResultsRequest
+        .getDescriptor().findFieldByNumber(Requests.SyncResultsRequest.STATE_FIELD_NUMBER);
+    private static final FieldDescriptor OFFSET_DESCRIPTOR = Requests.SyncResultsRequest
+        .getDescriptor().findFieldByNumber(Requests.SyncResultsRequest.OFFSET_FIELD_NUMBER);
     public final String connectionId;
     public final int statementId;
     public final QueryState state;
@@ -2349,27 +2416,24 @@ public interface Service {
     Request deserialize(Message genericMsg) {
       final Requests.SyncResultsRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.SyncResultsRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.SyncResultsRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
       int statementId = 0;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.SyncResultsRequest.STATEMENT_ID_FIELD_NUMBER)) {
+      if (msg.hasField(STATEMENT_ID_DESCRIPTOR)) {
         statementId = msg.getStatementId();
       }
 
       Common.QueryState state = null;
-      if (ProtobufService.hasField(msg, desc, Requests.SyncResultsRequest.STATE_FIELD_NUMBER)) {
+      if (msg.hasField(STATE_DESCRIPTOR)) {
         state = msg.getState();
       }
 
       long offset = 0;
-      if (ProtobufService.hasField(msg, desc, Requests.SyncResultsRequest.OFFSET_FIELD_NUMBER)) {
+      if (msg.hasField(OFFSET_DESCRIPTOR)) {
         offset = msg.getOffset();
       }
 
@@ -2417,6 +2481,8 @@ public interface Service {
    * Response for {@link Service#apply(SyncResultsRequest)}.
    */
   class SyncResultsResponse extends Response {
+    private static final FieldDescriptor METADATA_DESCRIPTOR = Responses.SyncResultsResponse
+        .getDescriptor().findFieldByNumber(Responses.SyncResultsResponse.METADATA_FIELD_NUMBER);
     public boolean missingStatement = false;
     public final boolean moreResults;
     public final RpcMetadataResponse rpcMetadata;
@@ -2437,11 +2503,9 @@ public interface Service {
     SyncResultsResponse deserialize(Message genericMsg) {
       final Responses.SyncResultsResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.SyncResultsResponse.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       RpcMetadataResponse metadata = null;
-      if (ProtobufService.hasField(msg, desc,
-          Responses.SyncResultsResponse.METADATA_FIELD_NUMBER)) {
+      if (msg.hasField(METADATA_DESCRIPTOR)) {
         metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
       }
 
@@ -2481,7 +2545,9 @@ public interface Service {
    * This isn't really a "response", but we want to be able to be able to convert it to protobuf
    * and back again, so ignore that there isn't an explicit endpoint for it.
    */
-  class RpcMetadataResponse extends Response {
+  public class RpcMetadataResponse extends Response {
+    private static final FieldDescriptor SERVER_ADDRESS_DESCRIPTOR = Responses.RpcMetadata
+        .getDescriptor().findFieldByNumber(Responses.RpcMetadata.SERVER_ADDRESS_FIELD_NUMBER);
     public final String serverAddress;
 
     public RpcMetadataResponse() {
@@ -2504,10 +2570,8 @@ public interface Service {
     }
 
     static RpcMetadataResponse fromProto(Responses.RpcMetadata msg) {
-      final Descriptor desc = msg.getDescriptorForType();
-
       String serverAddress = null;
-      if (ProtobufService.hasField(msg, desc, Responses.RpcMetadata.SERVER_ADDRESS_FIELD_NUMBER)) {
+      if (msg.hasField(SERVER_ADDRESS_DESCRIPTOR)) {
         serverAddress = msg.getServerAddress();
       }
 
@@ -2531,6 +2595,8 @@ public interface Service {
    * An RPC request to invoke a commit on a Connection.
    */
   class CommitRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.CommitRequest
+        .getDescriptor().findFieldByNumber(Requests.CommitRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     CommitRequest() {
@@ -2548,10 +2614,9 @@ public interface Service {
     @Override CommitRequest deserialize(Message genericMsg) {
       final Requests.CommitRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.CommitRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc, Requests.CommitRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -2585,6 +2650,9 @@ public interface Service {
    * An RPC response from invoking commit on a Connection.
    */
   class CommitResponse extends Response {
+    private static final CommitResponse INSTANCE = new CommitResponse();
+    private static final Responses.CommitResponse PB_INSTANCE =
+        Responses.CommitResponse.getDefaultInstance();
 
     CommitResponse() {}
 
@@ -2592,11 +2660,11 @@ public interface Service {
       // Checks the type of genericMsg
       ProtobufService.castProtobufMessage(genericMsg, Responses.CommitResponse.class);
 
-      return new CommitResponse();
+      return INSTANCE;
     }
 
     @Override Responses.CommitResponse serialize() {
-      return Responses.CommitResponse.newBuilder().build();
+      return PB_INSTANCE;
     }
 
     @Override public int hashCode() {
@@ -2613,6 +2681,8 @@ public interface Service {
    * An RPC request to invoke a rollback on a Connection.
    */
   class RollbackRequest extends Request {
+    private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.RollbackRequest
+        .getDescriptor().findFieldByNumber(Requests.RollbackRequest.CONNECTION_ID_FIELD_NUMBER);
     public final String connectionId;
 
     RollbackRequest() {
@@ -2630,11 +2700,9 @@ public interface Service {
     @Override RollbackRequest deserialize(Message genericMsg) {
       final Requests.RollbackRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.RollbackRequest.class);
-      final Descriptor desc = msg.getDescriptorForType();
 
       String connectionId = null;
-      if (ProtobufService.hasField(msg, desc,
-          Requests.RollbackRequest.CONNECTION_ID_FIELD_NUMBER)) {
+      if (msg.hasField(CONNECTION_ID_DESCRIPTOR)) {
         connectionId = msg.getConnectionId();
       }
 
@@ -2668,17 +2736,20 @@ public interface Service {
    * An RPC response from invoking rollback on a Connection.
    */
   class RollbackResponse extends Response {
+    private static final RollbackResponse INSTANCE = new RollbackResponse();
+    private static final Responses.RollbackResponse PB_INSTANCE =
+        Responses.RollbackResponse.getDefaultInstance();
 
     RollbackResponse() {}
 
     @Override RollbackResponse deserialize(Message genericMsg) {
       // Check that genericMsg is the expected type
       ProtobufService.castProtobufMessage(genericMsg, Responses.RollbackResponse.class);
-      return new RollbackResponse();
+      return INSTANCE;
     }
 
     @Override Responses.RollbackResponse serialize() {
-      return Responses.RollbackResponse.newBuilder().build();
+      return PB_INSTANCE;
     }
 
     @Override public int hashCode() {

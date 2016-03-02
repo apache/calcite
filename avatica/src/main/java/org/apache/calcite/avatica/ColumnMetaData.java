@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 
 import java.lang.reflect.Type;
 import java.sql.Array;
@@ -47,6 +47,19 @@ import java.util.Objects;
  * <p>(Compare with {@link java.sql.ResultSetMetaData}.)
  */
 public class ColumnMetaData {
+  private static final FieldDescriptor CATALOG_NAME_DESCRIPTOR = Common.ColumnMetaData
+      .getDescriptor().findFieldByNumber(Common.ColumnMetaData.CATALOG_NAME_FIELD_NUMBER);
+  private static final FieldDescriptor SCHEMA_NAME_DESCRIPTOR = Common.ColumnMetaData
+      .getDescriptor().findFieldByNumber(Common.ColumnMetaData.SCHEMA_NAME_FIELD_NUMBER);
+  private static final FieldDescriptor LABEL_DESCRIPTOR = Common.ColumnMetaData
+      .getDescriptor().findFieldByNumber(Common.ColumnMetaData.LABEL_FIELD_NUMBER);
+  private static final FieldDescriptor COLUMN_NAME_DESCRIPTOR = Common.ColumnMetaData
+      .getDescriptor().findFieldByNumber(Common.ColumnMetaData.COLUMN_NAME_FIELD_NUMBER);
+  private static final FieldDescriptor TABLE_NAME_DESCRIPTOR = Common.ColumnMetaData
+      .getDescriptor().findFieldByNumber(Common.ColumnMetaData.TABLE_NAME_FIELD_NUMBER);
+  private static final FieldDescriptor COLUMN_CLASS_NAME_DESCRIPTOR = Common.ColumnMetaData
+      .getDescriptor().findFieldByNumber(Common.ColumnMetaData.COLUMN_CLASS_NAME_FIELD_NUMBER);
+
   public final int ordinal; // 0-based
   public final boolean autoIncrement;
   public final boolean caseSensitive;
@@ -171,36 +184,34 @@ public class ColumnMetaData {
 
   public static ColumnMetaData fromProto(Common.ColumnMetaData proto) {
     AvaticaType nestedType = AvaticaType.fromProto(proto.getType());
-    final Descriptor desc = proto.getDescriptorForType();
 
     String catalogName = null;
-    if (proto.hasField(desc.findFieldByNumber(Common.ColumnMetaData.CATALOG_NAME_FIELD_NUMBER))) {
+    if (proto.hasField(CATALOG_NAME_DESCRIPTOR)) {
       catalogName = proto.getCatalogName();
     }
 
     String schemaName = null;
-    if (proto.hasField(desc.findFieldByNumber(Common.ColumnMetaData.SCHEMA_NAME_FIELD_NUMBER))) {
+    if (proto.hasField(SCHEMA_NAME_DESCRIPTOR)) {
       schemaName = proto.getSchemaName();
     }
 
     String label = null;
-    if (proto.hasField(desc.findFieldByNumber(Common.ColumnMetaData.LABEL_FIELD_NUMBER))) {
+    if (proto.hasField(LABEL_DESCRIPTOR)) {
       label = proto.getLabel();
     }
 
     String columnName = null;
-    if (proto.hasField(desc.findFieldByNumber(Common.ColumnMetaData.COLUMN_NAME_FIELD_NUMBER))) {
+    if (proto.hasField(COLUMN_NAME_DESCRIPTOR)) {
       columnName = proto.getColumnName();
     }
 
     String tableName = null;
-    if (proto.hasField(desc.findFieldByNumber(Common.ColumnMetaData.TABLE_NAME_FIELD_NUMBER))) {
+    if (proto.hasField(TABLE_NAME_DESCRIPTOR)) {
       tableName = proto.getTableName();
     }
 
     String columnClassName = null;
-    if (proto.hasField(
-        desc.findFieldByNumber(Common.ColumnMetaData.COLUMN_CLASS_NAME_FIELD_NUMBER))) {
+    if (proto.hasField(COLUMN_CLASS_NAME_DESCRIPTOR)) {
       columnClassName = proto.getColumnClassName();
     }
 

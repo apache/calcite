@@ -17,11 +17,10 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.proto.Common;
-import org.apache.calcite.avatica.remote.ProtobufService;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -35,6 +34,14 @@ import java.util.Objects;
  * remote.
  */
 public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
+  private static final FieldDescriptor CATALOG_DESCRIPTOR = Common.ConnectionProperties
+      .getDescriptor().findFieldByNumber(Common.ConnectionProperties.CATALOG_FIELD_NUMBER);
+  private static final FieldDescriptor SCHEMA_DESCRIPTOR = Common.ConnectionProperties
+      .getDescriptor().findFieldByNumber(Common.ConnectionProperties.SCHEMA_FIELD_NUMBER);
+  private static final FieldDescriptor TRANSACTION_ISOLATION_DESCRIPTOR = Common
+      .ConnectionProperties.getDescriptor().findFieldByNumber(
+          Common.ConnectionProperties.TRANSACTION_ISOLATION_FIELD_NUMBER);
+
   private boolean isDirty = false;
   private Boolean autoCommit;
   private Boolean readOnly;
@@ -235,15 +242,13 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
   }
 
   public static ConnectionPropertiesImpl fromProto(Common.ConnectionProperties proto) {
-    final Descriptor desc = proto.getDescriptorForType();
-
     String catalog = null;
-    if (ProtobufService.hasField(proto, desc, Common.ConnectionProperties.CATALOG_FIELD_NUMBER)) {
+    if (proto.hasField(CATALOG_DESCRIPTOR)) {
       catalog = proto.getCatalog();
     }
 
     String schema = null;
-    if (ProtobufService.hasField(proto, desc, Common.ConnectionProperties.SCHEMA_FIELD_NUMBER)) {
+    if (proto.hasField(SCHEMA_DESCRIPTOR)) {
       schema = proto.getSchema();
     }
 
@@ -258,8 +263,7 @@ public class ConnectionPropertiesImpl implements Meta.ConnectionProperties {
     }
 
     Integer transactionIsolation = null;
-    if (ProtobufService.hasField(proto, desc,
-        Common.ConnectionProperties.TRANSACTION_ISOLATION_FIELD_NUMBER)) {
+    if (proto.hasField(TRANSACTION_ISOLATION_DESCRIPTOR)) {
       transactionIsolation = Integer.valueOf(proto.getTransactionIsolation());
     }
 
