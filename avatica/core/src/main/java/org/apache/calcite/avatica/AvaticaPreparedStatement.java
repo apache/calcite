@@ -35,6 +35,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
@@ -52,6 +53,7 @@ public abstract class AvaticaPreparedStatement
   private final ResultSetMetaData resultSetMetaData;
   private Calendar calendar;
   protected final TypedValue[] slots;
+  protected final List<List<TypedValue>> parameterValueBatch;
 
   /**
    * Creates an AvaticaPreparedStatement.
@@ -75,10 +77,22 @@ public abstract class AvaticaPreparedStatement
     this.slots = new TypedValue[signature.parameters.size()];
     this.resultSetMetaData =
         connection.factory.newResultSetMetaData(this, signature);
+    this.parameterValueBatch = new ArrayList<>();
   }
 
   @Override protected List<TypedValue> getParameterValues() {
     return Arrays.asList(slots);
+  }
+
+  protected List<TypedValue> copyParameterValues() {
+    // For implementing batch update, we need to make a copy of slots, not just a thin reference
+    // to it as as list. Otherwise, subsequent setFoo(..) calls will alter the underlying array
+    // and modify our cached TypedValue list.
+    List<TypedValue> copy = new ArrayList<>(slots.length);
+    for (TypedValue value : slots) {
+      copy.add(value);
+    }
+    return copy;
   }
 
   /** Returns a calendar in the connection's time zone, creating one the first
@@ -101,6 +115,10 @@ public abstract class AvaticaPreparedStatement
       calendar = Calendar.getInstance(connection.getTimeZone());
     }
     return calendar;
+  }
+
+  protected List<List<TypedValue>> getParameterValueBatch() {
+    return this.parameterValueBatch;
   }
 
   // implement PreparedStatement
@@ -213,7 +231,21 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void addBatch() throws SQLException {
-    throw connection.helper.unsupported();
+    // Need to copy the parameterValues into a new list, not wrap the array in a list
+    // as getParameterValues does.
+    this.parameterValueBatch.add(copyParameterValues());
+  }
+
+  @Override public int[] executeBatch() throws SQLException {
+    // Overriding the implementation in AvaticaStatement.
+    try {
+      final int[] updateCounts = getConnection().executeBatchUpdateInternal(this);
+      return updateCounts;
+    } finally {
+      // If we failed to send this batch, that's a problem for the user to handle, not us.
+      // Make sure we always clear the statements we collected to submit in one RPC.
+      this.parameterValueBatch.clear();
+    }
   }
 
   public void setCharacterStream(int parameterIndex, Reader reader, int length)

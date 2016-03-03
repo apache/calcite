@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -67,6 +68,8 @@ public abstract class AvaticaStatement
 
   private Meta.Signature signature;
 
+  private final List<String> batchedSql;
+
   protected void setSignature(Meta.Signature signature) {
     this.signature = signature;
   }
@@ -109,6 +112,7 @@ public abstract class AvaticaStatement
     }
     connection.statementMap.put(h.id, this);
     this.handle = h;
+    this.batchedSql = new ArrayList<>();
   }
 
   /** Returns the identifier of the statement, unique within its connection. */
@@ -146,6 +150,25 @@ public abstract class AvaticaStatement
 
     throw new RuntimeException("Failed to successfully execute query after "
         + connection.maxRetriesPerExecute + " attempts.");
+  }
+
+  /**
+   * Commit a collection of updates in a single batch RPC.
+   *
+   * @return an array of integers mapping to the update count per SQL command.
+   */
+  protected int[] executeBatchInternal() throws SQLException {
+    for (int i = 0; i < connection.maxRetriesPerExecute; i++) {
+      try {
+        Meta.ExecuteBatchResult result = connection.prepareAndUpdateBatch(this, batchedSql);
+        return result.updateCounts;
+      } catch (NoSuchStatementException e) {
+        resetStatement();
+      }
+    }
+
+    throw new RuntimeException("Failed to successfully execute batch update after "
+        +  connection.maxRetriesPerExecute + " attempts");
   }
 
   protected void resetStatement() {
@@ -359,7 +382,7 @@ public abstract class AvaticaStatement
   }
 
   public void addBatch(String sql) throws SQLException {
-    throw connection.helper.unsupported();
+    this.batchedSql.add(Objects.requireNonNull(sql));
   }
 
   public void clearBatch() throws SQLException {
@@ -367,7 +390,13 @@ public abstract class AvaticaStatement
   }
 
   public int[] executeBatch() throws SQLException {
-    throw connection.helper.unsupported();
+    try {
+      return executeBatchInternal();
+    } finally {
+      // If we failed to send this batch, that's a problem for the user to handle, not us.
+      // Make sure we always clear the statements we collected to submit in one RPC.
+      this.batchedSql.clear();
+    }
   }
 
   public AvaticaConnection getConnection() {

@@ -44,11 +44,13 @@ import org.apache.calcite.avatica.remote.Service.CreateStatementResponse;
 import org.apache.calcite.avatica.remote.Service.DatabasePropertyRequest;
 import org.apache.calcite.avatica.remote.Service.DatabasePropertyResponse;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
+import org.apache.calcite.avatica.remote.Service.ExecuteBatchResponse;
 import org.apache.calcite.avatica.remote.Service.ExecuteResponse;
 import org.apache.calcite.avatica.remote.Service.FetchRequest;
 import org.apache.calcite.avatica.remote.Service.FetchResponse;
 import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
 import org.apache.calcite.avatica.remote.Service.OpenConnectionResponse;
+import org.apache.calcite.avatica.remote.Service.PrepareAndExecuteBatchRequest;
 import org.apache.calcite.avatica.remote.Service.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.remote.Service.PrepareRequest;
 import org.apache.calcite.avatica.remote.Service.PrepareResponse;
@@ -216,6 +218,11 @@ public class ProtobufTranslationImplTest<T> {
     requests.add(new CommitRequest("connectionId"));
     requests.add(new RollbackRequest("connectionId"));
 
+    // ExecuteBatchRequest omitted because of the special protobuf conversion it does
+
+    List<String> commands = Arrays.asList("command1", "command2", "command3");
+    requests.add(new PrepareAndExecuteBatchRequest("connectionId", 12345, commands));
+
     return requests;
   }
 
@@ -350,6 +357,10 @@ public class ProtobufTranslationImplTest<T> {
 
     responses.add(new CommitResponse());
     responses.add(new RollbackResponse());
+
+    int[] updateCounts = new int[]{1, 0, 1, 1};
+    responses.add(
+        new ExecuteBatchResponse("connectionId", 12345, updateCounts, false, rpcMetadata));
 
     return responses;
   }

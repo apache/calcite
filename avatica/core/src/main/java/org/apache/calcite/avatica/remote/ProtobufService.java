@@ -109,6 +109,14 @@ public abstract class ProtobufService extends AbstractService {
     return (RollbackResponse) _apply(request);
   }
 
+  @Override public ExecuteBatchResponse apply(PrepareAndExecuteBatchRequest request) {
+    return (ExecuteBatchResponse) _apply(request);
+  }
+
+  @Override public ExecuteBatchResponse apply(ExecuteBatchRequest request) {
+    return (ExecuteBatchResponse) _apply(request);
+  }
+
   /**
    * Checks if the provided {@link Message} is an instance of the Class given by
    * <code>expectedType</code>. Throws an IllegalArgumentException if the message is not of the

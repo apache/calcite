@@ -13,8 +13,10 @@ requests:
   - { name: "CreateStatementRequest" }
   - { name: "DatabasePropertyRequest" }
   - { name: "ExecuteRequest" }
+  - { name: "ExecuteBatchRequest" }
   - { name: "FetchRequest" }
   - { name: "OpenConnectionRequest" }
+  - { name: "PrepareAndExecuteBatchRequest" }
   - { name: "PrepareAndExecuteRequest" }
   - { name: "PrepareRequest" }
   - { name: "RollbackRequest" }
@@ -49,6 +51,7 @@ responses:
   - { name: "CreateStatementResponse" }
   - { name: "DatabasePropertyResponse" }
   - { name: "ErrorResponse" }
+  - { name: "ExecuteBatchResponse" }
   - { name: "ExecuteResponse" }
   - { name: "FetchResponse" }
   - { name: "OpenConnectionResponse" }
@@ -231,6 +234,26 @@ This request is used to fetch all <a href="#databaseproperty">database propertie
 
 `connectionId` (required string) The identifier of the connection to use when fetching the database properties.
 
+### ExecuteBatchRequest
+
+This request is used to execute a batch of updates on a PreparedStatement.
+
+{% highlight json %}
+{
+  "request": "executeBatch",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "parameterValues": [ [ TypedValue, TypedValue, ... ], [ TypedValue, TypedValue, ...], ... ]
+}
+{% endhighlight %}
+
+`connectionId` (required string) The identifier of the connection to use when fetching the database properties.
+
+`statementId` (required integer) The identifier of the statement created using the above connection.
+
+`parameterValues` (required array of array) An array of arrays of <a href="#typedvalue">TypedValue</a>'s. Each element
+  in the array is an update to a row, while the outer array represents the entire "batch" of updates.
+
 ### ExecuteRequest
 
 This request is used to execute a PreparedStatement, optionally with values to bind to the parameters in the Statement.
@@ -287,6 +310,25 @@ This request is used to open a new Connection in the Avatica server.
 `connectionId` (required string) The identifier of the connection to open in the server.
 
 `info` (optional string-to-string map) A Map containing properties to include when creating the Connection.
+
+### PrepareAndExecuteBatchRequest
+
+This request is used as short-hand to create a Statement and execute an batch of SQL commands in that Statement.
+
+{% highlight json %}
+{
+  "request": "prepareAndExecuteBatch",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "sqlCommands", [ "SQL Command", "SQL Command", ... ]
+}
+{% endhighlight %}
+
+`connectionId` (required string) The identifier for the connection to use.
+
+`statementId` (required integer) The identifier for the statement created by the above connection to use.
+
+`sqlCommands` (required array of strings) An array of SQL commands
 
 ### PrepareAndExecuteRequest
 
@@ -559,6 +601,33 @@ A response when an error was caught executing a request. Any request may return 
 `severity` An <a href="#avaticaseverity">AvaticaSeverity</a> object which denotes how critical the error is.
 
 `rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### ExecuteBatchResponse
+
+A response to <a href="#executebatchrequest">ExecuteBatchRequest</a> and <a href="#prepareandexecutebatchrequest">PrepareAndExecuteRequest</a>
+which encapsulates the update counts for a batch of updates.
+
+{% highlight json %}
+{
+  "response": "executeBatch",
+  "connectionId": "000000-0000-0000-00000000",
+  "statementId": 12345,
+  "updateCounts": [ 1, 1, 0, 1, ... ],
+  "missingStatement": false,
+  "rpcMetadata": RpcMetadata
+}
+{% endhighlight %}
+
+`connectionId` The identifier for the connection used to create the statement.
+
+`statementId` The identifier for the created statement.
+
+`updateCounts` An array of integers corresponding to each update contained in the batch that was executed.
+
+`missingStatement` True if the operation failed because the Statement is not cached in the server, false otherwise.
+
+`rpcMetadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
 
 ### ExecuteResponse
 

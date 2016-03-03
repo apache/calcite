@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.Meta;
 
+import org.apache.calcite.avatica.Meta.ExecuteBatchResult;
 import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.MissingResultsException;
 import org.apache.calcite.avatica.NoSuchStatementException;
@@ -352,6 +353,37 @@ public class LocalService implements Service {
 
     // If rollback() errors, let the ErrorResponse be sent back via an uncaught Exception.
     return new RollbackResponse();
+  }
+
+  public ExecuteBatchResponse apply(PrepareAndExecuteBatchRequest request) {
+    final Meta.StatementHandle h = new Meta.StatementHandle(request.connectionId,
+        request.statementId, null);
+    try {
+      ExecuteBatchResult result = meta.prepareAndExecuteBatch(h, request.sqlCommands);
+      return new ExecuteBatchResponse(request.connectionId, request.statementId,
+          result.updateCounts, false, serverLevelRpcMetadata);
+    } catch (NoSuchStatementException e) {
+      return new ExecuteBatchResponse(request.connectionId, request.statementId, null, true,
+          serverLevelRpcMetadata);
+    }
+  }
+
+  public ExecuteBatchResponse apply(ExecuteBatchRequest request) {
+    final Meta.StatementHandle h = new Meta.StatementHandle(request.connectionId,
+        request.statementId, null);
+    try {
+      ExecuteBatchResult result;
+      if (request.hasProtoUpdateBatches() && meta instanceof ProtobufMeta) {
+        result = ((ProtobufMeta) meta).executeBatchProtobuf(h, request.getProtoUpdateBatches());
+      } else {
+        result = meta.executeBatch(h, request.parameterValues);
+      }
+      return new ExecuteBatchResponse(request.connectionId, request.statementId,
+          result.updateCounts, false, serverLevelRpcMetadata);
+    } catch (NoSuchStatementException e) {
+      return new ExecuteBatchResponse(request.connectionId, request.statementId, null, true,
+          serverLevelRpcMetadata);
+    }
   }
 }
 

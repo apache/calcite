@@ -124,3 +124,12 @@ message CommitResponse {
 message RollbackResponse {
 
 }
+
+// Response to a batch update request
+message ExecuteBatchResponse {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  repeated uint32 update_counts = 3;
+  bool missing_statement = 4; // Did the request fail because of no-cached statement
+  RpcMetadata metadata = 5;
+}

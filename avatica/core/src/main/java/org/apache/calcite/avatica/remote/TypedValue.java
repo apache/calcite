@@ -421,81 +421,73 @@ public class TypedValue {
 
   public static TypedValue fromProto(Common.TypedValue proto) {
     ColumnMetaData.Rep rep = ColumnMetaData.Rep.fromProto(proto.getType());
+    Object value = getValue(proto);
 
-    Object value = null;
+    return new TypedValue(rep, value);
+  }
 
+  /**
+   * Convert the serialized value into the appropriate primitive/object.
+   *
+   * @param protoValue The serialized TypedValue.
+   * @return The appropriate concrete type for the parameter value (as an Object).
+   */
+  public static Object getValue(Common.TypedValue protoValue) {
     // Deserialize the value again
-    switch (proto.getType()) {
+    switch (protoValue.getType()) {
     case BOOLEAN:
     case PRIMITIVE_BOOLEAN:
-      value = proto.getBoolValue();
-      break;
+      return protoValue.getBoolValue();
     case BYTE_STRING:
     case STRING:
-      value = proto.getStringValue();
-      break;
+      return protoValue.getStringValue();
     case PRIMITIVE_CHAR:
     case CHARACTER:
-      value = proto.getStringValue().charAt(0);
-      break;
+      return protoValue.getStringValue().charAt(0);
     case BYTE:
     case PRIMITIVE_BYTE:
-      value = Long.valueOf(proto.getNumberValue()).byteValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).byteValue();
     case DOUBLE:
     case PRIMITIVE_DOUBLE:
-      value = proto.getDoubleValue();
-      break;
+      return protoValue.getDoubleValue();
     case FLOAT:
     case PRIMITIVE_FLOAT:
-      value = Float.intBitsToFloat((int) proto.getNumberValue());
-      break;
+      return Float.intBitsToFloat((int) protoValue.getNumberValue());
     case INTEGER:
     case PRIMITIVE_INT:
-      value = Long.valueOf(proto.getNumberValue()).intValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).intValue();
     case PRIMITIVE_SHORT:
     case SHORT:
-      value = Long.valueOf(proto.getNumberValue()).shortValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).shortValue();
     case LONG:
     case PRIMITIVE_LONG:
-      value = Long.valueOf(proto.getNumberValue());
-      break;
+      return Long.valueOf(protoValue.getNumberValue());
     case JAVA_SQL_DATE:
     case JAVA_SQL_TIME:
-      value = Long.valueOf(proto.getNumberValue()).intValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).intValue();
     case JAVA_SQL_TIMESTAMP:
     case JAVA_UTIL_DATE:
-      value = proto.getNumberValue();
-      break;
+      return protoValue.getNumberValue();
     case BIG_INTEGER:
-      value = new BigInteger(proto.getBytesValues().toByteArray());
-      break;
+      return new BigInteger(protoValue.getBytesValues().toByteArray());
     case BIG_DECIMAL:
-      BigInteger bigInt = new BigInteger(proto.getBytesValues().toByteArray());
-      value = new BigDecimal(bigInt, (int) proto.getNumberValue());
-      break;
+      BigInteger bigInt = new BigInteger(protoValue.getBytesValues().toByteArray());
+      return new BigDecimal(bigInt, (int) protoValue.getNumberValue());
     case NUMBER:
-      value = Long.valueOf(proto.getNumberValue());
-      break;
+      return Long.valueOf(protoValue.getNumberValue());
     case OBJECT:
-      if (proto.getNull()) {
-        value = null;
-        break;
+      if (protoValue.getNull()) {
+        return null;
       }
       // Intentional fall through to RTE. If we sent an object over the wire, it could only
       // possibly be null (at this point). Anything else has to be an error.
     case UNRECOGNIZED:
       // Fail?
-      throw new RuntimeException("Unhandled type: " + proto.getType());
+      throw new RuntimeException("Unhandled type: " + protoValue.getType());
     default:
       // Fail?
-      throw new RuntimeException("Unknown type: " + proto.getType());
+      throw new RuntimeException("Unknown type: " + protoValue.getType());
     }
-
-    return new TypedValue(rep, value);
   }
 
   @Override public int hashCode() {

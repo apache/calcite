@@ -222,6 +222,22 @@ public abstract class JsonService extends AbstractService {
       throw handle(e);
     }
   }
+
+  public ExecuteBatchResponse apply(PrepareAndExecuteBatchRequest request) {
+    try {
+      return decode(apply(encode(request)), ExecuteBatchResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
+
+  public ExecuteBatchResponse apply(ExecuteBatchRequest request) {
+    try {
+      return decode(apply(encode(request)), ExecuteBatchResponse.class);
+    } catch (IOException e) {
+      throw handle(e);
+    }
+  }
 }
 
 // End JsonService.java

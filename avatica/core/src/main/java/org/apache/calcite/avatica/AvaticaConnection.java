@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.Meta.ExecuteBatchResult;
 import org.apache.calcite.avatica.Meta.MetaResultSet;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
@@ -505,6 +506,26 @@ public abstract class AvaticaConnection implements Connection {
     return statement.openResultSet;
   }
 
+  /**
+   * Execute a batch update using an {@link AvaticaPreparedStatement}.
+   *
+   * @param pstmt The prepared statement.
+   * @return An array of update counts containing one element for each command in the batch.
+   */
+  protected int[] executeBatchUpdateInternal(AvaticaPreparedStatement pstmt) throws SQLException {
+    try {
+      // Get the handle from the statement
+      Meta.StatementHandle handle = pstmt.handle;
+      // Execute it against meta
+      final Meta.ExecuteBatchResult executeBatchResult =
+          meta.executeBatch(handle, pstmt.getParameterValueBatch());
+      // Send back just the update counts
+      return executeBatchResult.updateCounts;
+    } catch (Exception e) {
+      throw helper.createException(e.getMessage(), e);
+    }
+  }
+
   /** Returns whether a a statement is capable of updates and if so,
    * and the statement's {@code updateCount} is still -1, proceeds to
    * get updateCount value from statement's resultSet.
@@ -579,6 +600,11 @@ public abstract class AvaticaConnection implements Connection {
           }
         };
     return meta.prepareAndExecute(statement.handle, sql, maxRowCount, callback);
+  }
+
+  protected ExecuteBatchResult prepareAndUpdateBatch(final AvaticaStatement statement,
+      final List<String> queries) throws NoSuchStatementException, SQLException {
+    return meta.prepareAndExecuteBatch(statement.handle, queries);
   }
 
   protected ResultSet createResultSet(Meta.MetaResultSet metaResultSet, QueryState state)
