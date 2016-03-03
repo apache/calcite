@@ -24,6 +24,13 @@ limitations under the License.
 * TOC
 {:toc}
 
+# Upcoming talks
+
+* 2016/04/13 <a href="http://hadoopsummit.org/dublin/agenda/">Hadoop Summit</a>, Dublin
+* 2016/04/26 <a href="http://kafka-summit.org/schedule/">Kafka Summit</a>, San Francisco
+* 2016/05/10 <a href="http://events.linuxfoundation.org/events/apache-big-data-north-america/program/schedule">ApacheCon Big Data North America</a>, Vancouver
+* 2016/05/24 <a href="http://www-conf.slac.stanford.edu/xldb2016/Program.asp">XLDB</a>, Palo Alto
+
 # Project Members
 
 Name (Apache ID) | Github | Org | Role

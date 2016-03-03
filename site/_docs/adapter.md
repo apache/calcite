@@ -22,6 +22,11 @@ limitations under the License.
 {% endcomment %}
 -->
 
+## Schema adapters
+
+A schema adapter allows Calcite to read particular kind of data,
+presenting the data as tables within a schema.
+
 * Cassandra adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/package-summary.html">calcite-cassandra</a>)
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
@@ -32,35 +37,21 @@ limitations under the License.
 
 ## Engines
 
-The following standalone engines are powered by Apache Calcite.
-
-* <a href="https://drill.apache.org">Apache Drill</a>
-  uses Calcite for SQL parsing and query optimization
-* <a href="https://flink.apache.org">Apache Flink</a>
-  uses Calcite for parsing both regular and streaming SQL,
-  and for query optimization
-* <a href="https://hive.apache.org">Apache Hive</a>
-  uses Calcite for query optimization
-* <a href="https://kylin.apache.org">Apache Kylin</a>
-  uses Calcite for SQL parsing and query optimization
-* <a href="https://phoenix.apache.org">Apache Phoenix</a>
-  uses Calcite for SQL parsing and query optimization (under development),
-  and also uses Avatica for its remote JDBC driver
-* <a href="https://github.com/milinda/samza-sql">SamzaSQL</a>,
-  an extension to
-  <a href="https://samza.apache.org">Apache Samza</a>,
-  uses Calcite for parsing streaming SQL and query optimization
-* <a href="https://storm.apache.org">Apache Storm</a>
-  uses Calcite for parsing streaming SQL and query optimization
-* Cascading adapter (<a href="https://github.com/Cascading/lingual">Lingual</a>)
-* <a href="https://github.com/twilmes/sql-gremlin">SQL-Gremlin</a>,
-  a SQL interface to a
-  <a href="http://tinkerpop.incubator.apache.org/">Apache TinkerPop</a>-enabled
-  graph database
+Many projects and products use Apache Calcite for SQL parsing,
+query optimization, data virtualization/federation,
+and materialized view rewrite. Some of them are listed on the
+["powered by Calcite"]({{ site.baseurl }}/docs/powered_by.html)
+page.
 
 ## Drivers
 
+A driver allows you to connect to Calcite from your application.
+
 * <a href="{{ site.apiRoot }}/org/apache/calcite/jdbc/package-summary.html">JDBC driver</a>
+
+The JDBC driver is powered by
+[Avatica]({{ site.baseurl }}/docs/avatica_overvew.html).
+Connections can be local or remote (JSON over HTTP or Protobuf over HTTP).
 
 The basic form of the JDBC connect string is
 
@@ -89,3 +80,4 @@ JDBC connect string parameters
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#TIME_ZONE">timeZone</a> | Time zone, for example "gmt-3". Default is the JVM's time zone.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#TYPE_SYSTEM">typeSystem</a> | Type system. The name of a class that implements <a href="{{ site.apiRoot }}/org/apache/calcite/rel/type/RelDataTypeSystem.html">RelDataTypeSystem</a> and has a public default constructor or an `INSTANCE` constant.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#UNQUOTED_CASING">unquotedCasing</a> | How identifiers are stored if they are not quoted. Values are UNCHANGED, TO_UPPER, TO_LOWER. If not specified, value from `lex` is used.
+
