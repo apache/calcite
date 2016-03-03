@@ -46,6 +46,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlModality;
@@ -1313,6 +1314,68 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction CURRENT_DATE =
       new SqlCurrentDateFunction();
+
+  /**
+   * <p>Timestamp modifying or calculating difference functions.
+   * As first parameter take timestamp interval.
+   * </p>
+   *
+   * <p>Interval can one of the following literals:<br>
+   * <i>FRAC_SECOND, MICROSECOND, SQL_TSI_FRAC_SECOND, SQL_TSI_MICROSECOND</i><br>
+   * <i>SECOND, SQL_TSI_SECOND</i><br>
+   * <i>MINUTE, SQL_TSI_MINUTE</i><br>
+   * <i>HOUR, SQL_TSI_HOUR</i><br>
+   * <i>DAY, SQL_TSI_DAY</i><br>
+   * <i>WEEK, SQL_TSI_WEEK</i><br>
+   * <i>MONTH, SQL_TSI_MONTH</i><br>
+   * <i>QUARTER, SQL_TSI_QUARTER</i><br>
+   * <i>YEAR, SQL_TSI_YEAR</i><br>
+   * </p>
+   */
+
+  /**
+   * <p>The SQL <code>TIMESTAMP_ADD</code> function.
+   * Adds interval to timestamp.</p>
+   *
+   * <p>The SQL syntax is
+   *
+   * <blockquote>
+   * <code>TIMESTAMP_ADD(<i>timestamp interval</i>,<i>quantity</i>,<i>timestamp</i>)</code>
+   * </blockquote><br>
+   *
+   * Returns modified timestamp.</p>
+   */
+  public static final SqlFunction TIMESTAMP_ADD =
+      new SqlFunction(
+          "TIMESTAMPADD",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG2,
+          null,
+          OperandTypes.family(
+              SqlTypeFamily.ANY, SqlTypeFamily.INTEGER, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
+  /**
+   * <p>The SQL <code>TIMESTAMP_DIFF</code> function.
+   * Calculates difference between two timestamps.</p>
+   *
+   * <p>The SQL syntax is
+   *
+   * <blockquote>
+   * <code>TIMESTAMP_DIFF(<i>timestamp interval</i>,<i>timestamp</i>,<i>timestamp</i>)</code>
+   * </blockquote><br>
+   *
+   * Returns difference between two timestamps in indicated timestamp interval.</p>
+   */
+  public static final SqlFunction TIMESTAMP_DIFF = new SqlFunction(
+      "TIMESTAMPDIFF",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.INTEGER_NULLABLE,
+      null,
+      OperandTypes.family(
+          SqlTypeFamily.ANY, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
+
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be
