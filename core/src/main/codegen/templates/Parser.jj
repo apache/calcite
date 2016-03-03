@@ -82,6 +82,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.TimestampInterval;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -3438,6 +3439,64 @@ TimeUnit TimeUnit() :
     }
 }
 
+SqlLiteral TimestampInterval() :
+{
+SqlLiteral.SqlSymbol symbol = null;
+}
+{
+    (
+        ( <FRAC_SECOND> | <MICROSECOND> | <SQL_TSI_FRAC_SECOND> | <SQL_TSI_MICROSECOND> )
+            {
+                symbol = TimestampInterval.MICROSECOND;
+            }
+        |
+        ( <SECOND> | <SQL_TSI_SECOND> )
+            {
+                symbol = TimestampInterval.SECOND;
+            }
+        |
+        ( <MINUTE> | <SQL_TSI_MINUTE> )
+            {
+                symbol = TimestampInterval.MINUTE;
+            }
+        |
+        ( <HOUR> | <SQL_TSI_HOUR> )
+            {
+                symbol = TimestampInterval.HOUR;
+            }
+        |
+        ( <DAY> | <SQL_TSI_DAY> )
+            {
+                symbol = TimestampInterval.DAY;
+            }
+        |
+         (<WEEK> | <SQL_TSI_WEEK> )
+            {
+                symbol = TimestampInterval.WEEK;
+            }
+        |
+        ( <MONTH> | <SQL_TSI_MONTH> )
+            {
+                symbol = TimestampInterval.MONTH;
+            }
+        |
+        ( <QUARTER> | <SQL_TSI_QUARTER> )
+            {
+                symbol = TimestampInterval.QUARTER;
+            }
+        |
+        ( <YEAR> | <SQL_TSI_YEAR> )
+            {
+                symbol = TimestampInterval.YEAR;
+            }
+    )
+    {
+        return SqlLiteral.createSymbol(symbol, getPos());
+    }
+}
+
+
+
 /**
  * Parses a dynamic parameter marker.
  */
@@ -4143,6 +4202,50 @@ SqlNode BuiltinFunctionCall() :
         }
     )
     |
+    (
+        <TIMESTAMPADD>
+            {
+                pos = getPos();
+                SqlLiteral interval;
+            }
+            <LPAREN>
+                interval = TimestampInterval()
+                { args = startList(interval); }
+             <COMMA>
+                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
+                 { args.add(e); }
+             <COMMA>
+                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
+                 { args.add(e); }
+             <RPAREN>
+           {
+              return SqlStdOperatorTable.TIMESTAMP_ADD.createCall(
+                 pos, SqlParserUtil.toNodeArray(args));
+           }
+    )
+    |
+    (
+        <TIMESTAMPDIFF>
+            {
+                pos = getPos();
+                SqlLiteral interval;
+            }
+            <LPAREN>
+                interval = TimestampInterval()
+                { args = startList(interval); }
+             <COMMA>
+                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
+                 { args.add(e); }
+             <COMMA>
+                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
+                 { args.add(e); }
+             <RPAREN>
+           {
+              return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
+                 pos, SqlParserUtil.toNodeArray(args));
+           }
+    )
+    |
     {
         SqlNode node;
     }
@@ -4810,6 +4913,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < FOREIGN: "FOREIGN" >
     | < FORTRAN: "FORTRAN" >
     | < FOUND: "FOUND" >
+    | < FRAC_SECOND: "FRAC_SECOND" >
     | < FREE: "FREE" >
     | < FROM: "FROM" >
     | < FULL: "FULL" >
@@ -4892,6 +4996,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MESSAGE_OCTET_LENGTH: "MESSAGE_OCTET_LENGTH" >
     | < MESSAGE_TEXT: "MESSAGE_TEXT" >
     | < METHOD: "METHOD" >
+    | < MICROSECOND: "MICROSECOND" >
     | < MIN: "MIN" >
     | < MINUTE: "MINUTE" >
     | < MINVALUE: "MINVALUE" >
@@ -4975,6 +5080,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PRIVILEGES: "PRIVILEGES" >
     | < PROCEDURE: "PROCEDURE" >
     | < PUBLIC: "PUBLIC" >
+    | < QUARTER: "QUARTER" >
     | < RANGE: "RANGE" >
     | < RANK: "RANK" >
     | < READ: "READ" >
@@ -5057,6 +5163,16 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SQLEXCEPTION: "SQLEXCEPTION" >
     | < SQLSTATE: "SQLSTATE" >
     | < SQLWARNING: "SQLWARNING" >
+    | < SQL_TSI_DAY: "SQL_TSI_DAY" >
+    | < SQL_TSI_FRAC_SECOND: "SQL_TSI_FRAC_SECOND" >
+    | < SQL_TSI_HOUR: "SQL_TSI_HOUR" >
+    | < SQL_TSI_MICROSECOND: "SQL_TSI_MICROSECOND" >
+    | < SQL_TSI_MINUTE: "SQL_TSI_MINUTE" >
+    | < SQL_TSI_MONTH: "SQL_TSI_MONTH" >
+    | < SQL_TSI_QUARTER: "SQL_TSI_QUARTER" >
+    | < SQL_TSI_SECOND: "SQL_TSI_SECOND" >
+    | < SQL_TSI_WEEK: "SQL_TSI_WEEK" >
+    | < SQL_TSI_YEAR: "SQL_TSI_YEAR" >
     | < SQRT: "SQRT" >
     | < START: "START" >
     | < STATE: "STATE" >
@@ -5083,6 +5199,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < TIES: "TIES" >
     | < TIME: "TIME" >
     | < TIMESTAMP: "TIMESTAMP" >
+    | < TIMESTAMPADD: "TIMESTAMPADD" >
+    | < TIMESTAMPDIFF: "TIMESTAMPDIFF" >
     | < TIMEZONE_HOUR: "TIMEZONE_HOUR" >
     | < TIMEZONE_MINUTE: "TIMEZONE_MINUTE" >
     | < TINYINT: "TINYINT" >
@@ -5133,6 +5251,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < VARYING: "VARYING" >
     | < VERSION: "VERSION" >
     | < VIEW: "VIEW" >
+    | < WEEK: "WEEK" >
     | < WHEN: "WHEN" >
     | < WHENEVER: "WHENEVER" >
     | < WHERE: "WHERE" >
@@ -5254,6 +5373,7 @@ String CommonNonReservedKeyWord() :
         | <FOLLOWING>
         | <FORTRAN>
         | <FOUND>
+        | <FRAC_SECOND>
         | <G>
         | <GENERAL>
         | <GENERATED>
@@ -5286,6 +5406,7 @@ String CommonNonReservedKeyWord() :
         | <MAP>
         | <MATCHED>
         | <MAXVALUE>
+        | <MICROSECOND>
         | <MESSAGE_LENGTH>
         | <MESSAGE_OCTET_LENGTH>
         | <MESSAGE_TEXT>
@@ -5327,6 +5448,7 @@ String CommonNonReservedKeyWord() :
         | <PRIOR>
         | <PRIVILEGES>
         | <PUBLIC>
+        | <QUARTER>
         | <READ>
         | <RELATIVE>
         | <REPEATABLE>
@@ -5362,6 +5484,16 @@ String CommonNonReservedKeyWord() :
         | <SOURCE>
         | <SPACE>
         | <SPECIFIC_NAME>
+        | <SQL_TSI_DAY>
+        | <SQL_TSI_FRAC_SECOND>
+        | <SQL_TSI_HOUR>
+        | <SQL_TSI_MICROSECOND>
+        | <SQL_TSI_MINUTE>
+        | <SQL_TSI_MONTH>
+        | <SQL_TSI_QUARTER>
+        | <SQL_TSI_SECOND>
+        | <SQL_TSI_WEEK>
+        | <SQL_TSI_YEAR>
         | <STATE>
         | <STATEMENT>
         | <STRUCTURE>
@@ -5371,6 +5503,8 @@ String CommonNonReservedKeyWord() :
         | <TABLE_NAME>
         | <TEMPORARY>
         | <TIES>
+        | <TIMESTAMPADD>
+        | <TIMESTAMPDIFF>
         | <TOP_LEVEL_COUNT>
         | <TRANSACTION>
         | <TRANSACTIONS_ACTIVE>
@@ -5393,6 +5527,7 @@ String CommonNonReservedKeyWord() :
         | <USER_DEFINED_TYPE_SCHEMA>
         | <VERSION>
         | <VIEW>
+        | <WEEK>
         | <WRAPPER>
         | <WORK>
         | <WRITE>

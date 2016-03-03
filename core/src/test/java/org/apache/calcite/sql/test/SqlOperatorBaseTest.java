@@ -4513,6 +4513,21 @@ public abstract class SqlOperatorBaseTest {
         "floor(cast(null as interval year))");
   }
 
+  @Test public void testTimestampAddAdnDiff() {
+    if (!enable) {
+      return;
+    }
+    tester.checkScalar(
+        "timestampadd(MINUTE, 2, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "timestampdiff(YEAR, "
+            + "timestamp '2014-02-24 12:42:25', "
+            + "timestamp '2016-02-24 12:42:25')",
+        "2", "INTEGER NOT NULL");
+  }
+
   @Test public void testDenseRankFunc() {
     tester.setFor(
         SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);
