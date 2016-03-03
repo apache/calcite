@@ -12,9 +12,11 @@ requests:
   - { name: "ConnectionSyncRequest" }
   - { name: "CreateStatementRequest" }
   - { name: "DatabasePropertyRequest" }
+  - { name: "ExecuteBatchRequest" }
   - { name: "ExecuteRequest" }
   - { name: "FetchRequest" }
   - { name: "OpenConnectionRequest" }
+  - { name: "PrepareAndExecuteBatchRequest" }
   - { name: "PrepareAndExecuteRequest" }
   - { name: "PrepareRequest" }
   - { name: "RollbackRequest" }
@@ -43,6 +45,7 @@ miscellaneous:
   - { name: "StatementType" }
   - { name: "Style" }
   - { name: "TypedValue" }
+  - { name: "UpdateBatch" }
   - { name: "WireMessage" }
 responses:
   - { name: "CloseConnectionResponse" }
@@ -52,6 +55,7 @@ responses:
   - { name: "CreateStatementResponse" }
   - { name: "DatabasePropertyResponse" }
   - { name: "ErrorResponse" }
+  - { name: "ExecuteBatchResponse" }
   - { name: "ExecuteResponse" }
   - { name: "FetchResponse" }
   - { name: "OpenConnectionResponse" }
@@ -234,6 +238,24 @@ message DatabasePropertyRequest {
 
 `connection_id` The identifier of the connection to use when fetching the database properties.
 
+### ExecuteBatchRequest
+
+This request is used to execute a batch of updates against a PreparedStatement.
+
+{% highlight protobuf %}
+message ExecuteBatchRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  repeated UpdateBatch updates = 3;
+}
+{% endhighlight %}
+
+`connection_id` A string which refers to a connection.
+
+`statement_id` An integer which refers to a statement.
+
+`updates` A list of <a href="#updatebatch">UpdateBatch</a>'s; the batch of updates.
+
 ### ExecuteRequest
 
 This request is used to execute a PreparedStatement, optionally with values to bind to the parameters in the Statement.
@@ -290,6 +312,24 @@ message OpenConnectionRequest {
 `connection_id` The identifier of the connection to open in the server.
 
 `info` A Map containing properties to include when creating the Connection.
+
+### PrepareAndExecuteBatchRequest
+
+This request is used as short-hand to create a Statement and execute a batch of updates against that Statement.
+
+{% highlight protobuf %}
+message PrepareAndExecuteBatchRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  repeated string sql_commands = 3;
+}
+{% endhighlight %}
+
+`connection_id` The identifier for the connection to use.
+
+`statement_id` The identifier for the statement created by the above connection to use.
+
+`sql_commands` A list of SQL commands to execute; a batch.
 
 ### PrepareAndExecuteRequest
 
@@ -551,6 +591,30 @@ message ErrorResponse {
 `sql_state` A five character alphanumeric code for this error.
 
 `severity` An <a href="#avaticaseverity">AvaticaSeverity</a> object which denotes how critical the error is.
+
+`metadata` <a href="#rpcmetadata">Server metadata</a> about this call.
+
+### ExecuteBatchResponse
+
+A response to the <a href="#executebatchrequest">ExecuteBatchRequest</a> and <a href="#prepareandexecutebatchrequest">PrepareAndExecuteBatchRequest</a>.
+
+{% highlight protobuf %}
+message ExecuteBatchResponse {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  repeated uint32 update_counts = 3;
+  bool missing_statement = 4;
+  RpcMetadata metadata = 5;
+}
+{% endhighlight %}
+
+`connection_id` The ID referring to the connection that was used.
+
+`statment_id` The ID referring to the statement that was used.
+
+`update_counts` An array of integer values corresponding to the update count for each update in the batch.
+
+`missing_statement` A boolean which denotes if the request failed due to a missing statement.
 
 `metadata` <a href="#rpcmetadata">Server metadata</a> about this call.
 
@@ -1164,6 +1228,18 @@ message TypedValue {
 `double_value` A `double` value.
 
 `null` A boolean which denotes if the value was null.
+
+### UpdateBatch
+
+This is a message which serves as a wrapper around a collection of <a href="#typedvalue">TypedValue</a>'s.
+
+{% highlight protobuf %}
+message UpdateBatch {
+  repeated TypedValue parameter_values = 1;
+}
+{% endhighlight %}
+
+`parameter_values` A collection of parameter values for one SQL command update.
 
 ### WireMessage
 

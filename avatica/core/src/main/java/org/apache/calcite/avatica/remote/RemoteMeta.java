@@ -390,6 +390,29 @@ class RemoteMeta extends MetaImpl {
       }
     });
   }
+
+  @Override public ExecuteBatchResult prepareAndExecuteBatch(final StatementHandle h,
+      final List<String> sqlCommands) throws NoSuchStatementException {
+    return connection.invokeWithRetries(new CallableWithoutException<ExecuteBatchResult>() {
+      @Override public ExecuteBatchResult call() {
+        Service.ExecuteBatchResponse response =
+            service.apply(
+                new Service.PrepareAndExecuteBatchRequest(h.connectionId, h.id, sqlCommands));
+        return new ExecuteBatchResult(response.updateCounts);
+      }
+    });
+  }
+
+  @Override public ExecuteBatchResult executeBatch(final StatementHandle h,
+      final List<List<TypedValue>> parameterValues) throws NoSuchStatementException {
+    return connection.invokeWithRetries(new CallableWithoutException<ExecuteBatchResult>() {
+      @Override public ExecuteBatchResult call() {
+        Service.ExecuteBatchResponse response =
+            service.apply(new Service.ExecuteBatchRequest(h.connectionId, h.id, parameterValues));
+        return new ExecuteBatchResult(response.updateCounts);
+      }
+    });
+  }
 }
 
 // End RemoteMeta.java

@@ -25,9 +25,11 @@ import org.apache.calcite.avatica.proto.Requests.CommitRequest;
 import org.apache.calcite.avatica.proto.Requests.ConnectionSyncRequest;
 import org.apache.calcite.avatica.proto.Requests.CreateStatementRequest;
 import org.apache.calcite.avatica.proto.Requests.DatabasePropertyRequest;
+import org.apache.calcite.avatica.proto.Requests.ExecuteBatchRequest;
 import org.apache.calcite.avatica.proto.Requests.ExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.FetchRequest;
 import org.apache.calcite.avatica.proto.Requests.OpenConnectionRequest;
+import org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteBatchRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareAndExecuteRequest;
 import org.apache.calcite.avatica.proto.Requests.PrepareRequest;
 import org.apache.calcite.avatica.proto.Requests.RollbackRequest;
@@ -43,6 +45,7 @@ import org.apache.calcite.avatica.proto.Responses.ConnectionSyncResponse;
 import org.apache.calcite.avatica.proto.Responses.CreateStatementResponse;
 import org.apache.calcite.avatica.proto.Responses.DatabasePropertyResponse;
 import org.apache.calcite.avatica.proto.Responses.ErrorResponse;
+import org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse;
 import org.apache.calcite.avatica.proto.Responses.ExecuteResponse;
 import org.apache.calcite.avatica.proto.Responses.FetchResponse;
 import org.apache.calcite.avatica.proto.Responses.OpenConnectionResponse;
@@ -126,6 +129,12 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new RequestTranslator(CommitRequest.parser(), new Service.CommitRequest()));
     reqParsers.put(RollbackRequest.class.getName(),
         new RequestTranslator(RollbackRequest.parser(), new Service.RollbackRequest()));
+    reqParsers.put(PrepareAndExecuteBatchRequest.class.getName(),
+        new RequestTranslator(PrepareAndExecuteBatchRequest.parser(),
+            new Service.PrepareAndExecuteBatchRequest()));
+    reqParsers.put(ExecuteBatchRequest.class.getName(),
+        new RequestTranslator(ExecuteBatchRequest.parser(),
+            new Service.ExecuteBatchRequest()));
 
     REQUEST_PARSERS = Collections.unmodifiableMap(reqParsers);
 
@@ -166,6 +175,8 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
         new ResponseTranslator(CommitResponse.parser(), new Service.CommitResponse()));
     respParsers.put(RollbackResponse.class.getName(),
         new ResponseTranslator(RollbackResponse.parser(), new Service.RollbackResponse()));
+    respParsers.put(ExecuteBatchResponse.class.getName(),
+        new ResponseTranslator(ExecuteBatchResponse.parser(), new Service.ExecuteBatchResponse()));
 
     RESPONSE_PARSERS = Collections.unmodifiableMap(respParsers);
 
@@ -197,6 +208,9 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     messageClasses.add(TableTypesRequest.class);
     messageClasses.add(TablesRequest.class);
     messageClasses.add(TypeInfoRequest.class);
+    messageClasses.add(PrepareAndExecuteBatchRequest.class);
+    messageClasses.add(ExecuteBatchRequest.class);
+
     messageClasses.add(CloseConnectionResponse.class);
     messageClasses.add(CloseStatementResponse.class);
     messageClasses.add(CommitResponse.class);
@@ -212,6 +226,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     messageClasses.add(RollbackResponse.class);
     messageClasses.add(RpcMetadata.class);
     messageClasses.add(SyncResultsResponse.class);
+    messageClasses.add(ExecuteBatchResponse.class);
 
     return messageClasses;
   }

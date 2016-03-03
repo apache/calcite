@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /** Value and type.
  *
@@ -244,6 +245,40 @@ public class TypedValue {
     }
   }
 
+  private static Object protoSerialToLocal(Common.Rep rep, Object value) {
+    switch (rep) {
+    case BYTE:
+      return ((Number) value).byteValue();
+    case SHORT:
+      return ((Number) value).shortValue();
+    case INTEGER:
+    case JAVA_SQL_DATE:
+    case JAVA_SQL_TIME:
+      return ((Number) value).intValue();
+    case LONG:
+    case JAVA_UTIL_DATE:
+    case JAVA_SQL_TIMESTAMP:
+      return ((Number) value).longValue();
+    case FLOAT:
+      return ((Number) value).floatValue();
+    case DOUBLE:
+      return ((Number) value).doubleValue();
+    case NUMBER:
+      return value instanceof BigDecimal ? value
+          : value instanceof BigInteger ? new BigDecimal((BigInteger) value)
+          : value instanceof Double ? new BigDecimal((Double) value)
+          : value instanceof Float ? new BigDecimal((Float) value)
+          : new BigDecimal(((Number) value).longValue());
+    case BYTE_STRING:
+      return (byte[]) value;
+    case STRING:
+      return (String) value;
+    default:
+      throw new IllegalArgumentException("cannot convert " + value + " ("
+          + value.getClass() + ") to " + rep);
+    }
+  }
+
   /** Converts the value into the JDBC representation.
    *
    * <p>For example, a byte string is represented as a {@link ByteString};
@@ -273,6 +308,22 @@ public class TypedValue {
       return new java.sql.Timestamp(adjust((Number) value, calendar));
     default:
       return serialToLocal(type, value);
+    }
+  }
+
+  private static Object protoSerialToJdbc(Common.Rep type, Object value, Calendar calendar) {
+    switch (type) {
+    case JAVA_UTIL_DATE:
+      return new java.util.Date(adjust((Number) value, calendar));
+    case JAVA_SQL_DATE:
+      return new java.sql.Date(
+          adjust(((Number) value).longValue() * DateTimeUtils.MILLIS_PER_DAY, calendar));
+    case JAVA_SQL_TIME:
+      return new java.sql.Time(adjust((Number) value, calendar));
+    case JAVA_SQL_TIMESTAMP:
+      return new java.sql.Timestamp(adjust((Number) value, calendar));
+    default:
+      return protoSerialToLocal(type, value);
     }
   }
 
@@ -332,6 +383,10 @@ public class TypedValue {
     return list;
   }
 
+  /**
+   * Creates a protocol buffer equivalent object for <code>this</code>.
+   * @return A protobuf TypedValue equivalent for <code>this</code>
+   */
   public Common.TypedValue toProto() {
     final Common.TypedValue.Builder builder = Common.TypedValue.newBuilder();
 
@@ -419,83 +474,99 @@ public class TypedValue {
     return builder.build();
   }
 
+  /**
+   * Constructs a {@link TypedValue} from the protocol buffer representation.
+   *
+   * @param proto The protobuf Typedvalue
+   * @return A {@link TypedValue} instance
+   */
   public static TypedValue fromProto(Common.TypedValue proto) {
     ColumnMetaData.Rep rep = ColumnMetaData.Rep.fromProto(proto.getType());
+    Object value = getValue(proto);
 
-    Object value = null;
+    return new TypedValue(rep, value);
+  }
 
+  /**
+   * Converts the serialized value into the appropriate primitive/object.
+   *
+   * @param protoValue The serialized TypedValue.
+   * @return The appropriate concrete type for the parameter value (as an Object).
+   */
+  public static Object getValue(Common.TypedValue protoValue) {
     // Deserialize the value again
-    switch (proto.getType()) {
+    switch (protoValue.getType()) {
     case BOOLEAN:
     case PRIMITIVE_BOOLEAN:
-      value = proto.getBoolValue();
-      break;
+      return protoValue.getBoolValue();
     case BYTE_STRING:
     case STRING:
-      value = proto.getStringValue();
-      break;
+      // TypedValue is still going to expect a string for BYTE_STRING even though we sent it
+      // across the wire natively as bytes.
+      return protoValue.getStringValue();
     case PRIMITIVE_CHAR:
     case CHARACTER:
-      value = proto.getStringValue().charAt(0);
-      break;
+      return protoValue.getStringValue().charAt(0);
     case BYTE:
     case PRIMITIVE_BYTE:
-      value = Long.valueOf(proto.getNumberValue()).byteValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).byteValue();
     case DOUBLE:
     case PRIMITIVE_DOUBLE:
-      value = proto.getDoubleValue();
-      break;
+      return protoValue.getDoubleValue();
     case FLOAT:
     case PRIMITIVE_FLOAT:
-      value = Float.intBitsToFloat((int) proto.getNumberValue());
-      break;
+      return Float.intBitsToFloat((int) protoValue.getNumberValue());
     case INTEGER:
     case PRIMITIVE_INT:
-      value = Long.valueOf(proto.getNumberValue()).intValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).intValue();
     case PRIMITIVE_SHORT:
     case SHORT:
-      value = Long.valueOf(proto.getNumberValue()).shortValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).shortValue();
     case LONG:
     case PRIMITIVE_LONG:
-      value = Long.valueOf(proto.getNumberValue());
-      break;
+      return Long.valueOf(protoValue.getNumberValue());
     case JAVA_SQL_DATE:
     case JAVA_SQL_TIME:
-      value = Long.valueOf(proto.getNumberValue()).intValue();
-      break;
+      return Long.valueOf(protoValue.getNumberValue()).intValue();
     case JAVA_SQL_TIMESTAMP:
     case JAVA_UTIL_DATE:
-      value = proto.getNumberValue();
-      break;
+      return protoValue.getNumberValue();
     case BIG_INTEGER:
-      value = new BigInteger(proto.getBytesValues().toByteArray());
-      break;
+      return new BigInteger(protoValue.getBytesValues().toByteArray());
     case BIG_DECIMAL:
-      BigInteger bigInt = new BigInteger(proto.getBytesValues().toByteArray());
-      value = new BigDecimal(bigInt, (int) proto.getNumberValue());
-      break;
+      BigInteger bigInt = new BigInteger(protoValue.getBytesValues().toByteArray());
+      return new BigDecimal(bigInt, (int) protoValue.getNumberValue());
     case NUMBER:
-      value = Long.valueOf(proto.getNumberValue());
-      break;
+      return Long.valueOf(protoValue.getNumberValue());
     case OBJECT:
-      if (proto.getNull()) {
-        value = null;
-        break;
+      if (protoValue.getNull()) {
+        return null;
       }
       // Intentional fall through to RTE. If we sent an object over the wire, it could only
       // possibly be null (at this point). Anything else has to be an error.
     case UNRECOGNIZED:
       // Fail?
-      throw new RuntimeException("Unhandled type: " + proto.getType());
+      throw new RuntimeException("Unhandled type: " + protoValue.getType());
     default:
       // Fail?
-      throw new RuntimeException("Unknown type: " + proto.getType());
+      throw new RuntimeException("Unknown type: " + protoValue.getType());
     }
+  }
 
-    return new TypedValue(rep, value);
+  /**
+   * Extracts the JDBC value from protobuf-TypedValue representation.
+   *
+   * @param protoValue Protobuf TypedValue
+   * @param calendar Instance of a calendar
+   * @return The JDBC representation of this TypedValue
+   */
+  public static Object protoToJdbc(Common.TypedValue protoValue, Calendar calendar) {
+    Object o = getValue(Objects.requireNonNull(protoValue));
+    // Shortcircuit the null
+    if (null == o) {
+      return o;
+    }
+    return protoSerialToJdbc(protoValue.getType(), o, Objects.requireNonNull(calendar));
   }
 
   @Override public int hashCode() {

@@ -11607,6 +11607,957 @@ package org.apache.calcite.avatica.proto;
 
   }
 
+  public interface ExecuteBatchResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:ExecuteBatchResponse)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional string connection_id = 1;</code>
+     */
+    java.lang.String getConnectionId();
+    /**
+     * <code>optional string connection_id = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getConnectionIdBytes();
+
+    /**
+     * <code>optional uint32 statement_id = 2;</code>
+     */
+    int getStatementId();
+
+    /**
+     * <code>repeated uint32 update_counts = 3;</code>
+     */
+    java.util.List<java.lang.Integer> getUpdateCountsList();
+    /**
+     * <code>repeated uint32 update_counts = 3;</code>
+     */
+    int getUpdateCountsCount();
+    /**
+     * <code>repeated uint32 update_counts = 3;</code>
+     */
+    int getUpdateCounts(int index);
+
+    /**
+     * <code>optional bool missing_statement = 4;</code>
+     *
+     * <pre>
+     * Did the request fail because of no-cached statement
+     * </pre>
+     */
+    boolean getMissingStatement();
+
+    /**
+     * <code>optional .RpcMetadata metadata = 5;</code>
+     */
+    boolean hasMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 5;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata();
+    /**
+     * <code>optional .RpcMetadata metadata = 5;</code>
+     */
+    org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder();
+  }
+  /**
+   * Protobuf type {@code ExecuteBatchResponse}
+   *
+   * <pre>
+   * Response to a batch update request
+   * </pre>
+   */
+  public  static final class ExecuteBatchResponse extends
+      com.google.protobuf.GeneratedMessage implements
+      // @@protoc_insertion_point(message_implements:ExecuteBatchResponse)
+      ExecuteBatchResponseOrBuilder {
+    // Use ExecuteBatchResponse.newBuilder() to construct.
+    private ExecuteBatchResponse(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+    }
+    private ExecuteBatchResponse() {
+      connectionId_ = "";
+      statementId_ = 0;
+      updateCounts_ = java.util.Collections.emptyList();
+      missingStatement_ = false;
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+    }
+    private ExecuteBatchResponse(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+      this();
+      int mutable_bitField0_ = 0;
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!input.skipField(tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              String s = input.readStringRequireUtf8();
+
+              connectionId_ = s;
+              break;
+            }
+            case 16: {
+
+              statementId_ = input.readUInt32();
+              break;
+            }
+            case 24: {
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+                updateCounts_ = new java.util.ArrayList<java.lang.Integer>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              updateCounts_.add(input.readUInt32());
+              break;
+            }
+            case 26: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004) && input.getBytesUntilLimit() > 0) {
+                updateCounts_ = new java.util.ArrayList<java.lang.Integer>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              while (input.getBytesUntilLimit() > 0) {
+                updateCounts_.add(input.readUInt32());
+              }
+              input.popLimit(limit);
+              break;
+            }
+            case 32: {
+
+              missingStatement_ = input.readBool();
+              break;
+            }
+            case 42: {
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder subBuilder = null;
+              if (metadata_ != null) {
+                subBuilder = metadata_.toBuilder();
+              }
+              metadata_ = input.readMessage(org.apache.calcite.avatica.proto.Responses.RpcMetadata.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(metadata_);
+                metadata_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw new RuntimeException(e.setUnfinishedMessage(this));
+      } catch (java.io.IOException e) {
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
+      } finally {
+        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+          updateCounts_ = java.util.Collections.unmodifiableList(updateCounts_);
+        }
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_ExecuteBatchResponse_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.calcite.avatica.proto.Responses.internal_static_ExecuteBatchResponse_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.class, org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int CONNECTION_ID_FIELD_NUMBER = 1;
+    private volatile java.lang.Object connectionId_;
+    /**
+     * <code>optional string connection_id = 1;</code>
+     */
+    public java.lang.String getConnectionId() {
+      java.lang.Object ref = connectionId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        connectionId_ = s;
+        return s;
+      }
+    }
+    /**
+     * <code>optional string connection_id = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getConnectionIdBytes() {
+      java.lang.Object ref = connectionId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        connectionId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int STATEMENT_ID_FIELD_NUMBER = 2;
+    private int statementId_;
+    /**
+     * <code>optional uint32 statement_id = 2;</code>
+     */
+    public int getStatementId() {
+      return statementId_;
+    }
+
+    public static final int UPDATE_COUNTS_FIELD_NUMBER = 3;
+    private java.util.List<java.lang.Integer> updateCounts_;
+    /**
+     * <code>repeated uint32 update_counts = 3;</code>
+     */
+    public java.util.List<java.lang.Integer>
+        getUpdateCountsList() {
+      return updateCounts_;
+    }
+    /**
+     * <code>repeated uint32 update_counts = 3;</code>
+     */
+    public int getUpdateCountsCount() {
+      return updateCounts_.size();
+    }
+    /**
+     * <code>repeated uint32 update_counts = 3;</code>
+     */
+    public int getUpdateCounts(int index) {
+      return updateCounts_.get(index);
+    }
+    private int updateCountsMemoizedSerializedSize = -1;
+
+    public static final int MISSING_STATEMENT_FIELD_NUMBER = 4;
+    private boolean missingStatement_;
+    /**
+     * <code>optional bool missing_statement = 4;</code>
+     *
+     * <pre>
+     * Did the request fail because of no-cached statement
+     * </pre>
+     */
+    public boolean getMissingStatement() {
+      return missingStatement_;
+    }
+
+    public static final int METADATA_FIELD_NUMBER = 5;
+    private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_;
+    /**
+     * <code>optional .RpcMetadata metadata = 5;</code>
+     */
+    public boolean hasMetadata() {
+      return metadata_ != null;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 5;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+      return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+    }
+    /**
+     * <code>optional .RpcMetadata metadata = 5;</code>
+     */
+    public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+      return getMetadata();
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (!getConnectionIdBytes().isEmpty()) {
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, connectionId_);
+      }
+      if (statementId_ != 0) {
+        output.writeUInt32(2, statementId_);
+      }
+      if (getUpdateCountsList().size() > 0) {
+        output.writeRawVarint32(26);
+        output.writeRawVarint32(updateCountsMemoizedSerializedSize);
+      }
+      for (int i = 0; i < updateCounts_.size(); i++) {
+        output.writeUInt32NoTag(updateCounts_.get(i));
+      }
+      if (missingStatement_ != false) {
+        output.writeBool(4, missingStatement_);
+      }
+      if (metadata_ != null) {
+        output.writeMessage(5, getMetadata());
+      }
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!getConnectionIdBytes().isEmpty()) {
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, connectionId_);
+      }
+      if (statementId_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32Size(2, statementId_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < updateCounts_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeUInt32SizeNoTag(updateCounts_.get(i));
+        }
+        size += dataSize;
+        if (!getUpdateCountsList().isEmpty()) {
+          size += 1;
+          size += com.google.protobuf.CodedOutputStream
+              .computeInt32SizeNoTag(dataSize);
+        }
+        updateCountsMemoizedSerializedSize = dataSize;
+      }
+      if (missingStatement_ != false) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(4, missingStatement_);
+      }
+      if (metadata_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(5, getMetadata());
+      }
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code ExecuteBatchResponse}
+     *
+     * <pre>
+     * Response to a batch update request
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:ExecuteBatchResponse)
+        org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponseOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_ExecuteBatchResponse_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_ExecuteBatchResponse_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.class, org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.Builder.class);
+      }
+
+      // Construct using org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        connectionId_ = "";
+
+        statementId_ = 0;
+
+        updateCounts_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000004);
+        missingStatement_ = false;
+
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.calcite.avatica.proto.Responses.internal_static_ExecuteBatchResponse_descriptor;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse getDefaultInstanceForType() {
+        return org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.getDefaultInstance();
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse build() {
+        org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse buildPartial() {
+        org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse result = new org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        result.connectionId_ = connectionId_;
+        result.statementId_ = statementId_;
+        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          updateCounts_ = java.util.Collections.unmodifiableList(updateCounts_);
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.updateCounts_ = updateCounts_;
+        result.missingStatement_ = missingStatement_;
+        if (metadataBuilder_ == null) {
+          result.metadata_ = metadata_;
+        } else {
+          result.metadata_ = metadataBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse) {
+          return mergeFrom((org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse other) {
+        if (other == org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse.getDefaultInstance()) return this;
+        if (!other.getConnectionId().isEmpty()) {
+          connectionId_ = other.connectionId_;
+          onChanged();
+        }
+        if (other.getStatementId() != 0) {
+          setStatementId(other.getStatementId());
+        }
+        if (!other.updateCounts_.isEmpty()) {
+          if (updateCounts_.isEmpty()) {
+            updateCounts_ = other.updateCounts_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+          } else {
+            ensureUpdateCountsIsMutable();
+            updateCounts_.addAll(other.updateCounts_);
+          }
+          onChanged();
+        }
+        if (other.getMissingStatement() != false) {
+          setMissingStatement(other.getMissingStatement());
+        }
+        if (other.hasMetadata()) {
+          mergeMetadata(other.getMetadata());
+        }
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private java.lang.Object connectionId_ = "";
+      /**
+       * <code>optional string connection_id = 1;</code>
+       */
+      public java.lang.String getConnectionId() {
+        java.lang.Object ref = connectionId_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          connectionId_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string connection_id = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getConnectionIdBytes() {
+        java.lang.Object ref = connectionId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          connectionId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string connection_id = 1;</code>
+       */
+      public Builder setConnectionId(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        connectionId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string connection_id = 1;</code>
+       */
+      public Builder clearConnectionId() {
+        
+        connectionId_ = getDefaultInstance().getConnectionId();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string connection_id = 1;</code>
+       */
+      public Builder setConnectionIdBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        connectionId_ = value;
+        onChanged();
+        return this;
+      }
+
+      private int statementId_ ;
+      /**
+       * <code>optional uint32 statement_id = 2;</code>
+       */
+      public int getStatementId() {
+        return statementId_;
+      }
+      /**
+       * <code>optional uint32 statement_id = 2;</code>
+       */
+      public Builder setStatementId(int value) {
+        
+        statementId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional uint32 statement_id = 2;</code>
+       */
+      public Builder clearStatementId() {
+        
+        statementId_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<java.lang.Integer> updateCounts_ = java.util.Collections.emptyList();
+      private void ensureUpdateCountsIsMutable() {
+        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+          updateCounts_ = new java.util.ArrayList<java.lang.Integer>(updateCounts_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public java.util.List<java.lang.Integer>
+          getUpdateCountsList() {
+        return java.util.Collections.unmodifiableList(updateCounts_);
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public int getUpdateCountsCount() {
+        return updateCounts_.size();
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public int getUpdateCounts(int index) {
+        return updateCounts_.get(index);
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public Builder setUpdateCounts(
+          int index, int value) {
+        ensureUpdateCountsIsMutable();
+        updateCounts_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public Builder addUpdateCounts(int value) {
+        ensureUpdateCountsIsMutable();
+        updateCounts_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public Builder addAllUpdateCounts(
+          java.lang.Iterable<? extends java.lang.Integer> values) {
+        ensureUpdateCountsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, updateCounts_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated uint32 update_counts = 3;</code>
+       */
+      public Builder clearUpdateCounts() {
+        updateCounts_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000004);
+        onChanged();
+        return this;
+      }
+
+      private boolean missingStatement_ ;
+      /**
+       * <code>optional bool missing_statement = 4;</code>
+       *
+       * <pre>
+       * Did the request fail because of no-cached statement
+       * </pre>
+       */
+      public boolean getMissingStatement() {
+        return missingStatement_;
+      }
+      /**
+       * <code>optional bool missing_statement = 4;</code>
+       *
+       * <pre>
+       * Did the request fail because of no-cached statement
+       * </pre>
+       */
+      public Builder setMissingStatement(boolean value) {
+        
+        missingStatement_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool missing_statement = 4;</code>
+       *
+       * <pre>
+       * Did the request fail because of no-cached statement
+       * </pre>
+       */
+      public Builder clearMissingStatement() {
+        
+        missingStatement_ = false;
+        onChanged();
+        return this;
+      }
+
+      private org.apache.calcite.avatica.proto.Responses.RpcMetadata metadata_ = null;
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> metadataBuilder_;
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public boolean hasMetadata() {
+        return metadataBuilder_ != null || metadata_ != null;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata getMetadata() {
+        if (metadataBuilder_ == null) {
+          return metadata_ == null ? org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        } else {
+          return metadataBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public Builder setMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          metadata_ = value;
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public Builder setMetadata(
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder builderForValue) {
+        if (metadataBuilder_ == null) {
+          metadata_ = builderForValue.build();
+          onChanged();
+        } else {
+          metadataBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public Builder mergeMetadata(org.apache.calcite.avatica.proto.Responses.RpcMetadata value) {
+        if (metadataBuilder_ == null) {
+          if (metadata_ != null) {
+            metadata_ =
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.newBuilder(metadata_).mergeFrom(value).buildPartial();
+          } else {
+            metadata_ = value;
+          }
+          onChanged();
+        } else {
+          metadataBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public Builder clearMetadata() {
+        if (metadataBuilder_ == null) {
+          metadata_ = null;
+          onChanged();
+        } else {
+          metadata_ = null;
+          metadataBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
+        
+        onChanged();
+        return getMetadataFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      public org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder getMetadataOrBuilder() {
+        if (metadataBuilder_ != null) {
+          return metadataBuilder_.getMessageOrBuilder();
+        } else {
+          return metadata_ == null ?
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata.getDefaultInstance() : metadata_;
+        }
+      }
+      /**
+       * <code>optional .RpcMetadata metadata = 5;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          getMetadataFieldBuilder() {
+        if (metadataBuilder_ == null) {
+          metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>(
+                  getMetadata(),
+                  getParentForChildren(),
+                  isClean());
+          metadata_ = null;
+        }
+        return metadataBuilder_;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return this;
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:ExecuteBatchResponse)
+    }
+
+    // @@protoc_insertion_point(class_scope:ExecuteBatchResponse)
+    private static final org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse();
+    }
+
+    public static org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<ExecuteBatchResponse>
+        PARSER = new com.google.protobuf.AbstractParser<ExecuteBatchResponse>() {
+      public ExecuteBatchResponse parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new ExecuteBatchResponse(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<ExecuteBatchResponse> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ExecuteBatchResponse> getParserForType() {
+      return PARSER;
+    }
+
+    public org.apache.calcite.avatica.proto.Responses.ExecuteBatchResponse getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   private static com.google.protobuf.Descriptors.Descriptor
     internal_static_ResultSetResponse_descriptor;
   private static
@@ -11687,6 +12638,11 @@ package org.apache.calcite.avatica.proto;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_RollbackResponse_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_ExecuteBatchResponse_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ExecuteBatchResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -11734,8 +12690,12 @@ package org.apache.calcite.avatica.proto;
       "\014more_results\030\002 \001(\010\022\036\n\010metadata\030\003 \001(\0132\014." +
       "RpcMetadata\"%\n\013RpcMetadata\022\026\n\016server_add" +
       "ress\030\001 \001(\t\"\020\n\016CommitResponse\"\022\n\020Rollback" +
-      "ResponseB\"\n org.apache.calcite.avatica.p" +
-      "rotob\006proto3"
+      "Response\"\225\001\n\024ExecuteBatchResponse\022\025\n\rcon" +
+      "nection_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\025",
+      "\n\rupdate_counts\030\003 \003(\r\022\031\n\021missing_stateme" +
+      "nt\030\004 \001(\010\022\036\n\010metadata\030\005 \001(\0132\014.RpcMetadata" +
+      "B\"\n org.apache.calcite.avatica.protob\006pr" +
+      "oto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -11846,6 +12806,12 @@ package org.apache.calcite.avatica.proto;
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_RollbackResponse_descriptor,
         new java.lang.String[] { });
+    internal_static_ExecuteBatchResponse_descriptor =
+      getDescriptor().getMessageTypes().get(16);
+    internal_static_ExecuteBatchResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ExecuteBatchResponse_descriptor,
+        new java.lang.String[] { "ConnectionId", "StatementId", "UpdateCounts", "MissingStatement", "Metadata", });
     org.apache.calcite.avatica.proto.Common.getDescriptor();
   }
 

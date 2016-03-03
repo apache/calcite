@@ -31,6 +31,9 @@ import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.metrics.Gauge;
 import org.apache.calcite.avatica.metrics.MetricsSystem;
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
+import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.proto.Requests;
+import org.apache.calcite.avatica.remote.ProtobufMeta;
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import com.google.common.cache.Cache;
@@ -66,7 +69,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Implementation of {@link Meta} upon an existing JDBC data source. */
-public class JdbcMeta implements Meta {
+public class JdbcMeta implements ProtobufMeta {
   private static final Logger LOG = LoggerFactory.getLogger(JdbcMeta.class);
 
   private static final String CONN_CACHE_KEY_BASE = "avatica.connectioncache";
@@ -847,6 +850,83 @@ public class JdbcMeta implements Meta {
     try {
       final Connection conn = getConnection(ch.id);
       conn.rollback();
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
+  @Override public ExecuteBatchResult prepareAndExecuteBatch(StatementHandle h,
+      List<String> sqlCommands) throws NoSuchStatementException {
+    try {
+      // Get the statement
+      final StatementInfo info = statementCache.getIfPresent(h.id);
+      if (info == null) {
+        throw new NoSuchStatementException(h);
+      }
+
+      // addBatch() for each sql command
+      final Statement stmt = info.statement;
+      for (String sqlCommand : sqlCommands) {
+        stmt.addBatch(sqlCommand);
+      }
+
+      // Execute the batch and return the results
+      return new ExecuteBatchResult(stmt.executeBatch());
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
+  @Override public ExecuteBatchResult executeBatch(StatementHandle h,
+      List<List<TypedValue>> updateBatches) throws NoSuchStatementException {
+    try {
+      final StatementInfo info = statementCache.getIfPresent(h.id);
+      if (null == info) {
+        throw new NoSuchStatementException(h);
+      }
+
+      final PreparedStatement preparedStmt = (PreparedStatement) info.statement;
+      int rowUpdate = 1;
+      for (List<TypedValue> batch : updateBatches) {
+        int i = 1;
+        for (TypedValue value : batch) {
+          // Set the TypedValue in the PreparedStatement
+          try {
+            preparedStmt.setObject(i, value.toJdbc(calendar));
+            i++;
+          } catch (SQLException e) {
+            throw new RuntimeException("Failed to set value on row #" + rowUpdate
+                + " and column #" + i, e);
+          }
+          // Track the update number for better error messages
+          rowUpdate++;
+        }
+        preparedStmt.addBatch();
+      }
+      return new ExecuteBatchResult(preparedStmt.executeBatch());
+    } catch (SQLException e) {
+      throw propagate(e);
+    }
+  }
+
+  @Override public ExecuteBatchResult executeBatchProtobuf(StatementHandle h,
+      List<Requests.UpdateBatch> updateBatches) throws NoSuchStatementException {
+    try {
+      final StatementInfo info = statementCache.getIfPresent(h.id);
+      if (null == info) {
+        throw new NoSuchStatementException(h);
+      }
+
+      final PreparedStatement preparedStmt = (PreparedStatement) info.statement;
+      for (Requests.UpdateBatch update : updateBatches) {
+        int i = 1;
+        for (Common.TypedValue value : update.getParameterValuesList()) {
+          // Use the value and then increment
+          preparedStmt.setObject(i++, TypedValue.protoToJdbc(value, calendar));
+        }
+        preparedStmt.addBatch();
+      }
+      return new ExecuteBatchResult(preparedStmt.executeBatch());
     } catch (SQLException e) {
       throw propagate(e);
     }
