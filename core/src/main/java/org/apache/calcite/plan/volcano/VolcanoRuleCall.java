@@ -89,8 +89,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   // implement RelOptRuleCall
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Transform to: rel#{}" + rel.getId() + " via {}{}", rel.getId(), getRule(),
+      LOGGER.debug("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
           equiv.isEmpty() ? "" : " with equivalences " + equiv);
       if (generatedRelList != null) {
         generatedRelList.add(rel);

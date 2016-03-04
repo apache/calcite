@@ -352,18 +352,24 @@ public class CalciteAssert {
   }
 
   /** @see Matchers#returnsUnordered(String...) */
-  static Function<ResultSet, Void> checkResultUnordered(
-      final String... lines) {
+  static Function<ResultSet, Void> checkResultUnordered(final String... lines) {
+    return checkResult(true, lines);
+  }
+
+  /** @see Matchers#returnsUnordered(String...) */
+  static Function<ResultSet, Void> checkResult(final boolean sort, final String... lines) {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final List<String> expectedList = Lists.newArrayList(lines);
-          Collections.sort(expectedList);
-
+          if (sort) {
+            Collections.sort(expectedList);
+          }
           final List<String> actualList = Lists.newArrayList();
           CalciteAssert.toStringList(resultSet, actualList);
-          Collections.sort(actualList);
-
+          if (sort) {
+            Collections.sort(actualList);
+          }
           if (!actualList.equals(expectedList)) {
             assertThat(Util.lines(actualList),
                 equalTo(Util.lines(expectedList)));
@@ -1219,7 +1225,11 @@ public class CalciteAssert {
     }
 
     public AssertQuery returnsUnordered(String... lines) {
-      return returns(checkResultUnordered(lines));
+      return returns(checkResult(true, lines));
+    }
+
+    public AssertQuery returnsOrdered(String... lines) {
+      return returns(checkResult(false, lines));
     }
 
     public AssertQuery throws_(String message) {

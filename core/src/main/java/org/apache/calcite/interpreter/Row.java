@@ -83,6 +83,11 @@ public class Row {
     return values;
   }
 
+  /** Returns a copy of the values. */
+  public Object[] copyValues() {
+    return values.clone();
+  }
+
   public int size() {
     return values.length;
   }
@@ -119,6 +124,11 @@ public class Row {
     /** Return a Row object **/
     public Row build() {
       return new Row(values);
+    }
+
+    /** Allocates a new internal array. */
+    public void reset() {
+      values = new Object[values.length];
     }
 
     public int size() {

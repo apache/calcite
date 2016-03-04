@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Cassandra adapter
-permalink: /docs/cassandra.html
+permalink: /docs/cassandra_adapter.html
 ---
 <!--
 {% comment %}

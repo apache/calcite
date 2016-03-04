@@ -475,9 +475,16 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
       node = null;
       boolean found = dispatcher.invokeVisitor(this, p, VISIT_METHOD_NAME);
       if (!found) {
-        // Probably need to add a visit(XxxRel) method to CoreCompiler.
-        throw new AssertionError("interpreter: no implementation for "
-            + p.getClass());
+        if (p instanceof InterpretableRel) {
+          InterpretableRel interpretableRel = (InterpretableRel) p;
+          node = interpretableRel.implement(
+              new InterpretableRel.InterpreterImplementor(interpreter, null,
+                  null));
+        } else {
+          // Probably need to add a visit(XxxRel) method to CoreCompiler.
+          throw new AssertionError("interpreter: no implementation for "
+              + p.getClass());
+        }
       }
       final NodeInfo nodeInfo = interpreter.nodes.get(p);
       assert nodeInfo != null;

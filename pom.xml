@@ -130,6 +130,7 @@ limitations under the License.
   <modules>
     <module>cassandra</module>
     <module>core</module>
+    <module>druid</module>
     <module>example</module>
     <module>linq4j</module>
     <module>mongodb</module>

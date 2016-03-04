@@ -17,6 +17,7 @@
 package org.apache.calcite.config;
 
 import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.util.Bug;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +44,11 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * specified. The default, HIGH, sorts NULL values the same as Oracle. */
   DEFAULT_NULL_COLLATION("defaultNullCollation", Type.ENUM, NullCollation.HIGH,
       true),
+
+  /** How many rows the Druid adapter should fetch at a time when executing
+   * "select" queries. */
+  DRUID_FETCH("druidFetch", Type.STRING, "16384",
+      Bug.upgrade("convert to Type.NUMBER after [CALCITE-1207]")),
 
   /** URI of the model. */
   MODEL("model", Type.STRING, null, false),
