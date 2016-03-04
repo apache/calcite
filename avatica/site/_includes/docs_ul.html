@@ -1,0 +1,29 @@
+{% assign items = include.items %}
+
+<ul>
+{% for item in items %}
+  {% comment %} Account for the baseurl to make sure we compare the full URI. {% endcomment %}
+  {% capture item_url %}{{site.baseurl}}{{ item | prepend:"/docs/" | append:".html" }}{% endcapture %}
+  {% capture current_url %}{{ site.baseurl }}{{ page.url }}{% endcapture %}
+
+  {% if item_url == current_url %}
+    {% assign c = "current" %}
+  {% else %}
+    {% assign c = "" %}
+  {% endif %}
+
+  {% for p in site.docs %}
+    {% capture p_url %}{{site.baseurl}}{{p.url}}{% endcapture %}
+    {% if p.sidebar_title != nil %}
+      {% assign anchor_text = p.sidebar_title %}
+    {% else %}
+      {% assign anchor_text = p.title %}
+    {% endif %}
+    {% if p_url == item_url %}
+      <li class="{{ c }}"><a href="{{ p_url }}">{{ anchor_text }}</a></li>
+      {% break %}
+    {% endif %}
+  {% endfor %}
+
+{% endfor %}
+</ul>

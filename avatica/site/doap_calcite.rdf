@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl"?>
+<rdf:RDF xml:lang="en"
+         xmlns="http://usefulinc.com/ns/doap#"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:asfext="http://projects.apache.org/ns/asfext#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/">
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+  <Project rdf:about="https://calcite.apache.org">
+    <created>2015-05-27</created>
+    <license rdf:resource="http://spdx.org/licenses/Apache-2.0" />
+    <name>Apache Calcite</name>
+    <homepage rdf:resource="https://calcite.apache.org" />
+    <asfext:pmc rdf:resource="https://calcite.apache.org" />
+    <shortdesc>A dynamic data management framework.</shortdesc>
+    <description>Calcite is a framework for writing data management
+      systems.  It converts queries, represented in relational algebra,
+      into an efficient executable form using pluggable query
+      transformation rules. There is an optional SQL parser and JDBC
+      driver. Calcite does not store data or have a preferred execution
+      engine. Data formats, execution algorithms, planning rules,
+      operator types, metadata, and cost model are added at runtime as
+      plugins.</description>
+    <bug-database rdf:resource="https://issues.apache.org/jira/browse/CALCITE" />
+    <mailing-list rdf:resource="https://calcite.apache.org/develop" />
+    <download-page rdf:resource="https://calcite.apache.org/downloads" />
+    <programming-language>Java</programming-language>
+    <category rdf:resource="http://projects.apache.org/category/big-data" />
+    <category rdf:resource="http://projects.apache.org/category/hadoop" />
+    <category rdf:resource="http://projects.apache.org/category/sql" />
+    <repository>
+      <GitRepository>
+        <location rdf:resource="https://git-wip-us.apache.org/repos/asf/calcite.git"/>
+        <browse rdf:resource="https://github.com/apache/calcite"/>
+      </GitRepository>
+    </repository>
+    <maintainer>
+      <foaf:Person>
+        <foaf:name>Julian Hyde</foaf:name>
+          <foaf:mbox rdf:resource="mailto:jhyde@apache.org"/>
+      </foaf:Person>
+    </maintainer>
+  </Project>
+</rdf:RDF>

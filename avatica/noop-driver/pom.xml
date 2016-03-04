@@ -18,40 +18,19 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.apache.calcite</groupId>
-    <artifactId>calcite</artifactId>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>calcite-avatica-parent</artifactId>
     <version>1.7.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>calcite-avatica-metrics</artifactId>
+  <artifactId>calcite-avatica-noop</artifactId>
   <packaging>jar</packaging>
-  <name>Calcite Avatica Metrics</name>
-  <description>A library designed to abstract away any required dependency on a metrics library</description>
+  <name>Calcite Avatica Noop</name>
+  <description>A Noop JDBC driver.</description>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
   </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
 
   <build>
     <pluginManagement>
@@ -83,27 +62,6 @@ limitations under the License.
       </plugins>
     </pluginManagement>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <!-- configurations do not cascade, so all of the definition from
-             ../pom.xml:build:plugin-management:plugins:plugin must be repeated in child poms -->
-        <executions>
-          <execution>
-            <id>analyze</id>
-            <goals>
-              <goal>analyze-only</goal>
-            </goals>
-            <configuration>
-              <failOnWarning>true</failOnWarning>
-              <!-- ignore "unused but declared" warnings -->
-              <ignoredUnusedDeclaredDependencies>
-                <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
-              </ignoredUnusedDeclaredDependencies>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <!-- Parent module has the same plugin and does the work of
            generating -sources.jar for each project. But without the
            plugin declared here, IDEs don't know the sources are
@@ -118,6 +76,20 @@ limitations under the License.
             <goals>
               <goal>jar-no-fork</goal>
               <goal>test-jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Produce a tests jar so that avatica-server/pom.xml can reference for suite.
+           TODO: remove after moving over to annotation-based TestSuite definitions. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
             </goals>
           </execution>
         </executions>
