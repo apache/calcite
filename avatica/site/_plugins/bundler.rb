@@ -1,6 +1,3 @@
-# Configuration file for Travis continuous integration.
-# See https://travis-ci.org/apache/calcite
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -16,27 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-language: java
-jdk:
-  - oraclejdk8
-  - oraclejdk7
-branches:
-  only:
-    - master
-    - new-master
-    - javadoc
-    - /^branch-.*$/
-    - /^[0-9]+-.*$/
-install:
-  - cd avatica && mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V && cd ..
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
-script:
-  - cd avatica && mvn -Dsurefire.useFile=false javadoc:javadoc test && cd ..
-  - mvn -Dsurefire.useFile=false javadoc:javadoc test
-git:
-  depth: 10000
-sudo: false
-cache:
-  directories:
-    - $HOME/.m2
-# End .travis.yml
+require "rubygems"
+require "bundler/setup"
+Bundler.require(:default)
+
+# End bundler.rb
