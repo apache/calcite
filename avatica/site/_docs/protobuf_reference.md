@@ -1,8 +1,8 @@
 ---
 layout: docs
-title: Avatica Protocol Buffers Reference
+title: Protocol Buffers Reference
 sidebar_title: Protobuf Reference
-permalink: /docs/avatica_protobuf_reference.html
+permalink: /docs/protobuf_reference.html
 requests:
   - { name: "CatalogsRequest" }
   - { name: "CloseConnectionRequest" }

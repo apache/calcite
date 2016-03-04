@@ -18,26 +18,12 @@
 - title: Overview
   docs:
   - index
-  - tutorial
-  - algebra
-
-- title: Advanced
-  docs:
-  - adapter
-  - stream
-  - lattice
-
-- title: Avatica
-  docs:
-  - avatica_overview
-  - avatica_roadmap
-  - avatica_json_reference
-  - avatica_protobuf_reference
+  - roadmap
 
 - title: Reference
   docs:
-  - reference
-  - model
+  - json_reference
+  - protobuf_reference
   - howto
 
 - title: Meta

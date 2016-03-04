@@ -88,13 +88,9 @@ Add the following to the dependencies section of your `pom.xml` file:
 {% highlight xml %}
 <dependencies>
   <dependency>
-    <groupId>org.apache.calcite</groupId>
-    <artifactId>calcite-core</artifactId>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>calcite-avatica</artifactId>
     <version>{{ current_release.version }}</version>
   </dependency>
 </dependencies>
 {% endhighlight %}
-
-Also include `<dependency>` elements for any extension modules you
-need: `calcite-mongodb`, `calcite-spark`, `calcite-splunk`, and so
-forth.

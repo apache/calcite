@@ -22,124 +22,107 @@ limitations under the License.
 {% endcomment %}
 -->
 
-Apache Calcite is a dynamic data management framework.
+Avatica is a framework for building JDBC and ODBC drivers for databases,
+and an RPC wire protocol.
 
-It contains many of the pieces that comprise a typical database
-management system, but omits some key functions: storage of data,
-algorithms to process data, and a repository for storing metadata.
+![Avatica Architecture](https://raw.githubusercontent.com/julianhyde/share/master/slides/avatica-architecture.png)
 
-Calcite intentionally stays out of the business of storing and
-processing data. As we shall see, this makes it an excellent choice
-for mediating between applications and one or more data storage
-locations and data processing engines. It is also a perfect foundation
-for building a database: just add data.
+Avatica's Java binding has very few dependencies.
+Even though it is part of Apache Calcite it does not depend on other parts of
+Calcite. It depends only on JDK 1.7+ and Jackson.
 
-To illustrate, let's create an empty instance of Calcite and then
-point it at some data.
+Avatica's wire protocol is JSON over HTTP.
+The Java implementation uses Jackson to convert request/response command
+objects to/from JSON.
 
-{% highlight java %}
-public static class HrSchema {
-  public final Employee[] emps = 0;
-  public final Department[] depts = 0;
-}
-Class.forName("org.apache.calcite.jdbc.Driver");
-Properties info = new Properties();
-info.setProperty("lex", "JAVA");
-Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-CalciteConnection calciteConnection =
-    connection.unwrap(CalciteConnection.class);
-ReflectiveSchema.create(calciteConnection,
-    calciteConnection.getRootSchema(), "hr", new HrSchema());
-Statement statement = calciteConnection.createStatement();
-ResultSet resultSet = statement.executeQuery(
-    "select d.deptno, min(e.empid)\n"
-    + "from hr.emps as e\n"
-    + "join hr.depts as d\n"
-    + "  on e.deptno = d.deptno\n"
-    + "group by d.deptno\n"
-    + "having count(*) > 1");
-print(resultSet);
-resultSet.close();
-statement.close();
-connection.close();
-{% endhighlight %}
+Avatica-Server is a Java implementation of Avatica RPC.
 
-Where is the database? There is no database. The connection is
-completely empty until `ReflectiveSchema.create` registers a Java
-object as a schema and its collection fields `emps` and `depts` as
-tables.
+Core concepts:
 
-Calcite does not want to own data; it does not even have favorite data
-format. This example used in-memory data sets, and processed them
-using operators such as `groupBy` and `join` from the linq4j
-library. But Calcite can also process data in other data formats, such
-as JDBC. In the first example, replace
+* Meta is a local API sufficient to implement any Avatica provider
+* Factory creates implementations of the JDBC classes (Driver, Connection,
+  Statement, ResultSet) on top of a Meta
+* Service is an interface that implements the functions of Meta in terms
+  of request and response command objects
+
+## JDBC
+
+Avatica implements JDBC by means of Factory.
+Factory creates implementations of the JDBC classes (Driver, Connection,
+Statement, PreparedStatement, ResultSet) on top of a Meta.
+
+## ODBC
+
+Work has not started on Avatica ODBC.
+
+Avatica ODBC would use the same wire protocol and could use the same server
+implementation in Java. The ODBC client would be written in C or C++.
+
+Since the Avatica protocol abstracts many of the differences between providers,
+the same ODBC client could be used for different databases.
+
+## HTTP Server
+
+Avatica-server embeds the Jetty HTTP server, providing a class
+[HttpServer]({{ site.apiRoot }}/org/apache/calcite/avatica/server/HttpServer.html)
+that implements the Avatica RPC protocol
+and can be run as a standalone Java application.
+
+Connectors in HTTP server can be configured if needed by extending
+`HttpServer` class and overriding its `configureConnector()` method.
+For example, user can set `requestHeaderSize` to 64K bytes as follows:
 
 {% highlight java %}
-ReflectiveSchema.create(calciteConnection,
-    calciteConnection.getRootSchema(), "hr", new HrSchema());
+HttpServer server = new HttpServer(handler) {
+  @Override
+  protected ServerConnector configureConnector(
+      ServerConnector connector, int port) {
+    HttpConnectionFactory factory = (HttpConnectionFactory)
+        connector.getDefaultConnectionFactory();
+    factory.getHttpConfiguration().setRequestHeaderSize(64 << 10);
+    return super.configureConnector(connector, port);
+  }
+};
+server.start();
 {% endhighlight %}
 
-with
+## Project structure
 
-{% highlight java %}
-Class.forName("com.mysql.jdbc.Driver");
-BasicDataSource dataSource = new BasicDataSource();
-dataSource.setUrl("jdbc:mysql://localhost");
-dataSource.setUsername("username");
-dataSource.setPassword("password");
-JdbcSchema.create(calciteConnection.getRootSchema(), "name", dataSource,
-    null, "hr");
-{% endhighlight %}
+We know that it is important that client libraries have minimal dependencies.
 
-and Calcite will execute the same query in JDBC. To the application,
-the data and API are the same, but behind the scenes the
-implementation is very different. Calcite uses optimizer rules to push
-the `JOIN` and `GROUP BY` operations to the source database.
+Avatica is currently part of Apache Calcite.
+It does not depend upon any other part of Calcite.
+At some point Avatica could become a separate project.
 
-In-memory and JDBC are just two familiar examples. Calcite can handle
-any data source and data format. To add a data source, you need to
-write an adapter that tells Calcite what collections in the data
-source it should consider "tables".
+Packages:
 
-For more advanced integration, you can write optimizer
-rules. Optimizer rules allow Calcite to access data of a new format,
-allow you to register new operators (such as a better join algorithm),
-and allow Calcite to optimize how queries are translated to
-operators. Calcite will combine your rules and operators with built-in
-rules and operators, apply cost-based optimization, and generate an
-efficient plan.
-
-### Writing an adapter
-
-The subproject under example/csv provides a CSV adapter, which is
-fully functional for use in applications but is also simple enough to
-serve as a good template if you are writing your own adapter.
-
-See the <a href="{{ site.baseurl }}/docs/tutorial.html">tutorial</a> for information on using
-the CSV adapter and writing other adapters.
-
-See the <a href="howto.html">HOWTO</a> for more information about
-using other adapters, and about using Calcite in general.
+* [org.apache.calcite.avatica]({{ site.apiRoot }}/org/apache/calcite/avatica/package-summary.html) Core framework
+* [org.apache.calcite.avatica.remote]({{ site.apiRoot }}/org/apache/calcite/avatica/remote/package-summary.html) JDBC driver that uses remote procedure calls
+* [org.apache.calcite.avatica.server]({{ site.apiRoot }}/org/apache/calcite/avatica/server/package-summary.html) HTTP server
+* [org.apache.calcite.avatica.util]({{ site.apiRoot }}/org/apache/calcite/avatica/util/package-summary.html) Utilities
 
 ## Status
 
-The following features are complete.
+### Implemented
 
-* Query parser, validator and optimizer
-* Support for reading models in JSON format
-* Many standard functions and aggregate functions
-* JDBC queries against Linq4j and JDBC back-ends
-* Linq4j front-end
-* SQL features: SELECT, FROM (including JOIN syntax), WHERE, GROUP BY
-  (including GROUPING SETS), aggregate functions (including
-  COUNT(DISTINCT ...) and FILTER), HAVING, ORDER BY (including NULLS
-  FIRST/LAST), set operations (UNION, INTERSECT, MINUS), sub-queries
-  (including correlated sub-queries), windowed aggregates, LIMIT
-  (syntax as <a
-  href="http://www.postgresql.org/docs/8.4/static/sql-select.html#SQL-LIMIT">Postgres</a>);
-  more details in the [SQL reference](reference.html)
-* Local and remote JDBC drivers; see [Avatica](avatica_overview.html)
-* Several [adapters](adapter.html)
+* Create connection, create statement, metadata, prepare, bind, execute, fetch
+* RPC using JSON over HTTP
+* Local implementation
+* Implementation over an existing JDBC driver
+* Composite RPCs (combining several requests into one round trip)
+  * Execute-Fetch
+  * Metadata-Fetch (metadata calls such as getTables return all rows)
 
+### Not implemented
 
+* ODBC
+* RPCs
+  * CloseStatement
+  * CloseConnection
+* Composite RPCs
+  * CreateStatement-Prepare
+  * CloseStatement-CloseConnection
+  * Prepare-Execute-Fetch (Statement.executeQuery should fetch first N rows)
+* Remove statements from statement table
+* DML (INSERT, UPDATE, DELETE)
+* Statement.execute applied to SELECT statement

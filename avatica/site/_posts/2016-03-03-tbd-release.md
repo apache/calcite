@@ -1,11 +1,12 @@
 ---
 layout: news_item
-date: "2015-09-02 12:00:00 +0000"
-author: jhyde
-version: 1.4.0-incubating
+title: "Avatica x.y.z"
+date: "2016-03-03 23:57:33 -0500"
+author: elserj
+version: 9.9.9
+tag: v9-9-9
+sha: abcdef
 categories: [release]
-tag: v1-4-0
-sha: 0c0c203d
 ---
 <!--
 {% comment %}
@@ -26,14 +27,4 @@ limitations under the License.
 {% endcomment %}
 -->
 
-In addition to a large number of bug fixes and minor enhancements,
-this release includes improvements to
-<a href="https://issues.apache.org/jira/browse/CALCITE-758">lattices</a> and
-<a href="https://issues.apache.org/jira/browse/CALCITE-761">materialized views</a>,
-and adds a
-<a href="https://issues.apache.org/jira/browse/CALCITE-748">builder API</a>
-so that you can easily create relational algebra expressions.
-
-Read more about the [builder]({{ site.baseurl }}/news/2015/06/05/algebra-builder/),
-[relational algebra]({{ site.baseurl }}/docs/algebra.html), and
-[lattices]({{ site.baseurl }}/docs/lattice.html).
+Apache Calcite is happy to release Avatica x.y.z.
