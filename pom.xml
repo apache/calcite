@@ -128,11 +128,6 @@ limitations under the License.
   </scm>
 
   <modules>
-    <module>avatica</module>
-    <module>avatica-metrics</module>
-    <module>avatica-metrics-dropwizardmetrics3</module>
-    <module>avatica-noop</module>
-    <module>avatica-server</module>
     <module>cassandra</module>
     <module>core</module>
     <module>dropwizard-metrics2</module>
