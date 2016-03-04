@@ -21,7 +21,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 /**
  * Enumerates the types of join.
  */
-public enum JoinType implements SqlLiteral.SqlSymbol {
+public enum JoinType {
   /**
    * Inner join.
    */

@@ -21,7 +21,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 /**
  * SqlExplainLevel defines detail levels for EXPLAIN PLAN.
  */
-public enum SqlExplainLevel implements SqlLiteral.SqlSymbol {
+public enum SqlExplainLevel {
   /**
    * Suppress all attributes.
    */

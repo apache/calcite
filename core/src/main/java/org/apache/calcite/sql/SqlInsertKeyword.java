@@ -23,7 +23,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
  *
  * <p>Standard SQL has no such keywords, but extension projects may define them.
  */
-public enum SqlInsertKeyword implements SqlLiteral.SqlSymbol {
+public enum SqlInsertKeyword {
   UPSERT;
 
   /**

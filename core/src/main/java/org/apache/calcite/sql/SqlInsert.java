@@ -80,7 +80,8 @@ public class SqlInsert extends SqlCall {
       keywords = (SqlNodeList) operand;
       break;
     case 1:
-      targetTable = (SqlIdentifier) operand;
+      assert operand instanceof SqlIdentifier;
+      targetTable = operand;
       break;
     case 2:
       source = operand;
@@ -121,7 +122,8 @@ public class SqlInsert extends SqlCall {
 
   public final SqlNode getModifierNode(SqlInsertKeyword modifier) {
     for (SqlNode keyword : keywords) {
-      SqlInsertKeyword keyword2 = ((SqlLiteral) keyword).symbolValue();
+      SqlInsertKeyword keyword2 =
+          ((SqlLiteral) keyword).symbolValue(SqlInsertKeyword.class);
       if (keyword2 == modifier) {
         return keyword;
       }

@@ -452,8 +452,7 @@ public abstract class SqlImplementor {
       case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
         if (literal.getTypeName() == SqlTypeName.SYMBOL) {
-          final SqlLiteral.SqlSymbol symbol =
-              (SqlLiteral.SqlSymbol) literal.getValue();
+          final Enum symbol = (Enum) literal.getValue();
           return SqlLiteral.createSymbol(symbol, POS);
         }
         switch (literal.getTypeName().getFamily()) {

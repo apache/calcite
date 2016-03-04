@@ -24,7 +24,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
  * Enumeration representing different join types used in correlation
  * relations.
  */
-public enum SemiJoinType implements SqlLiteral.SqlSymbol {
+public enum SemiJoinType {
   /**
    * Inner join
    */

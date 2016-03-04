@@ -362,7 +362,7 @@ public class SqlWindow extends SqlCall {
    */
   public static boolean isCurrentRow(SqlNode node) {
     return (node instanceof SqlLiteral)
-        && ((SqlLiteral) node).symbolValue() == Bound.CURRENT_ROW;
+        && ((SqlLiteral) node).symbolValue(Bound.class) == Bound.CURRENT_ROW;
   }
 
   /**
@@ -370,7 +370,7 @@ public class SqlWindow extends SqlCall {
    */
   public static boolean isUnboundedPreceding(SqlNode node) {
     return (node instanceof SqlLiteral)
-        && ((SqlLiteral) node).symbolValue() == Bound.UNBOUNDED_PRECEDING;
+        && ((SqlLiteral) node).symbolValue(Bound.class) == Bound.UNBOUNDED_PRECEDING;
   }
 
   /**
@@ -378,7 +378,7 @@ public class SqlWindow extends SqlCall {
    */
   public static boolean isUnboundedFollowing(SqlNode node) {
     return (node instanceof SqlLiteral)
-        && ((SqlLiteral) node).symbolValue() == Bound.UNBOUNDED_FOLLOWING;
+        && ((SqlLiteral) node).symbolValue(Bound.class) == Bound.UNBOUNDED_FOLLOWING;
   }
 
   /**
@@ -772,7 +772,7 @@ public class SqlWindow extends SqlCall {
    * An enumeration of types of bounds in a window: <code>CURRENT ROW</code>,
    * <code>UNBOUNDED PRECEDING</code>, and <code>UNBOUNDED FOLLOWING</code>.
    */
-  enum Bound implements SqlLiteral.SqlSymbol {
+  enum Bound {
     CURRENT_ROW("CURRENT ROW"),
     UNBOUNDED_PRECEDING("UNBOUNDED PRECEDING"),
     UNBOUNDED_FOLLOWING("UNBOUNDED FOLLOWING");

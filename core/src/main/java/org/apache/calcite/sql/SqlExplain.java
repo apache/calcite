@@ -40,7 +40,7 @@ public class SqlExplain extends SqlCall {
   /**
    * The level of abstraction with which to display the plan.
    */
-  public static enum Depth implements SqlLiteral.SqlSymbol {
+  public enum Depth {
     TYPE, LOGICAL, PHYSICAL;
 
     /**
@@ -120,14 +120,14 @@ public class SqlExplain extends SqlCall {
    * @return detail level to be generated
    */
   public SqlExplainLevel getDetailLevel() {
-    return detailLevel.symbolValue();
+    return detailLevel.symbolValue(SqlExplainLevel.class);
   }
 
   /**
    * Returns the level of abstraction at which this plan should be displayed.
    */
   public Depth getDepth() {
-    return depth.symbolValue();
+    return depth.symbolValue(Depth.class);
   }
 
   /**

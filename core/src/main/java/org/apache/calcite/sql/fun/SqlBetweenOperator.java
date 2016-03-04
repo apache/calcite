@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlInfixOperator;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -93,7 +92,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
   /**
    * Defines the "SYMMETRIC" and "ASYMMETRIC" keywords.
    */
-  public enum Flag implements SqlLiteral.SqlSymbol {
+  public enum Flag {
     ASYMMETRIC, SYMMETRIC
   }
 

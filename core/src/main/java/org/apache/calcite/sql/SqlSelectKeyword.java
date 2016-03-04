@@ -21,7 +21,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 /**
  * Defines the keywords which can occur immediately after the "SELECT" keyword.
  */
-public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
+public enum SqlSelectKeyword {
   DISTINCT,
   ALL,
   STREAM;

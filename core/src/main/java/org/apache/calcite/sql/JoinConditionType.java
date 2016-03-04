@@ -21,7 +21,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 /**
  * Enumerates the types of condition in a join expression.
  */
-public enum JoinConditionType implements SqlLiteral.SqlSymbol {
+public enum JoinConditionType {
   /**
    * Join clause has no condition, for example "FROM EMP, DEPT"
    */

@@ -66,9 +66,9 @@ public class SqlJoin extends SqlCall {
     this.conditionType = Preconditions.checkNotNull(conditionType);
     this.condition = condition;
 
-    assert natural.getTypeName() == SqlTypeName.BOOLEAN;
-    assert conditionType.symbolValue() instanceof JoinConditionType;
-    assert joinType.symbolValue() instanceof JoinType;
+    Preconditions.checkArgument(natural.getTypeName() == SqlTypeName.BOOLEAN);
+    Preconditions.checkNotNull(conditionType.symbolValue(JoinConditionType.class));
+    Preconditions.checkNotNull(joinType.symbolValue(JoinType.class));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -117,7 +117,7 @@ public class SqlJoin extends SqlCall {
 
   /** Returns a {@link JoinConditionType}, never null. */
   public final JoinConditionType getConditionType() {
-    return conditionType.symbolValue();
+    return conditionType.symbolValue(JoinConditionType.class);
   }
 
   public SqlLiteral getConditionTypeNode() {
@@ -126,7 +126,7 @@ public class SqlJoin extends SqlCall {
 
   /** Returns a {@link JoinType}, never null. */
   public final JoinType getJoinType() {
-    return joinType.symbolValue();
+    return joinType.symbolValue(JoinType.class);
   }
 
   public SqlLiteral getJoinTypeNode() {

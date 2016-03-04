@@ -63,7 +63,7 @@ public class SqlTrimFunction extends SqlFunction {
   /**
    * Defines the enumerated values "LEADING", "TRAILING", "BOTH".
    */
-  public enum Flag implements SqlLiteral.SqlSymbol {
+  public enum Flag {
     BOTH(1, 1), LEADING(1, 0), TRAILING(0, 1);
 
     private final int left;
