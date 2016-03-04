@@ -205,6 +205,16 @@ limitations under the License.
                 </relocation>
               </relocations>
               <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                    <addHeader>false</addHeader>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
+                  <resources>
+                    <resource>LICENSE.txt</resource>
+                  </resources>
+                </transformer>
+              </transformers>
             </configuration>
           </execution>
         </executions>
