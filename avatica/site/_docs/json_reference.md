@@ -1,8 +1,8 @@
 ---
 layout: docs
-title: Avatica JSON Reference
+title: JSON Reference
 sidebar_title: JSON Reference
-permalink: /docs/avatica_json_reference.html
+permalink: /docs/json_reference.html
 requests:
   - { name: "CatalogsRequest" }
   - { name: "CloseConnectionRequest" }

@@ -1,12 +1,10 @@
 ---
-layout: news_item
-date: "2015-03-13 19:03:07 -0800"
-author: jhyde
-version: 1.1.0-incubating
-tag: v1-1-0
-sha: f10ea367
-categories: [release]
+layout: docs
+title: Roadmap
+sidebar_title: Roadmap
+permalink: /docs/roadmap.html
 ---
+
 <!--
 {% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more
@@ -26,16 +24,28 @@ limitations under the License.
 {% endcomment %}
 -->
 
-This Calcite release makes it possible to exploit physical properties
-of relational expressions to produce more efficient plans, introducing
-collation and distribution as traits, `Exchange` relational operator,
-and several new forms of metadata.
+## Status
 
-We add experimental support for streaming SQL.
+### Implemented
 
-This release drops support for JDK 1.6; Calcite now requires 1.7 or
-later.
+* Create connection, create statement, metadata, prepare, bind, execute, fetch
+* RPC using JSON over HTTP
+* Local implementation
+* Implementation over an existing JDBC driver
+* Composite RPCs (combining several requests into one round trip)
+  * Execute-Fetch
+  * Metadata-Fetch (metadata calls such as getTables return all rows)
 
-We have introduced static `create` methods for many sub-classes of
-`RelNode`. We strongly suggest that you use these rather than
-calling constructors directly.
+### Not implemented
+
+* ODBC
+* RPCs
+  * CloseStatement
+  * CloseConnection
+* Composite RPCs
+  * CreateStatement-Prepare
+  * CloseStatement-CloseConnection
+  * Prepare-Execute-Fetch (Statement.executeQuery should fetch first N rows)
+* Remove statements from statement table
+* DML (INSERT, UPDATE, DELETE)
+* Statement.execute applied to SELECT statement

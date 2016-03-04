@@ -1,11 +1,9 @@
 ---
 layout: news_item
-date: "2014-11-05 00:00:00 -0800"
-author: jhyde
-version: 0.9.2-incubating
-tag: v0-9-2
-sha: 0404fd23
-categories: [release]
+title: "Splitting Avatica from Calcite"
+date: "2016-03-03 23:57:33 -0500"
+author: elserj
+categories: [milestones]
 ---
 <!--
 {% comment %}
@@ -26,7 +24,9 @@ limitations under the License.
 {% endcomment %}
 -->
 
-A fairly minor release, and last release before we rename all of the
-packages and lots of classes, in what we expect to call 1.0. If you
-have an existing application, it's worth upgrading to this first,
-before you move on to 1.0.
+This marks the separation of Avatica from it's previous location as a sub-module
+of Apache Calcite's Maven build. This separation is not to remove Avatica from
+the governance of the Apache Calcite project, but to allow for even more rapid
+releases from both the Avatica and Calcite projects. We can confidently make new
+releases of each without having to worry about the current state of development
+features in the other.
