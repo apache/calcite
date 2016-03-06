@@ -999,6 +999,9 @@ public class RexBuilder {
     if (matchNullability) {
       targetType = matchNullability(type, node);
     }
+    if (targetType.getSqlTypeName() == SqlTypeName.ANY) {
+      return node;
+    }
     if (!node.getType().equals(targetType)) {
       return makeCast(targetType, node);
     }
