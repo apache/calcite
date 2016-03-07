@@ -17,25 +17,24 @@ limitations under the License.
 {% endcomment %}
 -->
 
-# Apache Calcite docs site
+# Apache Calcite Avatica site
 
-This directory contains the code for the Apache Calcite web site,
-[calcite.apache.org](https://calcite.apache.org/).
+This directory contains the code for the
+[Avatica web site](https://calcite.apache.org/avatica),
+a sub-directory of the
+[Apache Calcite web site](https://calcite.apache.org).
 
 ## Setup
 
-1. `cd site`
-2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
-3. `sudo apt-get install rubygems ruby2.1-dev zlib1g-dev` (linux)
-4. `sudo gem install bundler github-pages jekyll jekyll-oembed`
-5. `bundle install`
+1. Set up Calcite web site as described in its
+   [README](../site/README.md).
 
 ## Add javadoc
 
-1. `cd ..`
+1. `cd avatica`
 2. `mvn -DskipTests site`
-3. `rm -rf site/target/apidocs site/target/testapidocs`
-4. `mv target/site/apidocs target/site/testapidocs site/target`
+3. `rm -rf ../site/target/avatica/apidocs ../site/target/avatica/testapidocs`
+4. `mv target/site/apidocs target/site/testapidocs ../site/target/avatica`
 
 ## Running locally
 
@@ -43,15 +42,10 @@ Before opening a pull request, you can preview your contributions by
 running from within the directory:
 
 1. `bundle exec jekyll serve`
-2. Open [http://localhost:4000](http://localhost:4000)
+2. Open [http://localhost:4000/avatica](http://localhost:4000/avatica)
 
 ## Pushing to site
 
-1. `cd site/target`
-2. `svn status`
-3. You'll need to `svn add` any new files
-4. `svn ci`
-
-Within a few minutes, svnpubsub should kick in and you'll be able to
-see the results at
-[calcite.apache.org](https://calcite.apache.org/).
+Push the Calcite site, which includes `avatica` as a sub-directory,
+as described in its
+[README](../site/README.md).

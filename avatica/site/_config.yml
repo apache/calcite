@@ -18,7 +18,7 @@ permalink: /news/:year/:month/:day/:title/
 excerpt_separator: ""
 
 repository: https://github.com/apache/calcite
-destination: target
+destination: ../../site/target/avatica
 exclude: [README.md,Gemfile*]
 keep_files: [".git", ".svn", "apidocs", "testapidocs"]
 
