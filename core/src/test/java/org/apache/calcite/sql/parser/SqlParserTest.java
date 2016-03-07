@@ -29,6 +29,9 @@ import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -39,7 +42,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -5523,6 +5529,41 @@ public class SqlParserTest {
     checkExp(
         "cast(interval '3-2' year to month as CHAR(5))",
         "CAST(INTERVAL '3-2' YEAR TO MONTH AS CHAR(5))");
+  }
+
+  @Test public void testTimestampAddAndDiff() {
+    Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
+        .put("MICROSECOND",
+            Arrays.asList("FRAC_SECOND", "MICROSECOND",
+                "SQL_TSI_FRAC_SECOND", "SQL_TSI_MICROSECOND"))
+        .put("SECOND", Arrays.asList("SECOND", "SQL_TSI_SECOND"))
+        .put("MINUTE", Arrays.asList("MINUTE", "SQL_TSI_MINUTE"))
+        .put("HOUR", Arrays.asList("HOUR", "SQL_TSI_HOUR"))
+        .put("DAY", Arrays.asList("DAY", "SQL_TSI_DAY"))
+        .put("WEEK", Arrays.asList("WEEK", "SQL_TSI_WEEK"))
+        .put("MONTH", Arrays.asList("MONTH", "SQL_TSI_MONTH"))
+        .put("QUARTER", Arrays.asList("QUARTER", "SQL_TSI_QUARTER"))
+        .put("YEAR", Arrays.asList("YEAR", "SQL_TSI_YEAR"))
+        .build();
+
+    List<String> functions = ImmutableList.<String>builder()
+        .add("timestampadd(%1$s, 12, %2$scurrent_timestamp%2$s)")
+        .add("timestampdiff(%1$s, %2$scurrent_timestamp%2$s, %2$scurrent_timestamp%2$s)")
+        .build();
+
+    for (Map.Entry<String, List<String>> intervalGroup : tsi.entrySet()) {
+      for (String function : functions) {
+        for (String interval : intervalGroup.getValue()) {
+          checkExp(String.format(function, interval, ""),
+              String.format(function, intervalGroup.getKey(), "`").toUpperCase());
+        }
+      }
+    }
+
+    checkExpFails("timestampadd(^incorrect^, 1, current_timestamp)",
+        "(?s).*Was expecting one of.*");
+    checkExpFails("timestampdiff(^incorrect^, current_timestamp, current_timestamp)",
+        "(?s).*Was expecting one of.*");
   }
 
   @Test public void testUnnest() {
