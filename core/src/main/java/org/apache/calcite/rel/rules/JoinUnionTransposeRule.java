@@ -23,15 +23,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalUnion;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Planner rule that pushes a
- * {@link org.apache.calcite.rel.logical.LogicalJoin}
- * past a non-distinct {@link org.apache.calcite.rel.logical.LogicalUnion}.
+ * {@link org.apache.calcite.rel.core.Join}
+ * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
  */
 public class JoinUnionTransposeRule extends RelOptRule {
   public static final JoinUnionTransposeRule LEFT_UNION =
@@ -58,7 +57,7 @@ public class JoinUnionTransposeRule extends RelOptRule {
     final Union unionRel;
     RelNode otherInput;
     boolean unionOnLeft;
-    if (call.rel(1) instanceof LogicalUnion) {
+    if (call.rel(1) instanceof Union) {
       unionRel = call.rel(1);
       otherInput = call.rel(2);
       unionOnLeft = true;
