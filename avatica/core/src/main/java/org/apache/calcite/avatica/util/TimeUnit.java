@@ -20,28 +20,42 @@ import java.math.BigDecimal;
 
 /**
  * Enumeration of time units used to construct an interval.
+ *
+ * <p>Only {@link #YEAR}, {@link #YEAR}, {@link #MONTH}, {@link #DAY},
+ * {@link #HOUR}, {@link #MINUTE}, {@link #SECOND} can be the unit of a SQL
+ * interval.
+ *
+ * <p>The others ({@link #QUARTER}, {@link #WEEK}, {@link #MILLISECOND} and
+ * {@link #MICROSECOND}) are convenient to use it internally, when converting to
+ * and from UNIX timestamps. And also may be arguments to the
+ * {@code TIMESTAMPADD} and {@code TIMESTAMPDIFF} functions.
  */
 public enum TimeUnit {
-  YEAR(true, ' ', 12 /* months */, null),
-  MONTH(true, '-', 1 /* months */, BigDecimal.valueOf(12)),
-  DAY(false, '-', DateTimeUtils.MILLIS_PER_DAY, null),
-  HOUR(false, ' ', DateTimeUtils.MILLIS_PER_HOUR, BigDecimal.valueOf(24)),
-  MINUTE(false, ':', DateTimeUtils.MILLIS_PER_MINUTE, BigDecimal.valueOf(60)),
-  SECOND(false, ':', DateTimeUtils.MILLIS_PER_SECOND, BigDecimal.valueOf(60)),
+  YEAR(true, ' ', BigDecimal.valueOf(12) /* months */, null),
+  MONTH(true, '-', BigDecimal.ONE /* months */, BigDecimal.valueOf(12)),
+  DAY(false, '-', BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_DAY), null),
+  HOUR(false, ' ', BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_HOUR),
+      BigDecimal.valueOf(24)),
+  MINUTE(false, ':', BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_MINUTE),
+      BigDecimal.valueOf(60)),
+  SECOND(false, ':', BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_SECOND),
+      BigDecimal.valueOf(60)),
 
-  /** Unlike the other units, MILLISECOND may not be the unit of a SQL interval.
-   * Still, it is convenient to use it internally, when converting to and from
-   * UNIX timestamps. */
-  MILLISECOND(false, '.', 1, BigDecimal.valueOf(1));
+  QUARTER(true, '*', BigDecimal.valueOf(3) /* months */, BigDecimal.valueOf(4)),
+  WEEK(false, '*', BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_DAY * 7),
+      BigDecimal.valueOf(53)),
+  MILLISECOND(false, '.', BigDecimal.ONE, BigDecimal.valueOf(1000)),
+  MICROSECOND(false, '.', BigDecimal.ONE.scaleByPowerOfTen(-3),
+      BigDecimal.valueOf(1000000));
 
   public final boolean yearMonth;
   public final char separator;
-  public final long multiplier;
+  public final BigDecimal multiplier;
   private final BigDecimal limit;
 
   private static final TimeUnit[] CACHED_VALUES = values();
 
-  TimeUnit(boolean yearMonth, char separator, long multiplier,
+  TimeUnit(boolean yearMonth, char separator, BigDecimal multiplier,
       BigDecimal limit) {
     this.yearMonth = yearMonth;
     this.separator = separator;

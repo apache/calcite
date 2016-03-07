@@ -36,7 +36,13 @@ public enum TimeUnitRange {
   HOUR_TO_SECOND(TimeUnit.HOUR, TimeUnit.SECOND),
   MINUTE(TimeUnit.MINUTE, null),
   MINUTE_TO_SECOND(TimeUnit.MINUTE, TimeUnit.SECOND),
-  SECOND(TimeUnit.SECOND, null);
+  SECOND(TimeUnit.SECOND, null),
+
+  // non-standard time units cannot participate in ranges
+  QUARTER(TimeUnit.QUARTER, null),
+  WEEK(TimeUnit.WEEK, null),
+  MILLISECOND(TimeUnit.MILLISECOND, null),
+  MICROSECOND(TimeUnit.MICROSECOND, null);
 
   public final TimeUnit startUnit;
   public final TimeUnit endUnit;
