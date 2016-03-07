@@ -10,7 +10,7 @@ body {
   font: 300 21px Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #ddd;
   background-color: #333;
-  border-top: 5px solid #33adff;
+  border-top: 5px solid #937cb0;
   @include box-shadow(inset 0 3px 30px rgba(0,0,0,.3));
   text-shadow: 0 1px 3px rgba(0,0,0,.5);
   -webkit-font-feature-settings: "kern" 1;
@@ -86,7 +86,7 @@ nav {
     &.current {
 
       a {
-        background-color: #33adff;
+        background-color: #937cb0;
         color: #222;
         @include box-shadow(inset 0 1px 0 rgba(255,255,255,.5), 0 1px 5px rgba(0,0,0,.5));
         text-shadow: 0 1px 0 rgba(255,255,255,.3);
@@ -107,7 +107,7 @@ nav {
     float: left;
     width: 100%;
     background-color: #333;
-    color: #33adff;
+    color: #937cb0;
     text-align: center;
     text-transform: uppercase;
     font-size: 14px;
@@ -125,7 +125,7 @@ nav {
   .current {
 
     a {
-      background-color: #33adff;
+      background-color: #937cb0;
       color: #222;
       @include box-shadow(inset 0 1px 0 rgba(255,255,255,.5), 0 1px 5px rgba(0,0,0,.5));
       text-shadow: 0 1px 0 rgba(255,255,255,.3);
@@ -649,11 +649,11 @@ h5 > code,
 h1, h2, h3, h4, h5, h6 { margin: 0; }
 
 a {
-  color: #33adff;
+  color: #937cb0;
   text-decoration: none;
   @include transition(all .25s);
 
-  &:hover { color: #33adff; }
+  &:hover { color: #937cb0; }
 }
 
 strong { font-weight: 700; }
@@ -856,7 +856,7 @@ code.output {
 
   &:after {
     content: '\2605';
-    color: #33adff;
+    color: #937cb0;
     position: absolute;
     top: 14px;
     left: 14px;
@@ -918,7 +918,7 @@ code.output {
 
 .warning:after {
   content: '\203C';
-  color: #33adff;
+  color: #937cb0;
   position: absolute;
   top: 15px;
   left: 15px;
