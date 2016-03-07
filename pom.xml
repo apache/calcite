@@ -53,6 +53,7 @@ limitations under the License.
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
+    <avatica.version>1.7.0-SNAPSHOT</avatica.version>
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>2.1.9</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
@@ -148,32 +149,32 @@ limitations under the License.
 
   <dependencyManagement>
     <dependencies>
-      <!-- Sorted by groupId, artifactId; calcite dependencies first. -->
+      <!-- Sorted by groupId, artifactId; calcite (and avatica) dependencies first. -->
       <dependency>
-        <groupId>org.apache.calcite</groupId>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>calcite-avatica-metrics</artifactId>
-        <version>${project.version}</version>
+        <version>${avatica.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.calcite</groupId>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>calcite-avatica</artifactId>
-        <version>${project.version}</version>
+        <version>${avatica.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.calcite</groupId>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>calcite-avatica-noop</artifactId>
-        <version>${project.version}</version>
+        <version>${avatica.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.calcite</groupId>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>calcite-avatica</artifactId>
-        <version>${project.version}</version>
+        <version>${avatica.version}</version>
         <type>test-jar</type>
       </dependency>
       <dependency>
-        <groupId>org.apache.calcite</groupId>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>calcite-avatica-server</artifactId>
-        <version>${project.version}</version>
+        <version>${avatica.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.calcite</groupId>

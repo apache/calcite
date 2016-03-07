@@ -583,17 +583,6 @@ limitations under the License.
         <enabled>false</enabled>
       </snapshots>
     </repository>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>warn</checksumPolicy>
-      </releases>
-      <id>conjars</id>
-      <name>Conjars</name>
-      <url>http://conjars.org/repo</url>
-      <layout>default</layout>
-    </repository>
   </repositories>
 
   <profiles>

@@ -37,7 +37,7 @@ limitations under the License.
     <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
          in dependencyManagement in the root POM, not here. -->
     <dependency>
-      <groupId>org.apache.calcite</groupId>
+      <groupId>org.apache.calcite.avatica</groupId>
       <artifactId>calcite-avatica</artifactId>
     </dependency>
     <dependency>
