@@ -82,7 +82,6 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
-import org.apache.calcite.sql.TimestampInterval;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -3439,60 +3438,29 @@ TimeUnit TimeUnit() :
     }
 }
 
-SqlLiteral TimestampInterval() :
+TimeUnit TimestampInterval() :
+{}
 {
-SqlLiteral.SqlSymbol symbol = null;
-}
-{
-    (
-        ( <FRAC_SECOND> | <MICROSECOND> | <SQL_TSI_FRAC_SECOND> | <SQL_TSI_MICROSECOND> )
-            {
-                symbol = TimestampInterval.MICROSECOND;
-            }
-        |
-        ( <SECOND> | <SQL_TSI_SECOND> )
-            {
-                symbol = TimestampInterval.SECOND;
-            }
-        |
-        ( <MINUTE> | <SQL_TSI_MINUTE> )
-            {
-                symbol = TimestampInterval.MINUTE;
-            }
-        |
-        ( <HOUR> | <SQL_TSI_HOUR> )
-            {
-                symbol = TimestampInterval.HOUR;
-            }
-        |
-        ( <DAY> | <SQL_TSI_DAY> )
-            {
-                symbol = TimestampInterval.DAY;
-            }
-        |
-         (<WEEK> | <SQL_TSI_WEEK> )
-            {
-                symbol = TimestampInterval.WEEK;
-            }
-        |
-        ( <MONTH> | <SQL_TSI_MONTH> )
-            {
-                symbol = TimestampInterval.MONTH;
-            }
-        |
-        ( <QUARTER> | <SQL_TSI_QUARTER> )
-            {
-                symbol = TimestampInterval.QUARTER;
-            }
-        |
-        ( <YEAR> | <SQL_TSI_YEAR> )
-            {
-                symbol = TimestampInterval.YEAR;
-            }
-    )
-    {
-        return SqlLiteral.createSymbol(symbol, getPos());
-    }
+    <FRAC_SECOND> { return TimeUnit.MICROSECOND; }
+|   <MICROSECOND> { return TimeUnit.MICROSECOND; }
+|   <SQL_TSI_FRAC_SECOND> { return TimeUnit.MICROSECOND; }
+|   <SQL_TSI_MICROSECOND> { return TimeUnit.MICROSECOND; }
+|   <SECOND> { return TimeUnit.SECOND; }
+|   <SQL_TSI_SECOND> { return TimeUnit.SECOND; }
+|   <MINUTE> { return TimeUnit.MINUTE; }
+|   <SQL_TSI_MINUTE> { return TimeUnit.MINUTE; }
+|   <HOUR> { return TimeUnit.HOUR; }
+|   <SQL_TSI_HOUR> { return TimeUnit.HOUR; }
+|   <DAY> { return TimeUnit.DAY; }
+|   <SQL_TSI_DAY> { return TimeUnit.DAY; }
+|   <WEEK> { return TimeUnit.WEEK; }
+|   <SQL_TSI_WEEK> { return TimeUnit.WEEK; }
+|   <MONTH> { return TimeUnit.MONTH; }
+|   <SQL_TSI_MONTH> { return TimeUnit.MONTH; }
+|   <QUARTER> { return TimeUnit.QUARTER; }
+|   <SQL_TSI_QUARTER> { return TimeUnit.QUARTER; }
+|   <YEAR> { return TimeUnit.YEAR; }
+|   <SQL_TSI_YEAR> { return TimeUnit.YEAR; }
 }
 
 
@@ -3962,6 +3930,8 @@ SqlNode BuiltinFunctionCall() :
     SqlParserPos starPos;
     SqlParserPos namePos;
     SqlDataTypeSpec dt;
+    TimeUnit interval;
+    SqlNode node;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
@@ -4202,56 +4172,68 @@ SqlNode BuiltinFunctionCall() :
         }
     )
     |
-    (
-        <TIMESTAMPADD>
-            {
-                pos = getPos();
-                SqlLiteral interval;
-            }
-            <LPAREN>
-                interval = TimestampInterval()
-                { args = startList(interval); }
-             <COMMA>
-                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
-                 { args.add(e); }
-             <COMMA>
-                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
-                 { args.add(e); }
-             <RPAREN>
-           {
-              return SqlStdOperatorTable.TIMESTAMP_ADD.createCall(
-                 pos, SqlParserUtil.toNodeArray(args));
-           }
-    )
+    node = TimestampAddFunctionCall() { return node; }
     |
-    (
-        <TIMESTAMPDIFF>
-            {
-                pos = getPos();
-                SqlLiteral interval;
-            }
-            <LPAREN>
-                interval = TimestampInterval()
-                { args = startList(interval); }
-             <COMMA>
-                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
-                 { args.add(e); }
-             <COMMA>
-                 e = Expression(ExprContext.ACCEPT_SUBQUERY)
-                 { args.add(e); }
-             <RPAREN>
-           {
-              return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
-                 pos, SqlParserUtil.toNodeArray(args));
-           }
-    )
+    node = TimestampDiffFunctionCall() { return node; }
     |
-    {
-        SqlNode node;
+    node = ExtendedBuiltinFunctionCall() { return node; }
+}
+
+/**
+ * Parses a call to TIMESTAMPADD.
+ */
+SqlCall TimestampAddFunctionCall() :
+{
+    List<SqlNode> args;
+    SqlNode e;
+    SqlParserPos pos;
+    TimeUnit interval;
+    SqlNode node;
+}
+{
+    <TIMESTAMPADD> {
+        pos = getPos();
     }
-    node = ExtendedBuiltinFunctionCall()
-    {
-        return node;
+    <LPAREN>
+    interval = TimestampInterval() {
+        args = startList(SqlLiteral.createSymbol(interval, getPos()));
+    }
+    <COMMA>
+    e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+    <COMMA>
+    e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+    <RPAREN> {
+        return SqlStdOperatorTable.TIMESTAMP_ADD.createCall(
+            pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+    }
+}
+
+/**
+ * Parses a call to TIMESTAMPDIFF.
+ */
+SqlCall TimestampDiffFunctionCall() :
+{
+    List<SqlNode> args;
+    SqlNode e;
+    SqlParserPos pos;
+    TimeUnit interval;
+    SqlNode node;
+}
+{
+    <TIMESTAMPDIFF> {
+        pos = getPos();
+    }
+    <LPAREN>
+    interval = TimestampInterval() {
+        args = startList(SqlLiteral.createSymbol(interval, getPos()));
+    }
+    <COMMA>
+    e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+    <COMMA>
+    e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+    <RPAREN> {
+        return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
+            pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
     }
 }
 
@@ -4529,25 +4511,37 @@ SqlNode JdbcFunctionCall() :
     String name;
     SqlIdentifier id;
     SqlNodeList args;
+    SqlCall call;
     SqlParserPos pos;
     SqlParserPos starPos;
 }
 {
+    <LBRACE_FN>
+    {
+        pos = getPos();
+    }
     (
-        <LBRACE_FN>
-        {
-            pos = getPos();
+        LOOKAHEAD(1)
+        call = TimestampAddFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
         }
+    |
+        call = TimestampDiffFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
         (
             // INSERT is a reserved word, but we need to handle {fn insert}
             <INSERT> { name = unquotedIdentifier(); }
-            |
+        |
             // For cases like {fn power(1,2)} and {fn lower('a')}
             id = ReservedFunctionName() { name = id.getSimple(); }
-            |
+        |
             // For cases like {fn substring('foo', 1,2)}
             name = NonReservedJdbcFunctionName()
-            |
+        |
             name = Identifier()
         )
         (
@@ -4556,16 +4550,16 @@ SqlNode JdbcFunctionCall() :
                 args = new SqlNodeList(starPos);
                 args.add(SqlIdentifier.star(starPos));
             }
-            | LOOKAHEAD(2) <LPAREN> <RPAREN>
-            { args = new SqlNodeList(pos); }
-            | args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUBQUERY)
+        |
+            LOOKAHEAD(2) <LPAREN> <RPAREN> { args = new SqlNodeList(pos); }
+        |
+            args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUBQUERY)
         )
-        <RBRACE>
-        {
-            return new SqlJdbcFunctionCall(name).createCall(
-                pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
-        }
     )
+    <RBRACE> {
+        return new SqlJdbcFunctionCall(name).createCall(
+            pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+    }
 }
 
 /**

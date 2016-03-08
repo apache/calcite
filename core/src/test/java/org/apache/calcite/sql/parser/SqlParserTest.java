@@ -5566,6 +5566,24 @@ public class SqlParserTest {
         "(?s).*Was expecting one of.*");
   }
 
+  @Test public void testTimestampAdd() {
+    final String sql = "select * from t\n"
+        + "where timestampadd(sql_tsi_month, 5, hiredate) < curdate";
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (TIMESTAMPADD(MONTH, 5, `HIREDATE`) < `CURDATE`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTimestampDiff() {
+    final String sql = "select * from t\n"
+        + "where timestampdiff(frac_second, 5, hiredate) < curdate";
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (TIMESTAMPDIFF(MICROSECOND, 5, `HIREDATE`) < `CURDATE`)";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testUnnest() {
     check(
         "select*from unnest(x)",

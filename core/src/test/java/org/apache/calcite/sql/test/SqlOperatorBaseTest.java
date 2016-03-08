@@ -1727,18 +1727,12 @@ public abstract class SqlOperatorBaseTest {
     if (false) {
       tester.checkScalar("{fn SECOND(time)}", null, "");
     }
-    if (false) {
-      tester.checkScalar(
-          "{fn TIMESTAMPADD(interval, count, timestamp)}",
-          null,
-          "");
-    }
-    if (false) {
-      tester.checkScalar(
-          "{fn TIMESTAMPDIFF(interval, timestamp1, timestamp2)}",
-          null,
-          "");
-    }
+    tester.checkScalar("{fn TIMESTAMPADD(HOUR, 5,"
+        + " TIMESTAMP '2014-03-29 12:34:56')}",
+        "2014-03-29 17:34:56", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("{fn TIMESTAMPDIFF(HOUR,"
+        + " TIMESTAMP '2014-03-29 12:34:56',"
+        + " TIMESTAMP '2014-03-29 12:34:56')}", "0", "INTEGER NOT NULL");
     if (false) {
       tester.checkScalar("{fn WEEK(date)}", null, "");
     }
@@ -4599,18 +4593,48 @@ public abstract class SqlOperatorBaseTest {
         "floor(cast(null as interval year))");
   }
 
-  @Test public void testTimestampAddAdnDiff() {
-    if (!enable) {
-      return;
-    }
+  @Test public void testTimestampAdd() {
+    tester.setFor(SqlStdOperatorTable.TIMESTAMP_ADD);
     tester.checkScalar(
-        "timestampadd(MINUTE, 2, timestamp '2016-02-24 12:42:25')",
+        "timestampadd(SQL_TSI_SECOND, 2, timestamp '2016-02-24 12:42:25')",
         "2016-02-24 12:42:27",
         "TIMESTAMP(0) NOT NULL");
     tester.checkScalar(
-        "timestampdiff(YEAR, "
-            + "timestamp '2014-02-24 12:42:25', "
-            + "timestamp '2016-02-24 12:42:25')",
+        "timestampadd(MINUTE, 2, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 12:44:25",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "timestampadd(HOUR, -2000, timestamp '2016-02-24 12:42:25')",
+        "2015-12-03 04:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    if (!INTERVAL) {
+      return;
+    }
+    tester.checkNull("timestampadd(HOUR, CAST(NULL AS INTEGER),"
+        + " timestamp '2016-02-24 12:42:25')");
+    tester.checkNull(
+        "timestampadd(HOUR, -200, CAST(NULL AS TIMESTAMP))");
+    tester.checkScalar(
+        "timestampadd(MONTH, 3, timestamp '2016-02-24 12:42:25')",
+        "2016-05-24 12:42:25", "TIMESTAMP(0) NOT NULL");
+  }
+
+  @Test public void testTimestampDiff() {
+    tester.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF);
+    tester.checkScalar("timestampdiff(HOUR, "
+        + "timestamp '2016-02-24 12:42:25', "
+        + "timestamp '2016-02-24 15:42:25')",
+        "-3", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(MICROSECOND, "
+        + "timestamp '2016-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:20')",
+        "5000000", "INTEGER NOT NULL");
+    if (!INTERVAL) {
+      return;
+    }
+    tester.checkScalar("timestampdiff(YEAR, "
+        + "timestamp '2014-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:25')",
         "2", "INTEGER NOT NULL");
   }
 

@@ -22,10 +22,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.sql.ResultSet;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -135,7 +133,7 @@ public abstract class SqlTests {
   public static void compareResultSet(
       ResultSet resultSet,
       Set<String> refSet) throws Exception {
-    Set<String> actualSet = new HashSet<String>();
+    Set<String> actualSet = new HashSet<>();
     final int columnType = resultSet.getMetaData().getColumnType(1);
     final ColumnMetaData.Rep rep = rep(columnType);
     while (resultSet.next()) {
@@ -151,7 +149,13 @@ public abstract class SqlTests {
       case SHORT:
       case INTEGER:
       case LONG:
-        final long l = Long.parseLong(s0);
+        long l;
+        try {
+          l = Long.parseLong(s0);
+        } catch (NumberFormatException e) {
+          // Large integers come out in scientific format, say "5E+06"
+          l = (long) Double.parseDouble(s0);
+        }
         assertThat(resultSet.getByte(1), equalTo((byte) l));
         assertThat(resultSet.getShort(1), equalTo((short) l));
         assertThat(resultSet.getInt(1), equalTo((int) l));
@@ -256,78 +260,6 @@ public abstract class SqlTests {
     }
   }
 
-  /**
-   * Compares the first column of a result set against a String-valued
-   * reference set, taking order into account.
-   *
-   * @param resultSet Result set
-   * @param refList   Expected results
-   * @throws Exception .
-   */
-  public static void compareResultList(
-      ResultSet resultSet,
-      List<String> refList) throws Exception {
-    List<String> actualSet = new ArrayList<String>();
-    while (resultSet.next()) {
-      String s = resultSet.getString(1);
-      actualSet.add(s);
-    }
-    resultSet.close();
-    assertEquals(refList, actualSet);
-  }
-
-  /**
-   * Compares the columns of a result set against several String-valued
-   * reference lists, taking order into account.
-   *
-   * @param resultSet Result set
-   * @param refLists  vararg of List&lt;String&gt;. The first list is compared
-   *                  to the first column, the second list to the second column
-   *                  and so on
-   */
-  public static void compareResultLists(
-      ResultSet resultSet,
-      List<String>... refLists) throws Exception {
-    int numExpectedColumns = refLists.length;
-
-    assertTrue(numExpectedColumns > 0);
-
-    assertTrue(
-        resultSet.getMetaData().getColumnCount() >= numExpectedColumns);
-
-    int numExpectedRows = -1;
-
-    List<List<String>> actualLists = new ArrayList<List<String>>();
-    for (int i = 0; i < numExpectedColumns; i++) {
-      actualLists.add(new ArrayList<String>());
-
-      if (i == 0) {
-        numExpectedRows = refLists[i].size();
-      } else {
-        assertEquals(
-            "num rows differ across ref lists",
-            numExpectedRows,
-            refLists[i].size());
-      }
-    }
-
-    while (resultSet.next()) {
-      for (int i = 0; i < numExpectedColumns; i++) {
-        String s = resultSet.getString(i + 1);
-
-        actualLists.get(i).add(s);
-      }
-    }
-    resultSet.close();
-
-    for (int i = 0; i < numExpectedColumns; i++) {
-      assertEquals(
-          "column mismatch in column " + (i + 1),
-          refLists[i],
-          actualLists.get(i));
-    }
-  }
-
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -382,11 +314,13 @@ public abstract class SqlTests {
       assertTrue(result instanceof Number);
       return new ApproximateResultChecker((Number) result, delta);
     } else {
-      Set<String> refSet = new HashSet<String>();
+      Set<String> refSet = new HashSet<>();
       if (result == null) {
         refSet.add(null);
       } else if (result instanceof Collection) {
-        refSet.addAll((Collection<String>) result);
+        //noinspection unchecked
+        final Collection<String> collection = (Collection<String>) result;
+        refSet.addAll(collection);
       } else {
         refSet.add(result.toString());
       }

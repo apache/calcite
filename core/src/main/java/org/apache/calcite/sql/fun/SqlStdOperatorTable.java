@@ -1316,66 +1316,66 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlCurrentDateFunction();
 
   /**
-   * <p>Timestamp modifying or calculating difference functions.
-   * As first parameter take timestamp interval.
-   * </p>
-   *
-   * <p>Interval can one of the following literals:<br>
-   * <i>FRAC_SECOND, MICROSECOND, SQL_TSI_FRAC_SECOND, SQL_TSI_MICROSECOND</i><br>
-   * <i>SECOND, SQL_TSI_SECOND</i><br>
-   * <i>MINUTE, SQL_TSI_MINUTE</i><br>
-   * <i>HOUR, SQL_TSI_HOUR</i><br>
-   * <i>DAY, SQL_TSI_DAY</i><br>
-   * <i>WEEK, SQL_TSI_WEEK</i><br>
-   * <i>MONTH, SQL_TSI_MONTH</i><br>
-   * <i>QUARTER, SQL_TSI_QUARTER</i><br>
-   * <i>YEAR, SQL_TSI_YEAR</i><br>
-   * </p>
-   */
-
-  /**
-   * <p>The SQL <code>TIMESTAMP_ADD</code> function.
-   * Adds interval to timestamp.</p>
+   * <p>The <code>TIMESTAMPADD</code> function, which adds an interval to a
+   * timestamp.
    *
    * <p>The SQL syntax is
    *
    * <blockquote>
-   * <code>TIMESTAMP_ADD(<i>timestamp interval</i>,<i>quantity</i>,<i>timestamp</i>)</code>
-   * </blockquote><br>
+   * <code>TIMESTAMPADD(<i>timestamp interval</i>, <i>quantity</i>, <i>timestamp</i>)</code>
+   * </blockquote>
    *
-   * Returns modified timestamp.</p>
+   * <p>The interval time unit can one of the following literals:<ul>
+   * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
+   *     SQL_TSI_FRAC_SECOND)
+   * <li>SECOND (and synonym SQL_TSI_SECOND)
+   * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
+   * <li>HOUR (and synonym  SQL_TSI_HOUR)
+   * <li>DAY (and synonym SQL_TSI_DAY)
+   * <li>WEEK (and synonym  SQL_TSI_WEEK)
+   * <li>MONTH (and synonym SQL_TSI_MONTH)
+   * <li>QUARTER (and synonym SQL_TSI_QUARTER)
+   * <li>YEAR (and synonym  SQL_TSI_YEAR)
+   * </ul>
+   *
+   * <p>Returns modified timestamp.
    */
   public static final SqlFunction TIMESTAMP_ADD =
-      new SqlFunction(
-          "TIMESTAMPADD",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG2,
+      new SqlFunction("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG2,
           null,
-          OperandTypes.family(
-              SqlTypeFamily.ANY, SqlTypeFamily.INTEGER, SqlTypeFamily.DATETIME),
-          SqlFunctionCategory.TIMEDATE);
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.DATETIME), SqlFunctionCategory.TIMEDATE);
 
   /**
-   * <p>The SQL <code>TIMESTAMP_DIFF</code> function.
-   * Calculates difference between two timestamps.</p>
+   * <p>The <code>TIMESTAMPDIFF</code> function, which calculates the difference
+   * between two timestamps.
    *
    * <p>The SQL syntax is
    *
    * <blockquote>
-   * <code>TIMESTAMP_DIFF(<i>timestamp interval</i>,<i>timestamp</i>,<i>timestamp</i>)</code>
-   * </blockquote><br>
+   * <code>TIMESTAMPDIFF(<i>timestamp interval</i>, <i>timestamp</i>, <i>timestamp</i>)</code>
+   * </blockquote>
    *
-   * Returns difference between two timestamps in indicated timestamp interval.</p>
+   * <p>The interval time unit can one of the following literals:<ul>
+   * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
+   *     SQL_TSI_FRAC_SECOND)
+   * <li>SECOND (and synonym SQL_TSI_SECOND)
+   * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
+   * <li>HOUR (and synonym  SQL_TSI_HOUR)
+   * <li>DAY (and synonym SQL_TSI_DAY)
+   * <li>WEEK (and synonym  SQL_TSI_WEEK)
+   * <li>MONTH (and synonym SQL_TSI_MONTH)
+   * <li>QUARTER (and synonym SQL_TSI_QUARTER)
+   * <li>YEAR (and synonym  SQL_TSI_YEAR)
+   * </ul>
+   *
+   * <p>Returns difference between two timestamps in indicated timestamp interval.
    */
-  public static final SqlFunction TIMESTAMP_DIFF = new SqlFunction(
-      "TIMESTAMPDIFF",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.INTEGER_NULLABLE,
-      null,
-      OperandTypes.family(
-          SqlTypeFamily.ANY, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-      SqlFunctionCategory.TIMEDATE);
-
+  public static final SqlFunction TIMESTAMP_DIFF =
+      new SqlFunction("TIMESTAMPDIFF", SqlKind.TIMESTAMP_DIFF,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
+              SqlTypeFamily.DATETIME), SqlFunctionCategory.TIMEDATE);
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be

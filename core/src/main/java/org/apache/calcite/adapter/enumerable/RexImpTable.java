@@ -142,6 +142,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAP_VALUE_CONSTRUCT
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
@@ -244,6 +245,8 @@ public class RexImpTable {
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
+        new DatetimeArithmeticImplementor(), false);
+    defineImplementor(MINUS_DATE, NullPolicy.STRICT,
         new DatetimeArithmeticImplementor(), false);
     defineMethod(EXTRACT_DATE, BuiltInMethod.UNIX_DATE_EXTRACT.method,
         NullPolicy.STRICT);
@@ -1930,7 +1933,12 @@ public class RexImpTable {
         trop1 = Expressions.convert_(trop1, int.class);
         break;
       }
-      return Expressions.add(trop0, trop1);
+      switch (call.getKind()) {
+      case MINUS:
+        return Expressions.subtract(trop0, trop1);
+      default:
+        return Expressions.add(trop0, trop1);
+      }
     }
   }
 }

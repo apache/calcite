@@ -1133,9 +1133,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "{fn log10('1')}",
         "(?s).*Cannot apply.*fn LOG10..<CHAR.1.>.*");
-    checkWholeExpFails(
-        "{fn log10(1,1)}",
-        "(?s).*Encountered .fn LOG10. with 2 parameter.s.; was expecting 1 parameter.s.*");
+    final String expected = "Cannot apply '\\{fn LOG10\\}' to arguments of"
+        + " type '\\{fn LOG10\\}\\(<INTEGER>, <INTEGER>\\)'\\. "
+        + "Supported form\\(s\\): '\\{fn LOG10\\}\\(<NUMERIC>\\)'";
+    checkWholeExpFails("{fn log10(1,1)}", expected);
     checkWholeExpFails(
         "{fn fn(1)}",
         "(?s).*Function '.fn FN.' is not defined.*");

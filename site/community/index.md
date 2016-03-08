@@ -26,6 +26,7 @@ limitations under the License.
 
 # Upcoming talks
 
+* 2016/03/30 <a href="http://conferences.oreilly.com/strata/hadoop-big-data-ca/public/schedule/detail/48180">Strata + Hadoop World</a>, San Jose (developer showcase)
 * 2016/04/13 <a href="http://hadoopsummit.org/dublin/agenda/">Hadoop Summit</a>, Dublin
 * 2016/04/26 <a href="http://kafka-summit.org/schedule/">Kafka Summit</a>, San Francisco
 * 2016/05/10 <a href="http://events.linuxfoundation.org/events/apache-big-data-north-america/program/schedule">ApacheCon Big Data North America</a>, Vancouver

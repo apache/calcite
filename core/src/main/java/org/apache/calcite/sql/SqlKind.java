@@ -361,6 +361,16 @@ public enum SqlKind {
    */
   LEAST,
 
+  /**
+   * The "TIMESTAMP_ADD" function (ODBC, SQL Server, MySQL).
+   */
+  TIMESTAMP_ADD,
+
+  /**
+   * The "TIMESTAMP_DIFF" function (ODBC, SQL Server, MySQL).
+   */
+  TIMESTAMP_DIFF,
+
   // prefix operators
 
   /**
@@ -858,6 +868,7 @@ public enum SqlKind {
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
                   SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
+                  TIMESTAMP_ADD, TIMESTAMP_DIFF,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM),
