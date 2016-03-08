@@ -38,7 +38,7 @@ limitations under the License.
          in dependencyManagement in the root POM, not here. -->
     <dependency>
       <groupId>org.apache.calcite.avatica</groupId>
-      <artifactId>calcite-avatica</artifactId>
+      <artifactId>avatica</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>

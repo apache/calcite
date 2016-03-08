@@ -19,13 +19,13 @@ limitations under the License.
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.calcite.avatica</groupId>
-    <artifactId>calcite-avatica-parent</artifactId>
+    <artifactId>avatica-parent</artifactId>
     <version>1.7.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>calcite-avatica-server</artifactId>
+  <artifactId>avatica-server</artifactId>
   <packaging>jar</packaging>
-  <name>Calcite Avatica Server</name>
+  <name>Apache Calcite Avatica Server</name>
   <description>JDBC server.</description>
 
   <properties>
@@ -36,8 +36,8 @@ limitations under the License.
     <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
          in dependencyManagement in the root POM, not here. -->
     <dependency>
-      <groupId>org.apache.calcite</groupId>
-      <artifactId>calcite-avatica</artifactId>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica</artifactId>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -62,8 +62,8 @@ limitations under the License.
 
     <!-- test dependencies -->
     <dependency>
-      <groupId>org.apache.calcite</groupId>
-      <artifactId>calcite-avatica</artifactId>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
