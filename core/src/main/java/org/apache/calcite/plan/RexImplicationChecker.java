@@ -300,7 +300,8 @@ public class RexImplicationChecker {
           && !(isEquivalentOp(fKind, sKind2) && isEquivalentOp(fKind2, sKind))) {
         return false;
       } else if (firstLen == 1 && secondLen == 1
-          && fKind != SqlKind.EQUALS && !isEquivalentOp(fKind, sKind)) {
+          && fKind != SqlKind.EQUALS && !isSupportedUnaryOperators(sKind)
+          && !isEquivalentOp(fKind, sKind)) {
         return false;
       } else if (firstLen == 1 && secondLen == 2 && fKind != SqlKind.EQUALS) {
         return false;
@@ -310,7 +311,7 @@ public class RexImplicationChecker {
         // x > 30 and x < 40 implies x < 70
         // But disallow cases like
         // x > 30 and x > 40 implies x < 70
-        if (!isOppositeOp(fKind, fKind2)
+        if (!isOppositeOp(fKind, fKind2) && !isSupportedUnaryOperators(sKind)
             && !(isEquivalentOp(fKind, fKind2) && isEquivalentOp(fKind, sKind))) {
           return false;
         }
@@ -318,6 +319,16 @@ public class RexImplicationChecker {
     }
 
     return true;
+  }
+
+  private boolean isSupportedUnaryOperators(SqlKind kind) {
+    switch (kind) {
+    case IS_NOT_NULL:
+    case IS_NULL:
+      return true;
+    default:
+      return false;
+    }
   }
 
   private boolean isEquivalentOp(SqlKind fKind, SqlKind sKind) {
@@ -400,14 +411,27 @@ public class RexImplicationChecker {
       case LESS_THAN_OR_EQUAL:
       case EQUALS:
       case NOT_EQUALS:
-        updateUsage(call);
+        updateBinaryOpUsage(call);
+        break;
+      case IS_NULL:
+      case IS_NOT_NULL:
+        updateUnaryOpUsage(call);
         break;
       default:
       }
       return super.visitCall(call);
     }
 
-    private void updateUsage(RexCall call) {
+    private void updateUnaryOpUsage(RexCall call) {
+      final List<RexNode> operands = call.getOperands();
+      RexNode first = removeCast(operands.get(0));
+
+      if (first.isA(SqlKind.INPUT_REF)) {
+        updateUsage(call.getOperator(), (RexInputRef) first, null);
+      }
+    }
+
+    private void updateBinaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
       RexNode first = removeCast(operands.get(0));
       RexNode second = removeCast(operands.get(1));

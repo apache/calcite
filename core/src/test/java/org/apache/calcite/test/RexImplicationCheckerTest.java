@@ -239,6 +239,31 @@ public class RexImplicationCheckerTest {
     f.checkImplies(f.and(node3, node4), f.and(node5, node6));
   }
 
+  @Test public void testNotNull() {
+    final Fixture f = new Fixture();
+    final RexNode node1 = f.eq(f.str, f.rexBuilder.makeLiteral("en"));
+    final RexNode node2 = f.notNull(f.str);
+    final RexNode node3 = f.gt(f.str, f.rexBuilder.makeLiteral("abc"));
+    f.checkImplies(node1, node2);
+    f.checkNotImplies(node2, node1);
+    f.checkImplies(node3, node2);
+    //TODO: Tough one
+    //f.checkImplies(node2, node2);
+  }
+
+  @Test public void testIsNull() {
+    final Fixture f = new Fixture();
+    final RexNode node1 = f.eq(f.str, f.rexBuilder.makeLiteral("en"));
+    final RexNode node2 = f.notNull(f.str);
+    final RexNode node3 = f.isNull(f.str);
+    f.checkNotImplies(node2, node3);
+    f.checkNotImplies(node3, node2);
+    f.checkNotImplies(node1, node3);
+    f.checkNotImplies(node3, node1);
+    //TODO:
+    //f.checkImplies(node3, node3);
+  }
+
   /** Contains all the nourishment a test case could possibly need.
    *
    * <p>We put the data in here, rather than as fields in the test case, so that
@@ -371,6 +396,14 @@ public class RexImplicationCheckerTest {
     RexNode le(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, node1,
           node2);
+    }
+
+    RexNode notNull(RexNode node1) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node1);
+    }
+
+    RexNode isNull(RexNode node2) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, node2);
     }
 
     RexNode and(RexNode node1, RexNode node2) {
