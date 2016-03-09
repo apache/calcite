@@ -43,8 +43,13 @@ data: {
     imports: [
     ]
 
-    # List of new keywords. Example: "DATABASES", "TABLES".
+    # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is not a reserved
+    # keyword add it to 'nonReservedKeywords' section.
     keywords: [
+    ]
+
+    # List of keywords from "keywords" section that are not reserved.
+    nonReservedKeywords: [
     ]
 
     # List of methods for parsing custom SQL statements.
