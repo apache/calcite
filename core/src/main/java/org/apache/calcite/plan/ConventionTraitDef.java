@@ -195,8 +195,8 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       Convention fromConvention,
       Convention toConvention) {
     ConversionData conversionData = getConversionData(planner);
-    return conversionData.getShortestPath(fromConvention, toConvention)
-        != null;
+    return fromConvention.canConvertConvention(toConvention)
+        || conversionData.getShortestPath(fromConvention, toConvention) != null;
   }
 
   private ConversionData getConversionData(RelOptPlanner planner) {

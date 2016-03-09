@@ -21,6 +21,9 @@ import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
 import org.apache.calcite.plan.RelOptPlanReaderTest;
 import org.apache.calcite.plan.RelOptUtilTest;
 import org.apache.calcite.plan.RelWriterTest;
+import org.apache.calcite.plan.volcano.CollationConversionTest;
+import org.apache.calcite.plan.volcano.ComboRuleTest;
+import org.apache.calcite.plan.volcano.TraitConversionTest;
 import org.apache.calcite.plan.volcano.TraitPropagationTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
@@ -125,6 +128,9 @@ import org.junit.runners.Suite;
     EnumerableCorrelateTest.class,
     LookupOperatorOverloadsTest.class,
     LexCaseSensitiveTest.class,
+    CollationConversionTest.class,
+    TraitConversionTest.class,
+    ComboRuleTest.class,
 
     // slow tests (above 1s)
     UdfTest.class,

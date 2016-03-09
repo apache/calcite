@@ -82,7 +82,20 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
   }
 
   public boolean canConvert(
-      RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait) {
+       RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait) {
+    return false;
+  }
+
+  @Override public boolean canConvert(RelOptPlanner planner,
+      RelCollation fromTrait, RelCollation toTrait, RelNode fromRel) {
+    // Returns true only if we can convert.  In this case, we can only convert
+    // if the fromTrait (the input) has fields that the toTrait wants to sort.
+    for (RelFieldCollation field : toTrait.getFieldCollations()) {
+      int index = field.getFieldIndex();
+      if (index >= fromRel.getRowType().getFieldCount()) {
+        return false;
+      }
+    }
     return true;
   }
 }

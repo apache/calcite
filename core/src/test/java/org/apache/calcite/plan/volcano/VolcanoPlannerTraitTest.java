@@ -49,6 +49,8 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -119,7 +121,7 @@ public class VolcanoPlannerTraitTest {
     planner.addRule(new PhysLeafRule());
     planner.addRule(new IterSingleRule());
 
-    RelOptCluster cluster = VolcanoPlannerTest.newCluster(planner);
+    RelOptCluster cluster = newCluster(planner);
 
     NoneLeafRel noneLeafRel =
         RelOptUtil.addTrait(
@@ -170,7 +172,7 @@ public class VolcanoPlannerTraitTest {
     planner.addRule(new IterSingleRule());
     planner.addRule(new IterSinglePhysMergeRule());
 
-    RelOptCluster cluster = VolcanoPlannerTest.newCluster(planner);
+    RelOptCluster cluster = newCluster(planner);
 
     NoneLeafRel noneLeafRel =
         RelOptUtil.addTrait(
@@ -207,7 +209,7 @@ public class VolcanoPlannerTraitTest {
     planner.addRule(new PhysLeafRule());
     planner.addRule(new IterSingleRule2());
 
-    RelOptCluster cluster = VolcanoPlannerTest.newCluster(planner);
+    RelOptCluster cluster = newCluster(planner);
 
     NoneLeafRel noneLeafRel =
         RelOptUtil.addTrait(

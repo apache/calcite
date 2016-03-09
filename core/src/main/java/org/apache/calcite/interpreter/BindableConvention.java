@@ -21,6 +21,7 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 
 /**
  * Calling convention that returns results as an
@@ -59,6 +60,15 @@ public enum BindableConvention implements Convention {
   }
 
   public void register(RelOptPlanner planner) {}
+
+  public boolean canConvertConvention(Convention toConvention) {
+    return false;
+  }
+
+  public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+      RelTraitSet toTraits) {
+    return false;
+  }
 }
 
 // End BindableConvention.java

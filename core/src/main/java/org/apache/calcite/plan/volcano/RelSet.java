@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -148,6 +149,80 @@ class RelSet {
     return subset;
   }
 
+  private void addAbstractConverters(
+      VolcanoPlanner planner, RelOptCluster cluster, RelSubset subset, boolean subsetToOthers) {
+    // Converters from newly introduced subset to all the remaining one (vice versa), only if
+    // we can convert.  No point adding converters if it is not possible.
+    for (RelSubset other : subsets) {
+
+      assert other.getTraitSet().size() == subset.getTraitSet().size();
+
+      if ((other == subset)
+        || (subsetToOthers
+          && !subset.getConvention().useAbstractConvertersForConversion(
+            subset.getTraitSet(), other.getTraitSet()))
+        || (!subsetToOthers
+          && !other.getConvention().useAbstractConvertersForConversion(
+            other.getTraitSet(), subset.getTraitSet()))) {
+        continue;
+      }
+
+      final ImmutableList<RelTrait> difference =
+          subset.getTraitSet().difference(other.getTraitSet());
+
+      boolean addAbstractConverter = true;
+      int numTraitNeedConvert = 0;
+
+      for (RelTrait curOtherTrait : difference) {
+        RelTraitDef traitDef = curOtherTrait.getTraitDef();
+        RelTrait curRelTrait = subset.getTraitSet().getTrait(traitDef);
+
+        assert curRelTrait.getTraitDef() == traitDef;
+
+        if (curRelTrait == null) {
+          addAbstractConverter = false;
+          break;
+        }
+
+        boolean canConvert = false;
+        boolean needConvert = false;
+        if (subsetToOthers) {
+          // We can convert from subset to other.  So, add converter with subset as child and
+          // traitset as the other's traitset.
+          canConvert = traitDef.canConvert(
+              cluster.getPlanner(), curRelTrait, curOtherTrait, subset);
+          needConvert = !curRelTrait.satisfies(curOtherTrait);
+        } else {
+          // We can convert from others to subset.
+          canConvert = traitDef.canConvert(
+              cluster.getPlanner(), curOtherTrait, curRelTrait, other);
+          needConvert = !curOtherTrait.satisfies(curRelTrait);
+        }
+
+        if (!canConvert) {
+          addAbstractConverter = false;
+          break;
+        }
+
+        if (needConvert) {
+          numTraitNeedConvert++;
+        }
+      }
+
+      if (addAbstractConverter && numTraitNeedConvert > 0) {
+        if (subsetToOthers) {
+          final AbstractConverter converter =
+              new AbstractConverter(cluster, subset, null, other.getTraitSet());
+          planner.register(converter, other);
+        } else {
+          final AbstractConverter converter =
+              new AbstractConverter(cluster, other, null, subset.getTraitSet());
+          planner.register(converter, subset);
+        }
+      }
+    }
+  }
+
   RelSubset getOrCreateSubset(
       RelOptCluster cluster,
       RelTraitSet traits) {
@@ -158,12 +233,13 @@ class RelSet {
       final VolcanoPlanner planner =
           (VolcanoPlanner) cluster.getPlanner();
 
+      addAbstractConverters(planner, cluster, subset, true);
+
+      // Need to first add to subset before adding the abstract converters (for others->subset)
+      // since otherwise during register() the planner will try to add this subset again.
       subsets.add(subset);
 
-      if (planner.root != null
-          && planner.root.set == this) {
-        planner.ensureRootConverters();
-      }
+      addAbstractConverters(planner, cluster, subset, false);
 
       if (planner.listener != null) {
         postEquivalenceEvent(planner, subset);
