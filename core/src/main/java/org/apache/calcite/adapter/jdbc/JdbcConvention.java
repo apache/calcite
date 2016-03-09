@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.sql.SqlDialect;
@@ -60,6 +61,15 @@ public class JdbcConvention extends Convention.Impl {
   public static JdbcConvention of(SqlDialect dialect, Expression expression,
       String name) {
     return new JdbcConvention(dialect, expression, name);
+  }
+
+  @Override public boolean canConvertConvention(Convention toConvention) {
+    return false;
+  }
+
+  @Override public boolean useAbstractConvertersForConversion(
+      RelTraitSet fromTraits, RelTraitSet toTraits) {
+    return false;
   }
 
   @Override public void register(RelOptPlanner planner) {

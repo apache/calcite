@@ -1941,6 +1941,7 @@ public class JdbcTest {
     //   12    36
     //   13   116 - OOM did not complete
     checkJoinNWay(1);
+    checkJoinNWay(3);
     checkJoinNWay(6);
   }
 
