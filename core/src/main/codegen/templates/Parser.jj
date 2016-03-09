@@ -5619,6 +5619,9 @@ String CommonNonReservedKeyWord() :
         | <WRITE>
         | <XML>
         | <ZONE>
+      <#list parser.nonReservedKeywords as keyword>
+        | <${keyword}>
+      </#list>
     )
     {
         return unquotedIdentifier();
