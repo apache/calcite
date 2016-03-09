@@ -24,8 +24,10 @@ limitations under the License.
 {% endcomment %}
 -->
 
-This marks the separation of Avatica from it's previous location as a sub-module
-of Apache Calcite's Maven build. This separation is not to remove Avatica from
+This marks the separation of Avatica from its previous location as a sub-module
+of Apache Calcite's Maven build.
+
+This separation is not to remove Avatica from
 the governance of the Apache Calcite project, but to allow for even more rapid
 releases from both the Avatica and Calcite projects. We can confidently make new
 releases of each without having to worry about the current state of development
