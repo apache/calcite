@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica;
 
+import org.apache.calcite.avatica.Meta.DatabaseProperty;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.JsonService;
 import org.apache.calcite.avatica.remote.LocalJsonService;
@@ -58,6 +59,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -65,8 +67,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -1419,6 +1423,35 @@ public class RemoteDriverTest {
         assertNotNull("Non-null string for row " + i, rs.getString(3));
       }
       assertFalse("ResultSet should have no more records", rs.next());
+    }
+  }
+
+  @Test public void testDatabaseMetaData() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try (Connection conn = getLocalConnection()) {
+      DatabaseMetaData metadata = conn.getMetaData();
+      assertTrue(metadata.isWrapperFor(AvaticaDatabaseMetaData.class));
+      assertTrue(metadata.isWrapperFor(Properties.class));
+      Properties props = metadata.unwrap(Properties.class);
+      assertNotNull(props);
+
+      final Object productName = props.get(DatabaseProperty.GET_DATABASE_PRODUCT_NAME.name());
+      assertThat(productName, instanceOf(String.class));
+      assertThat((String) productName, startsWith("HSQL"));
+
+      final Object driverName = props.get(DatabaseProperty.GET_DRIVER_NAME.name());
+      assertThat(driverName, instanceOf(String.class));
+      assertThat((String) driverName, startsWith("HSQL"));
+
+      final Object driverVersion = props.get(DatabaseProperty.GET_DRIVER_VERSION.name());
+      final Object driverMinVersion = props.get(DatabaseProperty.GET_DRIVER_MINOR_VERSION.name());
+      final Object driverMajVersion = props.get(DatabaseProperty.GET_DRIVER_MAJOR_VERSION.name());
+      assertThat(driverVersion, instanceOf(String.class));
+      assertThat(driverMinVersion, instanceOf(String.class));
+      assertThat(driverMajVersion, instanceOf(String.class));
+      assertThat((String) driverVersion, startsWith(driverMajVersion + "." + driverMinVersion));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 

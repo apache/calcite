@@ -256,8 +256,9 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
    *     class name is not found.
    */
   public static RequestTranslator getParserForRequest(String className) {
-    if (null == className) {
-      throw new IllegalArgumentException("Cannot fetch parser for null class name");
+    if (null == className || className.isEmpty()) {
+      throw new IllegalArgumentException("Cannot fetch parser for Request with "
+          + (null == className ? "null" : "missing") + " class name");
     }
 
     RequestTranslator translator = REQUEST_PARSERS.get(className);
@@ -277,8 +278,9 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
    *     class name is not found.
    */
   public static ResponseTranslator getParserForResponse(String className) {
-    if (null == className) {
-      throw new IllegalArgumentException("Cannot fetch parser for null class name");
+    if (null == className || className.isEmpty()) {
+      throw new IllegalArgumentException("Cannot fetch parser for Response with "
+          + (null == className ? "null" : "missing") + " class name");
     }
 
     ResponseTranslator translator = RESPONSE_PARSERS.get(className);

@@ -279,7 +279,8 @@ public class JdbcMeta implements ProtobufMeta {
   public Map<DatabaseProperty, Object> getDatabaseProperties(ConnectionHandle ch) {
     try {
       final Map<DatabaseProperty, Object> map = new HashMap<>();
-      final DatabaseMetaData metaData = getConnection(ch.id).getMetaData();
+      final Connection conn = getConnection(ch.id);
+      final DatabaseMetaData metaData = conn.getMetaData();
       for (DatabaseProperty p : DatabaseProperty.values()) {
         addProperty(map, metaData, p);
       }
@@ -291,11 +292,18 @@ public class JdbcMeta implements ProtobufMeta {
 
   private static Object addProperty(Map<DatabaseProperty, Object> map,
       DatabaseMetaData metaData, DatabaseProperty p) throws SQLException {
-    try {
-      return map.put(p, p.method.invoke(metaData));
-    } catch (IllegalAccessException | InvocationTargetException e) {
-      throw new RuntimeException(e);
+    Object propertyValue;
+    if (p.isJdbc) {
+      try {
+        propertyValue = p.method.invoke(metaData);
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      propertyValue = p.defaultValue;
     }
+
+    return map.put(p, propertyValue);
   }
 
   public MetaResultSet getTables(ConnectionHandle ch, String catalog, Pat schemaPattern,

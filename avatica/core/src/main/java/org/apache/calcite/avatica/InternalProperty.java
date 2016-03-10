@@ -24,7 +24,7 @@ import java.util.Map;
 
 /**
  * Definitions of properties that drive the behavior of
- * {@link org.apache.calcite.avatica.AvaticaDatabaseMetaData}.
+ * {@link org.apache.calcite.avatica.AvaticaDatabaseMetaDataImpl}.
  */
 public enum InternalProperty {
   /** Whether identifiers are matched case-sensitively. */

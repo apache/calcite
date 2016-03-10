@@ -17,12 +17,14 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.AvaticaDatabaseMetaData;
 import org.apache.calcite.avatica.AvaticaSqlException;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.Meta.DatabaseProperty;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.Response;
@@ -32,6 +34,7 @@ import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
 import org.apache.calcite.avatica.server.Main.HandlerFactory;
 import org.apache.calcite.avatica.util.ArrayImpl;
+import org.apache.calcite.avatica.util.FilteredConstants;
 
 import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
@@ -50,6 +53,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -60,6 +64,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 
@@ -613,6 +618,25 @@ public class RemoteMetaTest {
           String.format("SELECT units_sold FROM %s WHERE id = %d", salesTable, productId));
       assertTrue(results.next());
       return results.getInt(1);
+    }
+  }
+
+  @Test public void getAvaticaVersion() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try (final Connection conn = DriverManager.getConnection(url)) {
+      DatabaseMetaData metadata = conn.getMetaData();
+      assertTrue("DatabaseMetaData is not an instance of AvaticaDatabaseMetaData",
+          metadata instanceof AvaticaDatabaseMetaData);
+      AvaticaDatabaseMetaData avaticaMetadata = (AvaticaDatabaseMetaData) metadata;
+      // We should get the same version back from the server
+      assertEquals(FilteredConstants.VERSION, avaticaMetadata.getAvaticaServerVersion());
+
+      Properties avaticaProps = avaticaMetadata.unwrap(Properties.class);
+      assertNotNull(avaticaProps);
+      assertEquals(FilteredConstants.VERSION,
+          avaticaProps.get(DatabaseProperty.AVATICA_VERSION.name()));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 
