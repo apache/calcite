@@ -886,11 +886,20 @@ public class JdbcMeta implements ProtobufMeta {
       }
 
       final PreparedStatement preparedStmt = (PreparedStatement) info.statement;
+      int rowUpdate = 1;
       for (List<TypedValue> batch : updateBatches) {
         int i = 1;
         for (TypedValue value : batch) {
-          // Use the value and then increment
-          preparedStmt.setObject(i++, value.value);
+          // Set the TypedValue in the PreparedStatement
+          try {
+            preparedStmt.setObject(i, value.value);
+            i++;
+          } catch (SQLException e) {
+            throw new RuntimeException("Failed to set value on row #" + rowUpdate
+                + " and column #" + i, e);
+          }
+          // Track the update number for better error messages
+          rowUpdate++;
         }
         preparedStmt.addBatch();
       }
