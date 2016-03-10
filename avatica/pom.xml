@@ -51,7 +51,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>6</version.minor>
+    <version.minor>7</version.minor>
 
     <!-- This list is in alphabetical order. -->
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
