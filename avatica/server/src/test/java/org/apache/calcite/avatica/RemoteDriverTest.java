@@ -52,7 +52,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +66,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1171,6 +1174,124 @@ public class RemoteDriverTest {
         assertTrue("ResultSet should have a result", rs.next());
         assertEquals("Wrong integer value for row " + i, i, rs.getInt(1));
         assertEquals("Wrong string value for row " + i, Integer.toString(i), rs.getString(2));
+      }
+      assertFalse("ResultSet should have no more records", rs.next());
+    }
+  }
+
+  @Test public void testPreparedInsertWithNulls() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      eachConnection(
+          new ConnectionFunction() {
+            public void apply(Connection c1) throws Exception {
+              executePreparedInsertWithNulls(c1);
+            }
+          }, getLocalConnection());
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  private void executePreparedInsertWithNulls(Connection conn) throws Exception {
+    final int numRows = 10;
+    final String tableName = AvaticaUtils.unique("PREPARED_INSERT_EXECUTE_NULLS");
+    LOG.info("Creating table {}", tableName);
+    try (Statement stmt = conn.createStatement()) {
+      final String createCommand = String.format("create table if not exists %s ("
+          + "id int not null, "
+          + "msg varchar(10))", tableName);
+      assertFalse("Failed to create table", stmt.execute(createCommand));
+    }
+
+    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+      // Add batches with the prepared statement
+      for (int i = 0; i < numRows; i++) {
+        pstmt.setInt(1, i);
+        // Even inserts are non-null, odd are null
+        if (0 == i % 2) {
+          pstmt.setString(2, Integer.toString(i));
+        } else {
+          pstmt.setNull(2, Types.VARCHAR);
+        }
+        assertEquals(1, pstmt.executeUpdate());
+      }
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id asc");
+      assertNotNull("ResultSet was null", rs);
+      for (int i = 0; i < numRows; i++) {
+        assertTrue("ResultSet should have a result", rs.next());
+        assertEquals("Wrong integer value for row " + i, i, rs.getInt(1));
+        if (0 == i % 2) {
+          assertEquals("Wrong string value for row " + i, Integer.toString(i), rs.getString(2));
+        } else {
+          assertNull("Expected null value for row " + i, rs.getString(2));
+        }
+      }
+      assertFalse("ResultSet should have no more records", rs.next());
+    }
+  }
+
+  @Test public void testBatchInsertWithNulls() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      eachConnection(
+          new ConnectionFunction() {
+            public void apply(Connection c1) throws Exception {
+              executeBatchInsertWithNulls(c1);
+            }
+          }, getLocalConnection());
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  private void executeBatchInsertWithNulls(Connection conn) throws Exception {
+    final int numRows = 10;
+    final String tableName = AvaticaUtils.unique("BATCH_INSERT_EXECUTE_NULLS");
+    LOG.info("Creating table {}", tableName);
+    try (Statement stmt = conn.createStatement()) {
+      final String createCommand = String.format("create table if not exists %s ("
+          + "id int not null, "
+          + "msg varchar(10))", tableName);
+      assertFalse("Failed to create table", stmt.execute(createCommand));
+    }
+
+    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+      // Add batches with the prepared statement
+      for (int i = 0; i < numRows; i++) {
+        pstmt.setInt(1, i);
+        // Even inserts are non-null, odd are null
+        if (0 == i % 2) {
+          pstmt.setString(2, Integer.toString(i));
+        } else {
+          pstmt.setNull(2, Types.VARCHAR);
+        }
+        pstmt.addBatch();
+      }
+      // Verify that all updates were successful
+      int[] updateCounts = pstmt.executeBatch();
+      assertEquals(numRows, updateCounts.length);
+      int[] expectedCounts = new int[numRows];
+      Arrays.fill(expectedCounts, 1);
+      assertArrayEquals(expectedCounts, updateCounts);
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id asc");
+      assertNotNull("ResultSet was null", rs);
+      for (int i = 0; i < numRows; i++) {
+        assertTrue("ResultSet should have a result", rs.next());
+        assertEquals("Wrong integer value for row " + i, i, rs.getInt(1));
+        if (0 == i % 2) {
+          assertEquals("Wrong string value for row " + i, Integer.toString(i), rs.getString(2));
+        } else {
+          assertNull("Expected null value for row " + i, rs.getString(2));
+        }
       }
       assertFalse("ResultSet should have no more records", rs.next());
     }
