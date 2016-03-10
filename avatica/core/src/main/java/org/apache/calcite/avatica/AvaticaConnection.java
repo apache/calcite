@@ -111,7 +111,12 @@ public abstract class AvaticaConnection implements Connection {
     this.info = info;
     this.meta = driver.createMeta(this);
     this.metaData = factory.newDatabaseMetaData(this);
-    this.holdability = metaData.getResultSetHoldability();
+    try {
+      this.holdability = metaData.getResultSetHoldability();
+    } catch (SQLException e) {
+      // We know the impl doesn't throw this.
+      throw new RuntimeException(e);
+    }
     this.maxRetriesPerExecute = getNumStatementRetries(info);
   }
 

@@ -2118,7 +2118,18 @@ public interface Service {
           obj = (int) value.getNumberValue();
           break;
         default:
-          throw new RuntimeException("Unhandled DatabaseProperty");
+          switch (value.getType()) {
+          case INTEGER:
+            obj = Long.valueOf(value.getNumberValue()).intValue();
+            break;
+          case STRING:
+            obj = value.getStringValue();
+            break;
+          default:
+            throw new IllegalArgumentException("Unhandled value type, " + value.getType());
+          }
+
+          break;
         }
 
         properties.put(dbProp, obj);
@@ -2164,7 +2175,19 @@ public interface Service {
             valueBuilder.setType(Common.Rep.INTEGER).setNumberValue(((Integer) obj).longValue());
             break;
           default:
-            throw new RuntimeException("Unhandled DatabaseProperty");
+            if (obj instanceof Integer) {
+              valueBuilder.setType(Common.Rep.INTEGER).setNumberValue((Integer) obj);
+            } else {
+              String value;
+              if (obj instanceof String) {
+                value = (String) obj;
+              } else {
+                value = obj.toString();
+              }
+              valueBuilder.setType(Common.Rep.STRING).setStringValue(value);
+            }
+
+            break;
           }
 
           builder.addProps(Responses.DatabasePropertyElement.newBuilder()

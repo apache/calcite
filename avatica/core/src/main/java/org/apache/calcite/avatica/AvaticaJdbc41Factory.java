@@ -246,7 +246,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
 
   /** Implementation of DatabaseMetaData for JDBC 4.1. */
   private static class AvaticaJdbc41DatabaseMetaData
-      extends AvaticaDatabaseMetaData {
+      extends AvaticaDatabaseMetaDataImpl {
     AvaticaJdbc41DatabaseMetaData(AvaticaConnection connection) {
       super(connection);
     }

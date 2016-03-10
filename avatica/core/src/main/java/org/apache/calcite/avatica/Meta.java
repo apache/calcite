@@ -18,6 +18,7 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.avatica.util.FilteredConstants;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -385,22 +386,71 @@ public interface Meta {
 
     /** Database property containing the value of
      * {@link DatabaseMetaData#getDefaultTransactionIsolation()}. */
-    GET_DEFAULT_TRANSACTION_ISOLATION(Connection.TRANSACTION_NONE);
+    GET_DEFAULT_TRANSACTION_ISOLATION(Connection.TRANSACTION_NONE),
+
+    /** Database property which is the Avatica version */
+    AVATICA_VERSION(FilteredConstants.VERSION),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDriverVersion()}. */
+    GET_DRIVER_VERSION(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDriverMinorVersion()}. */
+    GET_DRIVER_MINOR_VERSION(-1),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDriverMajorVersion()}. */
+    GET_DRIVER_MAJOR_VERSION(-1),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDriverName()}. */
+    GET_DRIVER_NAME(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDatabaseMinorVersion()}. */
+    GET_DATABASE_MINOR_VERSION(-1),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDatabaseMajorVersion()}. */
+    GET_DATABASE_MAJOR_VERSION(-1),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDatabaseProductName()}. */
+    GET_DATABASE_PRODUCT_NAME(""),
+
+    /** Database property containing the value of
+     * {@link DatabaseMetaData#getDatabaseProductVersion()}. */
+    GET_DATABASE_PRODUCT_VERSION("");
 
     public final Class<?> type;
     public final Object defaultValue;
     public final Method method;
+    public final boolean isJdbc;
 
     <T> DatabaseProperty(T defaultValue) {
       this.defaultValue = defaultValue;
       final String methodName = AvaticaUtils.toCamelCase(name());
+      Method localMethod = null;
       try {
-        this.method = DatabaseMetaData.class.getMethod(methodName);
+        localMethod = DatabaseMetaData.class.getMethod(methodName);
       } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
+        // Pass, localMethod stays null.
       }
-      this.type = AvaticaUtils.box(method.getReturnType());
-      assert defaultValue == null || defaultValue.getClass() == type;
+
+      if (null == localMethod) {
+        this.method = null;
+        this.type = null;
+        this.isJdbc = false;
+      } else {
+        this.method = localMethod;
+        this.type = AvaticaUtils.box(method.getReturnType());
+        this.isJdbc = true;
+      }
+
+      // It's either: 1) not a JDBC method, 2) has no default value,
+      // 3) the defaultValue is of the expected type
+      assert !isJdbc || defaultValue == null || defaultValue.getClass() == type;
     }
 
     /** Returns a value of this property, using the default value if the map
