@@ -443,7 +443,7 @@ public interface Meta {
   }
 
   /**
-   * Response from an execute of a batch of SQL commands.
+   * Response from a collection of SQL commands or parameter values in a single batch.
    */
   class ExecuteBatchResult {
     public final int[] updateCounts;
