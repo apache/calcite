@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -332,6 +333,11 @@ public class SqlIdentifier extends SqlNode {
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+    // for "star" column, whether it's static or dynamic return not_monotonic directly.
+    if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
+
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();

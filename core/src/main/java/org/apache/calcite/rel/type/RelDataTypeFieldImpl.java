@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.type.SqlTypeName;
+
 import java.io.Serializable;
 
 /**
@@ -99,6 +101,11 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   public String toString() {
     return "#" + index + ": " + name + " " + type;
   }
+
+  public boolean isDynamicStar() {
+    return type.getSqlTypeName() == SqlTypeName.DYNAMIC_STAR;
+  }
+
 }
 
 // End RelDataTypeFieldImpl.java

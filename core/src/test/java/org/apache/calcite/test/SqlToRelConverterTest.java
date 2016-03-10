@@ -16,14 +16,20 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -1728,6 +1734,167 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
        + "and e1.deptno < 10 and d1.deptno < 15\n"
        + "and not exists (select * from emp e2 where e1.empno = e2.empno)",
        "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testSelectFromDynamicTable() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select n_nationkey, n_name from SALES.NATION";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testSelectStarFromDynamicTable() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select * from SALES.NATION";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testReferDynamicStarInSelectOB() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select n_nationkey, n_name from (select * from SALES.NATION) \n"
+        + " order by n_regionkey";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testDynamicStarInTableJoin() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select * from "
+        + " (select * from SALES.NATION) T1, "
+        + " (SELECT * from SALES.CUSTOMER) T2 "
+        + " where T1.n_nationkey = T2.c_nationkey";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testReferDynamicStarInSelectWhereGB() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select n_regionkey, count(*) as cnt from "
+        + "(select * from SALES.NATION) where n_nationkey > 5 "
+        + "group by n_regionkey";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testDynamicStarInJoinAndSubQ() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select * from "
+        + " (select * from SALES.NATION T1, "
+        + " SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey)";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testStarJoinStaticDynTable() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select * from SALES.NATION N, SALES.REGION as R "
+        + "where N.n_regionkey = R.r_regionkey";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testGrpByColFromStarInSubQuery() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "SELECT n.n_nationkey AS col "
+        + " from (SELECT * FROM SALES.NATION) as n "
+        + " group by n.n_nationkey";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testDynStarInExistSubQ() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "select * from SALES.REGION where exists (select * from SALES.NATION)";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  /**
+   * Test case for Dynamic Table / Dynamic Star support
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
+   */
+  @Test
+  public void testSelStarOrderBy() throws Exception {
+    Tester myTester = getTesterWithDynamicTable();
+    final String sql = "SELECT * from SALES.NATION order by n_nationkey";
+    myTester.assertConvertsTo(sql, "${plan}");
+  }
+
+  private Tester getTesterWithDynamicTable() {
+    return tester.withCatalogReaderFactory(
+        new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
+          public Prepare.CatalogReader apply(RelDataTypeFactory typeFactory) {
+            return new MockCatalogReader(typeFactory, true) {
+              @Override public MockCatalogReader init() {
+                // CREATE SCHEMA "SALES;
+                // CREATE DYNAMIC TABLE "NATION"
+                // CREATE DYNAMIC TABLE "CUSTOMER"
+
+                MockSchema schema = new MockSchema("SALES");
+                registerSchema(schema);
+
+                MockTable nationTable = new MockDynamicTable(this, schema.getCatalogName(),
+                    schema.getName(), "NATION", false, 100);
+                registerTable(nationTable);
+
+                MockTable customerTable = new MockDynamicTable(this, schema.getCatalogName(),
+                    schema.getName(), "CUSTOMER", false, 100);
+                registerTable(customerTable);
+
+                // CREATE TABLE "REGION" - static table with known schema.
+                final RelDataType intType =
+                    typeFactory.createSqlType(SqlTypeName.INTEGER);
+                final RelDataType varcharType =
+                    typeFactory.createSqlType(SqlTypeName.VARCHAR);
+
+                MockTable regionTable = MockTable.create(this, schema, "REGION", false, 100);
+                regionTable.addColumn("R_REGIONKEY", intType);
+                regionTable.addColumn("R_NAME", varcharType);
+                regionTable.addColumn("R_COMMENT", varcharType);
+                registerTable(regionTable);
+                return this;
+              }
+              // CHECKSTYLE: IGNORE 1
+            }.init();
+          }
+        });
   }
 
   /**

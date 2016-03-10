@@ -107,6 +107,15 @@ public abstract class RelDataTypeImpl
             fieldName, -1, lastField.getType());
       }
     }
+
+    // a dynamic * field will match any field name.
+    for (RelDataTypeField field : fieldList) {
+      if (field.isDynamicStar()) {
+        // the requested field could be in the unresolved star
+        return field;
+      }
+    }
+
     return null;
   }
 
@@ -388,6 +397,10 @@ public abstract class RelDataTypeImpl
     // Even in a case-insensitive connection, the name must be precisely
     // "_extra".
     return rowType.getField("_extra", true, false);
+  }
+
+  public boolean isDynamicStruct() {
+    return false;
   }
 
   /** Work space for {@link RelDataTypeImpl#getFieldRecurse}. */

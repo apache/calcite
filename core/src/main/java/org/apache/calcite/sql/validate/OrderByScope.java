@@ -73,7 +73,10 @@ public class OrderByScope extends DelegatingScope {
       final SqlValidatorNamespace selectNs =
           validator.getNamespace(select);
       final RelDataType rowType = selectNs.getRowType();
-      if (validator.catalogReader.field(rowType, name) != null) {
+
+      final RelDataTypeField field = validator.catalogReader.field(rowType, name);
+      if (field != null && !field.isDynamicStar()) {
+        // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
         return SqlQualified.create(this, 1, selectNs, identifier);
       }
     }

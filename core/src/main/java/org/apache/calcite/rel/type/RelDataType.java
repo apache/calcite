@@ -227,6 +227,11 @@ public interface RelDataType /*extends Type*/ {
    * applied to values of this type
    */
   RelDataTypeComparability getComparability();
+
+  /**
+   *@return whether it has dynamic structure (for "schema-on-read" table)
+   */
+  boolean isDynamicStruct();
 }
 
 // End RelDataType.java

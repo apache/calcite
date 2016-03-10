@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -453,30 +454,48 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!identifier.isStar()) {
       return false;
     }
-    final SqlParserPos starPosition = identifier.getParserPosition();
+    final SqlParserPos startPosition = identifier.getParserPosition();
     switch (identifier.names.size()) {
     case 1:
       for (Pair<String, SqlValidatorNamespace> p : scope.children) {
-        final SqlNode from = p.right.getNode();
-        final SqlValidatorNamespace fromNs = getNamespace(from, scope);
-        assert fromNs != null;
-        final RelDataType rowType = fromNs.getRowType();
-        for (RelDataTypeField field : rowType.getFieldList()) {
-          String columnName = field.getName();
 
-          // TODO: do real implicit collation here
-          final SqlNode exp =
-              new SqlIdentifier(
-                  ImmutableList.of(p.left, columnName),
-                  starPosition);
+        if (p.right.getRowType().isDynamicStruct()) {
+          // don't expand star if the underneath table is dynamic.
+          // Treat this star as a special field in validation/conversion and
+          // wait until execution time to expand this star.
+          final SqlNode exp = new SqlIdentifier(
+                  ImmutableList.of(p.left, DynamicRecordType.DYNAMIC_STAR_PREFIX),
+                  startPosition);
           addToSelectList(
-              selectItems,
-              aliases,
-              types,
-              exp,
-              scope,
-              includeSystemVars);
+               selectItems,
+               aliases,
+               types,
+               exp,
+               scope,
+               includeSystemVars);
+        } else {
+          final SqlNode from = p.right.getNode();
+          final SqlValidatorNamespace fromNs = getNamespace(from, scope);
+          assert fromNs != null;
+          final RelDataType rowType = fromNs.getRowType();
+          for (RelDataTypeField field : rowType.getFieldList()) {
+            String columnName = field.getName();
+
+            // TODO: do real implicit collation here
+            final SqlNode exp =
+                new SqlIdentifier(
+                    ImmutableList.of(p.left, columnName),
+                    startPosition);
+            addToSelectList(
+                selectItems,
+                aliases,
+                types,
+                exp,
+                scope,
+                includeSystemVars);
+          }
         }
+
       }
       return true;
     default:
@@ -502,18 +521,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       assert fromNs != null;
       final RelDataType rowType = fromNs.getRowType();
-      for (RelDataTypeField field : rowType.getFieldList()) {
-        String columnName = field.getName();
 
-        // TODO: do real implicit collation here
+      if (rowType.isDynamicStruct()) {
+        // don't expand star if the underneath table is dynamic.
         addToSelectList(
             selectItems,
             aliases,
             types,
-            prefixId.plus(columnName, starPosition),
+            prefixId.plus(DynamicRecordType.DYNAMIC_STAR_PREFIX, startPosition),
             scope,
             includeSystemVars);
+      } else {
+        for (RelDataTypeField field : rowType.getFieldList()) {
+          String columnName = field.getName();
+
+          // TODO: do real implicit collation here
+          addToSelectList(
+              selectItems,
+              aliases,
+              types,
+              prefixId.plus(columnName, startPosition),
+              scope,
+              includeSystemVars);
+        }
       }
+
       return true;
     }
   }
@@ -985,7 +1017,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // a half-hearted resolution now in case it's a
         // builtin function requiring special casing.  If it's
         // not, we'll handle it later during overload resolution.
-        final List<SqlOperator> overloads = Lists.newArrayList();
+        final List<SqlOperator> overloads = new ArrayList<>();
         opTab.lookupOperatorOverloads(function.getNameAsId(),
             function.getFunctionType(), SqlSyntax.FUNCTION, overloads);
         if (overloads.size() == 1) {
@@ -1521,7 +1553,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlFunction unresolvedFunction, List<RelDataType> argTypes,
       List<String> argNames) {
     // For builtins, we can give a better error message
-    final List<SqlOperator> overloads = Lists.newArrayList();
+    final List<SqlOperator> overloads = new ArrayList<>();
     opTab.lookupOperatorOverloads(unresolvedFunction.getNameAsId(), null,
         SqlSyntax.FUNCTION, overloads);
     if (overloads.size() == 1) {
@@ -2786,6 +2818,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     case ON:
       Util.permAssert(condition != null, "condition != null");
+      if (condition != null) {
+        SqlNode expandedCondition = expand(condition, joinScope);
+        join.setOperand(5, expandedCondition);
+        condition = join.getCondition();
+      }
       validateWhereOrOn(joinScope, condition, "ON");
       break;
     case USING:
@@ -3265,7 +3302,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope orderScope = getOrderScope(select);
 
     Util.permAssert(orderScope != null, "orderScope != null");
+
+    List<SqlNode> expandList = new ArrayList<>();
     for (SqlNode orderItem : orderList) {
+      SqlNode expandedOrderItem = expand(orderItem, orderScope);
+      expandList.add(expandedOrderItem);
+    }
+
+    SqlNodeList expandedOrderList = new SqlNodeList(
+        expandList,
+        orderList.getParserPosition());
+    select.setOrderBy(expandedOrderList);
+
+    for (SqlNode orderItem : expandedOrderList) {
       validateOrderItem(select, orderItem);
     }
   }
@@ -3301,6 +3350,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateNoAggs(groupList, "GROUP BY");
     final SqlValidatorScope groupScope = getGroupScope(select);
     inferUnknownTypes(unknownType, groupScope, groupList);
+
+    // expand the expression in group list.
+    List<SqlNode> expandedList = new ArrayList<>();
+    for (SqlNode groupItem : groupList) {
+      SqlNode expandedItem = expand(groupItem, groupScope);
+      expandedList.add(expandedItem);
+    }
+    groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
+    select.setGroupBy(groupList);
 
     // Nodes in the GROUP BY clause are expressions except if they are calls
     // to the GROUPING SETS, ROLLUP or CUBE operators; this operators are not
@@ -3371,7 +3429,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     final SqlValidatorScope whereScope = getWhereScope(select);
-    validateWhereOrOn(whereScope, where, "WHERE");
+    final SqlNode expandedWhere = expand(where, whereScope);
+    select.setWhere(expandedWhere);
+    validateWhereOrOn(whereScope, expandedWhere, "WHERE");
   }
 
   protected void validateWhereOrOn(
@@ -3422,9 +3482,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Validate SELECT list. Expand terms of the form "*" or "TABLE.*".
     final SqlValidatorScope selectScope = getSelectScope(select);
-    final List<SqlNode> expandedSelectItems = Lists.newArrayList();
+    final List<SqlNode> expandedSelectItems = new ArrayList<>();
     final Set<String> aliases = Sets.newHashSet();
-    final List<Map.Entry<String, RelDataType>> fieldList = Lists.newArrayList();
+    final List<Map.Entry<String, RelDataType>> fieldList = new ArrayList<>();
 
     for (int i = 0; i < selectItems.size(); i++) {
       SqlNode selectItem = selectItems.get(i);
@@ -4127,7 +4187,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           return null;
         }
         final List<String> origin =
-            Lists.newArrayList(table.getQualifiedName());
+            new ArrayList<>(table.getQualifiedName());
         for (String name : qualified.suffix()) {
           namespace = namespace.lookupChild(name);
           if (namespace == null) {
@@ -4408,8 +4468,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return call.accept(this);
       }
       final SqlIdentifier fqId = getScope().fullyQualify(id).identifier;
-      validator.setOriginal(fqId, id);
-      return fqId;
+      SqlNode expandedExpr = fqId;
+      // Convert a column ref into ITEM(*, 'col_name').
+      // select col_name from (select * from dynTable)
+      // SqlIdentifier "col_name" would be resolved to a dynamic star field in dynTable's rowType.
+      // Expand such SqlIdentifier to ITEM operator.
+      if (DynamicRecordType.isDynamicStarColName(Util.last(fqId.names))
+        && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
+        SqlNode[] inputs = new SqlNode[2];
+        inputs[0] = fqId;
+        inputs[1] = SqlLiteral.createCharString(
+          Util.last(id.names),
+          id.getParserPosition());
+        SqlBasicCall item_call = new SqlBasicCall(
+          SqlStdOperatorTable.ITEM,
+          inputs,
+          id.getParserPosition());
+        expandedExpr = item_call;
+      }
+      validator.setOriginal(expandedExpr, id);
+      return expandedExpr;
     }
 
     @Override protected SqlNode visitScoped(SqlCall call) {
@@ -4417,6 +4495,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case SCALAR_QUERY:
       case CURRENT_VALUE:
       case NEXT_VALUE:
+      case WITH:
         return call;
       }
       // Only visits arguments which are expressions. We don't want to

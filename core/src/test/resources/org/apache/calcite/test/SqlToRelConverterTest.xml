@@ -3273,4 +3273,142 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectFromDynamicTable">
+        <Resource name="sql">
+            <![CDATA[select n_nationkey, n_name from SALES.NATION]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(N_NATIONKEY=[$0], N_NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelectStarFromDynamicTable">
+        <Resource name="sql">
+            <![CDATA[select * from SALES.NATION]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReferDynamicStarInSelectOB">
+        <Resource name="sql">
+            <![CDATA[select n_nationkey, n_name from (select * from SALES.NATION) order by n_regionkey]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(N_NATIONKEY=[$0], N_NAME=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(N_NATIONKEY=[ITEM($0, 'N_NATIONKEY')], N_NAME=[ITEM($0, 'N_NAME')], EXPR$2=[ITEM($0, 'N_REGIONKEY')])
+      LogicalProject(**=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynamicStarInTableJoin">
+        <Resource name="sql">
+            <![CDATA[select * from (select * from SALES.NATION) T1, (SELECT * from SALES.CUSTOMER) T2 where T1.n_nationkey = T2.c_nationkey ]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$0], **0=[$1])
+  LogicalFilter(condition=[=(ITEM($0, 'N_NATIONKEY'), ITEM($1, 'C_NATIONKEY'))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalProject(**=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+      LogicalProject(**=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReferDynamicStarInSelectWhereGB">
+        <Resource name="sql">
+            <![CDATA[select n_regionkey, count(*) as cnt from (select * from SALES.NATION) where n_nationkey > 5 group by n_regionkey ]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], CNT=[COUNT()])
+  LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
+    LogicalFilter(condition=[>(CAST(ITEM($0, 'N_NATIONKEY')):INTEGER, 5)])
+      LogicalProject(**=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynamicStarInJoinAndSubQ">
+        <Resource name="sql">
+            <![CDATA[select * from (select * from SALES.NATION T1, SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey) ]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$0], **0=[$1])
+  LogicalProject(**=[$1], **0=[$3])
+    LogicalFilter(condition=[=($0, $2)])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+        LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStarJoinStaticDynTable">
+        <Resource name="sql">
+            <![CDATA[select * from SALES.NATION N, SALES.REGION R where N.n_regionkey = R.r_regionkey ]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$1], R_REGIONKEY=[$2], R_NAME=[$3], R_COMMENT=[$4])
+  LogicalFilter(condition=[=(CAST($0):INTEGER, $2)])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+      LogicalTableScan(table=[[CATALOG, SALES, REGION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGrpByColFromStarInSubQuery">
+        <Resource name="sql">
+            <![CDATA[select * from SALES.NATION N, SALES.REGION R where N.n_regionkey = R.r_regionkey ]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(COL=[ITEM($0, 'N_NATIONKEY')])
+    LogicalProject(**=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynStarInExistSubQ">
+        <Resource name="sql">
+            <![CDATA[select * from SALES.REGION where exists (select * from SALES.NATION)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(R_REGIONKEY=[$0], R_NAME=[$1], R_COMMENT=[$2])
+  LogicalFilter(condition=[IS NOT NULL($3)])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, REGION]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(**=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelStarOrderBy">
+        <Resource name="sql">
+            <![CDATA[SELECT * from SALES.NATION order by n_nationkey]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(**=[$0], N_NATIONKEY=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

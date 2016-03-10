@@ -575,7 +575,7 @@ public abstract class SqlToRelTestBase {
         RelDataTypeFactory typeFactory) {
       return new FarragoTestValidator(
           getOperatorTable(),
-          createCatalogReader(typeFactory),
+          catalogReader,
           typeFactory,
           getConformance());
     }

@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
@@ -122,6 +123,14 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
         getClassExpressionFunction(tableEntry, table);
     return new RelOptTableImpl(schema, rowType, tableEntry.path(),
         table, expressionFunction, rowCount);
+  }
+
+  /**
+   * Creates a copy of this RelOptTable. The new RelOptTable will have newRowType.
+   */
+  public RelOptTableImpl copy(RelDataType newRowType) {
+    return new RelOptTableImpl(this.schema, newRowType, this.names, this.table,
+        this.expressionFunction, this.rowCount);
   }
 
   private static Function<Class, Expression> getClassExpressionFunction(
@@ -233,6 +242,14 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
   }
 
   public RelNode toRel(ToRelContext context) {
+    // Make sure rowType's list is immutable. If rowType is DynamicRecordType, creates a new
+    // RelOptTable by replacing with immutable RelRecordType using the same field list.
+    if (this.getRowType().isDynamicStruct()) {
+      final RelDataType staticRowType = new RelRecordType(getRowType().getFieldList());
+      final RelOptTable relOptTable = this.copy(staticRowType);
+      return relOptTable.toRel(context);
+    }
+
     if (table instanceof TranslatableTable) {
       return ((TranslatableTable) table).toRel(context, this);
     }

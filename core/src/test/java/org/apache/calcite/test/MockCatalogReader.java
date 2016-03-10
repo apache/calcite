@@ -32,11 +32,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -78,6 +80,7 @@ import com.google.common.collect.Sets;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -571,6 +574,10 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     public String getCatalogName() {
       return DEFAULT_CATALOG;
     }
+
+    public String getName() {
+      return name;
+    }
   }
 
   /**
@@ -581,9 +588,9 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     protected final MockCatalogReader catalogReader;
     private final boolean stream;
     private final double rowCount;
-    private final List<Map.Entry<String, RelDataType>> columnList =
-        Lists.newArrayList();
-    private RelDataType rowType;
+    protected final List<Map.Entry<String, RelDataType>> columnList =
+        new ArrayList<>();
+    protected RelDataType rowType;
     private List<RelCollation> collationList;
     protected final List<String> names;
     private final Set<String> monotonicColumnSet = Sets.newHashSet();
@@ -713,6 +720,34 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       return table;
     }
   }
+
+  /**
+   * Mock implementation of
+   * {@link org.apache.calcite.prepare.Prepare.PreparingTable} with dynamic record type.
+   */
+  public static class MockDynamicTable extends MockTable {
+    public MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
+        String schemaName, String name, boolean stream, double rowCount) {
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount);
+    }
+
+    public void onRegister(RelDataTypeFactory typeFactory) {
+      rowType =  new DynamicRecordTypeImpl(typeFactory);
+    }
+
+    /**
+     * Recreates an immutable rowType, if the table has Dynamic Record Type,
+     * when converts table to Rel.
+     */
+    public RelNode toRel(ToRelContext context) {
+      if (rowType.isDynamicStruct()) {
+        rowType = new RelRecordType(rowType.getFieldList());
+      }
+      return super.toRel(context);
+    }
+  }
+
+
 }
 
 // End MockCatalogReader.java

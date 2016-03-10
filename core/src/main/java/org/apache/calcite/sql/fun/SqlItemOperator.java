@@ -104,6 +104,7 @@ class SqlItemOperator extends SqlSpecialOperator {
       return OperandTypes.family(
           operandType.getKeyType().getSqlTypeName().getFamily());
     case ANY:
+    case DYNAMIC_STAR:
       return OperandTypes.or(
           OperandTypes.family(SqlTypeFamily.INTEGER),
           OperandTypes.family(SqlTypeFamily.CHARACTER));
@@ -128,6 +129,7 @@ class SqlItemOperator extends SqlSpecialOperator {
       return typeFactory.createTypeWithNullability(operandType.getValueType(),
           true);
     case ANY:
+    case DYNAMIC_STAR:
       return typeFactory.createTypeWithNullability(
           typeFactory.createSqlType(SqlTypeName.ANY), true);
     default:

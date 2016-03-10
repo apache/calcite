@@ -85,7 +85,9 @@ public enum SqlTypeName {
   CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
       SqlTypeFamily.CURSOR),
   COLUMN_LIST(PrecScale.NO_NO, false, Types.OTHER + 2,
-      SqlTypeFamily.COLUMN_LIST);
+      SqlTypeFamily.COLUMN_LIST),
+  DYNAMIC_STAR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
+      Types.JAVA_OBJECT, SqlTypeFamily.ANY);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
