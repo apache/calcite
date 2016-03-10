@@ -22,14 +22,14 @@ limitations under the License.
     <artifactId>apache</artifactId>
     <version>17</version>
     <!-- Tell Maven that it's OK that we're not attached to the parent directory -->
-    <relativePath/>
+    <relativePath />
   </parent>
 
   <!-- The basics. -->
   <groupId>org.apache.calcite.avatica</groupId>
   <artifactId>avatica-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.7.0-SNAPSHOT</version>
+  <version>1.7.0</version>
 
   <!-- More project information. -->
   <name>Apache Calcite Avatica Project</name>
@@ -101,7 +101,7 @@ limitations under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</developerConnection>
     <url>https://github.com/apache/calcite</url>
-    <tag>HEAD</tag>
+    <tag>calcite-avatica-1.7.0</tag>
   </scm>
 
   <modules>
