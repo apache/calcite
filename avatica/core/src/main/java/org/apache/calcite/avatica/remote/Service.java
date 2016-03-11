@@ -2775,7 +2775,7 @@ public interface Service {
   }
 
   /**
-   * Request to prepare a statement and execute a series of batch updates in one call.
+   * Request to prepare a statement and execute a series of batch commands in one call.
    */
   class PrepareAndExecuteBatchRequest extends Request {
     public final String connectionId;
@@ -2846,7 +2846,7 @@ public interface Service {
   }
 
   /**
-   * Request object to execute a batch of updates.
+   * Request object to execute a batch of commands.
    */
   class ExecuteBatchRequest extends Request {
     private static final FieldDescriptor UPDATE_BATCH_FIELD_DESCRIPTOR = Requests
@@ -2952,7 +2952,7 @@ public interface Service {
   }
 
   /**
-   * Response object for executing a batch of updates.
+   * Response object for executing a batch of commands.
    */
   class ExecuteBatchResponse extends Response {
     private static final FieldDescriptor RPC_METADATA_DESCRIPTOR = Responses.ExecuteBatchResponse

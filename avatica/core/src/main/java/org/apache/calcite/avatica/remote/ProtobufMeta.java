@@ -32,7 +32,7 @@ import java.util.List;
 public interface ProtobufMeta extends Meta {
 
   /**
-   * Execute a number of batches on a prepared statement.
+   * Executes a batch of commands on a prepared statement.
    *
    * @param h Statement handle
    * @param parameterValues A collection of list of typed values, one list per batch

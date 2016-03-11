@@ -506,8 +506,7 @@ public abstract class AvaticaConnection implements Connection {
     return statement.openResultSet;
   }
 
-  /**
-   * Execute a batch update using an {@link AvaticaPreparedStatement}.
+  /** Executes a batch update using an {@link AvaticaPreparedStatement}.
    *
    * @param pstmt The prepared statement.
    * @return An array of update counts containing one element for each command in the batch.

@@ -153,7 +153,7 @@ public abstract class AvaticaStatement
   }
 
   /**
-   * Commit a collection of updates in a single batch RPC.
+   * Executes a collection of updates in a single batch RPC.
    *
    * @return an array of integers mapping to the update count per SQL command.
    */

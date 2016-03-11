@@ -84,6 +84,9 @@ public abstract class AvaticaPreparedStatement
     return Arrays.asList(slots);
   }
 
+  /** Returns a copy of the current parameter values.
+   * @return A copied list of the parameter values
+   */
   protected List<TypedValue> copyParameterValues() {
     // For implementing batch update, we need to make a copy of slots, not just a thin reference
     // to it as as list. Otherwise, subsequent setFoo(..) calls will alter the underlying array

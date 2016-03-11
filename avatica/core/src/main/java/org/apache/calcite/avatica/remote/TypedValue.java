@@ -332,6 +332,10 @@ public class TypedValue {
     return list;
   }
 
+  /**
+   * Creates a protocol buffer equivalent object for <code>this</code>.
+   * @return A protobuf TypedValue equivalent for <code>this</code>
+   */
   public Common.TypedValue toProto() {
     final Common.TypedValue.Builder builder = Common.TypedValue.newBuilder();
 
@@ -419,6 +423,12 @@ public class TypedValue {
     return builder.build();
   }
 
+  /**
+   * Constructs a {@link TypedValue} from the protocol buffer representation.
+   *
+   * @param proto The protobuf Typedvalue
+   * @return A {@link TypedValue} instance
+   */
   public static TypedValue fromProto(Common.TypedValue proto) {
     ColumnMetaData.Rep rep = ColumnMetaData.Rep.fromProto(proto.getType());
     Object value = getValue(proto);
@@ -427,7 +437,7 @@ public class TypedValue {
   }
 
   /**
-   * Convert the serialized value into the appropriate primitive/object.
+   * Converts the serialized value into the appropriate primitive/object.
    *
    * @param protoValue The serialized TypedValue.
    * @return The appropriate concrete type for the parameter value (as an Object).
