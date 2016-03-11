@@ -4624,11 +4624,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("timestampdiff(HOUR, "
         + "timestamp '2016-02-24 12:42:25', "
         + "timestamp '2016-02-24 15:42:25')",
-        "-3", "INTEGER NOT NULL");
+        "3", "INTEGER NOT NULL");
     tester.checkScalar("timestampdiff(MICROSECOND, "
         + "timestamp '2016-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:20')",
-        "5000000", "INTEGER NOT NULL");
+        "-5000000", "INTEGER NOT NULL");
     if (!INTERVAL) {
       return;
     }

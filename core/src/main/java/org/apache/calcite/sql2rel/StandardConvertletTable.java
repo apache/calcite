@@ -289,9 +289,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
     registerOp(SqlStdOperatorTable.CEIL, floorCeilConvertlet);
 
-    registerOp(SqlStdOperatorTable.TIMESTAMP_ADD,
-        new TimestampAddConvertlet());
-    registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF, new TimestampDiffConvertlet());
+    registerOp(SqlStdOperatorTable.TIMESTAMP_ADD, new TimestampAddConvertlet());
+    registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF,
+        new TimestampDiffConvertlet());
 
     // Convert "element(<expr>)" to "$element_slice(<expr>)", if the
     // expression is a multiset of scalars.
@@ -1364,7 +1364,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private class TimestampDiffConvertlet implements SqlRexConvertlet {
     public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPDIFF(unit, t1, t2)
-      //    => (t1 - t2) UNIT
+      //    => (t2 - t1) UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlLiteral unitLiteral = call.operand(0);
       final TimeUnit unit = unitLiteral.symbolValue(TimeUnit.class);
@@ -1375,8 +1375,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return divide(cx.getRexBuilder(),
           rexBuilder.makeCast(intType,
               rexBuilder.makeCall(SqlStdOperatorTable.MINUS_DATE,
-                  cx.convertExpression(call.operand(1)),
                   cx.convertExpression(call.operand(2)),
+                  cx.convertExpression(call.operand(1)),
                   cx.getRexBuilder().makeIntervalLiteral(qualifier))),
           unit.multiplier);
     }
