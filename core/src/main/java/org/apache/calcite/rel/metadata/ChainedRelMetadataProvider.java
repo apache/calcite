@@ -20,8 +20,9 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -29,7 +30,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Implementation of the {@link RelMetadataProvider}
@@ -104,10 +104,10 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
-  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
   handlers(MetadataDef<M> def) {
-    final ImmutableMap.Builder<Method, MetadataHandler<M>> builder =
-        ImmutableMap.builder();
+    final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
+        ImmutableMultimap.builder();
     for (RelMetadataProvider provider : providers.reverse()) {
       builder.putAll(provider.handlers(def));
     }

@@ -19,9 +19,11 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import java.util.concurrent.ExecutionException;
 
@@ -70,12 +72,8 @@ public class MetadataFactoryImpl implements MetadataFactory {
           (Pair) Pair.of(rel.getClass(), metadataClazz);
       final Metadata apply = cache.get(key).bind(rel, mq);
       return metadataClazz.cast(apply);
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof RuntimeException) {
-        throw (RuntimeException) e.getCause();
-      } else {
-        throw (Error) e.getCause();
-      }
+    } catch (UncheckedExecutionException | ExecutionException e) {
+      throw Throwables.propagate(e.getCause());
     }
   }
 }

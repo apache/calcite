@@ -48,6 +48,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
@@ -1072,9 +1073,9 @@ public class CalciteAssert {
     public Connection createConnection() throws SQLException {
       try {
         return Pool.POOL.get(factory);
-      } catch (ExecutionException e) {
+      } catch (UncheckedExecutionException | ExecutionException e) {
         throw new SQLException(
-            "Unable to get pooled connection for " + factory, e);
+            "Unable to get pooled connection for " + factory, e.getCause());
       }
     }
   }

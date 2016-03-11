@@ -92,7 +92,7 @@ public abstract class SqlToRelTestBase {
   }
 
   protected Tester createTester() {
-    return new TesterImpl(getDiffRepos(), false, false, true, null);
+    return new TesterImpl(getDiffRepos(), false, false, true, null, null);
   }
 
   /**
@@ -221,6 +221,8 @@ public abstract class SqlToRelTestBase {
 
     /** Returns a tester that optionally trims unused fields. */
     Tester withTrim(boolean enable);
+
+    Tester withClusterFactory(Function<RelOptCluster, RelOptCluster> function);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -463,6 +465,7 @@ public abstract class SqlToRelTestBase {
     private final boolean enableExpand;
     private final Function<RelDataTypeFactory, Prepare.CatalogReader>
     catalogReaderFactory;
+    private final Function<RelOptCluster, RelOptCluster> clusterFactory;
     private RelDataTypeFactory typeFactory;
 
     /**
@@ -473,16 +476,19 @@ public abstract class SqlToRelTestBase {
      * @param enableTrim Whether to trim unused fields
      * @param enableExpand Whether to expand sub-queries
      * @param catalogReaderFactory Function to create catalog reader, or null
+     * @param clusterFactory Called after a cluster has been created
      */
     protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
         boolean enableTrim, boolean enableExpand,
         Function<RelDataTypeFactory, Prepare.CatalogReader>
-            catalogReaderFactory) {
+            catalogReaderFactory,
+        Function<RelOptCluster, RelOptCluster> clusterFactory) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
       this.enableTrim = enableTrim;
       this.enableExpand = enableExpand;
       this.catalogReaderFactory = catalogReaderFactory;
+      this.clusterFactory = clusterFactory;
     }
 
     public RelRoot convertSqlToRel(String sql) {
@@ -528,8 +534,11 @@ public abstract class SqlToRelTestBase {
         final Prepare.CatalogReader catalogReader,
         final RelDataTypeFactory typeFactory) {
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-      final RelOptCluster cluster =
+      RelOptCluster cluster =
           RelOptCluster.create(getPlanner(), rexBuilder);
+      if (clusterFactory != null) {
+        cluster = clusterFactory.apply(cluster);
+      }
       return new SqlToRelConverter(null, validator, catalogReader, cluster,
           StandardConvertletTable.INSTANCE);
     }
@@ -659,27 +668,33 @@ public abstract class SqlToRelTestBase {
       return this.enableDecorrelate == enable
           ? this
           : new TesterImpl(diffRepos, enable, enableTrim, enableExpand,
-              catalogReaderFactory);
+              catalogReaderFactory, clusterFactory);
     }
 
     public Tester withTrim(boolean enable) {
       return this.enableTrim == enable
           ? this
           : new TesterImpl(diffRepos, enableDecorrelate, enable, enableExpand,
-              catalogReaderFactory);
+              catalogReaderFactory, clusterFactory);
     }
 
     public Tester withExpand(boolean expand) {
       return this.enableExpand == expand
           ? this
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim, expand,
-              catalogReaderFactory);
+              catalogReaderFactory, clusterFactory);
     }
 
     public Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory) {
       return new TesterImpl(diffRepos, enableDecorrelate, false, enableExpand,
-          factory);
+          factory, clusterFactory);
+    }
+
+    public Tester withClusterFactory(
+        Function<RelOptCluster, RelOptCluster> clusterFactory) {
+      return new TesterImpl(diffRepos, enableDecorrelate, false, enableExpand,
+          catalogReaderFactory, clusterFactory);
     }
   }
 

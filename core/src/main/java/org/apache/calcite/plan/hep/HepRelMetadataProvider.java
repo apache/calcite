@@ -24,10 +24,10 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Method;
-import java.util.Map;
 
 /**
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
@@ -62,9 +62,9 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
-  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
   handlers(MetadataDef<M> def) {
-    return ImmutableMap.of();
+    return ImmutableMultimap.of();
   }
 }
 

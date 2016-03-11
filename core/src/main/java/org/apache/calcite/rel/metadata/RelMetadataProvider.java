@@ -18,8 +18,9 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
+import com.google.common.collect.Multimap;
+
 import java.lang.reflect.Method;
-import java.util.Map;
 
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about
@@ -65,7 +66,7 @@ public interface RelMetadataProvider {
   apply(Class<? extends RelNode> relClass,
       Class<? extends M> metadataClass);
 
-  <M extends Metadata> Map<Method, MetadataHandler<M>>
+  <M extends Metadata> Multimap<Method, MetadataHandler<M>>
   handlers(MetadataDef<M> def);
 }
 

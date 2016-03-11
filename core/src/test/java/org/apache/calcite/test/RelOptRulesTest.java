@@ -2036,7 +2036,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
   @Test public void testSortJoinTranspose4() {
     // Create a customized test with RelCollation trait in the test cluster.
-    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, null) {
+    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, null, null) {
       @Override public RelOptPlanner createPlanner() {
         return new MockRelOptPlanner() {
           @Override public List<RelTraitDef> getRelTraitDefs() {

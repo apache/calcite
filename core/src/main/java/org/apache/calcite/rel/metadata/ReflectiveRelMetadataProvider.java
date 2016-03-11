@@ -25,9 +25,11 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -63,7 +65,7 @@ public class ReflectiveRelMetadataProvider
   //~ Instance fields --------------------------------------------------------
   private final ConcurrentMap<Class<RelNode>, UnboundMetadata> map;
   private final Class<? extends Metadata> metadataClass0;
-  private final ImmutableMap<Method, MetadataHandler> handlerMap;
+  private final ImmutableMultimap<Method, MetadataHandler> handlerMap;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -77,11 +79,11 @@ public class ReflectiveRelMetadataProvider
   protected ReflectiveRelMetadataProvider(
       ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0,
-      Map<Method, MetadataHandler> handlerMap) {
+      Multimap<Method, MetadataHandler> handlerMap) {
     assert !map.isEmpty() : "are your methods named wrong?";
     this.map = map;
     this.metadataClass0 = metadataClass0;
-    this.handlerMap = ImmutableMap.copyOf(handlerMap);
+    this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
   }
 
   /** Returns an implementation of {@link RelMetadataProvider} that scans for
@@ -210,11 +212,11 @@ public class ReflectiveRelMetadataProvider
         space.providerMap);
   }
 
-  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
   handlers(MetadataDef<M> def) {
-    final ImmutableMap.Builder<Method, MetadataHandler<M>> builder =
-        ImmutableMap.builder();
-    for (Map.Entry<Method, MetadataHandler> entry : handlerMap.entrySet()) {
+    final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
+        ImmutableMultimap.builder();
+    for (Map.Entry<Method, MetadataHandler> entry : handlerMap.entries()) {
       if (def.methods.contains(entry.getKey())) {
         //noinspection unchecked
         builder.put(entry.getKey(), entry.getValue());
@@ -288,14 +290,14 @@ public class ReflectiveRelMetadataProvider
   static class Space {
     final Set<Class<RelNode>> classes = new HashSet<>();
     final Map<Pair<Class<RelNode>, Method>, Method> handlerMap = new HashMap<>();
-    final ImmutableMap<Method, MetadataHandler> providerMap;
+    final ImmutableMultimap<Method, MetadataHandler> providerMap;
 
-    Space(Map<Method, MetadataHandler> providerMap) {
-      this.providerMap = ImmutableMap.copyOf(providerMap);
+    Space(Multimap<Method, MetadataHandler> providerMap) {
+      this.providerMap = ImmutableMultimap.copyOf(providerMap);
 
       // Find the distinct set of RelNode classes handled by this provider,
       // ordered base-class first.
-      for (Map.Entry<Method, MetadataHandler> entry : providerMap.entrySet()) {
+      for (Map.Entry<Method, MetadataHandler> entry : providerMap.entries()) {
         final Method method = entry.getKey();
         final MetadataHandler provider = entry.getValue();
         for (final Method handlerMethod : provider.getClass().getMethods()) {
@@ -313,14 +315,14 @@ public class ReflectiveRelMetadataProvider
      * nearest base class. Assumes that base classes have already been added to
      * {@code map}. */
     @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
-    Method find(Class<? extends RelNode> relNodeClass, Method method) {
-      Method implementingMethod;
-      while (relNodeClass != null) {
-        implementingMethod = handlerMap.get(Pair.of(relNodeClass, method));
+    Method find(final Class<? extends RelNode> relNodeClass, Method method) {
+      Preconditions.checkNotNull(relNodeClass);
+      for (Class r = relNodeClass;;) {
+        Method implementingMethod = handlerMap.get(Pair.of(r, method));
         if (implementingMethod != null) {
           return implementingMethod;
         }
-        for (Class<?> clazz : relNodeClass.getInterfaces()) {
+        for (Class<?> clazz : r.getInterfaces()) {
           if (RelNode.class.isAssignableFrom(clazz)) {
             implementingMethod = handlerMap.get(Pair.of(clazz, method));
             if (implementingMethod != null) {
@@ -328,13 +330,13 @@ public class ReflectiveRelMetadataProvider
             }
           }
         }
-        if (RelNode.class.isAssignableFrom(relNodeClass.getSuperclass())) {
-          relNodeClass = (Class<RelNode>) relNodeClass.getSuperclass();
-        } else {
-          relNodeClass = null;
+        r = r.getSuperclass();
+        if (r == null || !RelNode.class.isAssignableFrom(r)) {
+          throw new IllegalArgumentException("No handler for method [" + method
+              + "] applied to argument of type [" + relNodeClass
+              + "]; we recommend you create a catch-all (RelNode) handler");
         }
       }
-      return null;
     }
   }
 
@@ -343,7 +345,7 @@ public class ReflectiveRelMetadataProvider
     private Class<Metadata> metadataClass0;
 
     public Space2(Class<Metadata> metadataClass0,
-        ImmutableMap<Method, MetadataHandler> providerMap) {
+        ImmutableMultimap<Method, MetadataHandler> providerMap) {
       super(providerMap);
       this.metadataClass0 = metadataClass0;
     }
@@ -359,8 +361,8 @@ public class ReflectiveRelMetadataProvider
         assert method.getDeclaringClass() == metadataClass0;
       }
 
-      final ImmutableMap.Builder<Method, MetadataHandler> providerBuilder =
-          ImmutableMap.builder();
+      final ImmutableMultimap.Builder<Method, MetadataHandler> providerBuilder =
+          ImmutableMultimap.builder();
       for (final Method method : methods) {
         providerBuilder.put(method, target);
       }

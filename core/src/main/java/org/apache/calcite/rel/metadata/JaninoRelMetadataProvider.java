@@ -63,6 +63,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -182,14 +183,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     throw new UnsupportedOperationException();
   }
 
-  public <M extends Metadata> Map<Method, MetadataHandler<M>>
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
   handlers(MetadataDef<M> def) {
     return provider.handlers(def);
   }
 
   private static <M extends Metadata>
   MetadataHandler<M> load3(MetadataDef<M> def,
-      Map<Method, MetadataHandler<M>> map,
+      Multimap<Method, MetadataHandler<M>> map,
       ImmutableList<Class<? extends RelNode>> relClasses) {
     final StringBuilder buff = new StringBuilder();
     final String name =
@@ -198,7 +199,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     final List<Pair<String, MetadataHandler>> providerList = new ArrayList<>();
     //noinspection unchecked
     final ReflectiveRelMetadataProvider.Space space =
-        new ReflectiveRelMetadataProvider.Space((Map) map);
+        new ReflectiveRelMetadataProvider.Space((Multimap) map);
     for (MetadataHandler provider : space.providerMap.values()) {
       if (providerSet.add(provider)) {
         providerList.add(Pair.of("provider" + (providerSet.size() - 1),
@@ -445,8 +446,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           ImmutableList.copyOf(ALL_RELS));
       //noinspection unchecked
       return (H) HANDLERS.get(key);
-    } catch (ExecutionException e) {
-      throw Throwables.propagate(e);
+    } catch (UncheckedExecutionException | ExecutionException e) {
+      throw Throwables.propagate(e.getCause());
     }
   }
 
