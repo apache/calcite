@@ -1042,8 +1042,8 @@ Not implemented:
 | {fn CURTIME()}  | Equivalent to `LOCALTIME`
 | {fn NOW()}      | Equivalent to `LOCALTIMESTAMP`
 | {fn QUARTER(date)} | Equivalent to `EXTRACT(QUARTER FROM date)`. Returns an integer between 1 and 4.
-| {fn TIMESTAMPADD(interval, count, timestamp)} | Adds an interval to a timestamp
-| {fn TIMESTAMPDIFF(interval, timestamp, timestamp)} | Subtracts two timestamps
+| {fn TIMESTAMPADD(timeUnit, count, timestamp)} | Adds an interval of *count* *timeUnit*s to a timestamp
+| {fn TIMESTAMPDIFF(timeUnit, timestamp1, timestamp2)} | Subtracts *timestamp1* from *timestamp2* and returns the result in *timeUnit*s
 
 Not implemented:
 
