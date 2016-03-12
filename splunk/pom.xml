@@ -92,6 +92,7 @@ limitations under the License.
            available. -->
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
+        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>

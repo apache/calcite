@@ -87,6 +87,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
+        <version>${maven-dependency-plugin.version}</version>
         <!-- configurations do not cascade, so all of the definition from
              ../pom.xml:build:plugin-management:plugins:plugin must be repeated in child poms -->
         <executions>
