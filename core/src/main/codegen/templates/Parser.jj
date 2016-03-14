@@ -1928,13 +1928,13 @@ void ColumnType(List<SqlNode> list) :
 SqlNode TableFunctionCall(SqlParserPos pos) :
 {
     SqlNode call;
-    SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
+    SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
 }
 {
     [
         <SPECIFIC>
         {
-            funcType = SqlFunctionCategory.USER_DEFINED_SPECIFIC_FUNCTION;
+            funcType = SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
         }
     ]
     {

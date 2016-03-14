@@ -720,12 +720,11 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           // for leaves, it's usually safe to assume that
           // no transformation is required
           rewriteGeneric(p);
+        } else {
+          throw Util.newInternal(
+              "no '" + visitMethodName + "' method found for class "
+              + p.getClass().getName());
         }
-      }
-      if (!found) {
-        throw Util.newInternal(
-            "no '" + visitMethodName + "' method found for class "
-            + p.getClass().getName());
       }
     }
   }

@@ -60,6 +60,7 @@ import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -233,6 +234,18 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       return;
     }
     final Collection<Function> functions = getFunctionsFrom(opName.names);
+    for (Iterator<Function> iterator = functions.iterator(); iterator.hasNext();) {
+      Function function = iterator.next();
+      if (function instanceof TableMacro || function instanceof TableFunction) {
+        if (category == null || !category.isTableFunction()) {
+          iterator.remove();
+        }
+      } else {
+        if (category != null && category.isTableFunction()) {
+          iterator.remove();
+        }
+      }
+    }
     if (functions.isEmpty()) {
       return;
     }

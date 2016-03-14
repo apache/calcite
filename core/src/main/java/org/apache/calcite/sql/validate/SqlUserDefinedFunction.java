@@ -47,9 +47,25 @@ public class SqlUserDefinedFunction extends SqlFunction {
       SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
       Function function) {
+    this(opName,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker,
+        paramTypes,
+        function,
+        SqlFunctionCategory.USER_DEFINED_FUNCTION);
+  }
+
+  public SqlUserDefinedFunction(SqlIdentifier opName,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
+      Function function,
+      SqlFunctionCategory category) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        paramTypes, SqlFunctionCategory.USER_DEFINED_FUNCTION);
+        paramTypes, category);
     this.function = function;
   }
 

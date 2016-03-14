@@ -18,14 +18,15 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Util;
+
+import static org.apache.calcite.sql.SqlKind.QUERY;
+import static org.apache.calcite.sql.SqlSyntax.FUNCTION;
 
 import com.google.common.collect.Lists;
 
@@ -110,22 +111,23 @@ class AggFinder extends SqlBasicVisitor<Void> {
       }
     }
     // User-defined function may not be resolved yet.
-    if (operator instanceof SqlFunction
-        && ((SqlFunction) operator).getFunctionType()
-        == SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-      final List<SqlOperator> list = Lists.newArrayList();
-      opTab.lookupOperatorOverloads(((SqlFunction) operator).getSqlIdentifier(),
-          SqlFunctionCategory.USER_DEFINED_FUNCTION, SqlSyntax.FUNCTION, list);
-      for (SqlOperator sqlOperator : list) {
-        if (sqlOperator.isAggregator()) {
-          // If nested aggregates disallowed or found aggregate at invalid level
-          if (aggregate) {
-            throw new Util.FoundOne(call);
+    if (operator instanceof SqlFunction) {
+      SqlFunction sqlFunction = (SqlFunction) operator;
+      if (sqlFunction.getFunctionType().isUnresolvedUserDefinedFunction()) {
+        final List<SqlOperator> list = Lists.newArrayList();
+        opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
+            sqlFunction.getFunctionType(), FUNCTION, list);
+        for (SqlOperator sqlOperator : list) {
+          if (sqlOperator.isAggregator()) {
+            // If nested aggregates disallowed or found aggregate at invalid level
+            if (aggregate) {
+              throw new Util.FoundOne(call);
+            }
           }
         }
       }
     }
-    if (call.isA(SqlKind.QUERY)) {
+    if (call.isA(QUERY)) {
       // don't traverse into queries
       return null;
     }

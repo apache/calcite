@@ -31,12 +31,53 @@ public enum SqlFunctionCategory {
   USER_DEFINED_PROCEDURE("UDP", "User-defined procedure"),
   USER_DEFINED_CONSTRUCTOR("UDC", "User-defined constructor"),
   USER_DEFINED_SPECIFIC_FUNCTION("UDF_SPECIFIC",
-      "User-defined function with SPECIFIC name");
+      "User-defined function with SPECIFIC name"),
+  USER_DEFINED_TABLE_FUNCTION("TABLE_UDF", "User-defined table function"),
+  USER_DEFINED_TABLE_SPECIFIC_FUNCTION("TABLE_UDF_SPECIFIC",
+      "User-defined table function with SPECIFIC name");
 
   SqlFunctionCategory(String abbrev, String description) {
     Util.discard(abbrev);
     Util.discard(description);
   }
+
+  public final boolean isUserdefined() {
+    return isOneOf(
+        USER_DEFINED_FUNCTION,
+        USER_DEFINED_PROCEDURE,
+        USER_DEFINED_CONSTRUCTOR,
+        USER_DEFINED_SPECIFIC_FUNCTION,
+        USER_DEFINED_TABLE_FUNCTION,
+        USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
+  }
+
+  public final boolean isTableFunction() {
+    return isOneOf(
+        USER_DEFINED_TABLE_FUNCTION,
+        USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
+  }
+
+  public final boolean isSpecific() {
+    return isOneOf(
+        USER_DEFINED_SPECIFIC_FUNCTION,
+        USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
+  }
+
+  public final boolean isUnresolvedUserDefinedFunction() {
+    return isOneOf(
+        USER_DEFINED_FUNCTION,
+        USER_DEFINED_TABLE_FUNCTION);
+  }
+
+  public final boolean isOneOf(SqlFunctionCategory... categories) {
+    for (SqlFunctionCategory category : categories) {
+      if (category == this) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 }
 
 // End SqlFunctionCategory.java
