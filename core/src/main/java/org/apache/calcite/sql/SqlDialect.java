@@ -465,6 +465,7 @@ public class SqlDialect {
     case HSQLDB:
     case PHOENIX:
     case POSTGRESQL:
+    case ORACLE:
       return false;
     default:
       return true;
