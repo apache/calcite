@@ -20,7 +20,7 @@ excerpt_separator: ""
 repository: https://github.com/apache/calcite
 destination: target
 exclude: [README.md,Gemfile*]
-keep_files: [".git", ".svn", "apidocs", "testapidocs"]
+keep_files: [".git", ".svn", "apidocs", "testapidocs", "avatica"]
 
 collections:
   docs:

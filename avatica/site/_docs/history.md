@@ -28,8 +28,8 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
-## 1.7.0 / (Under Development)
-{: #v1-7-0}
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.7.1">1.7.1</a> / 2016-03-18
+{: #v1-7-1}
 
 This is the first release of Avatica as an independent project. (It
 is still governed by Apache Calcite's PMC, and stored in the same git
@@ -41,7 +41,7 @@ with [SLF4J](http://slf4j.org/). SLF4J provides an API that Avatica can use
 independent of the logging implementation. This is more
 flexible for users: they can configure Avatica's logging within their
 own chosen logging framework. This work was done in
-[CALCITE-669](https://issues.apache.org/jira/browse/CALCITE-669).
+[[CALCITE-669](https://issues.apache.org/jira/browse/CALCITE-669)].
 
 If you have configured JUL in Calcite/Avatica previously, you'll
 notice some differences, because JUL's `FINE`, `FINER` and `FINEST`
@@ -60,6 +60,10 @@ other software versions as specified in `pom.xml`.
 
 Features and bug fixes
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1156">CALCITE-1156</a>]
+  Upgrade Jetty from 9.2.7.v20150116 to 9.2.15.v20160210
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1141">CALCITE-1141</a>]
+  Bump `version.minor` for Avatica
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1132">CALCITE-1132</a>]
   Update `artifactId`, `groupId` and `name` for Avatica
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1064">CALCITE-1064</a>]
@@ -100,6 +104,16 @@ Features and bug fixes
 
 Web site and documentation
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1142">CALCITE-1142</a>]
+  Create a `README` for Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1144">CALCITE-1144</a>]
+  Fix `LICENSE` for Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1143">CALCITE-1143</a>]
+  Remove unnecessary `NOTICE` for Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1139">CALCITE-1139</a>]
+  Update Calcite's `KEYS` and add a copy for Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1140">CALCITE-1140</a>]
+  Release notes and website updates for Avatica 1.7
 * Instructions for Avatica site
 * New logo and color scheme for Avatica site
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1079">CALCITE-1079</a>]
@@ -107,9 +121,10 @@ Web site and documentation
 
 ## Past releases
 
-Prior to release 1.7.0, Avatica was released as part of Calcite. Maven
+Prior to release 1.7.1, Avatica was released as part of Calcite. Maven
 modules had groupId 'org.apache.calcite' and module names
 'calcite-avatica', 'calcite-avatica-server' etc.
 
-Please refer to the [Calcite release page](https://calcite.apache.org/docs/history.html)
+Please refer to the
+[Calcite release page](https://calcite.apache.org/docs/history.html)
 for information about previous Avatica releases.
