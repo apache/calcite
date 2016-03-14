@@ -32,7 +32,7 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% if post.fullVersion %}{% comment %}
 {% endcomment %}{% assign v = post.fullVersion %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
-{% endcomment %}{% capture v %}apache-calcite-{{ post.version }}{% endcapture %}{% comment %}
+{% endcomment %}{% capture v %}apache-calcite-avatica-{{ post.version }}{% endcapture %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% if forloop.index0 < 1 %}{% comment %}
 {% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
@@ -89,7 +89,12 @@ Add the following to the dependencies section of your `pom.xml` file:
 <dependencies>
   <dependency>
     <groupId>org.apache.calcite.avatica</groupId>
-    <artifactId>calcite-avatica</artifactId>
+    <artifactId>avatica</artifactId>
+    <version>{{ current_release.version }}</version>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>avatica-server</artifactId>
     <version>{{ current_release.version }}</version>
   </dependency>
 </dependencies>

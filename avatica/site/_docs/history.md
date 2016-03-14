@@ -28,7 +28,7 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
-## 1.7.0 / (Under Development)
+## 1.7.0
 {: #v1-7-0}
 
 This is the first release of Avatica as an independent project. (It
