@@ -4387,14 +4387,34 @@ public class JdbcTest {
     CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where \"lname\" = 'this string is longer than 30 characters'")
-        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returns("C=0\n");
 
     CalciteAssert.model(FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where cast(\"customer_id\" as char(20)) = 'this string is longer than 30 characters'")
-        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returns("C=0\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1153">[CALCITE-1153]
+   * Invalid CAST when push JOIN down to Oracle</a>. */
+  @Test public void testJoinMismatchedVarchar() {
+    final String sql = "select count(*) as c\n"
+        + "from \"customer\" as c\n"
+        + "join \"product\" as p on c.\"lname\" = p.\"brand_name\"";
+    CalciteAssert.model(FOODMART_MODEL)
+        .query(sql)
+        .returns("C=607\n");
+  }
+
+  @Test public void testIntersectMismatchedVarchar() {
+    final String sql = "select count(*) as c from (\n"
+        + "  select \"lname\" from \"customer\" as c\n"
+        + "  intersect\n"
+        + "  select \"brand_name\" from \"product\" as p)";
+    CalciteAssert.model(FOODMART_MODEL)
+        .query(sql)
+        .returns("C=12\n");
   }
 
   /** Tests the NOT IN operator. Problems arose in code-generation because
