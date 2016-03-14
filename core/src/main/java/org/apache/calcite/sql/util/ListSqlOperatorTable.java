@@ -63,17 +63,20 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
           || !operator.isName(opName.getSimple())) {
         continue;
       }
-      SqlFunctionCategory functionCategory;
-      if (operator instanceof SqlFunction) {
-        functionCategory = ((SqlFunction) operator).getFunctionType();
-      } else {
-        functionCategory = SqlFunctionCategory.SYSTEM;
-      }
-      if (category != functionCategory
-          && category != SqlFunctionCategory.USER_DEFINED_FUNCTION) {
+      if (category != null
+          && category != category(operator)
+          && !category.isUserDefinedNotSpecificFunction()) {
         continue;
       }
       operatorList.add(operator);
+    }
+  }
+
+  protected static SqlFunctionCategory category(SqlOperator operator) {
+    if (operator instanceof SqlFunction) {
+      return ((SqlFunction) operator).getFunctionType();
+    } else {
+      return SqlFunctionCategory.SYSTEM;
     }
   }
 

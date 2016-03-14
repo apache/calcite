@@ -70,7 +70,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
         Preconditions.checkNotNull(paramTypes),
-        SqlFunctionCategory.USER_DEFINED_FUNCTION);
+        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     this.tableMacro = tableMacro;
   }
 

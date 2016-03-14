@@ -53,6 +53,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -232,7 +233,27 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (syntax != SqlSyntax.FUNCTION) {
       return;
     }
-    final Collection<Function> functions = getFunctionsFrom(opName.names);
+
+    final Predicate<Function> predicate;
+    if (category == null) {
+      predicate = Predicates.alwaysTrue();
+    } else if (category.isTableFunction()) {
+      predicate = new Predicate<Function>() {
+        public boolean apply(Function function) {
+          return function instanceof TableMacro
+              || function instanceof TableFunction;
+        }
+      };
+    } else {
+      predicate = new Predicate<Function>() {
+        public boolean apply(Function function) {
+          return !(function instanceof TableMacro
+              || function instanceof TableFunction);
+        }
+      };
+    }
+    final Collection<Function> functions =
+        Collections2.filter(getFunctionsFrom(opName.names), predicate);
     if (functions.isEmpty()) {
       return;
     }

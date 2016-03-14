@@ -26,9 +26,11 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -121,10 +123,9 @@ public class SqlFunction extends SqlOperator {
         operandTypeChecker);
 
     this.sqlIdentifier = sqlIdentifier;
-    this.category = category;
+    this.category = Preconditions.checkNotNull(category);
     this.paramTypes =
         paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
-    assert category != null;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -174,7 +175,7 @@ public class SqlFunction extends SqlOperator {
   /**
    * @return function category
    */
-  public SqlFunctionCategory getFunctionType() {
+  @Nonnull public SqlFunctionCategory getFunctionType() {
     return this.category;
   }
 
