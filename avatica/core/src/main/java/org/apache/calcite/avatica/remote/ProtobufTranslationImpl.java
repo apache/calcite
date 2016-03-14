@@ -63,6 +63,10 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.Message;
+import com.google.protobuf.TextFormat;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -79,6 +83,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * protobuf requests to POJO requests.
  */
 public class ProtobufTranslationImpl implements ProtobufTranslation {
+  private static final Logger LOG = LoggerFactory.getLogger(ProtobufTranslationImpl.class);
 
   // Extremely ugly mapping of PB class name into a means to convert it to the POJO
   private static final Map<String, RequestTranslator> REQUEST_PARSERS;
@@ -257,7 +262,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
 
     RequestTranslator translator = REQUEST_PARSERS.get(className);
     if (null == translator) {
-      throw new IllegalArgumentException("Cannot find parser for " + className);
+      throw new IllegalArgumentException("Cannot find request parser for " + className);
     }
 
     return translator;
@@ -278,7 +283,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
 
     ResponseTranslator translator = RESPONSE_PARSERS.get(className);
     if (null == translator) {
-      throw new IllegalArgumentException("Cannot find parser for " + className);
+      throw new IllegalArgumentException("Cannot find response parser for " + className);
     }
 
     return translator;
@@ -289,6 +294,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     UnsynchronizedBuffer out = threadLocalBuffer.get();
     try {
       Message responseMsg = response.serialize();
+      LOG.trace("Serializing response '{}'", TextFormat.shortDebugString(responseMsg));
       serializeMessage(out, responseMsg);
       return out.toArray();
     } finally {
@@ -301,6 +307,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     UnsynchronizedBuffer out = threadLocalBuffer.get();
     try {
       Message requestMsg = request.serialize();
+      LOG.trace("Serializing request '{}'", TextFormat.shortDebugString(requestMsg));
       serializeMessage(out, requestMsg);
       return out.toArray();
     } finally {
@@ -345,10 +352,16 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     WireMessage wireMsg = WireMessage.parseFrom(inputStream);
 
     String serializedMessageClassName = wireMsg.getName();
-    RequestTranslator translator = getParserForRequest(serializedMessageClassName);
 
-    // The ByteString should be logical offsets into the original byte array
-    return translator.transform(wireMsg.getWrappedMessage());
+    try {
+      RequestTranslator translator = getParserForRequest(serializedMessageClassName);
+
+      // The ByteString should be logical offsets into the original byte array
+      return translator.transform(wireMsg.getWrappedMessage());
+    } catch (RuntimeException e) {
+      LOG.debug("Failed to parse request message '{}'", TextFormat.shortDebugString(wireMsg));
+      throw e;
+    }
   }
 
   @Override public Response parseResponse(byte[] bytes) throws IOException {
@@ -360,9 +373,14 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     WireMessage wireMsg = WireMessage.parseFrom(inputStream);
 
     String serializedMessageClassName = wireMsg.getName();
-    ResponseTranslator translator = getParserForResponse(serializedMessageClassName);
+    try {
+      ResponseTranslator translator = getParserForResponse(serializedMessageClassName);
 
-    return translator.transform(wireMsg.getWrappedMessage());
+      return translator.transform(wireMsg.getWrappedMessage());
+    } catch (RuntimeException e) {
+      LOG.debug("Failed to parse response message '{}'", TextFormat.shortDebugString(wireMsg));
+      throw e;
+    }
   }
 }
 

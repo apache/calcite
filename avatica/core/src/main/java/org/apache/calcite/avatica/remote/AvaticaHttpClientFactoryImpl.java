@@ -29,6 +29,8 @@ import java.util.Objects;
 public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
   public static final String HTTP_CLIENT_IMPL_DEFAULT =
       AvaticaCommonsHttpClientImpl.class.getName();
+  public static final String SPNEGO_HTTP_CLIENT_IMPL_DEFAULT =
+      AvaticaCommonsHttpClientSpnegoImpl.class.getName();
 
   // Public for Type.PLUGIN
   public static final AvaticaHttpClientFactoryImpl INSTANCE = new AvaticaHttpClientFactoryImpl();
@@ -48,7 +50,12 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
   @Override public AvaticaHttpClient getClient(URL url, ConnectionConfig config) {
     String className = config.httpClientClass();
     if (null == className) {
-      className = HTTP_CLIENT_IMPL_DEFAULT;
+      // Provide an implementation that works with SPNEGO if that's the authentication is use.
+      if ("SPNEGO".equalsIgnoreCase(config.authentication())) {
+        className = SPNEGO_HTTP_CLIENT_IMPL_DEFAULT;
+      } else {
+        className = HTTP_CLIENT_IMPL_DEFAULT;
+      }
     }
 
     try {

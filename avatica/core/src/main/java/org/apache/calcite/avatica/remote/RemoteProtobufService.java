@@ -16,13 +16,19 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+
 
 /**
  * ProtobufService implementation that queries against a remote implementation, using
  * protocol buffers as the serialized form.
  */
 public class RemoteProtobufService extends ProtobufService {
+  private static final Logger LOG = LoggerFactory.getLogger(RemoteProtobufService.class);
+
   private final AvaticaHttpClient client;
   private final ProtobufTranslation translation;
 
@@ -33,10 +39,19 @@ public class RemoteProtobufService extends ProtobufService {
 
   @Override public Response _apply(Request request) {
     final Response resp;
+    byte[] response = null;
     try {
-      byte[] response = client.send(translation.serializeRequest(request));
+      response = client.send(translation.serializeRequest(request));
+    } catch (IOException e) {
+      LOG.debug("Failed to execute remote request: {}", request);
+      // Failed to get a response from the server for the request.
+      throw new RuntimeException(e);
+    }
+
+    try {
       resp = translation.parseResponse(response);
     } catch (IOException e) {
+      LOG.debug("Failed to deserialize reponse to {}. '{}'", request, new String(response));
       // Not a protobuf that we could parse.
       throw new RuntimeException(e);
     }

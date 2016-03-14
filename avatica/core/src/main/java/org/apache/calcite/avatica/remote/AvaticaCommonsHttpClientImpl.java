@@ -20,6 +20,7 @@ import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpClientConnection;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.protocol.RequestExpectContinue;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
@@ -28,7 +29,6 @@ import org.apache.http.impl.pool.BasicConnFactory;
 import org.apache.http.impl.pool.BasicConnPool;
 import org.apache.http.impl.pool.BasicPoolEntry;
 import org.apache.http.message.BasicHttpEntityEnclosingRequest;
-import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
 import org.apache.http.protocol.HttpRequestExecutor;
@@ -94,8 +94,9 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient {
       BasicPoolEntry entry = null;
       try {
         entry = future.get();
-        HttpCoreContext coreContext = HttpCoreContext.create();
-        coreContext.setTargetHost(host);
+        HttpClientContext context = HttpClientContext.create();
+
+        context.setTargetHost(host);
 
         HttpClientConnection conn = entry.getConnection();
 
@@ -105,12 +106,12 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient {
             new BasicHttpEntityEnclosingRequest("POST", "/");
         postRequest.setEntity(entity);
 
-        httpExecutor.preProcess(postRequest, httpProcessor, coreContext);
-        HttpResponse response = httpExecutor.execute(postRequest, conn, coreContext);
-        httpExecutor.postProcess(response, httpProcessor, coreContext);
+        httpExecutor.preProcess(postRequest, httpProcessor, context);
+        HttpResponse response = httpExecutor.execute(postRequest, conn, context);
+        httpExecutor.postProcess(response, httpProcessor, context);
 
         // Should the connection be kept alive?
-        reusable = REUSE.keepAlive(response, coreContext);
+        reusable = REUSE.keepAlive(response, context);
 
         final int statusCode = response.getStatusLine().getStatusCode();
         if (HttpURLConnection.HTTP_UNAVAILABLE == statusCode) {
@@ -118,7 +119,13 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient {
           continue;
         }
 
-        return EntityUtils.toByteArray(response.getEntity());
+        // HTTP-200 and HTTP-500 should both contain Avatica messages.
+        if (HttpURLConnection.HTTP_OK == statusCode
+            || HttpURLConnection.HTTP_INTERNAL_ERROR == statusCode) {
+          return EntityUtils.toByteArray(response.getEntity());
+        }
+
+        throw new RuntimeException("Failed to execute HTTP Request, got HTTP/" + statusCode);
       } catch (Exception e) {
         LOG.debug("Failed to execute HTTP request", e);
         throw new RuntimeException(e);

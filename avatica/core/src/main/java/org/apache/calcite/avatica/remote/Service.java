@@ -2216,8 +2216,10 @@ public interface Service {
 
     public static final int UNKNOWN_ERROR_CODE = -1;
     public static final int MISSING_CONNECTION_ERROR_CODE = 1;
+    public static final int UNAUTHORIZED_ERROR_CODE = 2;
 
     public static final String UNKNOWN_SQL_STATE = "00000";
+    public static final String UNAUTHORIZED_SQL_STATE = "00002";
 
     public final List<String> exceptions;
     public final String errorMessage;
@@ -2318,7 +2320,8 @@ public interface Service {
           metadata);
     }
 
-    @Override Responses.ErrorResponse serialize() {
+    // Public so the Jetty handler implementations can use it
+    @Override public Responses.ErrorResponse serialize() {
       Responses.ErrorResponse.Builder builder = Responses.ErrorResponse.newBuilder();
 
       if (null != rpcMetadata) {

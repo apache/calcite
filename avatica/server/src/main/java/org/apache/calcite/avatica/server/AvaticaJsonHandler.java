@@ -28,25 +28,24 @@ import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.calcite.avatica.remote.MetricsHelper.concat;
-
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.apache.calcite.avatica.remote.MetricsHelper.concat;
+
 /**
  * Jetty handler that executes Avatica JSON request-responses.
  */
-public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareAvaticaHandler {
+public class AvaticaJsonHandler extends AbstractAvaticaHandler {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaJsonHandler.class);
 
   final Service service;
@@ -57,11 +56,18 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
 
   final ThreadLocal<UnsynchronizedBuffer> threadLocalBuffer;
 
+  final AvaticaServerConfiguration serverConfig;
+
   public AvaticaJsonHandler(Service service) {
-    this(service, NoopMetricsSystem.getInstance());
+    this(service, NoopMetricsSystem.getInstance(), null);
   }
 
   public AvaticaJsonHandler(Service service, MetricsSystem metrics) {
+    this(service, metrics, null);
+  }
+
+  public AvaticaJsonHandler(Service service, MetricsSystem metrics,
+      AvaticaServerConfiguration serverConfig) {
     this.service = Objects.requireNonNull(service);
     this.metrics = Objects.requireNonNull(metrics);
     // Avatica doesn't have a Guava dependency
@@ -76,12 +82,20 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
         return new UnsynchronizedBuffer();
       }
     };
+
+    this.serverConfig = serverConfig;
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
     try (final Context ctx = requestTimer.start()) {
+      if (!isUserPermitted(serverConfig, request, response)) {
+        LOG.debug("HTTP request from {} is unauthenticated and authentication is required",
+            request.getRemoteAddr());
+        return;
+      }
+
       response.setContentType("application/json;charset=utf-8");
       response.setStatus(HttpServletResponse.SC_OK);
       if (request.getMethod().equals("POST")) {
@@ -102,7 +116,21 @@ public class AvaticaJsonHandler extends AbstractHandler implements MetricsAwareA
             new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
         LOG.trace("request: {}", jsonRequest);
 
-        final HandlerResponse<String> jsonResponse = jsonHandler.apply(jsonRequest);
+        final HandlerResponse<String> jsonResponse;
+        if (null != serverConfig && serverConfig.supportsImpersonation()) {
+          try {
+            jsonResponse = serverConfig.doAsRemoteUser(request.getRemoteUser(),
+                request.getRemoteAddr(), new Callable<HandlerResponse<String>>() {
+                  @Override public HandlerResponse<String> call() {
+                    return jsonHandler.apply(jsonRequest);
+                  }
+                });
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          jsonResponse = jsonHandler.apply(jsonRequest);
+        }
         LOG.trace("response: {}", jsonResponse);
         baseRequest.setHandled(true);
         // Set the status code and write out the response.

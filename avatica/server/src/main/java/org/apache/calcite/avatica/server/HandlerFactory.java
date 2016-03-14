@@ -25,13 +25,11 @@ import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystemConfiguration;
 import org.apache.calcite.avatica.remote.Driver;
 import org.apache.calcite.avatica.remote.Service;
 
-import org.eclipse.jetty.server.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.ServiceLoader;
 
 /**
@@ -46,10 +44,25 @@ public class HandlerFactory {
    *
    * @param service The underlying {@link Service}.
    * @param serialization The desired message serialization.
-   * @return The {@link Handler}.
+   * @return The {@link AvaticaHandler}.
    */
-  public Handler getHandler(Service service, Driver.Serialization serialization) {
+  public AvaticaHandler getHandler(Service service, Driver.Serialization serialization) {
     return getHandler(service, serialization, NoopMetricsSystemConfiguration.getInstance());
+  }
+
+  /**
+   * Constructs the desired implementation for the given serialization method and server
+   * configuration with metrics.
+   *
+   * @param service The underlying {@link Service}.
+   * @param serialization The desired message serialization.
+   * @param serverConfig Avatica server configuration or null.
+   * @return The {@link AvaticaHandler}.
+   */
+  public AvaticaHandler getHandler(Service service, Driver.Serialization serialization,
+      AvaticaServerConfiguration serverConfig) {
+    return getHandler(service, serialization, NoopMetricsSystemConfiguration.getInstance(),
+        serverConfig);
   }
 
   /**
@@ -58,17 +71,35 @@ public class HandlerFactory {
    * @param service The underlying {@link Service}.
    * @param serialization The desired message serialization.
    * @param metricsConfig Configuration for the {@link MetricsSystem}.
-   * @return The {@link Handler}.
+   * @return The {@link AvaticaHandler}.
    */
-  public Handler getHandler(Service service, Driver.Serialization serialization,
+  public AvaticaHandler getHandler(Service service, Driver.Serialization serialization,
       MetricsSystemConfiguration<?> metricsConfig) {
-    MetricsSystem metrics = MetricsSystemLoader.load(Objects.requireNonNull(metricsConfig));
+    return getHandler(service, serialization, metricsConfig, null);
+  }
+
+  /**
+   * Constructs the desired implementation for the given serialization method and server
+   * configuration with metrics.
+   *
+   * @param service The underlying {@link Service}
+   * @param serialization The serializatio mechanism to use
+   * @param metricsConfig Configuration for the {@link MetricsSystem}.
+   * @param serverConfig Avatica server configuration or null
+   * @return An {@link AvaticaHandler}
+   */
+  public AvaticaHandler getHandler(Service service, Driver.Serialization serialization,
+      MetricsSystemConfiguration<?> metricsConfig, AvaticaServerConfiguration serverConfig) {
+    if (null == metricsConfig) {
+      metricsConfig = NoopMetricsSystemConfiguration.getInstance();
+    }
+    MetricsSystem metrics = MetricsSystemLoader.load(metricsConfig);
 
     switch (serialization) {
     case JSON:
-      return new AvaticaJsonHandler(service, metrics);
+      return new AvaticaJsonHandler(service, metrics, serverConfig);
     case PROTOBUF:
-      return new AvaticaProtobufHandler(service, metrics);
+      return new AvaticaProtobufHandler(service, metrics, serverConfig);
     default:
       throw new IllegalArgumentException("Unknown Avatica handler for " + serialization.name());
     }

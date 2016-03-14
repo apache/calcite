@@ -31,13 +31,12 @@ import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
@@ -47,7 +46,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Jetty handler that executes Avatica JSON request-responses.
  */
-public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAwareAvaticaHandler {
+public class AvaticaProtobufHandler extends AbstractAvaticaHandler {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaJsonHandler.class);
 
   private final Service service;
@@ -55,6 +54,7 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
   private final ProtobufTranslation protobufTranslation;
   private final MetricsSystem metrics;
   private final Timer requestTimer;
+  private final AvaticaServerConfiguration serverConfig;
 
   final ThreadLocal<UnsynchronizedBuffer> threadLocalBuffer;
 
@@ -63,6 +63,11 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
   }
 
   public AvaticaProtobufHandler(Service service, MetricsSystem metrics) {
+    this(service, metrics, null);
+  }
+
+  public AvaticaProtobufHandler(Service service, MetricsSystem metrics,
+      AvaticaServerConfiguration serverConfig) {
     this.service = Objects.requireNonNull(service);
     this.metrics = Objects.requireNonNull(metrics);
 
@@ -78,16 +83,25 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
         return new UnsynchronizedBuffer();
       }
     };
+
+    this.serverConfig = serverConfig;
   }
 
   public void handle(String target, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
     try (final Context ctx = this.requestTimer.start()) {
+      // Check if the user is OK to proceed.
+      if (!isUserPermitted(serverConfig, request, response)) {
+        LOG.debug("HTTP request from {} is unauthenticated and authentication is required",
+            request.getRemoteAddr());
+        return;
+      }
+
       response.setContentType("application/octet-stream;charset=utf-8");
       response.setStatus(HttpServletResponse.SC_OK);
       if (request.getMethod().equals("POST")) {
-        byte[] requestBytes;
+        final byte[] requestBytes;
         // Avoid a new buffer creation for every HTTP request
         final UnsynchronizedBuffer buffer = threadLocalBuffer.get();
         try (ServletInputStream inputStream = request.getInputStream()) {
@@ -96,7 +110,22 @@ public class AvaticaProtobufHandler extends AbstractHandler implements MetricsAw
           buffer.reset();
         }
 
-        HandlerResponse<byte[]> handlerResponse = pbHandler.apply(requestBytes);
+        final HandlerResponse<byte[]> handlerResponse;
+        if (null != serverConfig && serverConfig.supportsImpersonation()) {
+          // Invoke the ProtobufHandler inside as doAs for the remote user.
+          try {
+            handlerResponse = serverConfig.doAsRemoteUser(request.getRemoteUser(),
+              request.getRemoteAddr(), new Callable<HandlerResponse<byte[]>>() {
+                @Override public HandlerResponse<byte[]> call() {
+                  return pbHandler.apply(requestBytes);
+                }
+              });
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          handlerResponse = pbHandler.apply(requestBytes);
+        }
 
         baseRequest.setHandled(true);
         response.setStatus(handlerResponse.getStatusCode());

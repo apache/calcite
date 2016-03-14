@@ -22,9 +22,11 @@
 
 - title: Reference
   docs:
+  - client_reference
   - json_reference
   - protobuf_reference
   - howto
+  - security
 
 - title: Meta
   docs:

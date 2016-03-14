@@ -44,6 +44,9 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   /** Serialization used over remote connections */
   SERIALIZATION("serialization", Type.STRING, "json", false),
 
+  /** The type of authentication to be used */
+  AUTHENTICATION("authentication", Type.STRING, null, false),
+
   /** Factory for constructing http clients. */
   HTTP_CLIENT_FACTORY("httpclient_factory", Type.PLUGIN,
       AvaticaHttpClientFactoryImpl.class.getName(), false),

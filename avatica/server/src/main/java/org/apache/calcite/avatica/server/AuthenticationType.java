@@ -14,29 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
-
-import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
-import org.apache.calcite.avatica.remote.Service;
+package org.apache.calcite.avatica.server;
 
 /**
- * Connection configuration.
+ * An enumeration for support types of authentication for the {@link HttpServer}.
  */
-public interface ConnectionConfig {
-  /** @see BuiltInConnectionProperty#SCHEMA */
-  String schema();
-  /** @see BuiltInConnectionProperty#TIME_ZONE */
-  String timeZone();
-  /** @see BuiltInConnectionProperty#FACTORY */
-  Service.Factory factory();
-  /** @see BuiltInConnectionProperty#URL */
-  String url();
-  /** @see BuiltInConnectionProperty#SERIALIZATION */
-  String serialization();
-  /** @see BuiltInConnectionProperty#AUTHENTICATION */
-  String authentication();
-  AvaticaHttpClientFactory httpClientFactory();
-  String httpClientClass();
+public enum AuthenticationType {
+  NONE,
+  SPNEGO;
 }
 
-// End ConnectionConfig.java
+// End AuthenticationType.java
