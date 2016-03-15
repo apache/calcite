@@ -75,7 +75,7 @@ limitations under the License.
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <jackson.version>2.6.3</jackson.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.2.7.v20150116</jetty.version>
+    <jetty.version>9.2.15.v20160210</jetty.version>
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
