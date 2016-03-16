@@ -209,7 +209,7 @@ log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
 
 ## CSV adapter
 
-See the [tutorial](/docs/tutorial.html).
+See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 
 ## MongoDB adapter
 

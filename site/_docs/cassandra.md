@@ -23,13 +23,16 @@ limitations under the License.
 -->
 
 For instructions on downloading and building Calcite, start with the
-[tutorial](/docs/tutorial.html). Once you've managed to compile the
-project, you can return here to start querying Cassandra with Calcite.
-First, we need a [model definition](/docs/model.html). The model gives
-Calcite the necessary parameters to create an instance of the Cassandra
-adapter. Note that while models can contain definitions of
-[materializations](/docs/model.html#materialization), the adapter will
-attempt to automatically populate any materialized views
+[tutorial]({{ site.baseurl }}/docs/tutorial.html).
+
+Once you've managed to compile the project, you can return here to
+start querying Cassandra with Calcite.  First, we need a
+[model definition]({{ site.baseurl }}/docs/model.html).
+The model gives Calcite the necessary parameters to create an instance
+of the Cassandra adapter. Note that while models can contain
+definitions of
+[materializations]({{ site.baseurl }}/docs/model.html#materialization),
+the adapter will attempt to automatically populate any materialized views
 [defined in Cassandra](http://www.datastax.com/dev/blog/new-in-cassandra-3-0-materialized-views).
 
 A basic example of a model file is given below:
@@ -52,7 +55,9 @@ A basic example of a model file is given below:
 }
 {% endhighlight %}
 
-Assuming this file is stored as `model.json`, you can connect to Cassandra via [`sqlline`](https://github.com/julianhyde/sqlline) as follows:
+Assuming this file is stored as `model.json`, you can connect to
+Cassandra via [`sqlline`](https://github.com/julianhyde/sqlline) as
+follows:
 
 {% highlight bash %}
 $ ./sqlline
@@ -74,12 +79,15 @@ We can issue a simple query to fetch the most recent tweet ID of the
 user by writing standard SQL:
 
 {% highlight sql %}
-sqlline> SELECT "tweet_id" FROM "timeline" WHERE "username"='JmuhsAaMdw' ORDER BY "time" DESC LIMIT 1;
-+----------+
-| tweet_id |
-+----------+
+sqlline> SELECT "tweet_id"
+         FROM "timeline"
+         WHERE "username" = 'JmuhsAaMdw'
+         ORDER BY "time" DESC LIMIT 1;
++--------------------------------------+
+| tweet_id                             |
++--------------------------------------+
 | f3d3d4dc-d05b-11e5-b58b-90e2ba530b12 |
-+----------+
++--------------------------------------+
 {% endhighlight %}
 
 While executing this query, the Cassandra adapter is able to recognize
@@ -90,7 +98,10 @@ Cassandra as well.
 The final CQL query given to Cassandra is below:
 
 {% highlight sql %}
-SELECT username, time, tweet_id FROM "timeline" WHERE username = 'JmuhsAaMdw' ORDER BY time DESC ALLOW FILTERING;
+SELECT username, time, tweet_id
+FROM "timeline"
+WHERE username = 'JmuhsAaMdw'
+ORDER BY time DESC ALLOW FILTERING;
 {% endhighlight %}
 
 There is still significant work to do in improving the flexibility and

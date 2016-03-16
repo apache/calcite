@@ -867,9 +867,9 @@ SELECT STREAM * FROM Orders WHERE units > 1000;
 
 These look similar, and in both cases the next step(s) in the pipeline
 can read from `LargeOrders` without worrying how it was populated.
-There is a difference in efficiency: the `INSERT` statement does the 
+There is a difference in efficiency: the `INSERT` statement does the
 same work no matter how many consumers there are; the view does work
-proportional to the number of consumers, and in particular, does no 
+proportional to the number of consumers, and in particular, does no
 work if there are no consumers.
 
 Other forms of DML make sense for streams. For example, the following
@@ -971,7 +971,7 @@ negative cases) and the TCK tests it.
 * Fix the `UPSERT` example to remove records for products that have not
   occurred in the last hour.
 * DML that outputs to multiple streams; perhaps an extension to the standard
-  `REPLACE` statement. 
+  `REPLACE` statement.
 
 # Functions
 

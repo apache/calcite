@@ -32,8 +32,8 @@ Downloads are available on the
 {: #v1-7-0}
 
 This is the first Apache Calcite release since
-[Avatica became an independent project)({{ site.baseurl }}/avatica/news/2016/03/03/separate-project/).
-Calcite now depends on [Avatica]{{ site.baseurl }}/avatica/) in the
+[Avatica became an independent project]({{ site.baseurl }}/avatica/news/2016/03/03/separate-project/).
+Calcite now depends on [Avatica]({{ site.baseurl }}/avatica/) in the
 same way as it does other libraries, via a Maven dependency. To see
 Avatica-related changes, see the
 [release notes for Avatica 1.7.1]({{ site.baseurl }}/avatica/docs/history.html#v1-7-1).
@@ -42,13 +42,13 @@ We have [added](https://issues.apache.org/jira/browse/CALCITE-1080)
 an [adapter]({{ site.baseurl }}/docs/adapter.html) for
 [Apache Cassandra](http://cassandra.apache.org/).
 You can map a Cassandra keyspace into Calcite as a schema, Cassandra
-data sets as tables, and execute SQL queries on them, which Calcite
+CQL tables as tables, and execute SQL queries on them, which Calcite
 converts into [CQL](https://cassandra.apache.org/doc/cql/CQL.html).
 Cassandra can define and maintain materialized views but the adapter
 goes further: it can transparently rewrite a query to use a
-materialized view even if view is not mentioned in the query.
+materialized view even if the view is not mentioned in the query.
 
-We have started work on an
+This release adds an
 [Oracle-compatibility mode](https://issues.apache.org/jira/browse/CALCITE-1066).
 If you add `fun=oracle` to your JDBC connect string, you get all of
 the standard operators and functions plus Oracle-specific functions
