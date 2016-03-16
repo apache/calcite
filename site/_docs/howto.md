@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.6.0-source.tar.gz
-$ cd calcite-1.6.0
+$ tar xvfz calcite-1.7.0-source.tar.gz
+$ cd calcite-1.7.0
 $ mvn install
 {% endhighlight %}
 

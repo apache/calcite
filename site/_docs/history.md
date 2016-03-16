@@ -28,10 +28,35 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
-## 1.7.0 / (Under Development)
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.7.0">1.7.0</a> / 2016-03-22
 {: #v1-7-0}
 
-One notable change is that the use of JUL (java.util.logging) has been replaced
+This is the first Apache Calcite release since
+[Avatica became an independent project)({{ site.baseurl }}/avatica/news/2016/03/03/separate-project/).
+Calcite now depends on [Avatica]{{ site.baseurl }}/avatica/) in the
+same way as it does other libraries, via a Maven dependency. To see
+Avatica-related changes, see the
+[release notes for Avatica 1.7.1]({{ site.baseurl }}/avatica/docs/history.html#v1-7-1).
+
+We have [added](https://issues.apache.org/jira/browse/CALCITE-1080)
+an [adapter]({{ site.baseurl }}/docs/adapter.html) for
+[Apache Cassandra](http://cassandra.apache.org/).
+You can map a Cassandra keyspace into Calcite as a schema, Cassandra
+data sets as tables, and execute SQL queries on them, which Calcite
+converts into [CQL](https://cassandra.apache.org/doc/cql/CQL.html).
+Cassandra can define and maintain materialized views but the adapter
+goes further: it can transparently rewrite a query to use a
+materialized view even if view is not mentioned in the query.
+
+We have started work on an
+[Oracle-compatibility mode](https://issues.apache.org/jira/browse/CALCITE-1066).
+If you add `fun=oracle` to your JDBC connect string, you get all of
+the standard operators and functions plus Oracle-specific functions
+`DECODE`, `NVL`, `LTRIM`, `RTRIM`, `GREATEST` and `LEAST`. We look
+forward to adding more functions, and compatibility modes for other
+databases, in future releases.
+
+We've replaced our use of JUL (`java.util.logging`)
 with [SLF4J](http://slf4j.org/). SLF4J provides an API which Calcite can use
 independent of the logging implementation. This ultimately provides additional
 flexibility to users, allowing them to configure Calcite's logging within their
@@ -51,6 +76,8 @@ other software versions as specified in `pom.xml`.
 
 New features
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1124">CALCITE-1124</a>]
+  Add `TIMESTAMPADD`, `TIMESTAMPDIFF` functions (Arina Ielchiieva)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1066">CALCITE-1066</a>]
   Add Oracle function table, and functions `DECODE`, `NVL`, `LTRIM`, `RTRIM`,
   `GREATEST`, `LEAST`
@@ -62,15 +89,20 @@ New features
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-551">CALCITE-551</a>]
   Sub-query inside aggregate function
 
-Avatica features and bug fixes
-
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-642">CALCITE-642</a>]
-  Add an avatica-metrics API
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1085">CALCITE-1085</a>]
-    Use a NoopContext singleton in NoopTimer
-
 Planner rules
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1158">CALCITE-1158</a>]
+  Make `AggregateRemoveRule` extensible
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1116">CALCITE-1116</a>]
+  Extend `simplify` for reducing expressions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1104">CALCITE-1104</a>]
+  Materialized views in Cassandra (Michael Mior)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1130">CALCITE-1130</a>]
+  Add support for operators `IS NULL` and `IS NOT NULL` in
+  `RexImplicationChecker` (Amogh Margoor)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1129">CALCITE-1129</a>]
+  Extend `JoinUnionTransposeRule` to match `Union` instead of `LogicalUnion`
+  (Vasia Kalavri)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1109">CALCITE-1109</a>]
   Fix up condition when pushing `Filter` through `Aggregate` (Amogh Margoor)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1100">CALCITE-1100</a>]
@@ -84,6 +116,26 @@ Planner rules
 
 Bug fixes, API changes and minor enhancements
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1147">CALCITE-1147</a>]
+  Allow multiple providers for the same kind of metadata
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1153">CALCITE-1153</a>]
+  Invalid cast created during SQL Join in Oracle (Chris Atkinson)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1146">CALCITE-1146</a>]
+  Wrong path in CSV example model (wanglan)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1156">CALCITE-1156</a>]
+  Increase Jetty version to 9.2.15.v20160210
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1064">CALCITE-1064</a>]
+  Address problematic `maven-remote-resources-plugin`
+* In `TimeUnit` add `WEEK`, `QUARTER`, `MICROSECOND` values, and change type of
+  `multiplier`
+* Deprecate `SqlLiteral.SqlSymbol`; `SqlSymbol` can now wrap any enum
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1078">CALCITE-1078</a>]
+  Detach avatica from the core calcite Maven project
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1077">CALCITE-1077</a>]
+    Switch Calcite to the released Avatica 1.7.1
+  * Update `groupId` when Calcite POMs reference Avatica modules
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-1137">CALCITE-1137</a>]
+    Exclude Avatica from Calcite source release
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1111">CALCITE-1111</a>]
   Upgrade Guava, and test on a range of Guava versions
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1054">CALCITE-1054</a>]
@@ -126,6 +178,8 @@ Bug fixes, API changes and minor enhancements
 
 Web site and documentation
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1112">CALCITE-1112</a>]
+  "Powered by Calcite" page
 * Add SQL-Gremlin to Adapters page
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1090">CALCITE-1090</a>]
   Revise Streaming SQL specification
