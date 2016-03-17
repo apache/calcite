@@ -103,7 +103,7 @@ public class ConcurrentTestTimedCommandGenerator
 
   /**
    * TimedIterator is an Iterator that repeats a given collection's elements
-   * until <code>System.currentTimeMillis() >= endTimeMillis</code>.
+   * until <code>System.currentTimeMillis() &ge; endTimeMillis</code>.
    */
   private class TimedIterator<E> implements Iterator<E> {
     private final List<E> commands;

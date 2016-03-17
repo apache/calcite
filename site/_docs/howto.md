@@ -429,10 +429,12 @@ Before you start:
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Set `version.major` and `version.minor` in `pom.xml`.
 * Make sure build and tests succeed, including with `-P it,it-oracle`.
-  Supported configurations are:
-  * JDK 1.7, 1.8;
-  * Linux, Mac OS X, and Windows;
-  * Guava versions 12.0.1, 18.0 (the default) and 19.0 (specify `-Dguava.version=x.y`)
+* Make sure that `mvn javadoc:javadoc javadoc:test-javadoc` succeeds
+  (i.e. gives no errors; warnings are OK)
+* Decide the supported configurations of JDK, operating system and
+  Guava.  These will probably be the same as those described in the
+  release notes of the previous release.  Document them in the release
+  notes.  To test Guava version x.y, specify `-Dguava.version=x.y`
 * Optional extra tests:
   * `-Dcalcite.test.db=mysql`
   * `-Dcalcite.test.db=hsqldb`

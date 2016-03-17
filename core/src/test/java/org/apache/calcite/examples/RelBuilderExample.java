@@ -118,7 +118,7 @@ public class RelBuilderExample {
    * SELECT deptno, count(*) AS c, sum(sal) AS s
    * FROM emp
    * GROUP BY deptno
-   * HAVING count(*) > 10</pre>
+   * HAVING count(*) &gt; 10</pre>
    */
   private RelBuilder example3(RelBuilder builder) {
     return builder
