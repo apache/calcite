@@ -86,7 +86,7 @@ limitations under the License.
     <java-diff.version>1.1</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.2.7.v20150116</jetty.version>
+    <jetty.version>9.2.15.v20160210</jetty.version>
     <jmh.version>1.11.2</jmh.version>
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
