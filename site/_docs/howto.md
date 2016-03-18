@@ -431,6 +431,8 @@ Before you start:
 * Make sure build and tests succeed, including with `-P it,it-oracle`.
 * Make sure that `mvn javadoc:javadoc javadoc:test-javadoc` succeeds
   (i.e. gives no errors; warnings are OK)
+* Make sure that `mvn apache-rat:check` succeeds. (It will be run as part of
+  the release, but it's better to trouble-shoot early.)
 * Decide the supported configurations of JDK, operating system and
   Guava.  These will probably be the same as those described in the
   release notes of the previous release.  Document them in the release
