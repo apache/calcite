@@ -231,6 +231,16 @@ where (gender, deptno) in (select gender, 10 from emp where gender = 'F');
 
 !use scott
 
+# [CALCITE-1155] Support columns for IN list
+SELECT empno, ename, mgr FROM "scott".emp WHERE 7782 IN (empno, mgr);
+ EMPNO | ENAME  | MGR
+-------+--------+------
+  7782 | CLARK  | 7839
+  7934 | MILLER | 7782
+(2 rows)
+
+!ok
+
 # [CALCITE-694] Scan HAVING clause for sub-queries and IN-lists
 SELECT count(*) AS c
 FROM "scott".emp
