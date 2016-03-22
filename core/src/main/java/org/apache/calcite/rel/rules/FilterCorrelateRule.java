@@ -121,13 +121,12 @@ public class FilterCorrelateRule extends RelOptRule {
     }
 
     // Create a Filter on top of the join if needed
-    RelNode newRel =
-        relBuilder.push(newCorrRel)
-        .filter(
-            RexUtil.fixUp(rexBuilder, aboveFilters, newCorrRel.getRowType()))
-        .build();
+    relBuilder.push(newCorrRel);
+    relBuilder.filter(
+        RexUtil.fixUp(rexBuilder, aboveFilters,
+            RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
 
-    call.transformTo(newRel);
+    call.transformTo(relBuilder.build());
   }
 }
 

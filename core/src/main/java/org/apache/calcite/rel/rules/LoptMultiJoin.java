@@ -542,7 +542,8 @@ public class LoptMultiJoin {
       // exclude the bit corresponding to the factor itself
       for (int factor : factorRefs) {
         factorsRefByFactor[factor] =
-            ImmutableBitSet.builder(factorsRefByFactor[factor])
+            factorsRefByFactor[factor]
+                .rebuild()
                 .addAll(factorRefs)
                 .clear(factor)
                 .build();

@@ -36,28 +36,33 @@ import java.util.List;
  * Result of compiling code generated from a {@link RexNode} expression.
  */
 public class RexExecutable {
-  public static final String GENERATED_CLASS_NAME = "Reducer";
+  private static final String GENERATED_CLASS_NAME = "Reducer";
 
   private final Function1<DataContext, Object[]> compiledFunction;
   private final String code;
   private DataContext dataContext;
 
   public RexExecutable(String code, Object reason) {
+    this.code = code;
+    this.compiledFunction = compile(code, reason);
+  }
+
+  private static Function1<DataContext, Object[]> compile(String code,
+      Object reason) {
     try {
+      final ClassBodyEvaluator cbe = new ClassBodyEvaluator();
+      cbe.setClassName(GENERATED_CLASS_NAME);
+      cbe.setExtendedClass(Utilities.class);
+      cbe.setImplementedInterfaces(new Class[] {Function1.class, Serializable.class});
+      cbe.setParentClassLoader(RexExecutable.class.getClassLoader());
+      cbe.cook(new Scanner(null, new StringReader(code)));
+      Class c = cbe.getClazz();
       //noinspection unchecked
-      compiledFunction =
-          (Function1) ClassBodyEvaluator.createFastClassBodyEvaluator(
-              new Scanner(null, new StringReader(code)),
-              GENERATED_CLASS_NAME,
-              Utilities.class,
-              new Class[] {Function1.class, Serializable.class},
-              getClass().getClassLoader());
-    } catch (CompileException e) {
-      throw new RuntimeException("While compiling " + reason, e);
-    } catch (IOException e) {
+      return (Function1<DataContext, Object[]>) c.newInstance();
+    } catch (CompileException | IOException | InstantiationException
+        | IllegalAccessException e) {
       throw new RuntimeException("While compiling " + reason, e);
     }
-    this.code = code;
   }
 
   public void setDataContext(DataContext dataContext) {

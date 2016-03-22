@@ -65,7 +65,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
     if (opBinding.getOperandCount() == 1) {
       RelDataType type = opBinding.getOperandType(0);
       if (SqlTypeUtil.isNumeric(type)) {
-        precision = opBinding.getIntLiteralOperand(0);
+        precision = ((Number) opBinding.getOperandLiteralValue(0)).intValue();
       }
     }
     assert precision >= 0;

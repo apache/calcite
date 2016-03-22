@@ -45,6 +45,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 /**
@@ -56,10 +57,9 @@ final class JdbcUtils {
   }
 
   /** Pool of dialects. */
-  public static class DialectPool {
-    final Map<DataSource, SqlDialect> map0 =
-        new IdentityHashMap<DataSource, SqlDialect>();
-    final Map<List, SqlDialect> map = new HashMap<List, SqlDialect>();
+  static class DialectPool {
+    final Map<DataSource, SqlDialect> map0 = new IdentityHashMap<>();
+    final Map<List, SqlDialect> map = new HashMap<>();
 
     public static final DialectPool INSTANCE = new DialectPool();
 
@@ -101,13 +101,13 @@ final class JdbcUtils {
   /** Builder that calls {@link ResultSet#getObject(int)} for every column,
    * or {@code getXxx} if the result type is a primitive {@code xxx},
    * and returns an array of objects for each row. */
-  public static class ObjectArrayRowBuilder implements Function0<Object[]> {
+  static class ObjectArrayRowBuilder implements Function0<Object[]> {
     private final ResultSet resultSet;
     private final int columnCount;
     private final ColumnMetaData.Rep[] reps;
     private final int[] types;
 
-    public ObjectArrayRowBuilder(ResultSet resultSet, ColumnMetaData.Rep[] reps,
+    ObjectArrayRowBuilder(ResultSet resultSet, ColumnMetaData.Rep[] reps,
         int[] types)
         throws SQLException {
       this.resultSet = resultSet;
@@ -199,13 +199,13 @@ final class JdbcUtils {
    * {@link org.apache.calcite.sql.SqlDialect} objects. Otherwise, each time we
    * see a new data source, we have to open a connection to find out what
    * database product and version it is. */
-  public static class DataSourcePool {
+  static class DataSourcePool {
     public static final DataSourcePool INSTANCE = new DataSourcePool();
 
     private final LoadingCache<List<String>, BasicDataSource> cache =
         CacheBuilder.newBuilder().softValues().build(
             new CacheLoader<List<String>, BasicDataSource>() {
-              @Override public BasicDataSource load(List<String> key) {
+              @Override public BasicDataSource load(@Nonnull List<String> key) {
                 BasicDataSource dataSource = new BasicDataSource();
                 dataSource.setUrl(key.get(0));
                 dataSource.setUsername(key.get(1));
@@ -221,7 +221,7 @@ final class JdbcUtils {
       // out what kind of database they are quite as often.
       final List<String> key =
           ImmutableNullableList.of(url, username, password, driverClassName);
-      return cache.apply(key);
+      return cache.getUnchecked(key);
     }
   }
 }

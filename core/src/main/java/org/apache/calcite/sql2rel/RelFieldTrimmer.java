@@ -505,8 +505,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // We use the fields used by the consumer, plus any fields used as sort
     // keys.
-    final ImmutableBitSet.Builder inputFieldsUsed =
-        ImmutableBitSet.builder(fieldsUsed);
+    final ImmutableBitSet.Builder inputFieldsUsed = fieldsUsed.rebuild();
     for (RelFieldCollation field : collation.getFieldCollations()) {
       inputFieldsUsed.set(field.getFieldIndex());
     }
@@ -784,7 +783,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Compute which input fields are used.
     // 1. group fields are always used
     final ImmutableBitSet.Builder inputFieldsUsed =
-        ImmutableBitSet.builder(aggregate.getGroupSet());
+        aggregate.getGroupSet().rebuild();
     // 2. agg functions
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       for (int i : aggCall.getArgList()) {

@@ -205,7 +205,8 @@ public class ImmutableBitSetTest {
             .toString(),
         equalTo("{1, 3, 100}"));
     ImmutableBitSet x =
-        ImmutableBitSet.builder(ImmutableBitSet.of(1))
+        ImmutableBitSet.of(1)
+            .rebuild()
             .addAll(ImmutableBitSet.of(2))
             .addAll(ImmutableBitSet.of())
             .addAll(ImmutableBitSet.of(3))

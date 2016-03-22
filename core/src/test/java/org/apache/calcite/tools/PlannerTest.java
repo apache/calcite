@@ -251,7 +251,7 @@ public class PlannerTest {
   }
 
   /** Tests that planner throws an error if you pass to
-   * {@link Planner#convert(org.apache.calcite.sql.SqlNode)}
+   * {@link Planner#rel(org.apache.calcite.sql.SqlNode)}
    * a {@link org.apache.calcite.sql.SqlNode} that has been parsed but not
    * validated. */
   @Test public void testConvertWithoutValidateFails() throws Exception {

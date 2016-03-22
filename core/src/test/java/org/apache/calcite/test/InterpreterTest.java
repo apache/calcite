@@ -100,7 +100,7 @@ public class InterpreterTest {
             + "where x > 1");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter, "[b, 2]", "[c, 3]");
@@ -148,7 +148,7 @@ public class InterpreterTest {
         planner.parse("select * from \"hr\".\"emps\" order by \"empid\"");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
@@ -166,7 +166,7 @@ public class InterpreterTest {
         planner.parse("select * from \"beatles\" order by \"i\"");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
@@ -182,7 +182,7 @@ public class InterpreterTest {
         planner.parse("select  count(*) from \"beatles\"");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
@@ -195,7 +195,7 @@ public class InterpreterTest {
         planner.parse("select \"j\", count(*) from \"beatles\" group by \"j\"");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRowsUnordered(interpreter,
@@ -213,7 +213,7 @@ public class InterpreterTest {
         planner.parse("select * from \"simple\" limit 2");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter, "[0]", "[10]");
@@ -228,7 +228,7 @@ public class InterpreterTest {
             + "select * from \"simple\"\n");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter,
@@ -244,7 +244,7 @@ public class InterpreterTest {
             + "select * from \"simple\"\n");
 
     SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.convert(validate);
+    RelNode convert = planner.rel(validate).rel;
 
     final Interpreter interpreter = new Interpreter(dataContext, convert);
     assertRows(interpreter, "[0]", "[10]", "[20]", "[30]");

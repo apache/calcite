@@ -56,7 +56,7 @@ import java.util.Map;
  */
 public class MongoTable extends AbstractQueryableTable
     implements TranslatableTable {
-  protected final String collectionName;
+  private final String collectionName;
 
   /** Creates a MongoTable. */
   MongoTable(String collectionName) {
@@ -101,7 +101,7 @@ public class MongoTable extends AbstractQueryableTable
    * @param fields List of fields to project; or null to return map
    * @return Enumerator of results
    */
-  public Enumerable<Object> find(DB mongoDb, String filterJson,
+  private Enumerable<Object> find(DB mongoDb, String filterJson,
       String projectJson, List<Map.Entry<String, Class>> fields) {
     final DBCollection collection =
         mongoDb.getCollection(collectionName);
@@ -131,7 +131,7 @@ public class MongoTable extends AbstractQueryableTable
    * @param operations One or more JSON strings
    * @return Enumerator of results
    */
-  public Enumerable<Object> aggregate(final DB mongoDb,
+  private Enumerable<Object> aggregate(final DB mongoDb,
       final List<Map.Entry<String, Class>> fields,
       final List<String> operations) {
     final List<DBObject> list = new ArrayList<>();
@@ -220,7 +220,7 @@ public class MongoTable extends AbstractQueryableTable
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
    * a {@link org.apache.calcite.adapter.mongodb.MongoTable}. */
   public static class MongoQueryable<T> extends AbstractTableQueryable<T> {
-    public MongoQueryable(QueryProvider queryProvider, SchemaPlus schema,
+    MongoQueryable(QueryProvider queryProvider, SchemaPlus schema,
         MongoTable table, String tableName) {
       super(queryProvider, schema, table, tableName);
     }

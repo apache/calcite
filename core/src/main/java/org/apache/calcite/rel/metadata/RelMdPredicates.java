@@ -57,12 +57,12 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -600,7 +600,7 @@ public class RelMdPredicates
         public Iterator<Mapping> iterator() {
           ImmutableBitSet fields = exprFields.get(predicate.toString());
           if (fields.cardinality() == 0) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
           }
           return new ExprsItr(fields);
         }

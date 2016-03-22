@@ -167,7 +167,8 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
       // the join can now be used.
       final int v = vertexes.size();
       final ImmutableBitSet newFactors =
-          ImmutableBitSet.builder(majorVertex.factors)
+          majorVertex.factors
+              .rebuild()
               .addAll(minorVertex.factors)
               .set(v)
               .build();
@@ -206,10 +207,11 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
         final LoptMultiJoin.Edge edge = unusedEdges.get(i);
         if (edge.factors.intersects(merged)) {
           ImmutableBitSet newEdgeFactors =
-              ImmutableBitSet.builder(edge.factors)
-              .removeAll(newFactors)
-              .set(v)
-              .build();
+              edge.factors
+                  .rebuild()
+                  .removeAll(newFactors)
+                  .set(v)
+                  .build();
           assert newEdgeFactors.cardinality() == 2;
           final LoptMultiJoin.Edge newEdge =
               new LoptMultiJoin.Edge(edge.condition, newEdgeFactors,
