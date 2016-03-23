@@ -17,6 +17,8 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.Converter;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -125,7 +127,7 @@ public abstract class RelOptRule {
       Class<R> clazz,
       RelOptRuleOperandChildren operandList) {
     return new RelOptRuleOperand(clazz, null, Predicates.<R>alwaysTrue(),
-        operandList);
+        operandList.policy, operandList.operands);
   }
 
   /**
@@ -144,7 +146,7 @@ public abstract class RelOptRule {
       RelTrait trait,
       RelOptRuleOperandChildren operandList) {
     return new RelOptRuleOperand(clazz, trait, Predicates.<R>alwaysTrue(),
-        operandList);
+        operandList.policy, operandList.operands);
   }
 
   /**
@@ -164,7 +166,8 @@ public abstract class RelOptRule {
       RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperandChildren operandList) {
-    return new RelOptRuleOperand(clazz, trait, predicate, operandList);
+    return new RelOptRuleOperand(clazz, trait, predicate, operandList.policy,
+        operandList.operands);
   }
 
   /**
@@ -185,7 +188,7 @@ public abstract class RelOptRule {
       Predicate<? super R> predicate,
       RelOptRuleOperand first,
       RelOptRuleOperand... rest) {
-    return new RelOptRuleOperand(clazz, trait, predicate, some(first, rest));
+    return operand(clazz, trait, predicate, some(first, rest));
   }
 
   /**
@@ -214,6 +217,18 @@ public abstract class RelOptRule {
     return operand(clazz, some(first, rest));
   }
 
+  /**
+   * Creates an operand for a converter rule.
+   *
+   * @param clazz    Class of relational expression to match (must not be null)
+   * @param trait    Trait to match, or null to match any trait
+   * @param predicate Predicate to apply to relational expression
+   */
+  protected static <R extends RelNode> ConverterRelOptRuleOperand
+  convertOperand(Class<R> clazz, Predicate<? super R> predicate,
+      RelTrait trait) {
+    return new ConverterRelOptRuleOperand(clazz, trait, predicate);
+  }
 
   //~ Methods for creating lists of child operands ---------------------------
 
@@ -229,10 +244,8 @@ public abstract class RelOptRule {
   public static RelOptRuleOperandChildren some(
       RelOptRuleOperand first,
       RelOptRuleOperand... rest) {
-    return new RelOptRuleOperandChildren(
-        RelOptRuleOperandChildPolicy.SOME,
-        ImmutableList.<RelOptRuleOperand>builder().add(first)
-            .add(rest).build());
+    return new RelOptRuleOperandChildren(RelOptRuleOperandChildPolicy.SOME,
+        Lists.asList(first, rest));
   }
 
 
@@ -267,8 +280,7 @@ public abstract class RelOptRule {
       RelOptRuleOperand... rest) {
     return new RelOptRuleOperandChildren(
         RelOptRuleOperandChildPolicy.UNORDERED,
-        ImmutableList.<RelOptRuleOperand>builder().add(first)
-            .add(rest).build());
+        Lists.asList(first, rest));
   }
 
   /**
@@ -557,8 +569,7 @@ public abstract class RelOptRule {
    * @param trait   Trait to add to each relational expression
    * @return List of converted relational expressions, never null
    */
-  public static List<RelNode> convertList(
-      List<RelNode> rels,
+  protected static List<RelNode> convertList(List<RelNode> rels,
       final RelTrait trait) {
     return Lists.transform(rels,
         new Function<RelNode, RelNode>() {
@@ -601,6 +612,29 @@ public abstract class RelOptRule {
     return description;
   }
 
+  /**
+   * Operand to an instance of the converter rule.
+   */
+  private static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
+    <R extends RelNode> ConverterRelOptRuleOperand(Class<R> clazz, RelTrait in,
+        Predicate<? super R> predicate) {
+      super(clazz, in, predicate, RelOptRuleOperandChildPolicy.ANY,
+          ImmutableList.<RelOptRuleOperand>of());
+    }
+
+    public boolean matches(RelNode rel) {
+      // Don't apply converters to converters that operate
+      // on the same RelTraitDef -- otherwise we get
+      // an n^2 effect.
+      if (rel instanceof Converter) {
+        if (((ConverterRule) getRule()).getTraitDef()
+            == ((Converter) rel).getTraitDef()) {
+          return false;
+        }
+      }
+      return super.matches(rel);
+    }
+  }
 }
 
 // End RelOptRule.java

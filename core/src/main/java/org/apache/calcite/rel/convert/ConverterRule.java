@@ -19,7 +19,6 @@ package org.apache.calcite.rel.convert;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -65,7 +64,7 @@ public abstract class ConverterRule extends RelOptRule {
   public <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
       String description) {
-    super(new ConverterRelOptRuleOperand(clazz, in, predicate),
+    super(convertOperand(clazz, predicate, in),
         description == null
             ? "ConverterRule<in=" + in + ",out=" + out + ">"
             : description);
@@ -122,28 +121,6 @@ public abstract class ConverterRule extends RelOptRule {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /**
-   * Operand to an instance of the converter rule.
-   */
-  private static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
-    public <R extends RelNode> ConverterRelOptRuleOperand(Class<R> clazz,
-        RelTrait in, Predicate<? super R> predicate) {
-      super(clazz, in, predicate, any());
-    }
-
-    public boolean matches(RelNode rel) {
-      // Don't apply converters to converters that operate
-      // on the same RelTraitDef -- otherwise we get
-      // an n^2 effect.
-      if (rel instanceof Converter) {
-        if (((ConverterRule) getRule()).getTraitDef()
-            == ((Converter) rel).getTraitDef()) {
-          return false;
-        }
-      }
-      return super.matches(rel);
-    }
-  }
 }
 
 // End ConverterRule.java

@@ -18,6 +18,8 @@ package org.apache.calcite.plan;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
  * Children of a {@link org.apache.calcite.plan.RelOptRuleOperand} and the
  * policy for matching them.
@@ -44,9 +46,9 @@ public class RelOptRuleOperandChildren {
 
   public RelOptRuleOperandChildren(
       RelOptRuleOperandChildPolicy policy,
-      ImmutableList<RelOptRuleOperand> operands) {
+      List<RelOptRuleOperand> operands) {
     this.policy = policy;
-    this.operands = operands;
+    this.operands = ImmutableList.copyOf(operands);
   }
 }
 

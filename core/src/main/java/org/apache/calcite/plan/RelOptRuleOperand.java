@@ -69,37 +69,60 @@ public class RelOptRuleOperand {
    * {@link RelOptRule#any},
    * {@link RelOptRule#unordered},
    * See {@link org.apache.calcite.plan.RelOptRuleOperandChildren} for more
-   * details.</p>
+   * details.
    *
    * @param clazz    Class of relational expression to match (must not be null)
    * @param trait    Trait to match, or null to match any trait
    * @param predicate Predicate to apply to relational expression
    * @param children Child operands
+   *
+   * @deprecated Use
+   * {@link RelOptRule#operand(Class, RelOptRuleOperandChildren)} or one of its
+   * overloaded methods.
    */
+  @Deprecated // to be removed before 2.0; see [CALCITE-1166]
   protected <R extends RelNode> RelOptRuleOperand(
       Class<R> clazz,
       RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperandChildren children) {
+    this(clazz, trait, predicate, children.policy, children.operands);
+  }
+
+  /** Private constructor.
+   *
+   * <p>Do not call from outside package, and do not create a sub-class.
+   *
+   * <p>The other constructor is deprecated; when it is removed, make fields
+   * {@link #parent}, {@link #ordinalInParent} and {@link #solveOrder} final,
+   * and add constructor parameters for them. See
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1166">[CALCITE-1166]
+   * Disallow sub-classes of RelOptRuleOperand</a>. */
+  <R extends RelNode> RelOptRuleOperand(
+      Class<R> clazz,
+      RelTrait trait,
+      Predicate<? super R> predicate,
+      RelOptRuleOperandChildPolicy childPolicy,
+      ImmutableList<RelOptRuleOperand> children) {
     assert clazz != null;
-    switch (children.policy) {
+    switch (childPolicy) {
     case ANY:
       break;
     case LEAF:
-      assert children.operands.size() == 0;
+      assert children.size() == 0;
       break;
     case UNORDERED:
-      assert children.operands.size() == 1;
+      assert children.size() == 1;
       break;
     default:
-      assert children.operands.size() > 0;
+      assert children.size() > 0;
     }
-    this.childPolicy = children.policy;
+    this.childPolicy = childPolicy;
     this.clazz = Preconditions.checkNotNull(clazz);
     this.trait = trait;
     //noinspection unchecked
     this.predicate = Preconditions.checkNotNull((Predicate) predicate);
-    this.children = children.operands;
+    this.children = children;
     for (RelOptRuleOperand child : this.children) {
       assert child.parent == null : "cannot re-use operands";
       child.parent = this;
