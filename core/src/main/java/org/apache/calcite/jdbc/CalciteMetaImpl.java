@@ -750,16 +750,6 @@ public class CalciteMetaImpl extends MetaImpl {
       throw new UnsupportedOperationException();
     }
   }
-
-  @Override public ExecuteBatchResult prepareAndExecuteBatch(StatementHandle h,
-      List<String> sqlCommands) throws NoSuchStatementException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override public ExecuteBatchResult executeBatch(StatementHandle h,
-      List<List<TypedValue>> parameterValues) throws NoSuchStatementException {
-    throw new UnsupportedOperationException();
-  }
 }
 
 // End CalciteMetaImpl.java
