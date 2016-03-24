@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /** Value and type.
  *
@@ -552,13 +553,20 @@ public class TypedValue {
     }
   }
 
-  public static Object toJdbc(Common.TypedValue protoValue, Calendar calendar) {
-    Object o = getValue(protoValue);
+  /**
+   * Extracts the JDBC value from protobuf-TypedValue representation.
+   * 
+   * @param protoValue Protobuf TypedValue
+   * @param calendar Instance of a calendar
+   * @return The JDBC representation of this TypedValue
+   */
+  public static Object protoToJdbc(Common.TypedValue protoValue, Calendar calendar) {
+    Object o = getValue(Objects.requireNonNull(protoValue));
     // Shortcircuit the null
     if (null == o) {
       return o;
     }
-    return protoSerialToJdbc(protoValue.getType(), o, calendar);
+    return protoSerialToJdbc(protoValue.getType(), o, Objects.requireNonNull(calendar));
   }
 
   @Override public int hashCode() {

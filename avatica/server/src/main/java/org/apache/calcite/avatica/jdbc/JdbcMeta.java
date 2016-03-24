@@ -922,7 +922,7 @@ public class JdbcMeta implements ProtobufMeta {
         int i = 1;
         for (Common.TypedValue value : update.getParameterValuesList()) {
           // Use the value and then increment
-          preparedStmt.setObject(i++, TypedValue.toJdbc(value, calendar));
+          preparedStmt.setObject(i++, TypedValue.protoToJdbc(value, calendar));
         }
         preparedStmt.addBatch();
       }

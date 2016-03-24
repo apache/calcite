@@ -2997,7 +2997,10 @@ public interface Service {
     @Override public boolean equals(Object o) {
       return this == o
           || o instanceof ExecuteBatchResponse
-          && Arrays.equals(updateCounts, ((ExecuteBatchResponse) o).updateCounts);
+          && Arrays.equals(updateCounts, ((ExecuteBatchResponse) o).updateCounts)
+          && Objects.equals(connectionId, ((ExecuteBatchResponse) o).statementId)
+          && statementId == ((ExecuteBatchResponse) o).statementId
+          && missingStatement == ((ExecuteBatchResponse) o).missingStatement;
     }
 
     @Override ExecuteBatchResponse deserialize(Message genericMsg) {
