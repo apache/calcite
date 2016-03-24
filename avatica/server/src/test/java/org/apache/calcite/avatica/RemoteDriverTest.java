@@ -59,6 +59,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -1343,6 +1344,81 @@ public class RemoteDriverTest {
       }
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testBatchInsertWithDates() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      eachConnection(
+          new ConnectionFunction() {
+            public void apply(Connection c1) throws Exception {
+              executeBatchInsertWithDates(c1);
+            }
+          }, getLocalConnection());
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  private void executeBatchInsertWithDates(Connection conn) throws Exception {
+    final Calendar calendar = Calendar.getInstance();
+    long now = calendar.getTime().getTime();
+    final int numRows = 10;
+    final String tableName = AvaticaUtils.unique("BATCH_INSERT_EXECUTE_DATES");
+    LOG.info("Creating table {}", tableName);
+    try (Statement stmt = conn.createStatement()) {
+      final String dropCommand = String.format("drop table if exists %s", tableName);
+      assertFalse("Failed to drop table", stmt.execute(dropCommand));
+      final String createCommand = String.format("create table %s ("
+          + "id char(15) not null, "
+          + "created_date date not null, "
+          + "val_string varchar)", tableName);
+      assertFalse("Failed to create table", stmt.execute(createCommand));
+    }
+
+    final String insertSql = String.format("INSERT INTO %s values(?, ?, ?)", tableName);
+    try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+      // Add batches with the prepared statement
+      for (int i = 0; i < numRows; i++) {
+        pstmt.setString(1, Integer.toString(i));
+        pstmt.setDate(2, new Date(now + i), calendar);
+        pstmt.setString(3, UUID.randomUUID().toString());
+        pstmt.addBatch();
+      }
+      // Verify that all updates were successful
+      int[] updateCounts = pstmt.executeBatch();
+      assertEquals(numRows, updateCounts.length);
+      int[] expectedCounts = new int[numRows];
+      Arrays.fill(expectedCounts, 1);
+      assertArrayEquals(expectedCounts, updateCounts);
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id asc");
+      assertNotNull("ResultSet was null", rs);
+      for (int i = 0; i < numRows; i++) {
+        assertTrue("ResultSet should have a result", rs.next());
+        assertEquals("Wrong value for row " + i, Integer.toString(i), rs.getString(1).trim());
+
+        Date actual = rs.getDate(2);
+        calendar.setTime(actual);
+        int actualDay = calendar.get(Calendar.DAY_OF_MONTH);
+        int actualMonth = calendar.get(Calendar.MONTH);
+        int actualYear = calendar.get(Calendar.YEAR);
+
+        Date expected = new Date(now + i);
+        calendar.setTime(expected);
+        int expectedDay = calendar.get(Calendar.DAY_OF_MONTH);
+        int expectedMonth = calendar.get(Calendar.MONTH);
+        int expectedYear = calendar.get(Calendar.YEAR);
+        assertEquals("Wrong day for row " + i, expectedDay, actualDay);
+        assertEquals("Wrong month for row " + i, expectedMonth, actualMonth);
+        assertEquals("Wrong year for row " + i, expectedYear, actualYear);
+
+        assertNotNull("Non-null string for row " + i, rs.getString(3));
+      }
+      assertFalse("ResultSet should have no more records", rs.next());
     }
   }
 

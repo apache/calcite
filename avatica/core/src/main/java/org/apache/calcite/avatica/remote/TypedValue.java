@@ -244,6 +244,40 @@ public class TypedValue {
     }
   }
 
+  private static Object protoSerialToLocal(Common.Rep rep, Object value) {
+    switch (rep) {
+    case BYTE:
+      return ((Number) value).byteValue();
+    case SHORT:
+      return ((Number) value).shortValue();
+    case INTEGER:
+    case JAVA_SQL_DATE:
+    case JAVA_SQL_TIME:
+      return ((Number) value).intValue();
+    case LONG:
+    case JAVA_UTIL_DATE:
+    case JAVA_SQL_TIMESTAMP:
+      return ((Number) value).longValue();
+    case FLOAT:
+      return ((Number) value).floatValue();
+    case DOUBLE:
+      return ((Number) value).doubleValue();
+    case NUMBER:
+      return value instanceof BigDecimal ? value
+          : value instanceof BigInteger ? new BigDecimal((BigInteger) value)
+          : value instanceof Double ? new BigDecimal((Double) value)
+          : value instanceof Float ? new BigDecimal((Float) value)
+          : new BigDecimal(((Number) value).longValue());
+    case BYTE_STRING:
+      return (byte[]) value;
+    case STRING:
+      return (String) value;
+    default:
+      throw new IllegalArgumentException("cannot convert " + value + " ("
+          + value.getClass() + ") to " + rep);
+    }
+  }
+
   /** Converts the value into the JDBC representation.
    *
    * <p>For example, a byte string is represented as a {@link ByteString};
@@ -273,6 +307,22 @@ public class TypedValue {
       return new java.sql.Timestamp(adjust((Number) value, calendar));
     default:
       return serialToLocal(type, value);
+    }
+  }
+
+  private static Object protoSerialToJdbc(Common.Rep type, Object value, Calendar calendar) {
+    switch (type) {
+    case JAVA_UTIL_DATE:
+      return new java.util.Date(adjust((Number) value, calendar));
+    case JAVA_SQL_DATE:
+      return new java.sql.Date(
+          adjust(((Number) value).longValue() * DateTimeUtils.MILLIS_PER_DAY, calendar));
+    case JAVA_SQL_TIME:
+      return new java.sql.Time(adjust((Number) value, calendar));
+    case JAVA_SQL_TIMESTAMP:
+      return new java.sql.Timestamp(adjust((Number) value, calendar));
+    default:
+      return protoSerialToLocal(type, value);
     }
   }
 
@@ -450,6 +500,8 @@ public class TypedValue {
       return protoValue.getBoolValue();
     case BYTE_STRING:
     case STRING:
+      // TypedValue is still going to expect a string for BYTE_STRING even though we sent it
+      // across the wire natively as bytes.
       return protoValue.getStringValue();
     case PRIMITIVE_CHAR:
     case CHARACTER:
@@ -498,6 +550,15 @@ public class TypedValue {
       // Fail?
       throw new RuntimeException("Unknown type: " + protoValue.getType());
     }
+  }
+
+  public static Object toJdbc(Common.TypedValue protoValue, Calendar calendar) {
+    Object o = getValue(protoValue);
+    // Shortcircuit the null
+    if (null == o) {
+      return o;
+    }
+    return protoSerialToJdbc(protoValue.getType(), o, calendar);
   }
 
   @Override public int hashCode() {

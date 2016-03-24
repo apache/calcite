@@ -892,7 +892,7 @@ public class JdbcMeta implements ProtobufMeta {
         for (TypedValue value : batch) {
           // Set the TypedValue in the PreparedStatement
           try {
-            preparedStmt.setObject(i, value.value);
+            preparedStmt.setObject(i, value.toJdbc(calendar));
             i++;
           } catch (SQLException e) {
             throw new RuntimeException("Failed to set value on row #" + rowUpdate
@@ -922,7 +922,7 @@ public class JdbcMeta implements ProtobufMeta {
         int i = 1;
         for (Common.TypedValue value : update.getParameterValuesList()) {
           // Use the value and then increment
-          preparedStmt.setObject(i++, TypedValue.getValue(value));
+          preparedStmt.setObject(i++, TypedValue.toJdbc(value, calendar));
         }
         preparedStmt.addBatch();
       }
