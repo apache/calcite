@@ -2844,7 +2844,6 @@ public interface Service {
           && Objects.equals(connectionId, ((PrepareAndExecuteBatchRequest) o).connectionId)
           && statementId == ((PrepareAndExecuteBatchRequest) o).statementId
           && Objects.equals(sqlCommands, ((PrepareAndExecuteBatchRequest) o).sqlCommands);
-
     }
   }
 
@@ -2852,10 +2851,6 @@ public interface Service {
    * Request object to execute a batch of commands.
    */
   class ExecuteBatchRequest extends Request {
-    private static final FieldDescriptor UPDATE_BATCH_FIELD_DESCRIPTOR = Requests
-        .ExecuteBatchRequest.getDescriptor()
-        .findFieldByNumber(Requests.ExecuteBatchRequest.UPDATES_FIELD_NUMBER);
-
     public final String connectionId;
     public final int statementId;
     // Each update in a batch has a list of TypedValue's
@@ -2933,7 +2928,11 @@ public interface Service {
         }
       }
 
-      return builder.setConnectionId(connectionId).setStatementId(statementId).build();
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      return builder.setStatementId(statementId).build();
     }
 
     @Override public int hashCode() {
