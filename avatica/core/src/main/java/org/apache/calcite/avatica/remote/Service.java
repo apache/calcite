@@ -2998,7 +2998,7 @@ public interface Service {
       return this == o
           || o instanceof ExecuteBatchResponse
           && Arrays.equals(updateCounts, ((ExecuteBatchResponse) o).updateCounts)
-          && Objects.equals(connectionId, ((ExecuteBatchResponse) o).statementId)
+          && Objects.equals(connectionId, ((ExecuteBatchResponse) o).connectionId)
           && statementId == ((ExecuteBatchResponse) o).statementId
           && missingStatement == ((ExecuteBatchResponse) o).missingStatement;
     }
