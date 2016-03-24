@@ -28,6 +28,7 @@ import org.apache.calcite.avatica.proto.Requests;
 import org.apache.calcite.avatica.proto.Responses;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -40,6 +41,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -71,6 +73,8 @@ public interface Service {
   DatabasePropertyResponse apply(DatabasePropertyRequest request);
   CommitResponse apply(CommitRequest request);
   RollbackResponse apply(RollbackRequest request);
+  ExecuteBatchResponse apply(PrepareAndExecuteBatchRequest request);
+  ExecuteBatchResponse apply(ExecuteBatchRequest request);
 
   /**
    * Sets server-level metadata for RPCs. This includes information that is static across all RPCs.
@@ -134,7 +138,10 @@ public interface Service {
       @JsonSubTypes.Type(value = DatabasePropertyRequest.class, name = "databaseProperties"),
       @JsonSubTypes.Type(value = SyncResultsRequest.class, name = "syncResults"),
       @JsonSubTypes.Type(value = CommitRequest.class, name = "commit"),
-      @JsonSubTypes.Type(value = RollbackRequest.class, name = "rollback") })
+      @JsonSubTypes.Type(value = RollbackRequest.class, name = "rollback"),
+      @JsonSubTypes.Type(value = PrepareAndExecuteBatchRequest.class,
+          name = "prepareAndExecuteBatch"),
+      @JsonSubTypes.Type(value = ExecuteBatchRequest.class, name = "executeBatch") })
   abstract class Request extends Base {
     abstract Response accept(Service service);
     abstract Request deserialize(Message genericMsg);
@@ -164,7 +171,8 @@ public interface Service {
       @JsonSubTypes.Type(value = SyncResultsResponse.class, name = "syncResults"),
       @JsonSubTypes.Type(value = RpcMetadataResponse.class, name = "rpcMetadata"),
       @JsonSubTypes.Type(value = CommitResponse.class, name = "commit"),
-      @JsonSubTypes.Type(value = RollbackResponse.class, name = "rollback") })
+      @JsonSubTypes.Type(value = RollbackResponse.class, name = "rollback"),
+      @JsonSubTypes.Type(value = ExecuteBatchResponse.class, name = "executeBatch") })
   abstract class Response extends Base {
     abstract Response deserialize(Message genericMsg);
     abstract Message serialize();
@@ -2766,6 +2774,270 @@ public interface Service {
     }
   }
 
+  /**
+   * Request to prepare a statement and execute a series of batch commands in one call.
+   */
+  class PrepareAndExecuteBatchRequest extends Request {
+    public final String connectionId;
+    public final List<String> sqlCommands;
+    public final int statementId;
+
+    PrepareAndExecuteBatchRequest() {
+      connectionId = null;
+      statementId = 0;
+      sqlCommands = null;
+    }
+
+    @JsonCreator
+    public PrepareAndExecuteBatchRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId, @JsonProperty("sqlCommands") List<String>
+        sqlCommands) {
+      this.connectionId = connectionId;
+      this.sqlCommands = sqlCommands;
+      this.statementId = statementId;
+    }
+
+    @Override public ExecuteBatchResponse accept(Service service) {
+      return service.apply(this);
+    }
+
+    @Override public Requests.PrepareAndExecuteBatchRequest serialize() {
+      Requests.PrepareAndExecuteBatchRequest.Builder builder =
+          Requests.PrepareAndExecuteBatchRequest.newBuilder();
+
+      if (null != connectionId) {
+        builder.setConnectionId(connectionId);
+      }
+
+      if (null != sqlCommands) {
+        builder.addAllSqlCommands(sqlCommands);
+      }
+
+      return builder.setStatementId(statementId).build();
+    }
+
+    @Override public PrepareAndExecuteBatchRequest deserialize(Message genericMsg) {
+      final Requests.PrepareAndExecuteBatchRequest msg =
+          ProtobufService.castProtobufMessage(genericMsg,
+              Requests.PrepareAndExecuteBatchRequest.class);
+
+      List<String> sqlCommands = new ArrayList<>(msg.getSqlCommandsList());
+
+      return new PrepareAndExecuteBatchRequest(msg.getConnectionId(), msg.getStatementId(),
+          sqlCommands);
+    }
+
+    @Override public int hashCode() {
+      int result = 1;
+      result = p(result, connectionId);
+      result = p(result, statementId);
+      result = p(result, sqlCommands);
+      return result;
+    }
+
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof PrepareAndExecuteBatchRequest
+          && Objects.equals(connectionId, ((PrepareAndExecuteBatchRequest) o).connectionId)
+          && statementId == ((PrepareAndExecuteBatchRequest) o).statementId
+          && Objects.equals(sqlCommands, ((PrepareAndExecuteBatchRequest) o).sqlCommands);
+
+    }
+  }
+
+  /**
+   * Request object to execute a batch of commands.
+   */
+  class ExecuteBatchRequest extends Request {
+    private static final FieldDescriptor UPDATE_BATCH_FIELD_DESCRIPTOR = Requests
+        .ExecuteBatchRequest.getDescriptor()
+        .findFieldByNumber(Requests.ExecuteBatchRequest.UPDATES_FIELD_NUMBER);
+
+    public final String connectionId;
+    public final int statementId;
+    // Each update in a batch has a list of TypedValue's
+    public final List<List<TypedValue>> parameterValues;
+    // Avoid deserializing every parameter list from pb to pojo
+    @JsonIgnore
+    private List<Requests.UpdateBatch> protoParameterValues = null;
+
+    ExecuteBatchRequest() {
+      this.connectionId = null;
+      this.statementId = 0;
+      this.parameterValues = null;
+    }
+
+    @JsonCreator
+    public ExecuteBatchRequest(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId,
+        @JsonProperty("parameterValues") List<List<TypedValue>> parameterValues) {
+      this.connectionId = connectionId;
+      this.statementId = statementId;
+      this.parameterValues = parameterValues;
+    }
+
+    ExecuteBatchRequest(String connectionId, int statementId) {
+      this.connectionId = connectionId;
+      this.statementId = statementId;
+      this.parameterValues = null;
+    }
+
+    /**
+     * Does this instance contain protobuf update batches.
+     * @return True if <code>protoUpdateBatches</code> is non-null.
+     */
+    public boolean hasProtoUpdateBatches() {
+      return null != protoParameterValues;
+    }
+
+    /**
+     * @return The protobuf update batches.
+     */
+    // JsonIgnore on the getter, otherwise Jackson will try to serialize it
+    @JsonIgnore
+    public List<Requests.UpdateBatch> getProtoUpdateBatches() {
+      return protoParameterValues;
+    }
+
+    @Override public ExecuteBatchResponse accept(Service service) {
+      return service.apply(this);
+    }
+
+    @Override ExecuteBatchRequest deserialize(Message genericMsg) {
+      Requests.ExecuteBatchRequest msg = ProtobufService.castProtobufMessage(genericMsg,
+          Requests.ExecuteBatchRequest.class);
+
+      List<Requests.UpdateBatch> updateBatches = msg.getUpdatesList();
+
+      ExecuteBatchRequest pojo =
+          new ExecuteBatchRequest(msg.getConnectionId(), msg.getStatementId());
+      pojo.protoParameterValues = updateBatches;
+      return pojo;
+    }
+
+    @Override Requests.ExecuteBatchRequest serialize() {
+      Requests.ExecuteBatchRequest.Builder builder = Requests.ExecuteBatchRequest.newBuilder();
+
+      if (hasProtoUpdateBatches()) {
+        builder.addAllUpdates(protoParameterValues);
+      } else if (null != parameterValues) {
+        for (List<TypedValue> updateBatch : parameterValues) {
+          Requests.UpdateBatch.Builder batchBuilder = Requests.UpdateBatch.newBuilder();
+          for (TypedValue update : updateBatch) {
+            batchBuilder.addParameterValues(update.toProto());
+          }
+          builder.addUpdates(batchBuilder.build());
+        }
+      }
+
+      return builder.setConnectionId(connectionId).setStatementId(statementId).build();
+    }
+
+    @Override public int hashCode() {
+      int result = 1;
+      result = p(result, connectionId);
+      result = p(result, statementId);
+      result = p(result, parameterValues);
+      return result;
+    }
+
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof ExecuteBatchRequest
+          && Objects.equals(connectionId, ((ExecuteBatchRequest) o).connectionId)
+          && statementId == ((ExecuteBatchRequest) o).statementId
+          && Objects.equals(protoParameterValues, ((ExecuteBatchRequest) o).protoParameterValues)
+          && Objects.equals(parameterValues, ((ExecuteBatchRequest) o).parameterValues);
+    }
+  }
+
+  /**
+   * Response object for executing a batch of commands.
+   */
+  class ExecuteBatchResponse extends Response {
+    private static final FieldDescriptor RPC_METADATA_DESCRIPTOR = Responses.ExecuteBatchResponse
+        .getDescriptor().findFieldByNumber(Responses.ExecuteBatchResponse.METADATA_FIELD_NUMBER);
+
+    public final String connectionId;
+    public final int statementId;
+    public final int[] updateCounts;
+    public final boolean missingStatement;
+    public final RpcMetadataResponse rpcMetadata;
+
+    ExecuteBatchResponse() {
+      connectionId = null;
+      statementId = 0;
+      updateCounts = null;
+      missingStatement = false;
+      rpcMetadata = null;
+    }
+
+    @JsonCreator
+    public ExecuteBatchResponse(@JsonProperty("connectionId") String connectionId,
+        @JsonProperty("statementId") int statementId,
+        @JsonProperty("updateCounts") int[] updateCounts,
+        @JsonProperty("missingStatement") boolean missingStatement,
+        @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
+      this.connectionId = connectionId;
+      this.statementId = statementId;
+      this.updateCounts = updateCounts;
+      this.missingStatement = missingStatement;
+      this.rpcMetadata = rpcMetadata;
+    }
+
+    @Override public int hashCode() {
+      int result = 1;
+      result = p(result, connectionId);
+      result = p(result, statementId);
+      result = p(result, updateCounts);
+      result = p(result, missingStatement);
+      return result;
+    }
+
+    @Override public boolean equals(Object o) {
+      return this == o
+          || o instanceof ExecuteBatchResponse
+          && Arrays.equals(updateCounts, ((ExecuteBatchResponse) o).updateCounts)
+          && Objects.equals(connectionId, ((ExecuteBatchResponse) o).connectionId)
+          && statementId == ((ExecuteBatchResponse) o).statementId
+          && missingStatement == ((ExecuteBatchResponse) o).missingStatement;
+    }
+
+    @Override ExecuteBatchResponse deserialize(Message genericMsg) {
+      Responses.ExecuteBatchResponse msg = ProtobufService.castProtobufMessage(genericMsg,
+          Responses.ExecuteBatchResponse.class);
+
+      int[] updateCounts = new int[msg.getUpdateCountsCount()];
+      int i = 0;
+      for (Integer updateCount : msg.getUpdateCountsList()) {
+        updateCounts[i++] = updateCount;
+      }
+
+      RpcMetadataResponse metadata = null;
+      if (msg.hasField(RPC_METADATA_DESCRIPTOR)) {
+        metadata = RpcMetadataResponse.fromProto(msg.getMetadata());
+      }
+
+      return new ExecuteBatchResponse(msg.getConnectionId(), msg.getStatementId(), updateCounts,
+          msg.getMissingStatement(), metadata);
+    }
+
+    @Override Responses.ExecuteBatchResponse serialize() {
+      Responses.ExecuteBatchResponse.Builder builder = Responses.ExecuteBatchResponse.newBuilder();
+
+      if (null != updateCounts) {
+        for (int i = 0; i < updateCounts.length; i++) {
+          builder.addUpdateCounts(updateCounts[i]);
+        }
+      }
+
+      if (null != rpcMetadata) {
+        builder.setMetadata(rpcMetadata.serialize());
+      }
+
+      return builder.setConnectionId(connectionId).setStatementId(statementId).build();
+    }
+  }
 }
 
 // End Service.java

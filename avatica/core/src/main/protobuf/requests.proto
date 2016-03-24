@@ -143,3 +143,21 @@ message CommitRequest {
 message RollbackRequest {
   string connection_id = 1;
 }
+
+// Request to prepare and execute a collection of sql statements.
+message PrepareAndExecuteBatchRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  repeated string sql_commands = 3;
+}
+
+// Each command is a list of TypedValues
+message UpdateBatch {
+  repeated TypedValue parameter_values = 1;
+}
+
+message ExecuteBatchRequest {
+  string connection_id = 1;
+  uint32 statement_id = 2;
+  repeated UpdateBatch updates = 3; // A batch of updates is a list<list<typevalue>>
+}

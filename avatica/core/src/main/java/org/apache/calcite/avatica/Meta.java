@@ -228,6 +228,24 @@ public interface Meta {
   ExecuteResult prepareAndExecute(StatementHandle h, String sql,
       long maxRowCount, PrepareCallback callback) throws NoSuchStatementException;
 
+  /** Prepares a statement and then executes a number of SQL commands in one pass.
+   *
+   * @param h Statement handle
+   * @param sqlCommands SQL commands to run
+   * @return An array of update counts containing one element for each command in the batch.
+   */
+  ExecuteBatchResult prepareAndExecuteBatch(StatementHandle h, List<String> sqlCommands)
+      throws NoSuchStatementException;
+
+  /** Executes a collection of bound parameter values on a prepared statement.
+   *
+   * @param h Statement handle
+   * @param parameterValues A collection of list of typed values, one list per batch
+   * @return An array of update counts containing one element for each command in the batch.
+   */
+  ExecuteBatchResult executeBatch(StatementHandle h, List<List<TypedValue>> parameterValues)
+      throws NoSuchStatementException;
+
   /** Returns a frame of rows.
    *
    * <p>The frame describes whether there may be another frame. If there is not
@@ -421,6 +439,17 @@ public interface Meta {
 
     public ExecuteResult(List<MetaResultSet> resultSets) {
       this.resultSets = resultSets;
+    }
+  }
+
+  /**
+   * Response from a collection of SQL commands or parameter values in a single batch.
+   */
+  class ExecuteBatchResult {
+    public final int[] updateCounts;
+
+    public ExecuteBatchResult(int[] updateCounts) {
+      this.updateCounts = Objects.requireNonNull(updateCounts);
     }
   }
 

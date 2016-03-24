@@ -129,6 +129,14 @@ public class JsonHandlerTest {
     @Override public RollbackResponse apply(RollbackRequest request) {
       return null;
     }
+
+    @Override public ExecuteBatchResponse apply(ExecuteBatchRequest request) {
+      return null;
+    }
+
+    @Override public ExecuteBatchResponse apply(PrepareAndExecuteBatchRequest request) {
+      return null;
+    }
   }
 
   /**
