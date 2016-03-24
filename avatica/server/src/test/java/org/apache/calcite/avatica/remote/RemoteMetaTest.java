@@ -263,20 +263,25 @@ public class RemoteMetaTest {
   }
 
   @Test public void testRemoteStatementInsert() throws Exception {
-    final String t = AvaticaUtils.unique("TEST_TABLE2");
-    AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
-    Statement statement = conn.createStatement();
-    final String create =
-        String.format("create table if not exists %s ("
-            + "  id int not null, msg varchar(255) not null)", t);
-    int status = statement.executeUpdate(create);
-    assertEquals(status, 0);
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      final String t = AvaticaUtils.unique("TEST_TABLE2");
+      AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
+      Statement statement = conn.createStatement();
+      final String create =
+          String.format("create table if not exists %s ("
+              + "  id int not null, msg varchar(255) not null)", t);
+      int status = statement.executeUpdate(create);
+      assertEquals(status, 0);
 
-    statement = conn.createStatement();
-    final String update = String.format("insert into %s values ('%d', '%s')",
-        t, RANDOM.nextInt(Integer.MAX_VALUE), UUID.randomUUID());
-    status = statement.executeUpdate(update);
-    assertEquals(status, 1);
+      statement = conn.createStatement();
+      final String update = String.format("insert into %s values ('%d', '%s')",
+          t, RANDOM.nextInt(Integer.MAX_VALUE), UUID.randomUUID());
+      status = statement.executeUpdate(update);
+      assertEquals(status, 1);
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
   }
 
   @Test public void testBigints() throws Exception {
@@ -315,27 +320,32 @@ public class RemoteMetaTest {
   }
 
   @Test public void testRemoteConnectionsAreDifferent() throws SQLException {
-    Connection conn1 = DriverManager.getConnection(url);
-    Statement stmt = conn1.createStatement();
-    stmt.execute("DECLARE LOCAL TEMPORARY TABLE"
-        + " buffer (id INTEGER PRIMARY KEY, textdata VARCHAR(100))");
-    stmt.execute("insert into buffer(id, textdata) values(1, 'abc')");
-    stmt.executeQuery("select * from buffer");
-
-    // The local temporary table is local to the connection above, and should
-    // not be visible on another connection
-    Connection conn2 = DriverManager.getConnection(url);
-    Statement stmt2 = conn2.createStatement();
+    ConnectionSpec.getDatabaseLock().lock();
     try {
-      stmt2.executeQuery("select * from buffer");
-      fail("expected exception");
-    } catch (Exception e) {
-      assertEquals("Error -1 (00000) : Error while executing SQL \"select * from buffer\": "
-          + "Remote driver error: RuntimeException: java.sql.SQLSyntaxErrorException: "
-          + "user lacks privilege or object not found: BUFFER -> "
-          + "SQLSyntaxErrorException: user lacks privilege or object not found: BUFFER -> "
-          + "HsqlException: user lacks privilege or object not found: BUFFER",
-          e.getMessage());
+      Connection conn1 = DriverManager.getConnection(url);
+      Statement stmt = conn1.createStatement();
+      stmt.execute("DECLARE LOCAL TEMPORARY TABLE"
+          + " buffer (id INTEGER PRIMARY KEY, textdata VARCHAR(100))");
+      stmt.execute("insert into buffer(id, textdata) values(1, 'abc')");
+      stmt.executeQuery("select * from buffer");
+
+      // The local temporary table is local to the connection above, and should
+      // not be visible on another connection
+      Connection conn2 = DriverManager.getConnection(url);
+      Statement stmt2 = conn2.createStatement();
+      try {
+        stmt2.executeQuery("select * from buffer");
+        fail("expected exception");
+      } catch (Exception e) {
+        assertEquals("Error -1 (00000) : Error while executing SQL \"select * from buffer\": "
+            + "Remote driver error: RuntimeException: java.sql.SQLSyntaxErrorException: "
+            + "user lacks privilege or object not found: BUFFER -> "
+            + "SQLSyntaxErrorException: user lacks privilege or object not found: BUFFER -> "
+            + "HsqlException: user lacks privilege or object not found: BUFFER",
+            e.getMessage());
+      }
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
   }
 
@@ -382,20 +392,26 @@ public class RemoteMetaTest {
   }
 
   @Test public void testRemoteColumnsMeta() throws Exception {
-    // Verify all columns are retrieved, thus that frame-based fetching works correctly for columns
-    int rowCount = 0;
-    try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
-      ResultSet rs = conn.getMetaData().getColumns(null, null, null, null);
-      while (rs.next()) {
-        rowCount++;
-      }
-      rs.close();
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      // Verify all columns are retrieved, thus that frame-based fetching works correctly
+      // for columns
+      int rowCount = 0;
+      try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
+        ResultSet rs = conn.getMetaData().getColumns(null, null, null, null);
+        while (rs.next()) {
+          rowCount++;
+        }
+        rs.close();
 
-      // The implicitly created statement should have been closed
-      assertTrue(rs.getStatement().isClosed());
+        // The implicitly created statement should have been closed
+        assertTrue(rs.getStatement().isClosed());
+      }
+      // default fetch size is 100, we are well beyond it
+      assertTrue(rowCount > 900);
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
     }
-    // default fetch size is 100, we are well beyond it
-    assertTrue(rowCount > 900);
   }
 
   @Test public void testArrays() throws SQLException {
