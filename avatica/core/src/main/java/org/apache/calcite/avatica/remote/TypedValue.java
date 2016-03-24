@@ -555,7 +555,7 @@ public class TypedValue {
 
   /**
    * Extracts the JDBC value from protobuf-TypedValue representation.
-   * 
+   *
    * @param protoValue Protobuf TypedValue
    * @param calendar Instance of a calendar
    * @return The JDBC representation of this TypedValue
