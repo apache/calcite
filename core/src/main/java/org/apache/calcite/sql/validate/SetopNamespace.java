@@ -102,7 +102,7 @@ public class SetopNamespace extends AbstractNamespace {
         }
         validator.validateQuery(operand, scope);
       }
-      return call.getOperator().validateOperands(
+      return call.getOperator().deriveType(
           validator,
           scope,
           call);
