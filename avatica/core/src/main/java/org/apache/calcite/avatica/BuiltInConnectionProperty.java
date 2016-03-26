@@ -19,8 +19,10 @@ package org.apache.calcite.avatica;
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactoryImpl;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
 import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
@@ -47,6 +49,12 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   /** The type of authentication to be used */
   AUTHENTICATION("authentication", Type.STRING, null, false),
 
+  /** Avatica-based authentication user name */
+  AVATICA_USER("avatica_user", Type.STRING, null, false),
+
+  /** Avatica-based authentication password */
+  AVATICA_PASSWORD("avatica_password", Type.STRING, null, false),
+
   /** Factory for constructing http clients. */
   HTTP_CLIENT_FACTORY("httpclient_factory", Type.PLUGIN,
       AvaticaHttpClientFactoryImpl.class.getName(), false),
@@ -64,12 +72,18 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   public static final BuiltInConnectionProperty TIMEZONE = TIME_ZONE;
 
   private static final Map<String, BuiltInConnectionProperty> NAME_TO_PROPS;
+  private static final Set<String> LOCAL_PROPS;
 
   static {
     NAME_TO_PROPS = new HashMap<>();
     for (BuiltInConnectionProperty p : BuiltInConnectionProperty.values()) {
       NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
       NAME_TO_PROPS.put(p.name(), p);
+    }
+
+    LOCAL_PROPS = new HashSet<>();
+    for (BuiltInConnectionProperty p : BuiltInConnectionProperty.values()) {
+      LOCAL_PROPS.add(p.camelName());
     }
   }
 
@@ -100,6 +114,18 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
 
   public PropEnv wrap(Properties properties) {
     return new PropEnv(parse(properties, NAME_TO_PROPS), this);
+  }
+
+  /**
+   * Checks if the given property only applicable to the remote driver (should not be sent to the
+   * Avatica server).
+   *
+   * @param propertyName Name of the property
+   * @return True if the property denoted by the given name is only relevant locally, otherwise
+   *    false.
+   */
+  public static boolean isLocalProperty(Object propertyName) {
+    return LOCAL_PROPS.contains(propertyName);
   }
 }
 

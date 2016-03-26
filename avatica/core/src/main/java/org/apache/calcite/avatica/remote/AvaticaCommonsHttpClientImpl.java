@@ -16,19 +16,27 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import org.apache.http.ConnectionReuseStrategy;
-import org.apache.http.HttpClientConnection;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthSchemeProvider;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.AuthSchemes;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.protocol.RequestExpectContinue;
+import org.apache.http.config.Lookup;
+import org.apache.http.config.RegistryBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.impl.DefaultConnectionReuseStrategy;
-import org.apache.http.impl.pool.BasicConnFactory;
-import org.apache.http.impl.pool.BasicConnPool;
-import org.apache.http.impl.pool.BasicPoolEntry;
-import org.apache.http.message.BasicHttpEntityEnclosingRequest;
+import org.apache.http.impl.auth.BasicSchemeFactory;
+import org.apache.http.impl.auth.DigestSchemeFactory;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
 import org.apache.http.protocol.HttpRequestExecutor;
@@ -41,31 +49,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.concurrent.Future;
+import java.util.Objects;
 
 /**
  * A common class to invoke HTTP requests against the Avatica server agnostic of the data being
  * sent and received across the wire.
  */
-public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient {
+public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
+    UsernamePasswordAuthenticateable {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaCommonsHttpClientImpl.class);
-  private static final ConnectionReuseStrategy REUSE = DefaultConnectionReuseStrategy.INSTANCE;
 
   // Some basic exposed configurations
   private static final String MAX_POOLED_CONNECTION_PER_ROUTE_KEY =
       "avatica.pooled.connections.per.route";
-  private static final String MAX_POOLED_CONNECTION_PER_ROUTE_DEFAULT = "4";
+  private static final String MAX_POOLED_CONNECTION_PER_ROUTE_DEFAULT = "25";
   private static final String MAX_POOLED_CONNECTIONS_KEY = "avatica.pooled.connections.max";
-  private static final String MAX_POOLED_CONNECTIONS_DEFAULT = "16";
+  private static final String MAX_POOLED_CONNECTIONS_DEFAULT = "100";
 
   protected final HttpHost host;
+  protected final URL url;
   protected final HttpProcessor httpProcessor;
   protected final HttpRequestExecutor httpExecutor;
-  protected final BasicConnPool httpPool;
+  protected final BasicAuthCache authCache;
+  protected final CloseableHttpClient client;
+  final PoolingHttpClientConnectionManager pool;
+
+  protected UsernamePasswordCredentials credentials = null;
+  protected CredentialsProvider credentialsProvider = null;
+  protected Lookup<AuthSchemeProvider> authRegistry = null;
 
   public AvaticaCommonsHttpClientImpl(URL url) {
     this.host = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
+    this.url = Objects.requireNonNull(url);
 
     this.httpProcessor = HttpProcessorBuilder.create()
         .add(new RequestContent())
@@ -75,64 +93,84 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient {
 
     this.httpExecutor = new HttpRequestExecutor();
 
-    this.httpPool = new BasicConnPool(new BasicConnFactory());
-    int maxPerRoute = Integer.parseInt(
-        System.getProperty(MAX_POOLED_CONNECTION_PER_ROUTE_KEY,
-            MAX_POOLED_CONNECTION_PER_ROUTE_DEFAULT));
-    int maxTotal = Integer.parseInt(
+    pool = new PoolingHttpClientConnectionManager();
+    // Increase max total connection to 100
+    final String maxCnxns =
         System.getProperty(MAX_POOLED_CONNECTIONS_KEY,
-            MAX_POOLED_CONNECTIONS_DEFAULT));
-    httpPool.setDefaultMaxPerRoute(maxPerRoute);
-    httpPool.setMaxTotal(maxTotal);
+            MAX_POOLED_CONNECTIONS_DEFAULT);
+    pool.setMaxTotal(Integer.parseInt(maxCnxns));
+    // Increase default max connection per route to 25
+    final String maxCnxnsPerRoute = System.getProperty(MAX_POOLED_CONNECTION_PER_ROUTE_KEY,
+        MAX_POOLED_CONNECTION_PER_ROUTE_DEFAULT);
+    pool.setDefaultMaxPerRoute(Integer.parseInt(maxCnxnsPerRoute));
+
+    this.authCache = new BasicAuthCache();
+
+    // A single thread-safe HttpClient, pooling connections via the ConnectionManager
+    this.client = HttpClients.custom().setConnectionManager(pool).build();
   }
 
   public byte[] send(byte[] request) {
-    while (true) {
-      boolean reusable = false;
-      // Get a connection from the pool
-      Future<BasicPoolEntry> future = this.httpPool.lease(host, null);
-      BasicPoolEntry entry = null;
-      try {
-        entry = future.get();
-        HttpClientContext context = HttpClientContext.create();
+    HttpClientContext context = HttpClientContext.create();
 
-        context.setTargetHost(host);
+    context.setTargetHost(host);
 
-        HttpClientConnection conn = entry.getConnection();
+    // Set the credentials if they were provided.
+    if (null != this.credentials) {
+      context.setCredentialsProvider(credentialsProvider);
+      context.setAuthSchemeRegistry(authRegistry);
+      context.setAuthCache(authCache);
+    }
 
-        ByteArrayEntity entity = new ByteArrayEntity(request, ContentType.APPLICATION_OCTET_STREAM);
+    ByteArrayEntity entity = new ByteArrayEntity(request, ContentType.APPLICATION_OCTET_STREAM);
 
-        BasicHttpEntityEnclosingRequest postRequest =
-            new BasicHttpEntityEnclosingRequest("POST", "/");
-        postRequest.setEntity(entity);
+    // Create the client with the AuthSchemeRegistry and manager
+    HttpPost post = new HttpPost(toURI(url));
+    post.setEntity(entity);
 
-        httpExecutor.preProcess(postRequest, httpProcessor, context);
-        HttpResponse response = httpExecutor.execute(postRequest, conn, context);
-        httpExecutor.postProcess(response, httpProcessor, context);
-
-        // Should the connection be kept alive?
-        reusable = REUSE.keepAlive(response, context);
-
-        final int statusCode = response.getStatusLine().getStatusCode();
-        if (HttpURLConnection.HTTP_UNAVAILABLE == statusCode) {
-          // Could be sitting behind a load-balancer, try again.
-          continue;
-        }
-
-        // HTTP-200 and HTTP-500 should both contain Avatica messages.
-        if (HttpURLConnection.HTTP_OK == statusCode
-            || HttpURLConnection.HTTP_INTERNAL_ERROR == statusCode) {
-          return EntityUtils.toByteArray(response.getEntity());
-        }
-
-        throw new RuntimeException("Failed to execute HTTP Request, got HTTP/" + statusCode);
-      } catch (Exception e) {
-        LOG.debug("Failed to execute HTTP request", e);
-        throw new RuntimeException(e);
-      } finally {
-        // Release the connection back to the pool, marking if it's good to reuse or not.
-        httpPool.release(entry, reusable);
+    try (CloseableHttpResponse response = client.execute(post, context)) {
+      final int statusCode = response.getStatusLine().getStatusCode();
+      if (HttpURLConnection.HTTP_OK == statusCode
+          || HttpURLConnection.HTTP_INTERNAL_ERROR == statusCode) {
+        return EntityUtils.toByteArray(response.getEntity());
       }
+
+      throw new RuntimeException("Failed to execute HTTP Request, got HTTP/" + statusCode);
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      LOG.debug("Failed to execute HTTP request", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override public void setUsernamePassword(AuthenticationType authType, String username,
+      String password) {
+    this.credentials = new UsernamePasswordCredentials(
+        Objects.requireNonNull(username), Objects.requireNonNull(password));
+
+    this.credentialsProvider = new BasicCredentialsProvider();
+    credentialsProvider.setCredentials(AuthScope.ANY, credentials);
+
+    RegistryBuilder<AuthSchemeProvider> authRegistryBuilder = RegistryBuilder.create();
+    switch (authType) {
+    case BASIC:
+      authRegistryBuilder.register(AuthSchemes.BASIC, new BasicSchemeFactory());
+      break;
+    case DIGEST:
+      authRegistryBuilder.register(AuthSchemes.DIGEST, new DigestSchemeFactory());
+      break;
+    default:
+      throw new IllegalArgumentException("Unsupported authentiation type: " + authType);
+    }
+    this.authRegistry = authRegistryBuilder.build();
+  }
+
+  private static URI toURI(URL url) throws RuntimeException {
+    try {
+      return url.toURI();
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
     }
   }
 }

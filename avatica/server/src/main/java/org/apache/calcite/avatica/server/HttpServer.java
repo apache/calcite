@@ -17,12 +17,18 @@
 package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.metrics.MetricsSystemConfiguration;
+import org.apache.calcite.avatica.remote.AuthenticationType;
 import org.apache.calcite.avatica.remote.Driver.Serialization;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
+import org.eclipse.jetty.security.Authenticator;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.security.HashLoginService;
+import org.eclipse.jetty.security.LoginService;
+import org.eclipse.jetty.security.authentication.BasicAuthenticator;
+import org.eclipse.jetty.security.authentication.DigestAuthenticator;
 import org.eclipse.jetty.security.authentication.SpnegoAuthenticator;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -153,13 +159,19 @@ public class HttpServer {
     server.manage(threadPool);
 
     final ServerConnector connector = configureConnector(new ServerConnector(server), port);
-    ConstraintSecurityHandler spnegoHandler = null;
+    ConstraintSecurityHandler securityHandler = null;
 
     if (null != this.config) {
       switch (config.getAuthenticationType()) {
       case SPNEGO:
         // Get the Handler for SPNEGO authentication
-        spnegoHandler = configureSpnego(server, connector, this.config);
+        securityHandler = configureSpnego(server, connector, this.config);
+        break;
+      case BASIC:
+        securityHandler = configureBasicAuthentication(server, connector, config);
+        break;
+      case DIGEST:
+        securityHandler = configureDigestAuthentication(server, connector, config);
         break;
       default:
         // Pass
@@ -173,10 +185,10 @@ public class HttpServer {
     final HandlerList handlerList = new HandlerList();
     Handler avaticaHandler = handler;
 
-    // Wrap the provided handler for SPNEGO if we made one
-    if (null != spnegoHandler) {
-      spnegoHandler.setHandler(handler);
-      avaticaHandler = spnegoHandler;
+    // Wrap the provided handler for security if we made one
+    if (null != securityHandler) {
+      securityHandler.setHandler(handler);
+      avaticaHandler = securityHandler;
     }
 
     handlerList.setHandlers(new Handler[] {avaticaHandler, new DefaultHandler()});
@@ -225,9 +237,49 @@ public class HttpServer {
     final String realm = Objects.requireNonNull(config.getKerberosRealm());
     final String principal = Objects.requireNonNull(config.getKerberosPrincipal());
 
+    // A customization of SpnegoLoginService to explicitly set the server's principal, otherwise
+    // we would have to require a custom file to set the server's principal.
+    PropertyBasedSpnegoLoginService spnegoLoginService =
+        new PropertyBasedSpnegoLoginService(realm, principal);
+
+    return configureCommonAuthentication(server, connector, config, Constraint.__SPNEGO_AUTH,
+        new String[] {realm}, new SpnegoAuthenticator(), realm, spnegoLoginService);
+  }
+
+  protected ConstraintSecurityHandler configureBasicAuthentication(Server server,
+      ServerConnector connector, AvaticaServerConfiguration config) {
+    final String[] allowedRoles = config.getAllowedRoles();
+    final String realm = config.getHashLoginServiceRealm();
+    final String loginServiceProperties = config.getHashLoginServiceProperties();
+
+    HashLoginService loginService = new HashLoginService(realm, loginServiceProperties);
+    server.addBean(loginService);
+
+    return configureCommonAuthentication(server, connector, config, Constraint.__BASIC_AUTH,
+        allowedRoles, new BasicAuthenticator(), null, loginService);
+  }
+
+  protected ConstraintSecurityHandler configureDigestAuthentication(Server server,
+      ServerConnector connector, AvaticaServerConfiguration config) {
+    final String[] allowedRoles = config.getAllowedRoles();
+    final String realm = config.getHashLoginServiceRealm();
+    final String loginServiceProperties = config.getHashLoginServiceProperties();
+
+    HashLoginService loginService = new HashLoginService(realm, loginServiceProperties);
+    server.addBean(loginService);
+
+    return configureCommonAuthentication(server, connector, config, Constraint.__DIGEST_AUTH,
+        allowedRoles, new DigestAuthenticator(), null, loginService);
+  }
+
+  protected ConstraintSecurityHandler configureCommonAuthentication(Server server,
+      ServerConnector connector, AvaticaServerConfiguration config, String constraintName,
+      String[] allowedRoles, Authenticator authenticator, String realm,
+      LoginService loginService) {
+
     Constraint constraint = new Constraint();
-    constraint.setName(Constraint.__SPNEGO_AUTH);
-    constraint.setRoles(new String[]{realm});
+    constraint.setName(constraintName);
+    constraint.setRoles(allowedRoles);
     // This is telling Jetty to not allow unauthenticated requests through (very important!)
     constraint.setAuthenticate(true);
 
@@ -235,14 +287,9 @@ public class HttpServer {
     cm.setConstraint(constraint);
     cm.setPathSpec("/*");
 
-    // A customization of SpnegoLoginService to explicitly set the server's principal, otherwise
-    // we would have to require a custom file to set the server's principal.
-    PropertyBasedSpnegoLoginService spnegoLoginService =
-        new PropertyBasedSpnegoLoginService(realm, principal);
-
     ConstraintSecurityHandler sh = new ConstraintSecurityHandler();
-    sh.setAuthenticator(new SpnegoAuthenticator());
-    sh.setLoginService(spnegoLoginService);
+    sh.setAuthenticator(authenticator);
+    sh.setLoginService(loginService);
     sh.setConstraintMappings(new ConstraintMapping[]{cm});
     sh.setRealmName(realm);
 
@@ -312,6 +359,10 @@ public class HttpServer {
 
     private DoAsRemoteUserCallback remoteUserCallback;
 
+    private String loginServiceRealm;
+    private String loginServiceProperties;
+    private String[] loginServiceAllowedRoles;
+
     public Builder() {}
 
     public Builder withPort(int port) {
@@ -358,7 +409,8 @@ public class HttpServer {
 
     /**
      * Configures the server to use SPNEGO authentication. This method requires that the
-     * <code>principal</code> contains the Kerberos realm.
+     * <code>principal</code> contains the Kerberos realm. Invoking this method overrides any
+     * previous call which configures authentication.
      *
      * @param principal A kerberos principal with the realm required.
      * @return <code>this</code>
@@ -377,7 +429,8 @@ public class HttpServer {
      * Configures the server to use SPNEGO authentication. It is required that callers are logged
      * in via Kerberos already or have provided the necessary configuration to automatically log
      * in via JAAS (using the <code>java.security.auth.login.config</code> system property) before
-     * starting the {@link HttpServer}.
+     * starting the {@link HttpServer}. Invoking this method overrides any previous call which
+     * configures authentication.
      *
      * @param principal The kerberos principal
      * @param realm The kerberos realm
@@ -414,6 +467,45 @@ public class HttpServer {
     }
 
     /**
+     * Configures the server to use HTTP Basic authentication. The <code>properties</code> must
+     * be in a form consumable by Jetty. Invoking this method overrides any previous call which
+     * configures authentication. This authentication is supplementary to the JDBC-provided user
+     * authentication interfaces and should only be used when those interfaces are not used.
+     *
+     * @param properties Location of a properties file parseable by Jetty which contains users and
+     *     passwords.
+     * @param allowedRoles An array of allowed roles in the properties file
+     * @return <code>this</code>
+     */
+    public Builder withBasicAuthentication(String properties, String[] allowedRoles) {
+      return withAuthentication(AuthenticationType.BASIC, properties, allowedRoles);
+    }
+
+    /**
+     * Configures the server to use HTTP Digest authentication. The <code>properties</code> must
+     * be in a form consumable by Jetty. Invoking this method overrides any previous call which
+     * configures authentication. This authentication is supplementary to the JDBC-provided user
+     * authentication interfaces and should only be used when those interfaces are not used.
+     *
+     * @param properties Location of a properties file parseable by Jetty which contains users and
+     *     passwords.
+     * @param allowedRoles An array of allowed roles in the properties file
+     * @return <code>this</code>
+     */
+    public Builder withDigestAuthentication(String properties, String[] allowedRoles) {
+      return withAuthentication(AuthenticationType.DIGEST, properties, allowedRoles);
+    }
+
+    private Builder withAuthentication(AuthenticationType authType, String properties,
+        String[] allowedRoles) {
+      this.loginServiceRealm = "Avatica";
+      this.authenticationType = authType;
+      this.loginServiceProperties = Objects.requireNonNull(properties);
+      this.loginServiceAllowedRoles = Objects.requireNonNull(allowedRoles);
+      return this;
+    }
+
+    /**
      * Builds the HttpServer instance from <code>this</code>.
      * @return An HttpServer.
      */
@@ -423,6 +515,12 @@ public class HttpServer {
       switch (authenticationType) {
       case NONE:
         serverConfig = null;
+        subject = null;
+        break;
+      case BASIC:
+      case DIGEST:
+        // Build the configuration for BASIC or DIGEST authentication.
+        serverConfig = buildUserAuthenticationConfiguration(this);
         subject = null;
         break;
       case SPNEGO:
@@ -492,6 +590,62 @@ public class HttpServer {
         @Override public <T> T doAsRemoteUser(String remoteUserName, String remoteAddress,
             Callable<T> action) throws Exception {
           return callback.doAsRemoteUser(remoteUserName, remoteAddress, action);
+        }
+
+        @Override public String[] getAllowedRoles() {
+          return null;
+        }
+
+        @Override public String getHashLoginServiceRealm() {
+          return null;
+        }
+
+        @Override public String getHashLoginServiceProperties() {
+          return null;
+        }
+      };
+    }
+
+    private AvaticaServerConfiguration buildUserAuthenticationConfiguration(Builder b) {
+      final AuthenticationType authType = b.authenticationType;
+      final String[] allowedRoles = b.loginServiceAllowedRoles;
+      final String realm = b.loginServiceRealm;
+      final String properties = b.loginServiceProperties;
+
+      return new AvaticaServerConfiguration() {
+        @Override public AuthenticationType getAuthenticationType() {
+          return authType;
+        }
+
+        @Override public String[] getAllowedRoles() {
+          return allowedRoles;
+        }
+
+        @Override public String getHashLoginServiceRealm() {
+          return realm;
+        }
+
+        @Override public String getHashLoginServiceProperties() {
+          return properties;
+        }
+
+        // Unused
+
+        @Override public String getKerberosRealm() {
+          return null;
+        }
+
+        @Override public String getKerberosPrincipal() {
+          return null;
+        }
+
+        @Override public boolean supportsImpersonation() {
+          return false;
+        }
+
+        @Override public <T> T doAsRemoteUser(String remoteUserName, String remoteAddress,
+            Callable<T> action) throws Exception {
+          return null;
         }
       };
     }

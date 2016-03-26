@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.server;
 
+import org.apache.calcite.avatica.remote.AuthenticationType;
+
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Before;

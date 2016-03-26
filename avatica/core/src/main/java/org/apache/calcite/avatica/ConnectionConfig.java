@@ -35,6 +35,10 @@ public interface ConnectionConfig {
   String serialization();
   /** @see BuiltInConnectionProperty#AUTHENTICATION */
   String authentication();
+  /** @see BuiltInConnectionProperty#AVATICA_USER */
+  String avaticaUser();
+  /** @see BuiltInConnectionProperty#AVATICA_PASSWORD */
+  String avaticaPassword();
   AvaticaHttpClientFactory httpClientFactory();
   String httpClientClass();
 }

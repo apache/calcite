@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.server;
 
+import org.apache.calcite.avatica.remote.AuthenticationType;
+
 import java.util.concurrent.Callable;
 
 /**
@@ -43,6 +45,34 @@ public interface AvaticaServerConfiguration {
    * @return A Kerberos principal, or null if not applicable.
    */
   String getKerberosPrincipal();
+
+  /**
+   * Returns the array of allowed roles for login. Only applicable when
+   * {@link #getAuthenticationType()} returns {@link AuthenticationType#BASIC} or
+   * {@link AuthenticationType#DIGEST}.
+   *
+   * @return An array of allowed login roles, or null.
+   */
+  String[] getAllowedRoles();
+
+  /**
+   * Returns the name of the realm to use in coordination with the properties files specified
+   * by {@link #getHashLoginServiceProperties()}. Only applicable when
+   * {@link #getAuthenticationType()} returns {@link AuthenticationType#BASIC} or
+   * {@link AuthenticationType#DIGEST}.
+   *
+   * @return A realm for the HashLoginService, or null.
+   */
+  String getHashLoginServiceRealm();
+
+  /**
+   * Returns the path to a properties file that contains users and realms. Only applicable when
+   * {@link #getAuthenticationType()} returns {@link AuthenticationType#BASIC} or
+   * {@link AuthenticationType#DIGEST}.
+   *
+   * @return A realm for the HashLoginService, or null.
+   */
+  String getHashLoginServiceProperties();
 
   /**
    * Returns true if the Avatica server should run user requests at that remote user. Otherwise,

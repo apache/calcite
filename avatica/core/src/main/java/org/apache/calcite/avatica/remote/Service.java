@@ -1706,15 +1706,7 @@ public interface Service {
       Map<String, String> infoAsString = new HashMap<>();
       for (Map.Entry<Object, Object> entry : props.entrySet()) {
         // Determine if this is a property we want to forward to the server
-        boolean localProperty = false;
-        for (BuiltInConnectionProperty prop : BuiltInConnectionProperty.values()) {
-          if (prop.camelName().equals(entry.getKey())) {
-            localProperty = true;
-            break;
-          }
-        }
-
-        if (!localProperty) {
+        if (!BuiltInConnectionProperty.isLocalProperty(entry.getKey())) {
           infoAsString.put(entry.getKey().toString(), entry.getValue().toString());
         }
       }

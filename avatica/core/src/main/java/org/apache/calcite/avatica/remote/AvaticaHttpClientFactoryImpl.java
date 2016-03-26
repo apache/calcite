@@ -18,6 +18,9 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.ConnectionConfig;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Objects;
@@ -27,6 +30,8 @@ import java.util.Objects;
  * from a property.
  */
 public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
+  private static final Logger LOG = LoggerFactory.getLogger(AvaticaHttpClientFactoryImpl.class);
+
   public static final String HTTP_CLIENT_IMPL_DEFAULT =
       AvaticaCommonsHttpClientImpl.class.getName();
   public static final String SPNEGO_HTTP_CLIENT_IMPL_DEFAULT =
@@ -58,6 +63,36 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
       }
     }
 
+    AvaticaHttpClient client = instantiateClient(className, url);
+
+    if (client instanceof UsernamePasswordAuthenticateable) {
+      // Shortcircuit quickly if authentication wasn't provided (implies NONE)
+      final String authString = config.authentication();
+      if (null == authString) {
+        return client;
+      }
+
+      final AuthenticationType authType = AuthenticationType.valueOf(authString);
+      final String username = config.avaticaUser();
+      final String password = config.avaticaPassword();
+
+      // Can't authenticate with NONE or w/o username and password
+      if (isUserPasswordAuth(authType)) {
+        if (null != username && null != password) {
+          ((UsernamePasswordAuthenticateable) client)
+              .setUsernamePassword(authType, username, password);
+        } else {
+          LOG.debug("Username or password was null");
+        }
+      } else {
+        LOG.debug("{} is not capable of username/password authentication.", authType);
+      }
+    }
+
+    return client;
+  }
+
+  private AvaticaHttpClient instantiateClient(String className, URL url) {
     try {
       Class<?> clz = Class.forName(className);
       Constructor<?> constructor = clz.getConstructor(URL.class);
@@ -67,6 +102,10 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
       throw new RuntimeException("Failed to construct AvaticaHttpClient implementation "
           + className, e);
     }
+  }
+
+  private boolean isUserPasswordAuth(AuthenticationType authType) {
+    return AuthenticationType.BASIC == authType || AuthenticationType.DIGEST == authType;
   }
 }
 

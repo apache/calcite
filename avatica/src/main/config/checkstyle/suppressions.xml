@@ -29,6 +29,7 @@ limitations under the License.
   <suppress checks=".*" files="release.properties"/>
   <suppress checks=".*" files="core[/\\]src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]calcite[/\\]avatica[/\\]proto"/>
   <suppress checks=".*" files="log4j.properties"/>
+  <suppress checks=".*" files="auth-users.properties"/>
 
   <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
        through no fault of its own. -->

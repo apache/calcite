@@ -56,6 +56,14 @@ public class ConnectionConfigImpl implements ConnectionConfig {
     return BuiltInConnectionProperty.AUTHENTICATION.wrap(properties).getString();
   }
 
+  public String avaticaUser() {
+    return BuiltInConnectionProperty.AVATICA_USER.wrap(properties).getString();
+  }
+
+  public String avaticaPassword() {
+    return BuiltInConnectionProperty.AVATICA_PASSWORD.wrap(properties).getString();
+  }
+
   public AvaticaHttpClientFactory httpClientFactory() {
     return BuiltInConnectionProperty.HTTP_CLIENT_FACTORY.wrap(properties)
         .getPlugin(AvaticaHttpClientFactory.class, null);

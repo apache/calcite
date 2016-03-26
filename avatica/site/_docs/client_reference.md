@@ -35,7 +35,13 @@ As a reminder, the JDBC connection URL for Avatica is:
 
 The following are a list of supported options:
 
-**url**
+{% comment %}
+It's a shame that we have to embed HTML to get the anchors but the normal
+header tags from kramdown screw up the definition list. We lose the pretty
+on-hover images for the permalink, but oh well.
+{% endcomment %}
+
+<strong><a name="url" href="#url">url</a></strong>
 
 : _Description_: This property is a URL which refers to the location of the
   Avatica Server which the driver will communicate with.
@@ -46,7 +52,7 @@ The following are a list of supported options:
 : _Required_: Yes.
 
 
-**serialization**
+<strong><a name="serialization" href="#serialization">serialization</a></strong>
 
 : _Description_: Avatica supports multiple types of serialization mechanisms
   to format data between the client and server. This property is used to ensure
@@ -58,19 +64,19 @@ The following are a list of supported options:
 : _Required_: No.
 
 
-**authentication**
+<strong><a name="authentication" href="#authentication">authentication</a></strong>
 
 : _Description_: Avatica clients can specify the means in which it authenticates
-  with the Avatica server. Presently, the only form of authentication is SPNEGO
-  which enables Kerberos authentication. Clients who want to use a specific form
-  of authentication should specify the appropriate value in this property.
+  with the Avatica server. Clients who want to use a specific form
+  of authentication should specify the appropriate value in this property. Valid
+  values for this property are presently: `NONE`, `BASIC`, `DIGEST`, and `SPNEGO`.
 
-: _Default_: `null` (implying "no authentication").
+: _Default_: `null` (implying "no authentication", equivalent to `NONE`).
 
 : _Required_: No.
 
 
-**timeZone**
+<strong><a name="timeZone" href="#timeZone">timeZone</a></strong>
 
 : _Description_: The timezone that will be used for dates and times. Valid values for this
   property are defined by [RFC 822](https://www.ietf.org/rfc/rfc0822.txt), for
@@ -83,7 +89,7 @@ The following are a list of supported options:
 : _Required_: No.
 
 
-**httpclient_factory**
+<strong><a name="httpclient-factory" href="#httpclient-factory">httpclient_factory</a></strong>
 
 : _Description_: The Avatica client is a "fancy" HTTP client. As such, there are
   many libraries and APIs available for making HTTP calls. To determine which implementation
@@ -95,13 +101,33 @@ The following are a list of supported options:
 : _Required_: No.
 
 
-**httpclient_impl**
+<strong><a name="httpclient-impl" href="#httpclient-impl">httpclient_impl</a></strong>
 
 : _Description_: When using the default `AvaticaHttpClientFactoryImpl` HTTP client factory
   implementation, this factory should choose the correct client implementation for the
   given client configuration. This property can be used to override the specific HTTP
   client implementation. If it is not provided, the `AvaticaHttpClientFactoryImpl` will
   automatically choose the HTTP client implementation.
+
+: _Default_: `null`.
+
+: _Required_: No.
+
+<strong><a name="avatica-user" href="#avatica-user">avatica_user</a></strong>
+
+: _Description_: This is the username used by an Avatica client to identify itself
+  to the Avatica server. It is unique to the traditional "user" JDBC property. It
+  is only necessary if Avatica is configured for HTTP Basic or Digest authentication.
+
+: _Default_: `null`.
+
+: _Required_: No.
+
+<strong><a name="avatica-password" href="#avatica-password">avatica_password</a></strong>
+
+: _Description_: This is the password used by an Avatica client to identify itself
+  to the Avatica server. It is unique to the traditional "password" JDBC property. It
+  is only necessary if Avatica is configured for HTTP Basic or Digest authentication.
 
 : _Default_: `null`.
 
