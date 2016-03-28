@@ -2178,6 +2178,24 @@ public class SqlParserTest {
             + "(VALUES (ROW(TRUE)))");
   }
 
+  @Test public void testDescribeSchema() {
+    check(
+        "describe schema A",
+        "DESCRIBE SCHEMA `A`");
+    check(
+        "describe database A",
+        "DESCRIBE SCHEMA `A`");
+  }
+
+  @Test public void testDescribeTable() {
+    check("describe emps",
+        "DESCRIBE `EMPS`");
+    check("describe emps col1",
+        "DESCRIBE `EMPS` `COL1`");
+    check("describe emps 'col_'",
+        "DESCRIBE `EMPS` 'col_'");
+  }
+
   @Test public void testInsertSelect() {
     check(
         "insert into emps select * from emps",

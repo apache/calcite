@@ -48,6 +48,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDescribeSchema;
+import org.apache.calcite.sql.SqlDescribeTable;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -928,6 +930,8 @@ SqlNode SqlStmt() :
         |
         stmt = SqlExplain()
         |
+        stmt = SqlDescribe()
+        |
         stmt = SqlInsert()
         |
         stmt = SqlDelete()
@@ -1123,6 +1127,41 @@ SqlExplainLevel ExplainDetailLevel() :
     {
         return level;
     }
+}
+
+/**
+* Parsers DESCRIBE statement call
+*/
+SqlNode SqlDescribe() :
+{
+   SqlParserPos pos;
+   SqlIdentifier table;
+   SqlIdentifier column = null;
+   SqlNode columnQualifier = null;
+}
+{
+(
+    <DESCRIBE> { pos = getPos(); }
+   (<SCHEMA> | <DATABASE>)
+    {
+        return new SqlDescribeSchema(pos, CompoundIdentifier());
+    }
+)
+    |
+(
+    <DESCRIBE> { pos = getPos(); }
+    table = CompoundIdentifier()
+    (
+        column = CompoundIdentifier()
+        |
+        columnQualifier = StringLiteral()
+        |
+        E()
+    )
+    {
+        return new SqlDescribeTable(pos, table, column, columnQualifier);
+    }
+)
 }
 
 /**
@@ -4838,6 +4877,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CURSOR_NAME: "CURSOR_NAME" >
     | < CYCLE: "CYCLE" >
     | < DATA: "DATA" >
+    | < DATABASE: "DATABASE" >
     | < DATE: "DATE" >
     | < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
     | < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
@@ -5340,6 +5380,7 @@ String CommonNonReservedKeyWord() :
         | <CONTINUE>
         | <CURSOR_NAME>
         | <DATA>
+        | <DATABASE>
         | <DATETIME_INTERVAL_CODE>
         | <DATETIME_INTERVAL_PRECISION>
         | <DEFAULTS>

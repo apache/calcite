@@ -34,6 +34,7 @@ statement:
       setStatement
   |   resetStatement
   |   explain
+  |   describe
   |   insert
   |   update
   |   merge
@@ -52,6 +53,10 @@ explain:
       [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
       [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
       FOR ( insert | update | merge | delete | query )
+
+describe:
+      DESCRIBE (SCHEMA | DATABASE) identifier
+   |  DESCRIBE table (column | columnQualifier)
 
 insert:
       ( INSERT | UPSERT ) INTO tablePrimary
@@ -310,6 +315,7 @@ CONTINUE,
 CURSOR_NAME,
 **CYCLE**,
 DATA,
+DATABASE,
 **DATE**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
