@@ -14,23 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica;
+package org.apache.calcite.avatica.util;
 
-import java.sql.DatabaseMetaData;
-import java.util.Properties;
-
-/**
- * Avatica additions to the JDBC {@link DatabaseMetaData} interface.
- */
-public interface AvaticaDatabaseMetaData extends DatabaseMetaData {
-
-  Properties getRemoteAvaticaProperties();
-
-  /**
-   * Retrieves the Avatica version from the server.
-   * @return A string corresponding to the server's version.
-   */
-  String getAvaticaServerVersion();
+public class FilteredConstants {
+  public static final String VERSION = "${avatica.release.version}";
 }
 
-// End AvaticaDatabaseMetaData.java
+// End FilteredConstants.java
