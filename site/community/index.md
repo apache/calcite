@@ -28,6 +28,8 @@ limitations under the License.
 
 * 2016/03/30 <a href="http://conferences.oreilly.com/strata/hadoop-big-data-ca/public/schedule/detail/48180">Strata + Hadoop World</a>, San Jose (developer showcase)
 * 2016/04/13 <a href="http://hadoopsummit.org/dublin/agenda/">Hadoop Summit</a>, Dublin
+* 2016/04/13 [Hortonworks User Group](http://www.meetup.com/Washington-DC-Hortonworks-User-Group-Meetup/events/229494421/), Baltimore
+* 2016/04/20 [Hortonworks User Group](http://www.meetup.com/Washington-DC-Hortonworks-User-Group-Meetup/events/229668371/), Herndon
 * 2016/04/26 <a href="http://kafka-summit.org/schedule/">Kafka Summit</a>, San Francisco
 * 2016/05/10 <a href="http://events.linuxfoundation.org/events/apache-big-data-north-america/program/schedule">ApacheCon Big Data North America</a>, Vancouver
 * 2016/05/24 <a href="http://www-conf.slac.stanford.edu/xldb2016/Program.asp">XLDB</a>, Palo Alto
@@ -36,7 +38,7 @@ limitations under the License.
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}  {{ c.name }} (<a href="http://people.apache.org/committer-index#{{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="http://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}http://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}  {{ c.name }} (<a href="http://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="http://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}http://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endfor %}
 
 # Mailing Lists
@@ -81,7 +83,8 @@ Need help with Calcite? Try these resources:
 
 Want to learn more about Calcite?
 
-Watch some presentations and read through some slide decks about Calcite.
+Watch some presentations and read through some slide decks about
+Calcite, or attend one of the [upcoming talks](#upcoming-talks).
 
 ## Apache Calcite: One planner fits all
 
