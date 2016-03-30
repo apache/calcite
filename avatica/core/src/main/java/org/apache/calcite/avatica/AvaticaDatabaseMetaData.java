@@ -31,7 +31,7 @@ import java.util.Properties;
  *
  * <p>Some properties defined in {@link org.apache.calcite.avatica.Meta.DatabaseProperty} do not
  * correspond to a typical JDBC method/property. Those are enumerated here:
- * <table>
+ * <table summary="Avatica-Specific Properties">
  *   <tr><th>Property</th><th>Method</th></tr>
  *   <tr><td>AVATICA_VERSION</td><td>getAvaticaServerVersion()</td></tr>
  * </table>
