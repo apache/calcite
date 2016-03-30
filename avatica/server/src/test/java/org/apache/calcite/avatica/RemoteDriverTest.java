@@ -1455,6 +1455,27 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testUnicodeColumnNames() throws Exception {
+    final String tableName = "unicodeColumn";
+    final String columnName = "НомерТелефона"; // PhoneNumber in Russian
+    ConnectionSpec.getDatabaseLock().lock();
+    try (Connection conn = getLocalConnection();
+        Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      final String sql = "CREATE TABLE " + tableName + "(" + columnName + " integer)";
+      assertFalse(stmt.execute(sql));
+      final ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      ResultSetMetaData metadata = results.getMetaData();
+      assertNotNull(metadata);
+      String actualColumnName = metadata.getColumnName(1);
+      // HSQLDB is going to upper-case the column name
+      assertEquals(columnName.toUpperCase(), actualColumnName);
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
   /**
    * Factory that creates a service based on a local JDBC connection.
    */
