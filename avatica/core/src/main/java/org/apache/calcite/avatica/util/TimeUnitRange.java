@@ -42,7 +42,13 @@ public enum TimeUnitRange {
   QUARTER(TimeUnit.QUARTER, null),
   WEEK(TimeUnit.WEEK, null),
   MILLISECOND(TimeUnit.MILLISECOND, null),
-  MICROSECOND(TimeUnit.MICROSECOND, null);
+  MICROSECOND(TimeUnit.MICROSECOND, null),
+  DOW(TimeUnit.DOW, null),
+  DOY(TimeUnit.DOY, null),
+  EPOCH(TimeUnit.EPOCH, null),
+  DECADE(TimeUnit.DECADE, null),
+  CENTURY(TimeUnit.CENTURY, null),
+  MILLENNIUM(TimeUnit.MILLENNIUM, null);
 
   public final TimeUnit startUnit;
   public final TimeUnit endUnit;

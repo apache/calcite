@@ -25,10 +25,11 @@ import java.math.BigDecimal;
  * {@link #HOUR}, {@link #MINUTE}, {@link #SECOND} can be the unit of a SQL
  * interval.
  *
- * <p>The others ({@link #QUARTER}, {@link #WEEK}, {@link #MILLISECOND} and
- * {@link #MICROSECOND}) are convenient to use it internally, when converting to
- * and from UNIX timestamps. And also may be arguments to the
- * {@code TIMESTAMPADD} and {@code TIMESTAMPDIFF} functions.
+ * <p>The others ({@link #QUARTER}, {@link #WEEK}, {@link #MILLISECOND},
+ * {@link #DOW}, {@link #DOY}, {@link #EPOCH}, {@link #DECADE}, {@link #CENTURY},
+ * {@link #MILLENNIUM} and {@link #MICROSECOND}) are convenient to use internally,
+ * when converting to and from UNIX timestamps. And also may be arguments to the
+ * {@code EXTRACT}, {@code TIMESTAMPADD} and {@code TIMESTAMPDIFF} functions.
  */
 public enum TimeUnit {
   YEAR(true, ' ', BigDecimal.valueOf(12) /* months */, null),
@@ -46,7 +47,13 @@ public enum TimeUnit {
       BigDecimal.valueOf(53)),
   MILLISECOND(false, '.', BigDecimal.ONE, BigDecimal.valueOf(1000)),
   MICROSECOND(false, '.', BigDecimal.ONE.scaleByPowerOfTen(-3),
-      BigDecimal.valueOf(1000000));
+      BigDecimal.valueOf(1000000)),
+  DOW(false, '-', null, null),
+  DOY(false, '-', null, null),
+  EPOCH(false, '*', null, null),
+  DECADE(true, '*', BigDecimal.valueOf(120) /* months */, null),
+  CENTURY(true, '*', BigDecimal.valueOf(1200) /* months */, null),
+  MILLENNIUM(true, '*', BigDecimal.valueOf(12000) /* months */, null);
 
   public final boolean yearMonth;
   public final char separator;
