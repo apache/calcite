@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -1473,6 +1474,30 @@ public class RemoteDriverTest {
       assertEquals(columnName.toUpperCase(), actualColumnName);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testBigDecimalPrecision() throws Exception {
+    final String tableName = "decimalPrecision";
+    // DECIMAL(25,5), 20 before, 5 after
+    BigDecimal decimal = new BigDecimal("12345123451234512345.09876");
+    try (Connection conn = getLocalConnection();
+        Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      assertFalse(stmt.execute("CREATE TABLE " + tableName + " (col1 DECIMAL(25,5))"));
+
+      // Insert a single decimal
+      try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
+          + " values (?)")) {
+        pstmt.setBigDecimal(1, decimal);
+        assertEquals(1, pstmt.executeUpdate());
+      }
+
+      ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      assertTrue(results.next());
+      BigDecimal actualDecimal = results.getBigDecimal(1);
+      assertEquals(decimal, actualDecimal);
     }
   }
 

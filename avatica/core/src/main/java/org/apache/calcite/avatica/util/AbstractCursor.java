@@ -785,11 +785,17 @@ public abstract class AbstractCursor implements Cursor {
     //FIXME: Protobuf gets byte[]
     @Override public byte[] getBytes() {
       Object obj = getObject();
-      try {
-        final ByteString o = (ByteString) obj;
-        return o == null ? null : o.getBytes();
-      } catch (Exception ex) {
-        return obj == null ? null : (byte[]) obj;
+      if (null == obj) {
+        return null;
+      }
+      if (obj instanceof ByteString) {
+        return ((ByteString) obj).getBytes();
+      } else if (obj instanceof String) {
+        return ((String) obj).getBytes();
+      } else if (obj instanceof byte[]) {
+        return (byte[]) obj;
+      } else {
+        throw new RuntimeException("Cannot handle " + obj.getClass() + " as bytes");
       }
     }
 

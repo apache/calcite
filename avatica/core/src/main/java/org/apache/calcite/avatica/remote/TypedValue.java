@@ -17,12 +17,14 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.HBaseZeroCopyByteString;
 
 import java.math.BigDecimal;
@@ -120,6 +122,9 @@ import java.util.Objects;
  * </ul>
  */
 public class TypedValue {
+  private static final FieldDescriptor NUMBER_DESCRIPTOR = Common.TypedValue.getDescriptor()
+      .findFieldByNumber(Common.TypedValue.NUMBER_VALUE_FIELD_NUMBER);
+
   public static final TypedValue NULL =
       new TypedValue(ColumnMetaData.Rep.OBJECT, null);
 
@@ -245,40 +250,6 @@ public class TypedValue {
     }
   }
 
-  private static Object protoSerialToLocal(Common.Rep rep, Object value) {
-    switch (rep) {
-    case BYTE:
-      return ((Number) value).byteValue();
-    case SHORT:
-      return ((Number) value).shortValue();
-    case INTEGER:
-    case JAVA_SQL_DATE:
-    case JAVA_SQL_TIME:
-      return ((Number) value).intValue();
-    case LONG:
-    case JAVA_UTIL_DATE:
-    case JAVA_SQL_TIMESTAMP:
-      return ((Number) value).longValue();
-    case FLOAT:
-      return ((Number) value).floatValue();
-    case DOUBLE:
-      return ((Number) value).doubleValue();
-    case NUMBER:
-      return value instanceof BigDecimal ? value
-          : value instanceof BigInteger ? new BigDecimal((BigInteger) value)
-          : value instanceof Double ? new BigDecimal((Double) value)
-          : value instanceof Float ? new BigDecimal((Float) value)
-          : new BigDecimal(((Number) value).longValue());
-    case BYTE_STRING:
-      return (byte[]) value;
-    case STRING:
-      return (String) value;
-    default:
-      throw new IllegalArgumentException("cannot convert " + value + " ("
-          + value.getClass() + ") to " + rep);
-    }
-  }
-
   /** Converts the value into the JDBC representation.
    *
    * <p>For example, a byte string is represented as a {@link ByteString};
@@ -291,8 +262,15 @@ public class TypedValue {
     return serialToJdbc(type, value, calendar);
   }
 
-  private static Object serialToJdbc(ColumnMetaData.Rep type, Object value,
-      Calendar calendar) {
+  /**
+   * Converts the given value from serial form to JDBC form.
+   *
+   * @param type The type of the value
+   * @param value The value
+   * @param calendar A calendar instance
+   * @return The JDBC representation of the value.
+   */
+  private static Object serialToJdbc(ColumnMetaData.Rep type, Object value, Calendar calendar) {
     switch (type) {
     case BYTE_STRING:
       return ByteString.ofBase64((String) value).getBytes();
@@ -308,22 +286,6 @@ public class TypedValue {
       return new java.sql.Timestamp(adjust((Number) value, calendar));
     default:
       return serialToLocal(type, value);
-    }
-  }
-
-  private static Object protoSerialToJdbc(Common.Rep type, Object value, Calendar calendar) {
-    switch (type) {
-    case JAVA_UTIL_DATE:
-      return new java.util.Date(adjust((Number) value, calendar));
-    case JAVA_SQL_DATE:
-      return new java.sql.Date(
-          adjust(((Number) value).longValue() * DateTimeUtils.MILLIS_PER_DAY, calendar));
-    case JAVA_SQL_TIME:
-      return new java.sql.Time(adjust((Number) value, calendar));
-    case JAVA_SQL_TIMESTAMP:
-      return new java.sql.Timestamp(adjust((Number) value, calendar));
-    default:
-      return protoSerialToLocal(type, value);
     }
   }
 
@@ -391,87 +353,107 @@ public class TypedValue {
     final Common.TypedValue.Builder builder = Common.TypedValue.newBuilder();
 
     Common.Rep protoRep = type.toProto();
-    builder.setType(protoRep);
+    // Protobuf has an explicit BIG_DECIMAL representation enum value.
+    if (Common.Rep.NUMBER == protoRep && value instanceof BigDecimal) {
+      protoRep = Common.Rep.BIG_DECIMAL;
+    }
 
     // Serialize the type into the protobuf
-    switch (protoRep) {
+    writeToProtoWithType(builder, value, protoRep);
+
+    return builder.build();
+  }
+
+  private static void writeToProtoWithType(Common.TypedValue.Builder builder, Object o,
+      Common.Rep type) {
+    builder.setType(type);
+
+    switch (type) {
     case BOOLEAN:
     case PRIMITIVE_BOOLEAN:
-      builder.setBoolValue((boolean) value);
-      break;
+      builder.setBoolValue((boolean) o);
+      return;
     case BYTE_STRING:
+      byte[] bytes;
+      // Serial representation is b64. We don't need to do that for protobuf
+      if (o instanceof String) {
+        // Assume strings are already b64 encoded
+        bytes = ByteString.parseBase64((String) o);
+      } else {
+        bytes = (byte[]) o;
+      }
+      builder.setBytesValues(HBaseZeroCopyByteString.wrap(bytes));
+      return;
     case STRING:
-      builder.setStringValueBytes(HBaseZeroCopyByteString.wrap(((String) value).getBytes()));
-      break;
+      builder.setStringValueBytes(HBaseZeroCopyByteString.wrap(((String) o).getBytes()));
+      return;
     case PRIMITIVE_CHAR:
     case CHARACTER:
-      builder.setStringValue(Character.toString((char) value));
-      break;
+      builder.setStringValue(Character.toString((char) o));
+      return;
     case BYTE:
     case PRIMITIVE_BYTE:
-      builder.setNumberValue(Byte.valueOf((byte) value).longValue());
-      break;
+      builder.setNumberValue(Byte.valueOf((byte) o).longValue());
+      return;
     case DOUBLE:
     case PRIMITIVE_DOUBLE:
-      builder.setDoubleValue((double) value);
-      break;
+      builder.setDoubleValue((double) o);
+      return;
     case FLOAT:
     case PRIMITIVE_FLOAT:
-      builder.setNumberValue(Float.floatToIntBits((float) value));
-      break;
+      builder.setNumberValue(Float.floatToIntBits((float) o));
+      return;
     case INTEGER:
     case PRIMITIVE_INT:
-      builder.setNumberValue(Integer.valueOf((int) value).longValue());
-      break;
+      builder.setNumberValue(Integer.valueOf((int) o).longValue());
+      return;
     case PRIMITIVE_SHORT:
     case SHORT:
-      builder.setNumberValue(Short.valueOf((short) value).longValue());
-      break;
+      builder.setNumberValue(Short.valueOf((short) o).longValue());
+      return;
     case LONG:
     case PRIMITIVE_LONG:
-      builder.setNumberValue((long) value);
-      break;
+      builder.setNumberValue((long) o);
+      return;
     case JAVA_SQL_DATE:
     case JAVA_SQL_TIME:
       // Persisted as integers
-      builder.setNumberValue(Integer.valueOf((int) value).longValue());
-      break;
+      builder.setNumberValue(Integer.valueOf((int) o).longValue());
+      return;
     case JAVA_SQL_TIMESTAMP:
     case JAVA_UTIL_DATE:
       // Persisted as longs
-      builder.setNumberValue((long) value);
-      break;
+      builder.setNumberValue((long) o);
+      return;
     case BIG_INTEGER:
-      byte[] bytes = ((BigInteger) value).toByteArray();
-      builder.setBytesValues(com.google.protobuf.ByteString.copyFrom(bytes));
-      break;
+      byte[] byteRep = ((BigInteger) o).toByteArray();
+      builder.setBytesValues(com.google.protobuf.ByteString.copyFrom(byteRep));
+      return;
     case BIG_DECIMAL:
-      final BigDecimal bigDecimal = (BigDecimal) value;
-      final int scale = bigDecimal.scale();
-      final BigInteger bigInt = bigDecimal.toBigInteger();
-      builder.setBytesValues(com.google.protobuf.ByteString.copyFrom(bigInt.toByteArray()))
-        .setNumberValue(scale);
-      break;
+      final BigDecimal bigDecimal = (BigDecimal) o;
+      builder.setStringValue(bigDecimal.toString());
+      return;
     case NUMBER:
-      builder.setNumberValue(((Number) value).longValue());
-      break;
+      builder.setNumberValue(((Number) o).longValue());
+      return;
+    case NULL:
+      builder.setNull(true);
+      return;
     case OBJECT:
-      if (null == value) {
+      if (null == o) {
         // We can persist a null value through easily
         builder.setNull(true);
-        break;
+        return;
       }
       // Intentional fall-through to RTE because we can't serialize something we have no type
       // insight into.
     case UNRECOGNIZED:
       // Fail?
-      throw new RuntimeException("Unhandled value: " + protoRep + " " + value.getClass());
+      throw new RuntimeException("Unhandled value: " + type + " " + o.getClass());
     default:
       // Fail?
-      throw new RuntimeException("Unknown serialized type: " + protoRep);
+      throw new RuntimeException("Unknown serialized type: " + type);
     }
-
-    return builder.build();
   }
 
   /**
@@ -482,7 +464,7 @@ public class TypedValue {
    */
   public static TypedValue fromProto(Common.TypedValue proto) {
     ColumnMetaData.Rep rep = ColumnMetaData.Rep.fromProto(proto.getType());
-    Object value = getValue(proto);
+    Object value = getSerialFromProto(proto);
 
     return new TypedValue(rep, value);
   }
@@ -493,16 +475,17 @@ public class TypedValue {
    * @param protoValue The serialized TypedValue.
    * @return The appropriate concrete type for the parameter value (as an Object).
    */
-  public static Object getValue(Common.TypedValue protoValue) {
+  public static Object getSerialFromProto(Common.TypedValue protoValue) {
     // Deserialize the value again
     switch (protoValue.getType()) {
     case BOOLEAN:
     case PRIMITIVE_BOOLEAN:
       return protoValue.getBoolValue();
     case BYTE_STRING:
+      // TypedValue is still going to expect a b64string for BYTE_STRING even though we sent it
+      // across the wire natively as bytes. Return it as b64.
+      return (new ByteString(protoValue.getBytesValues().toByteArray())).toBase64String();
     case STRING:
-      // TypedValue is still going to expect a string for BYTE_STRING even though we sent it
-      // across the wire natively as bytes.
       return protoValue.getStringValue();
     case PRIMITIVE_CHAR:
     case CHARACTER:
@@ -534,10 +517,17 @@ public class TypedValue {
     case BIG_INTEGER:
       return new BigInteger(protoValue.getBytesValues().toByteArray());
     case BIG_DECIMAL:
-      BigInteger bigInt = new BigInteger(protoValue.getBytesValues().toByteArray());
-      return new BigDecimal(bigInt, (int) protoValue.getNumberValue());
+      // CALCITE-1103 shifts BigDecimals to be serialized as strings.
+      if (protoValue.hasField(NUMBER_DESCRIPTOR)) {
+        // This is the old (broken) style.
+        BigInteger bigInt = new BigInteger(protoValue.getBytesValues().toByteArray());
+        return new BigDecimal(bigInt, (int) protoValue.getNumberValue());
+      }
+      return new BigDecimal(protoValue.getStringValueBytes().toStringUtf8());
     case NUMBER:
       return Long.valueOf(protoValue.getNumberValue());
+    case NULL:
+      return null;
     case OBJECT:
       if (protoValue.getNull()) {
         return null;
@@ -554,6 +544,48 @@ public class TypedValue {
   }
 
   /**
+   * Writes the given object into the Protobuf representation of a TypedValue. The object is
+   * serialized given the type of that object, mapping it to the appropriate representation.
+   *
+   * @param builder The TypedValue protobuf builder
+   * @param o The object (value)
+   */
+  public static void toProto(Common.TypedValue.Builder builder, Object o) {
+    // Numbers
+    if (o instanceof Byte) {
+      writeToProtoWithType(builder, o, Common.Rep.BYTE);
+    } else if (o instanceof Short) {
+      writeToProtoWithType(builder, o, Common.Rep.SHORT);
+    } else if (o instanceof Integer) {
+      writeToProtoWithType(builder, o, Common.Rep.INTEGER);
+    } else if (o instanceof Long) {
+      writeToProtoWithType(builder, o, Common.Rep.LONG);
+    } else if (o instanceof Double) {
+      writeToProtoWithType(builder, o, Common.Rep.DOUBLE);
+    } else if (o instanceof Float) {
+      writeToProtoWithType(builder, ((Float) o).longValue(), Common.Rep.FLOAT);
+    } else if (o instanceof BigDecimal) {
+      writeToProtoWithType(builder, o, Common.Rep.BIG_DECIMAL);
+    // Strings
+    } else if (o instanceof String) {
+      writeToProtoWithType(builder, o, Common.Rep.STRING);
+    } else if (o instanceof Character) {
+      writeToProtoWithType(builder, o.toString(), Common.Rep.CHARACTER);
+    // Bytes
+    } else if (o instanceof byte[]) {
+      writeToProtoWithType(builder, o, Common.Rep.BYTE_STRING);
+    // Boolean
+    } else if (o instanceof Boolean) {
+      writeToProtoWithType(builder, o, Common.Rep.BOOLEAN);
+    } else if (null == o) {
+      writeToProtoWithType(builder, o, Common.Rep.NULL);
+    // Unhandled
+    } else {
+      throw new RuntimeException("Unhandled type in Frame: " + o.getClass());
+    }
+  }
+
+  /**
    * Extracts the JDBC value from protobuf-TypedValue representation.
    *
    * @param protoValue Protobuf TypedValue
@@ -561,12 +593,13 @@ public class TypedValue {
    * @return The JDBC representation of this TypedValue
    */
   public static Object protoToJdbc(Common.TypedValue protoValue, Calendar calendar) {
-    Object o = getValue(Objects.requireNonNull(protoValue));
+    Object o = getSerialFromProto(Objects.requireNonNull(protoValue));
     // Shortcircuit the null
     if (null == o) {
       return o;
     }
-    return protoSerialToJdbc(protoValue.getType(), o, Objects.requireNonNull(calendar));
+    return serialToJdbc(Rep.fromProto(protoValue.getType()), o, calendar);
+    //return protoSerialToJdbc(protoValue.getType(), o, Objects.requireNonNull(calendar));
   }
 
   @Override public int hashCode() {

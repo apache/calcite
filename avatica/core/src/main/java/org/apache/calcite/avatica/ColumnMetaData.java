@@ -429,6 +429,12 @@ public class ColumnMetaData {
     }
 
     public static Rep fromProto(Common.Rep proto) {
+      if (Common.Rep.BIG_DECIMAL == proto) {
+        // BIG_DECIMAL has to come back as a NUMBER
+        return Rep.NUMBER;
+      } else if (Common.Rep.NULL == proto) {
+        return Rep.OBJECT;
+      }
       return Rep.valueOf(proto.name());
     }
   }

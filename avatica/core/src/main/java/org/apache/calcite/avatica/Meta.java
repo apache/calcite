@@ -25,12 +25,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -930,43 +928,8 @@ public interface Meta {
     static Common.TypedValue serializeScalar(Object element) {
       final Common.TypedValue.Builder valueBuilder = Common.TypedValue.newBuilder();
 
-      // Numbers
-      if (element instanceof Byte) {
-        valueBuilder.setType(Common.Rep.BYTE).setNumberValue(((Byte) element).longValue());
-      } else if (element instanceof Short) {
-        valueBuilder.setType(Common.Rep.SHORT).setNumberValue(((Short) element).longValue());
-      } else if (element instanceof Integer) {
-        valueBuilder.setType(Common.Rep.INTEGER)
-          .setNumberValue(((Integer) element).longValue());
-      } else if (element instanceof Long) {
-        valueBuilder.setType(Common.Rep.LONG).setNumberValue((Long) element);
-      } else if (element instanceof Double) {
-        valueBuilder.setType(Common.Rep.DOUBLE).setDoubleValue((Double) element);
-      } else if (element instanceof Float) {
-        valueBuilder.setType(Common.Rep.FLOAT).setNumberValue(((Float) element).longValue());
-      } else if (element instanceof BigDecimal) {
-        valueBuilder.setType(Common.Rep.NUMBER)
-          .setDoubleValue(((BigDecimal) element).doubleValue());
-      // Strings
-      } else if (element instanceof String) {
-        valueBuilder.setType(Common.Rep.STRING)
-          .setStringValue((String) element);
-      } else if (element instanceof Character) {
-        valueBuilder.setType(Common.Rep.CHARACTER)
-          .setStringValue(element.toString());
-      // Bytes
-      } else if (element instanceof byte[]) {
-        valueBuilder.setType(Common.Rep.BYTE_STRING)
-          .setBytesValues(ByteString.copyFrom((byte[]) element));
-      // Boolean
-      } else if (element instanceof Boolean) {
-        valueBuilder.setType(Common.Rep.BOOLEAN).setBoolValue((boolean) element);
-      } else if (null == element) {
-        valueBuilder.setType(Common.Rep.NULL);
-      // Unhandled
-      } else {
-        throw new RuntimeException("Unhandled type in Frame: " + element.getClass());
-      }
+      // Let TypedValue handle the serialization for us.
+      TypedValue.toProto(valueBuilder, element);
 
       return valueBuilder.build();
     }
@@ -1019,11 +982,11 @@ public interface Meta {
       if (column.getValueCount() > 1) {
         List<Object> array = new ArrayList<>(column.getValueCount());
         for (Common.TypedValue columnValue : column.getValueList()) {
-          array.add(getScalarValue(columnValue));
+          array.add(deserializeScalarValue(columnValue));
         }
         return array;
       } else {
-        return getScalarValue(column.getValue(0));
+        return deserializeScalarValue(column.getValue(0));
       }
     }
 
@@ -1041,12 +1004,12 @@ public interface Meta {
         // Array
         List<Object> array = new ArrayList<>(column.getArrayValueCount());
         for (Common.TypedValue arrayValue : column.getArrayValueList()) {
-          array.add(getScalarValue(arrayValue));
+          array.add(deserializeScalarValue(arrayValue));
         }
         return array;
       } else {
         // Scalar
-        return getScalarValue(column.getScalarValue());
+        return deserializeScalarValue(column.getScalarValue());
       }
     }
 
@@ -1067,38 +1030,16 @@ public interface Meta {
       }
     }
 
-    static Object getScalarValue(Common.TypedValue protoElement) {
-      // TODO Should these be primitives or Objects?
-      switch (protoElement.getType()) {
-      case BYTE:
-        return Long.valueOf(protoElement.getNumberValue()).byteValue();
-      case SHORT:
-        return Long.valueOf(protoElement.getNumberValue()).shortValue();
-      case INTEGER:
-        return Long.valueOf(protoElement.getNumberValue()).intValue();
-      case LONG:
-        return protoElement.getNumberValue();
-      case FLOAT:
-        return Long.valueOf(protoElement.getNumberValue()).floatValue();
-      case DOUBLE:
-        return protoElement.getDoubleValue();
-      case NUMBER:
-        // TODO more cases here to expand on? BigInteger?
-        return BigDecimal.valueOf(protoElement.getDoubleValue());
-      case STRING:
-        return protoElement.getStringValue();
-      case CHARACTER:
-        // A single character in the string
-        return protoElement.getStringValue().charAt(0);
-      case BYTE_STRING:
+    static Object deserializeScalarValue(Common.TypedValue protoElement) {
+      // ByteString is a single case where TypedValue is representing the data differently
+      // (in its "local" form) than Frame does. We need to unwrap the Base64 encoding.
+      if (Common.Rep.BYTE_STRING == protoElement.getType()) {
+        // Protobuf is sending native bytes (not b64) across the wire. B64 bytes is only for
+        // TypedValue's benefit
         return protoElement.getBytesValues().toByteArray();
-      case BOOLEAN:
-        return protoElement.getBoolValue();
-      case NULL:
-        return null;
-      default:
-        throw new RuntimeException("Unhandled type: " + protoElement.getType());
       }
+      // Again, let TypedValue deserialize things for us.
+      return TypedValue.fromProto(protoElement).value;
     }
 
     @Override public int hashCode() {
