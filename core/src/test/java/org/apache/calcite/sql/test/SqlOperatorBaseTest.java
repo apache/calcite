@@ -161,6 +161,14 @@ public abstract class SqlOperatorBaseTest {
   public static final String BAD_DATETIME_MESSAGE =
       Bug.FNL3_FIXED ? null : "(?s).*";
 
+  // Error messages when an invalid time unit is given as
+  // input to extract for a particular input type.
+  public static final String INVALID_EXTRACT_UNIT_CONVERTLET_ERROR =
+      "Extract.*from.*type data is not supported";
+
+  public static final String INVALID_EXTRACT_UNIT_VALIDATION_ERROR =
+      "Cannot apply 'EXTRACT' to arguments of type .*'\n.*";
+
   public static final String LITERAL_OUT_OF_RANGE_MESSAGE =
       "(?s).*Numeric literal.*out of range.*";
 
@@ -4370,6 +4378,329 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("quarter(cast(null as date))");
   }
 
+  @Test public void testExtractIntervalYearMonth() {
+    tester.setFor(
+        SqlStdOperatorTable.EXTRACT,
+        VM_FENNEL,
+        VM_JAVA);
+
+    if (false) {
+      // TODO: Not supported, fails in type validation because the extract
+      // unit is not YearMonth interval type.
+
+      tester.checkScalar(
+          "extract(epoch from interval '4-2' year to month)",
+          "131328000", // number of seconds elapsed since timestamp
+                       // '1970-01-01 00:00:00' + input interval
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(second from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(minute from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(hour from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(day from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+    }
+
+    // Postgres doesn't support DOW, DOY and WEEK on INTERVAL YEAR MONTH type.
+    // SQL standard doesn't have extract units for DOW, DOY and WEEK.
+    tester.checkFails("^extract(doy from interval '4-2' year to month)^",
+        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+    tester.checkFails("^extract(dow from interval '4-2' year to month)^",
+        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+    tester.checkFails("^extract(week from interval '4-2' year to month)^",
+        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+
+    tester.checkScalar(
+        "extract(month from interval '4-2' year to month)",
+        "2",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(quarter from interval '4-2' year to month)",
+        "1",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(year from interval '4-2' year to month)",
+        "4",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(decade from interval '426-3' year(3) to month)",
+        "42",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(century from interval '426-3' year(3) to month)",
+        "4",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(millennium from interval '2005-3' year(4) to month)",
+        "2",
+        "BIGINT NOT NULL");
+  }
+
+  @Test public void testExtractIntervalDayTime() {
+    tester.setFor(
+        SqlStdOperatorTable.EXTRACT,
+        VM_FENNEL,
+        VM_JAVA);
+
+    if (false) {
+      // TODO: Not implemented in operator test
+      tester.checkScalar(
+          "extract(epoch from interval '2 3:4:5.678' day to second)",
+          "183845.678", // number of seconds elapsed since timestamp
+                       // '1970-01-01 00:00:00' + input interval
+          "BIGINT NOT NULL"
+      );
+    }
+
+    tester.checkScalar(
+        "extract(second from interval '2 3:4:5.678' day to second)",
+        "5",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(minute from interval '2 3:4:5.678' day to second)",
+        "4",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(hour from interval '2 3:4:5.678' day to second)",
+        "3",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(day from interval '2 3:4:5.678' day to second)",
+        "2",
+        "BIGINT NOT NULL");
+
+    // Postgres doesn't support DOW, DOY and WEEK on INTERVAL DAY TIME type.
+    // SQL standard doesn't have extract units for DOW, DOY and WEEK.
+    tester.checkFails("extract(doy from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+    tester.checkFails("extract(dow from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+    tester.checkFails("extract(week from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+
+    if (false) {
+      // TODO: Not supported, fails in type validation because
+      // the extract unit is YearMonth interval type unit.
+      tester.checkScalar(
+          "extract(month from interval '2 3:4:5.678' day to second)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(quarter from interval '2 3:4:5.678' day to second)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(year from interval '2 3:4:5.678' day to second)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(decade from interval '2 3:4:5.678' day to second)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(century from interval '2 3:4:5.678' day to second)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(millennium from interval '2 3:4:5.678' day to second)",
+          "0",
+          "BIGINT NOT NULL");
+    }
+  }
+
+  @Test public void testExtractDate() {
+    tester.setFor(
+        SqlStdOperatorTable.EXTRACT,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "extract(epoch from date '2008-2-23')",
+        "1203724800", // number of seconds elapsed since timestamp
+                      // '1970-01-01 00:00:00' for given date
+        "BIGINT NOT NULL");
+
+    if (false) {
+      // TODO: Looks like there is a bug in current execution code which returns 13 instead of 0
+      tester.checkScalar(
+          "extract(second from date '2008-2-23')",
+          "0",
+          "BIGINT NOT NULL");
+    }
+
+    tester.checkScalar(
+        "extract(minute from date '2008-2-23')",
+        "0",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(hour from date '2008-2-23')",
+        "0",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(day from date '2008-2-23')",
+        "23",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(month from date '2008-2-23')",
+        "2",
+        "BIGINT NOT NULL"
+    );
+
+    tester.checkScalar(
+        "extract(quarter from date '2008-4-23')",
+        "2",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(year from date '2008-2-23')",
+        "2008",
+        "BIGINT NOT NULL");
+
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "extract(doy from date '2008-2-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "extract(dow from date '2008-2-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "extract(week from date '2008-2-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+
+    tester.checkScalar(
+        "extract(decade from date '2008-2-23')",
+        "200",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(century from date '2008-2-23')",
+        "20",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(millennium from date '2008-2-23')",
+        "2",
+        "BIGINT NOT NULL");
+  }
+
+  @Test public void testExtractTimestamp() {
+    tester.setFor(
+        SqlStdOperatorTable.EXTRACT,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "extract(epoch from timestamp '2008-2-23 12:34:56')",
+        "1203770096", // number of seconds elapsed since timestamp
+                      // '1970-01-01 00:00:00' for given date
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(second from timestamp '2008-2-23 12:34:56')",
+        "56",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(minute from timestamp '2008-2-23 12:34:56')",
+        "34",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(hour from timestamp '2008-2-23 12:34:56')",
+        "12",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(day from timestamp '2008-2-23 12:34:56')",
+        "23",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(month from timestamp '2008-2-23 12:34:56')",
+        "2",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(quarter from timestamp '2008-7-23 12:34:56')",
+        "3",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(year from timestamp '2008-2-23 12:34:56')",
+        "2008",
+        "BIGINT NOT NULL");
+
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "extract(doy from timestamp '2008-2-23 12:34:56')",
+        "cannot translate call EXTRACT.*",
+        true);
+
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "extract(dow from timestamp '2008-2-23 12:34:56')",
+        "cannot translate call EXTRACT.*",
+        true);
+
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "extract(week from timestamp '2008-2-23 12:34:56')",
+        "cannot translate call EXTRACT.*",
+        true);
+
+    tester.checkScalar(
+        "extract(decade from timestamp '2008-2-23 12:34:56')",
+        "200",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(century from timestamp '2008-2-23 12:34:56')",
+        "20",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(millennium from timestamp '2008-2-23 12:34:56')",
+        "2",
+        "BIGINT NOT NULL");
+  }
+
   @Test public void testExtractFunc() {
     tester.setFor(
         SqlStdOperatorTable.EXTRACT,
@@ -4655,6 +4986,38 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "floor(interval '-5-1' year to month)",
         "-6-00",
+        "INTERVAL YEAR TO MONTH NOT NULL");
+    tester.checkScalar(
+        "floor(interval '-6.3' second to second)",
+        "-7.000000",
+        "INTERVAL SECOND NOT NULL");
+    tester.checkScalar(
+        "floor(interval '6-3' minute to second to minute)",
+        "-7-0",
+        "INTERVAL MINUTE TO SECOND NOT NULL");
+    tester.checkScalar(
+        "floor(interval '6-3' hour to minute to hour)",
+        "7-0",
+        "INTERVAL HOUR TO MINUTE NOT NULL");
+    tester.checkScalar(
+        "floor(interval '6 3' day to hour to day)",
+        "7 00",
+        "INTERVAL DAY TO HOUR NOT NULL");
+    tester.checkScalar(
+        "floor(interval '102-7' year to month to month)",
+        "102-07",
+        "INTERVAL YEAR TO MONTH NOT NULL");
+    tester.checkScalar(
+        "floor(interval '102-7' year to month to quarter)",
+        "102-10",
+        "INTERVAL YEAR TO MONTH NOT NULL");
+    tester.checkScalar(
+        "floor(interval '102-1' year to month to century)",
+        "201",
+        "INTERVAL YEAR TO MONTH NOT NULL");
+    tester.checkScalar(
+        "floor(interval '1004-1' year to month to millennium)",
+        "2001-00",
         "INTERVAL YEAR TO MONTH NOT NULL");
     tester.checkNull(
         "floor(cast(null as interval year))");

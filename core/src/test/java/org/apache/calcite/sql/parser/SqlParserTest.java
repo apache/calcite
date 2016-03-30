@@ -498,16 +498,106 @@ public class SqlParserTest {
   @Test public void testFloor() {
     checkExp("floor(1.5)", "FLOOR(1.5)");
     checkExp("floor(x)", "FLOOR(`X`)");
+
+    checkExp("floor(x to second)", "FLOOR(`X` TO SECOND)");
+    checkExp("floor(x to epoch)", "FLOOR(`X` TO EPOCH)");
+    checkExp("floor(x to minute)", "FLOOR(`X` TO MINUTE)");
     checkExp("floor(x to hour)", "FLOOR(`X` TO HOUR)");
+    checkExp("floor(x to day)", "FLOOR(`X` TO DAY)");
+    checkExp("floor(x to dow)", "FLOOR(`X` TO DOW)");
+    checkExp("floor(x to doy)", "FLOOR(`X` TO DOY)");
+    checkExp("floor(x to week)", "FLOOR(`X` TO WEEK)");
+    checkExp("floor(x to month)", "FLOOR(`X` TO MONTH)");
+    checkExp("floor(x to quarter)", "FLOOR(`X` TO QUARTER)");
+    checkExp("floor(x to year)", "FLOOR(`X` TO YEAR)");
+    checkExp("floor(x to decade)", "FLOOR(`X` TO DECADE)");
+    checkExp("floor(x to century)", "FLOOR(`X` TO CENTURY)");
+    checkExp("floor(x to millennium)", "FLOOR(`X` TO MILLENNIUM)");
+
+    checkExp("floor(x + interval '1:20' minute to second)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND))");
+    checkExp("floor(x + interval '1:20' minute to second to second)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO SECOND)");
+    checkExp("floor(x + interval '1:20' minute to second to epoch)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO EPOCH)");
+    checkExp("floor(x + interval '1:20' hour to minute)",
+        "FLOOR((`X` + INTERVAL '1:20' HOUR TO MINUTE))");
+    checkExp("floor(x + interval '1:20' hour to minute to minute)",
+        "FLOOR((`X` + INTERVAL '1:20' HOUR TO MINUTE) TO MINUTE)");
+    checkExp("floor(x + interval '1:20' minute to second to hour)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO HOUR)");
+    checkExp("floor(x + interval '1:20' minute to second to day)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DAY)");
+    checkExp("floor(x + interval '1:20' minute to second to dow)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DOW)");
+    checkExp("floor(x + interval '1:20' minute to second to doy)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DOY)");
+    checkExp("floor(x + interval '1:20' minute to second to week)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO WEEK)");
+    checkExp("floor(x + interval '1:20' minute to second to month)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MONTH)");
+    checkExp("floor(x + interval '1:20' minute to second to quarter)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO QUARTER)");
+    checkExp("floor(x + interval '1:20' minute to second to year)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO YEAR)");
+    checkExp("floor(x + interval '1:20' minute to second to decade)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DECADE)");
+    checkExp("floor(x + interval '1:20' minute to second to century)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO CENTURY)");
+    checkExp("floor(x + interval '1:20' minute to second to millennium)",
+        "FLOOR((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MILLENNIUM)");
+  }
+
+  @Test public void testCeil() {
+    checkExp("ceil(3453.2)", "CEIL(3453.2)");
+    checkExp("ceil(x)", "CEIL(`X`)");
+    checkExp("ceil(x to second)", "CEIL(`X` TO SECOND)");
+    checkExp("ceil(x to epoch)", "CEIL(`X` TO EPOCH)");
+    checkExp("ceil(x to minute)", "CEIL(`X` TO MINUTE)");
     checkExp("ceil(x to hour)", "CEIL(`X` TO HOUR)");
-    checkExp("ceil(x + interval '1' minute to second)",
-        "CEIL((`X` + INTERVAL '1' MINUTE TO SECOND))");
-    checkExp("ceil((x + interval '1' minute) to second)",
-        "CEIL((`X` + INTERVAL '1' MINUTE) TO SECOND)");
-    checkExp("ceil(x + (interval '1:23' minute to second))",
-        "CEIL((`X` + INTERVAL '1:23' MINUTE TO SECOND))");
-    checkExp("ceil(x + interval '1:23' minute to second to second)",
-        "CEIL((`X` + INTERVAL '1:23' MINUTE TO SECOND) TO SECOND)");
+    checkExp("ceil(x to day)", "CEIL(`X` TO DAY)");
+    checkExp("ceil(x to dow)", "CEIL(`X` TO DOW)");
+    checkExp("ceil(x to doy)", "CEIL(`X` TO DOY)");
+    checkExp("ceil(x to week)", "CEIL(`X` TO WEEK)");
+    checkExp("ceil(x to month)", "CEIL(`X` TO MONTH)");
+    checkExp("ceil(x to quarter)", "CEIL(`X` TO QUARTER)");
+    checkExp("ceil(x to year)", "CEIL(`X` TO YEAR)");
+    checkExp("ceil(x to decade)", "CEIL(`X` TO DECADE)");
+    checkExp("ceil(x to century)", "CEIL(`X` TO CENTURY)");
+    checkExp("ceil(x to millennium)", "CEIL(`X` TO MILLENNIUM)");
+
+    checkExp("ceil(x + interval '1:20' minute to second)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND))");
+    checkExp("ceil(x + interval '1:20' minute to second to second)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO SECOND)");
+    checkExp("ceil(x + interval '1:20' minute to second to epoch)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO EPOCH)");
+    checkExp("ceil(x + interval '1:20' hour to minute)",
+        "CEIL((`X` + INTERVAL '1:20' HOUR TO MINUTE))");
+    checkExp("ceil(x + interval '1:20' hour to minute to minute)",
+        "CEIL((`X` + INTERVAL '1:20' HOUR TO MINUTE) TO MINUTE)");
+    checkExp("ceil(x + interval '1:20' minute to second to hour)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO HOUR)");
+    checkExp("ceil(x + interval '1:20' minute to second to day)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DAY)");
+    checkExp("ceil(x + interval '1:20' minute to second to dow)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DOW)");
+    checkExp("ceil(x + interval '1:20' minute to second to doy)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DOY)");
+    checkExp("ceil(x + interval '1:20' minute to second to week)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO WEEK)");
+    checkExp("ceil(x + interval '1:20' minute to second to month)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MONTH)");
+    checkExp("ceil(x + interval '1:20' minute to second to quarter)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO QUARTER)");
+    checkExp("ceil(x + interval '1:20' minute to second to year)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO YEAR)");
+    checkExp("ceil(x + interval '1:20' minute to second to decade)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO DECADE)");
+    checkExp("ceil(x + interval '1:20' minute to second to century)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO CENTURY)");
+    checkExp("ceil(x + interval '1:20' minute to second to millennium)",
+        "CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MILLENNIUM)");
   }
 
   @Test public void testCast() {
@@ -5502,6 +5592,13 @@ public class SqlParserTest {
     checkExpFails("interval '1' second(3,1) ^to^ second", ANY);
     checkExpFails("interval '1' second(2,3) ^to^ second", ANY);
     checkExpFails("interval '1' second(2,2) ^to^ second(3)", ANY);
+
+    // Invalid units
+    checkExpFails("INTERVAL '2' ^MILLENNIUM^", ANY);
+    checkExpFails("INTERVAL '1-2' ^MILLENNIUM^ TO CENTURY", ANY);
+    checkExpFails("INTERVAL '10' ^CENTURY^", ANY);
+    checkExpFails("INTERVAL '10' ^DECADE^", ANY);
+    checkExpFails("INTERVAL '4' ^QUARTER^", ANY);
   }
 
   @Test public void testMiscIntervalQualifier() {
@@ -5563,6 +5660,14 @@ public class SqlParserTest {
     checkExp("extract(hour from x)", "EXTRACT(HOUR FROM `X`)");
     checkExp("extract(minute from x)", "EXTRACT(MINUTE FROM `X`)");
     checkExp("extract(second from x)", "EXTRACT(SECOND FROM `X`)");
+    checkExp("extract(dow from x)", "EXTRACT(DOW FROM `X`)");
+    checkExp("extract(doy from x)", "EXTRACT(DOY FROM `X`)");
+    checkExp("extract(week from x)", "EXTRACT(WEEK FROM `X`)");
+    checkExp("extract(epoch from x)", "EXTRACT(EPOCH FROM `X`)");
+    checkExp("extract(quarter from x)", "EXTRACT(QUARTER FROM `X`)");
+    checkExp("extract(decade from x)", "EXTRACT(DECADE FROM `X`)");
+    checkExp("extract(century from x)", "EXTRACT(CENTURY FROM `X`)");
+    checkExp("extract(millennium from x)", "EXTRACT(MILLENNIUM FROM `X`)");
 
     checkExpFails(
         "extract(day ^to^ second from x)",
