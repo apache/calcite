@@ -563,6 +563,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return convertFunction(cx, (SqlFunction) call.getOperator(), call);
   }
 
+  /**
+   * Converts a call to the {@code EXTRACT} function.
+   *
+   * <p>Called automatically via reflection.
+   */
   public RexNode convertExtract(
       SqlRexContext cx,
       SqlExtractFunction op,
@@ -602,10 +607,78 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       default:
         throw new AssertionError("unexpected " + sqlTypeName);
       }
+      break;
+    case MILLENNIUM:
+    case CENTURY:
+    case DECADE:
+      switch (sqlTypeName) {
+      case TIMESTAMP:
+        res = divide(rexBuilder, res, TimeUnit.DAY.multiplier);
+        // fall through
+      case DATE:
+        res = rexBuilder.makeCall(resType, SqlStdOperatorTable.EXTRACT_DATE,
+            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), res));
+        return divide(rexBuilder, res, unit.multiplier.divide(TimeUnit.YEAR.multiplier));
+      }
+      break;
+    case QUARTER:
+      switch (sqlTypeName) {
+      case TIMESTAMP:
+        res = divide(rexBuilder, res, TimeUnit.DAY.multiplier);
+        // fall through
+      case DATE:
+        res = rexBuilder.makeCall(resType, SqlStdOperatorTable.EXTRACT_DATE,
+            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), res));
+        res = rexBuilder.makeCall(SqlStdOperatorTable.MINUS, res,
+            rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        res = divide(rexBuilder, res, unit.multiplier);
+        return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
+            rexBuilder.makeExactLiteral(BigDecimal.ONE));
+      }
+      break;
+    case EPOCH:
+      switch (sqlTypeName) {
+      case DATE:
+        // convert to milliseconds
+        res = rexBuilder.makeCall(resType, SqlStdOperatorTable.MULTIPLY,
+            ImmutableList.of(res, rexBuilder.makeExactLiteral(TimeUnit.DAY.multiplier)));
+        // fall through
+      case TIMESTAMP:
+        // convert to seconds
+        return divide(rexBuilder, res, TimeUnit.SECOND.multiplier);
+      case INTERVAL_DAY_TIME:
+      case INTERVAL_YEAR_MONTH:
+        // no convertlet conversion, pass it as extract
+        return convertFunction(cx, (SqlFunction) call.getOperator(), call);
+      }
+      break;
+    case DOW:
+    case DOY:
+    case WEEK:
+      switch (sqlTypeName) {
+      case INTERVAL_DAY_TIME: // fall through
+      case INTERVAL_YEAR_MONTH:
+        // TODO: is this check better to do in validation phase?
+        // Currently there is parameter on TimeUnit to identify these type of units.
+        throw new IllegalArgumentException("Extract " + unit + " from "
+            + sqlTypeName + " type data is not supported");
+      case TIMESTAMP: // fall through
+      case DATE:
+        // no convertlet conversion, pass it as extract
+        return convertFunction(cx, (SqlFunction) call.getOperator(), call);
+      }
     }
 
     res = mod(rexBuilder, resType, res, getFactor(unit));
+    if (unit == TimeUnit.QUARTER) {
+      res = rexBuilder.makeCall(SqlStdOperatorTable.MINUS, res,
+          rexBuilder.makeExactLiteral(BigDecimal.ONE));
+    }
     res = divide(rexBuilder, res, unit.multiplier);
+    if (unit == TimeUnit.QUARTER) {
+      res = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
+          rexBuilder.makeExactLiteral(BigDecimal.ONE));
+    }
     return res;
   }
 
@@ -650,10 +723,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return TimeUnit.HOUR.multiplier;
     case SECOND:
       return TimeUnit.MINUTE.multiplier;
-    case YEAR:
-      return BigDecimal.ONE;
     case MONTH:
       return TimeUnit.YEAR.multiplier;
+    case QUARTER:
+      return TimeUnit.YEAR.multiplier;
+    case YEAR:
+    case DECADE:
+    case CENTURY:
+    case MILLENNIUM:
+      return BigDecimal.ONE;
     default:
       throw Util.unexpected(unit);
     }
