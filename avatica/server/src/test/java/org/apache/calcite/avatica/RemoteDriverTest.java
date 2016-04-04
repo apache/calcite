@@ -1608,6 +1608,44 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testDecimalParameters() throws Exception {
+    final String tableName = "decimalParameters";
+    BigDecimal decimal = new BigDecimal("123451234512345");
+    try (Connection conn = getLocalConnection();
+        Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 DECIMAL(15,0))";
+      assertFalse(stmt.execute(sql));
+
+      getRequestInspection().getRequestLogger().enableAndClear();
+      // Insert a single decimal
+      try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
+          + " values (?, ?)")) {
+        ParameterMetaData metadata = pstmt.getParameterMetaData();
+        assertNotNull(metadata);
+        assertEquals(5, metadata.getPrecision(1));
+        assertEquals(0, metadata.getScale(1));
+        assertEquals(15, metadata.getPrecision(2));
+        assertEquals(0, metadata.getScale(2));
+
+        pstmt.setString(1, "asdfg");
+        pstmt.setBigDecimal(2, decimal);
+        assertEquals(1, pstmt.executeUpdate());
+      }
+
+      ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      assertTrue(results.next());
+      BigDecimal actualDecimal = results.getBigDecimal(2);
+      assertEquals(decimal, actualDecimal);
+
+      ResultSetMetaData resultMetadata = results.getMetaData();
+      assertNotNull(resultMetadata);
+      assertEquals(15, resultMetadata.getPrecision(2));
+      assertEquals(0, resultMetadata.getScale(2));
+    }
+  }
+
   /**
    * Factory that creates a service based on a local JDBC connection.
    */
