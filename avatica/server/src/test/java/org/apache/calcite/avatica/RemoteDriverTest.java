@@ -1617,7 +1617,6 @@ public class RemoteDriverTest {
       String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 DECIMAL(15,0))";
       assertFalse(stmt.execute(sql));
 
-      getRequestInspection().getRequestLogger().enableAndClear();
       // Insert a single decimal
       try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
           + " values (?, ?)")) {
@@ -1643,6 +1642,40 @@ public class RemoteDriverTest {
       assertNotNull(resultMetadata);
       assertEquals(15, resultMetadata.getPrecision(2));
       assertEquals(0, resultMetadata.getScale(2));
+    }
+  }
+
+  @Test public void testSignedParameters() throws Exception {
+    final String tableName = "signedParameters";
+    try (Connection conn = getLocalConnection();
+        Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 integer)";
+      assertFalse(stmt.execute(sql));
+
+      // Insert a single decimal
+      try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
+          + " values (?, ?)")) {
+        ParameterMetaData metadata = pstmt.getParameterMetaData();
+        assertNotNull(metadata);
+        assertFalse("Varchar should not be signed", metadata.isSigned(1));
+        assertTrue("Integer should be signed", metadata.isSigned(2));
+
+        pstmt.setString(1, "asdfg");
+        pstmt.setInt(2, 10);
+        assertEquals(1, pstmt.executeUpdate());
+      }
+
+      ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      assertTrue(results.next());
+      assertEquals("asdfg", results.getString(1));
+      assertEquals(10, results.getInt(2));
+
+      ResultSetMetaData resultMetadata = results.getMetaData();
+      assertNotNull(resultMetadata);
+      assertFalse("Varchar should not be signed", resultMetadata.isSigned(1));
+      assertTrue("Integer should be signed", resultMetadata.isSigned(2));
     }
   }
 
