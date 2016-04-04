@@ -78,7 +78,7 @@ limitations under the License.
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jetty.version>9.2.15.v20160210</jetty.version>
     <junit.version>4.12</junit.version>
-    <kerby.version>1.0.0-RC1</kerby.version>
+    <kerby.version>1.0.0-RC2</kerby.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
 
