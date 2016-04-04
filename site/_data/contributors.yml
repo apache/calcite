@@ -72,6 +72,12 @@
   githubId: maryannxue
   org: Intel
   role: Committer
+- name: Michael Mior
+  apacheId: mmior
+  githubId: michaelmior
+  org: University of Waterloo
+  role: Committer
+  homepage: http://michael.mior.ca/
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk

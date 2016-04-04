@@ -26,13 +26,9 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2016/03/30 <a href="http://conferences.oreilly.com/strata/hadoop-big-data-ca/public/schedule/detail/48180">Strata + Hadoop World</a>, San Jose (developer showcase)
-* 2016/04/13 <a href="http://hadoopsummit.org/dublin/agenda/">Hadoop Summit</a>, Dublin
-* 2016/04/13 [Hortonworks User Group](http://www.meetup.com/Washington-DC-Hortonworks-User-Group-Meetup/events/229494421/), Baltimore
-* 2016/04/20 [Hortonworks User Group](http://www.meetup.com/Washington-DC-Hortonworks-User-Group-Meetup/events/229668371/), Herndon
-* 2016/04/26 <a href="http://kafka-summit.org/schedule/">Kafka Summit</a>, San Francisco
 * 2016/05/10 <a href="http://events.linuxfoundation.org/events/apache-big-data-north-america/program/schedule">ApacheCon Big Data North America</a>, Vancouver
 * 2016/05/24 <a href="http://www-conf.slac.stanford.edu/xldb2016/Program.asp">XLDB</a>, Palo Alto
+* 2016/06/29 <a href="http://hadoopsummit.org/san-jose/agenda/">Hadoop Summit</a>, San Jose
 
 # Project Members
 
@@ -115,6 +111,14 @@ At Samza meetup, Mountain View, CA, 2016
 [[slides](http://www.slideshare.net/julianhyde/streaming-sql)].
 
 <iframe src="//www.slideshare.net/slideshow/embed_code/key/rzaptOy3H8K6Gz" width="595" height="485" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
+
+## Planning with Polyalgebra: Bringing together relational, complex and machine learning algebra
+
+As Hadoop Summit, Dublin, 2016
+[[video](https://www.youtube.com/watch?v=fHZqbe3iPMc)],
+[[slides](http://www.slideshare.net/julianhyde/planning-with-polyalgebra-bringing-together-relational-complex-and-machine-learning-algebra)].
+
+{% oembed https://www.youtube.com/watch?v=fHZqbe3iPMc %}
 
 ## More talks
 
