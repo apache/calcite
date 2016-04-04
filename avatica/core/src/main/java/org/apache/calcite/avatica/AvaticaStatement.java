@@ -386,7 +386,7 @@ public abstract class AvaticaStatement
   }
 
   public void clearBatch() throws SQLException {
-    throw connection.helper.unsupported();
+    this.batchedSql.clear();
   }
 
   public int[] executeBatch() throws SQLException {

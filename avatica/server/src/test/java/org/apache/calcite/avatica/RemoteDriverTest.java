@@ -1501,6 +1501,113 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testPreparedClearBatches() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      eachConnection(
+          new ConnectionFunction() {
+            public void apply(Connection c1) throws Exception {
+              executePreparedBatchClears(c1);
+            }
+          }, getLocalConnection());
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  private void executePreparedBatchClears(Connection conn) throws Exception {
+    final int numRows = 10;
+    final String tableName = AvaticaUtils.unique("BATCH_CLEARS");
+    LOG.info("Creating table {}", tableName);
+    try (Statement stmt = conn.createStatement()) {
+      final String createCommand = String.format("create table if not exists %s ("
+          + "id int not null, "
+          + "msg varchar(10) not null)", tableName);
+      assertFalse("Failed to create table", stmt.execute(createCommand));
+    }
+
+    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+      // Add batches with the prepared statement
+      for (int i = 0; i < numRows; i++) {
+        pstmt.setInt(1, i);
+        pstmt.setString(2, Integer.toString(i));
+        pstmt.addBatch();
+
+        if (numRows / 2 - 1 == i) {
+          // Clear the first 5 entries in the batch
+          pstmt.clearBatch();
+        }
+      }
+
+      int[] updateCounts = pstmt.executeBatch();
+      assertEquals("Unexpected number of update counts returned", numRows / 2, updateCounts.length);
+      for (int i = 0; i < updateCounts.length; i++) {
+        assertEquals("Unexpected update count at index " + i, 1, updateCounts[i]);
+      }
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id asc");
+      assertNotNull("ResultSet was null", rs);
+      for (int i = 0 + (numRows / 2); i < numRows; i++) {
+        assertTrue("ResultSet should have a result", rs.next());
+        assertEquals("Wrong integer value for row " + i, i, rs.getInt(1));
+        assertEquals("Wrong string value for row " + i, Integer.toString(i), rs.getString(2));
+      }
+      assertFalse("ResultSet should have no more records", rs.next());
+    }
+  }
+
+  @Test public void testBatchClear() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      eachConnection(
+          new ConnectionFunction() {
+            public void apply(Connection c1) throws Exception {
+              executeBatchClear(c1);
+            }
+          }, getLocalConnection());
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  private void executeBatchClear(Connection conn) throws Exception {
+    final int numRows = 10;
+    try (Statement stmt = conn.createStatement()) {
+      final String tableName = AvaticaUtils.unique("BATCH_EXECUTE");
+      LOG.info("Creating table {}", tableName);
+      final String createCommand = String.format("create table if not exists %s ("
+          + "id int not null, "
+          + "msg varchar(10) not null)", tableName);
+      assertFalse("Failed to create table", stmt.execute(createCommand));
+
+      final String updatePrefix = String.format("INSERT INTO %s values(", tableName);
+      for (int i = 0; i < numRows;  i++) {
+        stmt.addBatch(updatePrefix + i + ", '" + Integer.toString(i) + "')");
+        if (numRows / 2 - 1 == i) {
+          stmt.clearBatch();
+        }
+      }
+
+      int[] updateCounts = stmt.executeBatch();
+      assertEquals("Unexpected number of update counts returned", numRows / 2, updateCounts.length);
+      for (int i = 0; i < updateCounts.length; i++) {
+        assertEquals("Unexpected update count at index " + i, 1, updateCounts[i]);
+      }
+
+      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id asc");
+      assertNotNull("ResultSet was null", rs);
+      for (int i = 0 + (numRows / 2); i < numRows; i++) {
+        assertTrue("ResultSet should have a result", rs.next());
+        assertEquals("Wrong integer value for row " + i, i, rs.getInt(1));
+        assertEquals("Wrong string value for row " + i, Integer.toString(i), rs.getString(2));
+      }
+      assertFalse("ResultSet should have no more records", rs.next());
+    }
+  }
+
   /**
    * Factory that creates a service based on a local JDBC connection.
    */

@@ -239,6 +239,10 @@ public abstract class AvaticaPreparedStatement
     this.parameterValueBatch.add(copyParameterValues());
   }
 
+  @Override public void clearBatch() {
+    this.parameterValueBatch.clear();
+  }
+
   @Override public int[] executeBatch() throws SQLException {
     // Overriding the implementation in AvaticaStatement.
     try {
