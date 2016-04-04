@@ -90,33 +90,37 @@ public abstract class AbstractHandler<T> implements Handler<T> {
    * @return A {@link Response} with additional context about that response.
    */
   public HandlerResponse<T> apply(T serializedRequest) {
-    final Service.Request request;
     try {
-      request = decode(serializedRequest);
-    } catch (IOException e) {
-      // TODO provide a canned ErrorResponse.
-      throw new RuntimeException(e);
-    }
-
-    try {
+      final Service.Request request = decode(serializedRequest);
       final Service.Response response = request.accept(service);
       return new HandlerResponse<>(encode(response), HTTP_OK);
     } catch (Exception e) {
-      ErrorResponse errorResp = unwrapException(e);
+      return convertToErrorResponse(e);
+    }
+  }
 
-      try {
-        return new HandlerResponse<>(encode(errorResp), HTTP_INTERNAL_SERVER_ERROR);
-      } catch (IOException e1) {
-        // TODO provide a canned ErrorResponse
+  /**
+   * Attempts to convert an Exception to an ErrorResponse. If there is an issue in serialization,
+   * a RuntimeException is thrown instead (wrapping the original exception if necessary).
+   *
+   * @param e The exception to convert.
+   * @return A HandlerResponse instance.
+   */
+  private HandlerResponse<T> convertToErrorResponse(Exception e) {
+    ErrorResponse errorResp = unwrapException(e);
 
-        // If we can't serialize error message to JSON, can't give a meaningful error to caller.
-        // Just try to not unnecessarily create more exceptions.
-        if (e instanceof RuntimeException) {
-          throw (RuntimeException) e;
-        }
+    try {
+      return new HandlerResponse<>(encode(errorResp), HTTP_INTERNAL_SERVER_ERROR);
+    } catch (IOException e1) {
+      // TODO provide a canned ErrorResponse
 
-        throw new RuntimeException(e);
+      // If we can't serialize the error message, we can't give a meaningful error to caller.
+      // Just try to not unnecessarily create more exceptions.
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
       }
+
+      throw new RuntimeException(e);
     }
   }
 

@@ -46,8 +46,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import java.io.DataOutputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -637,6 +640,46 @@ public class RemoteMetaTest {
           avaticaProps.get(DatabaseProperty.AVATICA_VERSION.name()));
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testMalformedRequest() throws Exception {
+    URL url = new URL("http://localhost:" + this.port);
+
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    conn.setRequestMethod("POST");
+    conn.setDoInput(true);
+    conn.setDoOutput(true);
+
+    try (DataOutputStream wr = new DataOutputStream(conn.getOutputStream())) {
+      // Write some garbage data
+      wr.write(new byte[] {0, 1, 2, 3, 4, 5, 6, 7});
+      wr.flush();
+      wr.close();
+    }
+    final int responseCode = conn.getResponseCode();
+    assertEquals(500, responseCode);
+    final InputStream inputStream = conn.getErrorStream();
+    byte[] responseBytes = AvaticaUtils.readFullyToBytes(inputStream);
+    ErrorResponse response;
+    switch (this.serialization) {
+    case JSON:
+      response = JsonService.MAPPER.readValue(responseBytes, ErrorResponse.class);
+      assertTrue("Unexpected error message: " + response.errorMessage,
+          response.errorMessage.contains("Illegal character"));
+      break;
+    case PROTOBUF:
+      ProtobufTranslation pbTranslation = new ProtobufTranslationImpl();
+      Response genericResp = pbTranslation.parseResponse(responseBytes);
+      assertTrue("Response was not an ErrorResponse, but was " + genericResp.getClass(),
+          genericResp instanceof ErrorResponse);
+      response = (ErrorResponse) genericResp;
+      assertTrue("Unexpected error message: " + response.errorMessage,
+          response.errorMessage.contains("contained an invalid tag"));
+      break;
+    default:
+      fail("Unhandled serialization " + this.serialization);
+      throw new RuntimeException();
     }
   }
 

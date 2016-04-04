@@ -148,17 +148,19 @@ public class AbstractHandlerTest {
     @SuppressWarnings("unchecked")
     final AbstractHandler<String> handler = Mockito.mock(AbstractHandler.class);
     final IOException exception = new IOException();
+    final ErrorResponse errorResponse = new ErrorResponse();
+    final String serializedErrorResponse = "Serialized ErrorResponse"; // Faked out
 
     // Accept a serialized request
     Mockito.when(handler.apply(Mockito.anyString())).thenCallRealMethod();
     // Throw an Exception trying to convert it back into a POJO
     Mockito.when(handler.decode(Mockito.anyString())).thenThrow(exception);
+    Mockito.when(handler.unwrapException(exception)).thenReturn(errorResponse);
+    Mockito.when(handler.encode(errorResponse)).thenReturn(serializedErrorResponse);
 
-    try {
-      handler.apply("this is mocked out");
-    } catch (RuntimeException e) {
-      assertEquals(exception, e.getCause());
-    }
+    HandlerResponse<String> response = handler.apply("this is mocked out");
+    assertEquals(serializedErrorResponse, response.getResponse());
+    assertEquals(500, response.getStatusCode());
   }
 }
 
