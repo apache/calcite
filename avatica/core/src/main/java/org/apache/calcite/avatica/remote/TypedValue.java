@@ -35,6 +35,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 /** Value and type.
  *
  * <p>There are 3 representations:
@@ -385,7 +387,7 @@ public class TypedValue {
       builder.setBytesValues(HBaseZeroCopyByteString.wrap(bytes));
       return;
     case STRING:
-      builder.setStringValueBytes(HBaseZeroCopyByteString.wrap(((String) o).getBytes()));
+      builder.setStringValueBytes(HBaseZeroCopyByteString.wrap(((String) o).getBytes(UTF_8)));
       return;
     case PRIMITIVE_CHAR:
     case CHARACTER:
