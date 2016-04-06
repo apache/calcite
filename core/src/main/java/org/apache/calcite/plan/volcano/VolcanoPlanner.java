@@ -410,6 +410,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         new HepProgramBuilder()
             .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
             .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .addRuleInstance(ProjectRemoveRule.INSTANCE)
             .build();
 
     final HepPlanner hepPlanner = new HepPlanner(program, getContext());

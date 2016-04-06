@@ -79,6 +79,7 @@ import org.slf4j.Logger;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -147,12 +148,12 @@ public class SubstitutionVisitor {
 
   protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.<UnifyRule>of(
-//          TrivialRule.INSTANCE,
+          TrivialRule.INSTANCE,
           ScanToProjectUnifyRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
 //          ProjectToFilterUnifyRule.INSTANCE,
-          FilterToFilterUnifyRule.INSTANCE,
+//          FilterToFilterUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnProjectToAggregateUnifyRule.INSTANCE);
 
@@ -515,7 +516,10 @@ public class SubstitutionVisitor {
                 // Replace previous equivalents with new equivalents, higher up
                 // the tree.
                 for (int i = 0; i < rule.slotCount; i++) {
-                  equivalents.removeAll(slots[i]);
+                  Collection<MutableRel> equi = equivalents.get(slots[i]);
+                  if (!equi.isEmpty()) {
+                    equivalents.remove(slots[i], equi.iterator().next());
+                  }
                 }
                 assert result.result.rowType.equals(result.call.query.rowType)
                     : Pair.of(result.result, result.call.query);
@@ -1137,6 +1141,9 @@ public class SubstitutionVisitor {
         MutableProject project) {
       LOGGER.trace("SubstitutionVisitor: invert:\nmodel: {}\ninput: {}\nproject: {}\n",
           model, input, project);
+      if (project.getProjects().size() < model.getRowType().getFieldCount()) {
+        throw MatchFailed.INSTANCE;
+      }
       final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = model.cluster.getRexBuilder();
       for (RelDataTypeField field : model.getRowType().getFieldList()) {
@@ -2209,6 +2216,38 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Returns if one rel is weaker than another. */
+  protected boolean isWeaker(MutableRel rel0, MutableRel rel) {
+    if (rel0 == rel || equivalents.get(rel0).contains(rel)) {
+      return false;
+    }
+
+    if (!(rel0 instanceof MutableFilter)
+        || !(rel instanceof MutableFilter)) {
+      return false;
+    }
+
+    if (!rel.getRowType().equals(rel0.getRowType())) {
+      return false;
+    }
+
+    final MutableRel rel0input = ((MutableFilter) rel0).getInput();
+    final MutableRel relinput = ((MutableFilter) rel).getInput();
+    if (rel0input != relinput
+        && !equivalents.get(rel0input).contains(relinput)) {
+      return false;
+    }
+
+    RexExecutorImpl rexImpl =
+        (RexExecutorImpl) (rel.cluster.getPlanner().getExecutor());
+    RexImplicationChecker rexImplicationChecker = new RexImplicationChecker(
+        rel.cluster.getRexBuilder(),
+        rexImpl, rel.getRowType());
+
+    return rexImplicationChecker.implies(((MutableFilter) rel0).getCondition(),
+        ((MutableFilter) rel).getCondition());
+  }
+
   /** Operand to a {@link UnifyRule}. */
   protected abstract static class Operand {
     protected final Class<? extends MutableRel> clazz;
@@ -2324,35 +2363,7 @@ public class SubstitutionVisitor {
     @Override public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
       assert rel0 != null : "QueryOperand should have been called first";
-
-      if (rel0 == rel || visitor.equivalents.get(rel0).contains(rel)) {
-        return false;
-      }
-
-      if (!(rel0 instanceof MutableFilter)
-          || !(rel instanceof MutableFilter)) {
-        return false;
-      }
-
-      if (!rel.getRowType().equals(rel0.getRowType())) {
-        return false;
-      }
-
-      final MutableRel rel0input = ((MutableFilter) rel0).getInput();
-      final MutableRel relinput = ((MutableFilter) rel).getInput();
-      if (rel0input != relinput
-          && !visitor.equivalents.get(rel0input).contains(relinput)) {
-        return false;
-      }
-
-      RexExecutorImpl rexImpl =
-          (RexExecutorImpl) (rel.cluster.getPlanner().getExecutor());
-      RexImplicationChecker rexImplicationChecker = new RexImplicationChecker(
-          rel.cluster.getRexBuilder(),
-          rexImpl, rel.getRowType());
-
-      return rexImplicationChecker.implies(((MutableFilter) rel0).getCondition(),
-          ((MutableFilter) rel).getCondition());
+      return visitor.isWeaker(rel0, rel);
     }
   }
 

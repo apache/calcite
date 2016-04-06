@@ -34,6 +34,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       ImmutableList.<UnifyRule>builder()
           .addAll(DEFAULT_RULES)
           .add(ProjectToProjectUnifyRule1.INSTANCE)
+          .add(FilterToFilterUnifyRule1.INSTANCE)
+          .add(FilterToProjectUnifyRule1.INSTANCE)
           .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
@@ -45,7 +47,20 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   }
 
   /**
-   * Project to Project Unify rule.
+   * Implementation of {@link UnifyRule} that matches a {@link MutableProject}
+   * to a {@link MutableProject} where the condition of the target relation is
+   * weaker.
+   *
+   * <p>Example: target has a weaker condition and contains all columns selected
+   * by query</p>
+   * <ul>
+   * <li>query:   Project(projects: [$2, $0])
+   *                Filter(condition: >($1, 20))
+   *                  Scan(table: [hr, emps])</li>
+   * <li>target:  Project(projects: [$0, $1, $2])
+   *                Filter(condition: >($1, 10))
+   *                  Scan(table: [hr, emps])</li>
+   * </ul>
    */
   private static class ProjectToProjectUnifyRule1 extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule1 INSTANCE =
@@ -109,34 +124,155 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       }
       return null;
     }
+  }
 
-    private RexNode transformRex(RexNode node,
-        final List<RelDataTypeField> oldFields,
-        final List<RelDataTypeField> newFields) {
-      List<RexNode> nodes =
-          transformRex(ImmutableList.of(node), oldFields, newFields);
-      return nodes.get(0);
+  /**
+   * Implementation of {@link UnifyRule} that matches a {@link MutableFilter}
+   * to a {@link MutableFilter} where the condition of the target relation is
+   * weaker.
+   *
+   * <p>Example: target has a weaker condition</p>
+   * <ul>
+   * <li>query:   Filter(condition: >($1, 20))
+   *                Scan(table: [hr, emps])</li>
+   * <li>target:  Filter(condition: >($1, 10))
+   *                Scan(table: [hr, emps])</li>
+   * </ul>
+   */
+  private static class FilterToFilterUnifyRule1 extends AbstractUnifyRule {
+    public static final FilterToFilterUnifyRule1 INSTANCE =
+        new FilterToFilterUnifyRule1();
+
+    private FilterToFilterUnifyRule1() {
+      super(operand(MutableFilter.class, query(0)),
+          operand(MutableFilter.class, target(0)), 1);
     }
 
-    private List<RexNode> transformRex(
-        List<RexNode> nodes,
-        final List<RelDataTypeField> oldFields,
-        final List<RelDataTypeField> newFields) {
-      RexShuttle shuttle = new RexShuttle() {
-        @Override public RexNode visitInputRef(RexInputRef ref) {
-          RelDataTypeField f = oldFields.get(ref.getIndex());
-          for (int index = 0; index < newFields.size(); index++) {
-            RelDataTypeField newf = newFields.get(index);
-            if (f.getKey().equals(newf.getKey())
-                && f.getValue() == newf.getValue()) {
-              return new RexInputRef(index, f.getValue());
-            }
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableFilter query = (MutableFilter) call.query;
+      final MutableFilter target = (MutableFilter) call.target;
+      final MutableFilter newFilter = MutableFilter.of(target, query.getCondition());
+      return call.result(newFilter);
+    }
+
+    @Override protected UnifyRuleCall match(SubstitutionVisitor visitor,
+        MutableRel query, MutableRel target) {
+      if (queryOperand.matches(visitor, query)) {
+        if (targetOperand.matches(visitor, target)) {
+          if (visitor.isWeaker(query, target)) {
+            return visitor.new UnifyRuleCall(this, query, target,
+                copy(visitor.slots, slotCount));
           }
-          throw MatchFailed.INSTANCE;
         }
-      };
-      return shuttle.apply(nodes);
+      }
+      return null;
     }
+  }
+
+  /**
+   * Implementation of {@link UnifyRule} that matches a {@link MutableFilter}
+   * to a {@link MutableProject} on top of a {@link MutableFilter} where the
+   * condition of the target relation is weaker.
+   *
+   * <p>Example: target has a weaker condition and is a permutation projection
+   * of its child relation</p>
+   * <ul>
+   * <li>query:   Filter(condition: >($1, 20))
+   *                Scan(table: [hr, emps])</li>
+   * <li>target:  Project(projects: [$1, $0, $2, $3, $4])
+   *                Filter(condition: >($1, 10))
+   *                  Scan(table: [hr, emps])</li>
+   * </ul>
+   */
+  private static class FilterToProjectUnifyRule1 extends AbstractUnifyRule {
+    public static final FilterToProjectUnifyRule1 INSTANCE =
+        new FilterToProjectUnifyRule1();
+
+    private FilterToProjectUnifyRule1() {
+      super(
+          operand(MutableFilter.class, query(0)),
+          operand(MutableProject.class,
+              operand(MutableFilter.class, target(0))), 1);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableRel query = call.query;
+
+      final List<RelDataTypeField> oldFieldList =
+          query.getRowType().getFieldList();
+      final List<RelDataTypeField> newFieldList =
+          call.target.getRowType().getFieldList();
+      List<RexNode> newProjects;
+      try {
+        newProjects = transformRex(
+            (List<RexNode>) call.getCluster().getRexBuilder().identityProjects(
+                query.getRowType()),
+            oldFieldList, newFieldList);
+      } catch (MatchFailed e) {
+        return null;
+      }
+
+      final MutableProject newProject =
+          MutableProject.of(
+              query.getRowType(), call.target, newProjects);
+
+      final MutableRel newProject2 = MutableRels.strip(newProject);
+      return call.result(newProject2);
+    }
+
+    @Override protected UnifyRuleCall match(SubstitutionVisitor visitor,
+        MutableRel query, MutableRel target) {
+      assert query instanceof MutableFilter && target instanceof MutableProject;
+
+      if (queryOperand.matches(visitor, query)) {
+        if (targetOperand.matches(visitor, target)) {
+          if (visitor.isWeaker(query, ((MutableProject) target).getInput())) {
+            final MutableFilter filter = (MutableFilter) query;
+            RexNode newCondition;
+            try {
+              newCondition = transformRex(filter.getCondition(),
+                  filter.getInput().getRowType().getFieldList(),
+                  target.getRowType().getFieldList());
+            } catch (MatchFailed e) {
+              return null;
+            }
+            final MutableFilter newFilter = MutableFilter.of(target,
+                newCondition);
+            return visitor.new UnifyRuleCall(this, query, newFilter,
+                copy(visitor.slots, slotCount));
+          }
+        }
+      }
+      return null;
+    }
+  }
+
+  private static RexNode transformRex(RexNode node,
+      final List<RelDataTypeField> oldFields,
+      final List<RelDataTypeField> newFields) {
+    List<RexNode> nodes =
+        transformRex(ImmutableList.of(node), oldFields, newFields);
+    return nodes.get(0);
+  }
+
+  private static List<RexNode> transformRex(
+      List<RexNode> nodes,
+      final List<RelDataTypeField> oldFields,
+      final List<RelDataTypeField> newFields) {
+    RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef ref) {
+        RelDataTypeField f = oldFields.get(ref.getIndex());
+        for (int index = 0; index < newFields.size(); index++) {
+          RelDataTypeField newf = newFields.get(index);
+          if (f.getKey().equals(newf.getKey())
+              && f.getValue() == newf.getValue()) {
+            return new RexInputRef(index, f.getValue());
+          }
+        }
+        throw MatchFailed.INSTANCE;
+      }
+    };
+    return shuttle.apply(nodes);
   }
 }
 

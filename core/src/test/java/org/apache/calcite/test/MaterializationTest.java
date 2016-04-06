@@ -436,6 +436,19 @@ public class MaterializationTest {
             JdbcTest.HR_MODEL);
   }
 
+  /** As {@link #testFilterQueryOnFilterView7()} but columns in materialized
+   * view are a permutation of columns in the query*/
+  @Test public void testFilterQueryOnFilterView14() {
+    String q = "select * from \"emps\" where (\"salary\" > 1000 "
+        + "or (\"deptno\" >= 30 and \"salary\" <= 500))";
+    String m = "select \"deptno\", \"empid\", \"name\", \"salary\", \"commission\" "
+        + "from \"emps\" as em where "
+        + "((\"salary\" < 1111.9 and \"deptno\" > 10)"
+        + "or (\"empid\" > 400 and \"salary\" > 5000) "
+        + "or \"salary\" > 500)";
+    checkMaterialize(m, q);
+  }
+
   /** As {@link #testFilterQueryOnFilterView13()} but using alias
    * and condition of query is stronger*/
   @Test public void testAlias() {
