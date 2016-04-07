@@ -47,9 +47,10 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   }
 
   /**
-   * Implementation of {@link UnifyRule} that matches a {@link MutableProject}
-   * to a {@link MutableProject} where the condition of the target relation is
-   * weaker.
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link SubstitutionVisitor.MutableProject} to a
+   * {@link SubstitutionVisitor.MutableProject} where the condition of the target
+   * relation is weaker.
    *
    * <p>Example: target has a weaker condition and contains all columns selected
    * by query</p>
@@ -127,9 +128,10 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   }
 
   /**
-   * Implementation of {@link UnifyRule} that matches a {@link MutableFilter}
-   * to a {@link MutableFilter} where the condition of the target relation is
-   * weaker.
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link SubstitutionVisitor.MutableFilter} to a
+   * {@link SubstitutionVisitor.MutableFilter} where the condition of the target
+   * relation is weaker.
    *
    * <p>Example: target has a weaker condition</p>
    * <ul>
@@ -170,12 +172,14 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   }
 
   /**
-   * Implementation of {@link UnifyRule} that matches a {@link MutableFilter}
-   * to a {@link MutableProject} on top of a {@link MutableFilter} where the
-   * condition of the target relation is weaker.
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link SubstitutionVisitor.MutableFilter} to a
+   * {@link SubstitutionVisitor.MutableProject} on top of a
+   * {@link SubstitutionVisitor.MutableFilter} where the condition of the target
+   * relation is weaker.
    *
-   * <p>Example: target has a weaker condition and is a permutation projection
-   * of its child relation</p>
+   * <p>Example: target has a weaker condition and is a permutation projection of
+   * its child relation</p>
    * <ul>
    * <li>query:   Filter(condition: >($1, 20))
    *                Scan(table: [hr, emps])</li>
