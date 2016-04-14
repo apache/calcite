@@ -168,9 +168,10 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     // Split join condition
     final List<Integer> leftKeys = Lists.newArrayList();
     final List<Integer> rightKeys = Lists.newArrayList();
+    final List<Boolean> filterNulls = Lists.newArrayList();
     RexNode nonEquiConj =
         RelOptUtil.splitJoinCondition(join.getLeft(), join.getRight(),
-            join.getCondition(), leftKeys, rightKeys);
+            join.getCondition(), leftKeys, rightKeys, filterNulls);
     // If it contains non-equi join conditions, we bail out
     if (!nonEquiConj.isAlwaysTrue()) {
       return;
