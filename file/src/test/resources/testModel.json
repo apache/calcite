@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "defaultSchema": "TEST",
+  "schemas": [ {
+    "name": "TEST",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "tables": [ {
+        "name": "T1",
+        "url": "file:target/test-classes/tableOK.html"
+      }, {
+        "name": "T1_NO_TH",
+        "url": "file:target/test-classes/tableNoTH.html"
+      }, {
+        "name": "TABLEX2",
+        "url": "file:target/test-classes/tableX2.html"
+      } ]
+    }
+  } ]
+}
