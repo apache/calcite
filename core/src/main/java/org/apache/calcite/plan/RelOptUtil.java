@@ -783,6 +783,15 @@ public abstract class RelOptUtil {
    *                  equi-join keys
    * @param rightKeys The ordinals of the fields from the right input which
    *                  are equi-join keys
+   * @param filterNulls List of boolean values for each join key position
+   *                    indicating whether the operator filters out nulls or not.
+   *                    Value is true if the operator is EQUALS and false if the
+   *                    operator is IS NOT DISTINCT FROM (or an expanded version).
+   *                    If <code>filterNulls</code> is null, only join conditions
+   *                    with EQUALS operators are considered equi-join components.
+   *                    Rest (including IS NOT DISTINCT FROM) are returned in
+   *                    remaining join condition.
+   *
    * @return remaining join filters that are not equijoins; may return a
    * {@link RexLiteral} true, but never null
    */
@@ -791,14 +800,17 @@ public abstract class RelOptUtil {
       RelNode right,
       RexNode condition,
       List<Integer> leftKeys,
-      List<Integer> rightKeys) {
+      List<Integer> rightKeys,
+      List<Boolean> filterNulls) {
     final List<RexNode> nonEquiList = new ArrayList<>();
 
     splitJoinCondition(
+        left.getCluster().getRexBuilder(),
         left.getRowType().getFieldCount(),
         condition,
         leftKeys,
         rightKeys,
+        filterNulls,
         nonEquiList);
 
     return RexUtil.composeConjunction(
@@ -819,12 +831,15 @@ public abstract class RelOptUtil {
       RexNode condition) {
     final List<Integer> leftKeys = new ArrayList<>();
     final List<Integer> rightKeys = new ArrayList<>();
+    final List<Boolean> filterNulls = new ArrayList<>();
     final List<RexNode> nonEquiList = new ArrayList<>();
     splitJoinCondition(
+        left.getCluster().getRexBuilder(),
         left.getRowType().getFieldCount(),
         condition,
         leftKeys,
         rightKeys,
+        filterNulls,
         nonEquiList);
     return nonEquiList.size() == 0;
   }
@@ -1007,6 +1022,7 @@ public abstract class RelOptUtil {
       List<RelDataTypeField> rightFields = null;
       boolean reverse = false;
 
+      call = collapseExpandedIsNotDistinctFromExpr(call, cluster.getRexBuilder());
       SqlKind kind = call.getKind();
 
       // Only consider range operators if we haven't already seen one
@@ -1348,30 +1364,39 @@ public abstract class RelOptUtil {
   }
 
   private static void splitJoinCondition(
+      final RexBuilder rexBuilder,
       final int leftFieldCount,
       RexNode condition,
       List<Integer> leftKeys,
       List<Integer> rightKeys,
+      List<Boolean> filterNulls,
       List<RexNode> nonEquiList) {
     if (condition instanceof RexCall) {
       RexCall call = (RexCall) condition;
-      final SqlOperator operator = call.getOperator();
+      SqlOperator operator = call.getOperator();
       if (operator == SqlStdOperatorTable.AND) {
         for (RexNode operand : call.getOperands()) {
           splitJoinCondition(
+              rexBuilder,
               leftFieldCount,
               operand,
               leftKeys,
               rightKeys,
+              filterNulls,
               nonEquiList);
         }
         return;
       }
 
+      if (filterNulls != null) {
+        call = collapseExpandedIsNotDistinctFromExpr(call, rexBuilder);
+        operator = call.getOperator();
+      }
+
       // "=" and "IS NOT DISTINCT FROM" are the same except for how they
-      // treat nulls. TODO: record null treatment
+      // treat nulls.
       if (operator == SqlStdOperatorTable.EQUALS
-          || operator == SqlStdOperatorTable.IS_NOT_DISTINCT_FROM) {
+          || (filterNulls != null && operator == SqlStdOperatorTable.IS_NOT_DISTINCT_FROM)) {
         final List<RexNode> operands = call.getOperands();
         if ((operands.get(0) instanceof RexInputRef)
             && (operands.get(1) instanceof RexInputRef)) {
@@ -1398,6 +1423,9 @@ public abstract class RelOptUtil {
 
           leftKeys.add(leftField.getIndex());
           rightKeys.add(rightField.getIndex() - leftFieldCount);
+          if (filterNulls != null) {
+            filterNulls.add(operator == SqlStdOperatorTable.EQUALS);
+          }
           return;
         }
         // Arguments were not field references, one from each side, so
@@ -1409,6 +1437,84 @@ public abstract class RelOptUtil {
     if (!condition.isAlwaysTrue()) {
       nonEquiList.add(condition);
     }
+  }
+
+  /**
+   * Helper method for
+   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)} and
+   * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
+   *
+   * If the given expr <code>call</code> is and expanded version of
+   * IS NOT DISTINCT FROM function call, collapse it and return a
+   * IS NOT DISTINCT FROM function call.
+   *
+   * Eg: t1.key IS NOT DISTINCT FROM t2.key can rewritten in expanded form as
+   *   t1.key = t2.key OR (t1.key IS NULL AND t2.key IS NULL)
+   *
+   * @param call       Function expression to try collapsing.
+   * @param rexBuilder {@link RexBuilder} instance to create new {@link RexCall} instances.
+   * @return If the given function is an expanded IS NOT DISTINCT FROM function call,
+   *         return a IS NOT DISTINCT FROM function call. Otherwise return the input
+   *         function call as it is.
+   */
+  private static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
+      final RexBuilder rexBuilder) {
+    if (call.getOperator() != SqlStdOperatorTable.OR || call.getOperands().size() != 2) {
+      return call;
+    }
+
+    final RexNode op0 = call.getOperands().get(0);
+    final RexNode op1 = call.getOperands().get(1);
+
+    if (!(op0 instanceof RexCall) || !(op1 instanceof RexCall)) {
+      return call;
+    }
+
+    RexCall opEqCall = (RexCall) op0;
+    RexCall opNullEqCall = (RexCall) op1;
+
+    if (opEqCall.getOperator() == SqlStdOperatorTable.AND
+        && opNullEqCall.getOperator() == SqlStdOperatorTable.EQUALS) {
+      RexCall temp = opEqCall;
+      opEqCall = opNullEqCall;
+      opNullEqCall = temp;
+    }
+
+    if (opNullEqCall.getOperator() != SqlStdOperatorTable.AND
+        || opNullEqCall.getOperands().size() != 2
+        || opEqCall.getOperator() != SqlStdOperatorTable.EQUALS) {
+      return call;
+    }
+
+    final RexNode isNullInput0;
+    final RexNode isNullInput1;
+
+    final RexNode op10 = opNullEqCall.getOperands().get(0);
+    final RexNode op11 = opNullEqCall.getOperands().get(1);
+    if (op10 instanceof RexCall && op11 instanceof RexCall
+        && ((RexCall) op10).getOperator() == SqlStdOperatorTable.IS_NULL
+        && ((RexCall) op11).getOperator() == SqlStdOperatorTable.IS_NULL) {
+      // now get the operands of IS_NULL operators
+      isNullInput0 = ((RexCall) op10).getOperands().get(0);
+      isNullInput1 = ((RexCall) op11).getOperands().get(0);
+    } else {
+      return call;
+    }
+
+    final String isNullInput0Digest = isNullInput0.toString();
+    final String isNullInput1Digest = isNullInput1.toString();
+    final String equalsInput0Digest = opEqCall.getOperands().get(0).toString();
+    final String equalsInput1Digest = opEqCall.getOperands().get(1).toString();
+
+    if ((isNullInput0Digest.equals(equalsInput0Digest)
+        && isNullInput1Digest.equals(equalsInput1Digest))
+        || (isNullInput1Digest.equals(equalsInput0Digest)
+        && isNullInput0Digest.equals(equalsInput1Digest))) {
+      return (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+          ImmutableList.of(isNullInput0, isNullInput1));
+    }
+
+    return call;
   }
 
   /**
