@@ -320,7 +320,7 @@ This request is used as short-hand to create a Statement and execute an batch of
   "request": "prepareAndExecuteBatch",
   "connectionId": "000000-0000-0000-00000000",
   "statementId": 12345,
-  "sqlCommands", [ "SQL Command", "SQL Command", ... ]
+  "sqlCommands": [ "SQL Command", "SQL Command", ... ]
 }
 {% endhighlight %}
 
