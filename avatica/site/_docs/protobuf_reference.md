@@ -1229,6 +1229,41 @@ message TypedValue {
 
 `null` A boolean which denotes if the value was null.
 
+The following chart documents how each <a href="#rep">Rep</a> value corresponds
+to the attributes in this message:
+
+| <a href="#rep">Rep</a> Value | <a href="#typedvalue">TypedValue</a> attribute | Description |
+| PRIMITIVE_BOOLEAN | `bool_value` ||
+| BOOLEAN | `bool_value` ||
+| PRIMITIVE_BYTE | `number_value` | The numeric value of the `byte`. |
+| BYTE | `number_value` ||
+| PRIMITIVE_CHAR | `string_value` ||
+| CHARACTER | `string_value` ||
+| PRIMITIVE_SHORT | `number_value` ||
+| SHORT | `number_value` ||
+| PRIMITIVE_INT | `number_value` ||
+| INTEGER | `number_value` ||
+| PRIMITIVE_LONG | `number_value` ||
+| LONG | `number_value` ||
+| PRIMITIVE_FLOAT | `number_value` ||
+| FLOAT | `number_value` | IEEE 754 floating-point "single format" bit layout. |
+| PRIMITIVE_DOUBLE | `number_value` ||
+| DOUBLE | `number_value` ||
+| BIG_INTEGER | `bytes_value` | The two's-complement representation of the BigInteger. See `BigInteger#toByteArray().` |
+| BIG_DECIMAL | `string_value` | A string-ified representation of the value. See `BigDecimal#toString()`. |
+| JAVA_SQL_TIME | `number_value` ||
+| JAVA_SQL_DATE | `number_value` ||
+| JAVA_SQL_TIMESTAMP | `number_value` ||
+| JAVA_UTIL_DATE | `number_value` ||
+| BYTE_STRING | `bytes_value` ||
+| STRING | `string_value` | This must be a UTF-8 string. |
+| NUMBER | `number_value` | A general number, unknown what concrete type. |
+| OBJECT | `null` | The only general Object we can serialize is "null". Non-null OBJECT's will throw an error. |
+| NULL | `null` ||
+| ARRAY | N/A | Unhandled. |
+| STRUCT | N/A | Unhandled. |
+| MULTISET | N/A | Unhandled. |
+
 ### UpdateBatch
 
 This is a message which serves as a wrapper around a collection of <a href="#typedvalue">TypedValue</a>'s.

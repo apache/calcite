@@ -1153,3 +1153,39 @@ This object encapsulates the type and value for a column in a row.
 `type` A name referring to the type of the object stored in `value`.
 
 `value` A JSON representation of a JDBC type.
+
+The following chart documents how each <a href="#rep">Rep</a> value is serialized
+into a JSON value. Consult the [JSON documentation](http://json-spec.readthedocs.org/en/latest/reference.html)
+for more information on valid attributes in JSON.
+
+| <a href="#rep">Rep</a> Value | Serialized | Description |
+| PRIMITIVE_BOOLEAN | boolean ||
+| BOOLEAN | boolean ||
+| PRIMITIVE_BYTE | number | The numeric value of the `byte`. |
+| BYTE | number ||
+| PRIMITIVE_CHAR | string ||
+| CHARACTER | string ||
+| PRIMITIVE_SHORT | number ||
+| SHORT | number ||
+| PRIMITIVE_INT | number ||
+| INTEGER | number ||
+| PRIMITIVE_LONG | number ||
+| LONG | number ||
+| PRIMITIVE_FLOAT | number ||
+| FLOAT | number ||
+| PRIMITIVE_DOUBLE | number ||
+| DOUBLE | number ||
+| BIG_INTEGER | number | Implicitly handled by Jackson. |
+| BIG_DECIMAL | number | Implicitly handled by Jackson. |
+| JAVA_SQL_TIME | number | As an integer, millis since midnight. |
+| JAVA_SQL_DATE | number | As an integer, days since the epoch. |
+| JAVA_SQL_TIMESTAMP | number | As a long, millis since the epoch. |
+| JAVA_UTIL_DATE | number | As a long, millis since the epoch. |
+| BYTE_STRING | string | A Base64-encoded string. |
+| STRING | string | |
+| NUMBER | number | A general number, unknown what concrete type. |
+| OBJECT | null | Implicitly converted by Jackson. |
+| NULL | null | Implicitly converted by Jackson. |
+| ARRAY | N/A | Implicitly handled by Jackson. |
+| STRUCT | N/A | Implicitly handled by Jackson. |
+| MULTISET | N/A | Implicitly handled by Jackson. |
