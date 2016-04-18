@@ -16,14 +16,23 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Sources;
+
 import org.jsoup.select.Elements;
 
 import org.junit.Assume;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.net.MalformedURLException;
 import java.util.Iterator;
 
 /**
@@ -32,96 +41,95 @@ import java.util.Iterator;
 
 public class FileReaderTest {
 
-  static final String CITIES_URI =
-      "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population";
+  private static final Source CITIES_SOURCE =
+      Sources.url("http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population");
 
-  static final String STATES_URI =
-      "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States";
+  private static final Source STATES_SOURCE =
+      Sources.url(
+          "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States");
 
-  /**
-   * Test FileReader URL instantiation - no path
-   */
-  @Test
-  public void testFileReaderURLNoPath() throws FileReaderException {
+  /** Converts a path that is relative to the module into a path that is
+   * relative to where the test is running. */
+  public static String file(String s) {
+    if (new File("file").exists()) {
+      return "file/" + s;
+    } else {
+      return s;
+    }
+  }
+
+  /** Tests {@link FileReader} URL instantiation - no path. */
+  @Test public void testFileReaderUrlNoPath() throws FileReaderException {
     Assume.assumeTrue(FileSuite.hazNetwork());
-    FileReader t = new FileReader(STATES_URI);
+    FileReader t = new FileReader(STATES_SOURCE);
     t.refresh();
   }
 
-  /**
-   * Test FileReader URL instantiation - with path
-   */
-  @Test
-  public void testFileReaderURLWithPath() throws FileReaderException {
+  /** Tests {@link FileReader} URL instantiation - with path. */
+  @Test public void testFileReaderUrlWithPath() throws FileReaderException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     FileReader t =
-        new FileReader(CITIES_URI,
+        new FileReader(CITIES_SOURCE,
             "#mw-content-text > table.wikitable.sortable", 0);
     t.refresh();
   }
 
-  /**
-   * Test FileReader URL fetch
-   */
-  @Test
-  public void testFileReaderURLFetch() throws FileReaderException {
+  /** Tests {@link FileReader} URL fetch. */
+  @Test public void testFileReaderUrlFetch() throws FileReaderException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     FileReader t =
-        new FileReader(STATES_URI,
+        new FileReader(STATES_SOURCE,
             "#mw-content-text > table.wikitable.sortable", 0);
     int i = 0;
     for (Elements row : t) {
       i++;
     }
-    assertTrue(i == 50);
+    assertThat(i, is(51));
   }
 
-  /**
-   * Test failed FileReader instantiation - malformed URL
-   */
-  @Test(expected = FileReaderException.class)
-  public void testFileReaderMalURL() throws FileReaderException {
-    FileReader t = new FileReader("bad" + CITIES_URI, "table:eq(4)");
-    t.refresh();
+  /** Tests failed {@link FileReader} instantiation - malformed URL. */
+  @Test public void testFileReaderMalUrl() throws FileReaderException {
+    try {
+      final Source badSource = Sources.url("bad" + CITIES_SOURCE.path());
+      fail("expected exception, got " + badSource);
+    } catch (RuntimeException e) {
+      assertThat(e.getCause(), instanceOf(MalformedURLException.class));
+      assertThat(e.getCause().getMessage(), is("unknown protocol: badhttp"));
+    }
   }
 
-  /**
-   * Test failed FileReader instantiation - bad URL
-   */
+  /** Tests failed {@link FileReader} instantiation - bad URL. */
   @Test(expected = FileReaderException.class)
-  public void testFileReaderBadURL() throws FileReaderException {
+  public void testFileReaderBadUrl() throws FileReaderException {
     final String uri =
         "http://ex.wikipedia.org/wiki/List_of_United_States_cities_by_population";
-    FileReader t = new FileReader(uri, "table:eq(4)");
+    FileReader t = new FileReader(Sources.url(uri), "table:eq(4)");
     t.refresh();
   }
 
-  /**
-   * Test failed FileReader instantiation - bad selector
-   */
+  /** Tests failed {@link FileReader} instantiation - bad selector. */
   @Test(expected = FileReaderException.class)
   public void testFileReaderBadSelector() throws FileReaderException {
-    FileReader t =
-        new FileReader("file:target/test-classes/tableOK.html", "table:eq(1)");
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableOK.html"));
+    FileReader t = new FileReader(source, "table:eq(1)");
     t.refresh();
   }
 
-  /**
-   * Test FileReader with static file - headings
-   */
-  @Test
-  public void testFileReaderHeadings() throws FileReaderException {
-    FileReader t = new FileReader("file:target/test-classes/tableOK.html");
+  /** Test {@link FileReader} with static file - headings. */
+  @Test public void testFileReaderHeadings() throws FileReaderException {
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableOK.html"));
+    FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
     assertTrue(headings.get(1).text().equals("H1"));
   }
 
-  /**
-   * Test FileReader with static file - data
-   */
-  @Test
-  public void testFileReaderData() throws FileReaderException {
-    FileReader t = new FileReader("file:target/test-classes/tableOK.html");
+  /** Test {@link FileReader} with static file - data. */
+  @Test public void testFileReaderData() throws FileReaderException {
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableOK.html"));
+    FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
     assertTrue(row.get(2).text().equals("R0C2"));
@@ -129,24 +137,20 @@ public class FileReaderTest {
     assertTrue(row.get(0).text().equals("R1C0"));
   }
 
-  /**
-   * Test FileReader with bad static file - headings
-   */
-  @Test
-  public void testFileReaderHeadingsBadFile() throws FileReaderException {
-    FileReader t =
-        new FileReader("file:target/test-classes/tableNoTheadTbody.html");
+  /** Tests {@link FileReader} with bad static file - headings. */
+  @Test public void testFileReaderHeadingsBadFile() throws FileReaderException {
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableNoTheadTbody.html"));
+    FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
     assertTrue(headings.get(1).text().equals("H1"));
   }
 
-  /**
-   * Test FileReader with bad static file - data
-   */
-  @Test
-  public void testFileReaderDataBadFile() throws FileReaderException {
-    final FileReader t =
-        new FileReader("file:target/test-classes/tableNoTheadTbody.html");
+  /** Tests {@link FileReader} with bad static file - data. */
+  @Test public void testFileReaderDataBadFile() throws FileReaderException {
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableNoTheadTbody.html"));
+    FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
     assertTrue(row.get(2).text().equals("R0C2"));
@@ -154,24 +158,22 @@ public class FileReaderTest {
     assertTrue(row.get(0).text().equals("R1C0"));
   }
 
-  /**
-   * Test FileReader with no headings static file - data
-   */
-  @Test
-  public void testFileReaderDataNoTH() throws FileReaderException {
-    FileReader t = new FileReader("file:target/test-classes/tableNoTH.html");
-    Iterator<Elements> i =
-        new FileReader("file:target/test-classes/tableNoTH.html").iterator();
+  /** Tests {@link FileReader} with no headings static file - data. */
+  @Test public void testFileReaderDataNoTh() throws FileReaderException {
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableNoTH.html"));
+    FileReader t = new FileReader(source);
+    Iterator<Elements> i = t.iterator();
     Elements row = i.next();
     assertTrue(row.get(2).text().equals("R0C2"));
   }
 
-  /**
-   * Test FileReader iterator with static file
-   */
-  @Test
-  public void testFileReaderIterator() throws FileReaderException {
-    FileReader t = new FileReader("file:target/test-classes/tableOK.html");
+  /** Tests {@link FileReader} iterator with static file, */
+  @Test public void testFileReaderIterator() throws FileReaderException {
+    System.out.println(new File("").getAbsolutePath());
+    final Source source =
+        Sources.file(null, file("target/test-classes/tableOK.html"));
+    FileReader t = new FileReader(source);
     Elements row = null;
     for (Elements aT : t) {
       row = aT;

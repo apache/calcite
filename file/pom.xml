@@ -36,8 +36,28 @@ limitations under the License.
 
   <dependencies>
     <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-linq4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-example-csv</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-core</artifactId>
     </dependency>
     <dependency>
       <groupId>com.joestelmach</groupId>
@@ -49,14 +69,6 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.calcite</groupId>
-      <artifactId>calcite-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.calcite</groupId>
-      <artifactId>calcite-linq4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
     </dependency>
@@ -65,20 +77,8 @@ limitations under the License.
   <build>
     <plugins>
       <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-	      <artifactId>jalopy-maven-plugin</artifactId>
-	      <version>1.0-alpha-1</version>
-	      <configuration>
-	        <srcExcludesPattern>**/CsvTableScan.java</srcExcludesPattern>
-            <failOnError>false</failOnError>
-            <convention>${top.dir}src/main/config/jalopy.xml</convention>
-	      </configuration>
-      </plugin>
-
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.18</version>
         <configuration>
           <includes>
             <include>org/apache/calcite/adapter/file/FileSuite.java</include>
@@ -89,7 +89,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.8</version>
+        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>copy-dependencies</id>

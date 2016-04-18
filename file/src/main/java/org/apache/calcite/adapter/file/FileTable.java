@@ -35,8 +35,9 @@ import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.Source;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,20 +51,24 @@ class FileTable extends AbstractQueryableTable
   private FileRowConverter converter;
 
   /** Creates a FileTable. */
-  FileTable(Map<String, Object> tableDef, RelProtoDataType protoRowType)
+  private FileTable(Source source, String selector, Integer index,
+      RelProtoDataType protoRowType, List<Map<String, Object>> fieldConfigs)
       throws Exception {
     super(Object[].class);
 
     this.protoRowType = protoRowType;
-    @SuppressWarnings("unchecked") ArrayList<Map<String, Object>> fieldConfigs =
-        (ArrayList<Map<String, Object>>) tableDef.get("fields");
-    String url = (String) tableDef.get("url");
+    this.reader = new FileReader(source, selector, index);
+    this.converter = new FileRowConverter(this.reader, fieldConfigs);
+  }
+
+  /** Creates a FileTable. */
+  static FileTable create(Source source, Map<String, Object> tableDef)
+      throws Exception {
+    @SuppressWarnings("unchecked") List<Map<String, Object>> fieldConfigs =
+        (List<Map<String, Object>>) tableDef.get("fields");
     String selector = (String) tableDef.get("selector");
     Integer index = (Integer) tableDef.get("index");
-    this.reader = new FileReader(url, selector, index);
-    this.converter = new FileRowConverter(this.reader, fieldConfigs);
-    //System.out.println("Created FileTable: " + (String) tableDef.get("name"));
-
+    return new FileTable(source, selector, index, null, fieldConfigs);
   }
 
   public String toString() {

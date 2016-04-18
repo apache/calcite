@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -39,8 +41,9 @@ public class FileSchemaFactory implements SchemaFactory {
       Map<String, Object> operand) {
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
-
-    return new FileSchema(parentSchema, name, tables);
+    final File baseDirectory =
+        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    return new FileSchema(parentSchema, name, baseDirectory, tables);
   }
 }
 

@@ -18,11 +18,11 @@ package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.util.Source;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -30,14 +30,20 @@ import java.util.List;
 class JsonEnumerator implements Enumerator<Object[]> {
   private final Enumerator<Object> enumerator;
 
-  public JsonEnumerator(File file) {
+  public JsonEnumerator(Source source) {
     try {
       final ObjectMapper mapper = new ObjectMapper();
       mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
       mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
       mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-      //noinspection unchecked
-      List<Object> list = mapper.readValue(file, List.class);
+      List<Object> list;
+      if (source.protocol().equals("file")) {
+        //noinspection unchecked
+        list = mapper.readValue(source.file(), List.class);
+      } else {
+        //noinspection unchecked
+        list = mapper.readValue(source.url(), List.class);
+      }
       enumerator = Linq4j.enumerator(list);
     } catch (IOException e) {
       throw new RuntimeException(e);

@@ -16,20 +16,14 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.jsoup.Jsoup;
+import org.apache.calcite.util.Source;
 
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-
 import org.jsoup.select.Elements;
 
-import java.io.File;
-
 import java.io.IOException;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import java.util.Iterator;
 
 /**
@@ -39,53 +33,46 @@ public class FileReader implements Iterable<Elements> {
 
   private static final String DEFAULT_CHARSET = "UTF-8";
 
-  private final URL url;
+  private final Source source;
   private final String selector;
   private final Integer index;
   private final String charset = DEFAULT_CHARSET;
   private Element tableElement;
   private Elements headings;
 
-  public FileReader(String url, String selector, Integer index)
+  public FileReader(Source source, String selector, Integer index)
       throws FileReaderException {
-    if (url == null) {
+    if (source == null) {
       throw new FileReaderException("URL must not be null");
     }
-
-    try {
-      this.url = new URL(url);
-    } catch (MalformedURLException e) {
-      throw new FileReaderException("Malformed URL: '" + url + "'", e);
-    }
+    this.source = source;
     this.selector = selector;
     this.index = index;
   }
 
-  public FileReader(String url, String selector) throws FileReaderException {
-    this(url, selector, null);
+  public FileReader(Source source, String selector) throws FileReaderException {
+    this(source, selector, null);
   }
 
-  public FileReader(String url) throws FileReaderException {
-    this(url, null, null);
+  public FileReader(Source source) throws FileReaderException {
+    this(source, null, null);
   }
 
   private void getTable() throws FileReaderException {
-
-    Document doc;
+    final Document doc;
     try {
-      String proto = this.url.getProtocol();
+      String proto = source.protocol();
       if (proto.equals("file")) {
-        doc = Jsoup.parse(new File(this.url.getFile()), this.charset);
+        doc = Jsoup.parse(source.file(), this.charset);
       } else {
-        doc = Jsoup.connect(this.url.toString()).get();
+        doc = Jsoup.connect(source.path()).get();
       }
     } catch (IOException e) {
-      throw new FileReaderException("Cannot read " + this.url.toString(), e);
+      throw new FileReaderException("Cannot read " + source.path(), e);
     }
 
     this.tableElement = (this.selector != null && !this.selector.equals(""))
         ? getSelectedTable(doc, this.selector) : getBestTable(doc);
-
   }
 
   private Element getSelectedTable(Document doc, String selector)
@@ -153,15 +140,16 @@ public class FileReader implements Iterable<Elements> {
   }
 
   private String tableKey() {
-    return "Table: {url: " + this.url + ", selector: " + this.selector;
+    return "Table: {url: " + this.source + ", selector: " + this.selector + "}";
   }
 
   public FileReaderIterator iterator() {
     if (this.tableElement == null) {
       try {
         getTable();
+      } catch (RuntimeException | Error e) {
+        throw e;
       } catch (Exception e) {
-        // TODO: temporary hack
         throw new RuntimeException(e);
       }
     }
@@ -201,8 +189,8 @@ public class FileReader implements Iterable<Elements> {
   }
 
   /** Iterates over HTML tables, returning an Elements per row. */
-  private class FileReaderIterator implements Iterator<Elements> {
-    Iterator<Element> rowIterator;
+  private static class FileReaderIterator implements Iterator<Elements> {
+    final Iterator<Element> rowIterator;
 
     FileReaderIterator(Elements rows) {
       this.rowIterator = rows.iterator();

@@ -23,24 +23,20 @@ import org.jsoup.select.Elements;
 import java.util.Iterator;
 
 /**
- * Wraps WebReader and FileRowConverter, enumerates tr Elements as
- * table rows.
+ * Wraps {@link FileReader} and {@link FileRowConverter}, enumerates tr DOM
+ * elements as table rows.
  */
 class FileEnumerator implements Enumerator<Object> {
-
   private final Iterator<Elements> iterator;
   private final FileRowConverter converter;
   private final int[] fields;
   private Object current;
 
-  public FileEnumerator(Iterator<Elements> iterator,
-      FileRowConverter converter) {
-    this.iterator = iterator;
-    this.converter = converter;
-    this.fields = identityList(this.converter.width());
+  FileEnumerator(Iterator<Elements> iterator, FileRowConverter converter) {
+    this(iterator, converter, identityList(converter.width()));
   }
 
-  public FileEnumerator(Iterator<Elements> iterator, FileRowConverter converter,
+  FileEnumerator(Iterator<Elements> iterator, FileRowConverter converter,
       int[] fields) {
     this.iterator = iterator;
     this.converter = converter;
@@ -64,6 +60,8 @@ class FileEnumerator implements Enumerator<Object> {
         current = null;
         return false;
       }
+    } catch (RuntimeException | Error e) {
+      throw e;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
