@@ -1177,10 +1177,10 @@ for more information on valid attributes in JSON.
 | DOUBLE | number ||
 | BIG_INTEGER | number | Implicitly handled by Jackson. |
 | BIG_DECIMAL | number | Implicitly handled by Jackson. |
-| JAVA_SQL_TIME | number | As an integer, millis since midnight. |
-| JAVA_SQL_DATE | number | As an integer, days since the epoch. |
-| JAVA_SQL_TIMESTAMP | number | As a long, millis since the epoch. |
-| JAVA_UTIL_DATE | number | As a long, millis since the epoch. |
+| JAVA_SQL_TIME | number | As an integer, milliseconds since midnight. |
+| JAVA_SQL_DATE | number | As an integer, the number of days since the epoch. |
+| JAVA_SQL_TIMESTAMP | number | As a long, milliseconds since the epoch. |
+| JAVA_UTIL_DATE | number | As a long, milliseconds since the epoch. |
 | BYTE_STRING | string | A Base64-encoded string. |
 | STRING | string | |
 | NUMBER | number | A general number, unknown what concrete type. |

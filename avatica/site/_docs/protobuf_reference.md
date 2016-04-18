@@ -1251,10 +1251,10 @@ to the attributes in this message:
 | DOUBLE | `number_value` ||
 | BIG_INTEGER | `bytes_value` | The two's-complement representation of the BigInteger. See `BigInteger#toByteArray().` |
 | BIG_DECIMAL | `string_value` | A string-ified representation of the value. See `BigDecimal#toString()`. |
-| JAVA_SQL_TIME | `number_value` ||
-| JAVA_SQL_DATE | `number_value` ||
-| JAVA_SQL_TIMESTAMP | `number_value` ||
-| JAVA_UTIL_DATE | `number_value` ||
+| JAVA_SQL_TIME | `number_value` | As an integer, milliseconds since midnight. |
+| JAVA_SQL_DATE | `number_value` | As an integer, the number of days since the epoch. |
+| JAVA_SQL_TIMESTAMP | `number_value` | As a long, milliseconds since the epoch. |
+| JAVA_UTIL_DATE | `number_value` | As a long, milliseconds since the epoch. |
 | BYTE_STRING | `bytes_value` ||
 | STRING | `string_value` | This must be a UTF-8 string. |
 | NUMBER | `number_value` | A general number, unknown what concrete type. |
