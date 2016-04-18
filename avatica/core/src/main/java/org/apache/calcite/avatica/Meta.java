@@ -1036,7 +1036,7 @@ public interface Meta {
       if (Common.Rep.BYTE_STRING == protoElement.getType()) {
         // Protobuf is sending native bytes (not b64) across the wire. B64 bytes is only for
         // TypedValue's benefit
-        return protoElement.getBytesValues().toByteArray();
+        return protoElement.getBytesValue().toByteArray();
       }
       // Again, let TypedValue deserialize things for us.
       return TypedValue.fromProto(protoElement).value;

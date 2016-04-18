@@ -112,7 +112,7 @@ public class TypedValueTest {
   @Test public void testBase64() {
     byte[] bytes = "qwertyasdf".getBytes(UTF_8);
     // Plain bytes get put into protobuf for simplicitly
-    Common.TypedValue proto = Common.TypedValue.newBuilder().setBytesValues(
+    Common.TypedValue proto = Common.TypedValue.newBuilder().setBytesValue(
         com.google.protobuf.ByteString.copyFrom(bytes))
         .setType(Common.Rep.BYTE_STRING).build();
 

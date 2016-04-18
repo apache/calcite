@@ -13568,13 +13568,13 @@ package org.apache.calcite.avatica.proto;
     long getNumberValue();
 
     /**
-     * <code>optional bytes bytes_values = 5;</code>
+     * <code>optional bytes bytes_value = 5;</code>
      *
      * <pre>
      * includes numeric types and date/time types.
      * </pre>
      */
-    com.google.protobuf.ByteString getBytesValues();
+    com.google.protobuf.ByteString getBytesValue();
 
     /**
      * <code>optional double double_value = 6;</code>
@@ -13614,7 +13614,7 @@ package org.apache.calcite.avatica.proto;
       boolValue_ = false;
       stringValue_ = "";
       numberValue_ = 0L;
-      bytesValues_ = com.google.protobuf.ByteString.EMPTY;
+      bytesValue_ = com.google.protobuf.ByteString.EMPTY;
       doubleValue_ = 0D;
       null_ = false;
     }
@@ -13667,7 +13667,7 @@ package org.apache.calcite.avatica.proto;
             }
             case 42: {
 
-              bytesValues_ = input.readBytes();
+              bytesValue_ = input.readBytes();
               break;
             }
             case 49: {
@@ -13796,17 +13796,17 @@ package org.apache.calcite.avatica.proto;
       return numberValue_;
     }
 
-    public static final int BYTES_VALUES_FIELD_NUMBER = 5;
-    private com.google.protobuf.ByteString bytesValues_;
+    public static final int BYTES_VALUE_FIELD_NUMBER = 5;
+    private com.google.protobuf.ByteString bytesValue_;
     /**
-     * <code>optional bytes bytes_values = 5;</code>
+     * <code>optional bytes bytes_value = 5;</code>
      *
      * <pre>
      * includes numeric types and date/time types.
      * </pre>
      */
-    public com.google.protobuf.ByteString getBytesValues() {
-      return bytesValues_;
+    public com.google.protobuf.ByteString getBytesValue() {
+      return bytesValue_;
     }
 
     public static final int DOUBLE_VALUE_FIELD_NUMBER = 6;
@@ -13859,8 +13859,8 @@ package org.apache.calcite.avatica.proto;
       if (numberValue_ != 0L) {
         output.writeSInt64(4, numberValue_);
       }
-      if (!bytesValues_.isEmpty()) {
-        output.writeBytes(5, bytesValues_);
+      if (!bytesValue_.isEmpty()) {
+        output.writeBytes(5, bytesValue_);
       }
       if (doubleValue_ != 0D) {
         output.writeDouble(6, doubleValue_);
@@ -13890,9 +13890,9 @@ package org.apache.calcite.avatica.proto;
         size += com.google.protobuf.CodedOutputStream
           .computeSInt64Size(4, numberValue_);
       }
-      if (!bytesValues_.isEmpty()) {
+      if (!bytesValue_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, bytesValues_);
+          .computeBytesSize(5, bytesValue_);
       }
       if (doubleValue_ != 0D) {
         size += com.google.protobuf.CodedOutputStream
@@ -14025,7 +14025,7 @@ package org.apache.calcite.avatica.proto;
 
         numberValue_ = 0L;
 
-        bytesValues_ = com.google.protobuf.ByteString.EMPTY;
+        bytesValue_ = com.google.protobuf.ByteString.EMPTY;
 
         doubleValue_ = 0D;
 
@@ -14057,7 +14057,7 @@ package org.apache.calcite.avatica.proto;
         result.boolValue_ = boolValue_;
         result.stringValue_ = stringValue_;
         result.numberValue_ = numberValue_;
-        result.bytesValues_ = bytesValues_;
+        result.bytesValue_ = bytesValue_;
         result.doubleValue_ = doubleValue_;
         result.null_ = null_;
         onBuilt();
@@ -14088,8 +14088,8 @@ package org.apache.calcite.avatica.proto;
         if (other.getNumberValue() != 0L) {
           setNumberValue(other.getNumberValue());
         }
-        if (other.getBytesValues() != com.google.protobuf.ByteString.EMPTY) {
-          setBytesValues(other.getBytesValues());
+        if (other.getBytesValue() != com.google.protobuf.ByteString.EMPTY) {
+          setBytesValue(other.getBytesValue());
         }
         if (other.getDoubleValue() != 0D) {
           setDoubleValue(other.getDoubleValue());
@@ -14352,43 +14352,43 @@ package org.apache.calcite.avatica.proto;
         return this;
       }
 
-      private com.google.protobuf.ByteString bytesValues_ = com.google.protobuf.ByteString.EMPTY;
+      private com.google.protobuf.ByteString bytesValue_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>optional bytes bytes_values = 5;</code>
+       * <code>optional bytes bytes_value = 5;</code>
        *
        * <pre>
        * includes numeric types and date/time types.
        * </pre>
        */
-      public com.google.protobuf.ByteString getBytesValues() {
-        return bytesValues_;
+      public com.google.protobuf.ByteString getBytesValue() {
+        return bytesValue_;
       }
       /**
-       * <code>optional bytes bytes_values = 5;</code>
+       * <code>optional bytes bytes_value = 5;</code>
        *
        * <pre>
        * includes numeric types and date/time types.
        * </pre>
        */
-      public Builder setBytesValues(com.google.protobuf.ByteString value) {
+      public Builder setBytesValue(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
   
-        bytesValues_ = value;
+        bytesValue_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bytes bytes_values = 5;</code>
+       * <code>optional bytes bytes_value = 5;</code>
        *
        * <pre>
        * includes numeric types and date/time types.
        * </pre>
        */
-      public Builder clearBytesValues() {
+      public Builder clearBytesValue() {
         
-        bytesValues_ = getDefaultInstance().getBytesValues();
+        bytesValue_ = getDefaultInstance().getBytesValue();
         onChanged();
         return this;
       }
@@ -16967,58 +16967,58 @@ package org.apache.calcite.avatica.proto;
       " \001(\014\"\207\001\n\013ColumnValue\022\032\n\005value\030\001 \003(\0132\013.Ty",
       "pedValue\022 \n\013array_value\030\002 \003(\0132\013.TypedVal" +
       "ue\022\027\n\017has_array_value\030\003 \001(\010\022!\n\014scalar_va" +
-      "lue\030\004 \001(\0132\013.TypedValue\"\232\001\n\nTypedValue\022\022\n" +
+      "lue\030\004 \001(\0132\013.TypedValue\"\231\001\n\nTypedValue\022\022\n" +
       "\004type\030\001 \001(\0162\004.Rep\022\022\n\nbool_value\030\002 \001(\010\022\024\n" +
       "\014string_value\030\003 \001(\t\022\024\n\014number_value\030\004 \001(" +
-      "\022\022\024\n\014bytes_values\030\005 \001(\014\022\024\n\014double_value\030" +
-      "\006 \001(\001\022\014\n\004null\030\007 \001(\010\"\246\002\n\031MetaDataOperatio" +
-      "nArgument\022\024\n\014string_value\030\001 \001(\t\022\022\n\nbool_" +
-      "value\030\002 \001(\010\022\021\n\tint_value\030\003 \001(\021\022\033\n\023string" +
-      "_array_values\030\004 \003(\t\022\030\n\020int_array_values\030",
-      "\005 \003(\021\0225\n\004type\030\006 \001(\0162\'.MetaDataOperationA" +
-      "rgument.ArgumentType\"^\n\014ArgumentType\022\n\n\006" +
-      "STRING\020\000\022\010\n\004BOOL\020\001\022\007\n\003INT\020\002\022\023\n\017REPEATED_" +
-      "STRING\020\003\022\020\n\014REPEATED_INT\020\004\022\010\n\004NULL\020\005\"\260\001\n" +
-      "\nQueryState\022\030\n\004type\030\001 \001(\0162\n.StateType\022\013\n" +
-      "\003sql\030\002 \001(\t\022\036\n\002op\030\003 \001(\0162\022.MetaDataOperati" +
-      "on\022(\n\004args\030\004 \003(\0132\032.MetaDataOperationArgu" +
-      "ment\022\020\n\010has_args\030\005 \001(\010\022\017\n\007has_sql\030\006 \001(\010\022" +
-      "\016\n\006has_op\030\007 \001(\010*\237\001\n\rStatementType\022\n\n\006SEL" +
-      "ECT\020\000\022\n\n\006INSERT\020\001\022\n\n\006UPDATE\020\002\022\n\n\006DELETE\020",
-      "\003\022\n\n\006UPSERT\020\004\022\t\n\005MERGE\020\005\022\r\n\tOTHER_DML\020\006\022" +
-      "\n\n\006CREATE\020\007\022\010\n\004DROP\020\010\022\t\n\005ALTER\020\t\022\r\n\tOTHE" +
-      "R_DDL\020\n\022\010\n\004CALL\020\013*\342\003\n\003Rep\022\025\n\021PRIMITIVE_B" +
-      "OOLEAN\020\000\022\022\n\016PRIMITIVE_BYTE\020\001\022\022\n\016PRIMITIV" +
-      "E_CHAR\020\002\022\023\n\017PRIMITIVE_SHORT\020\003\022\021\n\rPRIMITI" +
-      "VE_INT\020\004\022\022\n\016PRIMITIVE_LONG\020\005\022\023\n\017PRIMITIV" +
-      "E_FLOAT\020\006\022\024\n\020PRIMITIVE_DOUBLE\020\007\022\013\n\007BOOLE" +
-      "AN\020\010\022\010\n\004BYTE\020\t\022\r\n\tCHARACTER\020\n\022\t\n\005SHORT\020\013" +
-      "\022\013\n\007INTEGER\020\014\022\010\n\004LONG\020\r\022\t\n\005FLOAT\020\016\022\n\n\006DO" +
-      "UBLE\020\017\022\017\n\013BIG_INTEGER\020\031\022\017\n\013BIG_DECIMAL\020\032",
-      "\022\021\n\rJAVA_SQL_TIME\020\020\022\026\n\022JAVA_SQL_TIMESTAM" +
-      "P\020\021\022\021\n\rJAVA_SQL_DATE\020\022\022\022\n\016JAVA_UTIL_DATE" +
-      "\020\023\022\017\n\013BYTE_STRING\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBE" +
-      "R\020\026\022\n\n\006OBJECT\020\027\022\010\n\004NULL\020\030\022\t\n\005ARRAY\020\033\022\n\n\006" +
-      "STRUCT\020\034\022\014\n\010MULTISET\020\035*^\n\010Severity\022\024\n\020UN" +
-      "KNOWN_SEVERITY\020\000\022\022\n\016FATAL_SEVERITY\020\001\022\022\n\016" +
-      "ERROR_SEVERITY\020\002\022\024\n\020WARNING_SEVERITY\020\003*\327" +
-      "\004\n\021MetaDataOperation\022\022\n\016GET_ATTRIBUTES\020\000" +
-      "\022\033\n\027GET_BEST_ROW_IDENTIFIER\020\001\022\020\n\014GET_CAT" +
-      "ALOGS\020\002\022\036\n\032GET_CLIENT_INFO_PROPERTIES\020\003\022",
-      "\031\n\025GET_COLUMN_PRIVILEGES\020\004\022\017\n\013GET_COLUMN" +
-      "S\020\005\022\027\n\023GET_CROSS_REFERENCE\020\006\022\025\n\021GET_EXPO" +
-      "RTED_KEYS\020\007\022\030\n\024GET_FUNCTION_COLUMNS\020\010\022\021\n" +
-      "\rGET_FUNCTIONS\020\t\022\025\n\021GET_IMPORTED_KEYS\020\n\022" +
-      "\022\n\016GET_INDEX_INFO\020\013\022\024\n\020GET_PRIMARY_KEYS\020" +
-      "\014\022\031\n\025GET_PROCEDURE_COLUMNS\020\r\022\022\n\016GET_PROC" +
-      "EDURES\020\016\022\026\n\022GET_PSEUDO_COLUMNS\020\017\022\017\n\013GET_" +
-      "SCHEMAS\020\020\022\031\n\025GET_SCHEMAS_WITH_ARGS\020\021\022\024\n\020" +
-      "GET_SUPER_TABLES\020\022\022\023\n\017GET_SUPER_TYPES\020\023\022" +
-      "\030\n\024GET_TABLE_PRIVILEGES\020\024\022\016\n\nGET_TABLES\020",
-      "\025\022\023\n\017GET_TABLE_TYPES\020\026\022\021\n\rGET_TYPE_INFO\020" +
-      "\027\022\014\n\010GET_UDTS\020\030\022\027\n\023GET_VERSION_COLUMNS\020\031" +
-      "*\"\n\tStateType\022\007\n\003SQL\020\000\022\014\n\010METADATA\020\001B\"\n " +
-      "org.apache.calcite.avatica.protob\006proto3"
+      "\022\022\023\n\013bytes_value\030\005 \001(\014\022\024\n\014double_value\030\006" +
+      " \001(\001\022\014\n\004null\030\007 \001(\010\"\246\002\n\031MetaDataOperation" +
+      "Argument\022\024\n\014string_value\030\001 \001(\t\022\022\n\nbool_v" +
+      "alue\030\002 \001(\010\022\021\n\tint_value\030\003 \001(\021\022\033\n\023string_" +
+      "array_values\030\004 \003(\t\022\030\n\020int_array_values\030\005",
+      " \003(\021\0225\n\004type\030\006 \001(\0162\'.MetaDataOperationAr" +
+      "gument.ArgumentType\"^\n\014ArgumentType\022\n\n\006S" +
+      "TRING\020\000\022\010\n\004BOOL\020\001\022\007\n\003INT\020\002\022\023\n\017REPEATED_S" +
+      "TRING\020\003\022\020\n\014REPEATED_INT\020\004\022\010\n\004NULL\020\005\"\260\001\n\n" +
+      "QueryState\022\030\n\004type\030\001 \001(\0162\n.StateType\022\013\n\003" +
+      "sql\030\002 \001(\t\022\036\n\002op\030\003 \001(\0162\022.MetaDataOperatio" +
+      "n\022(\n\004args\030\004 \003(\0132\032.MetaDataOperationArgum" +
+      "ent\022\020\n\010has_args\030\005 \001(\010\022\017\n\007has_sql\030\006 \001(\010\022\016" +
+      "\n\006has_op\030\007 \001(\010*\237\001\n\rStatementType\022\n\n\006SELE" +
+      "CT\020\000\022\n\n\006INSERT\020\001\022\n\n\006UPDATE\020\002\022\n\n\006DELETE\020\003",
+      "\022\n\n\006UPSERT\020\004\022\t\n\005MERGE\020\005\022\r\n\tOTHER_DML\020\006\022\n" +
+      "\n\006CREATE\020\007\022\010\n\004DROP\020\010\022\t\n\005ALTER\020\t\022\r\n\tOTHER" +
+      "_DDL\020\n\022\010\n\004CALL\020\013*\342\003\n\003Rep\022\025\n\021PRIMITIVE_BO" +
+      "OLEAN\020\000\022\022\n\016PRIMITIVE_BYTE\020\001\022\022\n\016PRIMITIVE" +
+      "_CHAR\020\002\022\023\n\017PRIMITIVE_SHORT\020\003\022\021\n\rPRIMITIV" +
+      "E_INT\020\004\022\022\n\016PRIMITIVE_LONG\020\005\022\023\n\017PRIMITIVE" +
+      "_FLOAT\020\006\022\024\n\020PRIMITIVE_DOUBLE\020\007\022\013\n\007BOOLEA" +
+      "N\020\010\022\010\n\004BYTE\020\t\022\r\n\tCHARACTER\020\n\022\t\n\005SHORT\020\013\022" +
+      "\013\n\007INTEGER\020\014\022\010\n\004LONG\020\r\022\t\n\005FLOAT\020\016\022\n\n\006DOU" +
+      "BLE\020\017\022\017\n\013BIG_INTEGER\020\031\022\017\n\013BIG_DECIMAL\020\032\022",
+      "\021\n\rJAVA_SQL_TIME\020\020\022\026\n\022JAVA_SQL_TIMESTAMP" +
+      "\020\021\022\021\n\rJAVA_SQL_DATE\020\022\022\022\n\016JAVA_UTIL_DATE\020" +
+      "\023\022\017\n\013BYTE_STRING\020\024\022\n\n\006STRING\020\025\022\n\n\006NUMBER" +
+      "\020\026\022\n\n\006OBJECT\020\027\022\010\n\004NULL\020\030\022\t\n\005ARRAY\020\033\022\n\n\006S" +
+      "TRUCT\020\034\022\014\n\010MULTISET\020\035*^\n\010Severity\022\024\n\020UNK" +
+      "NOWN_SEVERITY\020\000\022\022\n\016FATAL_SEVERITY\020\001\022\022\n\016E" +
+      "RROR_SEVERITY\020\002\022\024\n\020WARNING_SEVERITY\020\003*\327\004" +
+      "\n\021MetaDataOperation\022\022\n\016GET_ATTRIBUTES\020\000\022" +
+      "\033\n\027GET_BEST_ROW_IDENTIFIER\020\001\022\020\n\014GET_CATA" +
+      "LOGS\020\002\022\036\n\032GET_CLIENT_INFO_PROPERTIES\020\003\022\031",
+      "\n\025GET_COLUMN_PRIVILEGES\020\004\022\017\n\013GET_COLUMNS" +
+      "\020\005\022\027\n\023GET_CROSS_REFERENCE\020\006\022\025\n\021GET_EXPOR" +
+      "TED_KEYS\020\007\022\030\n\024GET_FUNCTION_COLUMNS\020\010\022\021\n\r" +
+      "GET_FUNCTIONS\020\t\022\025\n\021GET_IMPORTED_KEYS\020\n\022\022" +
+      "\n\016GET_INDEX_INFO\020\013\022\024\n\020GET_PRIMARY_KEYS\020\014" +
+      "\022\031\n\025GET_PROCEDURE_COLUMNS\020\r\022\022\n\016GET_PROCE" +
+      "DURES\020\016\022\026\n\022GET_PSEUDO_COLUMNS\020\017\022\017\n\013GET_S" +
+      "CHEMAS\020\020\022\031\n\025GET_SCHEMAS_WITH_ARGS\020\021\022\024\n\020G" +
+      "ET_SUPER_TABLES\020\022\022\023\n\017GET_SUPER_TYPES\020\023\022\030" +
+      "\n\024GET_TABLE_PRIVILEGES\020\024\022\016\n\nGET_TABLES\020\025",
+      "\022\023\n\017GET_TABLE_TYPES\020\026\022\021\n\rGET_TYPE_INFO\020\027" +
+      "\022\014\n\010GET_UDTS\020\030\022\027\n\023GET_VERSION_COLUMNS\020\031*" +
+      "\"\n\tStateType\022\007\n\003SQL\020\000\022\014\n\010METADATA\020\001B\"\n o" +
+      "rg.apache.calcite.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -17109,7 +17109,7 @@ package org.apache.calcite.avatica.proto;
     internal_static_TypedValue_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_TypedValue_descriptor,
-        new java.lang.String[] { "Type", "BoolValue", "StringValue", "NumberValue", "BytesValues", "DoubleValue", "Null", });
+        new java.lang.String[] { "Type", "BoolValue", "StringValue", "NumberValue", "BytesValue", "DoubleValue", "Null", });
     internal_static_MetaDataOperationArgument_descriptor =
       getDescriptor().getMessageTypes().get(13);
     internal_static_MetaDataOperationArgument_fieldAccessorTable = new

@@ -1209,7 +1209,7 @@ message TypedValue {
   bool bool_value = 2;
   string string_value = 3;
   sint64 number_value = 4;
-  bytes bytes_values = 5;
+  bytes bytes_value = 5;
   double double_value = 6;
   bool null = 7;
 }

@@ -384,7 +384,7 @@ public class TypedValue {
       } else {
         bytes = (byte[]) o;
       }
-      builder.setBytesValues(HBaseZeroCopyByteString.wrap(bytes));
+      builder.setBytesValue(HBaseZeroCopyByteString.wrap(bytes));
       return;
     case STRING:
       builder.setStringValueBytes(HBaseZeroCopyByteString.wrap(((String) o).getBytes(UTF_8)));
@@ -429,7 +429,7 @@ public class TypedValue {
       return;
     case BIG_INTEGER:
       byte[] byteRep = ((BigInteger) o).toByteArray();
-      builder.setBytesValues(com.google.protobuf.ByteString.copyFrom(byteRep));
+      builder.setBytesValue(com.google.protobuf.ByteString.copyFrom(byteRep));
       return;
     case BIG_DECIMAL:
       final BigDecimal bigDecimal = (BigDecimal) o;
@@ -486,7 +486,7 @@ public class TypedValue {
     case BYTE_STRING:
       // TypedValue is still going to expect a b64string for BYTE_STRING even though we sent it
       // across the wire natively as bytes. Return it as b64.
-      return (new ByteString(protoValue.getBytesValues().toByteArray())).toBase64String();
+      return (new ByteString(protoValue.getBytesValue().toByteArray())).toBase64String();
     case STRING:
       return protoValue.getStringValue();
     case PRIMITIVE_CHAR:
@@ -517,12 +517,12 @@ public class TypedValue {
     case JAVA_UTIL_DATE:
       return protoValue.getNumberValue();
     case BIG_INTEGER:
-      return new BigInteger(protoValue.getBytesValues().toByteArray());
+      return new BigInteger(protoValue.getBytesValue().toByteArray());
     case BIG_DECIMAL:
       // CALCITE-1103 shifts BigDecimals to be serialized as strings.
       if (protoValue.hasField(NUMBER_DESCRIPTOR)) {
         // This is the old (broken) style.
-        BigInteger bigInt = new BigInteger(protoValue.getBytesValues().toByteArray());
+        BigInteger bigInt = new BigInteger(protoValue.getBytesValue().toByteArray());
         return new BigDecimal(bigInt, (int) protoValue.getNumberValue());
       }
       return new BigDecimal(protoValue.getStringValueBytes().toStringUtf8());
