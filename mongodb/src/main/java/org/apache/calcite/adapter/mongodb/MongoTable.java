@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
@@ -213,8 +214,7 @@ public class MongoTable extends AbstractQueryableTable
    */
   private AggregationOutput aggregateOldWay(DBCollection dbCollection,
        DBObject first, List<DBObject> rest) {
-    return dbCollection.aggregate(first,
-       rest.toArray(new DBObject[rest.size()]));
+    return dbCollection.aggregate(ConsList.of(first, rest));
   }
 
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on

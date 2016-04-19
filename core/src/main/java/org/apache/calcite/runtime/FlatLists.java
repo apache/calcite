@@ -20,11 +20,9 @@ import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.AbstractList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Objects;
 import java.util.RandomAccess;
 
@@ -232,84 +230,12 @@ public class FlatLists {
 
   /** Base class for flat lists. */
   public abstract static class AbstractFlatList<T>
-      implements List<T>, RandomAccess {
-    protected final List<T> asArrayList() {
+      extends AbstractImmutableList<T> implements RandomAccess {
+    protected final List<T> toList() {
       //noinspection unchecked
       return Arrays.asList((T[]) toArray());
     }
 
-    public Iterator<T> iterator() {
-      return asArrayList().iterator();
-    }
-
-    public ListIterator<T> listIterator() {
-      return asArrayList().listIterator();
-    }
-
-    public boolean isEmpty() {
-      return false;
-    }
-
-    public boolean add(T t) {
-      throw new UnsupportedOperationException();
-    }
-
-    public boolean addAll(Collection<? extends T> c) {
-      throw new UnsupportedOperationException();
-    }
-
-    public boolean addAll(int index, Collection<? extends T> c) {
-      throw new UnsupportedOperationException();
-    }
-
-    public boolean removeAll(Collection<?> c) {
-      throw new UnsupportedOperationException();
-    }
-
-    public boolean retainAll(Collection<?> c) {
-      throw new UnsupportedOperationException();
-    }
-
-    public void clear() {
-      throw new UnsupportedOperationException();
-    }
-
-    public T set(int index, T element) {
-      throw new UnsupportedOperationException();
-    }
-
-    public void add(int index, T element) {
-      throw new UnsupportedOperationException();
-    }
-
-    public T remove(int index) {
-      throw new UnsupportedOperationException();
-    }
-
-    public ListIterator<T> listIterator(int index) {
-      return asArrayList().listIterator(index);
-    }
-
-    public List<T> subList(int fromIndex, int toIndex) {
-      return asArrayList().subList(fromIndex, toIndex);
-    }
-
-    public boolean contains(Object o) {
-      return indexOf(o) >= 0;
-    }
-
-    public boolean containsAll(Collection<?> c) {
-      for (Object o : c) {
-        if (!contains(o)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    public boolean remove(Object o) {
-      throw new UnsupportedOperationException();
-    }
   }
 
   /**

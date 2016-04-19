@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -54,7 +55,7 @@ public class Graphs {
   public static <V, E extends DefaultEdge> FrozenGraph<V, E> makeImmutable(
       DirectedGraph<V, E> graph) {
     DefaultDirectedGraph<V, E> graph1 = (DefaultDirectedGraph<V, E>) graph;
-    Map<Pair<V, V>, List<V>> shortestPaths = new HashMap<Pair<V, V>, List<V>>();
+    Map<Pair<V, V>, List<V>> shortestPaths = new HashMap<>();
     for (DefaultDirectedGraph.VertexInfo<V, E> arc
         : graph1.vertexMap.values()) {
       for (E edge : arc.outEdges) {
@@ -78,10 +79,8 @@ public class Graphs {
             List<V> arc2Path = shortestPaths.get(edge2);
             if ((bestPath == null)
                 || (bestPath.size() > (arc2Path.size() + 1))) {
-              ImmutableList.Builder<V> newPath = ImmutableList.builder();
-              newPath.add(graph1.source(edge));
-              newPath.addAll(arc2Path);
-              shortestPaths.put(key, newPath.build());
+              shortestPaths.put(key,
+                  ConsList.of(graph1.source(edge), arc2Path));
               changeCount++;
             }
           }
@@ -91,7 +90,7 @@ public class Graphs {
         break;
       }
     }
-    return new FrozenGraph<V, E>(graph1, shortestPaths);
+    return new FrozenGraph<>(graph1, shortestPaths);
   }
 
   /**
@@ -117,7 +116,7 @@ public class Graphs {
      * <p>The current implementation is not optimal.</p>
      */
     public List<List<V>> getPaths(V from, V to) {
-      List<List<V>> list = new ArrayList<List<V>>();
+      List<List<V>> list = new ArrayList<>();
       findPaths(from, to, list);
       return list;
     }
@@ -146,7 +145,7 @@ public class Graphs {
 //      if (edge != null) {
 //        list.add(ImmutableList.of(from, to));
 //      }
-      final List<V> prefix = new ArrayList<V>();
+      final List<V> prefix = new ArrayList<>();
       prefix.add(from);
       findPathsExcluding(from, to, list, new HashSet<V>(), prefix);
     }

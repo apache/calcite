@@ -22,6 +22,7 @@ import org.apache.calcite.examples.RelBuilderExample;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.runtime.Utilities;
@@ -75,6 +76,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -390,6 +393,110 @@ public class UtilTest {
     } catch (ClassCastException e) {
       // ok
     }
+  }
+
+  @Test public void testCons() {
+    final List<String> abc0 = Arrays.asList("a", "b", "c");
+
+    final List<String> abc = ConsList.of("a", ImmutableList.of("b", "c"));
+    assertThat(abc.size(), is(3));
+    assertThat(abc, is(abc0));
+
+    final List<String> bc = Lists.newArrayList("b", "c");
+    final List<String> abc2 = ConsList.of("a", bc);
+    assertThat(abc2.size(), is(3));
+    assertThat(abc2, is(abc0));
+    bc.set(0, "z");
+    assertThat(abc2, is(abc0));
+
+    final List<String> bc3 = ConsList.of("b", Collections.singletonList("c"));
+    final List<String> abc3 = ConsList.of("a", bc3);
+    assertThat(abc3.size(), is(3));
+    assertThat(abc3, is(abc0));
+    assertThat(abc3.indexOf("b"), is(1));
+    assertThat(abc3.indexOf("z"), is(-1));
+    assertThat(abc3.lastIndexOf("b"), is(1));
+    assertThat(abc3.lastIndexOf("z"), is(-1));
+    assertThat(abc3.hashCode(), is(abc0.hashCode()));
+
+    assertThat(abc3.get(0), is("a"));
+    assertThat(abc3.get(1), is("b"));
+    assertThat(abc3.get(2), is("c"));
+    try {
+      final String z = abc3.get(3);
+      fail("expected error, got " + z);
+    } catch (IndexOutOfBoundsException e) {
+      // ok
+    }
+    try {
+      final String z = abc3.get(-3);
+      fail("expected error, got " + z);
+    } catch (IndexOutOfBoundsException e) {
+      // ok
+    }
+    try {
+      final String z = abc3.get(30);
+      fail("expected error, got " + z);
+    } catch (IndexOutOfBoundsException e) {
+      // ok
+    }
+
+    final List<String> a = ConsList.of("a", ImmutableList.<String>of());
+    assertThat(a.size(), is(1));
+    assertThat(a, is(Collections.singletonList("a")));
+  }
+
+  @Test public void testConsPerformance() {
+    final int n = 2000000;
+    final int start = 10;
+    List<Integer> list = makeConsList(start, n + start);
+    assertThat(list.size(), is(n));
+    assertThat(list.toString(), startsWith("[10, 11, 12, "));
+    assertThat(list.contains(n / 2 + start), is(true));
+    assertThat(list.contains(n * 2 + start), is(false));
+    assertThat(list.indexOf(n / 2 + start), is(n / 2));
+    assertThat(list.containsAll(Arrays.asList(n - 1, n - 10, n / 2, start)),
+        is(true));
+    long total = 0;
+    for (Integer i : list) {
+      total += i - start;
+    }
+    assertThat(total, is((long) n * (n - 1) / 2));
+
+    final Object[] objects = list.toArray();
+    assertThat(objects.length, is(n));
+    final Integer[] integers = new Integer[n - 1];
+    assertThat(integers.length, is(n - 1));
+    final Integer[] integers2 = list.toArray(integers);
+    assertThat(integers2.length, is(n));
+    assertThat(integers2[0], is(start));
+    assertThat(integers2[integers2.length - 1], is(n + start - 1));
+    final Integer[] integers3 = list.toArray(integers2);
+    assertThat(integers2, sameInstance(integers3));
+    final Integer[] integers4 = new Integer[n + 1];
+    final Integer[] integers5 = list.toArray(integers4);
+    assertThat(integers5, sameInstance(integers4));
+    assertThat(integers5.length, is(n + 1));
+    assertThat(integers5[0], is(start));
+    assertThat(integers5[n - 1], is(n + start - 1));
+    assertThat(integers5[n], nullValue());
+
+    assertThat(list.hashCode(), is(Arrays.hashCode(integers3)));
+    assertThat(list, is(Arrays.asList(integers3)));
+    assertThat(list, is(list));
+    assertThat(Arrays.asList(integers3), is(list));
+  }
+
+  private List<Integer> makeConsList(int start, int end) {
+    List<Integer> list = null;
+    for (int i = end - 1; i >= start; i--) {
+      if (i == end - 1) {
+        list = Collections.singletonList(i);
+      } else {
+        list = ConsList.of(i, list);
+      }
+    }
+    return list;
   }
 
   @Test public void testIterableProperties() {
