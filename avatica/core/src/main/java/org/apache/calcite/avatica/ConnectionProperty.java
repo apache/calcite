@@ -49,6 +49,7 @@ public interface ConnectionProperty {
   enum Type {
     BOOLEAN,
     STRING,
+    NUMBER,
     ENUM,
     PLUGIN;
 
@@ -56,6 +57,8 @@ public interface ConnectionProperty {
       switch (this) {
       case BOOLEAN:
         return defaultValue instanceof Boolean;
+      case NUMBER:
+        return defaultValue instanceof Number;
       case STRING:
       case PLUGIN:
         return defaultValue instanceof String;

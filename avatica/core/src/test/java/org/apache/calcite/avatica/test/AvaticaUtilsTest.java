@@ -17,11 +17,16 @@
 package org.apache.calcite.avatica.test;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.ConnectionConfigImpl;
+import org.apache.calcite.avatica.ConnectionProperty;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -81,6 +86,108 @@ public class AvaticaUtilsTest {
     list.add(AvaticaUtils.unique("a")); // probably "a_5"
     assertThat(list.size(), is(6));
   }
+
+  /** Tests connect string properties. */
+  @Test public void testConnectionProperty() {
+    final ConnectionPropertyImpl n = new ConnectionPropertyImpl("N",
+        BigDecimal.valueOf(100), ConnectionProperty.Type.NUMBER);
+
+    final Properties properties = new Properties();
+    ConnectionConfigImpl.PropEnv env = n.wrap(properties);
+    assertThat(env.getInt(), is(100));
+    assertThat(env.getInt(-45), is(-45));
+    properties.setProperty(n.name, "123");
+    assertThat(env.getInt(), is(100));
+    env = n.wrap(properties);
+    assertThat(env.getInt(), is(123));
+    assertThat(env.getInt(-45), is(123));
+
+    properties.setProperty(n.name, "10k");
+    env = n.wrap(properties);
+    assertThat(env.getInt(), is(10 * 1024));
+
+    properties.setProperty(n.name, "-0.5k");
+    env = n.wrap(properties);
+    assertThat(env.getInt(), is(-512));
+
+    properties.setProperty(n.name, "10m");
+    env = n.wrap(properties);
+    assertThat(env.getInt(), is(10 * 1024 * 1024));
+    assertThat(env.getLong(), is(10L * 1024 * 1024));
+    assertThat(env.getDouble(), is(10D * 1024 * 1024));
+
+    properties.setProperty(n.name, "-2M");
+    env = n.wrap(properties);
+    assertThat(env.getInt(), is(-2 * 1024 * 1024));
+
+    properties.setProperty(n.name, "10g");
+    env = n.wrap(properties);
+    assertThat(env.getLong(), is(10L * 1024 * 1024 * 1024));
+
+    final ConnectionPropertyImpl b = new ConnectionPropertyImpl("B",
+        true, ConnectionProperty.Type.BOOLEAN);
+
+    env = b.wrap(properties);
+    assertThat(env.getBoolean(), is(true));
+    assertThat(env.getBoolean(true), is(true));
+    assertThat(env.getBoolean(false), is(false));
+
+    properties.setProperty(b.name, "false");
+    env = b.wrap(properties);
+    assertThat(env.getBoolean(), is(false));
+
+    final ConnectionPropertyImpl s = new ConnectionPropertyImpl("S",
+        "foo", ConnectionProperty.Type.STRING);
+
+    env = s.wrap(properties);
+    assertThat(env.getString(), is("foo"));
+    assertThat(env.getString("baz"), is("baz"));
+
+    properties.setProperty(s.name, "  ");
+    env = s.wrap(properties);
+    assertThat(env.getString(), is("  "));
+  }
+
+  /** Dummy implementation of {@link ConnectionProperty}. */
+  private static class ConnectionPropertyImpl implements ConnectionProperty {
+    private final String name;
+    private final Object defaultValue;
+    private Type type;
+
+    ConnectionPropertyImpl(String name, Object defaultValue, Type type) {
+      this.name = name;
+      this.defaultValue = defaultValue;
+      this.type = type;
+    }
+
+    public String name() {
+      return name.toUpperCase();
+    }
+
+    public String camelName() {
+      return name.toLowerCase();
+    }
+
+    public Object defaultValue() {
+      return defaultValue;
+    }
+
+    public Type type() {
+      return type;
+    }
+
+    public ConnectionConfigImpl.PropEnv wrap(Properties properties) {
+      final HashMap<String, ConnectionProperty> map = new HashMap<>();
+      map.put(name, this);
+      return new ConnectionConfigImpl.PropEnv(
+          ConnectionConfigImpl.parse(properties, map), this);
+    }
+
+    public boolean required() {
+      return false;
+    }
+  }
+
 }
 
 // End AvaticaUtilsTest.java

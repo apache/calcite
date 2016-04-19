@@ -19,6 +19,7 @@ package org.apache.calcite.avatica;
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
 import org.apache.calcite.avatica.remote.Service;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -133,6 +134,45 @@ public class ConnectionConfigImpl implements ConnectionConfig {
       return get_(IDENTITY_CONVERTER, defaultValue);
     }
 
+    /** Returns the int value of this property. Throws if not set and no
+     * default. */
+    public int getInt() {
+      return getInt((Number) property.defaultValue());
+    }
+
+    /** Returns the int value of this property. Throws if not set and no
+     * default. */
+    public int getInt(Number defaultValue) {
+      assert property.type() == ConnectionProperty.Type.NUMBER;
+      return get_(NUMBER_CONVERTER, defaultValue.toString()).intValue();
+    }
+
+    /** Returns the long value of this property. Throws if not set and no
+     * default. */
+    public long getLong() {
+      return getLong((Number) property.defaultValue());
+    }
+
+    /** Returns the long value of this property. Throws if not set and no
+     * default. */
+    public long getLong(Number defaultValue) {
+      assert property.type() == ConnectionProperty.Type.NUMBER;
+      return get_(NUMBER_CONVERTER, defaultValue.toString()).longValue();
+    }
+
+    /** Returns the double value of this property. Throws if not set and no
+     * default. */
+    public double getDouble() {
+      return getDouble((Number) property.defaultValue());
+    }
+
+    /** Returns the double value of this property. Throws if not set and no
+     * default. */
+    public double getDouble(Number defaultValue) {
+      assert property.type() == ConnectionProperty.Type.NUMBER;
+      return get_(NUMBER_CONVERTER, defaultValue.toString()).doubleValue();
+    }
+
     /** Returns the boolean value of this property. Throws if not set and no
      * default. */
     public boolean getBoolean() {
@@ -200,6 +240,35 @@ public class ConnectionConfigImpl implements ConnectionConfig {
                 + connectionProperty.camelName() + "' not specified");
           }
           return Boolean.parseBoolean(s);
+        }
+      };
+
+  static final Map<String, BigDecimal> MULTIPLIER_MAP =
+      new LinkedHashMap<>();
+  static {
+    MULTIPLIER_MAP.put("k", new BigDecimal(1024));
+    MULTIPLIER_MAP.put("K", new BigDecimal(1024));
+    MULTIPLIER_MAP.put("m", new BigDecimal(1024 * 1024));
+    MULTIPLIER_MAP.put("M", new BigDecimal(1024 * 1024));
+    MULTIPLIER_MAP.put("g", new BigDecimal(1024 * 1024 * 1024));
+    MULTIPLIER_MAP.put("G", new BigDecimal(1024 * 1024 * 1024));
+  }
+
+  public static final Converter<Number> NUMBER_CONVERTER =
+      new Converter<Number>() {
+        public Number apply(ConnectionProperty connectionProperty, String s) {
+          if (s == null) {
+            throw new RuntimeException("Required property '"
+                + connectionProperty.camelName() + "' not specified");
+          }
+          BigDecimal multiplier = BigDecimal.ONE;
+          for (Map.Entry<String, BigDecimal> e : MULTIPLIER_MAP.entrySet()) {
+            if (s.endsWith(e.getKey())) {
+              multiplier = e.getValue();
+              s = s.substring(0, s.length() - e.getKey().length());
+            }
+          }
+          return new BigDecimal(s).multiply(multiplier);
         }
       };
 
