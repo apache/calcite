@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.splunk.util;
+package org.apache.calcite.runtime;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -33,13 +34,12 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 
 /**
- * Utilities for connecting to Splunk via HTTP.
+ * Utilities for connecting to REST services such as Splunk via HTTP.
  */
 public class HttpUtils {
   private HttpUtils() {}
 
-  private static final Logger LOGGER =
-      StringUtils.getClassTracer(HttpUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpUtils.class);
 
   public static HttpURLConnection getURLConnection(String url)
       throws IOException {
@@ -154,7 +154,9 @@ public class HttpUtils {
         wr.flush(); // Get the response
       }
       InputStream in = conn.getInputStream();
-      wr.close();
+      if (wr != null) {
+        wr.close();
+      }
 
       LOGGER.debug("url: {}, data: {}", url, String.valueOf(data));
       return in;
