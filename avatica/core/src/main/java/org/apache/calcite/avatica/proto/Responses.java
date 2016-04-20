@@ -248,7 +248,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -262,7 +262,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -713,7 +713,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -730,7 +730,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -739,7 +739,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -753,7 +753,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -770,7 +770,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -779,7 +779,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -796,7 +796,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool own_statement = 3;</code>
        */
       public Builder setOwnStatement(boolean value) {
-        
+
         ownStatement_ = value;
         onChanged();
         return this;
@@ -805,7 +805,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool own_statement = 3;</code>
        */
       public Builder clearOwnStatement() {
-        
+
         ownStatement_ = false;
         onChanged();
         return this;
@@ -896,7 +896,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Signature signature = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Signature.Builder getSignatureBuilder() {
-        
+
         onChanged();
         return getSignatureFieldBuilder().getBuilder();
       }
@@ -915,7 +915,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Signature signature = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.Signature, org.apache.calcite.avatica.proto.Common.Signature.Builder, org.apache.calcite.avatica.proto.Common.SignatureOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.Signature, org.apache.calcite.avatica.proto.Common.Signature.Builder, org.apache.calcite.avatica.proto.Common.SignatureOrBuilder>
           getSignatureFieldBuilder() {
         if (signatureBuilder_ == null) {
           signatureBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -1013,7 +1013,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Frame first_frame = 5;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Frame.Builder getFirstFrameBuilder() {
-        
+
         onChanged();
         return getFirstFrameFieldBuilder().getBuilder();
       }
@@ -1032,7 +1032,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Frame first_frame = 5;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.Frame, org.apache.calcite.avatica.proto.Common.Frame.Builder, org.apache.calcite.avatica.proto.Common.FrameOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.Frame, org.apache.calcite.avatica.proto.Common.Frame.Builder, org.apache.calcite.avatica.proto.Common.FrameOrBuilder>
           getFirstFrameFieldBuilder() {
         if (firstFrameBuilder_ == null) {
           firstFrameBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -1064,7 +1064,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setUpdateCount(long value) {
-        
+
         updateCount_ = value;
         onChanged();
         return this;
@@ -1077,7 +1077,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearUpdateCount() {
-        
+
         updateCount_ = 0L;
         onChanged();
         return this;
@@ -1196,7 +1196,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -1223,7 +1223,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -1300,7 +1300,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ResultSetResponse results = 1;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Responses.ResultSetResponse> 
+    java.util.List<org.apache.calcite.avatica.proto.Responses.ResultSetResponse>
         getResultsList();
     /**
      * <code>repeated .ResultSetResponse results = 1;</code>
@@ -1313,7 +1313,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ResultSetResponse results = 1;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder>
         getResultsOrBuilderList();
     /**
      * <code>repeated .ResultSetResponse results = 1;</code>
@@ -1452,7 +1452,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ResultSetResponse results = 1;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder>
         getResultsOrBuilderList() {
       return results_;
     }
@@ -1753,7 +1753,7 @@ package org.apache.calcite.avatica.proto;
               resultsBuilder_ = null;
               results_ = other.results_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              resultsBuilder_ = 
+              resultsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getResultsFieldBuilder() : null;
             } else {
@@ -1989,7 +1989,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .ResultSetResponse results = 1;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder>
            getResultsOrBuilderList() {
         if (resultsBuilder_ != null) {
           return resultsBuilder_.getMessageOrBuilderList();
@@ -2015,12 +2015,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .ResultSetResponse results = 1;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Responses.ResultSetResponse.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Responses.ResultSetResponse.Builder>
            getResultsBuilderList() {
         return getResultsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.ResultSetResponse, org.apache.calcite.avatica.proto.Responses.ResultSetResponse.Builder, org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.ResultSetResponse, org.apache.calcite.avatica.proto.Responses.ResultSetResponse.Builder, org.apache.calcite.avatica.proto.Responses.ResultSetResponseOrBuilder>
           getResultsFieldBuilder() {
         if (resultsBuilder_ == null) {
           resultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -2053,7 +2053,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setMissingStatement(boolean value) {
-        
+
         missingStatement_ = value;
         onChanged();
         return this;
@@ -2066,7 +2066,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearMissingStatement() {
-        
+
         missingStatement_ = false;
         onChanged();
         return this;
@@ -2157,7 +2157,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -2176,7 +2176,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -2734,7 +2734,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .StatementHandle statement = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.StatementHandle.Builder getStatementBuilder() {
-        
+
         onChanged();
         return getStatementFieldBuilder().getBuilder();
       }
@@ -2753,7 +2753,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .StatementHandle statement = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.StatementHandle, org.apache.calcite.avatica.proto.Common.StatementHandle.Builder, org.apache.calcite.avatica.proto.Common.StatementHandleOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.StatementHandle, org.apache.calcite.avatica.proto.Common.StatementHandle.Builder, org.apache.calcite.avatica.proto.Common.StatementHandleOrBuilder>
           getStatementFieldBuilder() {
         if (statementBuilder_ == null) {
           statementBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -2851,7 +2851,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 2;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -2870,7 +2870,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -3510,7 +3510,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Frame frame = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Frame.Builder getFrameBuilder() {
-        
+
         onChanged();
         return getFrameFieldBuilder().getBuilder();
       }
@@ -3529,7 +3529,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Frame frame = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.Frame, org.apache.calcite.avatica.proto.Common.Frame.Builder, org.apache.calcite.avatica.proto.Common.FrameOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.Frame, org.apache.calcite.avatica.proto.Common.Frame.Builder, org.apache.calcite.avatica.proto.Common.FrameOrBuilder>
           getFrameFieldBuilder() {
         if (frameBuilder_ == null) {
           frameBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -3561,7 +3561,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setMissingStatement(boolean value) {
-        
+
         missingStatement_ = value;
         onChanged();
         return this;
@@ -3574,7 +3574,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearMissingStatement() {
-        
+
         missingStatement_ = false;
         onChanged();
         return this;
@@ -3599,7 +3599,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setMissingResults(boolean value) {
-        
+
         missingResults_ = value;
         onChanged();
         return this;
@@ -3612,7 +3612,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearMissingResults() {
-        
+
         missingResults_ = false;
         onChanged();
         return this;
@@ -3703,7 +3703,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -3722,7 +3722,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -3926,7 +3926,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -3940,7 +3940,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -4247,7 +4247,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -4264,7 +4264,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -4273,7 +4273,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -4287,7 +4287,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -4304,7 +4304,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -4313,7 +4313,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -4404,7 +4404,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -4423,7 +4423,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -4913,7 +4913,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -4932,7 +4932,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -5422,7 +5422,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -5441,7 +5441,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -5931,7 +5931,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -5950,7 +5950,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -6508,7 +6508,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .ConnectionProperties conn_props = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.ConnectionProperties.Builder getConnPropsBuilder() {
-        
+
         onChanged();
         return getConnPropsFieldBuilder().getBuilder();
       }
@@ -6527,7 +6527,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .ConnectionProperties conn_props = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.ConnectionProperties, org.apache.calcite.avatica.proto.Common.ConnectionProperties.Builder, org.apache.calcite.avatica.proto.Common.ConnectionPropertiesOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.ConnectionProperties, org.apache.calcite.avatica.proto.Common.ConnectionProperties.Builder, org.apache.calcite.avatica.proto.Common.ConnectionPropertiesOrBuilder>
           getConnPropsFieldBuilder() {
         if (connPropsBuilder_ == null) {
           connPropsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -6625,7 +6625,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 2;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -6644,7 +6644,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -7262,7 +7262,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .DatabaseProperty key = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.DatabaseProperty.Builder getKeyBuilder() {
-        
+
         onChanged();
         return getKeyFieldBuilder().getBuilder();
       }
@@ -7281,7 +7281,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .DatabaseProperty key = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.DatabaseProperty, org.apache.calcite.avatica.proto.Common.DatabaseProperty.Builder, org.apache.calcite.avatica.proto.Common.DatabasePropertyOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.DatabaseProperty, org.apache.calcite.avatica.proto.Common.DatabaseProperty.Builder, org.apache.calcite.avatica.proto.Common.DatabasePropertyOrBuilder>
           getKeyFieldBuilder() {
         if (keyBuilder_ == null) {
           keyBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -7379,7 +7379,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .TypedValue value = 2;</code>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue.Builder getValueBuilder() {
-        
+
         onChanged();
         return getValueFieldBuilder().getBuilder();
       }
@@ -7398,7 +7398,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .TypedValue value = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
           getValueFieldBuilder() {
         if (valueBuilder_ == null) {
           valueBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -7496,7 +7496,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -7515,7 +7515,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -7592,7 +7592,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .DatabasePropertyElement props = 1;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement> 
+    java.util.List<org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement>
         getPropsList();
     /**
      * <code>repeated .DatabasePropertyElement props = 1;</code>
@@ -7605,7 +7605,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .DatabasePropertyElement props = 1;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder>
         getPropsOrBuilderList();
     /**
      * <code>repeated .DatabasePropertyElement props = 1;</code>
@@ -7729,7 +7729,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .DatabasePropertyElement props = 1;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder>
         getPropsOrBuilderList() {
       return props_;
     }
@@ -8007,7 +8007,7 @@ package org.apache.calcite.avatica.proto;
               propsBuilder_ = null;
               props_ = other.props_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              propsBuilder_ = 
+              propsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getPropsFieldBuilder() : null;
             } else {
@@ -8240,7 +8240,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .DatabasePropertyElement props = 1;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder>
            getPropsOrBuilderList() {
         if (propsBuilder_ != null) {
           return propsBuilder_.getMessageOrBuilderList();
@@ -8266,12 +8266,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .DatabasePropertyElement props = 1;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement.Builder>
            getPropsBuilderList() {
         return getPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement, org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement.Builder, org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement, org.apache.calcite.avatica.proto.Responses.DatabasePropertyElement.Builder, org.apache.calcite.avatica.proto.Responses.DatabasePropertyElementOrBuilder>
           getPropsFieldBuilder() {
         if (propsBuilder_ == null) {
           propsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -8370,7 +8370,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 2;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -8389,7 +8389,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -8772,7 +8772,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         errorMessage_ = s;
@@ -8790,7 +8790,7 @@ package org.apache.calcite.avatica.proto;
         getErrorMessageBytes() {
       java.lang.Object ref = errorMessage_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         errorMessage_ = b;
@@ -8843,7 +8843,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         sqlState_ = s;
@@ -8861,7 +8861,7 @@ package org.apache.calcite.avatica.proto;
         getSqlStateBytes() {
       java.lang.Object ref = sqlState_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         sqlState_ = b;
@@ -9356,7 +9356,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setHasExceptions(boolean value) {
-        
+
         hasExceptions_ = value;
         onChanged();
         return this;
@@ -9369,7 +9369,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearHasExceptions() {
-        
+
         hasExceptions_ = false;
         onChanged();
         return this;
@@ -9406,7 +9406,7 @@ package org.apache.calcite.avatica.proto;
           getErrorMessageBytes() {
         java.lang.Object ref = errorMessage_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           errorMessage_ = b;
@@ -9427,7 +9427,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         errorMessage_ = value;
         onChanged();
         return this;
@@ -9440,7 +9440,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearErrorMessage() {
-        
+
         errorMessage_ = getDefaultInstance().getErrorMessage();
         onChanged();
         return this;
@@ -9458,7 +9458,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         errorMessage_ = value;
         onChanged();
         return this;
@@ -9493,7 +9493,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         severity_ = value.getNumber();
         onChanged();
         return this;
@@ -9502,7 +9502,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Severity severity = 3;</code>
        */
       public Builder clearSeverity() {
-        
+
         severity_ = 0;
         onChanged();
         return this;
@@ -9527,7 +9527,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setErrorCode(int value) {
-        
+
         errorCode_ = value;
         onChanged();
         return this;
@@ -9540,7 +9540,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearErrorCode() {
-        
+
         errorCode_ = 0;
         onChanged();
         return this;
@@ -9577,7 +9577,7 @@ package org.apache.calcite.avatica.proto;
           getSqlStateBytes() {
         java.lang.Object ref = sqlState_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           sqlState_ = b;
@@ -9598,7 +9598,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         sqlState_ = value;
         onChanged();
         return this;
@@ -9611,7 +9611,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearSqlState() {
-        
+
         sqlState_ = getDefaultInstance().getSqlState();
         onChanged();
         return this;
@@ -9629,7 +9629,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         sqlState_ = value;
         onChanged();
         return this;
@@ -9720,7 +9720,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 6;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -9739,7 +9739,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 6;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -10237,7 +10237,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setMissingStatement(boolean value) {
-        
+
         missingStatement_ = value;
         onChanged();
         return this;
@@ -10250,7 +10250,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearMissingStatement() {
-        
+
         missingStatement_ = false;
         onChanged();
         return this;
@@ -10275,7 +10275,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setMoreResults(boolean value) {
-        
+
         moreResults_ = value;
         onChanged();
         return this;
@@ -10288,7 +10288,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearMoreResults() {
-        
+
         moreResults_ = false;
         onChanged();
         return this;
@@ -10379,7 +10379,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -10398,7 +10398,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -10577,7 +10577,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         serverAddress_ = s;
@@ -10595,7 +10595,7 @@ package org.apache.calcite.avatica.proto;
         getServerAddressBytes() {
       java.lang.Object ref = serverAddress_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         serverAddress_ = b;
@@ -10846,7 +10846,7 @@ package org.apache.calcite.avatica.proto;
           getServerAddressBytes() {
         java.lang.Object ref = serverAddress_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           serverAddress_ = b;
@@ -10867,7 +10867,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         serverAddress_ = value;
         onChanged();
         return this;
@@ -10880,7 +10880,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearServerAddress() {
-        
+
         serverAddress_ = getDefaultInstance().getServerAddress();
         onChanged();
         return this;
@@ -10898,7 +10898,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         serverAddress_ = value;
         onChanged();
         return this;
@@ -11795,7 +11795,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -11809,7 +11809,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -12208,7 +12208,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -12225,7 +12225,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -12234,7 +12234,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -12248,7 +12248,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -12265,7 +12265,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -12274,7 +12274,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -12365,7 +12365,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setMissingStatement(boolean value) {
-        
+
         missingStatement_ = value;
         onChanged();
         return this;
@@ -12378,7 +12378,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearMissingStatement() {
-        
+
         missingStatement_ = false;
         onChanged();
         return this;
@@ -12469,7 +12469,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 5;</code>
        */
       public org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder getMetadataBuilder() {
-        
+
         onChanged();
         return getMetadataFieldBuilder().getBuilder();
       }
@@ -12488,7 +12488,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .RpcMetadata metadata = 5;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder> 
+          org.apache.calcite.avatica.proto.Responses.RpcMetadata, org.apache.calcite.avatica.proto.Responses.RpcMetadata.Builder, org.apache.calcite.avatica.proto.Responses.RpcMetadataOrBuilder>
           getMetadataFieldBuilder() {
         if (metadataBuilder_ == null) {
           metadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<

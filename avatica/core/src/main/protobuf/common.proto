@@ -250,7 +250,7 @@ message MetaDataOperationArgument {
     REPEATED_INT = 4;
     NULL = 5;
   }
-    
+
   string string_value = 1;
   bool bool_value = 2;
   sint32 int_value = 3;

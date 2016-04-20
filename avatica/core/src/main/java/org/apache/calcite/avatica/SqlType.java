@@ -209,7 +209,7 @@ import java.util.Map;
  *                      T N R         L C   N   R R   A R     A           N B     A A
  *                        T                       C   R B     M           K J     R R
  *                                                H   Y I     P                     C
- * Java type                                  
+ * Java type
  * ==================== = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
  * String               x x x x x x x x x x x x x x x x x x x x . . . . . . . . x x x . .
  * java.math.BigDecimal x x x x x x x x x x x x x . . . . . . . . . . . . . . . . . . . .
@@ -258,7 +258,7 @@ import java.util.Map;
  *                      T N R         L C   N   R R   A R     A         N   B     A A
  *                        T                       C   R B     M         K   J     R R
  *                                                H   Y I     P                     C
- * Java type                                                                
+ * Java type
  * ==================== = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
  * getByte              X x x x x x x x x x x x x . . . . . . . . . . . . . . x . . . . .
  * getShort             x X x x x x x x x x x x x . . . . . . . . . . . . . . . . . . . .

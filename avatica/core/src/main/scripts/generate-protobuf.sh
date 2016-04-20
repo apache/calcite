@@ -53,7 +53,7 @@ protoc ${PROTOC_ARGS} src/main/protobuf/*.proto || fail unable to generate Java 
 
 # For all generated protobuf code, suppress all warnings and add the LICENSE header
 s='@SuppressWarnings({"unused", "rawtypes"})'
-find $BUILD_DIR -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public final class \)/'"$s"' \1/'
+find $BUILD_DIR -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public final class \)/'"$s"' \1/;s/ *$//'
 
 PREFIX="/*
 "

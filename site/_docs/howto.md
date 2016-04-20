@@ -381,7 +381,7 @@ $ sudo make install
 Then, re-generate the compiled code:
 
 {% highlight bash %}
-$ cd avatica
+$ cd avatica/core
 $ ./src/main/scripts/generate-protobuf.sh
 {% endhighlight %}
 

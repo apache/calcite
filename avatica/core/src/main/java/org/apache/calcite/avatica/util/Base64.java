@@ -28,9 +28,9 @@ package org.apache.calcite.avatica.util;
  * <br>
  * <code>byte[] myByteArray = Base64.decode( encoded );</code>
  *
- * <p>The <tt>options</tt> parameter, which appears in a few places, is used to pass 
- * several pieces of information to the encoder. In the "higher level" methods such as 
- * encodeBytes( bytes, options ) the options parameter can be used to indicate such 
+ * <p>The <tt>options</tt> parameter, which appears in a few places, is used to pass
+ * several pieces of information to the encoder. In the "higher level" methods such as
+ * encodeBytes( bytes, options ) the options parameter can be used to indicate such
  * things as first gzipping the bytes before encoding them, not inserting linefeeds,
  * and encoding using the URL-safe and Ordered dialects.</p>
  *
@@ -39,7 +39,7 @@ package org.apache.calcite.avatica.util;
  * to do so. I've got Base64 set to this behavior now, although earlier versions
  * broke lines by default.</p>
  *
- * <p>The constants defined in Base64 can be OR-ed together to combine options, so you 
+ * <p>The constants defined in Base64 can be OR-ed together to combine options, so you
  * might make a call like this:</p>
  *
  * <code>String encoded = Base64.encodeBytes( mybytes, Base64.GZIP | Base64.DO_BREAK_LINES );</code>
@@ -86,7 +86,7 @@ package org.apache.calcite.avatica.util;
  *  <li>v2.3 - <strong>This is not a drop-in replacement!</strong> This is two years of comments
  *   and bug fixes queued up and finally executed. Thanks to everyone who sent
  *   me stuff, and I'm sorry I wasn't able to distribute your fixes to everyone else.
- *   Much bad coding was cleaned up including throwing exceptions where necessary 
+ *   Much bad coding was cleaned up including throwing exceptions where necessary
  *   instead of returning null values or something similar. Here are some changes
  *   that may affect you:
  *   <ul>
@@ -131,17 +131,17 @@ package org.apache.calcite.avatica.util;
  *   with other encodings (like EBCDIC).</li>
  *  <li>v2.0.1 - Fixed an error when decoding a single byte, that is, when the
  *   encoded data was a single byte.</li>
- *  <li>v2.0 - I got rid of methods that used booleans to set options. 
+ *  <li>v2.0 - I got rid of methods that used booleans to set options.
  *   Now everything is more consolidated and cleaner. The code now detects
  *   when data that's being decoded is gzip-compressed and will decompress it
  *   automatically. Generally things are cleaner. You'll probably have to
  *   change some method calls that you were making to support the new
  *   options format (<tt>int</tt>s that you "OR" together).</li>
- *  <li>v1.5.1 - Fixed bug when decompressing and decoding to a             
- *   byte[] using <tt>decode( String s, boolean gzipCompressed )</tt>.      
- *   Added the ability to "suspend" encoding in the Output Stream so        
- *   you can turn on and off the encoding if you need to embed base64       
- *   data in an otherwise "normal" stream (like an XML file).</li>  
+ *  <li>v1.5.1 - Fixed bug when decompressing and decoding to a
+ *   byte[] using <tt>decode( String s, boolean gzipCompressed )</tt>.
+ *   Added the ability to "suspend" encoding in the Output Stream so
+ *   you can turn on and off the encoding if you need to embed base64
+ *   data in an otherwise "normal" stream (like an XML file).</li>
  *  <li>v1.5 - Output stream pases on flush() command but doesn't do anything itself.
  *      This helps when using GZIP streams.
  *      Added the ability to GZip-compress objects before encoding them.</li>
@@ -167,7 +167,7 @@ package org.apache.calcite.avatica.util;
  */
 public class Base64
 {
-    
+
 /* ********  P U B L I C   F I E L D S  ******** */
 
 
@@ -208,8 +208,8 @@ public class Base64
    * <a href="http://www.faqs.org/qa/rfcc-1940.html">http://www.faqs.org/qa/rfcc-1940.html</a>.
    */
   public final static int ORDERED = 32;
-    
-    
+
+
 /* ********  P R I V A T E   F I E L D S  ******** */
 
 
@@ -348,7 +348,7 @@ public class Base64
       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 205 - 217
       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 218 - 230
       -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 231 - 243
-      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255 
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255
   };
 
 
@@ -459,10 +459,10 @@ public class Base64
 
   /** Defeats instantiation. */
   private Base64(){}
-    
 
-    
-    
+
+
+
 /* ********  E N C O D I N G   M E T H O D S  ******** */
 
 
@@ -1009,11 +1009,11 @@ public class Base64
     }   // end else: don't compress
 
   }   // end encodeBytesToBytes
-    
 
-    
-    
-    
+
+
+
+
 /* ********  D E C O D I N G   M E T H O D S  ******** */
 
 
@@ -1642,8 +1642,8 @@ public class Base64
       catch( Exception ex ){}
     }   // end finally
   }   // end decodeFileToFile
-    
-    
+
+
     /* ********  I N N E R   C L A S S   I N P U T S T R E A M  ******** */
 
 
@@ -1851,12 +1851,12 @@ public class Base64
     }   // end read
 
   }   // end inner class InputStream
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     /* ********  I N N E R   C L A S S   O U T P U T S T R E A M  ******** */
 
 

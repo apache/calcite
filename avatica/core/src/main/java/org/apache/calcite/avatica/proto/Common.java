@@ -1323,7 +1323,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         catalog_ = s;
@@ -1337,7 +1337,7 @@ package org.apache.calcite.avatica.proto;
         getCatalogBytes() {
       java.lang.Object ref = catalog_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         catalog_ = b;
@@ -1357,7 +1357,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         schema_ = s;
@@ -1371,7 +1371,7 @@ package org.apache.calcite.avatica.proto;
         getSchemaBytes() {
       java.lang.Object ref = schema_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         schema_ = b;
@@ -1693,7 +1693,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool is_dirty = 1;</code>
        */
       public Builder setIsDirty(boolean value) {
-        
+
         isDirty_ = value;
         onChanged();
         return this;
@@ -1702,7 +1702,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool is_dirty = 1;</code>
        */
       public Builder clearIsDirty() {
-        
+
         isDirty_ = false;
         onChanged();
         return this;
@@ -1719,7 +1719,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool auto_commit = 2;</code>
        */
       public Builder setAutoCommit(boolean value) {
-        
+
         autoCommit_ = value;
         onChanged();
         return this;
@@ -1728,7 +1728,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool auto_commit = 2;</code>
        */
       public Builder clearAutoCommit() {
-        
+
         autoCommit_ = false;
         onChanged();
         return this;
@@ -1753,7 +1753,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setHasAutoCommit(boolean value) {
-        
+
         hasAutoCommit_ = value;
         onChanged();
         return this;
@@ -1766,7 +1766,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearHasAutoCommit() {
-        
+
         hasAutoCommit_ = false;
         onChanged();
         return this;
@@ -1783,7 +1783,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool read_only = 3;</code>
        */
       public Builder setReadOnly(boolean value) {
-        
+
         readOnly_ = value;
         onChanged();
         return this;
@@ -1792,7 +1792,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool read_only = 3;</code>
        */
       public Builder clearReadOnly() {
-        
+
         readOnly_ = false;
         onChanged();
         return this;
@@ -1817,7 +1817,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setHasReadOnly(boolean value) {
-        
+
         hasReadOnly_ = value;
         onChanged();
         return this;
@@ -1830,7 +1830,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearHasReadOnly() {
-        
+
         hasReadOnly_ = false;
         onChanged();
         return this;
@@ -1847,7 +1847,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 transaction_isolation = 4;</code>
        */
       public Builder setTransactionIsolation(int value) {
-        
+
         transactionIsolation_ = value;
         onChanged();
         return this;
@@ -1856,7 +1856,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 transaction_isolation = 4;</code>
        */
       public Builder clearTransactionIsolation() {
-        
+
         transactionIsolation_ = 0;
         onChanged();
         return this;
@@ -1885,7 +1885,7 @@ package org.apache.calcite.avatica.proto;
           getCatalogBytes() {
         java.lang.Object ref = catalog_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           catalog_ = b;
@@ -1902,7 +1902,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         catalog_ = value;
         onChanged();
         return this;
@@ -1911,7 +1911,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string catalog = 5;</code>
        */
       public Builder clearCatalog() {
-        
+
         catalog_ = getDefaultInstance().getCatalog();
         onChanged();
         return this;
@@ -1925,7 +1925,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         catalog_ = value;
         onChanged();
         return this;
@@ -1954,7 +1954,7 @@ package org.apache.calcite.avatica.proto;
           getSchemaBytes() {
         java.lang.Object ref = schema_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           schema_ = b;
@@ -1971,7 +1971,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         schema_ = value;
         onChanged();
         return this;
@@ -1980,7 +1980,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string schema = 6;</code>
        */
       public Builder clearSchema() {
-        
+
         schema_ = getDefaultInstance().getSchema();
         onChanged();
         return this;
@@ -1994,7 +1994,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         schema_ = value;
         onChanged();
         return this;
@@ -2191,7 +2191,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -2205,7 +2205,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -2512,7 +2512,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -2529,7 +2529,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -2538,7 +2538,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -2552,7 +2552,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -2569,7 +2569,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 id = 2;</code>
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
         onChanged();
         return this;
@@ -2578,7 +2578,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 id = 2;</code>
        */
       public Builder clearId() {
-        
+
         id_ = 0;
         onChanged();
         return this;
@@ -2669,7 +2669,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Signature signature = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Signature.Builder getSignatureBuilder() {
-        
+
         onChanged();
         return getSignatureFieldBuilder().getBuilder();
       }
@@ -2688,7 +2688,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Signature signature = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.Signature, org.apache.calcite.avatica.proto.Common.Signature.Builder, org.apache.calcite.avatica.proto.Common.SignatureOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.Signature, org.apache.calcite.avatica.proto.Common.Signature.Builder, org.apache.calcite.avatica.proto.Common.SignatureOrBuilder>
           getSignatureFieldBuilder() {
         if (signatureBuilder_ == null) {
           signatureBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -2765,7 +2765,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ColumnMetaData columns = 1;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData>
         getColumnsList();
     /**
      * <code>repeated .ColumnMetaData columns = 1;</code>
@@ -2778,7 +2778,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ColumnMetaData columns = 1;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
         getColumnsOrBuilderList();
     /**
      * <code>repeated .ColumnMetaData columns = 1;</code>
@@ -2799,7 +2799,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .AvaticaParameter parameters = 3;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.AvaticaParameter> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.AvaticaParameter>
         getParametersList();
     /**
      * <code>repeated .AvaticaParameter parameters = 3;</code>
@@ -2812,7 +2812,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .AvaticaParameter parameters = 3;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder>
         getParametersOrBuilderList();
     /**
      * <code>repeated .AvaticaParameter parameters = 3;</code>
@@ -2971,7 +2971,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ColumnMetaData columns = 1;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
         getColumnsOrBuilderList() {
       return columns_;
     }
@@ -3005,7 +3005,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         sql_ = s;
@@ -3019,7 +3019,7 @@ package org.apache.calcite.avatica.proto;
         getSqlBytes() {
       java.lang.Object ref = sql_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         sql_ = b;
@@ -3040,7 +3040,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .AvaticaParameter parameters = 3;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder>
         getParametersOrBuilderList() {
       return parameters_;
     }
@@ -3376,7 +3376,7 @@ package org.apache.calcite.avatica.proto;
               columnsBuilder_ = null;
               columns_ = other.columns_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              columnsBuilder_ = 
+              columnsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getColumnsFieldBuilder() : null;
             } else {
@@ -3406,7 +3406,7 @@ package org.apache.calcite.avatica.proto;
               parametersBuilder_ = null;
               parameters_ = other.parameters_;
               bitField0_ = (bitField0_ & ~0x00000004);
-              parametersBuilder_ = 
+              parametersBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getParametersFieldBuilder() : null;
             } else {
@@ -3642,7 +3642,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .ColumnMetaData columns = 1;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
            getColumnsOrBuilderList() {
         if (columnsBuilder_ != null) {
           return columnsBuilder_.getMessageOrBuilderList();
@@ -3668,12 +3668,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .ColumnMetaData columns = 1;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder>
            getColumnsBuilderList() {
         return getColumnsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.ColumnMetaData, org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder, org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.ColumnMetaData, org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder, org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
           getColumnsFieldBuilder() {
         if (columnsBuilder_ == null) {
           columnsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -3710,7 +3710,7 @@ package org.apache.calcite.avatica.proto;
           getSqlBytes() {
         java.lang.Object ref = sql_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           sql_ = b;
@@ -3727,7 +3727,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         sql_ = value;
         onChanged();
         return this;
@@ -3736,7 +3736,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string sql = 2;</code>
        */
       public Builder clearSql() {
-        
+
         sql_ = getDefaultInstance().getSql();
         onChanged();
         return this;
@@ -3750,7 +3750,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         sql_ = value;
         onChanged();
         return this;
@@ -3951,7 +3951,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .AvaticaParameter parameters = 3;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder>
            getParametersOrBuilderList() {
         if (parametersBuilder_ != null) {
           return parametersBuilder_.getMessageOrBuilderList();
@@ -3977,12 +3977,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .AvaticaParameter parameters = 3;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.AvaticaParameter.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.AvaticaParameter.Builder>
            getParametersBuilderList() {
         return getParametersFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.AvaticaParameter, org.apache.calcite.avatica.proto.Common.AvaticaParameter.Builder, org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.AvaticaParameter, org.apache.calcite.avatica.proto.Common.AvaticaParameter.Builder, org.apache.calcite.avatica.proto.Common.AvaticaParameterOrBuilder>
           getParametersFieldBuilder() {
         if (parametersBuilder_ == null) {
           parametersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -4081,7 +4081,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .CursorFactory cursor_factory = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.CursorFactory.Builder getCursorFactoryBuilder() {
-        
+
         onChanged();
         return getCursorFactoryFieldBuilder().getBuilder();
       }
@@ -4100,7 +4100,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .CursorFactory cursor_factory = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.CursorFactory, org.apache.calcite.avatica.proto.Common.CursorFactory.Builder, org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.CursorFactory, org.apache.calcite.avatica.proto.Common.CursorFactory.Builder, org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder>
           getCursorFactoryFieldBuilder() {
         if (cursorFactoryBuilder_ == null) {
           cursorFactoryBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -4142,7 +4142,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         statementType_ = value.getNumber();
         onChanged();
         return this;
@@ -4151,7 +4151,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .StatementType statementType = 5;</code>
        */
       public Builder clearStatementType() {
-        
+
         statementType_ = 0;
         onChanged();
         return this;
@@ -4633,7 +4633,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         label_ = s;
@@ -4647,7 +4647,7 @@ package org.apache.calcite.avatica.proto;
         getLabelBytes() {
       java.lang.Object ref = label_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         label_ = b;
@@ -4667,7 +4667,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         columnName_ = s;
@@ -4681,7 +4681,7 @@ package org.apache.calcite.avatica.proto;
         getColumnNameBytes() {
       java.lang.Object ref = columnName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         columnName_ = b;
@@ -4701,7 +4701,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         schemaName_ = s;
@@ -4715,7 +4715,7 @@ package org.apache.calcite.avatica.proto;
         getSchemaNameBytes() {
       java.lang.Object ref = schemaName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         schemaName_ = b;
@@ -4753,7 +4753,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         tableName_ = s;
@@ -4767,7 +4767,7 @@ package org.apache.calcite.avatica.proto;
         getTableNameBytes() {
       java.lang.Object ref = tableName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         tableName_ = b;
@@ -4787,7 +4787,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         catalogName_ = s;
@@ -4801,7 +4801,7 @@ package org.apache.calcite.avatica.proto;
         getCatalogNameBytes() {
       java.lang.Object ref = catalogName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         catalogName_ = b;
@@ -4848,7 +4848,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         columnClassName_ = s;
@@ -4862,7 +4862,7 @@ package org.apache.calcite.avatica.proto;
         getColumnClassNameBytes() {
       java.lang.Object ref = columnClassName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         columnClassName_ = b;
@@ -5365,7 +5365,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 ordinal = 1;</code>
        */
       public Builder setOrdinal(int value) {
-        
+
         ordinal_ = value;
         onChanged();
         return this;
@@ -5374,7 +5374,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 ordinal = 1;</code>
        */
       public Builder clearOrdinal() {
-        
+
         ordinal_ = 0;
         onChanged();
         return this;
@@ -5391,7 +5391,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool auto_increment = 2;</code>
        */
       public Builder setAutoIncrement(boolean value) {
-        
+
         autoIncrement_ = value;
         onChanged();
         return this;
@@ -5400,7 +5400,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool auto_increment = 2;</code>
        */
       public Builder clearAutoIncrement() {
-        
+
         autoIncrement_ = false;
         onChanged();
         return this;
@@ -5417,7 +5417,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool case_sensitive = 3;</code>
        */
       public Builder setCaseSensitive(boolean value) {
-        
+
         caseSensitive_ = value;
         onChanged();
         return this;
@@ -5426,7 +5426,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool case_sensitive = 3;</code>
        */
       public Builder clearCaseSensitive() {
-        
+
         caseSensitive_ = false;
         onChanged();
         return this;
@@ -5443,7 +5443,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool searchable = 4;</code>
        */
       public Builder setSearchable(boolean value) {
-        
+
         searchable_ = value;
         onChanged();
         return this;
@@ -5452,7 +5452,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool searchable = 4;</code>
        */
       public Builder clearSearchable() {
-        
+
         searchable_ = false;
         onChanged();
         return this;
@@ -5469,7 +5469,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool currency = 5;</code>
        */
       public Builder setCurrency(boolean value) {
-        
+
         currency_ = value;
         onChanged();
         return this;
@@ -5478,7 +5478,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool currency = 5;</code>
        */
       public Builder clearCurrency() {
-        
+
         currency_ = false;
         onChanged();
         return this;
@@ -5495,7 +5495,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 nullable = 6;</code>
        */
       public Builder setNullable(int value) {
-        
+
         nullable_ = value;
         onChanged();
         return this;
@@ -5504,7 +5504,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 nullable = 6;</code>
        */
       public Builder clearNullable() {
-        
+
         nullable_ = 0;
         onChanged();
         return this;
@@ -5521,7 +5521,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool signed = 7;</code>
        */
       public Builder setSigned(boolean value) {
-        
+
         signed_ = value;
         onChanged();
         return this;
@@ -5530,7 +5530,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool signed = 7;</code>
        */
       public Builder clearSigned() {
-        
+
         signed_ = false;
         onChanged();
         return this;
@@ -5547,7 +5547,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 display_size = 8;</code>
        */
       public Builder setDisplaySize(int value) {
-        
+
         displaySize_ = value;
         onChanged();
         return this;
@@ -5556,7 +5556,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 display_size = 8;</code>
        */
       public Builder clearDisplaySize() {
-        
+
         displaySize_ = 0;
         onChanged();
         return this;
@@ -5585,7 +5585,7 @@ package org.apache.calcite.avatica.proto;
           getLabelBytes() {
         java.lang.Object ref = label_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           label_ = b;
@@ -5602,7 +5602,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         label_ = value;
         onChanged();
         return this;
@@ -5611,7 +5611,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string label = 9;</code>
        */
       public Builder clearLabel() {
-        
+
         label_ = getDefaultInstance().getLabel();
         onChanged();
         return this;
@@ -5625,7 +5625,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         label_ = value;
         onChanged();
         return this;
@@ -5654,7 +5654,7 @@ package org.apache.calcite.avatica.proto;
           getColumnNameBytes() {
         java.lang.Object ref = columnName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           columnName_ = b;
@@ -5671,7 +5671,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         columnName_ = value;
         onChanged();
         return this;
@@ -5680,7 +5680,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string column_name = 10;</code>
        */
       public Builder clearColumnName() {
-        
+
         columnName_ = getDefaultInstance().getColumnName();
         onChanged();
         return this;
@@ -5694,7 +5694,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         columnName_ = value;
         onChanged();
         return this;
@@ -5723,7 +5723,7 @@ package org.apache.calcite.avatica.proto;
           getSchemaNameBytes() {
         java.lang.Object ref = schemaName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           schemaName_ = b;
@@ -5740,7 +5740,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         schemaName_ = value;
         onChanged();
         return this;
@@ -5749,7 +5749,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string schema_name = 11;</code>
        */
       public Builder clearSchemaName() {
-        
+
         schemaName_ = getDefaultInstance().getSchemaName();
         onChanged();
         return this;
@@ -5763,7 +5763,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         schemaName_ = value;
         onChanged();
         return this;
@@ -5780,7 +5780,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 precision = 12;</code>
        */
       public Builder setPrecision(int value) {
-        
+
         precision_ = value;
         onChanged();
         return this;
@@ -5789,7 +5789,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 precision = 12;</code>
        */
       public Builder clearPrecision() {
-        
+
         precision_ = 0;
         onChanged();
         return this;
@@ -5806,7 +5806,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 scale = 13;</code>
        */
       public Builder setScale(int value) {
-        
+
         scale_ = value;
         onChanged();
         return this;
@@ -5815,7 +5815,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 scale = 13;</code>
        */
       public Builder clearScale() {
-        
+
         scale_ = 0;
         onChanged();
         return this;
@@ -5844,7 +5844,7 @@ package org.apache.calcite.avatica.proto;
           getTableNameBytes() {
         java.lang.Object ref = tableName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           tableName_ = b;
@@ -5861,7 +5861,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         tableName_ = value;
         onChanged();
         return this;
@@ -5870,7 +5870,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string table_name = 14;</code>
        */
       public Builder clearTableName() {
-        
+
         tableName_ = getDefaultInstance().getTableName();
         onChanged();
         return this;
@@ -5884,7 +5884,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         tableName_ = value;
         onChanged();
         return this;
@@ -5913,7 +5913,7 @@ package org.apache.calcite.avatica.proto;
           getCatalogNameBytes() {
         java.lang.Object ref = catalogName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           catalogName_ = b;
@@ -5930,7 +5930,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         catalogName_ = value;
         onChanged();
         return this;
@@ -5939,7 +5939,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string catalog_name = 15;</code>
        */
       public Builder clearCatalogName() {
-        
+
         catalogName_ = getDefaultInstance().getCatalogName();
         onChanged();
         return this;
@@ -5953,7 +5953,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         catalogName_ = value;
         onChanged();
         return this;
@@ -5970,7 +5970,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool read_only = 16;</code>
        */
       public Builder setReadOnly(boolean value) {
-        
+
         readOnly_ = value;
         onChanged();
         return this;
@@ -5979,7 +5979,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool read_only = 16;</code>
        */
       public Builder clearReadOnly() {
-        
+
         readOnly_ = false;
         onChanged();
         return this;
@@ -5996,7 +5996,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool writable = 17;</code>
        */
       public Builder setWritable(boolean value) {
-        
+
         writable_ = value;
         onChanged();
         return this;
@@ -6005,7 +6005,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool writable = 17;</code>
        */
       public Builder clearWritable() {
-        
+
         writable_ = false;
         onChanged();
         return this;
@@ -6022,7 +6022,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool definitely_writable = 18;</code>
        */
       public Builder setDefinitelyWritable(boolean value) {
-        
+
         definitelyWritable_ = value;
         onChanged();
         return this;
@@ -6031,7 +6031,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool definitely_writable = 18;</code>
        */
       public Builder clearDefinitelyWritable() {
-        
+
         definitelyWritable_ = false;
         onChanged();
         return this;
@@ -6060,7 +6060,7 @@ package org.apache.calcite.avatica.proto;
           getColumnClassNameBytes() {
         java.lang.Object ref = columnClassName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           columnClassName_ = b;
@@ -6077,7 +6077,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         columnClassName_ = value;
         onChanged();
         return this;
@@ -6086,7 +6086,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string column_class_name = 19;</code>
        */
       public Builder clearColumnClassName() {
-        
+
         columnClassName_ = getDefaultInstance().getColumnClassName();
         onChanged();
         return this;
@@ -6100,7 +6100,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         columnClassName_ = value;
         onChanged();
         return this;
@@ -6191,7 +6191,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .AvaticaType type = 20;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaType.Builder getTypeBuilder() {
-        
+
         onChanged();
         return getTypeFieldBuilder().getBuilder();
       }
@@ -6210,7 +6210,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .AvaticaType type = 20;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder>
           getTypeFieldBuilder() {
         if (typeBuilder_ == null) {
           typeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -6315,7 +6315,7 @@ package org.apache.calcite.avatica.proto;
      * Only present when name = STRUCT
      * </pre>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData>
         getColumnsList();
     /**
      * <code>repeated .ColumnMetaData columns = 4;</code>
@@ -6340,7 +6340,7 @@ package org.apache.calcite.avatica.proto;
      * Only present when name = STRUCT
      * </pre>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
         getColumnsOrBuilderList();
     /**
      * <code>repeated .ColumnMetaData columns = 4;</code>
@@ -6508,7 +6508,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         name_ = s;
@@ -6522,7 +6522,7 @@ package org.apache.calcite.avatica.proto;
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -6567,7 +6567,7 @@ package org.apache.calcite.avatica.proto;
      * Only present when name = STRUCT
      * </pre>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
         getColumnsOrBuilderList() {
       return columns_;
     }
@@ -6908,7 +6908,7 @@ package org.apache.calcite.avatica.proto;
               columnsBuilder_ = null;
               columns_ = other.columns_;
               bitField0_ = (bitField0_ & ~0x00000008);
-              columnsBuilder_ = 
+              columnsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getColumnsFieldBuilder() : null;
             } else {
@@ -6957,7 +6957,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 id = 1;</code>
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
         onChanged();
         return this;
@@ -6966,7 +6966,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 id = 1;</code>
        */
       public Builder clearId() {
-        
+
         id_ = 0;
         onChanged();
         return this;
@@ -6995,7 +6995,7 @@ package org.apache.calcite.avatica.proto;
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -7012,7 +7012,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         name_ = value;
         onChanged();
         return this;
@@ -7021,7 +7021,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string name = 2;</code>
        */
       public Builder clearName() {
-        
+
         name_ = getDefaultInstance().getName();
         onChanged();
         return this;
@@ -7035,7 +7035,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         name_ = value;
         onChanged();
         return this;
@@ -7070,7 +7070,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         rep_ = value.getNumber();
         onChanged();
         return this;
@@ -7079,7 +7079,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .Rep rep = 3;</code>
        */
       public Builder clearRep() {
-        
+
         rep_ = 0;
         onChanged();
         return this;
@@ -7340,7 +7340,7 @@ package org.apache.calcite.avatica.proto;
        * Only present when name = STRUCT
        * </pre>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
            getColumnsOrBuilderList() {
         if (columnsBuilder_ != null) {
           return columnsBuilder_.getMessageOrBuilderList();
@@ -7378,12 +7378,12 @@ package org.apache.calcite.avatica.proto;
        * Only present when name = STRUCT
        * </pre>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder>
            getColumnsBuilderList() {
         return getColumnsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.ColumnMetaData, org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder, org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.ColumnMetaData, org.apache.calcite.avatica.proto.Common.ColumnMetaData.Builder, org.apache.calcite.avatica.proto.Common.ColumnMetaDataOrBuilder>
           getColumnsFieldBuilder() {
         if (columnsBuilder_ == null) {
           columnsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -7510,7 +7510,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaType.Builder getComponentBuilder() {
-        
+
         onChanged();
         return getComponentFieldBuilder().getBuilder();
       }
@@ -7537,7 +7537,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder>
           getComponentFieldBuilder() {
         if (componentBuilder_ == null) {
           componentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -7818,7 +7818,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         typeName_ = s;
@@ -7832,7 +7832,7 @@ package org.apache.calcite.avatica.proto;
         getTypeNameBytes() {
       java.lang.Object ref = typeName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         typeName_ = b;
@@ -7852,7 +7852,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         className_ = s;
@@ -7866,7 +7866,7 @@ package org.apache.calcite.avatica.proto;
         getClassNameBytes() {
       java.lang.Object ref = className_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         className_ = b;
@@ -7886,7 +7886,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         name_ = s;
@@ -7900,7 +7900,7 @@ package org.apache.calcite.avatica.proto;
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -8209,7 +8209,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool signed = 1;</code>
        */
       public Builder setSigned(boolean value) {
-        
+
         signed_ = value;
         onChanged();
         return this;
@@ -8218,7 +8218,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool signed = 1;</code>
        */
       public Builder clearSigned() {
-        
+
         signed_ = false;
         onChanged();
         return this;
@@ -8235,7 +8235,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 precision = 2;</code>
        */
       public Builder setPrecision(int value) {
-        
+
         precision_ = value;
         onChanged();
         return this;
@@ -8244,7 +8244,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 precision = 2;</code>
        */
       public Builder clearPrecision() {
-        
+
         precision_ = 0;
         onChanged();
         return this;
@@ -8261,7 +8261,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 scale = 3;</code>
        */
       public Builder setScale(int value) {
-        
+
         scale_ = value;
         onChanged();
         return this;
@@ -8270,7 +8270,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 scale = 3;</code>
        */
       public Builder clearScale() {
-        
+
         scale_ = 0;
         onChanged();
         return this;
@@ -8287,7 +8287,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 parameter_type = 4;</code>
        */
       public Builder setParameterType(int value) {
-        
+
         parameterType_ = value;
         onChanged();
         return this;
@@ -8296,7 +8296,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 parameter_type = 4;</code>
        */
       public Builder clearParameterType() {
-        
+
         parameterType_ = 0;
         onChanged();
         return this;
@@ -8325,7 +8325,7 @@ package org.apache.calcite.avatica.proto;
           getTypeNameBytes() {
         java.lang.Object ref = typeName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           typeName_ = b;
@@ -8342,7 +8342,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         typeName_ = value;
         onChanged();
         return this;
@@ -8351,7 +8351,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string type_name = 5;</code>
        */
       public Builder clearTypeName() {
-        
+
         typeName_ = getDefaultInstance().getTypeName();
         onChanged();
         return this;
@@ -8365,7 +8365,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         typeName_ = value;
         onChanged();
         return this;
@@ -8394,7 +8394,7 @@ package org.apache.calcite.avatica.proto;
           getClassNameBytes() {
         java.lang.Object ref = className_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           className_ = b;
@@ -8411,7 +8411,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         className_ = value;
         onChanged();
         return this;
@@ -8420,7 +8420,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string class_name = 6;</code>
        */
       public Builder clearClassName() {
-        
+
         className_ = getDefaultInstance().getClassName();
         onChanged();
         return this;
@@ -8434,7 +8434,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         className_ = value;
         onChanged();
         return this;
@@ -8463,7 +8463,7 @@ package org.apache.calcite.avatica.proto;
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -8480,7 +8480,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         name_ = value;
         onChanged();
         return this;
@@ -8489,7 +8489,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string name = 7;</code>
        */
       public Builder clearName() {
-        
+
         name_ = getDefaultInstance().getName();
         onChanged();
         return this;
@@ -8503,7 +8503,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         name_ = value;
         onChanged();
         return this;
@@ -8856,7 +8856,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         className_ = s;
@@ -8870,7 +8870,7 @@ package org.apache.calcite.avatica.proto;
         getClassNameBytes() {
       java.lang.Object ref = className_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         className_ = b;
@@ -9193,7 +9193,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         style_ = value.getNumber();
         onChanged();
         return this;
@@ -9202,7 +9202,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .CursorFactory.Style style = 1;</code>
        */
       public Builder clearStyle() {
-        
+
         style_ = 0;
         onChanged();
         return this;
@@ -9231,7 +9231,7 @@ package org.apache.calcite.avatica.proto;
           getClassNameBytes() {
         java.lang.Object ref = className_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           className_ = b;
@@ -9248,7 +9248,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         className_ = value;
         onChanged();
         return this;
@@ -9257,7 +9257,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string class_name = 2;</code>
        */
       public Builder clearClassName() {
-        
+
         className_ = getDefaultInstance().getClassName();
         onChanged();
         return this;
@@ -9271,7 +9271,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         className_ = value;
         onChanged();
         return this;
@@ -9445,7 +9445,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .Row rows = 3;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.Row> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.Row>
         getRowsList();
     /**
      * <code>repeated .Row rows = 3;</code>
@@ -9458,7 +9458,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .Row rows = 3;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.RowOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.RowOrBuilder>
         getRowsOrBuilderList();
     /**
      * <code>repeated .Row rows = 3;</code>
@@ -9586,7 +9586,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .Row rows = 3;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.RowOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.RowOrBuilder>
         getRowsOrBuilderList() {
       return rows_;
     }
@@ -9851,7 +9851,7 @@ package org.apache.calcite.avatica.proto;
               rowsBuilder_ = null;
               rows_ = other.rows_;
               bitField0_ = (bitField0_ & ~0x00000004);
-              rowsBuilder_ = 
+              rowsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getRowsFieldBuilder() : null;
             } else {
@@ -9897,7 +9897,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 offset = 1;</code>
        */
       public Builder setOffset(long value) {
-        
+
         offset_ = value;
         onChanged();
         return this;
@@ -9906,7 +9906,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 offset = 1;</code>
        */
       public Builder clearOffset() {
-        
+
         offset_ = 0L;
         onChanged();
         return this;
@@ -9923,7 +9923,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool done = 2;</code>
        */
       public Builder setDone(boolean value) {
-        
+
         done_ = value;
         onChanged();
         return this;
@@ -9932,7 +9932,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool done = 2;</code>
        */
       public Builder clearDone() {
-        
+
         done_ = false;
         onChanged();
         return this;
@@ -10133,7 +10133,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .Row rows = 3;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.RowOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.RowOrBuilder>
            getRowsOrBuilderList() {
         if (rowsBuilder_ != null) {
           return rowsBuilder_.getMessageOrBuilderList();
@@ -10159,12 +10159,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .Row rows = 3;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.Row.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.Row.Builder>
            getRowsBuilderList() {
         return getRowsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.Row, org.apache.calcite.avatica.proto.Common.Row.Builder, org.apache.calcite.avatica.proto.Common.RowOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.Row, org.apache.calcite.avatica.proto.Common.Row.Builder, org.apache.calcite.avatica.proto.Common.RowOrBuilder>
           getRowsFieldBuilder() {
         if (rowsBuilder_ == null) {
           rowsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -10242,7 +10242,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ColumnValue value = 1;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.ColumnValue> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.ColumnValue>
         getValueList();
     /**
      * <code>repeated .ColumnValue value = 1;</code>
@@ -10255,7 +10255,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ColumnValue value = 1;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder>
         getValueOrBuilderList();
     /**
      * <code>repeated .ColumnValue value = 1;</code>
@@ -10352,7 +10352,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .ColumnValue value = 1;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder>
         getValueOrBuilderList() {
       return value_;
     }
@@ -10589,7 +10589,7 @@ package org.apache.calcite.avatica.proto;
               valueBuilder_ = null;
               value_ = other.value_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              valueBuilder_ = 
+              valueBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getValueFieldBuilder() : null;
             } else {
@@ -10819,7 +10819,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .ColumnValue value = 1;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder>
            getValueOrBuilderList() {
         if (valueBuilder_ != null) {
           return valueBuilder_.getMessageOrBuilderList();
@@ -10845,12 +10845,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .ColumnValue value = 1;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.ColumnValue.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.ColumnValue.Builder>
            getValueBuilderList() {
         return getValueFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.ColumnValue, org.apache.calcite.avatica.proto.Common.ColumnValue.Builder, org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.ColumnValue, org.apache.calcite.avatica.proto.Common.ColumnValue.Builder, org.apache.calcite.avatica.proto.Common.ColumnValueOrBuilder>
           getValueFieldBuilder() {
         if (valueBuilder_ == null) {
           valueBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -11051,7 +11051,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         name_ = s;
@@ -11065,7 +11065,7 @@ package org.apache.calcite.avatica.proto;
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -11369,7 +11369,7 @@ package org.apache.calcite.avatica.proto;
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -11386,7 +11386,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         name_ = value;
         onChanged();
         return this;
@@ -11395,7 +11395,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string name = 1;</code>
        */
       public Builder clearName() {
-        
+
         name_ = getDefaultInstance().getName();
         onChanged();
         return this;
@@ -11409,7 +11409,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         name_ = value;
         onChanged();
         return this;
@@ -11674,7 +11674,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         name_ = s;
@@ -11688,7 +11688,7 @@ package org.apache.calcite.avatica.proto;
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -11953,7 +11953,7 @@ package org.apache.calcite.avatica.proto;
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -11970,7 +11970,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         name_ = value;
         onChanged();
         return this;
@@ -11979,7 +11979,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string name = 1;</code>
        */
       public Builder clearName() {
-        
+
         name_ = getDefaultInstance().getName();
         onChanged();
         return this;
@@ -11993,7 +11993,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         name_ = value;
         onChanged();
         return this;
@@ -12013,7 +12013,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         wrappedMessage_ = value;
         onChanged();
         return this;
@@ -12022,7 +12022,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bytes wrapped_message = 2;</code>
        */
       public Builder clearWrappedMessage() {
-        
+
         wrappedMessage_ = getDefaultInstance().getWrappedMessage();
         onChanged();
         return this;
@@ -12096,7 +12096,7 @@ package org.apache.calcite.avatica.proto;
      * deprecated, use array_value or scalar_value
      * </pre>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue>
         getValueList();
     /**
      * <code>repeated .TypedValue value = 1;</code>
@@ -12121,7 +12121,7 @@ package org.apache.calcite.avatica.proto;
      * deprecated, use array_value or scalar_value
      * </pre>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getValueOrBuilderList();
     /**
      * <code>repeated .TypedValue value = 1;</code>
@@ -12136,7 +12136,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue array_value = 2;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue>
         getArrayValueList();
     /**
      * <code>repeated .TypedValue array_value = 2;</code>
@@ -12149,7 +12149,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue array_value = 2;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getArrayValueOrBuilderList();
     /**
      * <code>repeated .TypedValue array_value = 2;</code>
@@ -12308,7 +12308,7 @@ package org.apache.calcite.avatica.proto;
      * deprecated, use array_value or scalar_value
      * </pre>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getValueOrBuilderList() {
       return value_;
     }
@@ -12355,7 +12355,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue array_value = 2;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getArrayValueOrBuilderList() {
       return arrayValue_;
     }
@@ -12679,7 +12679,7 @@ package org.apache.calcite.avatica.proto;
               valueBuilder_ = null;
               value_ = other.value_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              valueBuilder_ = 
+              valueBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getValueFieldBuilder() : null;
             } else {
@@ -12705,7 +12705,7 @@ package org.apache.calcite.avatica.proto;
               arrayValueBuilder_ = null;
               arrayValue_ = other.arrayValue_;
               bitField0_ = (bitField0_ & ~0x00000002);
-              arrayValueBuilder_ = 
+              arrayValueBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getArrayValueFieldBuilder() : null;
             } else {
@@ -13001,7 +13001,7 @@ package org.apache.calcite.avatica.proto;
        * deprecated, use array_value or scalar_value
        * </pre>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
            getValueOrBuilderList() {
         if (valueBuilder_ != null) {
           return valueBuilder_.getMessageOrBuilderList();
@@ -13039,12 +13039,12 @@ package org.apache.calcite.avatica.proto;
        * deprecated, use array_value or scalar_value
        * </pre>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder>
            getValueBuilderList() {
         return getValueFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
           getValueFieldBuilder() {
         if (valueBuilder_ == null) {
           valueBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -13253,7 +13253,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .TypedValue array_value = 2;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
            getArrayValueOrBuilderList() {
         if (arrayValueBuilder_ != null) {
           return arrayValueBuilder_.getMessageOrBuilderList();
@@ -13279,12 +13279,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .TypedValue array_value = 2;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder>
            getArrayValueBuilderList() {
         return getArrayValueFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
           getArrayValueFieldBuilder() {
         if (arrayValueBuilder_ == null) {
           arrayValueBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -13317,7 +13317,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setHasArrayValue(boolean value) {
-        
+
         hasArrayValue_ = value;
         onChanged();
         return this;
@@ -13330,7 +13330,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearHasArrayValue() {
-        
+
         hasArrayValue_ = false;
         onChanged();
         return this;
@@ -13421,7 +13421,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .TypedValue scalar_value = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue.Builder getScalarValueBuilder() {
-        
+
         onChanged();
         return getScalarValueFieldBuilder().getBuilder();
       }
@@ -13440,7 +13440,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .TypedValue scalar_value = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
           getScalarValueFieldBuilder() {
         if (scalarValueBuilder_ == null) {
           scalarValueBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -13755,7 +13755,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         stringValue_ = s;
@@ -13773,7 +13773,7 @@ package org.apache.calcite.avatica.proto;
         getStringValueBytes() {
       java.lang.Object ref = stringValue_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         stringValue_ = b;
@@ -14168,7 +14168,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         type_ = value.getNumber();
         onChanged();
         return this;
@@ -14181,7 +14181,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearType() {
-        
+
         type_ = 0;
         onChanged();
         return this;
@@ -14206,7 +14206,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setBoolValue(boolean value) {
-        
+
         boolValue_ = value;
         onChanged();
         return this;
@@ -14219,7 +14219,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearBoolValue() {
-        
+
         boolValue_ = false;
         onChanged();
         return this;
@@ -14256,7 +14256,7 @@ package org.apache.calcite.avatica.proto;
           getStringValueBytes() {
         java.lang.Object ref = stringValue_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           stringValue_ = b;
@@ -14277,7 +14277,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         stringValue_ = value;
         onChanged();
         return this;
@@ -14290,7 +14290,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearStringValue() {
-        
+
         stringValue_ = getDefaultInstance().getStringValue();
         onChanged();
         return this;
@@ -14308,7 +14308,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         stringValue_ = value;
         onChanged();
         return this;
@@ -14333,7 +14333,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setNumberValue(long value) {
-        
+
         numberValue_ = value;
         onChanged();
         return this;
@@ -14346,7 +14346,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearNumberValue() {
-        
+
         numberValue_ = 0L;
         onChanged();
         return this;
@@ -14374,7 +14374,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         bytesValue_ = value;
         onChanged();
         return this;
@@ -14387,7 +14387,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearBytesValue() {
-        
+
         bytesValue_ = getDefaultInstance().getBytesValue();
         onChanged();
         return this;
@@ -14412,7 +14412,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setDoubleValue(double value) {
-        
+
         doubleValue_ = value;
         onChanged();
         return this;
@@ -14425,7 +14425,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearDoubleValue() {
-        
+
         doubleValue_ = 0D;
         onChanged();
         return this;
@@ -14450,7 +14450,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setNull(boolean value) {
-        
+
         null_ = value;
         onChanged();
         return this;
@@ -14463,7 +14463,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearNull() {
-        
+
         null_ = false;
         onChanged();
         return this;
@@ -14860,7 +14860,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         stringValue_ = s;
@@ -14874,7 +14874,7 @@ package org.apache.calcite.avatica.proto;
         getStringValueBytes() {
       java.lang.Object ref = stringValue_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         stringValue_ = b;
@@ -15313,7 +15313,7 @@ package org.apache.calcite.avatica.proto;
           getStringValueBytes() {
         java.lang.Object ref = stringValue_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           stringValue_ = b;
@@ -15330,7 +15330,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         stringValue_ = value;
         onChanged();
         return this;
@@ -15339,7 +15339,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string string_value = 1;</code>
        */
       public Builder clearStringValue() {
-        
+
         stringValue_ = getDefaultInstance().getStringValue();
         onChanged();
         return this;
@@ -15353,7 +15353,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         stringValue_ = value;
         onChanged();
         return this;
@@ -15370,7 +15370,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool bool_value = 2;</code>
        */
       public Builder setBoolValue(boolean value) {
-        
+
         boolValue_ = value;
         onChanged();
         return this;
@@ -15379,7 +15379,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool bool_value = 2;</code>
        */
       public Builder clearBoolValue() {
-        
+
         boolValue_ = false;
         onChanged();
         return this;
@@ -15396,7 +15396,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional sint32 int_value = 3;</code>
        */
       public Builder setIntValue(int value) {
-        
+
         intValue_ = value;
         onChanged();
         return this;
@@ -15405,7 +15405,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional sint32 int_value = 3;</code>
        */
       public Builder clearIntValue() {
-        
+
         intValue_ = 0;
         onChanged();
         return this;
@@ -15600,7 +15600,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         type_ = value.getNumber();
         onChanged();
         return this;
@@ -15609,7 +15609,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
        */
       public Builder clearType() {
-        
+
         type_ = 0;
         onChanged();
         return this;
@@ -15707,7 +15707,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .MetaDataOperationArgument args = 4;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument>
         getArgsList();
     /**
      * <code>repeated .MetaDataOperationArgument args = 4;</code>
@@ -15720,7 +15720,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .MetaDataOperationArgument args = 4;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder>
         getArgsOrBuilderList();
     /**
      * <code>repeated .MetaDataOperationArgument args = 4;</code>
@@ -15883,7 +15883,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         sql_ = s;
@@ -15897,7 +15897,7 @@ package org.apache.calcite.avatica.proto;
         getSqlBytes() {
       java.lang.Object ref = sql_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         sql_ = b;
@@ -15934,7 +15934,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .MetaDataOperationArgument args = 4;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder>
         getArgsOrBuilderList() {
       return args_;
     }
@@ -16265,7 +16265,7 @@ package org.apache.calcite.avatica.proto;
               argsBuilder_ = null;
               args_ = other.args_;
               bitField0_ = (bitField0_ & ~0x00000008);
-              argsBuilder_ = 
+              argsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getArgsFieldBuilder() : null;
             } else {
@@ -16338,7 +16338,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         type_ = value.getNumber();
         onChanged();
         return this;
@@ -16347,7 +16347,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .StateType type = 1;</code>
        */
       public Builder clearType() {
-        
+
         type_ = 0;
         onChanged();
         return this;
@@ -16376,7 +16376,7 @@ package org.apache.calcite.avatica.proto;
           getSqlBytes() {
         java.lang.Object ref = sql_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           sql_ = b;
@@ -16393,7 +16393,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         sql_ = value;
         onChanged();
         return this;
@@ -16402,7 +16402,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string sql = 2;</code>
        */
       public Builder clearSql() {
-        
+
         sql_ = getDefaultInstance().getSql();
         onChanged();
         return this;
@@ -16416,7 +16416,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         sql_ = value;
         onChanged();
         return this;
@@ -16451,7 +16451,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
           throw new NullPointerException();
         }
-        
+
         op_ = value.getNumber();
         onChanged();
         return this;
@@ -16460,7 +16460,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .MetaDataOperation op = 3;</code>
        */
       public Builder clearOp() {
-        
+
         op_ = 0;
         onChanged();
         return this;
@@ -16661,7 +16661,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .MetaDataOperationArgument args = 4;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder>
            getArgsOrBuilderList() {
         if (argsBuilder_ != null) {
           return argsBuilder_.getMessageOrBuilderList();
@@ -16687,12 +16687,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .MetaDataOperationArgument args = 4;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.Builder>
            getArgsBuilderList() {
         return getArgsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument, org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.Builder, org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument, org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.Builder, org.apache.calcite.avatica.proto.Common.MetaDataOperationArgumentOrBuilder>
           getArgsFieldBuilder() {
         if (argsBuilder_ == null) {
           argsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -16717,7 +16717,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_args = 5;</code>
        */
       public Builder setHasArgs(boolean value) {
-        
+
         hasArgs_ = value;
         onChanged();
         return this;
@@ -16726,7 +16726,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_args = 5;</code>
        */
       public Builder clearHasArgs() {
-        
+
         hasArgs_ = false;
         onChanged();
         return this;
@@ -16743,7 +16743,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_sql = 6;</code>
        */
       public Builder setHasSql(boolean value) {
-        
+
         hasSql_ = value;
         onChanged();
         return this;
@@ -16752,7 +16752,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_sql = 6;</code>
        */
       public Builder clearHasSql() {
-        
+
         hasSql_ = false;
         onChanged();
         return this;
@@ -16769,7 +16769,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_op = 7;</code>
        */
       public Builder setHasOp(boolean value) {
-        
+
         hasOp_ = value;
         onChanged();
         return this;
@@ -16778,7 +16778,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_op = 7;</code>
        */
       public Builder clearHasOp() {
-        
+
         hasOp_ = false;
         onChanged();
         return this;

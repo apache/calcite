@@ -3669,8 +3669,10 @@ LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNB
     </TestCase>
     <TestCase name="testPushAggregateThroughJoin1">
         <Resource name="sql">
-            <![CDATA[select e.empno,d.deptno 
-from (select * from sales.emp where empno = 10) as e join sales.dept as d on e.empno = d.deptno group by e.empno,d.deptno]]>
+            <![CDATA[select e.empno,d.deptno
+from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.empno = d.deptno
+group by e.empno,d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -3696,8 +3698,11 @@ LogicalJoin(condition=[=($0, $1)], joinType=[inner])
     </TestCase>
     <TestCase name="testPushAggregateThroughJoin2">
         <Resource name="sql">
-            <![CDATA[select e.empno,d.deptno 
-from (select * from sales.emp where empno = 10) as e join sales.dept as d on e.empno = d.deptno and e.deptno + e.empno = d.deptno + 5 group by e.empno,d.deptno]]>
+            <![CDATA[select e.empno,d.deptno
+from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.empno = d.deptno
+and e.deptno + e.empno = d.deptno + 5
+group by e.empno,d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -3728,8 +3733,10 @@ LogicalAggregate(group=[{0, 2}])
     </TestCase>
     <TestCase name="testPushAggregateThroughJoin3">
         <Resource name="sql">
-            <![CDATA[select e.empno,d.deptno 
-from (select * from sales.emp where empno = 10) as e join sales.dept as d on e.empno < d.deptno group by e.empno,d.deptno]]>
+            <![CDATA[select e.empno,d.deptno
+from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.empno < d.deptno
+group by e.empno,d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -3754,8 +3761,10 @@ LogicalAggregate(group=[{0, 9}])
     </TestCase>
     <TestCase name="testPushAggregateSumThroughJoin">
         <Resource name="sql">
-            <![CDATA[select e.empno,sum(sal) 
-from (select * from sales.emp where empno = 10) as e join sales.dept as d on e.empno = d.deptno group by e.empno,d.deptno]]>
+            <![CDATA[select e.empno,sum(sal)
+from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.empno = d.deptno
+group by e.empno,d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[

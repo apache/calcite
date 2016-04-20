@@ -1919,9 +1919,9 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,d.deptno \n"
-        + "from (select * from sales.emp where empno = 10) as e "
-        + "join sales.dept as d on e.empno = d.deptno "
+    final String sql = "select e.empno,d.deptno\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.empno = d.deptno\n"
         + "group by e.empno,d.deptno";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
@@ -1933,10 +1933,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,d.deptno \n"
-        + "from (select * from sales.emp where empno = 10) as e "
-        + "join sales.dept as d on e.empno = d.deptno "
-        + "and e.deptno + e.empno = d.deptno + 5 "
+    final String sql = "select e.empno,d.deptno\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.empno = d.deptno\n"
+        + "and e.deptno + e.empno = d.deptno + 5\n"
         + "group by e.empno,d.deptno";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
@@ -1948,9 +1948,9 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,d.deptno \n"
-        + "from (select * from sales.emp where empno = 10) as e "
-        + "join sales.dept as d on e.empno < d.deptno "
+    final String sql = "select e.empno,d.deptno\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.empno < d.deptno\n"
         + "group by e.empno,d.deptno";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
   }
@@ -1963,9 +1963,9 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,sum(sal) \n"
-        + "from (select * from sales.emp where empno = 10) as e "
-        + "join sales.dept as d on e.empno = d.deptno "
+    final String sql = "select e.empno,sum(sal)\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.empno = d.deptno\n"
         + "group by e.empno,d.deptno";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }

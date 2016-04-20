@@ -177,19 +177,21 @@ select * from (select * from emp where gender ='F') as emp right join dept on em
 
 !if (false) {
 select * from emp full join dept on emp.deptno = dept.deptno and emp.gender = 'F';
- ename | deptno | gender | deptno |    dname    
--------+--------+--------+--------+-------------
- Jane  |     10 | F      |     10 | Sales
-       |        |        |     20 | Marketing
- Alice |     30 | F      |     30 | Engineering
- Susan |     30 | F      |     30 | Engineering
-       |        |        |     40 | Empty
- Wilma |        | F      |        | 
- Eric  |     20 | M      |        | 
- Bob   |     10 | M      |        | 
- Eve   |     50 | F      |        | 
- Adam  |     50 | M      |        | 
- Grace |     60 | F      |        | 
++-------+--------+--------+--------+-------------+
+| ename | deptno | gender | deptno |    dname    |
++-------+--------+--------+--------+-------------+
+| Jane  |     10 | F      |     10 | Sales       |
+|       |        |        |     20 | Marketing   |
+| Alice |     30 | F      |     30 | Engineering |
+| Susan |     30 | F      |     30 | Engineering |
+|       |        |        |     40 | Empty       |
+| Wilma |        | F      |        |             |
+| Eric  |     20 | M      |        |             |
+| Bob   |     10 | M      |        |             |
+| Eve   |     50 | F      |        |             |
+| Adam  |     50 | M      |        |             |
+| Grace |     60 | F      |        |             |
++-------+--------+--------+--------+-------------+
 (11 rows)
 
 !ok

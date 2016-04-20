@@ -121,7 +121,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -135,7 +135,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -378,7 +378,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -395,7 +395,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -404,7 +404,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -418,7 +418,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -578,7 +578,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -592,7 +592,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -835,7 +835,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -852,7 +852,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -861,7 +861,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -875,7 +875,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -1069,7 +1069,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         catalog_ = s;
@@ -1083,7 +1083,7 @@ package org.apache.calcite.avatica.proto;
         getCatalogBytes() {
       java.lang.Object ref = catalog_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         catalog_ = b;
@@ -1103,7 +1103,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         schemaPattern_ = s;
@@ -1117,7 +1117,7 @@ package org.apache.calcite.avatica.proto;
         getSchemaPatternBytes() {
       java.lang.Object ref = schemaPattern_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         schemaPattern_ = b;
@@ -1137,7 +1137,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -1151,7 +1151,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -1420,7 +1420,7 @@ package org.apache.calcite.avatica.proto;
           getCatalogBytes() {
         java.lang.Object ref = catalog_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           catalog_ = b;
@@ -1437,7 +1437,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         catalog_ = value;
         onChanged();
         return this;
@@ -1446,7 +1446,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string catalog = 1;</code>
        */
       public Builder clearCatalog() {
-        
+
         catalog_ = getDefaultInstance().getCatalog();
         onChanged();
         return this;
@@ -1460,7 +1460,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         catalog_ = value;
         onChanged();
         return this;
@@ -1489,7 +1489,7 @@ package org.apache.calcite.avatica.proto;
           getSchemaPatternBytes() {
         java.lang.Object ref = schemaPattern_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           schemaPattern_ = b;
@@ -1506,7 +1506,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -1515,7 +1515,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string schema_pattern = 2;</code>
        */
       public Builder clearSchemaPattern() {
-        
+
         schemaPattern_ = getDefaultInstance().getSchemaPattern();
         onChanged();
         return this;
@@ -1529,7 +1529,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -1558,7 +1558,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -1575,7 +1575,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -1584,7 +1584,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 3;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -1598,7 +1598,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -1858,7 +1858,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         catalog_ = s;
@@ -1872,7 +1872,7 @@ package org.apache.calcite.avatica.proto;
         getCatalogBytes() {
       java.lang.Object ref = catalog_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         catalog_ = b;
@@ -1892,7 +1892,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         schemaPattern_ = s;
@@ -1906,7 +1906,7 @@ package org.apache.calcite.avatica.proto;
         getSchemaPatternBytes() {
       java.lang.Object ref = schemaPattern_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         schemaPattern_ = b;
@@ -1926,7 +1926,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         tableNamePattern_ = s;
@@ -1940,7 +1940,7 @@ package org.apache.calcite.avatica.proto;
         getTableNamePatternBytes() {
       java.lang.Object ref = tableNamePattern_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         tableNamePattern_ = b;
@@ -2002,7 +2002,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -2016,7 +2016,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -2344,7 +2344,7 @@ package org.apache.calcite.avatica.proto;
           getCatalogBytes() {
         java.lang.Object ref = catalog_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           catalog_ = b;
@@ -2361,7 +2361,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         catalog_ = value;
         onChanged();
         return this;
@@ -2370,7 +2370,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string catalog = 1;</code>
        */
       public Builder clearCatalog() {
-        
+
         catalog_ = getDefaultInstance().getCatalog();
         onChanged();
         return this;
@@ -2384,7 +2384,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         catalog_ = value;
         onChanged();
         return this;
@@ -2413,7 +2413,7 @@ package org.apache.calcite.avatica.proto;
           getSchemaPatternBytes() {
         java.lang.Object ref = schemaPattern_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           schemaPattern_ = b;
@@ -2430,7 +2430,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -2439,7 +2439,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string schema_pattern = 2;</code>
        */
       public Builder clearSchemaPattern() {
-        
+
         schemaPattern_ = getDefaultInstance().getSchemaPattern();
         onChanged();
         return this;
@@ -2453,7 +2453,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -2482,7 +2482,7 @@ package org.apache.calcite.avatica.proto;
           getTableNamePatternBytes() {
         java.lang.Object ref = tableNamePattern_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           tableNamePattern_ = b;
@@ -2499,7 +2499,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         tableNamePattern_ = value;
         onChanged();
         return this;
@@ -2508,7 +2508,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string table_name_pattern = 3;</code>
        */
       public Builder clearTableNamePattern() {
-        
+
         tableNamePattern_ = getDefaultInstance().getTableNamePattern();
         onChanged();
         return this;
@@ -2522,7 +2522,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         tableNamePattern_ = value;
         onChanged();
         return this;
@@ -2641,7 +2641,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setHasTypeList(boolean value) {
-        
+
         hasTypeList_ = value;
         onChanged();
         return this;
@@ -2654,7 +2654,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearHasTypeList() {
-        
+
         hasTypeList_ = false;
         onChanged();
         return this;
@@ -2683,7 +2683,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -2700,7 +2700,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -2709,7 +2709,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 7;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -2723,7 +2723,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -2883,7 +2883,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -2897,7 +2897,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -3140,7 +3140,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -3157,7 +3157,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -3166,7 +3166,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -3180,7 +3180,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -3409,7 +3409,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         catalog_ = s;
@@ -3423,7 +3423,7 @@ package org.apache.calcite.avatica.proto;
         getCatalogBytes() {
       java.lang.Object ref = catalog_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         catalog_ = b;
@@ -3443,7 +3443,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         schemaPattern_ = s;
@@ -3457,7 +3457,7 @@ package org.apache.calcite.avatica.proto;
         getSchemaPatternBytes() {
       java.lang.Object ref = schemaPattern_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         schemaPattern_ = b;
@@ -3477,7 +3477,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         tableNamePattern_ = s;
@@ -3491,7 +3491,7 @@ package org.apache.calcite.avatica.proto;
         getTableNamePatternBytes() {
       java.lang.Object ref = tableNamePattern_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         tableNamePattern_ = b;
@@ -3511,7 +3511,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         columnNamePattern_ = s;
@@ -3525,7 +3525,7 @@ package org.apache.calcite.avatica.proto;
         getColumnNamePatternBytes() {
       java.lang.Object ref = columnNamePattern_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         columnNamePattern_ = b;
@@ -3545,7 +3545,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -3559,7 +3559,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -3855,7 +3855,7 @@ package org.apache.calcite.avatica.proto;
           getCatalogBytes() {
         java.lang.Object ref = catalog_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           catalog_ = b;
@@ -3872,7 +3872,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         catalog_ = value;
         onChanged();
         return this;
@@ -3881,7 +3881,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string catalog = 1;</code>
        */
       public Builder clearCatalog() {
-        
+
         catalog_ = getDefaultInstance().getCatalog();
         onChanged();
         return this;
@@ -3895,7 +3895,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         catalog_ = value;
         onChanged();
         return this;
@@ -3924,7 +3924,7 @@ package org.apache.calcite.avatica.proto;
           getSchemaPatternBytes() {
         java.lang.Object ref = schemaPattern_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           schemaPattern_ = b;
@@ -3941,7 +3941,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -3950,7 +3950,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string schema_pattern = 2;</code>
        */
       public Builder clearSchemaPattern() {
-        
+
         schemaPattern_ = getDefaultInstance().getSchemaPattern();
         onChanged();
         return this;
@@ -3964,7 +3964,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         schemaPattern_ = value;
         onChanged();
         return this;
@@ -3993,7 +3993,7 @@ package org.apache.calcite.avatica.proto;
           getTableNamePatternBytes() {
         java.lang.Object ref = tableNamePattern_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           tableNamePattern_ = b;
@@ -4010,7 +4010,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         tableNamePattern_ = value;
         onChanged();
         return this;
@@ -4019,7 +4019,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string table_name_pattern = 3;</code>
        */
       public Builder clearTableNamePattern() {
-        
+
         tableNamePattern_ = getDefaultInstance().getTableNamePattern();
         onChanged();
         return this;
@@ -4033,7 +4033,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         tableNamePattern_ = value;
         onChanged();
         return this;
@@ -4062,7 +4062,7 @@ package org.apache.calcite.avatica.proto;
           getColumnNamePatternBytes() {
         java.lang.Object ref = columnNamePattern_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           columnNamePattern_ = b;
@@ -4079,7 +4079,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         columnNamePattern_ = value;
         onChanged();
         return this;
@@ -4088,7 +4088,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string column_name_pattern = 4;</code>
        */
       public Builder clearColumnNamePattern() {
-        
+
         columnNamePattern_ = getDefaultInstance().getColumnNamePattern();
         onChanged();
         return this;
@@ -4102,7 +4102,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         columnNamePattern_ = value;
         onChanged();
         return this;
@@ -4131,7 +4131,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -4148,7 +4148,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -4157,7 +4157,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 5;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -4171,7 +4171,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -4331,7 +4331,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -4345,7 +4345,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -4588,7 +4588,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -4605,7 +4605,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -4614,7 +4614,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -4628,7 +4628,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -4827,7 +4827,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -4841,7 +4841,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -4861,7 +4861,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         sql_ = s;
@@ -4875,7 +4875,7 @@ package org.apache.calcite.avatica.proto;
         getSqlBytes() {
       java.lang.Object ref = sql_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         sql_ = b;
@@ -5175,7 +5175,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -5192,7 +5192,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -5201,7 +5201,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -5215,7 +5215,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -5244,7 +5244,7 @@ package org.apache.calcite.avatica.proto;
           getSqlBytes() {
         java.lang.Object ref = sql_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           sql_ = b;
@@ -5261,7 +5261,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         sql_ = value;
         onChanged();
         return this;
@@ -5270,7 +5270,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string sql = 2;</code>
        */
       public Builder clearSql() {
-        
+
         sql_ = getDefaultInstance().getSql();
         onChanged();
         return this;
@@ -5284,7 +5284,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         sql_ = value;
         onChanged();
         return this;
@@ -5301,7 +5301,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 max_row_count = 3;</code>
        */
       public Builder setMaxRowCount(long value) {
-        
+
         maxRowCount_ = value;
         onChanged();
         return this;
@@ -5310,7 +5310,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 max_row_count = 3;</code>
        */
       public Builder clearMaxRowCount() {
-        
+
         maxRowCount_ = 0L;
         onChanged();
         return this;
@@ -5327,7 +5327,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 4;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -5336,7 +5336,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 4;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -5524,7 +5524,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -5538,7 +5538,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -5558,7 +5558,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         sql_ = s;
@@ -5572,7 +5572,7 @@ package org.apache.calcite.avatica.proto;
         getSqlBytes() {
       java.lang.Object ref = sql_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         sql_ = b;
@@ -5850,7 +5850,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -5867,7 +5867,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -5876,7 +5876,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -5890,7 +5890,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -5919,7 +5919,7 @@ package org.apache.calcite.avatica.proto;
           getSqlBytes() {
         java.lang.Object ref = sql_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           sql_ = b;
@@ -5936,7 +5936,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         sql_ = value;
         onChanged();
         return this;
@@ -5945,7 +5945,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string sql = 2;</code>
        */
       public Builder clearSql() {
-        
+
         sql_ = getDefaultInstance().getSql();
         onChanged();
         return this;
@@ -5959,7 +5959,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         sql_ = value;
         onChanged();
         return this;
@@ -5976,7 +5976,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 max_row_count = 3;</code>
        */
       public Builder setMaxRowCount(long value) {
-        
+
         maxRowCount_ = value;
         onChanged();
         return this;
@@ -5985,7 +5985,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 max_row_count = 3;</code>
        */
       public Builder clearMaxRowCount() {
-        
+
         maxRowCount_ = 0L;
         onChanged();
         return this;
@@ -6182,7 +6182,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -6196,7 +6196,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -6509,7 +6509,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -6526,7 +6526,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -6535,7 +6535,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -6549,7 +6549,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -6566,7 +6566,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -6575,7 +6575,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -6592,7 +6592,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 offset = 3;</code>
        */
       public Builder setOffset(long value) {
-        
+
         offset_ = value;
         onChanged();
         return this;
@@ -6601,7 +6601,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 offset = 3;</code>
        */
       public Builder clearOffset() {
-        
+
         offset_ = 0L;
         onChanged();
         return this;
@@ -6626,7 +6626,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder setFetchMaxRowCount(int value) {
-        
+
         fetchMaxRowCount_ = value;
         onChanged();
         return this;
@@ -6639,7 +6639,7 @@ package org.apache.calcite.avatica.proto;
        * </pre>
        */
       public Builder clearFetchMaxRowCount() {
-        
+
         fetchMaxRowCount_ = 0;
         onChanged();
         return this;
@@ -6799,7 +6799,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -6813,7 +6813,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -7056,7 +7056,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -7073,7 +7073,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -7082,7 +7082,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -7096,7 +7096,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -7267,7 +7267,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -7281,7 +7281,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -7546,7 +7546,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -7563,7 +7563,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -7572,7 +7572,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -7586,7 +7586,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -7603,7 +7603,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -7612,7 +7612,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -7802,7 +7802,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -7816,7 +7816,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -7832,7 +7832,7 @@ package org.apache.calcite.avatica.proto;
           java.lang.String, java.lang.String> defaultEntry =
               com.google.protobuf.MapEntry
               .<java.lang.String, java.lang.String>newDefaultInstance(
-                  org.apache.calcite.avatica.proto.Requests.internal_static_OpenConnectionRequest_InfoEntry_descriptor, 
+                  org.apache.calcite.avatica.proto.Requests.internal_static_OpenConnectionRequest_InfoEntry_descriptor,
                   com.google.protobuf.WireFormat.FieldType.STRING,
                   "",
                   com.google.protobuf.WireFormat.FieldType.STRING,
@@ -8139,7 +8139,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -8156,7 +8156,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -8165,7 +8165,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -8179,7 +8179,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -8383,7 +8383,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -8397,7 +8397,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -8640,7 +8640,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -8657,7 +8657,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -8666,7 +8666,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -8680,7 +8680,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -8862,7 +8862,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -8876,7 +8876,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -9157,7 +9157,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -9174,7 +9174,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -9183,7 +9183,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -9197,7 +9197,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -9288,7 +9288,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .ConnectionProperties conn_props = 2;</code>
        */
       public org.apache.calcite.avatica.proto.Common.ConnectionProperties.Builder getConnPropsBuilder() {
-        
+
         onChanged();
         return getConnPropsFieldBuilder().getBuilder();
       }
@@ -9307,7 +9307,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .ConnectionProperties conn_props = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.ConnectionProperties, org.apache.calcite.avatica.proto.Common.ConnectionProperties.Builder, org.apache.calcite.avatica.proto.Common.ConnectionPropertiesOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.ConnectionProperties, org.apache.calcite.avatica.proto.Common.ConnectionProperties.Builder, org.apache.calcite.avatica.proto.Common.ConnectionPropertiesOrBuilder>
           getConnPropsFieldBuilder() {
         if (connPropsBuilder_ == null) {
           connPropsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -9397,7 +9397,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue parameter_values = 2;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue>
         getParameterValuesList();
     /**
      * <code>repeated .TypedValue parameter_values = 2;</code>
@@ -9410,7 +9410,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue parameter_values = 2;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getParameterValuesOrBuilderList();
     /**
      * <code>repeated .TypedValue parameter_values = 2;</code>
@@ -9564,7 +9564,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue parameter_values = 2;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getParameterValuesOrBuilderList() {
       return parameterValues_;
     }
@@ -9862,7 +9862,7 @@ package org.apache.calcite.avatica.proto;
               parameterValuesBuilder_ = null;
               parameterValues_ = other.parameterValues_;
               bitField0_ = (bitField0_ & ~0x00000002);
-              parameterValuesBuilder_ = 
+              parameterValuesBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getParameterValuesFieldBuilder() : null;
             } else {
@@ -9988,7 +9988,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .StatementHandle statementHandle = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.StatementHandle.Builder getStatementHandleBuilder() {
-        
+
         onChanged();
         return getStatementHandleFieldBuilder().getBuilder();
       }
@@ -10007,7 +10007,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .StatementHandle statementHandle = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.StatementHandle, org.apache.calcite.avatica.proto.Common.StatementHandle.Builder, org.apache.calcite.avatica.proto.Common.StatementHandleOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.StatementHandle, org.apache.calcite.avatica.proto.Common.StatementHandle.Builder, org.apache.calcite.avatica.proto.Common.StatementHandleOrBuilder>
           getStatementHandleFieldBuilder() {
         if (statementHandleBuilder_ == null) {
           statementHandleBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -10215,7 +10215,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .TypedValue parameter_values = 2;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
            getParameterValuesOrBuilderList() {
         if (parameterValuesBuilder_ != null) {
           return parameterValuesBuilder_.getMessageOrBuilderList();
@@ -10241,12 +10241,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .TypedValue parameter_values = 2;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder>
            getParameterValuesBuilderList() {
         return getParameterValuesFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
           getParameterValuesFieldBuilder() {
         if (parameterValuesBuilder_ == null) {
           parameterValuesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -10271,7 +10271,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 max_row_count = 3;</code>
        */
       public Builder setMaxRowCount(long value) {
-        
+
         maxRowCount_ = value;
         onChanged();
         return this;
@@ -10280,7 +10280,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 max_row_count = 3;</code>
        */
       public Builder clearMaxRowCount() {
-        
+
         maxRowCount_ = 0L;
         onChanged();
         return this;
@@ -10297,7 +10297,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_parameter_values = 4;</code>
        */
       public Builder setHasParameterValues(boolean value) {
-        
+
         hasParameterValues_ = value;
         onChanged();
         return this;
@@ -10306,7 +10306,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional bool has_parameter_values = 4;</code>
        */
       public Builder clearHasParameterValues() {
-        
+
         hasParameterValues_ = false;
         onChanged();
         return this;
@@ -10510,7 +10510,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -10524,7 +10524,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -10849,7 +10849,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -10866,7 +10866,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -10875,7 +10875,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -10889,7 +10889,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -10906,7 +10906,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -10915,7 +10915,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -11006,7 +11006,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .QueryState state = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.QueryState.Builder getStateBuilder() {
-        
+
         onChanged();
         return getStateFieldBuilder().getBuilder();
       }
@@ -11025,7 +11025,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional .QueryState state = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.QueryState, org.apache.calcite.avatica.proto.Common.QueryState.Builder, org.apache.calcite.avatica.proto.Common.QueryStateOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.QueryState, org.apache.calcite.avatica.proto.Common.QueryState.Builder, org.apache.calcite.avatica.proto.Common.QueryStateOrBuilder>
           getStateFieldBuilder() {
         if (stateBuilder_ == null) {
           stateBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -11049,7 +11049,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 offset = 4;</code>
        */
       public Builder setOffset(long value) {
-        
+
         offset_ = value;
         onChanged();
         return this;
@@ -11058,7 +11058,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint64 offset = 4;</code>
        */
       public Builder clearOffset() {
-        
+
         offset_ = 0L;
         onChanged();
         return this;
@@ -11218,7 +11218,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -11232,7 +11232,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -11475,7 +11475,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -11492,7 +11492,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -11501,7 +11501,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -11515,7 +11515,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -11675,7 +11675,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -11689,7 +11689,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -11932,7 +11932,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -11949,7 +11949,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -11958,7 +11958,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -11972,7 +11972,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -12176,7 +12176,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -12190,7 +12190,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -12516,7 +12516,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -12533,7 +12533,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -12542,7 +12542,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -12556,7 +12556,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -12573,7 +12573,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -12582,7 +12582,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -12746,7 +12746,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue parameter_values = 1;</code>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue> 
+    java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue>
         getParameterValuesList();
     /**
      * <code>repeated .TypedValue parameter_values = 1;</code>
@@ -12759,7 +12759,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue parameter_values = 1;</code>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getParameterValuesOrBuilderList();
     /**
      * <code>repeated .TypedValue parameter_values = 1;</code>
@@ -12856,7 +12856,7 @@ package org.apache.calcite.avatica.proto;
     /**
      * <code>repeated .TypedValue parameter_values = 1;</code>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
         getParameterValuesOrBuilderList() {
       return parameterValues_;
     }
@@ -13093,7 +13093,7 @@ package org.apache.calcite.avatica.proto;
               parameterValuesBuilder_ = null;
               parameterValues_ = other.parameterValues_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              parameterValuesBuilder_ = 
+              parameterValuesBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getParameterValuesFieldBuilder() : null;
             } else {
@@ -13323,7 +13323,7 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .TypedValue parameter_values = 1;</code>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
            getParameterValuesOrBuilderList() {
         if (parameterValuesBuilder_ != null) {
           return parameterValuesBuilder_.getMessageOrBuilderList();
@@ -13349,12 +13349,12 @@ package org.apache.calcite.avatica.proto;
       /**
        * <code>repeated .TypedValue parameter_values = 1;</code>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Common.TypedValue.Builder>
            getParameterValuesBuilderList() {
         return getParameterValuesFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
+          org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder>
           getParameterValuesFieldBuilder() {
         if (parameterValuesBuilder_ == null) {
           parameterValuesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -13451,7 +13451,7 @@ package org.apache.calcite.avatica.proto;
      * A batch of updates is a list&lt;list&lt;typevalue&gt;&gt;
      * </pre>
      */
-    java.util.List<org.apache.calcite.avatica.proto.Requests.UpdateBatch> 
+    java.util.List<org.apache.calcite.avatica.proto.Requests.UpdateBatch>
         getUpdatesList();
     /**
      * <code>repeated .UpdateBatch updates = 3;</code>
@@ -13476,7 +13476,7 @@ package org.apache.calcite.avatica.proto;
      * A batch of updates is a list&lt;list&lt;typevalue&gt;&gt;
      * </pre>
      */
-    java.util.List<? extends org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder> 
+    java.util.List<? extends org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder>
         getUpdatesOrBuilderList();
     /**
      * <code>repeated .UpdateBatch updates = 3;</code>
@@ -13586,7 +13586,7 @@ package org.apache.calcite.avatica.proto;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         connectionId_ = s;
@@ -13600,7 +13600,7 @@ package org.apache.calcite.avatica.proto;
         getConnectionIdBytes() {
       java.lang.Object ref = connectionId_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         connectionId_ = b;
@@ -13638,7 +13638,7 @@ package org.apache.calcite.avatica.proto;
      * A batch of updates is a list&lt;list&lt;typevalue&gt;&gt;
      * </pre>
      */
-    public java.util.List<? extends org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder> 
+    public java.util.List<? extends org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder>
         getUpdatesOrBuilderList() {
       return updates_;
     }
@@ -13911,7 +13911,7 @@ package org.apache.calcite.avatica.proto;
               updatesBuilder_ = null;
               updates_ = other.updates_;
               bitField0_ = (bitField0_ & ~0x00000004);
-              updatesBuilder_ = 
+              updatesBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getUpdatesFieldBuilder() : null;
             } else {
@@ -13969,7 +13969,7 @@ package org.apache.calcite.avatica.proto;
           getConnectionIdBytes() {
         java.lang.Object ref = connectionId_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           connectionId_ = b;
@@ -13986,7 +13986,7 @@ package org.apache.calcite.avatica.proto;
         if (value == null) {
     throw new NullPointerException();
   }
-  
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -13995,7 +13995,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
-        
+
         connectionId_ = getDefaultInstance().getConnectionId();
         onChanged();
         return this;
@@ -14009,7 +14009,7 @@ package org.apache.calcite.avatica.proto;
     throw new NullPointerException();
   }
   checkByteStringIsUtf8(value);
-        
+
         connectionId_ = value;
         onChanged();
         return this;
@@ -14026,7 +14026,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder setStatementId(int value) {
-        
+
         statementId_ = value;
         onChanged();
         return this;
@@ -14035,7 +14035,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 statement_id = 2;</code>
        */
       public Builder clearStatementId() {
-        
+
         statementId_ = 0;
         onChanged();
         return this;
@@ -14296,7 +14296,7 @@ package org.apache.calcite.avatica.proto;
        * A batch of updates is a list&lt;list&lt;typevalue&gt;&gt;
        * </pre>
        */
-      public java.util.List<? extends org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder> 
+      public java.util.List<? extends org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder>
            getUpdatesOrBuilderList() {
         if (updatesBuilder_ != null) {
           return updatesBuilder_.getMessageOrBuilderList();
@@ -14334,12 +14334,12 @@ package org.apache.calcite.avatica.proto;
        * A batch of updates is a list&lt;list&lt;typevalue&gt;&gt;
        * </pre>
        */
-      public java.util.List<org.apache.calcite.avatica.proto.Requests.UpdateBatch.Builder> 
+      public java.util.List<org.apache.calcite.avatica.proto.Requests.UpdateBatch.Builder>
            getUpdatesBuilderList() {
         return getUpdatesFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          org.apache.calcite.avatica.proto.Requests.UpdateBatch, org.apache.calcite.avatica.proto.Requests.UpdateBatch.Builder, org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder> 
+          org.apache.calcite.avatica.proto.Requests.UpdateBatch, org.apache.calcite.avatica.proto.Requests.UpdateBatch.Builder, org.apache.calcite.avatica.proto.Requests.UpdateBatchOrBuilder>
           getUpdatesFieldBuilder() {
         if (updatesBuilder_ == null) {
           updatesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
