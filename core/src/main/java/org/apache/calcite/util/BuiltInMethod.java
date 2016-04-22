@@ -253,6 +253,7 @@ public enum BuiltInMethod {
       int.class),
   POSITION(SqlFunctions.class, "position", String.class, String.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
+  TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,
       String.class),
   TRANSLATE3(SqlFunctions.class, "translate3", String.class, String.class, String.class),

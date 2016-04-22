@@ -930,7 +930,7 @@ LogicalProject(U=[$0], S=[$1])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalCalc(expr#0=[{inputs}], expr#1=['TABLE'], expr#2=['t'], U=[$t1], S=[$t2])
+LogicalCalc(expr#0=[{inputs}], expr#1=['TABLE        '], expr#2=['t'], U=[$t1], S=[$t2])
   LogicalValues(tuples=[[{ true }]])
 ]]>
         </Resource>

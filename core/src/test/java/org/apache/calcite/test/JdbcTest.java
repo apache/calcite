@@ -755,7 +755,7 @@ public class JdbcTest {
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("N={'a'=1, 'baz'=2}\n"
-            + "N=[3, 4, null]\n"));
+            + "N=[3, 4, null]    \n"));
     connection.close();
   }
 

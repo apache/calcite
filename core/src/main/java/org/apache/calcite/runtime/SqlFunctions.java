@@ -19,6 +19,7 @@ package org.apache.calcite.runtime;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.CartesianProductEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
@@ -1248,16 +1249,54 @@ public class SqlFunctions {
 
   /** Helper for CAST(... AS VARCHAR(maxLength)). */
   public static String truncate(String s, int maxLength) {
-    return s == null ? null
-        : s.length() > maxLength ? s.substring(0, maxLength)
-        : s;
+    if (s == null) {
+      return null;
+    } else if (s.length() > maxLength) {
+      return s.substring(0, maxLength);
+    } else {
+      return s;
+    }
+  }
+
+  /** Helper for CAST(... AS CHAR(maxLength)). */
+  public static String truncateOrPad(String s, int maxLength) {
+    if (s == null) {
+      return null;
+    } else {
+      final int length = s.length();
+      if (length > maxLength) {
+        return s.substring(0, maxLength);
+      } else {
+        return length < maxLength ? Spaces.padRight(s, maxLength) : s;
+      }
+    }
   }
 
   /** Helper for CAST(... AS VARBINARY(maxLength)). */
   public static ByteString truncate(ByteString s, int maxLength) {
-    return s == null ? null
-        : s.length() > maxLength ? s.substring(0, maxLength)
-        : s;
+    if (s == null) {
+      return null;
+    } else if (s.length() > maxLength) {
+      return s.substring(0, maxLength);
+    } else {
+      return s;
+    }
+  }
+
+  /** Helper for CAST(... AS BINARY(maxLength)). */
+  public static ByteString truncateOrPad(ByteString s, int maxLength) {
+    if (s == null) {
+      return null;
+    } else {
+      final int length = s.length();
+      if (length > maxLength) {
+        return s.substring(0, maxLength);
+      } else if (length < maxLength) {
+        return s.concat(new ByteString(new byte[maxLength - length]));
+      } else {
+        return s;
+      }
+    }
   }
 
   /** SQL {@code POSITION(seek IN string)} function. */
