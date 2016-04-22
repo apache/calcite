@@ -111,6 +111,14 @@ public class CassandraAdapterIT {
                 + "      CassandraFilter(condition=[=(CAST($0):VARCHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n");
   }
 
+  @Test public void testLimit() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" where \"username\" = '!PUBLIC!' limit 8")
+        .explainContains("CassandraSort(fetch=[8])\n");
+  }
+
   @Test public void testMaterializedView() {
     CalciteAssert.that()
         .enable(enabled())

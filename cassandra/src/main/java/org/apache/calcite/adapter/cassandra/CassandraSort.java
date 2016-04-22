@@ -51,7 +51,15 @@ public class CassandraSort extends Sort implements CassandraRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.05);
+    RelOptCost cost = super.computeSelfCost(planner, mq);
+    if (!collation.getFieldCollations().isEmpty()) {
+      return cost.multiplyBy(0.05);
+    } else if (fetch == null) {
+      return cost;
+    } else {
+      // We do this so we get the limit for free
+      return planner.getCostFactory().makeZeroCost();
+    }
   }
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
