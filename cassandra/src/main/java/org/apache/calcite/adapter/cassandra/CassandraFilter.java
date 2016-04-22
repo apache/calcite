@@ -27,10 +27,12 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
@@ -67,8 +69,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
     this.implicitFieldCollations = implicitFieldCollations;
 
     Translator translator =
-        new Translator(CassandraRules.cassandraFieldNames(getRowType()),
-            partitionKeys, clusteringKeys, implicitFieldCollations);
+        new Translator(getRowType(), partitionKeys, clusteringKeys,
+            implicitFieldCollations);
     this.match = translator.translateMatch(condition);
     this.singlePartition = translator.isSinglePartition();
     this.implicitCollation = translator.getImplicitCollation();
@@ -111,15 +113,17 @@ public class CassandraFilter extends Filter implements CassandraRel {
 
   /** Translates {@link RexNode} expressions into Cassandra expression strings. */
   static class Translator {
+    private final RelDataType rowType;
     private final List<String> fieldNames;
     private final Set<String> partitionKeys;
     private final List<String> clusteringKeys;
     private int restrictedClusteringKeys;
     private final List<RelFieldCollation> implicitFieldCollations;
 
-    Translator(List<String> fieldNames, List<String> partitionKeys, List<String> clusteringKeys,
+    Translator(RelDataType rowType, List<String> partitionKeys, List<String> clusteringKeys,
         List<RelFieldCollation> implicitFieldCollations) {
-      this.fieldNames = fieldNames;
+      this.rowType = rowType;
+      this.fieldNames = CassandraRules.cassandraFieldNames(rowType);
       this.partitionKeys = new HashSet<String>(partitionKeys);
       this.clusteringKeys = clusteringKeys;
       this.restrictedClusteringKeys = 0;
@@ -267,7 +271,10 @@ public class CassandraFilter extends Filter implements CassandraRel {
       Object value = literalValue(right);
       String valueString = value.toString();
       if (value instanceof String) {
-        valueString = "'" + valueString + "'";
+        SqlTypeName typeName = rowType.getField(name, true, false).getType().getSqlTypeName();
+        if (typeName != SqlTypeName.CHAR) {
+          valueString = "'" + valueString + "'";
+        }
       }
       return name + " " + op + " " + valueString;
     }

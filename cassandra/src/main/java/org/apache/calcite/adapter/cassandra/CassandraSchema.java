@@ -120,9 +120,13 @@ public class CassandraSchema extends AbstractSchema {
 
       // TODO: This mapping of types can be done much better
       SqlTypeName typeName = SqlTypeName.ANY;
-      if (type == DataType.ascii() || type == DataType.text() || type == DataType.varchar()
-            || type == DataType.uuid() || type == DataType.timeuuid()) {
+      if (type == DataType.uuid() || type == DataType.timeuuid()) {
+        // We currently rely on this in CassandraFilter to detect UUID columns.
+        // That is, these fixed length literals should be unquoted in CQL.
         typeName = SqlTypeName.CHAR;
+      } else if (type == DataType.ascii() || type == DataType.text()
+            || type == DataType.varchar()) {
+        typeName = SqlTypeName.VARCHAR;
       } else if (type == DataType.cint() || type == DataType.varint()) {
         typeName = SqlTypeName.INTEGER;
       } else if (type == DataType.bigint()) {
