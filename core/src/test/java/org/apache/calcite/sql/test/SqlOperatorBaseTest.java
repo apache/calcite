@@ -484,6 +484,8 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCastToString() {
     tester.setFor(SqlStdOperatorTable.CAST);
+    checkCastToString("cast(cast('abc' as char(4)) as varchar(6))", null,
+        "abc ");
 
     // integer
     checkCastToString("123", "CHAR(3)", "123");
@@ -547,6 +549,26 @@ public abstract class SqlOperatorBaseTest {
     checkCastToString("'abc'", "CHAR(1)", "a");
     checkCastToString("'abc'", "CHAR(3)", "abc");
     checkCastToString("cast('abc' as varchar(6))", "CHAR(3)", "abc");
+    checkCastToString("cast(' abc  ' as varchar(10))", null, " abc  ");
+    checkCastToString("cast(cast('abc' as char(4)) as varchar(6))", null,
+        "abc ");
+    tester.checkString("cast(cast('a' as char(2)) as varchar(3)) || 'x' ",
+        "a x", "VARCHAR(4) NOT NULL");
+    tester.checkString("cast(cast('a' as char(3)) as varchar(5)) || 'x' ",
+        "a  x", "VARCHAR(6) NOT NULL");
+    tester.checkString("cast('a' as char(3)) || 'x'", "a  x",
+        "CHAR(4) NOT NULL");
+
+    tester.checkScalar("char_length(cast(' x ' as char(4)))", 4,
+        "INTEGER NOT NULL");
+    tester.checkScalar("char_length(cast(' x ' as varchar(3)))", 3,
+        "INTEGER NOT NULL");
+    tester.checkScalar("char_length(cast(' x ' as varchar(4)))", 3,
+        "INTEGER NOT NULL");
+    tester.checkScalar("char_length(cast(cast(' x ' as char(4)) as varchar(5)))",
+        4, "INTEGER NOT NULL");
+    tester.checkScalar("char_length(cast(' x ' as varchar(3)))", 3,
+        "INTEGER NOT NULL");
 
     // date & time
     checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01");
@@ -579,10 +601,12 @@ public abstract class SqlOperatorBaseTest {
     checkCastToString(
         "interval '60' day",
         "CHAR(8)",
-        "+60");
+        "+60     ");
 
     // boolean
     checkCastToString("True", "CHAR(4)", "TRUE");
+    checkCastToString("True", "CHAR(6)", "TRUE  ");
+    checkCastToString("True", "VARCHAR(6)", "TRUE");
     checkCastToString("False", "CHAR(5)", "FALSE");
     tester.checkFails(
         "cast(true as char(3))", INVALID_CHAR_MESSAGE,
@@ -1969,6 +1993,18 @@ public abstract class SqlOperatorBaseTest {
         Boolean.TRUE);
     tester.checkBoolean(
         "cast('a ' as varchar(30))=cast('a' as varchar(30))",
+        Boolean.FALSE);
+    tester.checkBoolean(
+        "cast(' a' as varchar(30))=cast(' a' as varchar(30))",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "cast('a ' as varchar(15))=cast('a ' as varchar(30))",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "cast(' ' as varchar(3))=cast(' ' as varchar(2))",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "cast('abcd' as varchar(2))='ab'",
         Boolean.TRUE);
     tester.checkBoolean(
         "cast('a' as varchar(30))=cast('b' as varchar(30))",

@@ -494,21 +494,8 @@ public class RexBuilder {
       RexLiteral literal = (RexLiteral) exp;
       Comparable value = literal.getValue();
       SqlTypeName typeName = literal.getTypeName();
-      if (RexLiteral.valueMatchesType(value, sqlType, false)
-          && (type.getSqlTypeName() == typeName
-              || !SqlTypeFamily.DATETIME.getTypeNames().contains(typeName))
-          && (!(value instanceof NlsString)
-              || (type.getPrecision()
-                  >= ((NlsString) value).getValue().length()))
-          && (!(value instanceof ByteString)
-              || (type.getPrecision()
-                  >= ((ByteString) value).length()))) {
+      if (canRemoveCastFromLiteral(type, value, typeName)) {
         switch (typeName) {
-        case CHAR:
-          if (value instanceof NlsString) {
-            value = ((NlsString) value).rtrim();
-          }
-          break;
         case TIMESTAMP:
         case TIME:
           assert value instanceof Calendar;
@@ -559,6 +546,41 @@ public class RexBuilder {
       return makeCastBooleanToExact(type, exp);
     }
     return makeAbstractCast(type, exp);
+  }
+
+  private boolean canRemoveCastFromLiteral(RelDataType toType, Comparable value,
+      SqlTypeName fromTypeName) {
+    final SqlTypeName sqlType = toType.getSqlTypeName();
+    if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
+      return false;
+    }
+    if (toType.getSqlTypeName() != fromTypeName
+        && SqlTypeFamily.DATETIME.getTypeNames().contains(fromTypeName)) {
+      return false;
+    }
+    if (value instanceof NlsString) {
+      final int length = ((NlsString) value).getValue().length();
+      switch (toType.getSqlTypeName()) {
+      case CHAR:
+        return toType.getPrecision() == length;
+      case VARCHAR:
+        return toType.getPrecision() >= length;
+      default:
+        throw new AssertionError(toType);
+      }
+    }
+    if (value instanceof ByteString) {
+      final int length = ((ByteString) value).length();
+      switch (toType.getSqlTypeName()) {
+      case BINARY:
+        return toType.getPrecision() == length;
+      case VARBINARY:
+        return toType.getPrecision() >= length;
+      default:
+        throw new AssertionError(toType);
+      }
+    }
+    return true;
   }
 
   private RexNode makeCastExactToBoolean(RelDataType toType, RexNode exp) {

@@ -354,30 +354,16 @@ public class RexToLixTranslator {
     if (convert == null) {
       convert = convert(operand, typeFactory.getJavaClass(targetType));
     }
-    // Going from CHAR(n), trim.
-    switch (sourceType.getSqlTypeName()) {
-    case CHAR:
-      switch (targetType.getSqlTypeName()) {
-      case VARCHAR:
-        convert = Expressions.call(
-            BuiltInMethod.RTRIM.method, convert);
-      }
-      break;
-    case BINARY:
-      switch (targetType.getSqlTypeName()) {
-      case VARBINARY:
-        convert = Expressions.call(
-            BuiltInMethod.RTRIM.method, convert);
-      }
-      break;
-    }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
-  truncate:
+    boolean pad = false;
+    boolean truncate = true;
     switch (targetType.getSqlTypeName()) {
     case CHAR:
-    case VARCHAR:
     case BINARY:
+      pad = true;
+      // fall through
+    case VARCHAR:
     case VARBINARY:
       final int targetPrecision = targetType.getPrecision();
       if (targetPrecision >= 0) {
@@ -391,14 +377,25 @@ public class RexToLixTranslator {
           if (sourcePrecision < 0
               || sourcePrecision >= 0
               && sourcePrecision <= targetPrecision) {
-            break truncate;
+            truncate = false;
           }
+          // If this is a widening cast, no need to pad.
+          if (sourcePrecision < 0
+              || sourcePrecision >= 0
+              && sourcePrecision >= targetPrecision) {
+            pad = false;
+          }
+          // fall through
         default:
-          convert =
-              Expressions.call(
-                  BuiltInMethod.TRUNCATE.method,
-                  convert,
-                  Expressions.constant(targetPrecision));
+          if (truncate || pad) {
+            convert =
+                Expressions.call(
+                    pad
+                        ? BuiltInMethod.TRUNCATE_OR_PAD.method
+                        : BuiltInMethod.TRUNCATE.method,
+                    convert,
+                    Expressions.constant(targetPrecision));
+          }
         }
       }
       break;
