@@ -1431,7 +1431,7 @@ public class RemoteDriverTest {
     ConnectionSpec.getDatabaseLock().lock();
     try (Connection conn = getLocalConnection()) {
       DatabaseMetaData metadata = conn.getMetaData();
-      assertTrue(metadata.isWrapperFor(AvaticaDatabaseMetaData.class));
+      assertTrue(metadata.isWrapperFor(AvaticaSpecificDatabaseMetaData.class));
       assertTrue(metadata.isWrapperFor(Properties.class));
       Properties props = metadata.unwrap(Properties.class);
       assertNotNull(props);

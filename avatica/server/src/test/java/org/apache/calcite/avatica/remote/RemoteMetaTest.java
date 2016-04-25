@@ -17,7 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.AvaticaConnection;
-import org.apache.calcite.avatica.AvaticaDatabaseMetaData;
+import org.apache.calcite.avatica.AvaticaSpecificDatabaseMetaData;
 import org.apache.calcite.avatica.AvaticaSqlException;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.AvaticaUtils;
@@ -629,8 +629,8 @@ public class RemoteMetaTest {
     try (final Connection conn = DriverManager.getConnection(url)) {
       DatabaseMetaData metadata = conn.getMetaData();
       assertTrue("DatabaseMetaData is not an instance of AvaticaDatabaseMetaData",
-          metadata instanceof AvaticaDatabaseMetaData);
-      AvaticaDatabaseMetaData avaticaMetadata = (AvaticaDatabaseMetaData) metadata;
+          metadata instanceof AvaticaSpecificDatabaseMetaData);
+      AvaticaSpecificDatabaseMetaData avaticaMetadata = (AvaticaSpecificDatabaseMetaData) metadata;
       // We should get the same version back from the server
       assertEquals(FilteredConstants.VERSION, avaticaMetadata.getAvaticaServerVersion());
 

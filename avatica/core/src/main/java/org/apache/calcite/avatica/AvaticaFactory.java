@@ -67,7 +67,7 @@ public interface AvaticaFactory {
    *
    * @return Database meta data
    */
-  AvaticaDatabaseMetaData newDatabaseMetaData(AvaticaConnection connection);
+  AvaticaSpecificDatabaseMetaData newDatabaseMetaData(AvaticaConnection connection);
 
   /**
    * Creates meta data for a result set.

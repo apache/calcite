@@ -62,7 +62,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
     return new AvaticaJdbc41Connection(driver, factory, url, info);
   }
 
-  public AvaticaDatabaseMetaData newDatabaseMetaData(
+  public AvaticaSpecificDatabaseMetaData newDatabaseMetaData(
       AvaticaConnection connection) {
     return new AvaticaJdbc41DatabaseMetaData(connection);
   }
@@ -246,7 +246,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
 
   /** Implementation of DatabaseMetaData for JDBC 4.1. */
   private static class AvaticaJdbc41DatabaseMetaData
-      extends AvaticaDatabaseMetaDataImpl {
+      extends AvaticaDatabaseMetaData {
     AvaticaJdbc41DatabaseMetaData(AvaticaConnection connection) {
       super(connection);
     }

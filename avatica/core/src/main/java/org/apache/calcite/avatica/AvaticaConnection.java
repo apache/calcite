@@ -81,7 +81,7 @@ public abstract class AvaticaConnection implements Connection {
   final String url;
   protected final Properties info;
   protected final Meta meta;
-  protected final AvaticaDatabaseMetaData metaData;
+  protected final AvaticaSpecificDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
   public final Map<InternalProperty, Object> properties = new HashMap<>();
   public final Map<Integer, AvaticaStatement> statementMap =
