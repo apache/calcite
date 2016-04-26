@@ -43,7 +43,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Relational expression representing a scan of a table in a Cassandra data source.
@@ -92,6 +94,14 @@ public class CassandraToEnumerableConverter
                       }
                     }),
                 Pair.class));
+    List<Map.Entry<String, String>> selectList = new ArrayList<Map.Entry<String, String>>();
+    for (Map.Entry<String, String> entry
+            : Pair.zip(cassandraImplementor.selectFields.keySet(),
+                cassandraImplementor.selectFields.values())) {
+      selectList.add(entry);
+    }
+    final Expression selectFields =
+        list.append("selectFields", constantArrayList(selectList, Pair.class));
     final Expression table =
         list.append("table",
             cassandraImplementor.table.getExpression(
@@ -109,7 +119,7 @@ public class CassandraToEnumerableConverter
         list.append("enumerable",
             Expressions.call(table,
                 CassandraMethod.CASSANDRA_QUERYABLE_QUERY.method, fields,
-                predicates, order, limit));
+                selectFields, predicates, order, limit));
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println("Cassandra: " + predicates);
     }

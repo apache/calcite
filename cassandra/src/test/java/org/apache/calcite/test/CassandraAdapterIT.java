@@ -111,6 +111,23 @@ public class CassandraAdapterIT {
                 + "      CassandraFilter(condition=[=(CAST($0):VARCHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n");
   }
 
+  @Test public void testProjectAlias() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" as \"foo\" from \"userline\" "
+                + "where \"username\" = '!PUBLIC!' limit 1")
+        .returns("foo=f3c329de-d05b-11e5-b58b-90e2ba530b12\n");
+  }
+
+  @Test public void testProjectConstant() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(TWISSANDRA)
+        .query("select 'foo' as \"bar\" from \"userline\" limit 1")
+        .returns("bar=foo\n");
+  }
+
   @Test public void testLimit() {
     CalciteAssert.that()
         .enable(enabled())

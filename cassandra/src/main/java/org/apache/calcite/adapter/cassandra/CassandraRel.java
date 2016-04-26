@@ -21,7 +21,9 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Relational expression that uses Cassandra calling convention.
@@ -35,7 +37,7 @@ public interface CassandraRel extends RelNode {
   /** Callback for the implementation process that converts a tree of
    * {@link CassandraRel} nodes into a CQL query. */
   class Implementor {
-    final List<String> selectFields = new ArrayList<String>();
+    final Map<String, String> selectFields = new LinkedHashMap<String, String>();
     final List<String> whereClause = new ArrayList<String>();
     String limitValue = null;
     final List<String> order = new ArrayList<String>();
@@ -48,9 +50,9 @@ public interface CassandraRel extends RelNode {
      * @param fields New fields to be projected from a query
      * @param predicates New predicates to be applied to the query
      */
-    public void add(List<String> fields, List<String> predicates) {
+    public void add(Map<String, String> fields, List<String> predicates) {
       if (fields != null) {
-        selectFields.addAll(fields);
+        selectFields.putAll(fields);
       }
       if (predicates != null) {
         whereClause.addAll(predicates);
