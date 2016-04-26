@@ -149,13 +149,17 @@ public class CassandraTable extends AbstractQueryableTable
               selectFields.iterator();
 
           return new Iterator<String>() {
-            public boolean hasNext() {
+            @Override public boolean hasNext() {
               return selectIterator.hasNext();
             }
 
-            public String next() {
+            @Override public String next() {
               Map.Entry<String, String> entry = selectIterator.next();
               return entry.getKey() + " AS " + entry.getValue();
+            }
+
+            @Override public void remove() {
+              throw new UnsupportedOperationException();
             }
           };
         }
