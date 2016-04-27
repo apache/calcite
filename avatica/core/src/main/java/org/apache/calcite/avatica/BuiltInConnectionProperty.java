@@ -60,7 +60,13 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
       AvaticaHttpClientFactoryImpl.class.getName(), false),
 
   /** HttpClient implementation class name. */
-  HTTP_CLIENT_IMPL("httpclient_impl", Type.STRING, null, false);
+  HTTP_CLIENT_IMPL("httpclient_impl", Type.STRING, null, false),
+
+  /** Principal to use to perform Kerberos login. */
+  PRINCIPAL("principal", Type.STRING, null, false),
+
+  /** Keytab to use to perform Kerberos login. */
+  KEYTAB("keytab", Type.STRING, null, false);
 
   private final String camelName;
   private final Type type;

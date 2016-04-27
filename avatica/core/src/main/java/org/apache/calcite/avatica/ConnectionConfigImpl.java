@@ -19,6 +19,7 @@ package org.apache.calcite.avatica;
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
 import org.apache.calcite.avatica.remote.Service;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -72,6 +73,23 @@ public class ConnectionConfigImpl implements ConnectionConfig {
 
   public String httpClientClass() {
     return BuiltInConnectionProperty.HTTP_CLIENT_IMPL.wrap(properties).getString();
+  }
+
+  public String kerberosPrincipal() {
+    return BuiltInConnectionProperty.PRINCIPAL.wrap(properties).getString();
+  }
+
+  public File kerberosKeytab() {
+    String keytabPath = BuiltInConnectionProperty.KEYTAB.wrap(properties).getString();
+    if (null == keytabPath) {
+      return null;
+    }
+    File keytab = new File(keytabPath);
+    if (!keytab.exists() || !keytab.isFile()) {
+      throw new RuntimeException("The " + BuiltInConnectionProperty.KEYTAB.name() + " does not "
+          + " reference a normal, existent file: " + keytabPath);
+    }
+    return keytab;
   }
 
   /** Converts a {@link Properties} object containing (name, value)

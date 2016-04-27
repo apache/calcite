@@ -52,7 +52,8 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
     return INSTANCE;
   }
 
-  @Override public AvaticaHttpClient getClient(URL url, ConnectionConfig config) {
+  @Override public AvaticaHttpClient getClient(URL url, ConnectionConfig config,
+      KerberosConnection kerberosUtil) {
     String className = config.httpClientClass();
     if (null == className) {
       // Provide an implementation that works with SPNEGO if that's the authentication is use.
@@ -64,6 +65,9 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
     }
 
     AvaticaHttpClient client = instantiateClient(className, url);
+    if (null != kerberosUtil) {
+      client = new DoAsAvaticaHttpClient(client, kerberosUtil);
+    }
 
     if (client instanceof UsernamePasswordAuthenticateable) {
       // Shortcircuit quickly if authentication wasn't provided (implies NONE)

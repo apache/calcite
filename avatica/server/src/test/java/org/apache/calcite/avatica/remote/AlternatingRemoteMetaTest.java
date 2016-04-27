@@ -139,7 +139,9 @@ public class AlternatingRemoteMetaTest {
 
     @Override public Meta createMeta(AvaticaConnection connection) {
       final ConnectionConfig config = connection.config();
-      return new RemoteMeta(connection, new RemoteService(getHttpClient(connection, config)));
+      final Service service = new RemoteService(getHttpClient(connection, config));
+      connection.setService(service);
+      return new RemoteMeta(connection, service);
     }
 
     @Override AvaticaHttpClient getHttpClient(AvaticaConnection connection,

@@ -132,3 +132,25 @@ on-hover images for the permalink, but oh well.
 : _Default_: `null`.
 
 : _Required_: No.
+
+<strong><a name="principal" href="#principal">principal</a></strong>
+
+: _Description_: The Kerberos principal which can be used by the Avatica JDBC Driver
+  to automatically perform a Kerberos login before attempting to contact the Avatica
+  server. If this property is provided, it is also expected that `keytab` is provided
+  and that the Avatica server is configured for SPNEGO authentication. Users can perform
+  their own Kerberos login; this option is provided only as a convenience.
+
+: _Default_: `null`.
+
+: _Required_: No.
+
+<strong><a name="keytab" href="#keytab">keytab</a></strong>
+
+: _Description_: The Kerberos keytab which contains the secret material to perform
+  a Kerberos login with the `principal`. The value should be a path on the local
+  filesystem to a regular file.
+
+: _Default_: `null`.
+
+: _Required_: No.

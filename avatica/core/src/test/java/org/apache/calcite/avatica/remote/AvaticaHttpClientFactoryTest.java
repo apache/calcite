@@ -38,7 +38,7 @@ public class AvaticaHttpClientFactoryTest {
     ConnectionConfig config = new ConnectionConfigImpl(props);
     AvaticaHttpClientFactory httpClientFactory = new AvaticaHttpClientFactoryImpl();
 
-    AvaticaHttpClient client = httpClientFactory.getClient(url, config);
+    AvaticaHttpClient client = httpClientFactory.getClient(url, config, null);
     assertTrue("Client was an instance of " + client.getClass(),
         client instanceof AvaticaCommonsHttpClientImpl);
   }
@@ -51,7 +51,7 @@ public class AvaticaHttpClientFactoryTest {
     ConnectionConfig config = new ConnectionConfigImpl(props);
     AvaticaHttpClientFactory httpClientFactory = new AvaticaHttpClientFactoryImpl();
 
-    AvaticaHttpClient client = httpClientFactory.getClient(url, config);
+    AvaticaHttpClient client = httpClientFactory.getClient(url, config, null);
     assertTrue("Client was an instance of " + client.getClass(),
         client instanceof AvaticaHttpClientImpl);
   }

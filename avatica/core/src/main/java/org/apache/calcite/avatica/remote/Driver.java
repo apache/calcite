@@ -42,6 +42,7 @@ import java.util.Properties;
  */
 public class Driver extends UnregisteredDriver {
   private static final Logger LOG = LoggerFactory.getLogger(Driver.class);
+
   public static final String CONNECT_STRING_PREFIX = "jdbc:avatica:remote:";
 
   static {
@@ -83,8 +84,26 @@ public class Driver extends UnregisteredDriver {
 
   @Override public Meta createMeta(AvaticaConnection connection) {
     final ConnectionConfig config = connection.config();
+
+    // Perform the login and launch the renewal thread if necessary
+    final KerberosConnection kerberosUtil = createKerberosUtility(config);
+    if (null != kerberosUtil) {
+      kerberosUtil.login();
+      connection.setKerberosConnection(kerberosUtil);
+    }
+
+    // Create a single Service and set it on the Connection instance
     final Service service = createService(connection, config);
+    connection.setService(service);
     return new RemoteMeta(connection, service);
+  }
+
+  KerberosConnection createKerberosUtility(ConnectionConfig config) {
+    final String principal = config.kerberosPrincipal();
+    if (null != principal) {
+      return new KerberosConnection(principal, config.kerberosKeytab());
+    }
+    return null;
   }
 
   /**
@@ -137,7 +156,7 @@ public class Driver extends UnregisteredDriver {
 
     AvaticaHttpClientFactory httpClientFactory = config.httpClientFactory();
 
-    return httpClientFactory.getClient(url, config);
+    return httpClientFactory.getClient(url, config, connection.getKerberosConnection());
   }
 
   @Override public Connection connect(String url, Properties info)
@@ -148,9 +167,10 @@ public class Driver extends UnregisteredDriver {
       return null;
     }
 
-    // Create the corresponding remote connection
-    ConnectionConfig config = conn.config();
-    Service service = createService(conn, config);
+    Service service = conn.getService();
+
+    // super.connect(...) should be creating a service and setting it in the AvaticaConnection
+    assert null != service;
 
     service.apply(
         new Service.OpenConnectionRequest(conn.id,

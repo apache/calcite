@@ -27,7 +27,6 @@ import org.apache.kerby.kerberos.kerb.client.KrbConfig;
 import org.apache.kerby.kerberos.kerb.client.KrbConfigKey;
 import org.apache.kerby.kerberos.kerb.server.SimpleKdcServer;
 
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,6 +59,7 @@ public class AvaticaSpnegoTest {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaSpnegoTest.class);
 
   private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
+  private static final List<HttpServer> SERVERS_TO_STOP = new ArrayList<>();
 
   private static SimpleKdcServer kdc;
   private static KrbConfig clientConfig;
@@ -110,11 +110,15 @@ public class AvaticaSpnegoTest {
 
     // Kerby sets "java.security.krb5.conf" for us!
     System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
-    // System.setProperty("sun.security.spnego.debug", "true");
-    // System.setProperty("sun.security.krb5.debug", "true");
+    //System.setProperty("sun.security.spnego.debug", "true");
+    //System.setProperty("sun.security.krb5.debug", "true");
   }
 
   @AfterClass public static void stopKdc() throws Exception {
+    for (HttpServer server : SERVERS_TO_STOP) {
+      server.stop();
+    }
+
     if (isKdcStarted) {
       LOG.info("Stopping KDC on {}", kdcPort);
       kdc.stop();
@@ -164,29 +168,22 @@ public class AvaticaSpnegoTest {
           .withHandler(localService, serialization)
           .build();
       httpServer.start();
+      SERVERS_TO_STOP.add(httpServer);
 
       final String url = "jdbc:avatica:remote:url=http://" + SpnegoTestUtil.KDC_HOST + ":"
           + httpServer.getPort() + ";authentication=SPNEGO;serialization=" + serialization;
       LOG.info("JDBC URL {}", url);
 
-      parameters.add(new Object[] {httpServer, url});
+      parameters.add(new Object[] {url});
     }
 
     return parameters;
   }
 
-  private final HttpServer httpServer;
   private final String jdbcUrl;
 
-  public AvaticaSpnegoTest(HttpServer httpServer, String jdbcUrl) {
-    this.httpServer = Objects.requireNonNull(httpServer);
+  public AvaticaSpnegoTest(String jdbcUrl) {
     this.jdbcUrl = Objects.requireNonNull(jdbcUrl);
-  }
-
-  @After public void stopHttpServer() {
-    if (null != httpServer) {
-      httpServer.stop();
-    }
   }
 
   @Test public void testAuthenticatedClient() throws Exception {
@@ -220,6 +217,26 @@ public class AvaticaSpnegoTest {
       });
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
+  @Test public void testAutomaticLogin() throws Exception {
+    final String tableName = "automaticAllowedClients";
+    // Avatica should log in for us with this info
+    String url = jdbcUrl + ";principal=" + SpnegoTestUtil.CLIENT_PRINCIPAL + ";keytab="
+        + clientKeytab;
+    LOG.info("Updated JDBC url: {}", url);
+    try (Connection conn = DriverManager.getConnection(url);
+        Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      assertFalse(stmt.execute("CREATE TABLE " + tableName + "(pk integer)"));
+      assertEquals(1, stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(1)"));
+      assertEquals(1, stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(2)"));
+      assertEquals(1, stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(3)"));
+
+      ResultSet results = stmt.executeQuery("SELECT count(1) FROM " + tableName);
+      assertTrue(results.next());
+      assertEquals(3, results.getInt(1));
     }
   }
 }

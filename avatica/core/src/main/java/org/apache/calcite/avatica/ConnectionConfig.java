@@ -19,6 +19,8 @@ package org.apache.calcite.avatica;
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
 import org.apache.calcite.avatica.remote.Service;
 
+import java.io.File;
+
 /**
  * Connection configuration.
  */
@@ -41,6 +43,10 @@ public interface ConnectionConfig {
   String avaticaPassword();
   AvaticaHttpClientFactory httpClientFactory();
   String httpClientClass();
+  /** @see BuiltInConnectionProperty#PRINCIPAL */
+  String kerberosPrincipal();
+  /** @see BuiltInConnectionProperty#KEYTAB */
+  File kerberosKeytab();
 }
 
 // End ConnectionConfig.java

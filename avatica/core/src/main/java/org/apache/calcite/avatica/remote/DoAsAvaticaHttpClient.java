@@ -16,24 +16,31 @@
  */
 package org.apache.calcite.avatica.remote;
 
-import org.apache.calcite.avatica.ConnectionConfig;
+import java.security.PrivilegedAction;
+import java.util.Objects;
 
-import java.net.URL;
+import javax.security.auth.Subject;
 
 /**
- * A factory for constructing {@link AvaticaHttpClient}'s.
+ * HTTP client implementation which invokes the wrapped HTTP client in a doAs with the provided
+ * Subject.
  */
-public interface AvaticaHttpClientFactory {
+public class DoAsAvaticaHttpClient implements AvaticaHttpClient {
+  private final AvaticaHttpClient wrapped;
+  private final KerberosConnection kerberosUtil;
 
-  /**
-   * Construct the appropriate implementation of {@link AvaticaHttpClient}.
-   *
-   * @param url URL that the client is for.
-   * @param config Configuration to use when constructing the implementation.
-   * @return An instance of {@link AvaticaHttpClient}.
-   */
-  AvaticaHttpClient getClient(URL url, ConnectionConfig config, KerberosConnection kerberosUtil);
+  public DoAsAvaticaHttpClient(AvaticaHttpClient wrapped, KerberosConnection kerberosUtil) {
+    this.wrapped = Objects.requireNonNull(wrapped);
+    this.kerberosUtil = Objects.requireNonNull(kerberosUtil);
+  }
 
+  @Override public byte[] send(final byte[] request) {
+    return Subject.doAs(kerberosUtil.getSubject(), new PrivilegedAction<byte[]>() {
+      @Override public byte[] run() {
+        return wrapped.send(request);
+      }
+    });
+  }
 }
 
-// End AvaticaHttpClientFactory.java
+// End DoAsAvaticaHttpClient.java

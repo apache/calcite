@@ -18,6 +18,8 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.Meta.ExecuteBatchResult;
 import org.apache.calcite.avatica.Meta.MetaResultSet;
+import org.apache.calcite.avatica.remote.KerberosConnection;
+import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.OpenConnectionRequest;
 import org.apache.calcite.avatica.remote.TypedValue;
@@ -73,6 +75,8 @@ public abstract class AvaticaConnection implements Connection {
   private boolean closed;
   private int holdability;
   private int networkTimeout;
+  private KerberosConnection kerberosConnection;
+  private Service service;
 
   public final String id;
   public final Meta.ConnectionHandle handle;
@@ -194,6 +198,9 @@ public abstract class AvaticaConnection implements Connection {
       try {
         meta.closeConnection(handle);
         driver.handler.onConnectionClose(this);
+        if (null != kerberosConnection) {
+          kerberosConnection.stopRenewalThread();
+        }
       } catch (RuntimeException e) {
         throw helper.createException("While closing connection", e);
       }
@@ -720,6 +727,23 @@ public abstract class AvaticaConnection implements Connection {
       // Shouldn't ever happen.
       throw new IllegalStateException();
     }
+  }
+
+  public void setKerberosConnection(KerberosConnection kerberosConnection) {
+    this.kerberosConnection = Objects.requireNonNull(kerberosConnection);
+  }
+
+  public KerberosConnection getKerberosConnection() {
+    return this.kerberosConnection;
+  }
+
+  public Service getService() {
+    assert null != service;
+    return service;
+  }
+
+  public void setService(Service service) {
+    this.service = Objects.requireNonNull(service);
   }
 }
 
