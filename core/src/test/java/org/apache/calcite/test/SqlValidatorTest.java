@@ -767,6 +767,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("translate('abc' using translation)");
   }
 
+  @Test public void testTranslate3() {
+    checkExpType("translate('aabbcc', 'ab', '+-')", "VARCHAR(6) NOT NULL");
+  }
+
   @Test public void testOverlay() {
     checkExp("overlay('ABCdef' placing 'abc' from 1)");
     checkExp("overlay('ABCdef' placing 'abc' from 1 for 3)");
