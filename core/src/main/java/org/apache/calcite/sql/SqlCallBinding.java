@@ -223,6 +223,10 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return SqlUtil.isNullLiteral(call.operand(ordinal), allowCast);
   }
 
+  @Override public boolean isOperandLiteral(int ordinal, boolean allowCast) {
+    return SqlUtil.isLiteral(call.operand(ordinal), allowCast);
+  }
+
   @Override public int getOperandCount() {
     return call.getOperandList().size();
   }

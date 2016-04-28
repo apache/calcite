@@ -152,6 +152,17 @@ public abstract class SqlOperatorBinding {
   }
 
   /**
+   * Determines whether an operand is a literal.
+   *
+   * @param ordinal   zero-based ordinal of operand of interest
+   * @param allowCast whether to regard CAST(literal) as a literal
+   * @return whether operand is literal
+   */
+  public boolean isOperandLiteral(int ordinal, boolean allowCast) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * @return the number of bound operands
    */
   public abstract int getOperandCount();

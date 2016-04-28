@@ -230,6 +230,39 @@ public class RexUtil {
     }
   }
 
+  /**
+   * Returns whether a node represents a literal.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>For <code>CAST(literal AS <i>type</i>)</code>, returns true if <code>
+   * allowCast</code> is true, false otherwise.
+   * <li>For <code>CAST(CAST(literal AS <i>type</i>) AS <i>type</i>))</code>,
+   * returns false.
+   * </ul>
+   *
+   * @param node The node, never null.
+   * @param allowCast whether to regard CAST(literal) as a literal
+   * @return Whether the node is a literal
+   */
+  public static boolean isLiteral(RexNode node, boolean allowCast) {
+    assert node != null;
+    if (node instanceof RexLiteral) {
+      return true;
+    }
+    if (allowCast) {
+      if (node.isA(SqlKind.CAST)) {
+        RexCall call = (RexCall) node;
+        if (isLiteral(call.operands.get(0), false)) {
+          // node is "CAST(literal as type)"
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /** Returns whether an expression is a cast just for the purposes of
    * nullability, not changing any other aspect of the type. */
   public static boolean isNullabilityCast(RelDataTypeFactory typeFactory,
