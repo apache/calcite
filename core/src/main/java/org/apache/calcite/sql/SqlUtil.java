@@ -188,6 +188,39 @@ public abstract class SqlUtil {
   /**
    * Returns whether a node is a literal.
    *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>For <code>CAST(literal AS <i>type</i>)</code>, returns true if <code>
+   * allowCast</code> is true, false otherwise.
+   * <li>For <code>CAST(CAST(literal AS <i>type</i>) AS <i>type</i>))</code>,
+   * returns false.
+   * </ul>
+   *
+   * @param node The node, never null.
+   * @param allowCast whether to regard CAST(literal) as a literal
+   * @return Whether the node is a literal
+   */
+  public static boolean isLiteral(SqlNode node, boolean allowCast) {
+    assert node != null;
+    if (node instanceof SqlLiteral) {
+      return true;
+    }
+    if (allowCast) {
+      if (node.getKind() == SqlKind.CAST) {
+        SqlCall call = (SqlCall) node;
+        if (isLiteral(call.operand(0), false)) {
+          // node is "CAST(literal as type)"
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether a node is a literal.
+   *
    * <p>Many constructs which require literals also accept <code>CAST(NULL AS
    * <i>type</i>)</code>. This method does not accept casts, so you should
    * call {@link #isNullLiteral} first.
@@ -196,8 +229,7 @@ public abstract class SqlUtil {
    * @return Whether the node is a literal
    */
   public static boolean isLiteral(SqlNode node) {
-    assert node != null;
-    return node instanceof SqlLiteral;
+    return isLiteral(node, false);
   }
 
   /**
