@@ -36,6 +36,12 @@ public interface RelDataType /*extends Type*/ {
   int SCALE_NOT_SPECIFIED = Integer.MIN_VALUE;
   int PRECISION_NOT_SPECIFIED = -1;
 
+  enum StructKind {
+    FULLY_QUALIFIED,
+    PEEK_FIELDS,
+    PEEK_FIELDS_DEFAULT,
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -75,6 +81,13 @@ public interface RelDataType /*extends Type*/ {
    * ().size()</code>.
    */
   int getFieldCount();
+
+  /**
+   * Gets the StructKind of a structured type.
+   *
+   * @return the StructKind that determines how its fields are resolved.
+   */
+  StructKind getStructKind();
 
   /**
    * Looks up a field by name.

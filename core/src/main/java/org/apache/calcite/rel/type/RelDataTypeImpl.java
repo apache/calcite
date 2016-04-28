@@ -84,6 +84,36 @@ public abstract class RelDataTypeImpl
         return field;
       }
     }
+    for (RelDataTypeField field : fieldList) {
+      RelDataType dataType = field.getType();
+      if (dataType.isStruct()
+          && dataType.getStructKind() == StructKind.PEEK_FIELDS_DEFAULT) {
+        for (RelDataTypeField subField : dataType.getFieldList()) {
+          if (Util.matches(caseSensitive, subField.getName(), fieldName)) {
+            return subField;
+          }
+        }
+      }
+    }
+    RelDataTypeField matched = null;
+    for (RelDataTypeField field : fieldList) {
+      RelDataType dataType = field.getType();
+      if (dataType.isStruct()
+          && dataType.getStructKind() == StructKind.PEEK_FIELDS) {
+        for (RelDataTypeField subField : dataType.getFieldList()) {
+          if (Util.matches(caseSensitive, subField.getName(), fieldName)) {
+            if (matched == null) {
+              matched = subField;
+            } else {
+              // TODO throw columnAmbiguous
+            }
+          }
+        }
+      }
+    }
+    if (matched != null) {
+      return matched;
+    }
     if (elideRecord) {
       final List<Slot> slots = Lists.newArrayList();
       getFieldRecurse(slots, this, 0, fieldName, caseSensitive);
@@ -119,13 +149,13 @@ public abstract class RelDataTypeImpl
     return null;
   }
 
-  private static void getFieldRecurse(List<Slot> slots, RelDataTypeImpl type,
+  private static void getFieldRecurse(List<Slot> slots, RelDataType type,
       int depth, String fieldName, boolean caseSensitive) {
     while (slots.size() <= depth) {
       slots.add(new Slot());
     }
     final Slot slot = slots.get(depth);
-    for (RelDataTypeField field : type.fieldList) {
+    for (RelDataTypeField field : type.getFieldList()) {
       if (Util.matches(caseSensitive, field.getName(), fieldName)) {
         slot.count++;
         slot.field = field;
@@ -133,9 +163,9 @@ public abstract class RelDataTypeImpl
     }
     // No point looking to depth + 1 if there is a hit at depth.
     if (slot.count == 0) {
-      for (RelDataTypeField field : type.fieldList) {
+      for (RelDataTypeField field : type.getFieldList()) {
         if (field.getType().isStruct()) {
-          getFieldRecurse(slots, (RelDataTypeImpl) field.getType(), depth + 1,
+          getFieldRecurse(slots, field.getType(), depth + 1,
               fieldName, caseSensitive);
         }
       }
@@ -156,6 +186,11 @@ public abstract class RelDataTypeImpl
   public int getFieldCount() {
     assert isStruct() : this;
     return fieldList.size();
+  }
+
+  public StructKind getStructKind() {
+    assert isStruct() : this;
+    return StructKind.FULLY_QUALIFIED;
   }
 
   // implement RelDataType

@@ -34,10 +34,14 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataType.StructKind;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -50,8 +54,10 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -79,6 +85,7 @@ import com.google.common.collect.Sets;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -419,6 +426,32 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     emp20View.addColumn("SLACKER", booleanType);
     registerTable(emp20View);
 
+    MockSchema structTypeSchema = new MockSchema("STRUCT");
+    registerSchema(structTypeSchema);
+    MockTable structTypeTable = MockTable.create(
+        this, structTypeSchema, "T", false, 100);
+    structTypeTable.addColumn("K0", varchar20Type);
+    structTypeTable.addColumn("C1", varchar20Type);
+    FieldInfoBuilder builder = typeFactory.builder();
+    builder.add("C0", intType);
+    builder.add("C1", intType);
+    RelDataType f0Type = new DelegateStructType(
+        typeFactory.createStructType(builder), StructKind.PEEK_FIELDS_DEFAULT);
+    structTypeTable.addColumn("F0", f0Type);
+    builder = typeFactory.builder();
+    builder.add("C0", intTypeNull);
+    builder.add("C2", intType);
+    builder.add("A0", intType);
+    RelDataType f1Type = new DelegateStructType(
+        typeFactory.createStructType(builder), StructKind.PEEK_FIELDS);
+    structTypeTable.addColumn("F1", f1Type);
+    builder = typeFactory.builder();
+    builder.add("C3", intType);
+    builder.add("A0", booleanType);
+    RelDataType f2Type = new DelegateStructType(
+        typeFactory.createStructType(builder), StructKind.PEEK_FIELDS);
+    structTypeTable.addColumn("F2", f2Type);
+    registerTable(structTypeTable);
     return this;
   }
 
@@ -766,7 +799,105 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
   }
 
+  private static class DelegateStructType implements RelDataType {
+    private RelDataType delegate;
+    private StructKind structKind;
 
+    DelegateStructType(RelDataType delegate, StructKind structKind) {
+      assert delegate.isStruct();
+      this.delegate = delegate;
+      this.structKind = structKind;
+    }
+
+    @Override public boolean isStruct() {
+      return delegate.isStruct();
+    }
+
+    @Override public boolean isDynamicStruct() {
+      return delegate.isDynamicStruct();
+    }
+
+    @Override public List<RelDataTypeField> getFieldList() {
+      return delegate.getFieldList();
+    }
+
+    @Override public List<String> getFieldNames() {
+      return delegate.getFieldNames();
+    }
+
+    @Override public int getFieldCount() {
+      return delegate.getFieldCount();
+    }
+
+    @Override public StructKind getStructKind() {
+      return structKind;
+    }
+
+    @Override public RelDataTypeField getField(String fieldName,
+        boolean caseSensitive, boolean elideRecord) {
+      return delegate.getField(fieldName, caseSensitive, elideRecord);
+    }
+
+    @Override public boolean isNullable() {
+      return delegate.isNullable();
+    }
+
+    @Override public RelDataType getComponentType() {
+      return delegate.getComponentType();
+    }
+
+    @Override public RelDataType getKeyType() {
+      return delegate.getKeyType();
+    }
+
+    @Override public RelDataType getValueType() {
+      return delegate.getValueType();
+    }
+
+    @Override public Charset getCharset() {
+      return delegate.getCharset();
+    }
+
+    @Override public SqlCollation getCollation() {
+      return delegate.getCollation();
+    }
+
+    @Override public SqlIntervalQualifier getIntervalQualifier() {
+      return delegate.getIntervalQualifier();
+    }
+
+    @Override public int getPrecision() {
+      return delegate.getPrecision();
+    }
+
+    @Override public int getScale() {
+      return delegate.getScale();
+    }
+
+    @Override public SqlTypeName getSqlTypeName() {
+      return delegate.getSqlTypeName();
+    }
+
+    @Override public SqlIdentifier getSqlIdentifier() {
+      return delegate.getSqlIdentifier();
+    }
+
+    @Override public String getFullTypeString() {
+      return delegate.getFullTypeString();
+    }
+
+    @Override public RelDataTypeFamily getFamily() {
+      return delegate.getFamily();
+    }
+
+    @Override public RelDataTypePrecedenceList getPrecedenceList() {
+      return delegate.getPrecedenceList();
+    }
+
+    @Override public RelDataTypeComparability getComparability() {
+      return delegate.getComparability();
+    }
+  }
 }
 
 // End MockCatalogReader.java

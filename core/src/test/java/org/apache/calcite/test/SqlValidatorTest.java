@@ -8137,6 +8137,107 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     //   12345678901234567890123456789012345678901234567890123456789012345
     //        check("SELECT count(0) FROM emp GROUP BY ()");
   }
+
+  @Test public void testStructType() {
+    // Table STRUCT.T is defined as:
+    // (K0 VARCHAR(20) NOT NULL, C1 VARCHAR(20) NOT NULL,
+    //   RecordType(C0 INTEGER NOT NULL, C1 INTEGER NOT NULL) F0,
+    //   RecordType(C0 INTEGER, C2 INTEGER NOT NULL, A0 INTEGER NOT NULL) F1,
+    //   RecordType(C3 INTEGER NOT NULL, A0 BOOLEAN NOT NULL) F2)
+    // , where F0 has a default struct priority.
+
+    check("select * from struct.t");
+
+    // Resolve K0 as top-level column K0.
+    checkResultType("select k0 from struct.t",
+        "RecordType(VARCHAR(20) NOT NULL K0) NOT NULL");
+
+    // Resolve C2 as secondary-level column F1.C2.
+    checkResultType("select c2 from struct.t",
+        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+
+    // Resolve F1.C2 as fully qualified column F1.C2.
+    checkResultType("select c2 from struct.t",
+        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+
+    // Resolve C1 as top-level column C1 as opposed to F0.C1.
+    checkResultType("select c1 from struct.t",
+        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+
+    // Resolve C0 as secondary-level column F0.C0 as opposed to F1.C0, since F0 has the
+    // default priority.
+    checkResultType("select c0 from struct.t",
+        "RecordType(INTEGER NOT NULL C0) NOT NULL");
+
+    // Resolve F1.C0 as fully qualified column F1.C0.
+    checkResultType("select f1.c0 from struct.t",
+        "RecordType(INTEGER C0) NOT NULL");
+
+    // Fail ambiguous column reference A0, since F1.A0 and F2.A0 both exist with the
+    // same resolving priority.
+    checkFails("select ^a0^ from struct.t",
+        "Column 'A0' is ambiguous");
+
+    // Resolve F2.A0 as fully qualified column F2.A0.
+    checkResultType("select f2.a0 from struct.t",
+        "RecordType(BOOLEAN NOT NULL C0) NOT NULL");
+
+    // Resolve T0.K0 as top-level column K0, since T0 is recognized as the table alias.
+    checkResultType("select t0.k0 from struct.t t0",
+        "RecordType(VARCHAR(20) NOT NULL K0) NOT NULL");
+
+    // Resolve T0.C2 as secondary-level column F1.C2, since T0 is recognized as the
+    // table alias here.
+    checkResultType("select t0.c2 from struct.t t0",
+        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+
+    // Resolve F0.C2 as secondary-level column F1.C2, since F0 is recognized as the
+    // table alias here.
+    checkResultType("select f0.c2 from struct.t f0",
+        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+
+    // Resolve F0.C1 as top-level column C1 as opposed to F0.C1, since F0 is recognized
+    // as the table alias here.
+    checkResultType("select f0.c1 from struct.t f0",
+        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+
+    // Resolve T.C1 as top-level column C1 as opposed to F0.C1, since T is recognized as
+    // the table name.
+    checkResultType("select t.c1 from struct.t f0",
+        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+
+    // Resolve STRUCT.T.C1 as top-level column C1 as opposed to F0.C1, since STRUCT.T is
+    // recognized as the schema and table name.
+    checkResultType("select struct.t.c1 from struct.t f0",
+        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+
+    // Resolve F0.F0.C1 as secondary-level column F0.C1, since the first F0 is recognized
+    // as the table alias here.
+    checkResultType("select f0.f0.c1 from struct.t f0",
+        "RecordType(INTEGER NOT NULL C1) NOT NULL");
+
+    // Resolve T.F0.C1 as secondary-level column F0.C1, since T is recognized as the table
+    // name.
+    checkResultType("select t.f0.c1 from struct.t f0",
+        "RecordType(INTEGER NOT NULL C1) NOT NULL");
+
+    // Resolve STRUCT.T.F0.C1 as secondary-level column F0.C1, since STRUCT.T is
+    // recognized as the schema and table name.
+    checkResultType("select struct.t.f0.c1 from struct.t f0",
+        "RecordType(INTEGER NOT NULL C1) NOT NULL");
+
+    // Resolve struct type F1 with wildcard.
+    checkResultType("select f1.* from struct.t",
+        "RecordType(INTEGER NOT NULL C0, INTEGER NOT NULL C2) NOT NULL");
+
+    // Fail non-existent column B0.
+    checkFails("select ^b0^ from struct.t",
+        "Column 'B0' not found in any table");
+
+    // Fail struct type with no wildcard.
+    checkFails("select ^f1^ from struct.t",
+        "Unknown identifier 'F1'");
+  }
 }
 
 // End SqlValidatorTest.java

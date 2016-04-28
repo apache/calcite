@@ -1720,6 +1720,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
+  @Test public void testStructType() {
+    sql("select * from struct.t").convertsTo("");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
