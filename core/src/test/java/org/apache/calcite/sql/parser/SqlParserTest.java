@@ -2179,21 +2179,75 @@ public class SqlParserTest {
   }
 
   @Test public void testDescribeSchema() {
-    check(
-        "describe schema A",
+    check("describe schema A",
         "DESCRIBE SCHEMA `A`");
-    check(
-        "describe database A",
+    // Currently DESCRIBE DATABASE, DESCRIBE CATALOG become DESCRIBE SCHEMA.
+    // See [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
+    check("describe database A",
+        "DESCRIBE SCHEMA `A`");
+    check("describe catalog A",
         "DESCRIBE SCHEMA `A`");
   }
 
   @Test public void testDescribeTable() {
     check("describe emps",
-        "DESCRIBE `EMPS`");
+        "DESCRIBE TABLE `EMPS`");
+    check("describe \"emps\"",
+        "DESCRIBE TABLE `emps`");
+    check("describe s.emps",
+        "DESCRIBE TABLE `S`.`EMPS`");
+    check("describe db.c.s.emps",
+        "DESCRIBE TABLE `DB`.`C`.`S`.`EMPS`");
     check("describe emps col1",
-        "DESCRIBE `EMPS` `COL1`");
-    check("describe emps 'col_'",
-        "DESCRIBE `EMPS` 'col_'");
+        "DESCRIBE TABLE `EMPS` `COL1`");
+    // table keyword is OK
+    check("describe table emps col1",
+        "DESCRIBE TABLE `EMPS` `COL1`");
+    // character literal for column name not ok
+    checkFails("describe emps ^'col_'^",
+        "(?s).*Encountered \"\\\\'col_\\\\'\" at .*");
+    // composite column name not ok
+    checkFails("describe emps c1^.^c2",
+        "(?s).*Encountered \"\\.\" at .*");
+  }
+
+  @Test public void testDescribeStatement() {
+    // Currently DESCRIBE STATEMENT becomes EXPLAIN.
+    // See [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
+    final String expected0 = ""
+        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    check("describe statement select * from emps", expected0);
+    final String expected1 = ""
+        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`\n"
+        + "ORDER BY 2)";
+    check("describe statement select * from emps order by 2",
+        expected1);
+    check("describe select * from emps", expected0);
+    check("describe (select * from emps)", expected0);
+    check("describe statement (select * from emps)", expected0);
+    final String expected2 = ""
+        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "(SELECT `DEPTNO`\n"
+        + "FROM `EMPS`\n"
+        + "UNION\n"
+        + "SELECT `DEPTNO`\n"
+        + "FROM `DEPTS`)";
+    check("describe select deptno from emps union select deptno from depts",
+        expected2);
+    final String expected3 = ""
+        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "INSERT INTO `EMPS`\n"
+        + "(VALUES (ROW(1, 'a')))";
+    check("describe insert into emps values (1, 'a')", expected3);
+    // only allow query or DML, not explain, inside describe
+    checkFails("^describe^ explain plan for select * from emps",
+        "(?s).*Encountered \"describe explain\" at .*");
+    checkFails("describe ^statement^ explain plan for select * from emps",
+        "(?s).*Encountered \"statement explain\" at .*");
   }
 
   @Test public void testInsertSelect() {

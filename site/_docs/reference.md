@@ -52,11 +52,14 @@ explain:
       EXPLAIN PLAN
       [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
       [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
-      FOR ( insert | update | merge | delete | query )
+      FOR ( query | insert | update | merge | delete )
 
 describe:
-      DESCRIBE (SCHEMA | DATABASE) identifier
-   |  DESCRIBE table (column | columnQualifier)
+      DESCRIBE DATABASE databaseName
+   |  DESCRIBE CATALOG [ databaseName . ] catalogName
+   |  DESCRIBE SCHEMA [ [ databaseName . ] catalogName ] . schemaName
+   |  DESCRIBE [ TABLE ] [ [ [ databaseName . ] catalogName . ] schemaName . ] tableName [ columnName ]
+   |  DESCRIBE [ STATEMENT ] ( query | insert | update | merge | delete )
 
 insert:
       ( INSERT | UPSERT ) INTO tablePrimary

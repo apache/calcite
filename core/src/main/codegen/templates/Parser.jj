@@ -1054,14 +1054,7 @@ SqlNode SqlExplain() :
             asXml = false;
         }
     )
-    <FOR> (
-        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-        | stmt = SqlInsert()
-        | stmt = SqlDelete()
-        | stmt = SqlUpdate()
-        | stmt = SqlMerge()
-    )
-    {
+    <FOR> stmt = SqlQueryOrDml() {
         pos = getPos();
         return new SqlExplain(pos,
             stmt,
@@ -1070,6 +1063,26 @@ SqlNode SqlExplain() :
             SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
             nDynamicParams);
     }
+}
+
+/** Parses a query (SELECT or VALUES)
+ * or DML statement (INSERT, UPDATE, DELETE, MERGE). */
+SqlNode SqlQueryOrDml() :
+{
+    SqlNode stmt;
+}
+{
+    (
+        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+    |
+        stmt = SqlInsert()
+    |
+        stmt = SqlDelete()
+    |
+        stmt = SqlUpdate()
+    |
+        stmt = SqlMerge()
+    ) { return stmt; }
 }
 
 /**
@@ -1130,38 +1143,54 @@ SqlExplainLevel ExplainDetailLevel() :
 }
 
 /**
-* Parsers DESCRIBE statement call
-*/
+ * Parses a DESCRIBE statement.
+ */
 SqlNode SqlDescribe() :
 {
-   SqlParserPos pos;
-   SqlIdentifier table;
-   SqlIdentifier column = null;
-   SqlNode columnQualifier = null;
+   final SqlParserPos pos;
+   final SqlIdentifier table;
+   final SqlIdentifier column;
+   final SqlNode stmt;
 }
 {
-(
     <DESCRIBE> { pos = getPos(); }
-   (<SCHEMA> | <DATABASE>)
-    {
-        return new SqlDescribeSchema(pos, CompoundIdentifier());
-    }
-)
-    |
-(
-    <DESCRIBE> { pos = getPos(); }
-    table = CompoundIdentifier()
     (
-        column = CompoundIdentifier()
+        (<DATABASE> | <CATALOG> | <SCHEMA>) {
+            // DESCRIBE DATABASE and DESCRIBE CATALOG currently do the same as
+            // DESCRIBE SCHEMA but should be different. See
+            //   [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
+            return new SqlDescribeSchema(pos, CompoundIdentifier());
+        }
+    |
+        // Use syntactic lookahead to determine whether a table name is coming.
+        // We do not allow SimpleIdentifier() because that includes <STATEMENT>.
+        LOOKAHEAD( <TABLE> | <IDENTIFIER> | <QUOTED_IDENTIFIER>
+           | <BACK_QUOTED_IDENTIFIER> | <BRACKET_QUOTED_IDENTIFIER> )
+        (<TABLE>)?
+        table = CompoundIdentifier()
+        (
+            column = SimpleIdentifier()
         |
-        columnQualifier = StringLiteral()
-        |
-        E()
+            E() { column = null; }
+        ) {
+            return new SqlDescribeTable(pos, table, column);
+        }
+    |
+        (<STATEMENT>)?
+        stmt = SqlQueryOrDml() {
+            // DESCRIBE STATEMENT currently does the same as EXPLAIN. See
+            //   [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
+            final SqlExplainLevel detailLevel = SqlExplainLevel.EXPPLAN_ATTRIBUTES;
+            final SqlExplain.Depth depth = SqlExplain.Depth.PHYSICAL;
+            final boolean asXml = false;
+            return new SqlExplain(pos,
+                stmt,
+                detailLevel.symbol(SqlParserPos.ZERO),
+                depth.symbol(SqlParserPos.ZERO),
+                SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
+                nDynamicParams);
+        }
     )
-    {
-        return new SqlDescribeTable(pos, table, column, columnQualifier);
-    }
-)
 }
 
 /**

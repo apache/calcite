@@ -122,9 +122,14 @@ public enum SqlKind {
   EXPLAIN,
 
   /**
-   * DESCRIBE statement
+   * DESCRIBE SCHEMA statement
    */
-  DESCRIBE,
+  DESCRIBE_SCHEMA,
+
+  /**
+   * DESCRIBE TABLE statement
+   */
+  DESCRIBE_TABLE,
 
   /**
    * INSERT statement

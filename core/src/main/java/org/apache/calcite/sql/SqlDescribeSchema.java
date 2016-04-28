@@ -23,21 +23,22 @@ import org.apache.calcite.util.ImmutableNullableList;
 import java.util.List;
 
 /**
- * A <code>SqlDescribeSchema</code> is a node of a parse tree which represents an
- * DESCRIBE SCHEMA statement.
+ * A <code>SqlDescribeSchema</code> is a node of a parse tree that represents a
+ * {@code DESCRIBE SCHEMA} statement.
  */
 public class SqlDescribeSchema extends SqlCall {
 
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("DESCRIBE_SCHEMA", SqlKind.DESCRIBE) {
+      new SqlSpecialOperator("DESCRIBE_SCHEMA", SqlKind.DESCRIBE_SCHEMA) {
         @Override public SqlCall createCall(SqlLiteral functionQualifier,
-                                        SqlParserPos pos, SqlNode... operands) {
+            SqlParserPos pos, SqlNode... operands) {
           return new SqlDescribeSchema(pos, (SqlIdentifier) operands[0]);
         }
       };
 
   SqlIdentifier schema;
 
+  /** Creates a SqlDescribeSchema. */
   public SqlDescribeSchema(SqlParserPos pos, SqlIdentifier schema) {
     super(pos);
     this.schema = schema;
@@ -59,16 +60,12 @@ public class SqlDescribeSchema extends SqlCall {
     }
   }
 
-  @Override public SqlKind getKind() {
-    return SqlKind.DESCRIBE;
-  }
-
   @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of((SqlNode) schema);
+    return ImmutableNullableList.<SqlNode>of(schema);
   }
 
   public SqlIdentifier getSchema() { return schema; }
