@@ -3385,6 +3385,32 @@ public abstract class SqlOperatorBaseTest {
         VM_JAVA);
   }
 
+  @Test public void testTranslate3Func() {
+    tester.setFor(SqlStdOperatorTable.TRANSLATE3);
+    tester.checkString(
+       "translate('aabbcc', 'ab', '+-')",
+       "++--cc",
+       "VARCHAR(6) NOT NULL");
+    tester.checkString(
+        "translate('aabbcc', 'ab', '')",
+        "cc",
+        "VARCHAR(6) NOT NULL");
+    tester.checkString(
+        "translate('aabbcc', '', '+-')",
+        "aabbcc",
+        "VARCHAR(6) NOT NULL");
+    tester.checkString(
+       "translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
+       "++--cc",
+       "VARCHAR(10) NOT NULL");
+    tester.checkNull(
+       "translate(cast(null as varchar(7)), 'ab', '+-')");
+    tester.checkNull(
+       "translate('aabbcc', cast(null as varchar(2)), '+-')");
+    tester.checkNull(
+       "translate('aabbcc', 'ab', cast(null as varchar(2)))");
+  }
+
   @Test public void testOverlayFunc() {
     tester.setFor(SqlStdOperatorTable.OVERLAY);
     tester.checkString(
