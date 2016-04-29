@@ -1143,28 +1143,41 @@ public class JdbcTest {
     assertTrue(b == regex.matcher(abc).matches());
   }
 
-  /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
+  /** Tests driver's implementation of {@link DatabaseMetaData#getColumns},
+   * and also
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1222">[CALCITE-1222]
+   * DatabaseMetaData.getColumnLabel returns null when query has ORDER
+   * BY</a>, */
   @Test public void testResultSetMetaData()
       throws ClassNotFoundException, SQLException {
-    Connection connection = CalciteAssert
-        .that(CalciteAssert.Config.REGULAR).connect();
-    Statement statement = connection.createStatement();
-    ResultSet resultSet =
-        statement.executeQuery("select \"empid\", \"deptno\" as x, 1 as y\n"
-            + "from \"hr\".\"emps\"");
-    ResultSetMetaData metaData = resultSet.getMetaData();
-    assertEquals(3, metaData.getColumnCount());
-    assertEquals("empid", metaData.getColumnLabel(1));
-    assertEquals("empid", metaData.getColumnName(1));
-    assertEquals("emps", metaData.getTableName(1));
-    assertEquals("X", metaData.getColumnLabel(2));
-    assertEquals("deptno", metaData.getColumnName(2));
-    assertEquals("emps", metaData.getTableName(2));
-    assertEquals("Y", metaData.getColumnLabel(3));
-    assertEquals("Y", metaData.getColumnName(3));
-    assertEquals(null, metaData.getTableName(3));
-    resultSet.close();
-    connection.close();
+    try (Connection connection =
+             CalciteAssert.that(CalciteAssert.Config.REGULAR).connect()) {
+      final String sql0 = "select \"empid\", \"deptno\" as x, 1 as y\n"
+          + "from \"hr\".\"emps\"";
+      checkResultSetMetaData(connection, sql0);
+      final String sql1 = "select \"empid\", \"deptno\" as x, 1 as y\n"
+          + "from \"hr\".\"emps\"\n"
+          + "order by 1";
+      checkResultSetMetaData(connection, sql1);
+    }
+  }
+
+  private void checkResultSetMetaData(Connection connection, String sql)
+      throws SQLException {
+    try (Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      ResultSetMetaData metaData = resultSet.getMetaData();
+      assertEquals(3, metaData.getColumnCount());
+      assertEquals("empid", metaData.getColumnLabel(1));
+      assertEquals("empid", metaData.getColumnName(1));
+      assertEquals("emps", metaData.getTableName(1));
+      assertEquals("X", metaData.getColumnLabel(2));
+      assertEquals("deptno", metaData.getColumnName(2));
+      assertEquals("emps", metaData.getTableName(2));
+      assertEquals("Y", metaData.getColumnLabel(3));
+      assertEquals("Y", metaData.getColumnName(3));
+      assertEquals(null, metaData.getTableName(3));
+    }
   }
 
   /** Tests some queries that have expedited processing because connection pools

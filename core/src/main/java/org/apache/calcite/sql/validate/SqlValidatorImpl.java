@@ -77,6 +77,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.BitString;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Static;
@@ -4096,11 +4097,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final List<List<String>> list = new ArrayList<>();
     for (int i = 0; i < fieldCount; i++) {
-      List<String> origin = getFieldOrigin(sqlQuery, i);
-//            assert origin == null || origin.size() >= 4 : origin;
-      list.add(origin);
+      list.add(getFieldOrigin(sqlQuery, i));
     }
-    return list;
+    return ImmutableNullableList.copyOf(list);
   }
 
   private List<String> getFieldOrigin(SqlNode sqlQuery, int i) {
@@ -4128,8 +4127,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         return origin;
       }
+      return null;
+    } else if (sqlQuery instanceof SqlOrderBy) {
+      return getFieldOrigin(((SqlOrderBy) sqlQuery).query, i);
+    } else {
+      return null;
     }
-    return null;
   }
 
   public RelDataType getParameterRowType(SqlNode sqlQuery) {
