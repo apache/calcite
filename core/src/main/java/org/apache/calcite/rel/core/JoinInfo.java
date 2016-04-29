@@ -56,9 +56,10 @@ public abstract class JoinInfo {
   public static JoinInfo of(RelNode left, RelNode right, RexNode condition) {
     final List<Integer> leftKeys = new ArrayList<Integer>();
     final List<Integer> rightKeys = new ArrayList<Integer>();
+    final List<Boolean> filterNulls = new ArrayList<Boolean>();
     RexNode remaining =
         RelOptUtil.splitJoinCondition(left, right, condition, leftKeys,
-            rightKeys);
+            rightKeys, filterNulls);
     if (remaining.isAlwaysTrue()) {
       return new EquiJoinInfo(ImmutableIntList.copyOf(leftKeys),
           ImmutableIntList.copyOf(rightKeys));

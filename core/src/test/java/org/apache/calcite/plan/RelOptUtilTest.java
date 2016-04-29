@@ -16,15 +16,31 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 import org.junit.Test;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -33,6 +49,24 @@ import static org.junit.Assert.fail;
  * Unit test for {@link RelOptUtil} and other classes in this package.
  */
 public class RelOptUtilTest {
+  /** Creates a config based on the "scott" schema. */
+  private static Frameworks.ConfigBuilder config() {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT));
+  }
+
+  private static final RelBuilder REL_BUILDER = RelBuilder.create(config().build());
+  private static final RelNode EMP_SCAN = REL_BUILDER.scan("EMP").build();
+  private static final RelNode DEPT_SCAN = REL_BUILDER.scan("DEPT").build();
+
+  private static final RelDataType EMP_ROW = EMP_SCAN.getRowType();
+  private static final RelDataType DEPT_ROW = DEPT_SCAN.getRowType();
+
+  private static final List<RelDataTypeField> EMP_DEPT_JOIN_REL_FIELDS =
+      Lists.newArrayList(Iterables.concat(EMP_ROW.getFieldList(), DEPT_ROW.getFieldList()));
+
   //~ Constructors -----------------------------------------------------------
 
   public RelOptUtilTest() {
@@ -86,6 +120,86 @@ public class RelOptUtilTest {
               + "integer, not valid. Supply a description manually.",
           e.getMessage());
     }
+  }
+
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains just one which is a EQUAL operator.
+   */
+  @Test public void testSplitJoinConditionEquals() {
+    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+
+    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.EQUALS,
+        RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS),
+        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS));
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(true),
+        REL_BUILDER.literal(true));
+  }
+
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains just one which is a IS NOT DISTINCT operator.
+   */
+  @Test public void testSplitJoinConditionIsNotDistinctFrom() {
+    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+
+    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+        RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS),
+        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS));
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(false),
+        REL_BUILDER.literal(true));
+  }
+
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains an expanded version of IS NOT DISTINCT
+   */
+  @Test public void testSplitJoinConditionExpandedIsNotDistinctFrom() {
+    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.OR,
+        REL_BUILDER.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef),
+        REL_BUILDER.call(SqlStdOperatorTable.AND,
+            REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
+            REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(false),
+        REL_BUILDER.literal(true));
+  }
+
+  private static void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
+      List<Integer> expRightKeys, List<Boolean> expFilterNulls, RexNode expRemaining) {
+    List<Integer> actLeftKeys = Lists.newArrayList();
+    List<Integer> actRightKeys = Lists.newArrayList();
+    List<Boolean> actFilterNulls = Lists.newArrayList();
+
+    RexNode actRemaining = RelOptUtil.splitJoinCondition(EMP_SCAN, DEPT_SCAN, joinCond, actLeftKeys,
+        actRightKeys, actFilterNulls);
+
+    assertEquals(expRemaining.toString(), actRemaining.toString());
+    assertEquals(expFilterNulls, actFilterNulls);
+    assertEquals(expLeftKeys, actLeftKeys);
+    assertEquals(expRightKeys, actRightKeys);
   }
 }
 
