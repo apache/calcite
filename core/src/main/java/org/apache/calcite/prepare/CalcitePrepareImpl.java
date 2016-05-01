@@ -84,6 +84,7 @@ import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.MaterializedViewFilterScanRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectTableScanRule;
@@ -491,7 +492,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     for (RelOptRule rule : DEFAULT_RULES) {
       planner.addRule(rule);
     }
-
+    if (prepareContext.config().materializationsEnabled()) {
+      planner.addRule(MaterializedViewFilterScanRule.INSTANCE);
+    }
     if (ENABLE_BINDABLE) {
       for (RelOptRule rule : Bindables.RULES) {
         planner.addRule(rule);
