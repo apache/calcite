@@ -205,6 +205,16 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     throw new RuntimeException("Cannot extend " + table); // TODO: user error
   }
 
+  @Override public boolean equals(Object obj) {
+    return obj instanceof RelOptTableImpl
+        && this.rowType.equals(((RelOptTableImpl) obj).getRowType())
+        && this.table == ((RelOptTableImpl) obj).table;
+  }
+
+  @Override public int hashCode() {
+    return (this.table == null)
+        ? super.hashCode() : this.table.hashCode();
+  }
   public double getRowCount() {
     if (rowCount != null) {
       return rowCount;

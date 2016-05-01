@@ -254,8 +254,7 @@ public class MaterializationTest {
    * FilterToProjectUnifyRule.invert(MutableRel, MutableRel, MutableProject)
    * works incorrectly</a>. */
   @Test public void testFilterQueryOnProjectView8() {
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final String m = "select \"salary\", \"commission\",\n"
           + "\"deptno\", \"empid\", \"name\" from \"emps\"";
@@ -296,8 +295,6 @@ public class MaterializationTest {
           .enableMaterializations(true)
           .explainMatches("", CONTAINS_M0)
           .sameResultWithMaterializationsDisabled();
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -905,8 +902,7 @@ public class MaterializationTest {
   }
 
   @Test public void testViewSchemaPath() {
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final String m = "select empno, deptno from emp";
       final String q = "select deptno from scott.emp";
@@ -942,8 +938,6 @@ public class MaterializationTest {
           .enableMaterializations(true)
           .explainMatches("", CONTAINS_M0)
           .sameResultWithMaterializationsDisabled();
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -951,8 +945,7 @@ public class MaterializationTest {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(JdbcTest.HR_MODEL,
@@ -973,8 +966,6 @@ public class MaterializationTest {
             }
           })
           .sameResultWithMaterializationsDisabled();
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -982,8 +973,7 @@ public class MaterializationTest {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select \"deptno\", count(*) as c from \"emps\" group by \"deptno\") using (\"deptno\")";
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(JdbcTest.HR_MODEL,
@@ -994,8 +984,42 @@ public class MaterializationTest {
           .explainContains("EnumerableTableScan(table=[[hr, m0]])")
           .explainContains("EnumerableTableScan(table=[[hr, m1]])")
           .sameResultWithMaterializationsDisabled();
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
+    }
+  }
+
+  @Test public void testMaterializationOnJoinQuery() {
+    final String q = "select *\n"
+        + "from \"emps\"\n"
+        + "join \"depts\" using (\"deptno\") where \"empid\" < 300 ";
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", "select * from \"emps\" where \"empid\" < 500")
+          .query(q)
+          .enableMaterializations(true)
+          .explainContains("EnumerableTableScan(table=[[hr, m0]])")
+          .sameResultWithMaterializationsDisabled();
+    }
+  }
+
+  @Ignore("Creating mv for depts considering all its column throws exception")
+  @Test public void testMultiMaterializationOnJoinQuery() {
+    final String q = "select *\n"
+        + "from \"emps\"\n"
+        + "join \"depts\" using (\"deptno\") where \"empid\" < 300 "
+        + "and \"depts\".\"deptno\" > 200";
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", "select * from \"emps\" where \"empid\" < 500",
+              "m1", "select * from \"depts\" where \"deptno\" > 100")
+          .query(q)
+          .enableMaterializations(true)
+          .explainContains("EnumerableTableScan(table=[[hr, m0]])")
+          .explainContains("EnumerableTableScan(table=[[hr, m1]])")
+          .sameResultWithMaterializationsDisabled();
     }
   }
 
@@ -1014,8 +1038,7 @@ public class MaterializationTest {
       {{"hr", "m1"}, {"hr", "m0"}},
       {{"hr", "m1"}, {"hr", "m1"}}};
 
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()
@@ -1034,8 +1057,6 @@ public class MaterializationTest {
           .sameResultWithMaterializationsDisabled();
       Collections.sort(substitutedNames, CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
@@ -1061,8 +1082,7 @@ public class MaterializationTest {
       {{"hr", "m2"}, {"hr", "m1"}},
       {{"hr", "m2"}, {"hr", "m2"}}};
 
-    try {
-      Prepare.THREAD_TRIM.set(true);
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()
@@ -1082,8 +1102,6 @@ public class MaterializationTest {
           .sameResultWithMaterializationsDisabled();
       Collections.sort(substitutedNames, CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
-    } finally {
-      Prepare.THREAD_TRIM.set(false);
     }
   }
 
