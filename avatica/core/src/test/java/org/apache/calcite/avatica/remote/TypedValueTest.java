@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.ByteString;
 
 import org.junit.Test;
@@ -161,6 +162,44 @@ public class TypedValueTest {
     TypedValue fromProtoTv = TypedValue.fromProto(oldProtoStyle);
     Object o = fromProtoTv.toJdbc(calendar);
     assertEquals(decimal, o);
+  }
+
+  @Test public void testProtobufBytesNotSentAsBase64() {
+    final byte[] bytes = "asdf".getBytes(UTF_8);
+    final byte[] b64Bytes = Base64.encodeBytes(bytes).getBytes(UTF_8);
+    TypedValue tv = TypedValue.ofLocal(Rep.BYTE_STRING, new ByteString(bytes));
+    // JSON encodes it as base64
+    assertEquals(new String(b64Bytes), tv.value);
+
+    // Get the protobuf variant
+    Common.TypedValue protoTv = tv.toProto();
+    Common.Rep protoRep = protoTv.getType();
+    assertEquals(Common.Rep.BYTE_STRING, protoRep);
+
+    // The pb variant should have the native bytes of the original value
+    com.google.protobuf.ByteString protoByteString = protoTv.getBytesValue();
+    assertNotNull(protoByteString);
+    assertArrayEquals(bytes, protoByteString.toByteArray());
+
+    // We should have the b64 string as a backwards compatibility feature
+    assertEquals(new String(b64Bytes), protoTv.getStringValue());
+  }
+
+  @Test public void testLegacyBase64StringEncodingForBytes() {
+    // CALCITE-1103 CALCITE-1209 We observed that binary data was being
+    // serialized as base-64 encoded strings instead of the native binary
+    // data type in protobufs. We need to still handle older clients sending
+    // data in this form.
+    final byte[] bytes = "asdf".getBytes(UTF_8);
+    final String base64Str = Base64.encodeBytes(bytes);
+    Common.TypedValue.Builder builder = Common.TypedValue.newBuilder();
+    builder.setStringValue(base64Str);
+    builder.setType(Common.Rep.BYTE_STRING);
+    Common.TypedValue protoTv = builder.build();
+
+    TypedValue tv = TypedValue.fromProto(protoTv);
+    assertEquals(Rep.BYTE_STRING, tv.type);
+    assertEquals(base64Str, tv.value);
   }
 }
 

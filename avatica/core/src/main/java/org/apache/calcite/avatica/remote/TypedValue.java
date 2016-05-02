@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.proto.Common;
+import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
@@ -126,6 +127,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class TypedValue {
   private static final FieldDescriptor NUMBER_DESCRIPTOR = Common.TypedValue.getDescriptor()
       .findFieldByNumber(Common.TypedValue.NUMBER_VALUE_FIELD_NUMBER);
+  private static final FieldDescriptor STRING_DESCRIPTOR = Common.TypedValue.getDescriptor()
+      .findFieldByNumber(Common.TypedValue.STRING_VALUE_FIELD_NUMBER);
+  private static final FieldDescriptor BYTES_DESCRIPTOR = Common.TypedValue.getDescriptor()
+      .findFieldByNumber(Common.TypedValue.BYTES_VALUE_FIELD_NUMBER);
 
   public static final TypedValue NULL =
       new TypedValue(ColumnMetaData.Rep.OBJECT, null);
@@ -379,9 +384,14 @@ public class TypedValue {
       byte[] bytes;
       // Serial representation is b64. We don't need to do that for protobuf
       if (o instanceof String) {
+        // Backwards compatibility for client CALCITE-1209
+        builder.setStringValue((String) o);
         // Assume strings are already b64 encoded
         bytes = ByteString.parseBase64((String) o);
       } else {
+        // Backwards compatibility for client CALCITE-1209
+        builder.setStringValue(Base64.encodeBytes((byte[]) o));
+        // Use the byte array
         bytes = (byte[]) o;
       }
       builder.setBytesValue(HBaseZeroCopyByteString.wrap(bytes));
@@ -484,6 +494,13 @@ public class TypedValue {
     case PRIMITIVE_BOOLEAN:
       return protoValue.getBoolValue();
     case BYTE_STRING:
+      if (protoValue.hasField(STRING_DESCRIPTOR) && !protoValue.hasField(BYTES_DESCRIPTOR)) {
+        // Prior to CALCITE-1103, clients would send b64 strings for bytes instead of using the
+        // native byte format. The value we need to provide as the local format for TypedValue
+        // is directly accessible via the Protobuf representation. Both fields are sent by the
+        // server to support older clients, so only parse the string value when it is alone.
+        return protoValue.getStringValue();
+      }
       // TypedValue is still going to expect a b64string for BYTE_STRING even though we sent it
       // across the wire natively as bytes. Return it as b64.
       return (new ByteString(protoValue.getBytesValue().toByteArray())).toBase64String();
