@@ -103,6 +103,15 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /**
+   * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>, <i>replacement_chars</i>)</code>
+   * function returns <i>string_expr</i> with all occurrences of each character in
+   * <i>search_chars</i> replaced by its corresponding character in <i>replacement_chars</i>.
+   *
+   * <p>It is not defined in the SQL standard, but occurs in Oracle and PostgreSQL.
+   */
+  public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
+
+  /**
    * Returns the Oracle operator table, creating it if necessary.
    */
   public static synchronized OracleSqlOperatorTable instance() {

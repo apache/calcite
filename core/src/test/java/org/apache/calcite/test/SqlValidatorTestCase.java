@@ -60,7 +60,7 @@ public class SqlValidatorTestCase {
 
   //~ Instance fields --------------------------------------------------------
 
-  protected final SqlTester tester;
+  protected SqlTester tester;
 
   //~ Constructors -----------------------------------------------------------
 

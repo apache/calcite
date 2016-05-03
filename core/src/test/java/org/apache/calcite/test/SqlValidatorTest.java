@@ -23,9 +23,11 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -768,7 +770,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testTranslate3() {
-    checkExpType("translate('aabbcc', 'ab', '+-')", "VARCHAR(6) NOT NULL");
+    // TRANSLATE3 is not in the standard operator table
+    checkWholeExpFails("translate('aabbcc', 'ab', '+-')",
+        "No match found for function signature TRANSLATE3\\(<CHARACTER>, <CHARACTER>, <CHARACTER>\\)");
+    tester = tester.withOperatorTable(
+        ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+            SqlStdOperatorTable.instance()));
+    checkExpType("translate('aabbcc', 'ab', '+-')",
+        "VARCHAR(6) NOT NULL");
+    checkWholeExpFails("translate('abc', 'ab')",
+        "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
+    checkWholeExpFails("translate('abc', 'ab', 123)",
+        "(?s)Cannot apply 'TRANSLATE3' to arguments of type 'TRANSLATE3\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("translate('abc', 'ab', '+-', 'four')",
+        "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
   }
 
   @Test public void testOverlay() {

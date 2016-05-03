@@ -64,10 +64,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 
 /**

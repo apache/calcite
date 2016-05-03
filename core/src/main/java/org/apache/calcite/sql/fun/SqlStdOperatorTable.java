@@ -1096,16 +1096,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The <code>TRANSLATE(<i>char_value</i> USING <i>translation_name</i>)</code> function
    * alters the character set of a string value from one base character set to another.
+   *
+   * <p>It is defined in the SQL standard. See also non-standard
+   * {@link OracleSqlOperatorTable#TRANSLATE3}.
    */
   public static final SqlFunction TRANSLATE =
       new SqlConvertFunction("TRANSLATE");
-
-  /**
-   * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>, <i>replacement_chars</i>)</code>
-   * function returns <i>string_expr</i> with all occurrences of each character in
-   * <i>search_chars</i> replaced by its corresponding character in <i>replacement_chars</i>.
-   */
-  public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
   public static final SqlFunction OVERLAY = new SqlOverlayFunction();
 
@@ -1184,7 +1180,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction MOD =
-
       // Return type is same as divisor (2nd operand)
       // SQL2003 Part2 Section 6.27, Syntax Rules 9
       new SqlFunction(

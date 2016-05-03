@@ -85,6 +85,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
@@ -4091,24 +4092,22 @@ SqlNode BuiltinFunctionCall() :
             args = startList(e);
         }
         (
-            <USING> name = Identifier()
-            {
+            <USING> name = Identifier() {
                 namePos = getPos();
                 args.add(new SqlIdentifier(name, namePos));
             }
-            <RPAREN>
-            {
+            <RPAREN> {
                 return SqlStdOperatorTable.TRANSLATE.createCall(
                     pos, SqlParserUtil.toNodeArray(args));
             }
-            |
-            <COMMA>
-            e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
-            <COMMA>
-            e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
-            <RPAREN>
-            {
-                return SqlStdOperatorTable.TRANSLATE3.createCall(
+        |
+            (
+                <COMMA> e = Expression(ExprContext.ACCEPT_SUBQUERY) {
+                    args.add(e);
+                }
+            )*
+            <RPAREN> {
+                return OracleSqlOperatorTable.TRANSLATE3.createCall(
                     pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
             }
         )

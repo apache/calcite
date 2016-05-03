@@ -3386,28 +3386,33 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testTranslate3Func() {
-    tester.setFor(SqlStdOperatorTable.TRANSLATE3);
-    tester.checkString(
+    final SqlTester tester1 = oracleTester();
+    tester1.setFor(OracleSqlOperatorTable.TRANSLATE3);
+    tester1.checkString(
        "translate('aabbcc', 'ab', '+-')",
        "++--cc",
        "VARCHAR(6) NOT NULL");
-    tester.checkString(
+    tester1.checkString(
+        "translate('aabbcc', 'ab', 'ba')",
+       "bbaacc",
+       "VARCHAR(6) NOT NULL");
+    tester1.checkString(
         "translate('aabbcc', 'ab', '')",
         "cc",
         "VARCHAR(6) NOT NULL");
-    tester.checkString(
+    tester1.checkString(
         "translate('aabbcc', '', '+-')",
         "aabbcc",
         "VARCHAR(6) NOT NULL");
-    tester.checkString(
+    tester1.checkString(
        "translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
        "++--cc",
        "VARCHAR(10) NOT NULL");
-    tester.checkNull(
+    tester1.checkNull(
        "translate(cast(null as varchar(7)), 'ab', '+-')");
-    tester.checkNull(
+    tester1.checkNull(
        "translate('aabbcc', cast(null as varchar(2)), '+-')");
-    tester.checkNull(
+    tester1.checkNull(
        "translate('aabbcc', 'ab', cast(null as varchar(2)))");
   }
 

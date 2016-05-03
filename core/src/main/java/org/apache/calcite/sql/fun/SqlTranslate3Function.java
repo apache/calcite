@@ -26,7 +26,12 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * Definition of the "TRANSLATE" builtin SQL function.
+ * Definition of the "TRANSLATE" built-in SQL function that takes 3 arguments.
+ *
+ * <p>Based on Oracle's {@code TRANSLATE} function, it is commonly called
+ * "TRANSLATE3" to distinguish it from the standard SQL function
+ * {@link SqlStdOperatorTable#TRANSLATE} that takes 2 arguments and has an
+ * entirely different purpose.
  */
 public class SqlTranslate3Function extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
@@ -35,8 +40,7 @@ public class SqlTranslate3Function extends SqlFunction {
    * Creates the SqlTranslate3Function.
    */
   SqlTranslate3Function() {
-    super(
-        "TRANSLATE3",
+    super("TRANSLATE3",
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.ARG0_NULLABLE_VARYING,
         null,
@@ -46,11 +50,7 @@ public class SqlTranslate3Function extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  //Check logic
-  public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall("TRANSLATE");
     for (SqlNode sqlNode : call.getOperandList()) {
@@ -60,7 +60,7 @@ public class SqlTranslate3Function extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     if (3 == operandsCount) {
       return "{0}({1}, {2}, {3})";
     }
