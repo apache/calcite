@@ -67,6 +67,7 @@ import java.util.Map;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 
 /**
@@ -83,7 +84,9 @@ public class RexToLixTranslator {
           findMethod(SqlFunctions.class, "charLength", String.class),
           CHARACTER_LENGTH,
           findMethod(SqlFunctions.class, "charLength", String.class),
-          CHAR_LENGTH);
+          CHAR_LENGTH,
+          findMethod(SqlFunctions.class, "translate3", String.class, String.class,
+              String.class), TRANSLATE3);
 
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;

@@ -99,6 +99,7 @@ public class RexSqlStandardConvertletTable
     registerEquivOp(SqlStdOperatorTable.TRANSLATE);
     registerEquivOp(SqlStdOperatorTable.OVERLAY);
     registerEquivOp(SqlStdOperatorTable.TRIM);
+    registerEquivOp(SqlStdOperatorTable.TRANSLATE3);
     registerEquivOp(SqlStdOperatorTable.POSITION);
     registerEquivOp(SqlStdOperatorTable.CHAR_LENGTH);
     registerEquivOp(SqlStdOperatorTable.CHARACTER_LENGTH);

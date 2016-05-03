@@ -1313,6 +1313,11 @@ public class SqlFunctions {
     return (int) (localTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
   }
 
+  /** SQL TRANSLATE(string, search_chars, replacement_chars) function. */
+  public static String translate3(String s, String search, String replacement) {
+    return org.apache.commons.lang3.StringUtils.replaceChars(s, search, replacement);
+  }
+
   /** Helper for "array element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
   public static Object arrayItem(List list, int item) {

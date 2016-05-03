@@ -4090,16 +4090,28 @@ SqlNode BuiltinFunctionCall() :
         {
             args = startList(e);
         }
-        <USING> name = Identifier()
-        {
-            namePos = getPos();
-            args.add(new SqlIdentifier(name, namePos));
-        }
-        <RPAREN>
-        {
-            return SqlStdOperatorTable.TRANSLATE.createCall(
-                pos, SqlParserUtil.toNodeArray(args));
-        }
+        (
+            <USING> name = Identifier()
+            {
+                namePos = getPos();
+                args.add(new SqlIdentifier(name, namePos));
+            }
+            <RPAREN>
+            {
+                return SqlStdOperatorTable.TRANSLATE.createCall(
+                    pos, SqlParserUtil.toNodeArray(args));
+            }
+            |
+            <COMMA>
+            e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+            <COMMA>
+            e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+            <RPAREN>
+            {
+                return SqlStdOperatorTable.TRANSLATE3.createCall(
+                    pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+            }
+        )
     )
     |
     (

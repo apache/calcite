@@ -2740,6 +2740,12 @@ public class SqlParserTest {
         "TRANSLATE('abc' USING `LAZY_TRANSLATION`)");
   }
 
+  @Test public void testTranslate3() {
+    checkExp(
+        "translate('aaabbbccc', 'ab', '+-')",
+        "TRANSLATE('aaabbbccc', 'ab', '+-')");
+  }
+
   @Test public void testOverlay() {
     checkExp(
         "overlay('ABCdef' placing 'abc' from 1)",
