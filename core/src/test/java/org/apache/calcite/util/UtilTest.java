@@ -22,26 +22,11 @@ import org.apache.calcite.examples.RelBuilderExample;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.runtime.Utilities;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.test.DiffTestCase;
@@ -96,7 +81,6 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -1767,68 +1751,6 @@ public class UtilTest {
       local2.set("z");
     }
     assertThat(local2.get(), is("x"));
-  }
-
-  /** Tests {@link org.apache.calcite.sql.SqlUtil#isLiteral(SqlNode, boolean)}.
-   *
-   * <p>The method {@link org.apache.calcite.sql.SqlUtil#isLiteral(SqlNode, boolean)}
-   * was added to enhance Calcite's public API
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1219">[CALCITE-1219]</a>
-   */
-  @Test public void testSqlNodeLiteral() {
-    final RelDataTypeFactory relDataTypeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final SqlDataTypeSpec integerType = SqlTypeUtil.convertTypeToSpec(
-        relDataTypeFactory.createSqlType(SqlTypeName.INTEGER));
-    final SqlNode literal = SqlLiteral.createExactNumeric(
-        "0",
-        SqlParserPos.ZERO);
-    final SqlNode castLiteral = SqlStdOperatorTable.CAST.createCall(
-        SqlParserPos.ZERO,
-        literal,
-        integerType);
-    final SqlNode castCastLiteral = SqlStdOperatorTable.CAST.createCall(
-        SqlParserPos.ZERO,
-        castLiteral,
-        integerType);
-
-    // SqlLiteral is considered as a Literal
-    assertSame(true, SqlUtil.isLiteral(literal, true));
-    // CAST(SqlLiteral as type) is considered as a Literal
-    assertSame(true, SqlUtil.isLiteral(castLiteral, true));
-    // CAST(CAST(SqlLiteral as type) as type) is NOT considered as a Literal
-    assertSame(false, SqlUtil.isLiteral(castCastLiteral, true));
-  }
-
-  /** Tests {@link org.apache.calcite.rex.RexUtil#isLiteral(RexNode, boolean)}.
-   *
-   * <p>The method {@link org.apache.calcite.rex.RexUtil#isLiteral(RexNode, boolean)}
-   * was added to enhance Calcite's public API
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1219">[CALCITE-1219]</a>
-   */
-  @Test public void testRexNodeLiteral() {
-    final RelDataTypeFactory relDataTypeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataType integerDataType = relDataTypeFactory.createSqlType(SqlTypeName.INTEGER);
-
-    final RexBuilder rexBuilder = new RexBuilder(relDataTypeFactory);
-    final RexNode literal = rexBuilder.makeZeroLiteral(
-        relDataTypeFactory.createSqlType(SqlTypeName.INTEGER));
-
-    final RexNode castLiteral = rexBuilder.makeCall(
-        integerDataType,
-        SqlStdOperatorTable.CAST,
-        Lists.newArrayList(literal));
-
-    final RexNode castCastLiteral = rexBuilder.makeCall(
-        integerDataType,
-        SqlStdOperatorTable.CAST,
-        Lists.newArrayList(castLiteral));
-
-    // RexLiteral is considered as a Literal
-    assertSame(true, RexUtil.isLiteral(literal, true));
-    // CAST(RexLiteral as type) is considered as a Literal
-    assertSame(true, RexUtil.isLiteral(castLiteral, true));
-    // CAST(CAST(RexLiteral as type) as type) is NOT considered as a Literal
-    assertSame(false, RexUtil.isLiteral(castCastLiteral, true));
   }
 }
 
