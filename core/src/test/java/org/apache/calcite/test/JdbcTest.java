@@ -2615,6 +2615,12 @@ public class JdbcTest {
         .returns("EXPR$0=-3\n");
   }
 
+  @Test public void testValuesWithoutFrom() {
+    CalciteAssert.that()
+        .query("select 2+2")
+        .returns("EXPR$0=4\n");
+  }
+
   /** Tests a table constructor that has multiple rows and multiple columns.
    *
    * <p>Note that the character literals become CHAR(3) and that the first is

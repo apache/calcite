@@ -62,6 +62,19 @@ public enum SqlConformance {
   public boolean isSortByAliasObscures() {
     return this == SqlConformance.STRICT_92;
   }
+
+  /**
+   * Whether from clause is required for any select statement.
+   */
+  public boolean isFromRequired() {
+    switch (this) {
+    case DEFAULT:
+    case PRAGMATIC_2003:
+      return false;
+    default:
+      return true;
+    }
+  }
 }
 
 // End SqlConformance.java

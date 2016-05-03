@@ -6841,6 +6841,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT DISTINCT 5, 10+5, 'string' from emp");
   }
 
+  @Test public void testSelectWithoutFrom() {
+    final SqlConformance conformance = tester.getConformance();
+    checkFails(
+        "^select 2+2^",
+
+        conformance.isFromRequired()
+            ? "SELECT must have a FROM clause"
+            // otherwise valid
+            : null);
+  }
+
   @Test public void testTableExtend() {
     checkResultType("select * from dept extend (x int not null)",
         "RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME, INTEGER NOT NULL X) NOT NULL");

@@ -2156,17 +2156,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // 'selectScope', otherwise tables in the FROM clause would be
       // able to see each other.
       final SqlNode from = select.getFrom();
-      final SqlNode newFrom =
-          registerFrom(
-              parentScope,
-              selectScope,
-              from,
-              from,
-              null,
-              null,
-              false);
-      if (newFrom != from) {
-        select.setFrom(newFrom);
+      if (from != null) {
+        final SqlNode newFrom =
+            registerFrom(
+                parentScope,
+                selectScope,
+                from,
+                from,
+                null,
+                null,
+                false);
+        if (newFrom != from) {
+          select.setFrom(newFrom);
+        }
       }
 
       // If this is an aggregating query, the SELECT list and HAVING
@@ -2956,7 +2958,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           RESOURCE.fromAliasDuplicate(child.left));
     }
 
-    validateFrom(select.getFrom(), fromType, fromScope);
+    if (select.getFrom() == null) {
+      if (conformance.isFromRequired()) {
+        throw newValidationError(select, RESOURCE.selectMissingFrom());
+      }
+    } else {
+      validateFrom(select.getFrom(), fromType, fromScope);
+    }
+
     validateWhereClause(select);
     validateGroupClause(select);
     validateHavingClause(select);
