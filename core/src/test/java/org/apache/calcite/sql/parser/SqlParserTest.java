@@ -154,11 +154,9 @@ public class SqlParserTest {
         "select 0.5e1^.1^ from sales.emps",
         "(?s).*Encountered \".1\" at line 1, column 13.\n"
             + "Was expecting one of:\n"
-            + "    \"FROM\" ...\n"
-            + "    \",\" ...\n"
-            + "    \"AS\" ...\n"
-            + "    <IDENTIFIER> ...\n"
-            + "    <QUOTED_IDENTIFIER> ...\n"
+            + "    <EOF> \n"
+            + "    \"ORDER\" ...\n"
+            + "    \"LIMIT\" ...\n"
             + ".*");
   }
 
@@ -1937,6 +1935,12 @@ public class SqlParserTest {
             + "`DEPT`");
   }
 
+  @Test public void testSelectWithoutFrom() {
+    check(
+        "select 2+2",
+        "SELECT (2 + 2)");
+  }
+
   @Test public void testSelectList3() {
     check(
         "select 1, emp.*, 2 from emp",
@@ -2018,19 +2022,16 @@ public class SqlParserTest {
 
   @Test public void testFromValuesWithoutParens() {
     checkFails(
-        "select 1 from ^values^('x')",
-        "Encountered \"values\" at line 1, column 15\\.\n"
+        "select 1 ^from^ values('x')",
+        "(?s)Encountered \"from values\" at line 1, column 10\\.\n"
             + "Was expecting one of:\n"
-            + "    <IDENTIFIER> \\.\\.\\.\n"
-            + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    \"LATERAL\" \\.\\.\\.\n"
-            + "    \"\\(\" \\.\\.\\.\n"
-            + "    \"UNNEST\" \\.\\.\\.\n"
-            + "    \"TABLE\" \\.\\.\\.\n"
-            + "    ");
+            + "    <EOF> \n"
+            + "    \"ORDER\" \\.\\.\\.\n"
+            + "    \"LIMIT\" \\.\\.\\.\n"
+            + ".*"
+            + "    \"FROM\" <IDENTIFIER> \\.\\.\\.\n"
+            + "    \"FROM\" <QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + ".*");
   }
 
   @Test public void testEmptyValues() {
