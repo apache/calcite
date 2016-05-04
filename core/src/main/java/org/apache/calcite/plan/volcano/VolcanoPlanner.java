@@ -344,6 +344,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
+  public ImmutableList<RelOptMaterialization> getMaterialization() {
+    return ImmutableList.copyOf(materializations);
+  }
+
   @Override public void addMaterialization(
       RelOptMaterialization materialization) {
     materializations.add(materialization);
@@ -453,39 +457,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // graph will contain
     //   (T, Emps), (T, Depts), (T2, T)
     // and therefore we can deduce T2 uses Emps.
-    DirectedGraph<List<String>, DefaultEdge> usesGraph =
-        DefaultDirectedGraph.create();
-    final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
-    for (RelOptMaterialization materialization : materializations) {
-      // If materialization is a tile in a lattice, we will deal with it shortly.
-      if (materialization.table != null
-          && materialization.starTable == null) {
-        final List<String> qname = materialization.table.getQualifiedName();
-        qnameMap.put(qname, materialization);
-        for (RelOptTable usedTable
-            : findTables(materialization.queryRel)) {
-          usesGraph.addVertex(qname);
-          usesGraph.addVertex(usedTable.getQualifiedName());
-          usesGraph.addEdge(usedTable.getQualifiedName(), qname);
-        }
-      }
-    }
-
-    // Use a materialization if uses at least one of the tables are used by
-    // the query. (Simple rule that includes some materializations we won't
-    // actually use.)
-    final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
-        Graphs.makeImmutable(usesGraph);
-    final Set<RelOptTable> queryTables = findTables(originalRoot);
-    final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
-    for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
-      RelOptMaterialization materialization = qnameMap.get(qname);
-      if (materialization != null
-          && usesTable(materialization.table, queryTables, frozenGraph)) {
-        applicableMaterializations.add(materialization);
-      }
-    }
+    final List<RelOptMaterialization> applicableMaterializations =
+        getApplicableMaterializations(originalRoot, materializations);
     useMaterializations(originalRoot, applicableMaterializations);
+    final Set<RelOptTable> queryTables = findTables(originalRoot);
 
     // Use a lattice if the query uses at least the central (fact) table of the
     // lattice.
@@ -516,11 +491,48 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  public static List<RelOptMaterialization> getApplicableMaterializations(RelNode root,
+      List<RelOptMaterialization> materializations) {
+    DirectedGraph<List<String>, DefaultEdge> usesGraph =
+        DefaultDirectedGraph.create();
+    final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
+    for (RelOptMaterialization materialization : materializations) {
+      // If materialization is a tile in a lattice, we will deal with it shortly.
+      if (materialization.table != null
+          && materialization.starTable == null) {
+        final List<String> qname = materialization.table.getQualifiedName();
+        qnameMap.put(qname, materialization);
+        for (RelOptTable usedTable
+            : findTables(materialization.queryRel)) {
+          usesGraph.addVertex(qname);
+          usesGraph.addVertex(usedTable.getQualifiedName());
+          usesGraph.addEdge(usedTable.getQualifiedName(), qname);
+        }
+      }
+    }
+
+    // Use a materialization if uses at least one of the tables are used by
+    // the query. (Simple rule that includes some materializations we won't
+    // actually use.)
+    final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
+        Graphs.makeImmutable(usesGraph);
+    final Set<RelOptTable> queryTablesUsed = findTables(root);
+    final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
+    for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
+      RelOptMaterialization materialization = qnameMap.get(qname);
+      if (materialization != null
+          && usesTable(materialization.table, queryTablesUsed, frozenGraph)) {
+        applicableMaterializations.add(materialization);
+      }
+    }
+    return applicableMaterializations;
+  }
+
   /**
    * Returns whether {@code table} uses one or more of the tables in
    * {@code usedTables}.
    */
-  private boolean usesTable(
+  private static boolean usesTable(
       RelOptTable table,
       Set<RelOptTable> usedTables,
       Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {

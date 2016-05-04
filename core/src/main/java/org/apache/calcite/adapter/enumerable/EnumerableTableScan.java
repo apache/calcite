@@ -234,6 +234,15 @@ public class EnumerableTableScan
     return new EnumerableTableScan(getCluster(), traitSet, table, elementType);
   }
 
+  @Override public boolean equals(Object obj) {
+    return obj instanceof EnumerableTableScan
+        && this.table.equals(((EnumerableTableScan) obj).getTable());
+  }
+
+  @Override public int hashCode() {
+    return this.table.hashCode();
+  }
+
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Note that representation is ARRAY. This assumes that the table
     // returns a Object[] for each record. Actually a Table<T> can
