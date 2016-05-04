@@ -3934,7 +3934,6 @@ public class SqlToRelConverter {
         // converted yet. This occurs when from items are correlated,
         // e.g. "select from emp as emp join emp.getDepts() as dept".
         // Create a temporary expression.
-        assert isParent;
         DeferredLookup lookup =
             new DeferredLookup(this, qualified.identifier.names.get(0));
         final CorrelationId correlId = cluster.createCorrel();

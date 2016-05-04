@@ -86,7 +86,8 @@ delete:
       [ WHERE booleanExpression ]
 
 query:
-      [ WITH withItem [ , withItem ]* query ]
+      values
+  |   WITH withItem [ , withItem ]* query
   |   {
           select
       |   query UNION [ ALL ] query
@@ -128,14 +129,12 @@ joinCondition:
   |   USING '(' column [, column ]* ')'
 
 tableReference:
-      [ LATERAL ]
       tablePrimary
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
 tablePrimary:
       [ TABLE ] [ [ catalogName . ] schemaName . ] tableName
-  |   '(' query ')'
-  |   values
+  |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 

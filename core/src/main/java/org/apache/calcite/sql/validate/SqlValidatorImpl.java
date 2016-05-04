@@ -2383,6 +2383,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           unnestNs,
           forceNullable);
       registerOperandSubqueries(parentScope, call, 0);
+      scopes.put(node, parentScope);
       break;
 
     case OTHER_FUNCTION:

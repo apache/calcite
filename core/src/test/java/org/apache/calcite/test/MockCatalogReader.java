@@ -150,6 +150,12 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType rectilinearCoordType =
         typeFactory.builder().add("X", intType).add("Y", intType).build();
+    final RelDataType empRecordType =
+        typeFactory.builder()
+            .add("EMPNO", intType)
+            .add("ENAME", varchar10Type).build();
+    final RelDataType empListType =
+        typeFactory.createArrayType(empRecordType, -1);
 
     // TODO jvs 12-Feb-2005: register this canonical instance with type
     // factory
@@ -188,6 +194,14 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     deptTable.addColumn("DEPTNO", intType);
     deptTable.addColumn("NAME", varchar10Type);
     registerTable(deptTable);
+
+    // Register "DEPT_NESTED" table.
+    MockTable deptNestedTable =
+        MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
+    deptNestedTable.addColumn("DEPTNO", intType);
+    deptNestedTable.addColumn("NAME", varchar10Type);
+    deptNestedTable.addColumn("EMPLOYEES", empListType);
+    registerTable(deptNestedTable);
 
     // Register "BONUS" table.
     MockTable bonusTable = MockTable.create(this, salesSchema, "BONUS", false, 0);

@@ -6641,6 +6641,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'C1' not found in any table");
   }
 
+  @Test public void testUnnestArrayColumn() {
+    final String sql = "select d.deptno, e.*\n"
+        + "from dept_nested as d,\n"
+        + " UNNEST(d.employees) as e";
+    final String type = "RecordType(INTEGER NOT NULL DEPTNO,"
+        + " INTEGER NOT NULL EMPNO,"
+        + " VARCHAR(10) NOT NULL ENAME) NOT NULL";
+    sql(sql).type(type);
+
+    // equivalent query using CROSS JOIN
+    final String sql2 = "select d.deptno, e.*\n"
+        + "from dept_nested as d CROSS JOIN\n"
+        + " UNNEST(d.employees) as e";
+    sql(sql2).type(type);
+
+    // LATERAL works left-to-right
+    final String sql3 = "select d.deptno, e.*\n"
+        + "from UNNEST(^d^.employees) as e, dept_nested as d";
+    sql(sql3).fails("Table 'D' not found");
+  }
+
   @Test public void testUnnestWithOrdinality() {
     checkResultType("select*from unnest(array[1, 2]) with ordinality",
         "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");

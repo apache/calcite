@@ -5676,6 +5676,18 @@ public class SqlParserTest {
     checkFails(
         "^unnest^(x)",
         "(?s)Encountered \"unnest\" at.*");
+
+    // UNNEST with more than one argument
+    final String sql = "select * from dept,\n"
+        + "unnest(dept.employees, dept.managers)";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`,\n"
+        + "(UNNEST(`DEPT`.`EMPLOYEES`, `DEPT`.`MANAGERS`))";
+    sql(sql).ok(expected);
+
+    // LATERAL UNNEST is not valid
+    sql("select * from dept, ^lateral^ unnest(dept.employees)")
+        .fails("(?s)Encountered \"lateral unnest\" at .*");
   }
 
   @Test public void testUnnestWithOrdinality() {
