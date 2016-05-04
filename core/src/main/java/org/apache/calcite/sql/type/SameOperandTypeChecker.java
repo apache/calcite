@@ -134,12 +134,18 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     }
   }
 
-  // implement SqlOperandTypeChecker
   public String getAllowedSignatures(SqlOperator op, String opName) {
+    final String typeName = getTypeName();
     return SqlUtil.getAliasedSignature(op, opName,
         nOperands == -1
-            ? ImmutableList.of("EQUIVALENT_TYPE", "EQUIVALENT_TYPE", "...")
-            : Collections.nCopies(nOperands, "EQUIVALENT_TYPE"));
+            ? ImmutableList.of(typeName, typeName, "...")
+            : Collections.nCopies(nOperands, typeName));
+  }
+
+  /** Override to change the behavior of
+   * {@link #getAllowedSignatures(SqlOperator, String)}. */
+  protected String getTypeName() {
+    return "EQUIVALENT_TYPE";
   }
 
   public boolean checkSingleOperandType(

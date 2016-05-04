@@ -19,12 +19,16 @@ package org.apache.calcite.util;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.examples.RelBuilderExample;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.util.SqlBuilder;
@@ -365,7 +369,7 @@ public class UtilTest {
    * Tests {@link org.apache.calcite.util.CastingList} and {@link Util#cast}.
    */
   @Test public void testCastingList() {
-    final List<Number> numberList = new ArrayList<Number>();
+    final List<Number> numberList = new ArrayList<>();
     numberList.add(new Integer(1));
     numberList.add(null);
     numberList.add(new Integer(2));
@@ -703,7 +707,7 @@ public class UtilTest {
 
     List<String> listEmpty = Collections.emptyList();
     List<String> listAbc = Arrays.asList("a", "b", "c");
-    List<String> listEmpty2 = new ArrayList<String>();
+    List<String> listEmpty2 = new ArrayList<>();
 
     // Made up of three lists, two of which are empty
     list = CompositeList.of(listEmpty, listAbc, listEmpty2);
@@ -763,7 +767,7 @@ public class UtilTest {
             "Hello, {0}, what a nice {1}.", "world", "day"));
 
     // Our extended message format. First, just strings.
-    final HashMap<Object, Object> map = new HashMap<Object, Object>();
+    final HashMap<Object, Object> map = new HashMap<>();
     map.put("person", "world");
     map.put("time", "day");
     assertEquals(
@@ -813,7 +817,7 @@ public class UtilTest {
         Collections.<String>emptyList(), template2.getParameterNames());
     assertEquals(
         "Don't expand this {brace}.",
-        template2.format(Collections.<Object, Object>emptyMap()));
+        template2.format(Collections.emptyMap()));
 
     // Empty template.
     assertEquals("", Template.formatByName("", map));
@@ -904,7 +908,7 @@ public class UtilTest {
    */
   @Test public void testPairAdjacents() {
     List<String> strings = Arrays.asList("a", "b", "c");
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     for (Pair<String, String> pair : Pair.adjacents(strings)) {
       result.add(pair.toString());
     }
@@ -929,7 +933,7 @@ public class UtilTest {
    */
   @Test public void testPairFirstAnd() {
     List<String> strings = Arrays.asList("a", "b", "c");
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     for (Pair<String, String> pair : Pair.firstAnd(strings)) {
       result.add(pair.toString());
     }
@@ -1045,13 +1049,13 @@ public class UtilTest {
   }
 
   private List<Integer> checkIntegerIntervalSet(String s, int... ints) {
-    List<Integer> list = new ArrayList<Integer>();
+    List<Integer> list = new ArrayList<>();
     final Set<Integer> set = IntegerIntervalSet.of(s);
     assertEquals(set.size(), ints.length);
     for (Integer integer : set) {
       list.add(integer);
     }
-    assertEquals(new HashSet<Integer>(IntList.asList(ints)), set);
+    assertEquals(new HashSet<>(IntList.asList(ints)), set);
     return list;
   }
 
@@ -1208,6 +1212,41 @@ public class UtilTest {
     if (eNull != null) {
       assertThat(cemp.compareTo(eNull) < 0, is(false));
     }
+  }
+
+  private <E> List<E> l1(E e) {
+    return Collections.singletonList(e);
+  }
+
+  private <E> List<E> l2(E e0, E e1) {
+    return Arrays.asList(e0, e1);
+  }
+
+  private <E> List<E> l3(E e0, E e1, E e2) {
+    return Arrays.asList(e0, e1, e2);
+  }
+
+  @Test public void testFlatListProduct() {
+    final List<Enumerator<List<String>>> list = new ArrayList<>();
+    list.add(Linq4j.enumerator(l2(l1("a"), l1("b"))));
+    list.add(Linq4j.enumerator(l3(l2("x", "p"), l2("y", "q"), l2("z", "r"))));
+    final Enumerable<FlatLists.ComparableList<String>> product =
+        SqlFunctions.product(list, 3, false);
+    int n = 0;
+    FlatLists.ComparableList<String> previous = FlatLists.of();
+    for (FlatLists.ComparableList<String> strings : product) {
+      if (n++ == 1) {
+        assertThat(strings.size(), is(3));
+        assertThat(strings.get(0), is("a"));
+        assertThat(strings.get(1), is("y"));
+        assertThat(strings.get(2), is("q"));
+      }
+      if (previous != null) {
+        assertTrue(previous.compareTo(strings) < 0);
+      }
+      previous = strings;
+    }
+    assertThat(n, is(6));
   }
 
   /**

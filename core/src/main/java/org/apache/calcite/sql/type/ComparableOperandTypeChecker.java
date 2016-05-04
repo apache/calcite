@@ -19,13 +19,9 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.base.Preconditions;
-
-import java.util.Collections;
 
 /**
  * Type checking strategy which verifies that types have the required attributes
@@ -99,14 +95,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
     boolean b = true;
     for (int i = 0; i < nOperands; ++i) {
       RelDataType type = callBinding.getOperandType(i);
-      boolean result;
-      if (type.getComparability().ordinal()
-          < requiredComparability.ordinal()) {
-        result = false;
-      } else {
-        result = true;
-      }
-      if (!result) {
+      if (type.getComparability().ordinal() < requiredComparability.ordinal()) {
         b = false;
       }
     }
@@ -116,9 +105,8 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
     return b;
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
-    return SqlUtil.getAliasedSignature(op, opName,
-        Collections.nCopies(nOperands, "COMPARABLE_TYPE"));
+  @Override protected String getTypeName() {
+    return "COMPARABLE_TYPE";
   }
 
   @Override public Consistency getConsistency() {

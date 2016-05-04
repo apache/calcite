@@ -16,27 +16,23 @@
  */
 package org.apache.calcite.linq4j;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
  * Enumerator over the cartesian product of enumerators.
  *
- * @param <T> Element type
+ * @param <T> Input element type
+ * @param <E> Element type
  */
-class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
+public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> {
   private final List<Enumerator<T>> enumerators;
-  private final T[] elements;
+  protected final T[] elements;
   private boolean first = true;
 
-  public CartesianProductEnumerator(List<Enumerator<T>> enumerators) {
+  protected CartesianProductEnumerator(List<Enumerator<T>> enumerators) {
     this.enumerators = enumerators;
     //noinspection unchecked
     this.elements = (T[]) new Object[enumerators.size()];
-  }
-
-  public List<T> current() {
-    return Arrays.asList(elements.clone());
   }
 
   public boolean moveNext() {

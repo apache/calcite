@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -76,11 +77,12 @@ import javax.annotation.Nullable;
  * AND composition, only the first rule is used for signature generation.
  */
 public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
+  private final SqlOperandCountRange range;
   //~ Enums ------------------------------------------------------------------
 
   /** How operands are composed. */
   public enum Composition {
-    AND, OR, SEQUENCE
+    AND, OR, SEQUENCE, REPEAT
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -98,11 +100,14 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   CompositeOperandTypeChecker(
       Composition composition,
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
-      @Nullable String allowedSignatures) {
+      @Nullable String allowedSignatures,
+      @Nullable SqlOperandCountRange range) {
     this.allowedRules = Preconditions.checkNotNull(allowedRules);
     this.composition = Preconditions.checkNotNull(composition);
     this.allowedSignatures = allowedSignatures;
-    assert allowedRules.size() > 1;
+    this.range = range;
+    assert (range != null) == (composition == Composition.REPEAT);
+    assert allowedRules.size() + (range == null ? 0 : 1) > 1;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -147,6 +152,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   public SqlOperandCountRange getOperandCountRange() {
     switch (composition) {
+    case REPEAT:
+      return range;
     case SEQUENCE:
       return SqlOperandCountRanges.of(allowedRules.size());
     case AND:
@@ -253,6 +260,23 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   private boolean check(SqlCallBinding callBinding) {
     switch (composition) {
+    case REPEAT:
+      if (!range.isValidCount(callBinding.getOperandCount())) {
+        return false;
+      }
+      for (int operand : Util.range(callBinding.getOperandCount())) {
+        for (SqlOperandTypeChecker rule : allowedRules) {
+          if (!((SqlSingleOperandTypeChecker) rule).checkSingleOperandType(
+              callBinding,
+              callBinding.getCall().operand(operand),
+              0,
+              false)) {
+            return false;
+          }
+        }
+      }
+      return true;
+
     case SEQUENCE:
       if (callBinding.getOperandCount() != allowedRules.size()) {
         return false;

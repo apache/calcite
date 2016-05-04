@@ -41,7 +41,7 @@ public class CompositeSingleOperandTypeChecker
       CompositeOperandTypeChecker.Composition composition,
       ImmutableList<? extends SqlSingleOperandTypeChecker> allowedRules,
       String allowedSignatures) {
-    super(composition, allowedRules, allowedSignatures);
+    super(composition, allowedRules, allowedSignatures, null);
   }
 
   //~ Methods ----------------------------------------------------------------

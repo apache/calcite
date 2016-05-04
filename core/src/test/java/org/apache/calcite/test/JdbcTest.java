@@ -2248,6 +2248,44 @@ public class JdbcTest {
             "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null");
   }
 
+  @Test public void testUnnestArrayScalarArray() {
+    CalciteAssert.hr()
+        .query("select d.\"name\", e.*\n"
+            + "from \"hr\".\"depts\" as d,\n"
+            + " UNNEST(d.\"employees\", array[1, 2]) as e")
+        .returnsUnordered(
+            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR$1=1",
+            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR$1=2",
+            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR$1=1",
+            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR$1=2",
+            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR$1=1",
+            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR$1=2");
+  }
+
+  @Test public void testUnnestArrayScalarArrayAliased() {
+    CalciteAssert.hr()
+        .query("select d.\"name\", e.*\n"
+            + "from \"hr\".\"depts\" as d,\n"
+            + " UNNEST(d.\"employees\", array[1, 2]) as e (ei, d, n, s, c, i)\n"
+            + "where ei + i > 151")
+        .returnsUnordered(
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1",
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2",
+            "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2");
+  }
+
+  @Test public void testUnnestArrayScalarArrayWithOrdinal() {
+    CalciteAssert.hr()
+        .query("select d.\"name\", e.*\n"
+            + "from \"hr\".\"depts\" as d,\n"
+            + " UNNEST(d.\"employees\", array[1, 2]) with ordinality as e (ei, d, n, s, c, i, o)\n"
+            + "where ei + i > 151")
+        .returnsUnordered(
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=2",
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=4",
+            "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=5");
+  }
+
   private CalciteAssert.AssertQuery withFoodMartQuery(int id)
       throws IOException {
     final FoodmartTest.FoodMartQuerySet set =

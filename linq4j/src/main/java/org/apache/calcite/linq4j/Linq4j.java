@@ -384,7 +384,7 @@ public abstract class Linq4j {
    */
   public static <T> Enumerator<List<T>> product(
       List<Enumerator<T>> enumerators) {
-    return new CartesianProductEnumerator<>(enumerators);
+    return new CartesianProductListEnumerator<>(enumerators);
   }
 
   /** Returns the cartesian product of an iterable of iterables. */
@@ -397,7 +397,7 @@ public abstract class Linq4j {
           enumerators.add(iterableEnumerator(iterable));
         }
         return enumeratorIterator(
-            new CartesianProductEnumerator<>(enumerators));
+            new CartesianProductListEnumerator<>(enumerators));
       }
     };
   }
@@ -447,7 +447,7 @@ public abstract class Linq4j {
     Iterator<? extends T> iterator;
     T current;
 
-    public IterableEnumerator(Iterable<? extends T> iterable) {
+    IterableEnumerator(Iterable<? extends T> iterable) {
       this.iterable = iterable;
       iterator = iterable.iterator();
       current = (T) DUMMY;
@@ -659,7 +659,7 @@ public abstract class Linq4j {
     private final Enumerator<T> enumerator;
     boolean hasNext;
 
-    public EnumeratorIterator(Enumerator<T> enumerator) {
+    EnumeratorIterator(Enumerator<T> enumerator) {
       this.enumerator = enumerator;
       hasNext = enumerator.moveNext();
     }
@@ -688,7 +688,7 @@ public abstract class Linq4j {
     private final List<? extends V> list;
     int i = -1;
 
-    public ListEnumerator(List<? extends V> list) {
+    ListEnumerator(List<? extends V> list) {
       this.list = list;
     }
 
@@ -705,6 +705,19 @@ public abstract class Linq4j {
     }
 
     public void close() {
+    }
+  }
+
+  /** Enumerates over the cartesian product of the given lists, returning
+   * a list for each row. */
+  private static class CartesianProductListEnumerator<E>
+      extends CartesianProductEnumerator<E, List<E>> {
+    CartesianProductListEnumerator(List<Enumerator<E>> enumerators) {
+      super(enumerators);
+    }
+
+    public List<E> current() {
+      return Arrays.asList(elements.clone());
     }
   }
 }

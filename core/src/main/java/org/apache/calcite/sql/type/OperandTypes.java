@@ -87,17 +87,16 @@ public abstract class OperandTypes {
   public static SqlOperandTypeChecker or(SqlOperandTypeChecker... rules) {
     return new CompositeOperandTypeChecker(
         CompositeOperandTypeChecker.Composition.OR,
-        ImmutableList.copyOf(rules), null);
+        ImmutableList.copyOf(rules), null, null);
   }
 
   /**
-   * Creates a single-operand checker that passes if any one of the rules
-   * passes.
+   * Creates a checker that passes if all of the rules pass.
    */
   public static SqlOperandTypeChecker and(SqlOperandTypeChecker... rules) {
     return new CompositeOperandTypeChecker(
         CompositeOperandTypeChecker.Composition.AND,
-        ImmutableList.copyOf(rules), null);
+        ImmutableList.copyOf(rules), null, null);
   }
 
   /**
@@ -112,8 +111,8 @@ public abstract class OperandTypes {
   }
 
   /**
-   * Creates a single-operand checker that passes if any one of the rules
-   * passes.
+   * Creates a single-operand checker that passes if all of the rules
+   * pass.
    */
   public static SqlSingleOperandTypeChecker and(
       SqlSingleOperandTypeChecker... rules) {
@@ -129,7 +128,18 @@ public abstract class OperandTypes {
       SqlSingleOperandTypeChecker... rules) {
     return new CompositeOperandTypeChecker(
         CompositeOperandTypeChecker.Composition.SEQUENCE,
-        ImmutableList.copyOf(rules), allowedSignatures);
+        ImmutableList.copyOf(rules), allowedSignatures, null);
+  }
+
+  /**
+   * Creates a checker that passes if all of the rules pass for each operand,
+   * using a given operand count strategy.
+   */
+  public static SqlOperandTypeChecker repeat(SqlOperandCountRange range,
+      SqlSingleOperandTypeChecker... rules) {
+    return new CompositeOperandTypeChecker(
+        CompositeOperandTypeChecker.Composition.REPEAT,
+        ImmutableList.copyOf(rules), null, range);
   }
 
   // ----------------------------------------------------------------------

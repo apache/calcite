@@ -19,15 +19,15 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.IntList;
 
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,48 +83,24 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
             JavaRowFormat.LIST);
 
     // final Enumerable<List<Employee>> child = <<child adapter>>;
-    // return child.selectMany(LIST_TO_ENUMERABLE);
+    // return child.selectMany(FLAT_PRODUCT);
     final Expression child_ =
         builder.append(
             "child", result.block);
-    final Expression lambda;
-    if (withOrdinality) {
-      final BlockBuilder builder2 = new BlockBuilder();
-      final ParameterExpression o_ = Expressions.parameter(Modifier.FINAL,
-          result.physType.getJavaRowType(),
-          "o");
-      final Expression list_ = builder2.append("list",
-          Expressions.new_(ArrayList.class));
-      final ParameterExpression i_ = Expressions.parameter(int.class, "i");
-      final BlockBuilder builder3 = new BlockBuilder();
-      final Expression v_ =
-          builder3.append("v",
-              Expressions.call(o_, BuiltInMethod.LIST_GET.method, i_));
-      final List<Expression> expressions = new ArrayList<>();
-      final PhysType componentPhysType = result.physType.component(0);
-      final int fieldCount = componentPhysType.getRowType().getFieldCount();
-      expressions.addAll(
-          componentPhysType.accessors(v_,
-              ImmutableIntList.identity(fieldCount)));
-      expressions.add(Expressions.add(i_, Expressions.constant(1)));
-      builder3.add(
-          Expressions.statement(
-              Expressions.call(list_, BuiltInMethod.COLLECTION_ADD.method,
-                  physType.record(expressions))));
-      builder2.add(
-          Expressions.for_(
-              Expressions.declare(0, i_, Expressions.constant(0)),
-              Expressions.lessThan(i_,
-                  Expressions.call(o_, BuiltInMethod.COLLECTION_SIZE.method)),
-              Expressions.postIncrementAssign(i_),
-              builder3.toBlock()));
-      builder2.add(
-          Expressions.return_(null,
-              Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, list_)));
-      lambda = Expressions.lambda(builder2.toBlock(), o_);
-    } else {
-      lambda = Expressions.call(BuiltInMethod.LIST_TO_ENUMERABLE.method);
+    final List<Integer> fieldCounts = new ArrayList<>();
+    for (RelDataTypeField field : child.getRowType().getFieldList()) {
+      final RelDataType type = field.getType();
+      final RelDataType elementType = type.getComponentType();
+      if (elementType.isStruct()) {
+        fieldCounts.add(elementType.getFieldCount());
+      } else {
+        fieldCounts.add(-1);
+      }
     }
+    final Expression lambda =
+        Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
+            Expressions.constant(IntList.toArray(fieldCounts)),
+            Expressions.constant(withOrdinality));
     builder.add(
         Expressions.return_(null,
             Expressions.call(child_,

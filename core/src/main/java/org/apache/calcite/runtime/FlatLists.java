@@ -37,7 +37,7 @@ public class FlatLists {
       new ComparableEmptyList();
 
   /** Creates a flat list with 0 elements. */
-  public static <T> List<T> of() {
+  public static <T> ComparableList<T> of() {
     //noinspection unchecked
     return COMPARABLE_EMPTY_LIST;
   }
@@ -135,23 +135,24 @@ public class FlatLists {
    * @param t Array of members of list
    * @return List containing the given members
    */
-  private static <T extends Comparable> List<T> flatList_(T[] t, boolean copy) {
+  private static <T extends Object & Comparable> ComparableList<T>
+  flatList_(T[] t, boolean copy) {
     switch (t.length) {
     case 0:
       //noinspection unchecked
       return COMPARABLE_EMPTY_LIST;
     case 1:
-      return Collections.singletonList(t[0]);
+      return new Flat1List<>(t[0]);
     case 2:
-      return new Flat2List<T>(t[0], t[1]);
+      return new Flat2List<>(t[0], t[1]);
     case 3:
-      return new Flat3List<T>(t[0], t[1], t[2]);
+      return new Flat3List<>(t[0], t[1], t[2]);
     case 4:
-      return new Flat4List<T>(t[0], t[1], t[2], t[3]);
+      return new Flat4List<>(t[0], t[1], t[2], t[3]);
     case 5:
-      return new Flat5List<T>(t[0], t[1], t[2], t[3], t[4]);
+      return new Flat5List<>(t[0], t[1], t[2], t[3], t[4]);
     case 6:
-      return new Flat6List<T>(t[0], t[1], t[2], t[3], t[4], t[5]);
+      return new Flat6List<>(t[0], t[1], t[2], t[3], t[4], t[5]);
     default:
       // REVIEW: AbstractList contains a modCount field; we could
       //   write our own implementation and reduce creation overhead a
@@ -202,12 +203,21 @@ public class FlatLists {
    * @return List containing the given members
    */
   public static <T> List<T> of(List<T> t) {
+    return of_(t);
+  }
+
+  public static <T extends Comparable> ComparableList<T>
+  ofComparable(List<T> t) {
+    return of_(t);
+  }
+
+  private static <T> ComparableList<T> of_(List<T> t) {
     switch (t.size()) {
     case 0:
       //noinspection unchecked
       return COMPARABLE_EMPTY_LIST;
     case 1:
-      return Collections.singletonList(t.get(0));
+      return new Flat1List<>(t.get(0));
     case 2:
       return new Flat2List<>(t.get(0), t.get(1));
     case 3:
@@ -1239,6 +1249,7 @@ public class FlatLists {
       return a.compareTo(b);
     }
   }
+
 }
 
 // End FlatLists.java

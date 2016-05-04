@@ -2052,19 +2052,25 @@ public class SqlToRelConverter {
 
     case UNNEST:
       call = (SqlCall) from;
-      final SqlNode node = call.operand(0);
+      final List<SqlNode> nodes = call.getOperandList();
       final SqlUnnestOperator operator = (SqlUnnestOperator) call.getOperator();
-      replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-      final RelNode childRel =
+      for (SqlNode node : nodes) {
+        replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+      }
+      final List<RexNode> exprs = new ArrayList<>();
+      final List<String> fieldNames = new ArrayList<>();
+      for (Ord<SqlNode> node : Ord.zip(nodes)) {
+        exprs.add(bb.convertExpression(node.e));
+        fieldNames.add(validator.deriveAlias(node.e, node.i));
+      }
+      final RelNode input =
           RelOptUtil.createProject(
               (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster),
-              Collections.singletonList(bb.convertExpression(node)),
-              Collections.singletonList(validator.deriveAlias(node, 0)),
-              true);
+              exprs, fieldNames, true);
 
       Uncollect uncollect =
           new Uncollect(cluster, cluster.traitSetOf(Convention.NONE),
-              childRel, operator.withOrdinality);
+              input, operator.withOrdinality);
       bb.setRoot(uncollect, true);
       return;
 

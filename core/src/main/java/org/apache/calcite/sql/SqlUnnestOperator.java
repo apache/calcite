@@ -21,7 +21,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
 /**
  * The <code>UNNEST</code> operator.
@@ -44,33 +46,33 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         true,
         null,
         null,
-        OperandTypes.SCALAR_OR_RECORD_COLLECTION);
+        OperandTypes.repeat(SqlOperandCountRanges.from(1),
+            OperandTypes.SCALAR_OR_RECORD_COLLECTION));
     this.withOrdinality = withOrdinality;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
-      SqlOperatorBinding opBinding) {
-    RelDataType type = opBinding.getOperandType(0);
-    if (type.isStruct()) {
-      type = type.getFieldList().get(0).getType();
-    }
-    assert type instanceof ArraySqlType || type instanceof MultisetSqlType;
-    if (withOrdinality) {
-      final RelDataTypeFactory.FieldInfoBuilder builder =
-          opBinding.getTypeFactory().builder();
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory.FieldInfoBuilder builder =
+        opBinding.getTypeFactory().builder();
+    for (Integer operand : Util.range(opBinding.getOperandCount())) {
+      RelDataType type = opBinding.getOperandType(operand);
+      if (type.isStruct()) {
+        type = type.getFieldList().get(0).getType();
+      }
+      assert type instanceof ArraySqlType || type instanceof MultisetSqlType;
       if (type.getComponentType().isStruct()) {
         builder.addAll(type.getComponentType().getFieldList());
       } else {
-        builder.add(SqlUtil.deriveAliasFromOrdinal(0), type.getComponentType());
+        builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
+            type.getComponentType());
       }
-      return builder
-          .add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER)
-          .build();
-    } else {
-      return type.getComponentType();
     }
+    if (withOrdinality) {
+      builder.add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
+    }
+    return builder.build();
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
