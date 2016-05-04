@@ -25,16 +25,16 @@ import org.junit.Test;
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package.
  *
- * <p>Before calling this test, you need to populate Cassandra with the
- * "twissandra" data set, as follows:</p>
+ * <p>Before calling this test, you need to populate Cassandra, as follows:
  *
  * <blockquote><code>
- * git clone https://github.com/vlsi/calcite-test-dataset
- * cd calcite-test-dataset
+ * git clone https://github.com/vlsi/calcite-test-dataset<br>
+ * cd calcite-test-dataset<br>
  * mvn install
  * </code></blockquote>
  *
- * This will create a virtual machine with Cassandra and test dataset.
+ * <p>This will create a virtual machine with Cassandra and the "twissandra"
+ * test data set.
  */
 public class CassandraAdapterIT {
   /** Connection factory based on the "mongo-zips" model. */

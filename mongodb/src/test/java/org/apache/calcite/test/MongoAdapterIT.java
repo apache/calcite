@@ -41,17 +41,16 @@ import static org.junit.Assert.assertThat;
 /**
  * Tests for the {@code org.apache.calcite.adapter.mongodb} package.
  *
- * <p>Before calling this test, you need to populate MongoDB with the "zips"
- * data set (as described in howto.md)
- * and "foodmart" data set, as follows:</p>
+ * <p>Before calling this test, you need to populate MongoDB, as follows:
  *
  * <blockquote><code>
- * git clone https://github.com/vlsi/test-dataset
- * cd test-dataset
+ * git clone https://github.com/vlsi/calcite-test-dataset<br>
+ * cd calcite-test-dataset<br>
  * mvn install
  * </code></blockquote>
  *
- * This will create a virtual machine with MongoDB and test dataset.
+ * <p>This will create a virtual machine with MongoDB and "zips" and "foodmart"
+ * data sets.
  */
 public class MongoAdapterIT {
   public static final String MONGO_FOODMART_SCHEMA = "     {\n"

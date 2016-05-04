@@ -45,8 +45,8 @@ import static org.junit.Assert.assertTrue;
  * <p>Before calling this test, you need to populate Druid, as follows:
  *
  * <blockquote><code>
- * git clone https://github.com/vlsi/test-dataset
- * cd test-dataset
+ * git clone https://github.com/vlsi/calcite-test-dataset<br>
+ * cd calcite-test-dataset<br>
  * mvn install
  * </code></blockquote>
  *
