@@ -64,11 +64,7 @@ class EmptyScope implements SqlValidatorScope {
     throw new UnsupportedOperationException();
   }
 
-  public SqlValidatorNamespace resolve(
-      List<String> names,
-      SqlValidatorScope[] ancestorOut,
-      int[] offsetOut) {
-    return null;
+  public void resolve(List<String> names, boolean deep, Resolved resolved) {
   }
 
   public SqlValidatorNamespace getTableNamespace(List<String> names) {

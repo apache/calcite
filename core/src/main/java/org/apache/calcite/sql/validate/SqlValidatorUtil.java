@@ -109,14 +109,13 @@ public class SqlValidatorUtil {
    * Looks up a field with a given name, returning null if not found.
    *
    * @param caseSensitive Whether match is case-sensitive
-   * @param elideRecord Whether to find fields nested within records
    * @param rowType    Row type
    * @param columnName Field name
    * @return Field, or null if not found
    */
   public static RelDataTypeField lookupField(boolean caseSensitive,
-      boolean elideRecord, final RelDataType rowType, String columnName) {
-    return rowType.getField(columnName, caseSensitive, elideRecord);
+      final RelDataType rowType, String columnName) {
+    return rowType.getField(columnName, caseSensitive, false);
   }
 
   public static void checkCharsetAndCollateConsistentIfCharType(
@@ -445,16 +444,15 @@ public class SqlValidatorUtil {
       SqlValidatorScope scope,
       List<String> names) {
     assert names.size() > 0;
-    SqlValidatorNamespace namespace = null;
-    for (int i = 0; i < names.size(); i++) {
-      String name = names.get(i);
-      if (i == 0) {
-        namespace = scope.resolve(ImmutableList.of(name), null, null);
-      } else {
-        namespace = namespace.lookupChild(name);
-      }
+    final SqlValidatorScope.ResolvedImpl resolved =
+        new SqlValidatorScope.ResolvedImpl();
+    scope.resolve(ImmutableList.of(names.get(0)), false, resolved);
+    assert resolved.count() == 1;
+    SqlValidatorNamespace namespace = resolved.only().namespace;
+    for (String name : Util.skip(names)) {
+      namespace = namespace.lookupChild(name);
+      assert namespace != null;
     }
-    assert namespace != null;
     return namespace;
   }
 
@@ -524,14 +522,14 @@ public class SqlValidatorUtil {
 
   public static RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList, RelDataTypeFactory typeFactory,
-      boolean caseSensitive, boolean elideRecord) {
+      boolean caseSensitive) {
     // If the names in columnNameList and type have case-sensitive differences,
     // the resulting type will use those from type. These are presumably more
     // canonical.
     final List<RelDataTypeField> fields =
         new ArrayList<>(columnNameList.size());
     for (String name : columnNameList) {
-      RelDataTypeField field = type.getField(name, caseSensitive, elideRecord);
+      RelDataTypeField field = type.getField(name, caseSensitive, false);
       fields.add(type.getFieldList().get(field.getIndex()));
     }
     return typeFactory.createStructType(fields);
@@ -657,26 +655,24 @@ public class SqlValidatorUtil {
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
-      int[] nsIndexes = {-1};
-      final SqlValidatorScope[] ancestorScopes = {null};
-      SqlValidatorNamespace foundNs =
-          scope.resolve(
-              ImmutableList.of(originalRelName),
-              ancestorScopes,
-              nsIndexes);
+      final SqlValidatorScope.ResolvedImpl resolved =
+          new SqlValidatorScope.ResolvedImpl();
+      scope.resolve(ImmutableList.of(originalRelName), false, resolved);
 
-      assert foundNs != null;
-      assert nsIndexes.length == 1;
-      int childNamespaceIndex = nsIndexes[0];
+      assert resolved.count() == 1;
+      final SqlValidatorScope.Resolve resolve = resolved.only();
+      final SqlValidatorNamespace foundNs = resolve.namespace;
+      final int childNamespaceIndex = resolve.path.steps().get(0).i;
 
       int namespaceOffset = 0;
 
       if (childNamespaceIndex > 0) {
         // If not the first child, need to figure out the width of
         // output types from all the preceding namespaces
-        assert ancestorScopes[0] instanceof ListScope;
+        final SqlValidatorScope ancestorScope = resolve.scope;
+        assert ancestorScope instanceof ListScope;
         List<SqlValidatorNamespace> children =
-            ((ListScope) ancestorScopes[0]).getChildren();
+            ((ListScope) ancestorScope).getChildren();
 
         for (int j = 0; j < childNamespaceIndex; j++) {
           namespaceOffset +=

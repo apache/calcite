@@ -19,6 +19,8 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Preconditions;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -26,37 +28,55 @@ import java.util.List;
  * RelRecordType represents a structured type having named fields.
  */
 public class RelRecordType extends RelDataTypeImpl implements Serializable {
+  /** Name resolution policy; usually {@link StructKind#FULLY_QUALIFIED}. */
+  private final StructKind kind;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a <code>RecordType</code>. This should only be called from a
    * factory method.
    */
-  public RelRecordType(List<RelDataTypeField> fields) {
+  public RelRecordType(StructKind kind, List<RelDataTypeField> fields) {
     super(fields);
+    this.kind = Preconditions.checkNotNull(kind);
     computeDigest();
+  }
+
+  public RelRecordType(List<RelDataTypeField> fields) {
+    this(StructKind.FULLY_QUALIFIED, fields);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelDataType
-  public SqlTypeName getSqlTypeName() {
+  @Override public SqlTypeName getSqlTypeName() {
     return SqlTypeName.ROW;
   }
 
-  // implement RelDataType
-  public boolean isNullable() {
+  @Override public boolean isNullable() {
     return false;
   }
 
-  // implement RelDataType
-  public int getPrecision() {
+  @Override public int getPrecision() {
     // REVIEW: angel 18-Aug-2005 Put in fake implementation for precision
     return 0;
   }
 
+  @Override public StructKind getStructKind() {
+    return kind;
+  }
+
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
-    sb.append("RecordType(");
+    sb.append("RecordType");
+    switch (kind) {
+    case PEEK_FIELDS:
+      sb.append(":peek");
+      break;
+    case PEEK_FIELDS_DEFAULT:
+      sb.append(":peek_default");
+      break;
+    }
+    sb.append("(");
     for (Ord<RelDataTypeField> ord : Ord.zip(fieldList)) {
       if (ord.i > 0) {
         sb.append(", ");

@@ -16,15 +16,21 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -39,7 +45,7 @@ public abstract class ListScope extends DelegatingScope {
    * List of child {@link SqlValidatorNamespace} objects and their names.
    */
   protected final List<Pair<String, SqlValidatorNamespace>> children =
-      new ArrayList<Pair<String, SqlValidatorNamespace>>();
+      new ArrayList<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -63,57 +69,30 @@ public abstract class ListScope extends DelegatingScope {
     return Pair.right(children);
   }
 
-  protected SqlValidatorNamespace getChild(String alias) {
-    if (alias == null) {
-      if (children.size() != 1) {
-        throw Util.newInternal(
-            "no alias specified, but more than one table in from list");
-      }
-      return children.get(0).right;
-    } else {
-      final int i = validator.catalogReader.match(Pair.left(children), alias);
-      if (i >= 0) {
-        return children.get(i).right;
-      }
-      return null;
-    }
-  }
-
-  /** Returns a child namespace that matches a fully-qualified list of names.
-   * This will be a schema-qualified table, for example
-   *
-   * <blockquote><pre>SELECT sales.emp.empno FROM sales.emp</pre></blockquote>
-   */
-  protected SqlValidatorNamespace getChild(List<String> names) {
-    int i = findChild(names);
-    return i < 0 ? null : children.get(i).right;
-  }
-
-  protected int findChild(List<String> names) {
-    for (int i = 0; i < children.size(); i++) {
-      Pair<String, SqlValidatorNamespace> child = children.get(i);
-      if (child.left != null) {
-        if (validator.catalogReader.matches(child.left, Util.last(names))) {
-          if (names.size() == 1) {
-            return i;
-          }
-        } else {
+  private int findChild(List<String> names) {
+    for (Ord<Pair<String, SqlValidatorNamespace>> child : Ord.zip(children)) {
+      String lastName = Util.last(names);
+      if (child.e.left != null) {
+        if (!validator.catalogReader.matches(child.e.left, lastName)) {
           // Alias does not match last segment. Don't consider the
           // fully-qualified name. E.g.
           //    SELECT sales.emp.name FROM sales.emp AS otherAlias
           continue;
         }
+        if (names.size() == 1) {
+          return child.i;
+        }
       }
 
       // Look up the 2 tables independently, in case one is qualified with
       // catalog & schema and the other is not.
-      final SqlValidatorTable table = child.right.getTable();
+      final SqlValidatorTable table = child.e.right.getTable();
       if (table != null) {
         final SqlValidatorTable table2 =
             validator.catalogReader.getTable(names);
         if (table2 != null
             && table.getQualifiedName().equals(table2.getQualifiedName())) {
-          return i;
+          return child.i;
         }
       }
     }
@@ -134,47 +113,84 @@ public abstract class ListScope extends DelegatingScope {
     parent.findAliases(result);
   }
 
-  public Pair<String, SqlValidatorNamespace>
+  @Override public Pair<String, SqlValidatorNamespace>
   findQualifyingTableName(final String columnName, SqlNode ctx) {
-    int count = 0;
-    Pair<String, SqlValidatorNamespace> tableName = null;
-    for (Pair<String, SqlValidatorNamespace> child : children) {
-      final RelDataType rowType = child.right.getRowType();
-      if (validator.catalogReader.field(rowType, columnName) != null) {
-        tableName = child;
-        count++;
-      }
-    }
-    switch (count) {
+    final Map<String, SqlValidatorNamespace> map =
+        findQualifyingTables(columnName);
+    switch (map.size()) {
     case 0:
       return parent.findQualifyingTableName(columnName, ctx);
     case 1:
-      return tableName;
+      return Pair.of(map.entrySet().iterator().next());
     default:
       throw validator.newValidationError(ctx,
           RESOURCE.columnAmbiguous(columnName));
     }
   }
 
-  public SqlValidatorNamespace resolve(
-      List<String> names,
-      SqlValidatorScope[] ancestorOut,
-      int[] offsetOut) {
+  @Override public Map<String, SqlValidatorNamespace>
+  findQualifyingTables(String columnName) {
+    final Map<String, SqlValidatorNamespace> map = new HashMap<>();
+    for (Pair<String, SqlValidatorNamespace> child : children) {
+      final ResolvedImpl resolved = new ResolvedImpl();
+      resolve(ImmutableList.of(child.left, columnName), true, resolved);
+      if (resolved.count() > 0) {
+        map.put(child.getKey(), child.getValue());
+      }
+    }
+    return map;
+  }
+
+  @Override protected boolean hasLiberalChild() {
+    for (Pair<String, SqlValidatorNamespace> child : children) {
+      final RelDataType rowType = child.right.getRowType();
+      switch (rowType.getStructKind()) {
+      case PEEK_FIELDS:
+      case PEEK_FIELDS_DEFAULT:
+        return true;
+      }
+      for (RelDataTypeField field : rowType.getFieldList()) {
+        switch (field.getType().getStructKind()) {
+        case PEEK_FIELDS:
+        case PEEK_FIELDS_DEFAULT:
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @Override public void resolve(List<String> names, boolean deep,
+      Resolved resolved) {
     // First resolve by looking through the child namespaces.
     final int i = findChild(names);
     if (i >= 0) {
-      if (ancestorOut != null) {
-        ancestorOut[0] = this;
+      final Step path =
+          resolved.emptyPath().add(null, i, StructKind.FULLY_QUALIFIED);
+      resolved.found(children.get(i).right, this, path);
+      return;
+    }
+
+    // Recursively look deeper into the record-valued fields of the namespace,
+    // if it allows skipping fields.
+    if (deep) {
+      for (Ord<Pair<String, SqlValidatorNamespace>> child : Ord.zip(children)) {
+        // If identifier starts with table alias, remove the alias.
+        final List<String> names2 =
+            validator.catalogReader.matches(child.e.left, names.get(0))
+                ? names.subList(1, names.size())
+                : names;
+        resolveInNamespace(child.e.right, names2, resolved.emptyPath(),
+            resolved);
       }
-      if (offsetOut != null) {
-        offsetOut[0] = i;
+      if (resolved.count() > 0) {
+        return;
       }
-      return children.get(i).right;
     }
 
     // Then call the base class method, which will delegate to the
     // parent scope.
-    return parent.resolve(names, ancestorOut, offsetOut);
+    super.resolve(names, deep, resolved);
   }
 
   public RelDataType resolveColumn(String columnName, SqlNode ctx) {

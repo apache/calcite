@@ -2203,20 +2203,15 @@ public class SqlToRelConverter {
       String originalRelName = lookup.getOriginalRelName();
       String originalFieldName = fieldAccess.getField().getName();
 
-      int[] nsIndexes = {-1};
-      final SqlValidatorScope[] ancestorScopes = {null};
-      SqlValidatorNamespace foundNs =
-          lookup.bb.scope.resolve(
-              ImmutableList.of(originalRelName),
-              ancestorScopes,
-              nsIndexes);
-
-      assert foundNs != null;
-      assert nsIndexes.length == 1;
-
-      int childNamespaceIndex = nsIndexes[0];
-
-      SqlValidatorScope ancestorScope = ancestorScopes[0];
+      SqlValidatorScope.ResolvedImpl resolved =
+          new SqlValidatorScope.ResolvedImpl();
+      lookup.bb.scope.resolve(ImmutableList.of(originalRelName), false,
+          resolved);
+      assert resolved.count() == 1;
+      final SqlValidatorScope.Resolve resolve = resolved.only();
+      final SqlValidatorNamespace foundNs = resolve.namespace;
+      final int childNamespaceIndex = resolve.path.steps().get(0).i;
+      final SqlValidatorScope ancestorScope = resolve.scope;
       boolean correlInCurrentScope = ancestorScope == bb.scope;
 
       if (!correlInCurrentScope) {
@@ -2309,18 +2304,12 @@ public class SqlToRelConverter {
       DeferredLookup lookup = mapCorrelToDeferred.get(correlName);
       String originalRelName = lookup.getOriginalRelName();
 
-      int[] nsIndexes = {-1};
-      final SqlValidatorScope[] ancestorScopes = {null};
-      SqlValidatorNamespace foundNs =
-          lookup.bb.scope.resolve(
-              ImmutableList.of(originalRelName),
-              ancestorScopes,
-              nsIndexes);
+      final SqlValidatorScope.ResolvedImpl resolved =
+          new SqlValidatorScope.ResolvedImpl();
+      lookup.bb.scope.resolve(ImmutableList.of(originalRelName), false,
+          resolved);
 
-      assert foundNs != null;
-      assert nsIndexes.length == 1;
-
-      SqlValidatorScope ancestorScope = ancestorScopes[0];
+      SqlValidatorScope ancestorScope = resolved.only().scope;
 
       // If the correlated reference is in a scope that's "above" the
       // subquery, then this is a correlated subquery.
@@ -3900,24 +3889,24 @@ public class SqlToRelConverter {
         }
         return Pair.of(node, null);
       }
-      int[] offsets = {-1};
-      final SqlValidatorScope[] ancestorScopes = {null};
-      SqlValidatorNamespace foundNs =
-          scope.resolve(qualified.prefix(), ancestorScopes, offsets);
-      if (foundNs == null) {
+      final SqlValidatorScope.ResolvedImpl resolved =
+          new SqlValidatorScope.ResolvedImpl();
+      scope.resolve(qualified.prefix(), false, resolved);
+      if (!(resolved.count() == 1)) {
         return null;
       }
+      final SqlValidatorScope.Resolve resolve = resolved.only();
+      final SqlValidatorNamespace foundNs = resolve.namespace;
 
       // Found in current query's from list.  Find which from item.
       // We assume that the order of the from clause items has been
       // preserved.
-      SqlValidatorScope ancestorScope = ancestorScopes[0];
+      final SqlValidatorScope ancestorScope = resolve.scope;
       boolean isParent = ancestorScope != scope;
       if ((inputs != null) && !isParent) {
-        int offset = offsets[0];
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());
-        final RexNode node = lookup(offset, rels);
+        final RexNode node = lookup(resolve.path.steps().get(0).i, rels);
         if (node == null) {
           return null;
         } else {
@@ -3932,20 +3921,20 @@ public class SqlToRelConverter {
             new DeferredLookup(this, qualified.identifier.names.get(0));
         final CorrelationId correlId = cluster.createCorrel();
         mapCorrelToDeferred.put(correlId, lookup);
-        if (offsets[0] < 0) {
+        if (resolve.path.steps().get(0).i < 0) {
           return Pair.of(rexBuilder.makeCorrel(foundNs.getRowType(), correlId),
               null);
         } else {
           final RelDataTypeFactory.FieldInfoBuilder builder =
               typeFactory.builder();
-          final ListScope ancestorScope1 = (ListScope) ancestorScopes[0];
+          final ListScope ancestorScope1 = (ListScope) resolve.scope;
           final ImmutableMap.Builder<String, Integer> fields =
               ImmutableMap.builder();
           int i = 0;
           int offset = 0;
           for (SqlValidatorNamespace c : ancestorScope1.getChildren()) {
             builder.addAll(c.getRowType().getFieldList());
-            if (i == offsets[0]) {
+            if (i == resolve.path.steps().get(0).i) {
               for (RelDataTypeField field : c.getRowType().getFieldList()) {
                 fields.put(field.getName(), field.getIndex() + offset);
               }

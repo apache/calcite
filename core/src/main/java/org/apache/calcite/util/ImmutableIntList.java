@@ -223,8 +223,12 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return -1;
   }
 
+  @Override public ImmutableIntList append(Integer e) {
+    return append((int) e);
+  }
+
   /** Returns a copy of this list with one element added. */
-  public ImmutableIntList add(int element) {
+  public ImmutableIntList append(int element) {
     if (ints.length == 0) {
       return of(element);
     }

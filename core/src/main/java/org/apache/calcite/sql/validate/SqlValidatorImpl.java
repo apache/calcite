@@ -445,7 +445,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     switch (identifier.names.size()) {
     case 1:
       for (Pair<String, SqlValidatorNamespace> p : scope.children) {
-
         if (p.right.getRowType().isDynamicStruct()) {
           // don't expand star if the underneath table is dynamic.
           // Treat this star as a special field in validation/conversion and
@@ -482,33 +481,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 includeSystemVars);
           }
         }
-
       }
       return true;
+
     default:
       final SqlIdentifier prefixId = identifier.skipLast(1);
-      final SqlValidatorNamespace fromNs;
-      if (prefixId.names.size() == 1) {
-        String tableName = prefixId.names.get(0);
-        final SqlValidatorNamespace childNs = scope.getChild(tableName);
-        if (childNs == null) {
-          // e.g. "select r.* from e"
-          throw newValidationError(identifier.getComponent(0),
-              RESOURCE.unknownIdentifier(tableName));
-        }
-        final SqlNode from = childNs.getNode();
-        fromNs = getNamespace(from);
-      } else {
-        fromNs = scope.getChild(prefixId.names);
-        if (fromNs == null) {
-          // e.g. "select s.t.* from e"
-          throw newValidationError(prefixId,
-              RESOURCE.unknownIdentifier(prefixId.toString()));
-        }
+      final SqlValidatorScope.ResolvedImpl resolved =
+          new SqlValidatorScope.ResolvedImpl();
+      scope.resolve(prefixId.names, true, resolved);
+      if (resolved.count() == 0) {
+        // e.g. "select s.t.* from e"
+        // or "select r.* from e"
+        throw newValidationError(prefixId,
+            RESOURCE.unknownIdentifier(prefixId.toString()));
       }
-      assert fromNs != null;
+      final SqlValidatorNamespace fromNs = resolved.only().namespace;
       final RelDataType rowType = fromNs.getRowType();
-
       if (rowType.isDynamicStruct()) {
         // don't expand star if the underneath table is dynamic.
         addToSelectList(
@@ -518,7 +506,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             prefixId.plus(DynamicRecordType.DYNAMIC_STAR_PREFIX, startPosition),
             scope,
             includeSystemVars);
-      } else {
+      } else if (rowType.isStruct()) {
         for (RelDataTypeField field : rowType.getFieldList()) {
           String columnName = field.getName();
 
@@ -531,8 +519,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               scope,
               includeSystemVars);
         }
+      } else {
+        throw newValidationError(prefixId, RESOURCE.starRequiresRecordType());
       }
-
       return true;
     }
   }
@@ -701,7 +690,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorNamespace ns = null;
       for (String name : subNames) {
         if (ns == null) {
-          ns = scope.resolve(ImmutableList.of(name), null, null);
+          final SqlValidatorScope.ResolvedImpl resolved =
+              new SqlValidatorScope.ResolvedImpl();
+          scope.resolve(ImmutableList.of(name), false, resolved);
+          if (resolved.count() == 1) {
+            ns = resolved.only().namespace;
+          }
         } else {
           ns = ns.lookupChild(name);
         }
@@ -932,10 +926,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlValidatorScope parentScope =
           ((DelegatingScope) scope).getParent();
       if (id.isSimple()) {
-        SqlValidatorNamespace ns =
-            parentScope.resolve(id.names, null, null);
-        if (ns != null) {
-          return ns;
+        final SqlValidatorScope.ResolvedImpl resolved =
+            new SqlValidatorScope.ResolvedImpl();
+        parentScope.resolve(id.names, false, resolved);
+        if (resolved.count() == 1) {
+          return resolved.only().namespace;
         }
       }
     }
@@ -4439,7 +4434,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       // Resolve the longest prefix of id that we can
-      SqlValidatorNamespace resolvedNs;
       int i;
       for (i = id.names.size() - 1; i > 0; i--) {
         // REVIEW jvs 9-June-2005: The name resolution rules used
@@ -4450,10 +4444,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // we could do a better job if they were looked up via
         // resolveColumn.
 
-        resolvedNs = scope.resolve(id.names.subList(0, i), null, null);
-        if (resolvedNs != null) {
+        final SqlValidatorScope.ResolvedImpl resolved =
+            new SqlValidatorScope.ResolvedImpl();
+        scope.resolve(id.names.subList(0, i), false, resolved);
+        if (resolved.count() == 1) {
           // There's a namespace with the name we seek.
-          type = resolvedNs.getRowType();
+          final SqlValidatorScope.Resolve resolve = resolved.only();
+          type = resolve.namespace.getRowType();
+          for (SqlValidatorScope.Step p : Util.skip(resolve.path.steps())) {
+            type = type.getFieldList().get(p.i).getType();
+          }
           break;
         }
       }
@@ -4525,9 +4525,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class Expander extends SqlScopedShuttle {
     private final SqlValidatorImpl validator;
 
-    public Expander(
-        SqlValidatorImpl validator,
-        SqlValidatorScope scope) {
+    Expander(SqlValidatorImpl validator, SqlValidatorScope scope) {
       super(scope);
       this.validator = validator;
     }
@@ -4549,7 +4547,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // SqlIdentifier "col_name" would be resolved to a dynamic star field in dynTable's rowType.
       // Expand such SqlIdentifier to ITEM operator.
       if (DynamicRecordType.isDynamicStarColName(Util.last(fqId.names))
-        && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
+          && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
         SqlNode[] inputs = new SqlNode[2];
         inputs[0] = fqId;
         inputs[1] = SqlLiteral.createCharString(

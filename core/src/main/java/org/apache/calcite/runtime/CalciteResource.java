@@ -607,6 +607,9 @@ public interface CalciteResource {
   @BaseMessage("Table ''{0}'' not found")
   ExInst<CalciteException> tableNotFound(String tableName);
 
+  @BaseMessage("Not a record type. The ''*'' operator requires a record")
+  ExInst<SqlValidatorException> starRequiresRecordType();
+
   @BaseMessage("FILTER expression must be of type BOOLEAN")
   ExInst<CalciteException> filterMustBeBoolean();
 

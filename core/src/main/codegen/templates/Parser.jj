@@ -3686,20 +3686,19 @@ SqlIdentifier CompoundIdentifier() :
     }
     (
         <DOT>
-        (
-            p = Identifier() {
-                star = false;
-                list.add(p);
-                posList.add(getPos());
-            }
-        |
-            <STAR> {
-                star = true;
-                list.add("*");
-                posList.add(getPos());
-            }
-        )
+        p = Identifier() {
+            list.add(p);
+            posList.add(getPos());
+        }
     ) *
+    (
+        <DOT>
+        <STAR> {
+            star = true;
+            list.add("");
+            posList.add(getPos());
+        }
+    )?
     {
         SqlParserPos pos = SqlParserPos.sum(posList);
         if (star) {

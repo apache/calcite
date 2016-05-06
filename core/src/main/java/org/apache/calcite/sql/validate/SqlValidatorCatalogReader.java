@@ -80,15 +80,7 @@ public interface SqlValidatorCatalogReader {
    */
   RelDataTypeField field(RelDataType rowType, String alias);
 
-  /**
-   * Finds the ordinal of a field with a given name, using the case-sensitivity
-   * of the current session.
-   */
-  int fieldOrdinal(RelDataType rowType, String alias);
-
   boolean matches(String string, String name);
-
-  int match(List<String> strings, String name);
 
   RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList);

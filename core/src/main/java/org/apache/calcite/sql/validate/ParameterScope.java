@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,14 +56,6 @@ public class ParameterScope extends EmptyScope {
     return this;
   }
 
-  public SqlValidatorNamespace resolve(
-      List<String> names,
-      SqlValidatorScope[] ancestorOut,
-      int[] offsetOut) {
-    assert names.size() == 1;
-    final RelDataType type = nameToTypeMap.get(names.get(0));
-    return new ParameterNamespace(validator, type);
-  }
 }
 
 // End ParameterScope.java

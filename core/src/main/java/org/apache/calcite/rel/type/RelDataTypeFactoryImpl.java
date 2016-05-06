@@ -22,7 +22,6 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -41,6 +40,8 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -56,21 +57,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .softValues()
           .build(
               new CacheLoader<Object, RelDataType>() {
-                @Override public RelDataType load(Object key) {
-                  if (key instanceof RelDataType) {
-                    return (RelDataType) key;
+                @Override public RelDataType load(@Nonnull Object k) {
+                  if (k instanceof RelDataType) {
+                    return (RelDataType) k;
                   }
                   @SuppressWarnings("unchecked")
-                  final Pair<List<String>, List<RelDataType>> pair =
-                      (Pair<List<String>, List<RelDataType>>) key;
+                  final Key key = (Key) k;
                   final ImmutableList.Builder<RelDataTypeField> list =
                       ImmutableList.builder();
-                  for (int i = 0; i < pair.left.size(); i++) {
+                  for (int i = 0; i < key.names.size(); i++) {
                     list.add(
                         new RelDataTypeFieldImpl(
-                            pair.left.get(i), i, pair.right.get(i)));
+                            key.names.get(i), i, key.types.get(i)));
                   }
-                  return new RelRecordType(list.build());
+                  return new RelRecordType(key.kind, list.build());
                 }
               });
 
@@ -132,18 +132,24 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         new RelCrossType(flattenedTypes, getFieldList(flattenedTypes)));
   }
 
-  // implement RelDataTypeFactory
   public RelDataType createStructType(
       final List<RelDataType> typeList,
       final List<String> fieldNameList) {
+    return createStructType(StructKind.FULLY_QUALIFIED, typeList,
+        fieldNameList);
+  }
+
+  public RelDataType createStructType(StructKind kind,
+      final List<RelDataType> typeList,
+      final List<String> fieldNameList) {
     assert typeList.size() == fieldNameList.size();
-    return canonize(fieldNameList, typeList);
+    return canonize(kind, fieldNameList, typeList);
   }
 
   // implement RelDataTypeFactory
   public RelDataType createStructType(
       final RelDataTypeFactory.FieldInfo fieldInfo) {
-    return canonize(
+    return canonize(StructKind.FULLY_QUALIFIED,
         new AbstractList<String>() {
           @Override public String get(int index) {
             return fieldInfo.getFieldName(index);
@@ -346,16 +352,16 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * key is more expensive, because it must be immutable and not hold
    * references into other data structures.</p>
    */
-  protected RelDataType canonize(
+  protected RelDataType canonize(final StructKind kind,
       final List<String> names,
       final List<RelDataType> types) {
-    final RelDataType type = CACHE.getIfPresent(Pair.of(names, types));
+    final RelDataType type = CACHE.getIfPresent(new Key(kind, names, types));
     if (type != null) {
       return type;
     }
     final ImmutableList<String> names2 = ImmutableList.copyOf(names);
     final ImmutableList<RelDataType> types2 = ImmutableList.copyOf(types);
-    return CACHE.getUnchecked(Pair.of(names2, types2));
+    return CACHE.getUnchecked(new Key(kind, names2, types2));
   }
 
   /**
@@ -644,6 +650,31 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         return SqlTypeName.OTHER;
       }
       return typeName;
+    }
+  }
+
+  /** Key to the data type cache. */
+  private static class Key {
+    private final StructKind kind;
+    private final List<String> names;
+    private final List<RelDataType> types;
+
+    Key(StructKind kind, List<String> names, List<RelDataType> types) {
+      this.kind = kind;
+      this.names = names;
+      this.types = types;
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(kind, names, types);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Key
+          && kind == ((Key) obj).kind
+          && names.equals(((Key) obj).names)
+          && types.equals(((Key) obj).types);
     }
   }
 }

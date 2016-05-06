@@ -30,6 +30,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -171,6 +172,21 @@ public class SqlIdentifier extends SqlNode {
     } else {
       return this;
     }
+  }
+
+  /** Returns an identifier that is the same as this except with a component
+   * added at a given position. Does not modify this identifier. */
+  public SqlIdentifier add(int i, String name, SqlParserPos pos) {
+    final List<String> names2 = new ArrayList<>(names);
+    names2.add(i, name);
+    final List<SqlParserPos> pos2;
+    if (componentPositions == null) {
+      pos2 = null;
+    } else {
+      pos2 = new ArrayList<>(componentPositions);
+      pos2.add(i, pos);
+    }
+    return new SqlIdentifier(names2, collation, pos, pos2);
   }
 
   /**

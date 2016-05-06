@@ -81,7 +81,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   private static final List<String> SCHEMAS =
       Arrays.asList(
           "CATALOG(CATALOG)",
+          "SCHEMA(CATALOG.DYNAMIC)",
           "SCHEMA(CATALOG.SALES)",
+          "SCHEMA(CATALOG.STRUCT)",
           "SCHEMA(CATALOG.CUSTOMER)");
 
   private static final List<String> AB_TABLES =

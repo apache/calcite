@@ -34,15 +34,14 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataType.StructKind;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -115,7 +114,6 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   protected final RelDataTypeFactory typeFactory;
   private final boolean caseSensitive;
-  private final boolean elideRecord = true;
   private final Map<List<String>, MockTable> tables;
   protected final Map<String, MockSchema> schemas;
   private RelDataType addressType;
@@ -165,7 +163,16 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType rectilinearCoordType =
-        typeFactory.builder().add("X", intType).add("Y", intType).build();
+        typeFactory.builder()
+            .add("X", intType)
+            .add("Y", intType)
+            .build();
+    final RelDataType rectilinearPeekCoordType =
+        typeFactory.builder()
+            .add("X", intType)
+            .add("Y", intType)
+            .kind(StructKind.PEEK_FIELDS)
+            .build();
     final RelDataType empRecordType =
         typeFactory.builder()
             .add("EMPNO", intType)
@@ -183,8 +190,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
             Arrays.asList(
                 new RelDataTypeFieldImpl("STREET", 0, varchar20Type),
                 new RelDataTypeFieldImpl("CITY", 1, varchar20Type),
-                new RelDataTypeFieldImpl("ZIP", 1, intType),
-                new RelDataTypeFieldImpl("STATE", 1, varchar20Type)),
+                new RelDataTypeFieldImpl("ZIP", 2, intType),
+                new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
             RelDataTypeComparability.NONE);
 
     // Register "SALES" schema.
@@ -235,7 +242,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerTable(deptNestedTable);
 
     // Register "BONUS" table.
-    MockTable bonusTable = MockTable.create(this, salesSchema, "BONUS", false, 0);
+    MockTable bonusTable =
+        MockTable.create(this, salesSchema, "BONUS", false, 0);
     bonusTable.addColumn("ENAME", varchar20Type);
     bonusTable.addColumn("JOB", varchar10Type);
     bonusTable.addColumn("SAL", intType);
@@ -243,7 +251,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     registerTable(bonusTable);
 
     // Register "SALGRADE" table.
-    MockTable salgradeTable = MockTable.create(this, salesSchema, "SALGRADE", false, 5);
+    MockTable salgradeTable =
+        MockTable.create(this, salesSchema, "SALGRADE", false, 5);
     salgradeTable.addColumn("GRADE", intType);
     salgradeTable.addColumn("LOSAL", intType);
     salgradeTable.addColumn("HISAL", intType);
@@ -256,6 +265,20 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     contactAddressTable.addColumn("HOME_ADDRESS", addressType);
     contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
     registerTable(contactAddressTable);
+
+    // Register "DYNAMIC" schema.
+    MockSchema dynamicSchema = new MockSchema("DYNAMIC");
+    registerSchema(dynamicSchema);
+
+    MockTable nationTable =
+        new MockDynamicTable(this, dynamicSchema.getCatalogName(),
+            dynamicSchema.getName(), "NATION", false, 100);
+    registerTable(nationTable);
+
+    MockTable customerTable =
+        new MockDynamicTable(this, dynamicSchema.getCatalogName(),
+            dynamicSchema.getName(), "CUSTOMER", false, 100);
+    registerTable(customerTable);
 
     // Register "CUSTOMER" schema.
     MockSchema customerSchema = new MockSchema("CUSTOMER");
@@ -270,6 +293,16 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     contactTable.addColumn("EMAIL", varchar20Type);
     contactTable.addColumn("COORD", rectilinearCoordType);
     registerTable(contactTable);
+
+    // Register "CONTACT_PEEK" table. The
+    MockTable contactPeekTable =
+        MockTable.create(this, customerSchema, "CONTACT_PEEK", false, 1000);
+    contactPeekTable.addColumn("CONTACTNO", intType);
+    contactPeekTable.addColumn("FNAME", varchar10Type);
+    contactPeekTable.addColumn("LNAME", varchar10Type);
+    contactPeekTable.addColumn("EMAIL", varchar20Type);
+    contactPeekTable.addColumn("COORD", rectilinearPeekCoordType);
+    registerTable(contactPeekTable);
 
     // Register "ACCOUNT" table.
     MockTable accountTable = MockTable.create(this, customerSchema, "ACCOUNT",
@@ -428,28 +461,28 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    MockTable structTypeTable = MockTable.create(
-        this, structTypeSchema, "T", false, 100);
+    MockTable structTypeTable = MockTable.create(this, structTypeSchema, "T",
+        false, 100);
     structTypeTable.addColumn("K0", varchar20Type);
     structTypeTable.addColumn("C1", varchar20Type);
-    FieldInfoBuilder builder = typeFactory.builder();
-    builder.add("C0", intType);
-    builder.add("C1", intType);
-    RelDataType f0Type = new DelegateStructType(
-        typeFactory.createStructType(builder), StructKind.PEEK_FIELDS_DEFAULT);
+    final RelDataType f0Type = typeFactory.builder()
+        .add("C0", intType)
+        .add("C1", intType)
+        .kind(StructKind.PEEK_FIELDS_DEFAULT)
+        .build();
     structTypeTable.addColumn("F0", f0Type);
-    builder = typeFactory.builder();
-    builder.add("C0", intTypeNull);
-    builder.add("C2", intType);
-    builder.add("A0", intType);
-    RelDataType f1Type = new DelegateStructType(
-        typeFactory.createStructType(builder), StructKind.PEEK_FIELDS);
+    final RelDataType f1Type = typeFactory.builder()
+        .add("C0", intTypeNull)
+        .add("C2", intType)
+        .add("A0", intType)
+        .kind(StructKind.PEEK_FIELDS)
+        .build();
     structTypeTable.addColumn("F1", f1Type);
-    builder = typeFactory.builder();
-    builder.add("C3", intType);
-    builder.add("A0", booleanType);
-    RelDataType f2Type = new DelegateStructType(
-        typeFactory.createStructType(builder), StructKind.PEEK_FIELDS);
+    final RelDataType f2Type = typeFactory.builder()
+        .add("C3", intType)
+        .add("A0", booleanType)
+        .kind(StructKind.PEEK_FIELDS)
+        .build();
     structTypeTable.addColumn("F2", f2Type);
     registerTable(structTypeTable);
     return this;
@@ -562,27 +595,17 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   }
 
   public RelDataTypeField field(RelDataType rowType, String alias) {
-    return SqlValidatorUtil.lookupField(caseSensitive, elideRecord, rowType,
-        alias);
-  }
-
-  public int fieldOrdinal(RelDataType rowType, String alias) {
-    final RelDataTypeField field = field(rowType, alias);
-    return field != null ? field.getIndex() : -1;
+    return SqlValidatorUtil.lookupField(caseSensitive, rowType, alias);
   }
 
   public boolean matches(String string, String name) {
     return Util.matches(caseSensitive, string, name);
   }
 
-  public int match(List<String> strings, String name) {
-    return Util.findMatch(strings, name, caseSensitive);
-  }
-
   public RelDataType createTypeFromProjection(final RelDataType type,
       final List<String> columnNameList) {
     return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
-        typeFactory, caseSensitive, elideRecord);
+        typeFactory, caseSensitive);
   }
 
   private static List<RelCollation> deduceMonotonicity(
@@ -646,6 +669,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     private List<RelCollation> collationList;
     protected final List<String> names;
     private final Set<String> monotonicColumnSet = Sets.newHashSet();
+    private StructKind kind = StructKind.FULLY_QUALIFIED;
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount) {
@@ -732,7 +756,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {
-      rowType = typeFactory.createStructType(columnList);
+      rowType = typeFactory.createStructType(kind, Pair.right(columnList),
+          Pair.left(columnList));
       collationList = deduceMonotonicity(this);
     }
 
@@ -771,6 +796,14 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       table.onRegister(catalogReader.typeFactory);
       return table;
     }
+
+    public void setKind(StructKind kind) {
+      this.kind = kind;
+    }
+
+    public StructKind getKind() {
+      return kind;
+    }
   }
 
   /**
@@ -778,13 +811,13 @@ public class MockCatalogReader implements Prepare.CatalogReader {
    * {@link org.apache.calcite.prepare.Prepare.PreparingTable} with dynamic record type.
    */
   public static class MockDynamicTable extends MockTable {
-    public MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
+    MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount) {
       super(catalogReader, catalogName, schemaName, name, stream, rowCount);
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {
-      rowType =  new DynamicRecordTypeImpl(typeFactory);
+      rowType = new DynamicRecordTypeImpl(typeFactory);
     }
 
     /**
@@ -799,6 +832,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
   }
 
+  /** Struct type based on another struct type. */
   private static class DelegateStructType implements RelDataType {
     private RelDataType delegate;
     private StructKind structKind;
@@ -809,92 +843,92 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       this.structKind = structKind;
     }
 
-    @Override public boolean isStruct() {
+    public boolean isStruct() {
       return delegate.isStruct();
     }
 
-    @Override public boolean isDynamicStruct() {
+    public boolean isDynamicStruct() {
       return delegate.isDynamicStruct();
     }
 
-    @Override public List<RelDataTypeField> getFieldList() {
+    public List<RelDataTypeField> getFieldList() {
       return delegate.getFieldList();
     }
 
-    @Override public List<String> getFieldNames() {
+    public List<String> getFieldNames() {
       return delegate.getFieldNames();
     }
 
-    @Override public int getFieldCount() {
+    public int getFieldCount() {
       return delegate.getFieldCount();
     }
 
-    @Override public StructKind getStructKind() {
+    public StructKind getStructKind() {
       return structKind;
     }
 
-    @Override public RelDataTypeField getField(String fieldName,
-        boolean caseSensitive, boolean elideRecord) {
+    public RelDataTypeField getField(String fieldName, boolean caseSensitive,
+        boolean elideRecord) {
       return delegate.getField(fieldName, caseSensitive, elideRecord);
     }
 
-    @Override public boolean isNullable() {
+    public boolean isNullable() {
       return delegate.isNullable();
     }
 
-    @Override public RelDataType getComponentType() {
+    public RelDataType getComponentType() {
       return delegate.getComponentType();
     }
 
-    @Override public RelDataType getKeyType() {
+    public RelDataType getKeyType() {
       return delegate.getKeyType();
     }
 
-    @Override public RelDataType getValueType() {
+    public RelDataType getValueType() {
       return delegate.getValueType();
     }
 
-    @Override public Charset getCharset() {
+    public Charset getCharset() {
       return delegate.getCharset();
     }
 
-    @Override public SqlCollation getCollation() {
+    public SqlCollation getCollation() {
       return delegate.getCollation();
     }
 
-    @Override public SqlIntervalQualifier getIntervalQualifier() {
+    public SqlIntervalQualifier getIntervalQualifier() {
       return delegate.getIntervalQualifier();
     }
 
-    @Override public int getPrecision() {
+    public int getPrecision() {
       return delegate.getPrecision();
     }
 
-    @Override public int getScale() {
+    public int getScale() {
       return delegate.getScale();
     }
 
-    @Override public SqlTypeName getSqlTypeName() {
+    public SqlTypeName getSqlTypeName() {
       return delegate.getSqlTypeName();
     }
 
-    @Override public SqlIdentifier getSqlIdentifier() {
+    public SqlIdentifier getSqlIdentifier() {
       return delegate.getSqlIdentifier();
     }
 
-    @Override public String getFullTypeString() {
+    public String getFullTypeString() {
       return delegate.getFullTypeString();
     }
 
-    @Override public RelDataTypeFamily getFamily() {
+    public RelDataTypeFamily getFamily() {
       return delegate.getFamily();
     }
 
-    @Override public RelDataTypePrecedenceList getPrecedenceList() {
+    public RelDataTypePrecedenceList getPrecedenceList() {
       return delegate.getPrecedenceList();
     }
 
-    @Override public RelDataTypeComparability getComparability() {
+    public RelDataTypeComparability getComparability() {
       return delegate.getComparability();
     }
   }

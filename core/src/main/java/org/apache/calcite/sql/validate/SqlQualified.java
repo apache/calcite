@@ -61,8 +61,11 @@ public class SqlQualified {
       return identifier.names;
     }
     final ImmutableList.Builder<String> builder = ImmutableList.builder();
+    final SqlValidatorScope.ResolvedImpl resolved =
+        new SqlValidatorScope.ResolvedImpl();
+    scope.resolve(Util.skipLast(identifier.names), false, resolved);
     SqlValidatorNamespace namespace =
-        scope.resolve(Util.skipLast(identifier.names), null, null);
+        resolved.count() == 1 ? resolved.only().namespace : null;
     builder.add(identifier.names.get(0));
     for (String name : Util.skip(identifier.names)) {
       if (namespace != null) {

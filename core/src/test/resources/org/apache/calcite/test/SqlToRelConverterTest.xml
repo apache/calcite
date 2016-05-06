@@ -2469,6 +2469,19 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColu
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testStructType">
+        <Resource name="sql">
+            <![CDATA[select * from struct.t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(K0=[$0], C1=[$1], F0=[$2], F1=[$3], F2=[$4])
+  LogicalProject(K0=[$0], C1=[$1], F0=[$2], F03=[$3], F1=[$4], F15=[$5], F16=[$6], F2=[$7], F28=[$8])
+    LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWindowAggWithGroupBy">
         <Resource name="sql">
             <![CDATA[select min(deptno), rank() over (order by empno),
@@ -3070,6 +3083,24 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUnionInFrom">
+        <Resource name="sql">
+            <![CDATA[select x0, x1 from (
+  select 'a' as x0, 'a' as x1, 'a' as x2 from emp
+  union all
+  select 'bb' as x0, 'bb' as x1, 'bb' as x2 from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X0=[$0], X1=[$1])
+  LogicalUnion(all=[true])
+    LogicalProject(X0=['a'], X1=['a'], X2=['a'])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(X0=['bb'], X1=['bb'], X2=['bb'])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

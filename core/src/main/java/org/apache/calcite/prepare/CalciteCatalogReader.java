@@ -74,7 +74,6 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   final CalciteSchema rootSchema;
   final JavaTypeFactory typeFactory;
   private final List<String> defaultSchema;
-  private final boolean elideRecord = true;
   private final boolean caseSensitive;
 
   public CalciteCatalogReader(
@@ -203,27 +202,17 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public RelDataTypeField field(RelDataType rowType, String alias) {
-    return SqlValidatorUtil.lookupField(caseSensitive, elideRecord, rowType,
-        alias);
-  }
-
-  public int fieldOrdinal(RelDataType rowType, String alias) {
-    RelDataTypeField field = field(rowType, alias);
-    return field != null ? field.getIndex() : -1;
+    return SqlValidatorUtil.lookupField(caseSensitive, rowType, alias);
   }
 
   public boolean matches(String string, String name) {
     return Util.matches(caseSensitive, string, name);
   }
 
-  public int match(List<String> strings, String name) {
-    return Util.findMatch(strings, name, caseSensitive);
-  }
-
   public RelDataType createTypeFromProjection(final RelDataType type,
       final List<String> columnNameList) {
     return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
-        typeFactory, caseSensitive, elideRecord);
+        typeFactory, caseSensitive);
   }
 
   public void lookupOperatorOverloads(final SqlIdentifier opName,

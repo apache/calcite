@@ -571,7 +571,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       List<Integer> argList) {
     ImmutableIntList list = ImmutableIntList.of();
     for (int arg : argList) {
-      list = list.add(remap(groupSet, arg));
+      list = list.append(remap(groupSet, arg));
     }
     return list;
   }

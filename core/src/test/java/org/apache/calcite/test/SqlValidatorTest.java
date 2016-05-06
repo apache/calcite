@@ -4615,9 +4615,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select emp.* from emp");
 
     // Error message could be better (EMPNO does exist, but it's a column).
-    checkFails(
-        "select ^empno^ .  * from emp",
-        "Unknown identifier 'EMPNO'");
+    sql("select ^empno^ .  * from emp")
+        .fails("Not a record type. The '\\*' operator requires a record");
+    sql("select ^emp.empno^ .  * from emp")
+        .fails("Not a record type. The '\\*' operator requires a record");
   }
 
   /**
@@ -4636,10 +4637,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testNonLocalStar() {
-    // MySQL allows this but we can't, currently
+    // MySQL allows this, and now so do we
     sql("select * from emp e where exists (\n"
-        + "  select ^e^.* from dept where dept.deptno = e.deptno)")
-        .fails("Unknown identifier 'E'");
+        + "  select e.* from dept where dept.deptno = e.deptno)")
+        .type(EMP_RECORD_TYPE);
   }
 
   /**
@@ -4656,10 +4657,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testStarDotIdFails() {
-    // Parser allows a star inside (not at end of) compound identifier, but
-    // validator does not
+    // Fails in parser
     sql("select emp.^*^.foo from emp")
-        .fails("Column '\\*' not found in table 'EMP'");
+        .fails("(?s).*Encountered \".\" at .*");
     // Parser does not allow star dot identifier.
     sql("select ^*^.foo from emp")
         .fails("(?s).*Encountered \".\" at .*");
@@ -6950,6 +6950,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "DISTINCT/ALL not allowed with COALESCE function");
   }
 
+  @Test public void testColumnNotFound() {
+    sql("select ^b0^ from sales.emp")
+        .fails("Column 'B0' not found in any table");
+  }
+
+  @Test public void testColumnNotFound2() {
+    sql("select ^b0^ from sales.emp, sales.dept")
+        .fails("Column 'B0' not found in any table");
+  }
+
+  @Test public void testColumnNotFound3() {
+    sql("select e.^b0^ from sales.emp as e")
+        .fails("Column 'B0' not found in table 'E'");
+  }
+
   @Test public void testSelectDistinct() {
     check("SELECT DISTINCT deptno FROM emp");
     check("SELECT DISTINCT deptno, sal FROM emp");
@@ -7151,14 +7166,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-497">[CALCITE-497]
    * Support optional qualifier for column name references</a>. */
   @Test public void testRecordTypeElided() {
-    checkResultType(
-        "SELECT contact.x, contact.coord.y FROM customer.contact",
-        "RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
+    sql("SELECT contact.^x^, contact.coord.y FROM customer.contact")
+        .fails("Column 'X' not found in table 'CONTACT'");
+
+    // Fully qualified works.
+    sql("SELECT contact.coord.x, contact.coord.y FROM customer.contact")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
+
+    // Because the type of CONTACT_PEEK.COORD is marked "peek", the validator
+    // can see through it.
+    sql("SELECT c.x, c.coord.y FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
+    sql("SELECT c.coord.x, c.coord.y FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
+    sql("SELECT x, c.coord.y FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
 
     // Qualifying with schema is OK.
-    checkResultType(
-        "SELECT customer.contact.x, customer.contact.email, contact.coord.y FROM customer.contact",
-        "RecordType(INTEGER NOT NULL X, VARCHAR(20) NOT NULL EMAIL, INTEGER NOT NULL Y) NOT NULL");
+    final String sql = "SELECT customer.contact_peek.x,\n"
+        + " customer.contact_peek.email, contact_peek.coord.y\n"
+        + "FROM customer.contact_peek";
+    sql(sql).type("RecordType(INTEGER NOT NULL X, VARCHAR(20) NOT NULL EMAIL,"
+        + " INTEGER NOT NULL Y) NOT NULL");
   }
 
   @Test public void testSample() {
@@ -8131,112 +8160,195 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(cannotStreamResultsForNonStreamingInputs("PRODUCTS, SUPPLIERS"));
   }
 
-  @Test public void testNew() {
+  @Test public void testDummy() {
     // (To debug individual statements, paste them into this method.)
-    //            1         2         3         4         5         6
-    //   12345678901234567890123456789012345678901234567890123456789012345
-    //        check("SELECT count(0) FROM emp GROUP BY ()");
   }
 
   @Test public void testStructType() {
-    // Table STRUCT.T is defined as:
-    // (K0 VARCHAR(20) NOT NULL, C1 VARCHAR(20) NOT NULL,
-    //   RecordType(C0 INTEGER NOT NULL, C1 INTEGER NOT NULL) F0,
-    //   RecordType(C0 INTEGER, C2 INTEGER NOT NULL, A0 INTEGER NOT NULL) F1,
-    //   RecordType(C3 INTEGER NOT NULL, A0 BOOLEAN NOT NULL) F2)
-    // , where F0 has a default struct priority.
+    // Table STRUCT.T is defined as: (
+    //   K0 VARCHAR(20) NOT NULL,
+    //   C1 VARCHAR(20) NOT NULL,
+    //   RecordType:PEEK_FIELDS_DEFAULT(
+    //     C0 INTEGER NOT NULL,
+    //     C1 INTEGER NOT NULL) F0,
+    //   RecordType:PEEK_FIELDS(
+    //      C0 INTEGER,
+    //      C2 INTEGER NOT NULL,
+    //      A0 INTEGER NOT NULL) F1,
+    //   RecordType:PEEK_FIELDS(
+    //      C3 INTEGER NOT NULL,
+    //      A0 BOOLEAN NOT NULL) F2)
+    //
+    // The labels 'PEEK_FIELDS_DEFAULT' and 'PEEK_FIELDS' mean that F0, F1 and
+    // F2 can all be transparent. F0 has default struct priority; F1 and F2 have
+    // lower priority.
 
-    check("select * from struct.t");
+    sql("select * from struct.t").ok();
 
     // Resolve K0 as top-level column K0.
-    checkResultType("select k0 from struct.t",
-        "RecordType(VARCHAR(20) NOT NULL K0) NOT NULL");
+    sql("select k0 from struct.t")
+        .type("RecordType(VARCHAR(20) NOT NULL K0) NOT NULL");
 
     // Resolve C2 as secondary-level column F1.C2.
-    checkResultType("select c2 from struct.t",
-        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+    sql("select c2 from struct.t")
+        .type("RecordType(INTEGER NOT NULL C2) NOT NULL");
 
     // Resolve F1.C2 as fully qualified column F1.C2.
-    checkResultType("select c2 from struct.t",
-        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+    sql("select f1.c2 from struct.t")
+        .type("RecordType(INTEGER NOT NULL C2) NOT NULL");
 
     // Resolve C1 as top-level column C1 as opposed to F0.C1.
-    checkResultType("select c1 from struct.t",
-        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+    sql("select c1 from struct.t")
+        .type("RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
 
-    // Resolve C0 as secondary-level column F0.C0 as opposed to F1.C0, since F0 has the
-    // default priority.
-    checkResultType("select c0 from struct.t",
-        "RecordType(INTEGER NOT NULL C0) NOT NULL");
+    // Resolve C0 as secondary-level column F0.C0 as opposed to F1.C0, since F0
+    // has the default priority.
+    sql("select c0 from struct.t")
+        .type("RecordType(INTEGER NOT NULL C0) NOT NULL");
 
-    // Resolve F1.C0 as fully qualified column F1.C0.
-    checkResultType("select f1.c0 from struct.t",
-        "RecordType(INTEGER C0) NOT NULL");
+    // Resolve F1.C0 as fully qualified column F1.C0 (as evidenced by "INTEGER"
+    // rather than "INTEGER NOT NULL")
+    sql("select f1.c0 from struct.t")
+        .type("RecordType(INTEGER C0) NOT NULL");
 
-    // Fail ambiguous column reference A0, since F1.A0 and F2.A0 both exist with the
-    // same resolving priority.
-    checkFails("select ^a0^ from struct.t",
-        "Column 'A0' is ambiguous");
+    // Fail ambiguous column reference A0, since F1.A0 and F2.A0 both exist with
+    // the same resolving priority.
+    sql("select ^a0^ from struct.t")
+        .fails("Column 'A0' is ambiguous");
 
     // Resolve F2.A0 as fully qualified column F2.A0.
-    checkResultType("select f2.a0 from struct.t",
-        "RecordType(BOOLEAN NOT NULL C0) NOT NULL");
+    sql("select f2.a0 from struct.t")
+        .type("RecordType(BOOLEAN NOT NULL A0) NOT NULL");
 
-    // Resolve T0.K0 as top-level column K0, since T0 is recognized as the table alias.
-    checkResultType("select t0.k0 from struct.t t0",
-        "RecordType(VARCHAR(20) NOT NULL K0) NOT NULL");
+    // Resolve T0.K0 as top-level column K0, since T0 is recognized as the table
+    // alias.
+    sql("select t0.k0 from struct.t t0")
+        .type("RecordType(VARCHAR(20) NOT NULL K0) NOT NULL");
 
-    // Resolve T0.C2 as secondary-level column F1.C2, since T0 is recognized as the
-    // table alias here.
-    checkResultType("select t0.c2 from struct.t t0",
-        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+    // Resolve T0.C2 as secondary-level column F1.C2, since T0 is recognized as
+    // the table alias here.
+    sql("select t0.c2 from struct.t t0")
+        .type("RecordType(INTEGER NOT NULL C2) NOT NULL");
 
-    // Resolve F0.C2 as secondary-level column F1.C2, since F0 is recognized as the
-    // table alias here.
-    checkResultType("select f0.c2 from struct.t f0",
-        "RecordType(INTEGER NOT NULL C2) NOT NULL");
+    // Resolve F0.C2 as secondary-level column F1.C2, since F0 is recognized as
+    // the table alias here.
+    sql("select f0.c2 from struct.t f0")
+        .type("RecordType(INTEGER NOT NULL C2) NOT NULL");
 
-    // Resolve F0.C1 as top-level column C1 as opposed to F0.C1, since F0 is recognized
-    // as the table alias here.
-    checkResultType("select f0.c1 from struct.t f0",
-        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+    // Resolve F0.C1 as top-level column C1 as opposed to F0.C1, since F0 is
+    // recognized as the table alias here.
+    sql("select f0.c1 from struct.t f0")
+        .type("RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
 
-    // Resolve T.C1 as top-level column C1 as opposed to F0.C1, since T is recognized as
+    // Resolve C1 as inner INTEGER column not top-level VARCHAR column.
+    sql("select f0.f0.c1 from struct.t f0")
+        .type("RecordType(INTEGER NOT NULL C1) NOT NULL");
+
+    // Resolve T.C1 as top-level column C1 as opposed to F0.C1, since T is
+    // recognized as the table name.
+    sql("select t.c1 from struct.t")
+        .type("RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+
+    // Alias "f0" obscures table name "t"
+    sql("select ^t^.c1 from struct.t f0")
+        .fails("Table 'T' not found");
+
+    // Resolve STRUCT.T.C1 as top-level column C1 as opposed to F0.C1, since
+    // STRUCT.T is recognized as the schema and table name.
+    sql("select struct.t.c1 from struct.t")
+        .type("RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+
+    // Table alias "f0" obscures table name "struct.t"
+    sql("select ^struct.t^.c1 from struct.t f0")
+        .fails("Table 'STRUCT.T' not found");
+
+    // Resolve F0.F0.C1 as secondary-level column F0.C1, since the first F0 is
+    // recognized as the table alias here.
+    sql("select f0.f0.c1 from struct.t f0")
+        .type("RecordType(INTEGER NOT NULL C1) NOT NULL");
+
+    // Resolve T.F0.C1 as secondary-level column F0.C1, since T is recognized as
     // the table name.
-    checkResultType("select t.c1 from struct.t f0",
-        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
+    sql("select t.f0.c1 from struct.t")
+        .type("RecordType(INTEGER NOT NULL C1) NOT NULL");
 
-    // Resolve STRUCT.T.C1 as top-level column C1 as opposed to F0.C1, since STRUCT.T is
-    // recognized as the schema and table name.
-    checkResultType("select struct.t.c1 from struct.t f0",
-        "RecordType(VARCHAR(20) NOT NULL C1) NOT NULL");
-
-    // Resolve F0.F0.C1 as secondary-level column F0.C1, since the first F0 is recognized
-    // as the table alias here.
-    checkResultType("select f0.f0.c1 from struct.t f0",
-        "RecordType(INTEGER NOT NULL C1) NOT NULL");
-
-    // Resolve T.F0.C1 as secondary-level column F0.C1, since T is recognized as the table
-    // name.
-    checkResultType("select t.f0.c1 from struct.t f0",
-        "RecordType(INTEGER NOT NULL C1) NOT NULL");
+    // Table alias obscures
+    sql("select ^t.f0^.c1 from struct.t f0")
+        .fails("Table 'T.F0' not found");
 
     // Resolve STRUCT.T.F0.C1 as secondary-level column F0.C1, since STRUCT.T is
     // recognized as the schema and table name.
-    checkResultType("select struct.t.f0.c1 from struct.t f0",
-        "RecordType(INTEGER NOT NULL C1) NOT NULL");
+    sql("select struct.t.f0.c1 from struct.t")
+        .type("RecordType(INTEGER NOT NULL C1) NOT NULL");
+
+    // Table alias "f0" obscures table name "struct.t"
+    sql("select ^struct.t.f0^.c1 from struct.t f0")
+        .fails("Table 'STRUCT.T.F0' not found");
 
     // Resolve struct type F1 with wildcard.
-    checkResultType("select f1.* from struct.t",
-        "RecordType(INTEGER NOT NULL C0, INTEGER NOT NULL C2) NOT NULL");
+    sql("select f1.* from struct.t")
+        .type("RecordType(INTEGER C0, INTEGER NOT NULL C2,"
+            + " INTEGER NOT NULL A0) NOT NULL");
 
     // Fail non-existent column B0.
-    checkFails("select ^b0^ from struct.t",
-        "Column 'B0' not found in any table");
+    sql("select ^b0^ from struct.t")
+        .fails("Column 'B0' not found in any table");
 
-    // Fail struct type with no wildcard.
-    checkFails("select ^f1^ from struct.t",
-        "Unknown identifier 'F1'");
+    // It's OK to reference a record type.
+    //
+    // This is admittedly a bit strange for Phoenix users. We model a column
+    // family as a column whose type is a record, but Phoenix users would
+    // rarely if ever want to use a column family as a record.
+    sql("select f1 from struct.t")
+        .type("RecordType(RecordType:peek(INTEGER C0, INTEGER NOT NULL C2,"
+            + " INTEGER NOT NULL A0) NOT NULL F1) NOT NULL");
+
+    // If we fail to find a column, give an error based on the shortest prefix
+    // that fails.
+    sql("select t.^f0.notFound^.a.b.c.d from struct.t")
+        .fails("Column 'F0\\.NOTFOUND' not found in table 'T'");
+    sql("select t.^f0.notFound^ from struct.t")
+        .fails("Column 'F0\\.NOTFOUND' not found in table 'T'");
+    sql("select t.^f0.c1.notFound^ from struct.t")
+        .fails("Column 'F0\\.C1\\.NOTFOUND' not found in table 'T'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
+   * Dynamic Table / Dynamic Star support</a>. */
+  @Test public void testAmbiguousDynamicStar() throws Exception {
+    final String sql = "select ^n_nation^\n"
+        + "from (select * from \"DYNAMIC\".NATION),\n"
+        + " (select * from \"DYNAMIC\".CUSTOMER)";
+    sql(sql).fails("Column 'N_NATION' is ambiguous");
+  }
+
+  @Test public void testAmbiguousDynamicStar2() throws Exception {
+    final String sql = "select ^n_nation^\n"
+        + "from (select * from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
+    sql(sql).fails("Column 'N_NATION' is ambiguous");
+  }
+
+  @Test public void testAmbiguousDynamicStar3() throws Exception {
+    final String sql = "select ^nc.n_nation^\n"
+        + "from (select * from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER) as nc";
+    sql(sql).fails("Column 'N_NATION' is ambiguous");
+  }
+
+  @Test public void testAmbiguousDynamicStar4() throws Exception {
+    final String sql = "select n.n_nation\n"
+        + "from (select * from \"DYNAMIC\".NATION) as n,\n"
+        + " (select * from \"DYNAMIC\".CUSTOMER)";
+    sql(sql).type("RecordType(ANY N_NATION) NOT NULL");
+  }
+
+  /** When resolve column reference, regular field has higher priority than
+   * dynamic star columns. */
+  @Test public void testDynamicStar2() throws Exception {
+    final String sql = "select newid from (\n"
+        + "  select *, NATION.N_NATION + 100 as newid\n"
+        + "  from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
+    sql(sql).type("RecordType(ANY NEWID) NOT NULL");
   }
 }
 

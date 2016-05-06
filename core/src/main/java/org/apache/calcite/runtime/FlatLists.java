@@ -18,7 +18,10 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.util.ImmutableNullableList;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -238,6 +241,17 @@ public class FlatLists {
     }
   }
 
+  /** Returns a list that consists of a given list plus an element. */
+  public static <E> List<E> append(List<E> list, E e) {
+    if (list instanceof AbstractFlatList) {
+      //noinspection unchecked
+      return ((AbstractFlatList) list).append(e);
+    }
+    final List<E> newList = new ArrayList<>(list);
+    newList.add(e);
+    return FlatLists.of(newList);
+  }
+
   /** Base class for flat lists. */
   public abstract static class AbstractFlatList<T>
       extends AbstractImmutableList<T> implements RandomAccess {
@@ -246,6 +260,9 @@ public class FlatLists {
       return Arrays.asList((T[]) toArray());
     }
 
+    /** Returns a list that consists of a this list's elements plus a given
+     * element. */
+    public abstract List<T> append(T e);
   }
 
   /**
@@ -347,6 +364,10 @@ public class FlatLists {
 
     public int compareTo(List o) {
       return ComparableListImpl.compare((List) this, o);
+    }
+
+    public List<T> append(T e) {
+      return new Flat2List<T>(t0, e);
     }
   }
 
@@ -468,6 +489,10 @@ public class FlatLists {
 
     public int compareTo(List o) {
       return ComparableListImpl.compare((List) this, o);
+    }
+
+    public List<T> append(T e) {
+      return new Flat3List<T>(t0, t1, e);
     }
   }
 
@@ -608,6 +633,10 @@ public class FlatLists {
 
     public int compareTo(List o) {
       return ComparableListImpl.compare((List) this, o);
+    }
+
+    public List<T> append(T e) {
+      return new Flat4List<T>(t0, t1, t2, e);
     }
   }
 
@@ -767,6 +796,10 @@ public class FlatLists {
 
     public int compareTo(List o) {
       return ComparableListImpl.compare((List) this, o);
+    }
+
+    public List<T> append(T e) {
+      return new Flat5List<T>(t0, t1, t2, t3, e);
     }
   }
 
@@ -945,6 +978,10 @@ public class FlatLists {
 
     public int compareTo(List o) {
       return ComparableListImpl.compare((List) this, o);
+    }
+
+    public List<T> append(T e) {
+      return new Flat6List<T>(t0, t1, t2, t3, t4, e);
     }
   }
 
@@ -1143,6 +1180,10 @@ public class FlatLists {
 
     public int compareTo(List o) {
       return ComparableListImpl.compare((List) this, o);
+    }
+
+    public List<T> append(T e) {
+      return ImmutableList.of(t0, t1, t2, t3, t5, e);
     }
   }
 

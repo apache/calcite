@@ -2126,6 +2126,11 @@ public class SqlParserTest {
                 + "FROM `EMP`");
   }
 
+  @Test public void testTableStarColumnFails() {
+    sql("select emp.*^.^xx from emp")
+        .fails("(?s).*Encountered \".\" .*");
+  }
+
   @Test public void testNotExists() {
     check(
         "select * from dept where not not exists (select * from emp) and true",
@@ -2637,6 +2642,16 @@ public class SqlParserTest {
         "select * from emp",
         "SELECT *\n"
             + "FROM `EMP`");
+  }
+
+  @Test public void testCompoundStar() {
+    final String sql = "select sales.emp.address.zipcode,\n"
+        + " sales.emp.address.*\n"
+        + "from sales.emp";
+    final String expected = "SELECT `SALES`.`EMP`.`ADDRESS`.`ZIPCODE`,"
+        + " `SALES`.`EMP`.`ADDRESS`.*\n"
+        + "FROM `SALES`.`EMP`";
+    sql(sql).ok(expected);
   }
 
   @Test public void testSelectDistinct() {

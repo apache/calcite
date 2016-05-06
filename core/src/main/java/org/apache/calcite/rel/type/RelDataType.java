@@ -36,12 +36,6 @@ public interface RelDataType /*extends Type*/ {
   int SCALE_NOT_SPECIFIED = Integer.MIN_VALUE;
   int PRECISION_NOT_SPECIFIED = -1;
 
-  enum StructKind {
-    FULLY_QUALIFIED,
-    PEEK_FIELDS,
-    PEEK_FIELDS_DEFAULT,
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -83,9 +77,10 @@ public interface RelDataType /*extends Type*/ {
   int getFieldCount();
 
   /**
-   * Gets the StructKind of a structured type.
+   * Returns the rule for resolving the fields of a structured type,
+   * or {@link StructKind#NONE} if this is not a structured type.
    *
-   * @return the StructKind that determines how its fields are resolved.
+   * @return the StructKind that determines how this type's fields are resolved
    */
   StructKind getStructKind();
 
@@ -242,9 +237,10 @@ public interface RelDataType /*extends Type*/ {
   RelDataTypeComparability getComparability();
 
   /**
-   *@return whether it has dynamic structure (for "schema-on-read" table)
+   * @return whether it has dynamic structure (for "schema-on-read" table)
    */
   boolean isDynamicStruct();
+
 }
 
 // End RelDataType.java
