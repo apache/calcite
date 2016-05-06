@@ -22,7 +22,10 @@ package org.apache.calcite.sql;
  * <p>SQL State codes are defined in
  *
  * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>
+ *
+ * @deprecated Use {@code org.apache.calcite.avatica.SqlState}
  */
+@Deprecated // will be removed before 2.0
 public enum SqlStateCodes {
   CARDINALITY_VIOLATION("cardinality violation", "21", "000"),
 
