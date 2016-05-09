@@ -55,6 +55,8 @@ limitations under the License.
       <groupId>org.hsqldb</groupId>
       <artifactId>hsqldb</artifactId>
     </dependency>
+    <!-- As long as we want to run compatibility checks again 1.6.0, we have to include these because
+         they weren't yet provided by the avatica client jar -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -157,6 +159,7 @@ limitations under the License.
                   <pattern>net.hydromatic</pattern>
                   <shadedPattern>org.apache.calcite.avatica.tck.shaded.net.hydromatic</shadedPattern>
                 </relocation>
+                <!-- We bundle a log4j.properties file which will be looking in this relocated location -->
                 <relocation>
                   <pattern>org.apache.log4j</pattern>
                   <shadedPattern>org.apache.calcite.avatica.tck.shaded.org.apache.log4j</shadedPattern>
