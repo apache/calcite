@@ -5,9 +5,9 @@
     <artifactId>avatica-parent</artifactId>
     <version>1.8.0-SNAPSHOT</version>
   </parent>
-  <artifactId>avatica-hsqldb-server</artifactId>
-  <name>Avatica HSQLDB Server</name>
-  <description>An example Avatica Server using HSQLDB</description>
+  <artifactId>avatica-standalone-server</artifactId>
+  <name>Avatica Standalone Server</name>
+  <description>A Stadnalone Avatica Server Implementation</description>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>

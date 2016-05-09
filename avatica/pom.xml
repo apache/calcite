@@ -114,7 +114,7 @@ limitations under the License.
     <module>noop-driver</module>
     <module>server</module>
     <module>tck</module>
-    <module>hsqldb-server</module>
+    <module>standalone-server</module>
   </modules>
 
   <!-- No dependencies here. Declare dependency VERSIONS in
