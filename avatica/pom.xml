@@ -76,6 +76,7 @@ limitations under the License.
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <jackson.version>2.6.3</jackson.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
+    <jcommander.version>1.48</jcommander.version>
     <jetty.version>9.2.15.v20160210</jetty.version>
     <junit.version>4.12</junit.version>
     <kerby.version>1.0.0-RC2</kerby.version>
@@ -112,6 +113,8 @@ limitations under the License.
     <module>metrics-dropwizardmetrics3</module>
     <module>noop-driver</module>
     <module>server</module>
+    <module>tck</module>
+    <module>standalone-server</module>
   </modules>
 
   <!-- No dependencies here. Declare dependency VERSIONS in
@@ -139,6 +142,11 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
+        <artifactId>avatica-tck</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>avatica-server</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -150,6 +158,11 @@ limitations under the License.
       </dependency>
 
       <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
+      <dependency>
+        <groupId>com.beust</groupId>
+        <artifactId>jcommander</artifactId>
+        <version>${jcommander.version}</version>
+      </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
