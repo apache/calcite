@@ -107,6 +107,7 @@ public class AbstractHandlerTest {
     Mockito.when(request.accept(Mockito.any(Service.class))).thenReturn(response);
     // Throw an IOException when serializing the Response.
     Mockito.when(handler.encode(response)).thenThrow(exception);
+    Mockito.when(handler.convertToErrorResponse(exception)).thenCallRealMethod();
     // Convert the IOException into an ErrorResponse
     Mockito.when(handler.unwrapException(exception)).thenReturn(errorResponse);
     Mockito.when(handler.encode(errorResponse)).thenReturn(serializedErrorResponse);
@@ -155,6 +156,7 @@ public class AbstractHandlerTest {
     Mockito.when(handler.apply(Mockito.anyString())).thenCallRealMethod();
     // Throw an Exception trying to convert it back into a POJO
     Mockito.when(handler.decode(Mockito.anyString())).thenThrow(exception);
+    Mockito.when(handler.convertToErrorResponse(exception)).thenCallRealMethod();
     Mockito.when(handler.unwrapException(exception)).thenReturn(errorResponse);
     Mockito.when(handler.encode(errorResponse)).thenReturn(serializedErrorResponse);
 

@@ -110,21 +110,22 @@ public class AvaticaProtobufHandler extends AbstractAvaticaHandler {
           buffer.reset();
         }
 
-        final HandlerResponse<byte[]> handlerResponse;
-        if (null != serverConfig && serverConfig.supportsImpersonation()) {
-          // Invoke the ProtobufHandler inside as doAs for the remote user.
-          try {
+        HandlerResponse<byte[]> handlerResponse;
+        try {
+          if (null != serverConfig && serverConfig.supportsImpersonation()) {
+            // Invoke the ProtobufHandler inside as doAs for the remote user.
             handlerResponse = serverConfig.doAsRemoteUser(request.getRemoteUser(),
               request.getRemoteAddr(), new Callable<HandlerResponse<byte[]>>() {
                 @Override public HandlerResponse<byte[]> call() {
                   return pbHandler.apply(requestBytes);
                 }
               });
-          } catch (Exception e) {
-            throw new RuntimeException(e);
+          } else {
+            handlerResponse = pbHandler.apply(requestBytes);
           }
-        } else {
-          handlerResponse = pbHandler.apply(requestBytes);
+        } catch (Exception e) {
+          // Catch at the highest level of exceptions
+          handlerResponse = pbHandler.convertToErrorResponse(e);
         }
 
         baseRequest.setHandled(true);

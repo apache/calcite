@@ -116,21 +116,22 @@ public class AvaticaJsonHandler extends AbstractAvaticaHandler {
             new String(rawRequest.getBytes("ISO-8859-1"), "UTF-8");
         LOG.trace("request: {}", jsonRequest);
 
-        final HandlerResponse<String> jsonResponse;
-        if (null != serverConfig && serverConfig.supportsImpersonation()) {
-          try {
+        HandlerResponse<String> jsonResponse;
+        try {
+          if (null != serverConfig && serverConfig.supportsImpersonation()) {
             jsonResponse = serverConfig.doAsRemoteUser(request.getRemoteUser(),
                 request.getRemoteAddr(), new Callable<HandlerResponse<String>>() {
                   @Override public HandlerResponse<String> call() {
                     return jsonHandler.apply(jsonRequest);
                   }
                 });
-          } catch (Exception e) {
-            throw new RuntimeException(e);
+          } else {
+            jsonResponse = jsonHandler.apply(jsonRequest);
           }
-        } else {
-          jsonResponse = jsonHandler.apply(jsonRequest);
+        } catch (Exception e) {
+          jsonResponse = jsonHandler.convertToErrorResponse(e);
         }
+
         LOG.trace("response: {}", jsonResponse);
         baseRequest.setHandled(true);
         // Set the status code and write out the response.

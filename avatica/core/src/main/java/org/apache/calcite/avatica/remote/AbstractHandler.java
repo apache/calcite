@@ -106,7 +106,7 @@ public abstract class AbstractHandler<T> implements Handler<T> {
    * @param e The exception to convert.
    * @return A HandlerResponse instance.
    */
-  private HandlerResponse<T> convertToErrorResponse(Exception e) {
+  public HandlerResponse<T> convertToErrorResponse(Exception e) {
     ErrorResponse errorResp = unwrapException(e);
 
     try {
