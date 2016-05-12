@@ -229,7 +229,7 @@ public class SqlSelectOperator extends SqlOperator {
       }
       writer.endList(windowFrame);
     }
-    if (select.orderBy != null) {
+    if ((select.orderBy != null) && !SqlNodeList.isEmptyList(select.orderBy)) {
       writer.sep("ORDER BY");
       final SqlWriter.Frame orderFrame =
           writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
