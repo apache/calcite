@@ -1649,6 +1649,26 @@ public class SqlParserTest {
             + "OFFSET 1 ROWS");
   }
 
+  /** Test case that does not reproduce but is related to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1238">[CALCITE-1238]
+   * Unparsing LIMIT without ORDER BY after validation</a>. */
+  @Test public void testLimitWithoutOrder() {
+    final String expected = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    sql("select a from foo limit 2")
+        .ok(expected);
+  }
+
+  @Test public void testLimitOffsetWithoutOrder() {
+    final String expected = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 1 ROWS\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    sql("select a from foo limit 2 offset 1")
+        .ok(expected);
+  }
+
   @Test public void testSqlInlineComment() {
     check(
         "select 1 from t --this is a comment\n",

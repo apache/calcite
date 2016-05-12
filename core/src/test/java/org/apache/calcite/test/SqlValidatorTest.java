@@ -7039,6 +7039,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "FROM `DEPT`");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1238">[CALCITE-1238]
+   * Unparsing LIMIT without ORDER BY after validation</a>. */
+  @Test public void testRewriteWithLimitWithoutOrderBy() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    final String sql = "select name from dept limit 2";
+    final String expected = "SELECT `NAME`\n"
+        + "FROM `DEPT`\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    tester.checkRewrite(validator, sql, expected);
+  }
+
+  @Test public void testRewriteWithOffsetWithoutOrderBy() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    final String sql = "select name from dept offset 2";
+    final String expected = "SELECT `NAME`\n"
+        + "FROM `DEPT`\n"
+        + "OFFSET 2 ROWS";
+    tester.checkRewrite(validator, sql, expected);
+  }
+
+  @Test public void testRewriteWithUnionFetchWithoutOrderBy() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    final String sql =
+        "select name from dept union all select name from dept limit 2";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `NAME`\n"
+        + "FROM `DEPT`\n"
+        + "UNION ALL\n"
+        + "SELECT `NAME`\n"
+        + "FROM `DEPT`)\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    tester.checkRewrite(validator, sql, expected);
+  }
+
   @Test public void testRewriteWithIdentifierExpansion() {
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);

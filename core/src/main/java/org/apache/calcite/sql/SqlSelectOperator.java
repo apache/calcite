@@ -22,6 +22,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An operator describing a query. (Not a query itself.)
@@ -181,10 +182,12 @@ public class SqlSelectOperator extends SqlOperator {
         }
 
         // unroll whereClause
-        ArrayList<SqlNode> list = new ArrayList<SqlNode>(0);
+        final List<SqlNode> list = new ArrayList<>(0);
         while (node.getKind() == whereSepKind) {
-          list.add(0, ((SqlCall) node).operand(1));
-          node = ((SqlCall) node).operand(0);
+          assert node instanceof SqlCall;
+          final SqlCall call1 = (SqlCall) node;
+          list.add(0, call1.operand(1));
+          node = call1.operand(0);
         }
         list.add(0, node);
 
@@ -229,7 +232,7 @@ public class SqlSelectOperator extends SqlOperator {
       }
       writer.endList(windowFrame);
     }
-    if (select.orderBy != null) {
+    if (select.orderBy != null && select.orderBy.size() > 0) {
       writer.sep("ORDER BY");
       final SqlWriter.Frame orderFrame =
           writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
