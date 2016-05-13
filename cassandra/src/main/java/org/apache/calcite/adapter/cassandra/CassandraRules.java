@@ -304,7 +304,7 @@ public class CassandraRules {
               .replace(sort.getCollation());
       return new CassandraSort(sort.getCluster(), traitSet,
           convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), filter.getImplicitCollation(), sort.fetch);
+          sort.getCollation(), sort.fetch);
     }
 
     public boolean matches(RelOptRuleCall call) {

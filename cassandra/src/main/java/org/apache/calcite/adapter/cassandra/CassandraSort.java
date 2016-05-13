@@ -37,13 +37,9 @@ import java.util.List;
  * relational expression in Cassandra.
  */
 public class CassandraSort extends Sort implements CassandraRel {
-  private final RelCollation implicitCollation;
-
   public CassandraSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, RelCollation collation, RelCollation implicitCollation, RexNode fetch) {
+      RelNode child, RelCollation collation, RexNode fetch) {
     super(cluster, traitSet, child, collation, null, fetch);
-
-    this.implicitCollation = implicitCollation;
 
     assert getConvention() == CassandraRel.CONVENTION;
     assert getConvention() == child.getConvention();
@@ -64,7 +60,7 @@ public class CassandraSort extends Sort implements CassandraRel {
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
       RelCollation newCollation, RexNode offset, RexNode fetch) {
-    return new CassandraSort(getCluster(), traitSet, input, collation, implicitCollation,
+    return new CassandraSort(getCluster(), traitSet, input, collation,
         fetch);
   }
 
