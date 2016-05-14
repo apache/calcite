@@ -1912,6 +1912,11 @@ public class SqlToRelConverter {
   protected void convertFrom(
       Blackboard bb,
       SqlNode from) {
+    if (from == null) {
+      bb.setRoot(LogicalValues.createOneRow(cluster), false);
+      return;
+    }
+
     final SqlCall call;
     final SqlNode[] operands;
     switch (from.getKind()) {
@@ -3513,7 +3518,6 @@ public class SqlToRelConverter {
 
     fieldNames = SqlValidatorUtil.uniquify(fieldNames);
 
-    RelNode inputRel = bb.root;
     bb.setRoot(
         RelOptUtil.createProject(bb.root, exprs, fieldNames),
         false);

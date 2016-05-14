@@ -130,6 +130,10 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);
   }
+
+  public boolean fromRequired() {
+    return CalciteConnectionProperty.FROM_REQUIRED.wrap(properties).getBoolean();
+  }
 }
 
 // End CalciteConnectionConfigImpl.java

@@ -94,7 +94,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   /** Type system. The name of a class that implements
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem} and has a public
    * default constructor or an {@code INSTANCE} constant. */
-  TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false);
+  TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
+
+  /** Whether to support SELECT without FROM, e.g. SELECT 2+2. */
+  FROM_REQUIRED("fromRequired", Type.BOOLEAN, false, false);
 
   private final String camelName;
   private final Type type;

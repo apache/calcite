@@ -416,6 +416,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  @Test public void testSelectWithoutFrom() {
+    check(
+        "select 2+2",
+        "\nLogicalProject(EXPR$0=[+(2, 2)])\n"
+            + "  LogicalValues(tuples=[[{ 0 }]])\n");
+  }
+
   /** Tests referencing columns from a sub-query that has duplicate column
    * names. I think the standard says that this is illegal. We roll with it,
    * and rename the second column to "e0". */

@@ -1009,8 +1009,7 @@ SqlSelect SqlSelect() :
         }
     )?
     selectList = SelectList()
-    <FROM>
-    fromClause = FromClause()
+    fromClause = FromClauseOpt()
     where = WhereOpt()
     groupBy = GroupByOpt()
     having = HavingOpt()
@@ -1645,9 +1644,9 @@ SqlNode JoinTable(SqlNode e) :
 // We allow CROSS JOIN to have a join condition, even though that is not valid
 // SQL; the validator will catch it.
 /**
- * Parses the FROM clause a SELECT.
+ * Parses the optional FROM clause for a SELECT.
  */
-SqlNode FromClause() :
+SqlNode FromClauseOpt() :
 {
     SqlNode e, e2, condition;
     SqlLiteral natural, joinType;
@@ -1655,7 +1654,7 @@ SqlNode FromClause() :
     SqlParserPos pos;
 }
 {
-    e = TableRef()
+    <FROM> e = TableRef()
     (
         // Decide whether to read a JOIN clause or a comma, or to quit having
         // seen a single entry FROM clause like 'FROM emps'. See comments
@@ -1718,6 +1717,10 @@ SqlNode FromClause() :
     ) *
     {
         return e;
+    }
+    |
+    {
+        return null;
     }
 }
 

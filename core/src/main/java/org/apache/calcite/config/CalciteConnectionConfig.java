@@ -52,6 +52,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean forceDecorrelate();
   /** @see CalciteConnectionProperty#TYPE_SYSTEM */
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
+  /** @see CalciteConnectionProperty#FROM_REQUIRED */
+  boolean fromRequired();
 }
 
 // End CalciteConnectionConfig.java
