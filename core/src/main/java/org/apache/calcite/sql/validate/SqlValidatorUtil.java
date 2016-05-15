@@ -219,11 +219,21 @@ public class SqlValidatorUtil {
   public static SqlValidatorWithHints newValidator(
       SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
+      RelDataTypeFactory typeFactory,
+      SqlConformance conformance) {
+    return new SqlValidatorImpl(opTab, catalogReader, typeFactory,
+        conformance);
+  }
+
+  /**
+   * Factory method for {@link SqlValidator}, with default conformance.
+   */
+  @Deprecated // to be removed before 2.0
+  public static SqlValidatorWithHints newValidator(
+      SqlOperatorTable opTab,
+      SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory) {
-    return new SqlValidatorImpl(
-        opTab,
-        catalogReader,
-        typeFactory,
+    return newValidator(opTab, catalogReader, typeFactory,
         SqlConformance.DEFAULT);
   }
 

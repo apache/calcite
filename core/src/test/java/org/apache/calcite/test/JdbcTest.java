@@ -2615,7 +2615,10 @@ public class JdbcTest {
         .returns("EXPR$0=-3\n");
   }
 
-  @Test public void testValuesWithoutFrom() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1120">[CALCITE-1120]
+   * Support SELECT without FROM</a>. */
+  @Test public void testSelectWithoutFrom() {
     CalciteAssert.that()
         .query("select 2+2")
         .returns("EXPR$0=4\n");

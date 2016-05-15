@@ -121,6 +121,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
@@ -793,7 +794,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final SqlOperatorTable opTab =
         ChainedSqlOperatorTable.of(opTab0, catalogReader);
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    return new CalciteSqlValidator(opTab, catalogReader, typeFactory);
+    final SqlConformance conformance = context.config().conformance();
+    return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
+        conformance);
   }
 
   private List<ColumnMetaData> getColumnMetaDataList(

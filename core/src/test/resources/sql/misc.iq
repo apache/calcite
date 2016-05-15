@@ -1195,4 +1195,92 @@ from "scott".dept;
 
 !ok
 
+# [CALCITE-1120] Support SELECT without FROM
+select 2 + 2;
++--------+
+| EXPR$0 |
++--------+
+|      4 |
++--------+
+(1 row)
+
+!ok
+
+select 2 + 2 as a, 'b' as b;
++---+---+
+| A | B |
++---+---+
+| 4 | b |
++---+---+
+(1 row)
+
+!ok
+
+select distinct 2 as a, 'b' as b;
++---+---+
+| A | B |
++---+---+
+| 2 | b |
++---+---+
+(1 row)
+
+!ok
+
+select distinct 2 as a, 'b' as b
+order by 2;
++---+---+
+| A | B |
++---+---+
+| 2 | b |
++---+---+
+(1 row)
+
+!ok
+
+select distinct 2 as a, 'b' as b
+union all
+select 3, 'c';
++---+---+
+| A | B |
++---+---+
+| 2 | b |
+| 3 | c |
++---+---+
+(2 rows)
+
+!ok
+
+select * from (
+  select 2 as a, 3 as b)
+where a < b;
++---+---+
+| A | B |
++---+---+
+| 2 | 3 |
++---+---+
+(1 row)
+
+!ok
+
+select * from (
+  select distinct 2 as a, 3 as b)
+where a > b;
++---+---+
+| A | B |
++---+---+
++---+---+
+(0 rows)
+
+!ok
+
+select count(*) as c from "scott".dept where exists (select 1);
++---+
+| C |
++---+
+| 4 |
++---+
+(1 row)
+
+!ok
+
 # End misc.iq

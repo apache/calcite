@@ -19,6 +19,7 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfig;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.validate.SqlConformance;
 
 /** Interface for reading connection properties within Calcite code. There is
  * a method for every property. At some point there will be similar config
@@ -52,8 +53,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean forceDecorrelate();
   /** @see CalciteConnectionProperty#TYPE_SYSTEM */
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
-  /** @see CalciteConnectionProperty#FROM_REQUIRED */
-  boolean fromRequired();
+  /** @see CalciteConnectionProperty#CONFORMANCE */
+  SqlConformance conformance();
 }
 
 // End CalciteConnectionConfig.java

@@ -1936,9 +1936,32 @@ public class SqlParserTest {
   }
 
   @Test public void testSelectWithoutFrom() {
-    check(
-        "select 2+2",
-        "SELECT (2 + 2)");
+    sql("select 2+2").ok("SELECT (2 + 2)");
+  }
+
+  @Test public void testSelectWithoutFrom2() {
+    sql("select 2+2 as x, 'a' as y")
+        .ok("SELECT (2 + 2) AS `X`, 'a' AS `Y`");
+  }
+
+  @Test public void testSelectDistinctWithoutFrom() {
+    sql("select distinct 2+2 as x, 'a' as y")
+        .ok("SELECT DISTINCT (2 + 2) AS `X`, 'a' AS `Y`");
+  }
+
+  @Test public void testSelectWithoutFromWhereFails() {
+    sql("select 2+2 as x ^where^ 1 > 2")
+        .fails("(?s).*Encountered \"where\" at line .*");
+  }
+
+  @Test public void testSelectWithoutFromGroupByFails() {
+    sql("select 2+2 as x ^group^ by 1, 2")
+        .fails("(?s).*Encountered \"group\" at line .*");
+  }
+
+  @Test public void testSelectWithoutFromHavingFails() {
+    sql("select 2+2 as x ^having^ 1 > 2")
+        .fails("(?s).*Encountered \"having\" at line .*");
   }
 
   @Test public void testSelectList3() {

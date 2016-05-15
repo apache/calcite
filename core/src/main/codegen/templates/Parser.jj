@@ -980,14 +980,12 @@ SqlSelect SqlSelect() :
 {
     final List<SqlLiteral> keywords = Lists.newArrayList();
     List<SqlNode> selectList;
-    SqlNode fromClause;
-    SqlNode where;
-    SqlNodeList groupBy;
-    SqlNode having;
-    SqlNodeList windowDecls;
+    final SqlNode fromClause;
+    final SqlNode where;
+    final SqlNodeList groupBy;
+    final SqlNode having;
+    final SqlNodeList windowDecls;
     SqlParserPos pos;
-    SqlParserPos selectListPos;
-    SqlNode selectItem;
 }
 {
     <SELECT>
@@ -1004,19 +1002,29 @@ SqlSelect SqlSelect() :
         <DISTINCT> {
             keywords.add(SqlSelectKeyword.DISTINCT.symbol(getPos()));
         }
-        |   <ALL> {
+    |   <ALL> {
             keywords.add(SqlSelectKeyword.ALL.symbol(getPos()));
         }
     )?
     selectList = SelectList()
-    fromClause = FromClauseOpt()
-    where = WhereOpt()
-    groupBy = GroupByOpt()
-    having = HavingOpt()
-    windowDecls = WindowOpt()
+    (
+        <FROM> fromClause = FromClause()
+        where = WhereOpt()
+        groupBy = GroupByOpt()
+        having = HavingOpt()
+        windowDecls = WindowOpt()
+    |
+        E() {
+            fromClause = null;
+            where = null;
+            groupBy = null;
+            having = null;
+            windowDecls = null;
+        }
+    )
     {
-        selectItem = (SqlNode)selectList.get(0);
-        selectListPos = selectItem.getParserPosition();
+        final SqlNode selectItem = (SqlNode)selectList.get(0);
+        final SqlParserPos selectListPos = selectItem.getParserPosition();
         return new SqlSelect(pos.plus(getPos()),
             new SqlNodeList(keywords, pos),
             new SqlNodeList(selectList, selectListPos.plusAll(selectList)),
@@ -1644,9 +1652,13 @@ SqlNode JoinTable(SqlNode e) :
 // We allow CROSS JOIN to have a join condition, even though that is not valid
 // SQL; the validator will catch it.
 /**
- * Parses the optional FROM clause for a SELECT.
+ * Parses the FROM clause for a SELECT.
+ *
+ * <p>FROM is mandatory in standard SQL, optional in dialects such as MySQL,
+ * PostgreSQL. The parser allows SELECT without FROM, but the validator fails
+ * if conformance is, say, STRICT_2003.
  */
-SqlNode FromClauseOpt() :
+SqlNode FromClause() :
 {
     SqlNode e, e2, condition;
     SqlLiteral natural, joinType;
@@ -1654,7 +1666,7 @@ SqlNode FromClauseOpt() :
     SqlParserPos pos;
 }
 {
-    <FROM> e = TableRef()
+    e = TableRef()
     (
         // Decide whether to read a JOIN clause or a comma, or to quit having
         // seen a single entry FROM clause like 'FROM emps'. See comments
@@ -1717,10 +1729,6 @@ SqlNode FromClauseOpt() :
     ) *
     {
         return e;
-    }
-    |
-    {
-        return null;
     }
 }
 

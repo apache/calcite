@@ -90,6 +90,7 @@ query:
   |   WITH withItem [ , withItem ]* query
   |   {
           select
+      |   selectWithoutFrom
       |   query UNION [ ALL ] query
       |   query EXCEPT query
       |   query INTERSECT query
@@ -115,6 +116,10 @@ select:
       [ GROUP BY { groupItem [, groupItem ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
+
+selectWithoutFrom:
+      SELECT [ ALL | DISTINCT ]
+          { * | projectItem [, projectItem ]* }
 
 projectItem:
       expression [ [ AS ] columnAlias ]
@@ -191,6 +196,10 @@ function).
 
 An IN, EXISTS or scalar sub-query may be correlated; that is, it
 may refer to tables in the FROM clause of an enclosing query.
+
+*selectWithoutFrom* is equivalent to VALUES,
+but is not standard SQL and is only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isFromRequired--).
 
 ## Keywords
 

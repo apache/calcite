@@ -82,7 +82,7 @@ public class SqlValidatorTestCase {
   }
 
   public final Sql sql(String sql) {
-    return new Sql(sql);
+    return new Sql(tester, sql);
   }
 
   public final Sql winSql(String sql) {
@@ -525,11 +525,17 @@ public class SqlValidatorTestCase {
   }
 
   /** Fluent testing API. */
-  class Sql {
+  static class Sql {
+    private final SqlTester tester;
     private final String sql;
 
-    Sql(String sql) {
+    Sql(SqlTester tester, String sql) {
+      this.tester = tester;
       this.sql = sql;
+    }
+
+    Sql tester(SqlTester tester) {
+      return new Sql(tester, sql);
     }
 
     Sql ok() {

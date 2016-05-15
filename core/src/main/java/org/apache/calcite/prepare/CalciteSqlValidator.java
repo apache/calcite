@@ -25,11 +25,10 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 /** Validator. */
 class CalciteSqlValidator extends SqlValidatorImpl {
-  public CalciteSqlValidator(
-      SqlOperatorTable opTab,
-      CalciteCatalogReader catalogReader,
-      JavaTypeFactory typeFactory) {
-    super(opTab, catalogReader, typeFactory, SqlConformance.DEFAULT);
+  public CalciteSqlValidator(SqlOperatorTable opTab,
+      CalciteCatalogReader catalogReader, JavaTypeFactory typeFactory,
+      SqlConformance conformance) {
+    super(opTab, catalogReader, typeFactory, conformance);
   }
 
   @Override protected RelDataType getLogicalSourceRowType(

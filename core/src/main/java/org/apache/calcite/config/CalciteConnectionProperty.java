@@ -17,6 +17,7 @@
 package org.apache.calcite.config;
 
 import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Bug;
 
 import java.util.HashMap;
@@ -96,8 +97,8 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * default constructor or an {@code INSTANCE} constant. */
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
-  /** Whether to support SELECT without FROM, e.g. SELECT 2+2. */
-  FROM_REQUIRED("fromRequired", Type.BOOLEAN, false, false);
+  /** SQL conformance level. */
+  CONFORMANCE("conformance", Type.ENUM, SqlConformance.DEFAULT, false);
 
   private final String camelName;
   private final Type type;

@@ -17,7 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 /**
- * Enumeration of valid SQL compatiblity modes.
+ * Enumeration of valid SQL compatibility modes.
  */
 public enum SqlConformance {
   DEFAULT, STRICT_92, STRICT_99, PRAGMATIC_99, ORACLE_10, STRICT_2003,
@@ -26,6 +26,10 @@ public enum SqlConformance {
   /**
    * Whether 'order by 2' is interpreted to mean 'sort by the 2nd column in
    * the select list'.
+   *
+   * <p>True in {@link #DEFAULT}, {@link #ORACLE_10}, {@link #STRICT_92},
+   * {@link #PRAGMATIC_99}, {@link #PRAGMATIC_2003};
+   * false otherwise.
    */
   public boolean isSortByOrdinal() {
     switch (this) {
@@ -43,6 +47,9 @@ public enum SqlConformance {
   /**
    * Whether 'order by x' is interpreted to mean 'sort by the select list item
    * whose alias is x' even if there is a column called x.
+   *
+   * <p>True in {@link #DEFAULT}, {@link #ORACLE_10}, {@link #STRICT_92};
+   * false otherwise.
    */
   public boolean isSortByAlias() {
     switch (this) {
@@ -58,21 +65,30 @@ public enum SqlConformance {
   /**
    * Whether "empno" is invalid in "select empno as x from emp order by empno"
    * because the alias "x" obscures it.
+   *
+   * <p>True in {@link #STRICT_92};
+   * false otherwise.
    */
   public boolean isSortByAliasObscures() {
     return this == SqlConformance.STRICT_92;
   }
 
   /**
-   * Whether from clause is required for any select statement.
+   * Whether FROM clause is required in a SELECT statement.
+   *
+   * <p>True in {@link #ORACLE_10}, {@link #STRICT_92}, {@link #STRICT_99},
+   * {@link #STRICT_2003};
+   * false otherwise.
    */
   public boolean isFromRequired() {
     switch (this) {
-    case DEFAULT:
-    case PRAGMATIC_2003:
-      return false;
-    default:
+    case ORACLE_10:
+    case STRICT_92:
+    case STRICT_99:
+    case STRICT_2003:
       return true;
+    default:
+      return false;
     }
   }
 }

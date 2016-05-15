@@ -17,7 +17,9 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
@@ -34,6 +36,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
@@ -171,9 +174,11 @@ public class PlannerImpl implements Planner {
 
   public SqlNode validate(SqlNode sqlNode) throws ValidationException {
     ensure(State.STATE_3_PARSED);
+    final SqlConformance conformance = conformance();
+    final CalciteCatalogReader catalogReader = createCatalogReader();
     this.validator =
-        new CalciteSqlValidator(
-            operatorTable, createCatalogReader(), typeFactory);
+        new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
+            conformance);
     this.validator.setIdentifierExpansion(true);
     try {
       validatedSqlNode = validator.validate(sqlNode);
@@ -182,6 +187,18 @@ public class PlannerImpl implements Planner {
     }
     state = State.STATE_4_VALIDATED;
     return validatedSqlNode;
+  }
+
+  private SqlConformance conformance() {
+    final Context context = config.getContext();
+    if (context != null) {
+      final CalciteConnectionConfig connectionConfig =
+          context.unwrap(CalciteConnectionConfig.class);
+      if (connectionConfig != null) {
+        return connectionConfig.conformance();
+      }
+    }
+    return SqlConformance.DEFAULT;
   }
 
   public Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode)
@@ -227,10 +244,12 @@ public class PlannerImpl implements Planner {
         throw new RuntimeException("parse failed", e);
       }
 
+      final SqlConformance conformance = conformance();
       final CalciteCatalogReader catalogReader =
           createCatalogReader().withSchemaPath(schemaPath);
-      final SqlValidator validator = new CalciteSqlValidator(operatorTable,
-          catalogReader, typeFactory);
+      final SqlValidator validator =
+          new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
+              conformance);
       validator.setIdentifierExpansion(true);
       final SqlNode validatedSqlNode = validator.validate(sqlNode);
 

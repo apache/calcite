@@ -86,11 +86,13 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   public SqlValidator getValidator(SqlTestFactory factory) {
     final SqlOperatorTable operatorTable = factory.createOperatorTable(factory);
     final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
+    final SqlConformance conformance =
+        (SqlConformance) factory.get("conformance");
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     return SqlValidatorUtil.newValidator(operatorTable,
         new MockCatalogReader(typeFactory, caseSensitive).init(),
-        typeFactory);
+        typeFactory, conformance);
   }
 
   public SqlAdvisor createAdvisor(SqlValidatorWithHints validator) {

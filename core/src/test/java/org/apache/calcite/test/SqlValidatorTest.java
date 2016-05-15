@@ -6842,14 +6842,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testSelectWithoutFrom() {
-    final SqlConformance conformance = tester.getConformance();
-    checkFails(
-        "^select 2+2^",
-
-        conformance.isFromRequired()
-            ? "SELECT must have a FROM clause"
-            // otherwise valid
-            : null);
+    sql("^select 2+2^")
+        .tester(tester.withConformance(SqlConformance.DEFAULT))
+        .ok();
+    sql("^select 2+2^")
+        .tester(tester.withConformance(SqlConformance.ORACLE_10))
+        .fails("SELECT must have a FROM clause");
+    sql("^select 2+2^")
+        .tester(tester.withConformance(SqlConformance.STRICT_2003))
+        .fails("SELECT must have a FROM clause");
   }
 
   @Test public void testTableExtend() {
