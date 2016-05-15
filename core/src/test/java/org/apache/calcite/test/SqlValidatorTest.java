@@ -7039,6 +7039,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "FROM `DEPT`");
   }
 
+  @Test public void testRewriteWithLimitWithoutOrderBy() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    tester.checkRewrite(
+        validator,
+        "select name from dept limit 2",
+        "SELECT `NAME`\n"
+            + "FROM `DEPT`\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+  }
+
+  @Test public void testRewriteWithOffsetWithoutOrderBy() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    tester.checkRewrite(
+        validator,
+        "select name from dept offset 2",
+        "SELECT `NAME`\n"
+            + "FROM `DEPT`\n"
+            + "OFFSET 2 ROWS");
+  }
+
+  @Test public void testRewriteWithUnionFetchWithoutOrderBy() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    tester.checkRewrite(
+        validator,
+        "select name from dept union all select name from dept limit 2",
+        "SELECT *\n"
+            + "FROM (SELECT `NAME`\n"
+            + "FROM `DEPT`\n"
+            + "UNION ALL\n"
+            + "SELECT `NAME`\n"
+            + "FROM `DEPT`)\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+  }
+
   @Test public void testRewriteWithIdentifierExpansion() {
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
