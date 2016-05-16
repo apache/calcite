@@ -129,6 +129,7 @@ public class AvaticaJsonHandler extends AbstractAvaticaHandler {
             jsonResponse = jsonHandler.apply(jsonRequest);
           }
         } catch (Exception e) {
+          LOG.debug("Error invoking request from {}", baseRequest.getRemoteAddr(), e);
           jsonResponse = jsonHandler.convertToErrorResponse(e);
         }
 

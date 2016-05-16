@@ -124,6 +124,7 @@ public class AvaticaProtobufHandler extends AbstractAvaticaHandler {
             handlerResponse = pbHandler.apply(requestBytes);
           }
         } catch (Exception e) {
+          LOG.debug("Error invoking request from {}", baseRequest.getRemoteAddr(), e);
           // Catch at the highest level of exceptions
           handlerResponse = pbHandler.convertToErrorResponse(e);
         }
