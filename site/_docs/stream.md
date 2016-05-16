@@ -819,7 +819,7 @@ the ship date is within one hour of the order date:
 SELECT STREAM o.rowtime, o.productId, o.orderId, s.rowtime AS shipTime
 FROM Orders AS o
 JOIN Shipments AS s
-  ON o.orderId = p.orderId
+  ON o.orderId = s.orderId
   AND s.rowtime BETWEEN o.rowtime AND o.rowtime + INTERVAL '1' HOUR;
 
   rowtime | productId | orderId | shipTime
