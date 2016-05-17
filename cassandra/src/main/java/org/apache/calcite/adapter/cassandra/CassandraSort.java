@@ -85,7 +85,7 @@ public class CassandraSort extends Sort implements CassandraRel {
       implementor.addOrder(fieldOrder);
     }
     if (fetch != null) {
-      implementor.setLimit(((RexLiteral) fetch).getValue().toString());
+      implementor.setLimit(RexLiteral.intValue(fetch));
     }
   }
 }

@@ -99,7 +99,7 @@ public class CassandraTable extends AbstractQueryableTable
   public Enumerable<Object> query(final Session session) {
     return query(session, Collections.<Map.Entry<String, Class>>emptyList(),
         Collections.<Map.Entry<String, String>>emptyList(),
-        Collections.<String>emptyList(), Collections.<String>emptyList(), null);
+        Collections.<String>emptyList(), Collections.<String>emptyList(), -1);
   }
 
   /** Executes a CQL query on the underlying table.
@@ -111,7 +111,7 @@ public class CassandraTable extends AbstractQueryableTable
    */
   public Enumerable<Object> query(final Session session, List<Map.Entry<String, Class>> fields,
         final List<Map.Entry<String, String>> selectFields, List<String> predicates,
-        List<String> order, String limit) {
+        List<String> order, Integer limit) {
     // Build the type of the resulting row based on the provided fields
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -181,7 +181,7 @@ public class CassandraTable extends AbstractQueryableTable
     if (!order.isEmpty()) {
       queryBuilder.append(Util.toString(order, " ORDER BY ", ", ", ""));
     }
-    if (limit != null) {
+    if (limit >= 0) {
       queryBuilder.append(" LIMIT " + limit);
     }
     queryBuilder.append(" ALLOW FILTERING");
@@ -238,7 +238,7 @@ public class CassandraTable extends AbstractQueryableTable
     @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> query(List<Map.Entry<String, Class>> fields,
         List<Map.Entry<String, String>> selectFields, List<String> predicates,
-        List<String> order, String limit) {
+        List<String> order, Integer limit) {
       return getTable().query(getSession(), fields, selectFields, predicates,
           order, limit);
     }
