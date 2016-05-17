@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.7.0-source.tar.gz
-$ cd calcite-1.7.0
+$ tar xvfz calcite-1.8.0-source.tar.gz
+$ cd calcite-1.8.0
 $ mvn install
 {% endhighlight %}
 
@@ -113,7 +113,7 @@ environment, as follows.
 ## Running integration tests
 
 For testing Calcite's external adapters, a test virtual machine should be used.
-The VM includes H2, HSQLDB, MySQL, MongoDB, and PostgreSQL.
+The VM includes Cassandra, Druid, H2, HSQLDB, MySQL, MongoDB, and PostgreSQL.
 
 Test VM requires 5GiB of disk space and it takes 30 minutes to build.
 

@@ -26,8 +26,6 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2016/05/10 <a href="http://events.linuxfoundation.org/events/apache-big-data-north-america/program/schedule">ApacheCon Big Data North America</a>, Vancouver
-* 2016/05/24 <a href="http://www-conf.slac.stanford.edu/xldb2016/Program.asp">XLDB</a>, Palo Alto
 * 2016/06/29 <a href="http://hadoopsummit.org/san-jose/agenda/">Hadoop Summit</a>, San Jose
 
 # Project Members
@@ -39,7 +37,7 @@ Name (Apache ID) | Github | Org | Role
 
 # Mailing Lists
 
-There are several development mailing lists for Calcite:
+There are several mailing lists for Calcite:
 
 * [dev@calcite.apache.org](mailto:dev@calcite.apache.org) - Development discussions
   [[archive](https://mail-archives.apache.org/mod_mbox/calcite-dev/)]
@@ -49,8 +47,8 @@ There are several development mailing lists for Calcite:
   [[archive](https://mail-archives.apache.org/mod_mbox/calcite-commits/)]
 
 You can subscribe to the lists by sending email to
-*list*-subscribe@calcite.apache.org and unsubscribe by sending email to
-*list*-unsubscribe@calcite.apache.org.
+*{list}*-subscribe@calcite.apache.org and unsubscribe by sending email to
+*{list}*-unsubscribe@calcite.apache.org (where *{list}* is either "dev", "issues", or "commits").
 
 # Help
 
@@ -66,9 +64,9 @@ Need help with Calcite? Try these resources:
 * **Bug Reports**.
   Please file any issues you encounter or fixes you'd like on the
   [Calcite Jira](https://issues.apache.org/jira/browse/CALCITE). We welcome
-  patches!
+  patches and pull-requests!
 * **StackOverflow**.
-  [StackOverflow](http://stackoverflow.com) is a wonderful resource for
+  [StackOverflow](http://stackoverflow.com/questions/tagged/calcite) is a wonderful resource for
   any developer. Take a look over there to see if someone has answered
   your question.
 * **Browse the code**.
@@ -122,6 +120,7 @@ As Hadoop Summit, Dublin, 2016
 
 ## More talks
 
+* <a href="https://github.com/julianhyde/share/blob/master/slides/calcite-streaming-sql-xldb-2016.pdf?raw=true">Streaming SQL</a> (XLDB, Menlo Park, 2016)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-seattle-2014.pdf?raw=true">Cost-based optimization in Hive 0.14</a> (Seattle, 2014)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (<a href="https://www.youtube.com/watch?v=CziGOa8GXqI">video</a>) (Hadoop Summit, 2014)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-summit-2014.pdf?raw=true">Cost-based optimization in Hive</a> (<a href="https://www.youtube.com/watch?v=vpG5noIbEFs">video</a>) (Hadoop Summit, 2014)

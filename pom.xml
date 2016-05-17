@@ -49,7 +49,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>7</version.minor>
+    <version.minor>8</version.minor>
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
@@ -438,6 +438,7 @@ limitations under the License.
             <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
             <exclude>**/src/test/resources/**/*.csv</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
+            <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
 
             <!-- Exclude all of avatica, RAT is run in Avatica -->
             <exclude>avatica/**</exclude>

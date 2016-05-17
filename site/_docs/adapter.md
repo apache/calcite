@@ -64,7 +64,7 @@ where `property`, `property2` are properties as described below.
 as implemented by Avatica's
 <a href="{{ site.apiRoot }}/org/apache/calcite/avatica/ConnectStringParser.html">ConnectStringParser</a>.)
 
-JDBC connect string parameters
+## JDBC connect string parameters
 
 | Property | Description |
 |:-------- |:------------|
