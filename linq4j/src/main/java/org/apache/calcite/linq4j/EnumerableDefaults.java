@@ -34,6 +34,10 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.AbstractMap;
@@ -1289,6 +1293,114 @@ public abstract class EnumerableDefaults {
       }
     }
     throw new NoSuchElementException();
+  }
+
+  /**
+   * Returns elements of {@code outer} for which there is a member of
+   * {@code inner} with a matching key.
+   */
+  public static <TSource, TInner, TKey> Enumerable<TSource> semiJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector) {
+    return semiJoin(outer, inner, outerKeySelector, innerKeySelector, null);
+  }
+
+  /**
+   * Returns elements of {@code outer} for which there is a member of
+   * {@code inner} with a matching key. A specified
+   * {@code EqualityComparer<TSource>} is used to compare keys.
+   */
+  public static <TSource, TInner, TKey> Enumerable<TSource> semiJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final EqualityComparer<TKey> comparer) {
+    return new AbstractEnumerable<TSource>() {
+      public Enumerator<TSource> enumerator() {
+        final Enumerable<TKey> innerLookup =
+            comparer == null
+                ? inner.select(innerKeySelector).distinct()
+                : inner.select(innerKeySelector).distinct(comparer);
+
+        return EnumerableDefaults.where(outer.enumerator(),
+            new Predicate1<TSource>() {
+              public boolean apply(TSource v0) {
+                final TKey key = outerKeySelector.apply(v0);
+                return innerLookup.contains(key);
+              }
+            });
+      }
+    };
+  }
+
+  /**
+   * Correlates the elements of two sequences based on a predicate.
+   */
+  public static <TSource, TInner, TResult> Enumerable<TResult> thetaJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Predicate2<TSource, TInner> predicate,
+      Function2<TSource, TInner, TResult> resultSelector,
+      final boolean generateNullsOnLeft,
+      final boolean generateNullsOnRight) {
+    // Building the result as a list is easy but hogs memory. We should iterate.
+    final List<TResult> result = Lists.newArrayList();
+    final Enumerator<TSource> lefts = outer.enumerator();
+    final List<TInner> rightList = inner.toList();
+    final Set<TInner> rightUnmatched;
+    if (generateNullsOnLeft) {
+      rightUnmatched = Sets.newIdentityHashSet();
+      rightUnmatched.addAll(rightList);
+    } else {
+      rightUnmatched = null;
+    }
+    while (lefts.moveNext()) {
+      int leftMatchCount = 0;
+      final TSource left = lefts.current();
+      final Enumerator<TInner> rights = Linq4j.iterableEnumerator(rightList);
+      while (rights.moveNext()) {
+        TInner right = rights.current();
+        if (predicate.apply(left, right)) {
+          ++leftMatchCount;
+          if (rightUnmatched != null) {
+            rightUnmatched.remove(right);
+          }
+          result.add(resultSelector.apply(left, right));
+        }
+      }
+      if (generateNullsOnRight && leftMatchCount == 0) {
+        result.add(resultSelector.apply(left, null));
+      }
+    }
+    if (rightUnmatched != null) {
+      final Enumerator<TInner> rights =
+          Linq4j.iterableEnumerator(rightUnmatched);
+      while (rights.moveNext()) {
+        TInner right = rights.current();
+        result.add(resultSelector.apply(null, right));
+      }
+    }
+    return Linq4j.asEnumerable(result);
+  }
+
+  /** Joins two inputs that are sorted on the key. */
+  public static <TSource, TInner, TKey extends Comparable<TKey>, TResult>
+  Enumerable<TResult> mergeJoin(final Enumerable<TSource> outer,
+      final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Function2<TSource, TInner, TResult> resultSelector,
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight) {
+    assert !generateNullsOnLeft : "not implemented";
+    assert !generateNullsOnRight : "not implemented";
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new MergeJoinEnumerator<>(outer.enumerator(),
+            inner.enumerator(), outerKeySelector, innerKeySelector,
+            resultSelector);
+      }
+    };
   }
 
   /**
@@ -2675,28 +2787,34 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TSource>() {
       public Enumerator<TSource> enumerator() {
         final Enumerator<TSource> enumerator = source.enumerator();
-        return new Enumerator<TSource>() {
-          public TSource current() {
-            return enumerator.current();
-          }
+        return EnumerableDefaults.where(enumerator, predicate);
+      }
+    };
+  }
 
-          public boolean moveNext() {
-            while (enumerator.moveNext()) {
-              if (predicate.apply(enumerator.current())) {
-                return true;
-              }
-            }
-            return false;
-          }
+  private static <TSource> Enumerator<TSource> where(
+      final Enumerator<TSource> enumerator,
+      final Predicate1<TSource> predicate) {
+    return new Enumerator<TSource>() {
+      public TSource current() {
+        return enumerator.current();
+      }
 
-          public void reset() {
-            enumerator.reset();
+      public boolean moveNext() {
+        while (enumerator.moveNext()) {
+          if (predicate.apply(enumerator.current())) {
+            return true;
           }
+        }
+        return false;
+      }
 
-          public void close() {
-            enumerator.close();
-          }
-        };
+      public void reset() {
+        enumerator.reset();
+      }
+
+      public void close() {
+        enumerator.close();
       }
     };
   }
@@ -3073,6 +3191,142 @@ public abstract class EnumerableDefaults {
           throw new UnsupportedOperationException();
         }
       };
+    }
+  }
+
+  /** Enumerator that performs a merge join on its sorted inputs. */
+  private static class MergeJoinEnumerator<TResult, TSource, TInner, TKey extends Comparable<TKey>>
+      implements Enumerator<TResult> {
+    final List<TSource> lefts = new ArrayList<>();
+    final List<TInner> rights = new ArrayList<>();
+    private final Enumerator<TSource> leftEnumerator;
+    private final Enumerator<TInner> rightEnumerator;
+    private final Function1<TSource, TKey> outerKeySelector;
+    private final Function1<TInner, TKey> innerKeySelector;
+    private final Function2<TSource, TInner, TResult> resultSelector;
+    boolean done;
+    Enumerator<List<Object>> cartesians;
+
+    MergeJoinEnumerator(Enumerator<TSource> leftEnumerator,
+        Enumerator<TInner> rightEnumerator,
+        Function1<TSource, TKey> outerKeySelector,
+        Function1<TInner, TKey> innerKeySelector,
+        Function2<TSource, TInner, TResult> resultSelector) {
+      this.leftEnumerator = leftEnumerator;
+      this.rightEnumerator = rightEnumerator;
+      this.outerKeySelector = outerKeySelector;
+      this.innerKeySelector = innerKeySelector;
+      this.resultSelector = resultSelector;
+      start();
+    }
+
+    private void start() {
+      if (!leftEnumerator.moveNext()
+          || !rightEnumerator.moveNext()
+          || !advance()) {
+        done = true;
+        cartesians = Linq4j.emptyEnumerator();
+      }
+    }
+
+    /** Moves to the next key that is present in both sides. Populates
+     * lefts and rights with the rows. Restarts the cross-join
+     * enumerator. */
+    private boolean advance() {
+      TSource left = leftEnumerator.current();
+      TKey leftKey = outerKeySelector.apply(left);
+      TInner right = rightEnumerator.current();
+      TKey rightKey = innerKeySelector.apply(right);
+      for (;;) {
+        int c = leftKey.compareTo(rightKey);
+        if (c == 0) {
+          break;
+        }
+        if (c < 0) {
+          if (!leftEnumerator.moveNext()) {
+            done = true;
+            return false;
+          }
+          left = leftEnumerator.current();
+          leftKey = outerKeySelector.apply(left);
+        } else {
+          if (!rightEnumerator.moveNext()) {
+            done = true;
+            return false;
+          }
+          right = rightEnumerator.current();
+          rightKey = innerKeySelector.apply(right);
+        }
+      }
+      lefts.clear();
+      lefts.add(left);
+      for (;;) {
+        if (!leftEnumerator.moveNext()) {
+          done = true;
+          break;
+        }
+        left = leftEnumerator.current();
+        TKey leftKey2 = outerKeySelector.apply(left);
+        int c = leftKey.compareTo(leftKey2);
+        if (c != 0) {
+          assert c < 0 : "not sorted";
+          break;
+        }
+        lefts.add(left);
+      }
+      rights.clear();
+      rights.add(right);
+      for (;;) {
+        if (!rightEnumerator.moveNext()) {
+          done = true;
+          break;
+        }
+        right = rightEnumerator.current();
+        TKey rightKey2 = innerKeySelector.apply(right);
+        int c = rightKey.compareTo(rightKey2);
+        if (c != 0) {
+          assert c < 0 : "not sorted";
+          break;
+        }
+        rights.add(right);
+      }
+      cartesians = Linq4j.product(
+          ImmutableList.of(Linq4j.<Object>enumerator(lefts),
+              Linq4j.<Object>enumerator(rights)));
+      return true;
+    }
+
+    public TResult current() {
+      final List<Object> list = cartesians.current();
+      @SuppressWarnings("unchecked") final TSource left =
+          (TSource) list.get(0);
+      @SuppressWarnings("unchecked") final TInner right =
+          (TInner) list.get(1);
+      return resultSelector.apply(left, right);
+    }
+
+    public boolean moveNext() {
+      for (;;) {
+        if (cartesians.moveNext()) {
+          return true;
+        }
+        if (done) {
+          return false;
+        }
+        if (!advance()) {
+          return false;
+        }
+      }
+    }
+
+    public void reset() {
+      done = false;
+      leftEnumerator.reset();
+      rightEnumerator.reset();
+      start();
+    }
+
+    public void close() {
     }
   }
 }

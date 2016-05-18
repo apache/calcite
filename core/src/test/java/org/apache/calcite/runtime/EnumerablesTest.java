@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -69,7 +70,7 @@ public class EnumerablesTest {
 
   @Test public void testSemiJoin() {
     assertThat(
-        Enumerables.semiJoin(EMPS, DEPTS,
+        EnumerableDefaults.semiJoin(EMPS, DEPTS,
             new Function1<Emp, Integer>() {
               public Integer apply(Emp a0) {
                 return a0.deptno;
@@ -86,7 +87,7 @@ public class EnumerablesTest {
 
   @Test public void testMergeJoin() {
     assertThat(
-        Enumerables.mergeJoin(
+        EnumerableDefaults.mergeJoin(
             Linq4j.asEnumerable(
                 Arrays.asList(
                     new Emp(10, "Fred"),
@@ -171,7 +172,7 @@ public class EnumerablesTest {
 
   private static <T extends Comparable<T>> Enumerable<T> intersect(
       List<T> list0, List<T> list1) {
-    return Enumerables.mergeJoin(
+    return EnumerableDefaults.mergeJoin(
         Linq4j.asEnumerable(list0),
         Linq4j.asEnumerable(list1),
         Functions.<T>identitySelector(),
@@ -185,31 +186,31 @@ public class EnumerablesTest {
 
   @Test public void testThetaJoin() {
     assertThat(
-        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
-            false, false).toList().toString(),
+        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, false, false).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}]"));
   }
 
   @Test public void testThetaLeftJoin() {
     assertThat(
-        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
-            false, true).toList().toString(),
+        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, false, true).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}]"));
   }
 
   @Test public void testThetaRightJoin() {
     assertThat(
-        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
-            true, false).toList().toString(),
+        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, true, false).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}, "
             + "{null, null, 15, Marketing}]"));
   }
 
   @Test public void testThetaFullJoin() {
     assertThat(
-        Enumerables.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO, EMP_DEPT_TO_STRING,
-            true, true).toList().toString(),
+        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+            EMP_DEPT_TO_STRING, true, true).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}, "
             + "{null, null, 15, Marketing}]"));
@@ -217,7 +218,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoinLeftEmpty() {
     assertThat(
-        Enumerables.thetaJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
+        EnumerableDefaults.thetaJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true)
             .orderBy(Functions.<String>identitySelector()).toList().toString(),
         equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
@@ -225,7 +226,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoinRightEmpty() {
     assertThat(
-        Enumerables.thetaJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
+        EnumerableDefaults.thetaJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, null, null}, "
             + "{Sebastian, 20, null, null}, {Joe, 30, null, null}]"));
@@ -233,7 +234,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoinBothEmpty() {
     assertThat(
-        Enumerables.thetaJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
+        EnumerableDefaults.thetaJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true).toList().toString(),
         equalTo("[]"));
   }
