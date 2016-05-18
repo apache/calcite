@@ -83,7 +83,7 @@ public interface SqlValidatorNamespace {
    * Sets the type of this namespace.
    *
    * <p>Allows the type for the namespace to be explicitly set, but usually is
-   * called during {@link #validate()}.</p>
+   * called during {@link #validate(RelDataType)}.</p>
    *
    * <p>Implicitly also sets the row type. If the type is not a struct, then
    * the row type is the type wrapped as a struct with a single column,
@@ -105,8 +105,11 @@ public interface SqlValidatorNamespace {
    *
    * <p>Please call {@link SqlValidatorImpl#validateNamespace} rather than
    * calling this method directly.</p>
+   *
+   * @param targetRowType Desired row type, must not be null, may be the data
+   *                      type 'unknown'.
    */
-  void validate();
+  void validate(RelDataType targetRowType);
 
   /**
    * Returns the parse tree node at the root of this namespace.
@@ -192,7 +195,7 @@ public interface SqlValidatorNamespace {
    * (the body of the with-item). An {@link IdentifierNamespace} typically
    * resolves to a {@link TableNamespace}.</p>
    *
-   * <p>You must not call this method before {@link #validate()} has
+   * <p>You must not call this method before {@link #validate(RelDataType)} has
    * completed.</p> */
   SqlValidatorNamespace resolve();
 

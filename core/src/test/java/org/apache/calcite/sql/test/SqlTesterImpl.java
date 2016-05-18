@@ -440,25 +440,31 @@ public class SqlTesterImpl implements SqlTester {
       TypeChecker typeChecker,
       Object result,
       double delta) {
-    check(
-        query,
-        typeChecker,
+    check(query, typeChecker, SqlTests.ANY_PARAMETER_CHECKER,
         SqlTests.createChecker(result, delta));
   }
 
-  public void check(
-      String query,
-      TypeChecker typeChecker,
-      ResultChecker resultChecker) {
+  public void check(String query, TypeChecker typeChecker,
+      ParameterChecker parameterChecker, ResultChecker resultChecker) {
     // This implementation does NOT check the result!
-    // (It can't because we're pure Java.)
     // All it does is check the return type.
 
-    // Parse and validate. There should be no errors.
-    RelDataType actualType = getColumnType(query);
+    if (typeChecker == null) {
+      // Parse and validate. There should be no errors.
+      Util.discard(getResultType(query));
+    } else {
+      // Parse and validate. There should be no errors.
+      // There must be 1 column. Get its type.
+      RelDataType actualType = getColumnType(query);
 
-    // Check result type.
-    typeChecker.checkType(actualType);
+      // Check result type.
+      typeChecker.checkType(actualType);
+    }
+
+    SqlValidator validator = getValidator();
+    SqlNode n = parseAndValidate(validator, query);
+    final RelDataType parameterRowType = validator.getParameterRowType(n);
+    parameterChecker.checkParameters(parameterRowType);
   }
 
   public void checkMonotonic(String query,
@@ -681,9 +687,6 @@ public class SqlTesterImpl implements SqlTester {
     };
   }
 
-  public boolean isVm(VmName vmName) {
-    return false;
-  }
 }
 
 // End SqlTesterImpl.java

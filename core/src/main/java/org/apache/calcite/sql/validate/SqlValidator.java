@@ -166,9 +166,12 @@ public interface SqlValidator {
    *
    * @param node  Query node
    * @param scope Scope in which the query occurs
+   * @param targetRowType Desired row type, must not be null, may be the data
+   *                      type 'unknown'.
    * @throws RuntimeException if the query is not valid
    */
-  void validateQuery(SqlNode node, SqlValidatorScope scope);
+  void validateQuery(SqlNode node, SqlValidatorScope scope,
+      RelDataType targetRowType);
 
   /**
    * Returns the type assigned to a node by validation.

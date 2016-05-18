@@ -269,12 +269,15 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    * @param query         SQL query
    * @param typeChecker   Checks whether the result is the expected type; must
    *                      not be null
+   * @param parameterChecker Checks whether the parameters are of expected
+   *                      types
    * @param resultChecker Checks whether the result has the expected value;
    *                      must not be null
    */
   void check(
       String query,
       TypeChecker typeChecker,
+      ParameterChecker parameterChecker,
       ResultChecker resultChecker);
 
   /**
@@ -295,15 +298,6 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   void setFor(
       SqlOperator operator,
       VmName... unimplementedVmNames);
-
-  /**
-   * Checks to see if this tester is for the given VmName. Return false if
-   * no vm associated with this tester.
-   *
-   * @param vmName VmName to check for.
-   * @return whether or not this tester is for the given VmName.
-   */
-  boolean isVm(VmName vmName);
 
   /**
    * Checks that an aggregate expression returns the expected result.
@@ -381,6 +375,11 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   /** Type checker. */
   interface TypeChecker {
     void checkType(RelDataType type);
+  }
+
+  /** Parameter checker. */
+  interface ParameterChecker {
+    void checkParameters(RelDataType parameterRowType);
   }
 
   /** Result checker. */

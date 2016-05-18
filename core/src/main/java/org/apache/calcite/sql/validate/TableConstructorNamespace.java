@@ -18,7 +18,6 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -54,16 +53,9 @@ public class TableConstructorNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected RelDataType validateImpl() {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     // First, validate the VALUES. If VALUES is inside INSERT, infers
     // the type of NULL values based on the types of target columns.
-    final RelDataType targetRowType;
-    if (enclosingNode instanceof SqlInsert) {
-      SqlInsert node = (SqlInsert) enclosingNode;
-      targetRowType = validator.getValidatedNodeType(node);
-    } else {
-      targetRowType = validator.getUnknownType();
-    }
     validator.validateValues(values, targetRowType, scope);
     final RelDataType tableConstructorRowType =
         validator.getTableConstructorRowType(values, scope);

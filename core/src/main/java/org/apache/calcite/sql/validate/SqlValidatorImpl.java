@@ -335,6 +335,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       expandSelectItem(
           selectItem,
           select,
+          unknownType,
           list,
           new LinkedHashSet<String>(),
           types,
@@ -399,6 +400,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private boolean expandSelectItem(
       final SqlNode selectItem,
       SqlSelect select,
+      RelDataType targetType,
       List<SqlNode> selectItems,
       Set<String> aliases,
       List<Map.Entry<String, RelDataType>> types,
@@ -438,6 +440,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     selectItems.add(expanded);
     aliases.add(alias);
 
+    inferUnknownTypes(targetType, scope, expanded);
     final RelDataType type = deriveType(selectScope, expanded);
     setValidatedNodeTypeImpl(expanded, type);
     types.add(Pair.of(alias, type));
@@ -847,7 +850,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return outermostNode;
   }
 
-  public void validateQuery(SqlNode node, SqlValidatorScope scope) {
+  public void validateQuery(SqlNode node, SqlValidatorScope scope,
+      RelDataType targetRowType) {
     final SqlValidatorNamespace ns = getNamespace(node, scope);
     if (node.getKind() == SqlKind.TABLESAMPLE) {
       List<SqlNode> operands = ((SqlCall) node).getOperandList();
@@ -861,7 +865,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    validateNamespace(ns);
+    validateNamespace(ns, targetRowType);
     if (node == top) {
       validateModality(node);
     }
@@ -873,9 +877,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Validates a namespace.
+   *
+   * @param namespace Namespace
+   * @param targetRowType Desired row type, must not be null, may be the data
+   *                      type 'unknown'.
    */
-  protected void validateNamespace(final SqlValidatorNamespace namespace) {
-    namespace.validate();
+  protected void validateNamespace(final SqlValidatorNamespace namespace,
+      RelDataType targetRowType) {
+    namespace.validate(targetRowType);
     if (namespace.getNode() != null) {
       setValidatedNodeType(namespace.getNode(), namespace.getType());
     }
@@ -1629,25 +1638,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         inferUnknownTypes(type, scope, child);
       }
     } else if (node instanceof SqlCase) {
-      // REVIEW wael: can this be done in a paramtypeinference strategy
-      // object?
-      SqlCase caseCall = (SqlCase) node;
-      RelDataType returnType = deriveType(scope, node);
+      final SqlCase caseCall = (SqlCase) node;
 
-      SqlNodeList whenList = caseCall.getWhenOperands();
-      for (int i = 0; i < whenList.size(); i++) {
-        SqlNode sqlNode = whenList.get(i);
-        inferUnknownTypes(unknownType, scope, sqlNode);
+      final RelDataType whenType =
+          caseCall.getValueOperand() == null ? booleanType : unknownType;
+      for (SqlNode sqlNode : caseCall.getWhenOperands().getList()) {
+        inferUnknownTypes(whenType, scope, sqlNode);
       }
-      SqlNodeList thenList = caseCall.getThenOperands();
-      for (int i = 0; i < thenList.size(); i++) {
-        SqlNode sqlNode = thenList.get(i);
+      RelDataType returnType = deriveType(scope, node);
+      for (SqlNode sqlNode : caseCall.getThenOperands().getList()) {
         inferUnknownTypes(returnType, scope, sqlNode);
       }
 
-      if (!SqlUtil.isNullLiteral(
-          caseCall.getElseOperand(),
-          false)) {
+      if (!SqlUtil.isNullLiteral(caseCall.getElseOperand(), false)) {
         inferUnknownTypes(
             returnType,
             scope,
@@ -2787,13 +2790,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateOver((SqlCall) node, scope);
       break;
     default:
-      validateQuery(node, scope);
+      validateQuery(node, scope, targetRowType);
       break;
     }
 
     // Validate the namespace representation of the node, just in case the
     // validation did not occur implicitly.
-    getNamespace(node, scope).validate();
+    getNamespace(node, scope).validate(targetRowType);
   }
 
   protected void validateOver(SqlCall call, SqlValidatorScope scope) {
@@ -3220,7 +3223,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public void validateWith(SqlWith with, SqlValidatorScope scope) {
     final SqlValidatorNamespace namespace = getNamespace(with);
-    validateNamespace(namespace);
+    validateNamespace(namespace, unknownType);
   }
 
   public void validateWithItem(SqlWithItem withItem) {
@@ -3499,6 +3502,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         expandSelectItem(
             selectItem,
             select,
+            targetRowType.isStruct()
+                && targetRowType.getFieldCount() >= i
+                ? targetRowType.getFieldList().get(i).getType()
+                : unknownType,
             expandedSelectItems,
             aliases,
             fieldList,
@@ -3656,7 +3663,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public void validateInsert(SqlInsert insert) {
     SqlValidatorNamespace targetNamespace = getNamespace(insert);
-    validateNamespace(targetNamespace);
+    validateNamespace(targetNamespace, unknownType);
     SqlValidatorTable table = targetNamespace.getTable();
 
     // INSERT has an optional column name list.  If present then
@@ -3674,7 +3681,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateSelect(sqlSelect, targetRowType);
     } else {
       SqlValidatorScope scope = scopes.get(source);
-      validateQuery(source, scope);
+      validateQuery(source, scope, targetRowType);
     }
 
     // REVIEW jvs 4-Dec-2008: In FRG-365, this namespace row type is
@@ -3813,7 +3820,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     IdentifierNamespace targetNamespace =
         getNamespace(call.getTargetTable()).unwrap(
             IdentifierNamespace.class);
-    validateNamespace(targetNamespace);
+    validateNamespace(targetNamespace, unknownType);
     SqlValidatorTable table = targetNamespace.getTable();
 
     validateAccess(call.getTargetTable(), table, SqlAccessEnum.DELETE);
@@ -3823,7 +3830,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     IdentifierNamespace targetNamespace =
         getNamespace(call.getTargetTable()).unwrap(
             IdentifierNamespace.class);
-    validateNamespace(targetNamespace);
+    validateNamespace(targetNamespace, unknownType);
     SqlValidatorTable table = targetNamespace.getTable();
 
     RelDataType targetRowType =
@@ -3857,7 +3864,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Let's use the update/insert targetRowType when available.
     IdentifierNamespace targetNamespace =
         (IdentifierNamespace) getNamespace(call.getTargetTable());
-    validateNamespace(targetNamespace);
+    validateNamespace(targetNamespace, unknownType);
 
     SqlValidatorTable table = targetNamespace.getTable();
     validateAccess(call.getTargetTable(), table, SqlAccessEnum.UPDATE);

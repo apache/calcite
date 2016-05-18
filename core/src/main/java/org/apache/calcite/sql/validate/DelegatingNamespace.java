@@ -68,8 +68,8 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     return namespace.getType();
   }
 
-  public void validate() {
-    namespace.validate();
+  public void validate(RelDataType targetRowType) {
+    namespace.validate(targetRowType);
   }
 
   public SqlNode getNode() {

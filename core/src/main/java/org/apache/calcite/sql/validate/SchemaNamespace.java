@@ -40,7 +40,7 @@ class SchemaNamespace extends AbstractNamespace {
     this.names = Preconditions.checkNotNull(names);
   }
 
-  protected RelDataType validateImpl() {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     final RelDataTypeFactory.FieldInfoBuilder builder =
         validator.getTypeFactory().builder();
     for (SqlMoniker moniker

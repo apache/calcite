@@ -42,7 +42,7 @@ class ParameterNamespace extends AbstractNamespace {
     return null;
   }
 
-  public RelDataType validateImpl() {
+  public RelDataType validateImpl(RelDataType targetRowType) {
     return type;
   }
 

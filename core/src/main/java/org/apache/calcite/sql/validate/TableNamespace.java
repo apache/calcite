@@ -44,7 +44,7 @@ class TableNamespace extends AbstractNamespace {
     this(validator, table, ImmutableList.<RelDataTypeField>of());
   }
 
-  protected RelDataType validateImpl() {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }

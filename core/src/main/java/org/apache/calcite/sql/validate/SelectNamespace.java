@@ -56,8 +56,8 @@ public class SelectNamespace extends AbstractNamespace {
     return select;
   }
 
-  public RelDataType validateImpl() {
-    validator.validateSelect(select, validator.unknownType);
+  public RelDataType validateImpl(RelDataType targetRowType) {
+    validator.validateSelect(select, targetRowType);
     return rowType;
   }
 

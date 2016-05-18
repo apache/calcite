@@ -49,7 +49,7 @@ class FieldNamespace extends AbstractNamespace {
     throw new UnsupportedOperationException();
   }
 
-  protected RelDataType validateImpl() {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     return rowType;
   }
 

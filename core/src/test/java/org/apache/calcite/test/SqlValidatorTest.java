@@ -70,7 +70,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * yellow in Intellij and maybe someone will fix them.
    */
   protected static final boolean TODO = false;
-  public static final boolean TODO_TYPE_INFERENCE = false;
   private static final String ANY = "(?s).*";
 
   protected static final Logger LOGGER =
@@ -6560,19 +6559,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testBind() {
-    check("select * from emp where deptno = ?");
-    check("select * from emp where deptno = ? and sal < 100000");
-    if (TODO_TYPE_INFERENCE) {
-      check("select case when deptno = ? then 1 else 2 end from emp");
-    }
-    if (TODO_TYPE_INFERENCE) {
-      check("select deptno from emp group by substring(name from ? for ?)");
-    }
-    if (TODO_TYPE_INFERENCE) {
-      check("select deptno from emp\n"
-          + "group by case when deptno = ? then 1 else 2 end");
-    }
-    check("select 1 from emp having sum(sal) < ?");
+    sql("select * from emp where deptno = ?").ok();
+    sql("select * from emp where deptno = ? and sal < 100000").ok();
+    sql("select case when deptno = ? then 1 else 2 end from emp").ok();
+    // It is not possible to infer type of ?, because SUBSTRING is overloaded
+    sql("select deptno from emp group by substring(name from ^?^ for ?)")
+        .fails("Illegal use of dynamic parameter");
+    // In principle we could infer that ? should be a VARCHAR
+    sql("select count(*) from emp group by position(^?^ in ename)")
+        .fails("Illegal use of dynamic parameter");
+    sql("select ^deptno^ from emp\n"
+        + "group by case when deptno = ? then 1 else 2 end")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select deptno from emp\n"
+        + "group by deptno, case when deptno = ? then 1 else 2 end").ok();
+    sql("select 1 from emp having sum(sal) < ?").ok();
   }
 
   @Test public void testUnnest() {
@@ -7449,6 +7450,57 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkQuery("insert into emp (empno, deptno) values (1, 1)");
     tester.checkQuery("insert into emp (empno, deptno)\n"
         + "select 1, 1 from (values 'a')");
+  }
+
+  @Test public void testInsertBind() {
+    // VALUES
+    sql("insert into emp (empno, deptno) values (?, ?)")
+        .ok()
+        .bindType("RecordType(INTEGER ?0, INTEGER ?1)");
+
+    // multiple VALUES
+    sql("insert into emp (empno, deptno) values (?, 1), (2, ?), (3, null)")
+        .ok()
+        .bindType("RecordType(INTEGER ?0, INTEGER ?1)");
+
+    // VALUES with expression
+    sql("insert into emp (ename, deptno) values (?, ? + 1)")
+        .ok()
+        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+
+    // SELECT
+    sql("insert into emp (ename, deptno) select ?, ? from (values (1))")
+        .ok()
+        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+
+    // WITH
+    final String sql = "insert into emp (ename, deptno)\n"
+        + "with v as (values ('a'))\n"
+        + "select ?, ? from (values (1))";
+    sql(sql).ok().bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+
+    // UNION
+    final String sql2 = "insert into emp (ename, deptno)\n"
+        + "select ?, ? from (values (1))\n"
+        + "union all\n"
+        + "select ?, ? from (values (time '1:2:3'))";
+    final String expected2 = "RecordType(VARCHAR(20) ?0, INTEGER ?1,"
+        + " VARCHAR(20) ?2, INTEGER ?3)";
+    sql(sql2).ok().bindType(expected2);
+  }
+
+  @Test public void testUpdateBind() {
+    final String sql = "update emp\n"
+        + "set ename = ?\n"
+        + "where deptno = ?";
+    sql(sql).ok().bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+  }
+
+  @Test public void testDeleteBind() {
+    final String sql = "delete from emp\n"
+        + "where deptno = ?\n"
+        + "or ename = ?";
+    sql(sql).ok().bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
   }
 
   @Test public void testStream() {

@@ -25,6 +25,7 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.test.DefaultSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -35,6 +36,8 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -564,6 +567,17 @@ public class SqlValidatorTestCase {
 
     public Sql monotonic(SqlMonotonicity expectedMonotonicity) {
       tester.checkMonotonic(sql, expectedMonotonicity);
+      return this;
+    }
+
+    public Sql bindType(final String bindType) {
+      tester.check(sql, null,
+          new SqlTester.ParameterChecker() {
+            public void checkParameters(RelDataType parameterRowType) {
+              assertThat(parameterRowType.toString(), is(bindType));
+            }
+          },
+          SqlTests.ANY_RESULT_CHECKER);
       return this;
     }
   }

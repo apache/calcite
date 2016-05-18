@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.sql.test.SqlTester.ParameterChecker;
 import static org.apache.calcite.sql.test.SqlTester.ResultChecker;
 import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
 
@@ -54,6 +55,15 @@ public abstract class SqlTests {
   public static final TypeChecker ANY_TYPE_CHECKER =
       new TypeChecker() {
         public void checkType(RelDataType type) {
+        }
+      };
+
+  /**
+   * Checker that allows any number or type of parameters.
+   */
+  public static final ParameterChecker ANY_PARAMETER_CHECKER =
+      new ParameterChecker() {
+        public void checkParameters(RelDataType parameterRowType) {
         }
       };
 

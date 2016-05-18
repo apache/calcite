@@ -75,7 +75,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return validator;
   }
 
-  public final void validate() {
+  public final void validate(RelDataType targetRowType) {
     switch (status) {
     case UNVALIDATED:
       try {
@@ -83,7 +83,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         Util.permAssert(
             rowType == null,
             "Namespace.rowType must be null before validate has been called");
-        RelDataType type = validateImpl();
+        RelDataType type = validateImpl(targetRowType);
         Util.permAssert(
             type != null,
             "validateImpl() returned null");
@@ -116,12 +116,15 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * {@link #status} field to protect against cycles.
    *
    * @return record data type, never null
+   *
+   * @param targetRowType Desired row type, must not be null, may be the data
+   *                      type 'unknown'.
    */
-  protected abstract RelDataType validateImpl();
+  protected abstract RelDataType validateImpl(RelDataType targetRowType);
 
   public RelDataType getRowType() {
     if (rowType == null) {
-      validator.validateNamespace(this);
+      validator.validateNamespace(this, validator.unknownType);
       Util.permAssert(rowType != null, "validate must set rowType");
     }
     return rowType;

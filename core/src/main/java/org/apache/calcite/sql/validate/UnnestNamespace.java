@@ -47,7 +47,7 @@ class UnnestNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected RelDataType validateImpl() {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     // Validate the call and its arguments, and infer the return type.
     validator.validateCall(unnest, scope);
     RelDataType type =

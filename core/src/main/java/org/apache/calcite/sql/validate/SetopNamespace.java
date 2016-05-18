@@ -89,7 +89,7 @@ public class SetopNamespace extends AbstractNamespace {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  public RelDataType validateImpl() {
+  public RelDataType validateImpl(RelDataType targetRowType) {
     switch (call.getKind()) {
     case UNION:
     case INTERSECT:
@@ -100,7 +100,7 @@ public class SetopNamespace extends AbstractNamespace {
           throw validator.newValidationError(operand,
               RESOURCE.needQueryOp(operand.toString()));
         }
-        validator.validateQuery(operand, scope);
+        validator.validateQuery(operand, scope, targetRowType);
       }
       return call.getOperator().deriveType(
           validator,

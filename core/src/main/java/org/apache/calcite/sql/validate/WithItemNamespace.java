@@ -34,7 +34,7 @@ class WithItemNamespace extends AbstractNamespace {
     this.withItem = withItem;
   }
 
-  @Override protected RelDataType validateImpl() {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final SqlValidatorNamespace childNs =
         validator.getNamespace(withItem.query);
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();

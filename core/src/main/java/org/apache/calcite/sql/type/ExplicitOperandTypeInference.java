@@ -44,7 +44,12 @@ public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
       SqlCallBinding callBinding,
       RelDataType returnType,
       RelDataType[] operandTypes) {
-    assert operandTypes.length == paramTypes.size();
+    if (operandTypes.length != paramTypes.size()) {
+      // This call does not match the inference strategy.
+      // It's likely that we're just about to give a validation error.
+      // Don't make a fuss, just give up.
+      return;
+    }
     paramTypes.toArray(operandTypes);
   }
 }

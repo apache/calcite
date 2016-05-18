@@ -185,11 +185,12 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     }
   }
 
-  protected void validateNamespace(final SqlValidatorNamespace namespace) {
+  protected void validateNamespace(final SqlValidatorNamespace namespace,
+      RelDataType targetRowType) {
     // Only attempt to validate each namespace once. Otherwise if
     // validation fails, we may end up cycling.
     if (activeNamespaces.add(namespace)) {
-      super.validateNamespace(namespace);
+      super.validateNamespace(namespace, targetRowType);
     } else {
       namespace.setType(emptyStructType);
     }

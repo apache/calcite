@@ -100,7 +100,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     }
   }
 
-  public RelDataType validateImpl() {
+  public RelDataType validateImpl(RelDataType targetRowType) {
     resolvedNamespace = parentScope.getTableNamespace(id.names);
     if (resolvedNamespace == null) {
       throw validator.newValidationError(id,

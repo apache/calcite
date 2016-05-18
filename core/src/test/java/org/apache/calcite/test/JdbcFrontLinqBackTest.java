@@ -30,6 +30,9 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -48,7 +51,9 @@ import java.util.Properties;
 import static org.apache.calcite.test.CalciteAssert.hr;
 import static org.apache.calcite.test.CalciteAssert.that;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -237,6 +242,36 @@ public class JdbcFrontLinqBackTest {
             "name=Theodore; C=2",
             "name=first; C=1",
             "name=Sebastian; C=2");
+  }
+
+  @Test public void testInsertBind() throws Exception {
+    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    CalciteAssert.AssertThat with = mutable(employees);
+    with.query("select count(*) as c from \"foo\".\"bar\"")
+        .returns("C=1\n");
+    with.doWithConnection(
+        new Function<CalciteConnection, Object>() {
+          public Object apply(CalciteConnection c) {
+            try {
+              final String sql = "insert into \"foo\".\"bar\"\n"
+                  + "values (?, 0, ?, 10.0, null)";
+              try (PreparedStatement p = c.prepareStatement(sql)) {
+                p.setInt(1, 1);
+                p.setString(2, "foo");
+                final int count = p.executeUpdate();
+                assertThat(count, is(1));
+              }
+              return null;
+            } catch (SQLException e) {
+              throw Throwables.propagate(e);
+            }
+          }
+        });
+    with.query("select count(*) as c from \"foo\".\"bar\"")
+        .returns("C=2\n");
+    with.query("select * from \"foo\".\"bar\"")
+        .returnsUnordered("empid=0; deptno=0; name=first; salary=0.0; commission=null",
+            "empid=1; deptno=0; name=foo; salary=10.0; commission=null");
   }
 
   /**

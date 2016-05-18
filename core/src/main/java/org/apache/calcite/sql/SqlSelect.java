@@ -205,7 +205,7 @@ public class SqlSelect extends SqlCall {
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
-    validator.validateQuery(this, scope);
+    validator.validateQuery(this, scope, validator.getUnknownType());
   }
 
   // Override SqlCall, to introduce a subquery frame.

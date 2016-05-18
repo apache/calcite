@@ -63,7 +63,7 @@ public class AliasNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected RelDataType validateImpl() {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     final List<String> nameList = new ArrayList<String>();
     final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =

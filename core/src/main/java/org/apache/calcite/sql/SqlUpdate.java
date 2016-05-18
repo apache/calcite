@@ -71,13 +71,14 @@ public class SqlUpdate extends SqlCall {
 
   public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, targetColumnList,
-        sourceExpressionList, condition, sourceSelect, alias);
+        sourceExpressionList, condition, alias);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
-      targetTable = (SqlIdentifier) operand;
+      assert operand instanceof SqlIdentifier;
+      targetTable = operand;
       break;
     case 1:
       targetColumnList = (SqlNodeList) operand;
