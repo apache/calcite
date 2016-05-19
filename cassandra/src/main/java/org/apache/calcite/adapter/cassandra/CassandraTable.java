@@ -186,6 +186,7 @@ public class CassandraTable extends AbstractQueryableTable
     }
     queryBuilder.append(" ALLOW FILTERING");
     final String query = queryBuilder.toString();
+    System.out.println(query);
 
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {

@@ -103,11 +103,12 @@ public class CassandraAdapterIT {
     CalciteAssert.that()
         .enable(enabled())
         .with(TWISSANDRA)
-        .query("select \"tweet_id\" from \"userline\" where \"username\" = '!PUBLIC!' limit 1")
-        .returns("tweet_id=f3c329de-d05b-11e5-b58b-90e2ba530b12\n")
+        .query("select \"tweet_id\" from \"userline\" where \"username\" = '!PUBLIC!' limit 2")
+        .returns("tweet_id=f3c329de-d05b-11e5-b58b-90e2ba530b12\n"
+               + "tweet_id=f3dbb03a-d05b-11e5-b58b-90e2ba530b12\n")
         .explainContains("PLAN=CassandraToEnumerableConverter\n"
-                + "  CassandraProject(tweet_id=[$2])\n"
-                + "    CassandraSort(fetch=[1])\n"
+                + "  CassandraLimit(fetch=[2])\n"
+                + "    CassandraProject(tweet_id=[$2])\n"
                 + "      CassandraFilter(condition=[=(CAST($0):VARCHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n");
   }
 
@@ -133,7 +134,7 @@ public class CassandraAdapterIT {
         .enable(enabled())
         .with(TWISSANDRA)
         .query("select \"tweet_id\" from \"userline\" where \"username\" = '!PUBLIC!' limit 8")
-        .explainContains("CassandraSort(fetch=[8])\n");
+        .explainContains("CassandraLimit(fetch=[8])\n");
   }
 
   @Test public void testMaterializedView() {
