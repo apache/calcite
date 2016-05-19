@@ -65,7 +65,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
    * negative value (typically -1) returns an unlimited number of rows
    * in frames of the default frame size. */
   public static JdbcResultSet create(String connectionId, int statementId,
-      ResultSet resultSet, long maxRowCount) {
+      ResultSet resultSet, int maxRowCount) {
     try {
       Meta.Signature sig = JdbcMeta.signature(resultSet.getMetaData());
       return create(connectionId, statementId, resultSet, maxRowCount, sig);
@@ -75,7 +75,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
   }
 
   public static JdbcResultSet create(String connectionId, int statementId,
-      ResultSet resultSet, long maxRowCount, Meta.Signature signature) {
+      ResultSet resultSet, int maxRowCount, Meta.Signature signature) {
     try {
       final Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
       final int fetchRowCount;
@@ -86,7 +86,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
       } else if (maxRowCount > AvaticaStatement.DEFAULT_FETCH_SIZE) {
         fetchRowCount = AvaticaStatement.DEFAULT_FETCH_SIZE;
       } else {
-        fetchRowCount = (int) maxRowCount;
+        fetchRowCount = maxRowCount;
       }
       final Meta.Frame firstFrame = frame(null, resultSet, 0, fetchRowCount, calendar);
       if (firstFrame.done) {

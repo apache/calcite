@@ -243,8 +243,14 @@ class RemoteMeta extends MetaImpl {
         });
   }
 
+  @Override public ExecuteResult prepareAndExecute(StatementHandle h, String sql, long maxRowCount,
+      PrepareCallback callback) throws NoSuchStatementException {
+    return prepareAndExecute(h, sql, maxRowCount, (int) maxRowCount, callback);
+  }
+
   @Override public ExecuteResult prepareAndExecute(final StatementHandle h, final String sql,
-      final long maxRowCount, final PrepareCallback callback) throws NoSuchStatementException {
+      final long maxRowCount, int maxRowsInFirstFrame, final PrepareCallback callback)
+      throws NoSuchStatementException {
     try {
       return connection.invokeWithRetries(
           new CallableWithoutException<ExecuteResult>() {
@@ -316,15 +322,20 @@ class RemoteMeta extends MetaImpl {
     }
   }
 
+  @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
+      long maxRowCount) throws NoSuchStatementException {
+    return execute(h, parameterValues, (int) maxRowCount);
+  }
+
   @Override public ExecuteResult execute(final StatementHandle h,
-      final List<TypedValue> parameterValues, final long maxRowCount)
+      final List<TypedValue> parameterValues, final int maxRowsInFirstFrame)
       throws NoSuchStatementException {
     try {
       return connection.invokeWithRetries(
           new CallableWithoutException<ExecuteResult>() {
             public ExecuteResult call() {
               final Service.ExecuteResponse response = service.apply(
-                  new Service.ExecuteRequest(h, parameterValues, maxRowCount));
+                  new Service.ExecuteRequest(h, parameterValues, maxRowsInFirstFrame));
 
               if (response.missingStatement) {
                 throw new RuntimeException(new NoSuchStatementException(h));

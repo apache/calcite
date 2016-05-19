@@ -223,9 +223,26 @@ public interface Meta {
    *
    * @return Result containing statement ID, and if a query, a result set and
    *     first frame of data
+   * @deprecated See {@link #prepareAndExecute(StatementHandle, String, long, int, PrepareCallback)}
+   */
+  @Deprecated ExecuteResult prepareAndExecute(StatementHandle h, String sql,
+      long maxRowCount, PrepareCallback callback) throws NoSuchStatementException;
+
+  /** Prepares and executes a statement.
+   *
+   * @param h Statement handle
+   * @param sql SQL query
+   * @param maxRowCount Maximum number of rows for the entire query. Negative for no limit
+   *    (different meaning than JDBC).
+   * @param maxRowsInFirstFrame Maximum number of rows for the first frame.
+   * @param callback Callback to lock, clear and assign cursor
+   *
+   * @return Result containing statement ID, and if a query, a result set and
+   *     first frame of data
    */
   ExecuteResult prepareAndExecute(StatementHandle h, String sql,
-      long maxRowCount, PrepareCallback callback) throws NoSuchStatementException;
+      long maxRowCount, int maxRowsInFirstFrame, PrepareCallback callback)
+      throws NoSuchStatementException;
 
   /** Prepares a statement and then executes a number of SQL commands in one pass.
    *
@@ -269,9 +286,20 @@ public interface Meta {
    * @param maxRowCount Maximum number of rows to return; negative means
    * no limit
    * @return Execute result
+   * @deprecated See {@link #execute(StatementHandle, List, int)}
+   */
+  @Deprecated ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
+      long maxRowCount) throws NoSuchStatementException;
+
+  /** Executes a prepared statement.
+   *
+   * @param h Statement handle
+   * @param parameterValues A list of parameter values; may be empty, not null
+   * @param maxRowsInFirstFrame Maximum number of rows to return in the Frame.
+   * @return Execute result
    */
   ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
-      long maxRowCount) throws NoSuchStatementException;
+      int maxRowsInFirstFrame) throws NoSuchStatementException;
 
   /** Called during the creation of a statement to allocate a new handle.
    *

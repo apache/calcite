@@ -72,15 +72,19 @@ message TypeInfoRequest {
 message PrepareAndExecuteRequest {
   string connection_id = 1;
   string sql = 2;
-  uint64 max_row_count = 3;
+  uint64 max_row_count = 3; // Deprecated
   uint32 statement_id = 4;
+  int64 max_rows_total = 5; // The maximum number of rows that will be allowed for this query
+  int32 first_frame_max_size = 6; // The maximum number of rows that will be returned in the
+                                  // first Frame returned for this query.
 }
 
 // Request for Meta.prepare(Meta.ConnectionHandle, String, long)
 message PrepareRequest {
   string connection_id = 1;
   string sql = 2;
-  uint64 max_row_count = 3;
+  uint64 max_row_count = 3; // Deprecated
+  int64 max_rows_total = 4; // The maximum number of rows that will be allowed for this query
 }
 
 // Request for Meta#fetch(Meta.StatementHandle, List, long, int)
@@ -88,7 +92,8 @@ message FetchRequest {
   string connection_id = 1;
   uint32 statement_id = 2;
   uint64 offset = 3;
-  uint32 fetch_max_row_count = 4; // Maximum number of rows to be returned in the frame. Negative means no limit.
+  uint32 fetch_max_row_count = 4; // Maximum number of rows to be returned in the frame. Negative means no limit. Deprecated!
+  int32 frame_max_size = 5;
 }
 
 // Request for Meta#createStatement(Meta.ConnectionHandle)
@@ -122,7 +127,7 @@ message ConnectionSyncRequest {
 message ExecuteRequest {
   StatementHandle statementHandle = 1;
   repeated TypedValue parameter_values = 2;
-  uint64 max_row_count = 3;
+  uint64 first_frame_max_size = 3; // The maximum number of rows to return in the first Frame
   bool has_parameter_values = 4;
 }
 

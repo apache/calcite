@@ -872,7 +872,8 @@ public interface Service {
   }
 
   /** Request for
-   * {@link Meta#prepareAndExecute(Meta.StatementHandle, String, long, Meta.PrepareCallback)}. */
+   * {@link Meta#prepareAndExecute(Meta.StatementHandle, String, long, int, Meta.PrepareCallback)}.
+   */
   class PrepareAndExecuteRequest extends Request {
     private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.
         PrepareAndExecuteRequest.getDescriptor().findFieldByNumber(
@@ -880,17 +881,30 @@ public interface Service {
     private static final FieldDescriptor SQL_DESCRIPTOR = Requests.
         PrepareAndExecuteRequest.getDescriptor().findFieldByNumber(
             Requests.PrepareAndExecuteRequest.SQL_FIELD_NUMBER);
+    private static final FieldDescriptor MAX_ROWS_TOTAL_DESCRIPTOR = Requests.
+        PrepareAndExecuteRequest.getDescriptor().findFieldByNumber(
+            Requests.PrepareAndExecuteRequest.MAX_ROWS_TOTAL_FIELD_NUMBER);
+    private static final FieldDescriptor FIRST_FRAME_MAX_SIZE_DESCRIPTOR = Requests.
+        PrepareAndExecuteRequest.getDescriptor().findFieldByNumber(
+            Requests.PrepareAndExecuteRequest.FIRST_FRAME_MAX_SIZE_FIELD_NUMBER);
 
     public final String connectionId;
     public final String sql;
     public final long maxRowCount;
+    public final int maxRowsInFirstFrame;
     public final int statementId;
 
     PrepareAndExecuteRequest() {
       connectionId = null;
       sql = null;
       maxRowCount = 0;
+      maxRowsInFirstFrame = 0;
       statementId = 0;
+    }
+
+    public PrepareAndExecuteRequest(String connectionId, int statementId, String sql,
+        long maxRowCount) {
+      this(connectionId, statementId, sql, maxRowCount, (int) maxRowCount);
     }
 
     @JsonCreator
@@ -898,11 +912,13 @@ public interface Service {
         @JsonProperty("connectionId") String connectionId,
         @JsonProperty("statementId") int statementId,
         @JsonProperty("sql") String sql,
-        @JsonProperty("maxRowCount") long maxRowCount) {
+        @JsonProperty("maxRowsTotal") long maxRowCount,
+        @JsonProperty("maxRowsInFirstFrame") int maxRowsInFirstFrame) {
       this.connectionId = connectionId;
       this.statementId = statementId;
       this.sql = sql;
       this.maxRowCount = maxRowCount;
+      this.maxRowsInFirstFrame = maxRowsInFirstFrame;
     }
 
     @Override ExecuteResponse accept(Service service) {
@@ -923,8 +939,20 @@ public interface Service {
         sql = msg.getSql();
       }
 
+      // Use the old attribute, unless the new is set
+      long maxRowsTotal = msg.getMaxRowCount();
+      if (msg.hasField(MAX_ROWS_TOTAL_DESCRIPTOR)) {
+        maxRowsTotal = msg.getMaxRowsTotal();
+      }
+
+      // Use maxRowCount (cast to an integer) if firstFrameMaxSize isn't set
+      int maxRowsInFirstFrame = (int) maxRowsTotal;
+      if (msg.hasField(FIRST_FRAME_MAX_SIZE_DESCRIPTOR)) {
+        maxRowsInFirstFrame = msg.getFirstFrameMaxSize();
+      }
+
       return new PrepareAndExecuteRequest(connectionId, msg.getStatementId(), sql,
-          msg.getMaxRowCount());
+          maxRowsTotal, maxRowsInFirstFrame);
     }
 
     @Override Requests.PrepareAndExecuteRequest serialize() {
@@ -938,7 +966,9 @@ public interface Service {
         builder.setSql(sql);
       }
       builder.setStatementId(statementId);
-      builder.setMaxRowCount(maxRowCount);
+      // Set both attributes for backwards compat
+      builder.setMaxRowCount(maxRowCount).setMaxRowsTotal(maxRowCount);
+      builder.setFirstFrameMaxSize(maxRowsInFirstFrame);
 
       return builder.build();
     }
@@ -947,6 +977,7 @@ public interface Service {
       int result = 1;
       result = p(result, connectionId);
       result = p(result, maxRowCount);
+      result = p(result, maxRowsInFirstFrame);
       result = p(result, sql);
       result = p(result, statementId);
       return result;
@@ -957,6 +988,7 @@ public interface Service {
           || o instanceof PrepareAndExecuteRequest
           && statementId == ((PrepareAndExecuteRequest) o).statementId
           && maxRowCount == ((PrepareAndExecuteRequest) o).maxRowCount
+          && maxRowsInFirstFrame == ((PrepareAndExecuteRequest) o).maxRowsInFirstFrame
           && Objects.equals(connectionId, ((PrepareAndExecuteRequest) o).connectionId)
           && Objects.equals(sql, ((PrepareAndExecuteRequest) o).sql);
     }
@@ -995,9 +1027,9 @@ public interface Service {
       final Requests.ExecuteRequest msg = ProtobufService.castProtobufMessage(genericMsg,
           Requests.ExecuteRequest.class);
 
-      Meta.StatementHandle statemetnHandle = null;
+      Meta.StatementHandle statementHandle = null;
       if (msg.hasField(STATEMENT_HANDLE_DESCRIPTOR)) {
-        statemetnHandle = Meta.StatementHandle.fromProto(msg.getStatementHandle());
+        statementHandle = Meta.StatementHandle.fromProto(msg.getStatementHandle());
       }
 
       List<TypedValue> values = null;
@@ -1008,7 +1040,7 @@ public interface Service {
         }
       }
 
-      return new ExecuteRequest(statemetnHandle, values, msg.getMaxRowCount());
+      return new ExecuteRequest(statementHandle, values, msg.getFirstFrameMaxSize());
     }
 
     @Override Requests.ExecuteRequest serialize() {
@@ -1031,7 +1063,7 @@ public interface Service {
         builder.setHasParameterValues(false);
       }
 
-      builder.setMaxRowCount(maxRowCount);
+      builder.setFirstFrameMaxSize(maxRowCount);
 
       return builder.build();
     }
@@ -1133,6 +1165,9 @@ public interface Service {
         getDescriptor().findFieldByNumber(Requests.PrepareRequest.CONNECTION_ID_FIELD_NUMBER);
     private static final FieldDescriptor SQL_DESCRIPTOR = Requests.PrepareRequest.
         getDescriptor().findFieldByNumber(Requests.PrepareRequest.SQL_FIELD_NUMBER);
+    private static final FieldDescriptor MAX_ROWS_TOTAL_DESCRIPTOR = Requests.PrepareRequest.
+        getDescriptor().findFieldByNumber(Requests.PrepareRequest.MAX_ROWS_TOTAL_FIELD_NUMBER);
+
     public final String connectionId;
     public final String sql;
     public final long maxRowCount;
@@ -1171,7 +1206,13 @@ public interface Service {
         sql = msg.getSql();
       }
 
-      return new PrepareRequest(connectionId, sql, msg.getMaxRowCount());
+      // Use the old field unless the new field is provided
+      long totalRowsForStatement = msg.getMaxRowCount();
+      if (msg.hasField(MAX_ROWS_TOTAL_DESCRIPTOR)) {
+        totalRowsForStatement = msg.getMaxRowsTotal();
+      }
+
+      return new PrepareRequest(connectionId, sql, totalRowsForStatement);
     }
 
     @Override Requests.PrepareRequest serialize() {
@@ -1185,7 +1226,8 @@ public interface Service {
         builder.setSql(sql);
       }
 
-      return builder.setMaxRowCount(maxRowCount).build();
+      // Set both field for backwards compatibility
+      return builder.setMaxRowCount(maxRowCount).setMaxRowsTotal(maxRowCount).build();
     }
 
     @Override public int hashCode() {
@@ -1272,6 +1314,9 @@ public interface Service {
   class FetchRequest extends Request {
     private static final FieldDescriptor CONNECTION_ID_DESCRIPTOR = Requests.FetchRequest.
         getDescriptor().findFieldByNumber(Requests.FetchRequest.CONNECTION_ID_FIELD_NUMBER);
+    private static final FieldDescriptor FRAME_MAX_SIZE_DESCRIPTOR = Requests.FetchRequest.
+        getDescriptor().findFieldByNumber(Requests.FetchRequest.FRAME_MAX_SIZE_FIELD_NUMBER);
+
     public final String connectionId;
     public final int statementId;
     public final long offset;
@@ -1311,8 +1356,13 @@ public interface Service {
         connectionId = msg.getConnectionId();
       }
 
+      int fetchMaxRowCount = msg.getFetchMaxRowCount();
+      if (msg.hasField(FRAME_MAX_SIZE_DESCRIPTOR)) {
+        fetchMaxRowCount = msg.getFrameMaxSize();
+      }
+
       return new FetchRequest(connectionId, msg.getStatementId(), msg.getOffset(),
-          msg.getFetchMaxRowCount());
+          fetchMaxRowCount);
     }
 
     @Override Requests.FetchRequest serialize() {
@@ -1324,7 +1374,8 @@ public interface Service {
 
       builder.setStatementId(statementId);
       builder.setOffset(offset);
-      builder.setFetchMaxRowCount(fetchMaxRowCount);
+      // Both fields for backwards compat
+      builder.setFetchMaxRowCount(fetchMaxRowCount).setFrameMaxSize(fetchMaxRowCount);
 
       return builder.build();
     }

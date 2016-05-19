@@ -4717,6 +4717,10 @@ package org.apache.calcite.avatica.proto;
 
     /**
      * <code>optional uint64 max_row_count = 3;</code>
+     *
+     * <pre>
+     * Deprecated
+     * </pre>
      */
     long getMaxRowCount();
 
@@ -4724,6 +4728,24 @@ package org.apache.calcite.avatica.proto;
      * <code>optional uint32 statement_id = 4;</code>
      */
     int getStatementId();
+
+    /**
+     * <code>optional int64 max_rows_total = 5;</code>
+     *
+     * <pre>
+     * The maximum number of rows that will be allowed for this query
+     * </pre>
+     */
+    long getMaxRowsTotal();
+
+    /**
+     * <code>optional int32 first_frame_max_size = 6;</code>
+     *
+     * <pre>
+     * The maximum number of rows that will be returned in the
+     * </pre>
+     */
+    int getFirstFrameMaxSize();
   }
   /**
    * Protobuf type {@code PrepareAndExecuteRequest}
@@ -4745,6 +4767,8 @@ package org.apache.calcite.avatica.proto;
       sql_ = "";
       maxRowCount_ = 0L;
       statementId_ = 0;
+      maxRowsTotal_ = 0L;
+      firstFrameMaxSize_ = 0;
     }
 
     @java.lang.Override
@@ -4791,6 +4815,16 @@ package org.apache.calcite.avatica.proto;
             case 32: {
 
               statementId_ = input.readUInt32();
+              break;
+            }
+            case 40: {
+
+              maxRowsTotal_ = input.readInt64();
+              break;
+            }
+            case 48: {
+
+              firstFrameMaxSize_ = input.readInt32();
               break;
             }
           }
@@ -4889,6 +4923,10 @@ package org.apache.calcite.avatica.proto;
     private long maxRowCount_;
     /**
      * <code>optional uint64 max_row_count = 3;</code>
+     *
+     * <pre>
+     * Deprecated
+     * </pre>
      */
     public long getMaxRowCount() {
       return maxRowCount_;
@@ -4901,6 +4939,32 @@ package org.apache.calcite.avatica.proto;
      */
     public int getStatementId() {
       return statementId_;
+    }
+
+    public static final int MAX_ROWS_TOTAL_FIELD_NUMBER = 5;
+    private long maxRowsTotal_;
+    /**
+     * <code>optional int64 max_rows_total = 5;</code>
+     *
+     * <pre>
+     * The maximum number of rows that will be allowed for this query
+     * </pre>
+     */
+    public long getMaxRowsTotal() {
+      return maxRowsTotal_;
+    }
+
+    public static final int FIRST_FRAME_MAX_SIZE_FIELD_NUMBER = 6;
+    private int firstFrameMaxSize_;
+    /**
+     * <code>optional int32 first_frame_max_size = 6;</code>
+     *
+     * <pre>
+     * The maximum number of rows that will be returned in the
+     * </pre>
+     */
+    public int getFirstFrameMaxSize() {
+      return firstFrameMaxSize_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -4927,6 +4991,12 @@ package org.apache.calcite.avatica.proto;
       if (statementId_ != 0) {
         output.writeUInt32(4, statementId_);
       }
+      if (maxRowsTotal_ != 0L) {
+        output.writeInt64(5, maxRowsTotal_);
+      }
+      if (firstFrameMaxSize_ != 0) {
+        output.writeInt32(6, firstFrameMaxSize_);
+      }
     }
 
     public int getSerializedSize() {
@@ -4947,6 +5017,14 @@ package org.apache.calcite.avatica.proto;
       if (statementId_ != 0) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(4, statementId_);
+      }
+      if (maxRowsTotal_ != 0L) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(5, maxRowsTotal_);
+      }
+      if (firstFrameMaxSize_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(6, firstFrameMaxSize_);
       }
       memoizedSize = size;
       return size;
@@ -5071,6 +5149,10 @@ package org.apache.calcite.avatica.proto;
 
         statementId_ = 0;
 
+        maxRowsTotal_ = 0L;
+
+        firstFrameMaxSize_ = 0;
+
         return this;
       }
 
@@ -5097,6 +5179,8 @@ package org.apache.calcite.avatica.proto;
         result.sql_ = sql_;
         result.maxRowCount_ = maxRowCount_;
         result.statementId_ = statementId_;
+        result.maxRowsTotal_ = maxRowsTotal_;
+        result.firstFrameMaxSize_ = firstFrameMaxSize_;
         onBuilt();
         return result;
       }
@@ -5125,6 +5209,12 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getStatementId() != 0) {
           setStatementId(other.getStatementId());
+        }
+        if (other.getMaxRowsTotal() != 0L) {
+          setMaxRowsTotal(other.getMaxRowsTotal());
+        }
+        if (other.getFirstFrameMaxSize() != 0) {
+          setFirstFrameMaxSize(other.getFirstFrameMaxSize());
         }
         onChanged();
         return this;
@@ -5293,12 +5383,20 @@ package org.apache.calcite.avatica.proto;
       private long maxRowCount_ ;
       /**
        * <code>optional uint64 max_row_count = 3;</code>
+       *
+       * <pre>
+       * Deprecated
+       * </pre>
        */
       public long getMaxRowCount() {
         return maxRowCount_;
       }
       /**
        * <code>optional uint64 max_row_count = 3;</code>
+       *
+       * <pre>
+       * Deprecated
+       * </pre>
        */
       public Builder setMaxRowCount(long value) {
 
@@ -5308,6 +5406,10 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>optional uint64 max_row_count = 3;</code>
+       *
+       * <pre>
+       * Deprecated
+       * </pre>
        */
       public Builder clearMaxRowCount() {
 
@@ -5338,6 +5440,82 @@ package org.apache.calcite.avatica.proto;
       public Builder clearStatementId() {
 
         statementId_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private long maxRowsTotal_ ;
+      /**
+       * <code>optional int64 max_rows_total = 5;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be allowed for this query
+       * </pre>
+       */
+      public long getMaxRowsTotal() {
+        return maxRowsTotal_;
+      }
+      /**
+       * <code>optional int64 max_rows_total = 5;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be allowed for this query
+       * </pre>
+       */
+      public Builder setMaxRowsTotal(long value) {
+
+        maxRowsTotal_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 max_rows_total = 5;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be allowed for this query
+       * </pre>
+       */
+      public Builder clearMaxRowsTotal() {
+
+        maxRowsTotal_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private int firstFrameMaxSize_ ;
+      /**
+       * <code>optional int32 first_frame_max_size = 6;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be returned in the
+       * </pre>
+       */
+      public int getFirstFrameMaxSize() {
+        return firstFrameMaxSize_;
+      }
+      /**
+       * <code>optional int32 first_frame_max_size = 6;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be returned in the
+       * </pre>
+       */
+      public Builder setFirstFrameMaxSize(int value) {
+
+        firstFrameMaxSize_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 first_frame_max_size = 6;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be returned in the
+       * </pre>
+       */
+      public Builder clearFirstFrameMaxSize() {
+
+        firstFrameMaxSize_ = 0;
         onChanged();
         return this;
       }
@@ -5425,8 +5603,21 @@ package org.apache.calcite.avatica.proto;
 
     /**
      * <code>optional uint64 max_row_count = 3;</code>
+     *
+     * <pre>
+     * Deprecated
+     * </pre>
      */
     long getMaxRowCount();
+
+    /**
+     * <code>optional int64 max_rows_total = 4;</code>
+     *
+     * <pre>
+     * The maximum number of rows that will be allowed for this query
+     * </pre>
+     */
+    long getMaxRowsTotal();
   }
   /**
    * Protobuf type {@code PrepareRequest}
@@ -5447,6 +5638,7 @@ package org.apache.calcite.avatica.proto;
       connectionId_ = "";
       sql_ = "";
       maxRowCount_ = 0L;
+      maxRowsTotal_ = 0L;
     }
 
     @java.lang.Override
@@ -5488,6 +5680,11 @@ package org.apache.calcite.avatica.proto;
             case 24: {
 
               maxRowCount_ = input.readUInt64();
+              break;
+            }
+            case 32: {
+
+              maxRowsTotal_ = input.readInt64();
               break;
             }
           }
@@ -5586,9 +5783,26 @@ package org.apache.calcite.avatica.proto;
     private long maxRowCount_;
     /**
      * <code>optional uint64 max_row_count = 3;</code>
+     *
+     * <pre>
+     * Deprecated
+     * </pre>
      */
     public long getMaxRowCount() {
       return maxRowCount_;
+    }
+
+    public static final int MAX_ROWS_TOTAL_FIELD_NUMBER = 4;
+    private long maxRowsTotal_;
+    /**
+     * <code>optional int64 max_rows_total = 4;</code>
+     *
+     * <pre>
+     * The maximum number of rows that will be allowed for this query
+     * </pre>
+     */
+    public long getMaxRowsTotal() {
+      return maxRowsTotal_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -5612,6 +5826,9 @@ package org.apache.calcite.avatica.proto;
       if (maxRowCount_ != 0L) {
         output.writeUInt64(3, maxRowCount_);
       }
+      if (maxRowsTotal_ != 0L) {
+        output.writeInt64(4, maxRowsTotal_);
+      }
     }
 
     public int getSerializedSize() {
@@ -5628,6 +5845,10 @@ package org.apache.calcite.avatica.proto;
       if (maxRowCount_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt64Size(3, maxRowCount_);
+      }
+      if (maxRowsTotal_ != 0L) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(4, maxRowsTotal_);
       }
       memoizedSize = size;
       return size;
@@ -5750,6 +5971,8 @@ package org.apache.calcite.avatica.proto;
 
         maxRowCount_ = 0L;
 
+        maxRowsTotal_ = 0L;
+
         return this;
       }
 
@@ -5775,6 +5998,7 @@ package org.apache.calcite.avatica.proto;
         result.connectionId_ = connectionId_;
         result.sql_ = sql_;
         result.maxRowCount_ = maxRowCount_;
+        result.maxRowsTotal_ = maxRowsTotal_;
         onBuilt();
         return result;
       }
@@ -5800,6 +6024,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getMaxRowCount() != 0L) {
           setMaxRowCount(other.getMaxRowCount());
+        }
+        if (other.getMaxRowsTotal() != 0L) {
+          setMaxRowsTotal(other.getMaxRowsTotal());
         }
         onChanged();
         return this;
@@ -5968,12 +6195,20 @@ package org.apache.calcite.avatica.proto;
       private long maxRowCount_ ;
       /**
        * <code>optional uint64 max_row_count = 3;</code>
+       *
+       * <pre>
+       * Deprecated
+       * </pre>
        */
       public long getMaxRowCount() {
         return maxRowCount_;
       }
       /**
        * <code>optional uint64 max_row_count = 3;</code>
+       *
+       * <pre>
+       * Deprecated
+       * </pre>
        */
       public Builder setMaxRowCount(long value) {
 
@@ -5983,10 +6218,52 @@ package org.apache.calcite.avatica.proto;
       }
       /**
        * <code>optional uint64 max_row_count = 3;</code>
+       *
+       * <pre>
+       * Deprecated
+       * </pre>
        */
       public Builder clearMaxRowCount() {
 
         maxRowCount_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private long maxRowsTotal_ ;
+      /**
+       * <code>optional int64 max_rows_total = 4;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be allowed for this query
+       * </pre>
+       */
+      public long getMaxRowsTotal() {
+        return maxRowsTotal_;
+      }
+      /**
+       * <code>optional int64 max_rows_total = 4;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be allowed for this query
+       * </pre>
+       */
+      public Builder setMaxRowsTotal(long value) {
+
+        maxRowsTotal_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 max_rows_total = 4;</code>
+       *
+       * <pre>
+       * The maximum number of rows that will be allowed for this query
+       * </pre>
+       */
+      public Builder clearMaxRowsTotal() {
+
+        maxRowsTotal_ = 0L;
         onChanged();
         return this;
       }
@@ -6076,10 +6353,15 @@ package org.apache.calcite.avatica.proto;
      * <code>optional uint32 fetch_max_row_count = 4;</code>
      *
      * <pre>
-     * Maximum number of rows to be returned in the frame. Negative means no limit.
+     * Maximum number of rows to be returned in the frame. Negative means no limit. Deprecated!
      * </pre>
      */
     int getFetchMaxRowCount();
+
+    /**
+     * <code>optional int32 frame_max_size = 5;</code>
+     */
+    int getFrameMaxSize();
   }
   /**
    * Protobuf type {@code FetchRequest}
@@ -6101,6 +6383,7 @@ package org.apache.calcite.avatica.proto;
       statementId_ = 0;
       offset_ = 0L;
       fetchMaxRowCount_ = 0;
+      frameMaxSize_ = 0;
     }
 
     @java.lang.Override
@@ -6146,6 +6429,11 @@ package org.apache.calcite.avatica.proto;
             case 32: {
 
               fetchMaxRowCount_ = input.readUInt32();
+              break;
+            }
+            case 40: {
+
+              frameMaxSize_ = input.readInt32();
               break;
             }
           }
@@ -6230,11 +6518,20 @@ package org.apache.calcite.avatica.proto;
      * <code>optional uint32 fetch_max_row_count = 4;</code>
      *
      * <pre>
-     * Maximum number of rows to be returned in the frame. Negative means no limit.
+     * Maximum number of rows to be returned in the frame. Negative means no limit. Deprecated!
      * </pre>
      */
     public int getFetchMaxRowCount() {
       return fetchMaxRowCount_;
+    }
+
+    public static final int FRAME_MAX_SIZE_FIELD_NUMBER = 5;
+    private int frameMaxSize_;
+    /**
+     * <code>optional int32 frame_max_size = 5;</code>
+     */
+    public int getFrameMaxSize() {
+      return frameMaxSize_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -6261,6 +6558,9 @@ package org.apache.calcite.avatica.proto;
       if (fetchMaxRowCount_ != 0) {
         output.writeUInt32(4, fetchMaxRowCount_);
       }
+      if (frameMaxSize_ != 0) {
+        output.writeInt32(5, frameMaxSize_);
+      }
     }
 
     public int getSerializedSize() {
@@ -6282,6 +6582,10 @@ package org.apache.calcite.avatica.proto;
       if (fetchMaxRowCount_ != 0) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(4, fetchMaxRowCount_);
+      }
+      if (frameMaxSize_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, frameMaxSize_);
       }
       memoizedSize = size;
       return size;
@@ -6406,6 +6710,8 @@ package org.apache.calcite.avatica.proto;
 
         fetchMaxRowCount_ = 0;
 
+        frameMaxSize_ = 0;
+
         return this;
       }
 
@@ -6432,6 +6738,7 @@ package org.apache.calcite.avatica.proto;
         result.statementId_ = statementId_;
         result.offset_ = offset_;
         result.fetchMaxRowCount_ = fetchMaxRowCount_;
+        result.frameMaxSize_ = frameMaxSize_;
         onBuilt();
         return result;
       }
@@ -6459,6 +6766,9 @@ package org.apache.calcite.avatica.proto;
         }
         if (other.getFetchMaxRowCount() != 0) {
           setFetchMaxRowCount(other.getFetchMaxRowCount());
+        }
+        if (other.getFrameMaxSize() != 0) {
+          setFrameMaxSize(other.getFrameMaxSize());
         }
         onChanged();
         return this;
@@ -6612,7 +6922,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 fetch_max_row_count = 4;</code>
        *
        * <pre>
-       * Maximum number of rows to be returned in the frame. Negative means no limit.
+       * Maximum number of rows to be returned in the frame. Negative means no limit. Deprecated!
        * </pre>
        */
       public int getFetchMaxRowCount() {
@@ -6622,7 +6932,7 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 fetch_max_row_count = 4;</code>
        *
        * <pre>
-       * Maximum number of rows to be returned in the frame. Negative means no limit.
+       * Maximum number of rows to be returned in the frame. Negative means no limit. Deprecated!
        * </pre>
        */
       public Builder setFetchMaxRowCount(int value) {
@@ -6635,12 +6945,38 @@ package org.apache.calcite.avatica.proto;
        * <code>optional uint32 fetch_max_row_count = 4;</code>
        *
        * <pre>
-       * Maximum number of rows to be returned in the frame. Negative means no limit.
+       * Maximum number of rows to be returned in the frame. Negative means no limit. Deprecated!
        * </pre>
        */
       public Builder clearFetchMaxRowCount() {
 
         fetchMaxRowCount_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int frameMaxSize_ ;
+      /**
+       * <code>optional int32 frame_max_size = 5;</code>
+       */
+      public int getFrameMaxSize() {
+        return frameMaxSize_;
+      }
+      /**
+       * <code>optional int32 frame_max_size = 5;</code>
+       */
+      public Builder setFrameMaxSize(int value) {
+
+        frameMaxSize_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 frame_max_size = 5;</code>
+       */
+      public Builder clearFrameMaxSize() {
+
+        frameMaxSize_ = 0;
         onChanged();
         return this;
       }
@@ -9419,9 +9755,13 @@ package org.apache.calcite.avatica.proto;
         int index);
 
     /**
-     * <code>optional uint64 max_row_count = 3;</code>
+     * <code>optional uint64 first_frame_max_size = 3;</code>
+     *
+     * <pre>
+     * The maximum number of rows to return in the first Frame
+     * </pre>
      */
-    long getMaxRowCount();
+    long getFirstFrameMaxSize();
 
     /**
      * <code>optional bool has_parameter_values = 4;</code>
@@ -9445,7 +9785,7 @@ package org.apache.calcite.avatica.proto;
     }
     private ExecuteRequest() {
       parameterValues_ = java.util.Collections.emptyList();
-      maxRowCount_ = 0L;
+      firstFrameMaxSize_ = 0L;
       hasParameterValues_ = false;
     }
 
@@ -9496,7 +9836,7 @@ package org.apache.calcite.avatica.proto;
             }
             case 24: {
 
-              maxRowCount_ = input.readUInt64();
+              firstFrameMaxSize_ = input.readUInt64();
               break;
             }
             case 32: {
@@ -9588,13 +9928,17 @@ package org.apache.calcite.avatica.proto;
       return parameterValues_.get(index);
     }
 
-    public static final int MAX_ROW_COUNT_FIELD_NUMBER = 3;
-    private long maxRowCount_;
+    public static final int FIRST_FRAME_MAX_SIZE_FIELD_NUMBER = 3;
+    private long firstFrameMaxSize_;
     /**
-     * <code>optional uint64 max_row_count = 3;</code>
+     * <code>optional uint64 first_frame_max_size = 3;</code>
+     *
+     * <pre>
+     * The maximum number of rows to return in the first Frame
+     * </pre>
      */
-    public long getMaxRowCount() {
-      return maxRowCount_;
+    public long getFirstFrameMaxSize() {
+      return firstFrameMaxSize_;
     }
 
     public static final int HAS_PARAMETER_VALUES_FIELD_NUMBER = 4;
@@ -9624,8 +9968,8 @@ package org.apache.calcite.avatica.proto;
       for (int i = 0; i < parameterValues_.size(); i++) {
         output.writeMessage(2, parameterValues_.get(i));
       }
-      if (maxRowCount_ != 0L) {
-        output.writeUInt64(3, maxRowCount_);
+      if (firstFrameMaxSize_ != 0L) {
+        output.writeUInt64(3, firstFrameMaxSize_);
       }
       if (hasParameterValues_ != false) {
         output.writeBool(4, hasParameterValues_);
@@ -9645,9 +9989,9 @@ package org.apache.calcite.avatica.proto;
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, parameterValues_.get(i));
       }
-      if (maxRowCount_ != 0L) {
+      if (firstFrameMaxSize_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(3, maxRowCount_);
+          .computeUInt64Size(3, firstFrameMaxSize_);
       }
       if (hasParameterValues_ != false) {
         size += com.google.protobuf.CodedOutputStream
@@ -9781,7 +10125,7 @@ package org.apache.calcite.avatica.proto;
         } else {
           parameterValuesBuilder_.clear();
         }
-        maxRowCount_ = 0L;
+        firstFrameMaxSize_ = 0L;
 
         hasParameterValues_ = false;
 
@@ -9823,7 +10167,7 @@ package org.apache.calcite.avatica.proto;
         } else {
           result.parameterValues_ = parameterValuesBuilder_.build();
         }
-        result.maxRowCount_ = maxRowCount_;
+        result.firstFrameMaxSize_ = firstFrameMaxSize_;
         result.hasParameterValues_ = hasParameterValues_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -9870,8 +10214,8 @@ package org.apache.calcite.avatica.proto;
             }
           }
         }
-        if (other.getMaxRowCount() != 0L) {
-          setMaxRowCount(other.getMaxRowCount());
+        if (other.getFirstFrameMaxSize() != 0L) {
+          setFirstFrameMaxSize(other.getFirstFrameMaxSize());
         }
         if (other.getHasParameterValues() != false) {
           setHasParameterValues(other.getHasParameterValues());
@@ -10260,28 +10604,40 @@ package org.apache.calcite.avatica.proto;
         return parameterValuesBuilder_;
       }
 
-      private long maxRowCount_ ;
+      private long firstFrameMaxSize_ ;
       /**
-       * <code>optional uint64 max_row_count = 3;</code>
+       * <code>optional uint64 first_frame_max_size = 3;</code>
+       *
+       * <pre>
+       * The maximum number of rows to return in the first Frame
+       * </pre>
        */
-      public long getMaxRowCount() {
-        return maxRowCount_;
+      public long getFirstFrameMaxSize() {
+        return firstFrameMaxSize_;
       }
       /**
-       * <code>optional uint64 max_row_count = 3;</code>
+       * <code>optional uint64 first_frame_max_size = 3;</code>
+       *
+       * <pre>
+       * The maximum number of rows to return in the first Frame
+       * </pre>
        */
-      public Builder setMaxRowCount(long value) {
+      public Builder setFirstFrameMaxSize(long value) {
 
-        maxRowCount_ = value;
+        firstFrameMaxSize_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional uint64 max_row_count = 3;</code>
+       * <code>optional uint64 first_frame_max_size = 3;</code>
+       *
+       * <pre>
+       * The maximum number of rows to return in the first Frame
+       * </pre>
        */
-      public Builder clearMaxRowCount() {
+      public Builder clearFirstFrameMaxSize() {
 
-        maxRowCount_ = 0L;
+        firstFrameMaxSize_ = 0L;
         onChanged();
         return this;
       }
@@ -14548,40 +14904,43 @@ package org.apache.calcite.avatica.proto;
       "schema_pattern\030\002 \001(\t\022\032\n\022table_name_patte" +
       "rn\030\003 \001(\t\022\033\n\023column_name_pattern\030\004 \001(\t\022\025\n" +
       "\rconnection_id\030\005 \001(\t\"(\n\017TypeInfoRequest\022" +
-      "\025\n\rconnection_id\030\001 \001(\t\"k\n\030PrepareAndExec" +
-      "uteRequest\022\025\n\rconnection_id\030\001 \001(\t\022\013\n\003sql" +
-      "\030\002 \001(\t\022\025\n\rmax_row_count\030\003 \001(\004\022\024\n\014stateme" +
-      "nt_id\030\004 \001(\r\"K\n\016PrepareRequest\022\025\n\rconnect" +
-      "ion_id\030\001 \001(\t\022\013\n\003sql\030\002 \001(\t\022\025\n\rmax_row_cou" +
-      "nt\030\003 \001(\004\"h\n\014FetchRequest\022\025\n\rconnection_i",
+      "\025\n\rconnection_id\030\001 \001(\t\"\241\001\n\030PrepareAndExe" +
+      "cuteRequest\022\025\n\rconnection_id\030\001 \001(\t\022\013\n\003sq" +
+      "l\030\002 \001(\t\022\025\n\rmax_row_count\030\003 \001(\004\022\024\n\014statem" +
+      "ent_id\030\004 \001(\r\022\026\n\016max_rows_total\030\005 \001(\003\022\034\n\024" +
+      "first_frame_max_size\030\006 \001(\005\"c\n\016PrepareReq" +
+      "uest\022\025\n\rconnection_id\030\001 \001(\t\022\013\n\003sql\030\002 \001(\t",
+      "\022\025\n\rmax_row_count\030\003 \001(\004\022\026\n\016max_rows_tota" +
+      "l\030\004 \001(\003\"\200\001\n\014FetchRequest\022\025\n\rconnection_i" +
       "d\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\016\n\006offset\030" +
-      "\003 \001(\004\022\033\n\023fetch_max_row_count\030\004 \001(\r\"/\n\026Cr" +
-      "eateStatementRequest\022\025\n\rconnection_id\030\001 " +
-      "\001(\t\"D\n\025CloseStatementRequest\022\025\n\rconnecti" +
-      "on_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\"\213\001\n\025Op" +
-      "enConnectionRequest\022\025\n\rconnection_id\030\001 \001" +
-      "(\t\022.\n\004info\030\002 \003(\0132 .OpenConnectionRequest" +
-      ".InfoEntry\032+\n\tInfoEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005" +
-      "value\030\002 \001(\t:\0028\001\"/\n\026CloseConnectionReques" +
-      "t\022\025\n\rconnection_id\030\001 \001(\t\"Y\n\025ConnectionSy",
-      "ncRequest\022\025\n\rconnection_id\030\001 \001(\t\022)\n\nconn" +
-      "_props\030\002 \001(\0132\025.ConnectionProperties\"\227\001\n\016" +
-      "ExecuteRequest\022)\n\017statementHandle\030\001 \001(\0132" +
-      "\020.StatementHandle\022%\n\020parameter_values\030\002 " +
-      "\003(\0132\013.TypedValue\022\025\n\rmax_row_count\030\003 \001(\004\022" +
-      "\034\n\024has_parameter_values\030\004 \001(\010\"m\n\022SyncRes" +
-      "ultsRequest\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014st" +
-      "atement_id\030\002 \001(\r\022\032\n\005state\030\003 \001(\0132\013.QueryS" +
-      "tate\022\016\n\006offset\030\004 \001(\004\"&\n\rCommitRequest\022\025\n" +
-      "\rconnection_id\030\001 \001(\t\"(\n\017RollbackRequest\022",
-      "\025\n\rconnection_id\030\001 \001(\t\"b\n\035PrepareAndExec" +
-      "uteBatchRequest\022\025\n\rconnection_id\030\001 \001(\t\022\024" +
-      "\n\014statement_id\030\002 \001(\r\022\024\n\014sql_commands\030\003 \003" +
-      "(\t\"4\n\013UpdateBatch\022%\n\020parameter_values\030\001 " +
-      "\003(\0132\013.TypedValue\"a\n\023ExecuteBatchRequest\022" +
-      "\025\n\rconnection_id\030\001 \001(\t\022\024\n\014statement_id\030\002" +
-      " \001(\r\022\035\n\007updates\030\003 \003(\0132\014.UpdateBatchB\"\n o" +
-      "rg.apache.calcite.avatica.protob\006proto3"
+      "\003 \001(\004\022\033\n\023fetch_max_row_count\030\004 \001(\r\022\026\n\016fr" +
+      "ame_max_size\030\005 \001(\005\"/\n\026CreateStatementReq" +
+      "uest\022\025\n\rconnection_id\030\001 \001(\t\"D\n\025CloseStat" +
+      "ementRequest\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014s" +
+      "tatement_id\030\002 \001(\r\"\213\001\n\025OpenConnectionRequ" +
+      "est\022\025\n\rconnection_id\030\001 \001(\t\022.\n\004info\030\002 \003(\013" +
+      "2 .OpenConnectionRequest.InfoEntry\032+\n\tIn",
+      "foEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"" +
+      "/\n\026CloseConnectionRequest\022\025\n\rconnection_" +
+      "id\030\001 \001(\t\"Y\n\025ConnectionSyncRequest\022\025\n\rcon" +
+      "nection_id\030\001 \001(\t\022)\n\nconn_props\030\002 \001(\0132\025.C" +
+      "onnectionProperties\"\236\001\n\016ExecuteRequest\022)" +
+      "\n\017statementHandle\030\001 \001(\0132\020.StatementHandl" +
+      "e\022%\n\020parameter_values\030\002 \003(\0132\013.TypedValue" +
+      "\022\034\n\024first_frame_max_size\030\003 \001(\004\022\034\n\024has_pa" +
+      "rameter_values\030\004 \001(\010\"m\n\022SyncResultsReque" +
+      "st\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014statement_i",
+      "d\030\002 \001(\r\022\032\n\005state\030\003 \001(\0132\013.QueryState\022\016\n\006o" +
+      "ffset\030\004 \001(\004\"&\n\rCommitRequest\022\025\n\rconnecti" +
+      "on_id\030\001 \001(\t\"(\n\017RollbackRequest\022\025\n\rconnec" +
+      "tion_id\030\001 \001(\t\"b\n\035PrepareAndExecuteBatchR" +
+      "equest\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014stateme" +
+      "nt_id\030\002 \001(\r\022\024\n\014sql_commands\030\003 \003(\t\"4\n\013Upd" +
+      "ateBatch\022%\n\020parameter_values\030\001 \003(\0132\013.Typ" +
+      "edValue\"a\n\023ExecuteBatchRequest\022\025\n\rconnec" +
+      "tion_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\035\n\007u" +
+      "pdates\030\003 \003(\0132\014.UpdateBatchB\"\n org.apache",
+      ".calcite.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -14643,19 +15002,19 @@ package org.apache.calcite.avatica.proto;
     internal_static_PrepareAndExecuteRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_PrepareAndExecuteRequest_descriptor,
-        new java.lang.String[] { "ConnectionId", "Sql", "MaxRowCount", "StatementId", });
+        new java.lang.String[] { "ConnectionId", "Sql", "MaxRowCount", "StatementId", "MaxRowsTotal", "FirstFrameMaxSize", });
     internal_static_PrepareRequest_descriptor =
       getDescriptor().getMessageTypes().get(8);
     internal_static_PrepareRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_PrepareRequest_descriptor,
-        new java.lang.String[] { "ConnectionId", "Sql", "MaxRowCount", });
+        new java.lang.String[] { "ConnectionId", "Sql", "MaxRowCount", "MaxRowsTotal", });
     internal_static_FetchRequest_descriptor =
       getDescriptor().getMessageTypes().get(9);
     internal_static_FetchRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_FetchRequest_descriptor,
-        new java.lang.String[] { "ConnectionId", "StatementId", "Offset", "FetchMaxRowCount", });
+        new java.lang.String[] { "ConnectionId", "StatementId", "Offset", "FetchMaxRowCount", "FrameMaxSize", });
     internal_static_CreateStatementRequest_descriptor =
       getDescriptor().getMessageTypes().get(10);
     internal_static_CreateStatementRequest_fieldAccessorTable = new
@@ -14697,7 +15056,7 @@ package org.apache.calcite.avatica.proto;
     internal_static_ExecuteRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ExecuteRequest_descriptor,
-        new java.lang.String[] { "StatementHandle", "ParameterValues", "MaxRowCount", "HasParameterValues", });
+        new java.lang.String[] { "StatementHandle", "ParameterValues", "FirstFrameMaxSize", "HasParameterValues", });
     internal_static_SyncResultsRequest_descriptor =
       getDescriptor().getMessageTypes().get(16);
     internal_static_SyncResultsRequest_fieldAccessorTable = new

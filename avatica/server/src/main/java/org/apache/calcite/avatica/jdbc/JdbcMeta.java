@@ -81,7 +81,7 @@ public class JdbcMeta implements ProtobufMeta {
    *
    * <p>Any other negative value will return an unlimited number of rows but
    * will do it in the default batch size, namely 100. */
-  public static final long UNLIMITED_COUNT = -2L;
+  public static final int UNLIMITED_COUNT = -2;
 
   // End of constants, start of member variables
 
@@ -698,6 +698,11 @@ public class JdbcMeta implements ProtobufMeta {
 
   public ExecuteResult prepareAndExecute(StatementHandle h, String sql,
       long maxRowCount, PrepareCallback callback) throws NoSuchStatementException {
+    return prepareAndExecute(h, sql, maxRowCount, (int) maxRowCount, callback);
+  }
+
+  public ExecuteResult prepareAndExecute(StatementHandle h, String sql, long maxRowCount,
+      int maxRowsInFirstFrame, PrepareCallback callback) throws NoSuchStatementException {
     try {
       final StatementInfo info = statementCache.getIfPresent(h.id);
       if (info == null) {
@@ -722,7 +727,7 @@ public class JdbcMeta implements ProtobufMeta {
                 AvaticaUtils.getLargeUpdateCount(statement)));
       } else {
         resultSets.add(
-            JdbcResultSet.create(h.connectionId, h.id, info.getResultSet(), maxRowCount));
+            JdbcResultSet.create(h.connectionId, h.id, info.getResultSet(), maxRowsInFirstFrame));
       }
       LOG.trace("prepAndExec statement {}", h);
       // TODO: review client to ensure statementId is updated when appropriate
@@ -788,8 +793,13 @@ public class JdbcMeta implements ProtobufMeta {
     return typeList.toArray(new String[typeList.size()]);
   }
 
+  @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
+      long maxRowCount) throws NoSuchStatementException {
+    return execute(h, parameterValues, (int) maxRowCount);
+  }
+
   @Override public ExecuteResult execute(StatementHandle h,
-      List<TypedValue> parameterValues, long maxRowCount) throws NoSuchStatementException {
+      List<TypedValue> parameterValues, int maxRowsInFirstFrame) throws NoSuchStatementException {
     try {
       if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
         throw new SQLException("exception while executing query: unbound parameter");
@@ -832,7 +842,7 @@ public class JdbcMeta implements ProtobufMeta {
         } else {
           resultSets = Collections.<MetaResultSet>singletonList(
               JdbcResultSet.create(h.connectionId, h.id, statementInfo.getResultSet(),
-                  maxRowCount, signature2));
+                  maxRowsInFirstFrame, signature2));
         }
       } else {
         resultSets = Collections.<MetaResultSet>singletonList(

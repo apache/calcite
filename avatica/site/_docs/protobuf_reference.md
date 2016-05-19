@@ -264,7 +264,7 @@ This request is used to execute a PreparedStatement, optionally with values to b
 message ExecuteRequest {
   StatementHandle statementHandle = 1;
   repeated TypedValue parameter_values = 2;
-  uint64 max_row_count = 3;
+  uint64 first_frame_max_size = 3;
   bool has_parameter_values = 4;
 }
 {% endhighlight %}
@@ -273,7 +273,7 @@ message ExecuteRequest {
 
 `parameter_values` The <a href="#typedvalue">TypedValue</a> for each parameter on the prepared statement.
 
-`max_row_count` The maximum number of rows returned in the response.
+`first_frame_max_size` The maximum number of rows returned in the response.
 
 `has_parameter_values` A boolean which denotes if the user set a value for the `parameter_values` field.
 
@@ -286,7 +286,8 @@ message FetchRequest {
   string connection_id = 1;
   uint32 statement_id = 2;
   uint64 offset = 3;
-  uint32 fetch_max_row_count = 4; // Maximum number of rows to be returned in the frame. Negative means no limit.
+  uint32 fetch_max_row_count = 4; // Deprecated!
+  int32 frame_max_size = 5;
 }
 {% endhighlight %}
 
@@ -296,7 +297,9 @@ message FetchRequest {
 
 `offset` The positional offset into a result set to fetch.
 
-`fetch_match_row_count` The maximum number of rows to return in the response to this request.
+`fetch_match_row_count` The maximum number of rows to return in the response to this request. Negative means no limit. *Deprecated*, use `frame_max_size`.
+
+`frame_max_size` The maximum number of rows to return in the response. Negative means no limit.
 
 ### OpenConnectionRequest
 
@@ -340,7 +343,9 @@ message PrepareAndExecuteRequest {
   string connection_id = 1;
   uint32 statement_id = 4;
   string sql = 2;
-  uint64 max_row_count = 3;
+  uint64 max_row_count = 3; // Deprecated!
+  int64 max_rows_total = 5;
+  int32 max_rows_in_first_frame = 6;
 }
 {% endhighlight %}
 
@@ -350,7 +355,11 @@ message PrepareAndExecuteRequest {
 
 `sql` A SQL statement
 
-`max_row_count` The maximum number of rows returned in the response.
+`max_row_count` The maximum number of rows returned in the response. *Deprecated*, use `max_rows_total`.
+
+`max_rows_total` The maximum number of rows which this query should return (over all `Frame`s).
+
+`first_frame_max_size` The maximum number of rows which should be included in the first `Frame` in the `ExecuteResponse`.
 
 ### PrepareRequest
 
@@ -360,7 +369,8 @@ This request is used to create create a new Statement with the given query in th
 message PrepareRequest {
   string connection_id = 1;
   string sql = 2;
-  uint64 max_row_count = 3;
+  uint64 max_row_count = 3; // Deprecated!
+  int64 max_rows_total = 4;
 }
 {% endhighlight %}
 
@@ -368,7 +378,9 @@ message PrepareRequest {
 
 `sql` A SQL statement
 
-`max_row_count` The maximum number of rows returned in the response.
+`max_row_count` The maximum number of rows returned in the response. *Deprecated*, use `max_rows_total` instead.
+
+`max_rows_total` The maximum number of rows returned for the query in total.
 
 ### SyncResultsRequest
 
