@@ -33,11 +33,13 @@ import java.util.List;
  * Implementation of limits in Cassandra.
  */
 public class CassandraLimit extends SingleRel implements CassandraRel {
+  public final RexNode offset;
   public final RexNode fetch;
 
   public CassandraLimit(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode fetch) {
+      RelNode input, RexNode offset, RexNode fetch) {
     super(cluster, traitSet, input);
+    this.offset = offset;
     this.fetch = fetch;
     assert getConvention() == input.getConvention();
   }
@@ -49,16 +51,18 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
   }
 
   @Override public CassandraLimit copy(RelTraitSet traitSet, List<RelNode> newInputs) {
-    return new CassandraLimit(getCluster(), traitSet, sole(newInputs), fetch);
+    return new CassandraLimit(getCluster(), traitSet, sole(newInputs), offset, fetch);
   }
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    implementor.setLimit(RexLiteral.intValue(fetch));
+    if (offset != null) { implementor.offset = RexLiteral.intValue(offset); }
+    if (fetch != null) { implementor.fetch = RexLiteral.intValue(fetch); }
   }
 
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
+    pw.itemIf("offset", offset, offset != null);
     pw.itemIf("fetch", fetch, fetch != null);
     return pw;
   }

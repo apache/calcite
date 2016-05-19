@@ -39,7 +39,8 @@ public interface CassandraRel extends RelNode {
   class Implementor {
     final Map<String, String> selectFields = new LinkedHashMap<String, String>();
     final List<String> whereClause = new ArrayList<String>();
-    int limitValue = -1;
+    int offset = 0;
+    int fetch = -1;
     final List<String> order = new ArrayList<String>();
 
     RelOptTable table;
@@ -61,10 +62,6 @@ public interface CassandraRel extends RelNode {
 
     public void addOrder(List<String> newOrder) {
       order.addAll(newOrder);
-    }
-
-    public void setLimit(int limit) {
-      limitValue = limit;
     }
 
     public void visitChild(int ordinal, RelNode input) {

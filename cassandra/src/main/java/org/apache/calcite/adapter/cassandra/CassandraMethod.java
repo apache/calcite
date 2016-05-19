@@ -28,7 +28,7 @@ import java.util.List;
  */
 public enum CassandraMethod {
   CASSANDRA_QUERYABLE_QUERY(CassandraTable.CassandraQueryable.class, "query",
-      List.class, List.class, List.class, List.class, Integer.class);
+      List.class, List.class, List.class, List.class, Integer.class, Integer.class);
 
   public final Method method;
 

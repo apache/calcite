@@ -402,7 +402,7 @@ public class CassandraRules {
       final RelTraitSet traitSet =
           limit.getTraitSet().replace(CassandraRel.CONVENTION);
       return new CassandraLimit(limit.getCluster(), traitSet,
-        convert(limit.getInput(), CassandraRel.CONVENTION), limit.fetch);
+        convert(limit.getInput(), CassandraRel.CONVENTION), limit.offset, limit.fetch);
     }
 
     /** @see org.apache.calcite.rel.convert.ConverterRule */

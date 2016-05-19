@@ -99,7 +99,7 @@ public class CassandraTable extends AbstractQueryableTable
   public Enumerable<Object> query(final Session session) {
     return query(session, Collections.<Map.Entry<String, Class>>emptyList(),
         Collections.<Map.Entry<String, String>>emptyList(),
-        Collections.<String>emptyList(), Collections.<String>emptyList(), -1);
+        Collections.<String>emptyList(), Collections.<String>emptyList(), 0, -1);
   }
 
   /** Executes a CQL query on the underlying table.
@@ -111,7 +111,7 @@ public class CassandraTable extends AbstractQueryableTable
    */
   public Enumerable<Object> query(final Session session, List<Map.Entry<String, Class>> fields,
         final List<Map.Entry<String, String>> selectFields, List<String> predicates,
-        List<String> order, Integer limit) {
+        List<String> order, final Integer offset, final Integer fetch) {
     // Build the type of the resulting row based on the provided fields
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -181,7 +181,10 @@ public class CassandraTable extends AbstractQueryableTable
     if (!order.isEmpty()) {
       queryBuilder.append(Util.toString(order, " ORDER BY ", ", ", ""));
     }
-    if (limit >= 0) {
+
+    int limit = offset;
+    if (fetch >= 0) { limit += fetch; }
+    if (limit > 0) {
       queryBuilder.append(" LIMIT " + limit);
     }
     queryBuilder.append(" ALLOW FILTERING");
@@ -191,7 +194,12 @@ public class CassandraTable extends AbstractQueryableTable
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         final ResultSet results = session.execute(query);
-        return new CassandraEnumerator(results, resultRowType);
+        // Skip results until we get to the right offset
+        int skip = 0;
+        Enumerator<Object> enumerator = new CassandraEnumerator(results, resultRowType);
+        while (skip < offset && enumerator.moveNext()) { skip++; }
+
+        return enumerator;
       }
     };
   }
@@ -239,9 +247,9 @@ public class CassandraTable extends AbstractQueryableTable
     @SuppressWarnings("UnusedDeclaration")
     public Enumerable<Object> query(List<Map.Entry<String, Class>> fields,
         List<Map.Entry<String, String>> selectFields, List<String> predicates,
-        List<String> order, Integer limit) {
+        List<String> order, Integer offset, Integer fetch) {
       return getTable().query(getSession(), fields, selectFields, predicates,
-          order, limit);
+          order, offset, fetch);
     }
   }
 }

@@ -147,6 +147,17 @@ public class CassandraAdapterIT {
                        + "    CassandraSort(sort0=[$1], dir0=[DESC])");
   }
 
+  @Test public void testSortOffset() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(TWISSANDRA)
+        .query("select \"tweet_id\" from \"userline\" where "
+             + "\"username\"='!PUBLIC!' limit 2 offset 1")
+        .explainContains("CassandraLimit(offset=[1], fetch=[2])")
+        .returns("tweet_id=f3dbb03a-d05b-11e5-b58b-90e2ba530b12\n"
+               + "tweet_id=f3e4182e-d05b-11e5-b58b-90e2ba530b12\n");
+  }
+
   @Test public void testMaterializedView() {
     CalciteAssert.that()
         .enable(enabled())
