@@ -169,11 +169,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relA, relC)
         .visitList(nonIntersecting, newBottomList);
-    final Mappings.TargetMapping bottomBottomMapping =
-        Mappings.createShiftMapping(
-            aCount + bCount,
-            0, 0, aCount);
-    new RexPermuteInputsShuttle(bottomBottomMapping, relA, relC)
+    new RexPermuteInputsShuttle(bottomMapping, relA, relC)
         .visitList(bottomNonIntersecting, newBottomList);
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode newBottomCondition =
@@ -259,7 +255,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     }
 
     // Split the condition of bottomJoin into a conjunction. Each of the
-    // parts that use columns from B will need to be pulled up.
+    // parts that use columns from A will need to be pulled up.
     final List<RexNode> bottomIntersecting = new ArrayList<>();
     final List<RexNode> bottomNonIntersecting = new ArrayList<>();
     split(
@@ -276,12 +272,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relC, relB)
         .visitList(nonIntersecting, newBottomList);
-    final Mappings.TargetMapping bottomBottomMapping =
-        Mappings.createShiftMapping(
-            aCount + bCount + cCount,
-            0, aCount + bCount, cCount,
-            cCount, aCount, bCount);
-    new RexPermuteInputsShuttle(bottomBottomMapping, relC, relB)
+    new RexPermuteInputsShuttle(bottomMapping, relC, relB)
         .visitList(bottomNonIntersecting, newBottomList);
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode newBottomCondition =
