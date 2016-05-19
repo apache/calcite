@@ -169,11 +169,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relA, relC)
         .visitList(nonIntersecting, newBottomList);
-    final Mappings.TargetMapping bottomBottomMapping =
-        Mappings.createShiftMapping(
-            aCount + bCount,
-            0, 0, aCount);
-    new RexPermuteInputsShuttle(bottomBottomMapping, relA, relC)
+    new RexPermuteInputsShuttle(bottomMapping, relA, relC)
         .visitList(bottomNonIntersecting, newBottomList);
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode newBottomCondition =
@@ -276,12 +272,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relC, relB)
         .visitList(nonIntersecting, newBottomList);
-    final Mappings.TargetMapping bottomBottomMapping =
-        Mappings.createShiftMapping(
-            aCount + bCount + cCount,
-            0, aCount + bCount, cCount,
-            cCount, aCount, bCount);
-    new RexPermuteInputsShuttle(bottomBottomMapping, relC, relB)
+    new RexPermuteInputsShuttle(bottomMapping, relC, relB)
         .visitList(bottomNonIntersecting, newBottomList);
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode newBottomCondition =
