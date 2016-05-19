@@ -243,7 +243,7 @@ start again from the top.
 git clean -xn
 
 # Do a dry run of the release:prepare step, which sets version numbers.
-mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rcN -Papache-release release:prepare
+mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 {% endhighlight %}
 
 Check the artifacts:
@@ -272,11 +272,18 @@ Check the artifacts:
   present and does not contain un-substituted `${...}` variables
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
 
-Now, remove the `-DdryRun` flag and run the release for real.
+If something is not correct, you can invoke the `release:clean` mojo to remove the
+generated files from your workspace:
+
+{% highlight bash %}
+mvn release:clean
+{% endhighlight %}
+
+If successful, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rc0 -Papache-release release:prepare
+mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rc0 -Papache-release -Duser.name=${asf.username} release:prepare
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -Papache-release release:perform
