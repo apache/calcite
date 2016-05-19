@@ -208,6 +208,16 @@ public class JdbcMeta implements ProtobufMeta {
     });
   }
 
+  // For testing purposes
+  protected AtomicInteger getStatementIdGenerator() {
+    return statementIdGenerator;
+  }
+
+  // For testing purposes
+  protected Cache<Integer, StatementInfo> getStatementCache() {
+    return statementCache;
+  }
+
   /**
    * Converts from JDBC metadata to Avatica columns.
    */
@@ -677,7 +687,7 @@ public class JdbcMeta implements ProtobufMeta {
     try {
       final Connection conn = getConnection(ch.id);
       final PreparedStatement statement = conn.prepareStatement(sql);
-      final int id = statementIdGenerator.getAndIncrement();
+      final int id = getStatementIdGenerator().getAndIncrement();
       Meta.StatementType statementType = null;
       if (statement.isWrapperFor(AvaticaPreparedStatement.class)) {
         final AvaticaPreparedStatement avaticaPreparedStatement;
@@ -685,7 +695,9 @@ public class JdbcMeta implements ProtobufMeta {
             statement.unwrap(AvaticaPreparedStatement.class);
         statementType = avaticaPreparedStatement.getStatementType();
       }
-      statementCache.put(id, new StatementInfo(statement));
+      // Set the maximum number of rows
+      setMaxRows(statement, maxRowCount);
+      getStatementCache().put(id, new StatementInfo(statement));
       StatementHandle h = new StatementHandle(ch.id, id,
           signature(statement.getMetaData(), statement.getParameterMetaData(),
               sql, statementType));
@@ -704,17 +716,13 @@ public class JdbcMeta implements ProtobufMeta {
   public ExecuteResult prepareAndExecute(StatementHandle h, String sql, long maxRowCount,
       int maxRowsInFirstFrame, PrepareCallback callback) throws NoSuchStatementException {
     try {
-      final StatementInfo info = statementCache.getIfPresent(h.id);
+      final StatementInfo info = getStatementCache().getIfPresent(h.id);
       if (info == null) {
         throw new NoSuchStatementException(h);
       }
       final Statement statement = info.statement;
-      // Special handling of maxRowCount as JDBC 0 is unlimited, our meta 0 row
-      if (maxRowCount > 0) {
-        AvaticaUtils.setLargeMaxRows(statement, maxRowCount);
-      } else if (maxRowCount < 0) {
-        statement.setMaxRows(0);
-      }
+      // Make sure that we limit the number of rows for the query
+      setMaxRows(statement, maxRowCount);
       boolean ret = statement.execute(sql);
       info.setResultSet(statement.getResultSet());
       // Either execute(sql) returned true or the resultSet was null
@@ -734,6 +742,21 @@ public class JdbcMeta implements ProtobufMeta {
       return new ExecuteResult(resultSets);
     } catch (SQLException e) {
       throw propagate(e);
+    }
+  }
+
+  /**
+   * Sets the provided maximum number of rows on the given statement.
+   *
+   * @param statement The JDBC Statement to operate on
+   * @param maxRowCount The maximum number of rows which should be returned for the query
+   */
+  void setMaxRows(Statement statement, long maxRowCount) throws SQLException {
+    // Special handling of maxRowCount as JDBC 0 is unlimited, our meta 0 row
+    if (maxRowCount > 0) {
+      AvaticaUtils.setLargeMaxRows(statement, maxRowCount);
+    } else if (maxRowCount < 0) {
+      statement.setMaxRows(0);
     }
   }
 

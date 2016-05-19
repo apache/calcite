@@ -1141,7 +1141,7 @@ public interface Meta {
   }
 
   /** Connection handle. */
-  class ConnectionHandle {
+  public class ConnectionHandle {
     public final String id;
 
     @Override public String toString() {
@@ -1155,7 +1155,8 @@ public interface Meta {
   }
 
   /** Statement handle. */
-  class StatementHandle {
+  // Visible for testing
+  public class StatementHandle {
     private static final FieldDescriptor SIGNATURE_DESCRIPTOR = Common.StatementHandle
         .getDescriptor().findFieldByNumber(Common.StatementHandle.SIGNATURE_FIELD_NUMBER);
     public final String connectionId;
