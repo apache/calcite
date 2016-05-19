@@ -259,7 +259,7 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     }
 
     // Split the condition of bottomJoin into a conjunction. Each of the
-    // parts that use columns from B will need to be pulled up.
+    // parts that use columns from A will need to be pulled up.
     final List<RexNode> bottomIntersecting = new ArrayList<>();
     final List<RexNode> bottomNonIntersecting = new ArrayList<>();
     split(
