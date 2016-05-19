@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -36,6 +37,10 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
 
   public static final String ORDINALITY_COLUMN_NAME = "ORDINALITY";
 
+  public static final String MAP_KEY_COLUMN_NAME = "KEY";
+
+  public static final String MAP_VALUE_COLUMN_NAME = "VALUE";
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlUnnestOperator(boolean withOrdinality) {
@@ -47,7 +52,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         null,
         null,
         OperandTypes.repeat(SqlOperandCountRanges.from(1),
-            OperandTypes.SCALAR_OR_RECORD_COLLECTION));
+            OperandTypes.SCALAR_OR_RECORD_COLLECTION_OR_MAP));
     this.withOrdinality = withOrdinality;
   }
 
@@ -61,12 +66,18 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       if (type.isStruct()) {
         type = type.getFieldList().get(0).getType();
       }
-      assert type instanceof ArraySqlType || type instanceof MultisetSqlType;
-      if (type.getComponentType().isStruct()) {
-        builder.addAll(type.getComponentType().getFieldList());
+      assert type instanceof ArraySqlType || type instanceof MultisetSqlType
+          || type instanceof MapSqlType;
+      if (type instanceof MapSqlType) {
+        builder.add(MAP_KEY_COLUMN_NAME, type.getKeyType());
+        builder.add(MAP_VALUE_COLUMN_NAME, type.getValueType());
       } else {
-        builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
-            type.getComponentType());
+        if (type.getComponentType().isStruct()) {
+          builder.addAll(type.getComponentType().getFieldList());
+        } else {
+          builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
+              type.getComponentType());
+        }
       }
     }
     if (withOrdinality) {

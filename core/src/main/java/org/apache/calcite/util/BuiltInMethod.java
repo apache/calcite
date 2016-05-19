@@ -215,6 +215,7 @@ public enum BuiltInMethod {
   MAP_CLEAR(Map.class, "clear"),
   MAP_GET(Map.class, "get", Object.class),
   MAP_PUT(Map.class, "put", Object.class, Object.class),
+  MAP_ENTRIES(SqlFunctions.class, "mapEntryPairs"),
   COLLECTION_ADD(Collection.class, "add", Object.class),
   LIST_GET(List.class, "get", int.class),
   ITERATOR_HAS_NEXT(Iterator.class, "hasNext"),

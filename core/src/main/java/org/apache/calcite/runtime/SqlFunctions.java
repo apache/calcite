@@ -42,6 +42,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -1592,6 +1593,27 @@ public class SqlFunctions {
       return FlatLists.ofComparable(list);
     }
   }
+
+  /**
+   * @return a function that maps all entries of a map into a list of lists with
+   *         exactly two objects
+   */
+  public static final Function1<Map<Object, Object>, List<List<Object>>> mapEntryPairs() {
+
+    return new Function1<Map<Object, Object>, List<List<Object>>>() {
+
+      @Override public List<List<Object>> apply(Map<Object, Object> map) {
+
+        List<List<Object>> resultList = new ArrayList<>(map.size());
+
+        for (Entry<Object, Object> entry : map.entrySet()) {
+          resultList.add(FlatLists.of(entry.getKey(), entry.getValue()));
+        }
+        return resultList;
+      }
+    };
+  }
+
 }
 
 // End SqlFunctions.java

@@ -19,12 +19,14 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.IntList;
 
@@ -87,23 +89,35 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     final Expression child_ =
         builder.append(
             "child", result.block);
+
+    Expression targetExpression = child_;
     final List<Integer> fieldCounts = new ArrayList<>();
     for (RelDataTypeField field : child.getRowType().getFieldList()) {
       final RelDataType type = field.getType();
-      final RelDataType elementType = type.getComponentType();
-      if (elementType.isStruct()) {
-        fieldCounts.add(elementType.getFieldCount());
+      if (type instanceof MapSqlType) {
+        fieldCounts.add(2);
+        MethodCallExpression mapper = Expressions
+            .call(BuiltInMethod.MAP_ENTRIES.method);
+        targetExpression = Expressions.call(child_, BuiltInMethod.SELECT.method,
+            mapper);
       } else {
-        fieldCounts.add(-1);
+        final RelDataType elementType = type.getComponentType();
+        if (elementType.isStruct()) {
+          fieldCounts.add(elementType.getFieldCount());
+        } else {
+          fieldCounts.add(-1);
+        }
       }
     }
+
+
     final Expression lambda =
         Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
             Expressions.constant(IntList.toArray(fieldCounts)),
             Expressions.constant(withOrdinality));
     builder.add(
         Expressions.return_(null,
-            Expressions.call(child_,
+            Expressions.call(targetExpression,
                 BuiltInMethod.SELECT_MANY.method,
                 lambda)));
     return implementor.result(physType, builder.toBlock());

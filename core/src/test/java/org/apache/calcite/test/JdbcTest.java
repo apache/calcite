@@ -2286,6 +2286,27 @@ public class JdbcTest {
             "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=5");
   }
 
+  @Test
+  public void testUnnestItemsInMap() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    ResultSet resultSet = connection.createStatement()
+        .executeQuery("select * from unnest(MAP['a', 1, 'b', 2]) as um(k, v)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("K=a; V=1\nK=b; V=2\n"));
+    connection.close();
+  }
+
+  @Test
+  public void testUnnestItemsInMapWithOrdinality() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select * from unnest(MAP['a', 1, 'b', 2]) with ordinality as um(k, v, i)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("K=a; V=1; I=1\nK=b; V=2; I=2\n"));
+    connection.close();
+  }
+
+
   private CalciteAssert.AssertQuery withFoodMartQuery(int id)
       throws IOException {
     final FoodmartTest.FoodMartQuerySet set =
