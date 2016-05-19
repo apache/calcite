@@ -137,6 +137,16 @@ public class CassandraAdapterIT {
         .explainContains("CassandraLimit(fetch=[8])\n");
   }
 
+  @Test public void testSortLimit() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(TWISSANDRA)
+        .query("select * from \"userline\" where \"username\"='!PUBLIC!' "
+             + "order by \"time\" desc limit 10")
+        .explainContains("  CassandraLimit(fetch=[10])\n"
+                       + "    CassandraSort(sort0=[$1], dir0=[DESC])");
+  }
+
   @Test public void testMaterializedView() {
     CalciteAssert.that()
         .enable(enabled())

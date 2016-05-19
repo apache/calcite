@@ -26,7 +26,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
 import java.util.ArrayList;
@@ -38,8 +37,8 @@ import java.util.List;
  */
 public class CassandraSort extends Sort implements CassandraRel {
   public CassandraSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, RelCollation collation, RexNode fetch) {
-    super(cluster, traitSet, child, collation, null, fetch);
+      RelNode child, RelCollation collation) {
+    super(cluster, traitSet, child, collation, null, null);
 
     assert getConvention() == CassandraRel.CONVENTION;
     assert getConvention() == child.getConvention();
@@ -50,18 +49,14 @@ public class CassandraSort extends Sort implements CassandraRel {
     RelOptCost cost = super.computeSelfCost(planner, mq);
     if (!collation.getFieldCollations().isEmpty()) {
       return cost.multiplyBy(0.05);
-    } else if (fetch == null) {
-      return cost;
     } else {
-      // We do this so we get the limit for free
-      return planner.getCostFactory().makeZeroCost();
+      return cost;
     }
   }
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
       RelCollation newCollation, RexNode offset, RexNode fetch) {
-    return new CassandraSort(getCluster(), traitSet, input, collation,
-        fetch);
+    return new CassandraSort(getCluster(), traitSet, input, collation);
   }
 
   public void implement(Implementor implementor) {
@@ -83,9 +78,6 @@ public class CassandraSort extends Sort implements CassandraRel {
       }
 
       implementor.addOrder(fieldOrder);
-    }
-    if (fetch != null) {
-      implementor.setLimit(RexLiteral.intValue(fetch));
     }
   }
 }

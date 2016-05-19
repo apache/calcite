@@ -279,8 +279,8 @@ public class CassandraRules {
     private static final Predicate<Sort> SORT_PREDICATE =
         new Predicate<Sort>() {
           public boolean apply(Sort input) {
-            // CQL has no support for offsets
-            return input.offset == null;
+            // Limits are handled by CassandraLimit
+            return input.offset == null && input.fetch == null;
           }
         };
     private static final Predicate<CassandraFilter> FILTER_PREDICATE =
@@ -306,7 +306,7 @@ public class CassandraRules {
               .replace(sort.getCollation());
       return new CassandraSort(sort.getCluster(), traitSet,
           convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), sort.fetch);
+          sort.getCollation());
     }
 
     public boolean matches(RelOptRuleCall call) {
