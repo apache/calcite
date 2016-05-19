@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.IntList;
 
@@ -87,20 +89,33 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     final Expression child_ =
         builder.append(
             "child", result.block);
+
     final List<Integer> fieldCounts = new ArrayList<>();
+    final List<FlatProductInputType> inputTypes = new ArrayList<>();
+
     for (RelDataTypeField field : child.getRowType().getFieldList()) {
       final RelDataType type = field.getType();
-      final RelDataType elementType = type.getComponentType();
-      if (elementType.isStruct()) {
-        fieldCounts.add(elementType.getFieldCount());
+      if (type instanceof MapSqlType) {
+        fieldCounts.add(2);
+        inputTypes.add(FlatProductInputType.MAP);
       } else {
-        fieldCounts.add(-1);
+        final RelDataType elementType = type.getComponentType();
+        if (elementType.isStruct()) {
+          fieldCounts.add(elementType.getFieldCount());
+          inputTypes.add(FlatProductInputType.LIST);
+        } else {
+          fieldCounts.add(-1);
+          inputTypes.add(FlatProductInputType.SCALAR);
+        }
       }
     }
+
     final Expression lambda =
         Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
             Expressions.constant(IntList.toArray(fieldCounts)),
-            Expressions.constant(withOrdinality));
+            Expressions.constant(withOrdinality),
+            Expressions.constant(
+                inputTypes.toArray(new FlatProductInputType[inputTypes.size()])));
     builder.add(
         Expressions.return_(null,
             Expressions.call(child_,
@@ -108,6 +123,8 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
                 lambda)));
     return implementor.result(physType, builder.toBlock());
   }
+
 }
+
 
 // End EnumerableUncollect.java

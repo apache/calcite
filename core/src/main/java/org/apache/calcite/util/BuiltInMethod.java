@@ -43,9 +43,24 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSize;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Size;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
@@ -56,6 +71,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
@@ -85,23 +101,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
-import javax.sql.DataSource;
 
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSize;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
-import static org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
+import javax.sql.DataSource;
 
 /**
  * Built-in methods.
@@ -177,7 +178,8 @@ public enum BuiltInMethod {
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
   ARRAY(SqlFunctions.class, "array", Object[].class),
-  FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class),
+  FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class,
+      FlatProductInputType[].class),
   LIST_N(FlatLists.class, "copyOf", Comparable[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),

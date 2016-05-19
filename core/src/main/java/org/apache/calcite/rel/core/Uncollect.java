@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.List;
@@ -125,14 +126,19 @@ public class Uncollect extends SingleRel {
     final RelDataTypeFactory.FieldInfoBuilder builder =
         rel.getCluster().getTypeFactory().builder();
     for (RelDataTypeField field : fields) {
-      RelDataType ret = field.getType().getComponentType();
-      assert null != ret;
-      if (ret.isStruct()) {
-        builder.addAll(ret.getFieldList());
+      if (field.getType() instanceof MapSqlType) {
+        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, field.getType().getKeyType());
+        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, field.getType().getValueType());
       } else {
-        // Element type is not a record. It may be a scalar type, say
-        // "INTEGER". Wrap it in a struct type.
-        builder.add(SqlUtil.deriveAliasFromOrdinal(field.getIndex()), ret);
+        RelDataType ret = field.getType().getComponentType();
+        assert null != ret;
+        if (ret.isStruct()) {
+          builder.addAll(ret.getFieldList());
+        } else {
+          // Element type is not a record. It may be a scalar type, say
+          // "INTEGER". Wrap it in a struct type.
+          builder.add(SqlUtil.deriveAliasFromOrdinal(field.getIndex()), ret);
+        }
       }
     }
     if (withOrdinality) {

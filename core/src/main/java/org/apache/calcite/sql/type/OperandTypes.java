@@ -529,6 +529,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION =
       OperandTypes.or(COLLECTION, RECORD_COLLECTION);
 
+  public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION_OR_MAP =
+      OperandTypes.or(COLLECTION_OR_MAP, RECORD_COLLECTION);
+
   public static final SqlOperandTypeChecker MULTISET_MULTISET =
       new MultisetOperandTypeChecker();
 

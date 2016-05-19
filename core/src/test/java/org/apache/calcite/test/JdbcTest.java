@@ -52,6 +52,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ModifiableTable;
@@ -2284,6 +2285,50 @@ public class JdbcTest {
             "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=2",
             "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=4",
             "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=5");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1250">[CALCITE-1250]
+   * UNNEST applied to MAP data type</a>. */
+  @Test public void testUnnestItemsInMap() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    final String sql = "select * from unnest(MAP['a', 1, 'b', 2]) as um(k, v)";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    final String expected = "K=a; V=1\n"
+        + "K=b; V=2\n";
+    assertThat(CalciteAssert.toString(resultSet), is(expected));
+    connection.close();
+  }
+
+  @Test public void testUnnestItemsInMapWithOrdinality() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    final String sql = "select *\n"
+        + "from unnest(MAP['a', 1, 'b', 2]) with ordinality as um(k, v, i)";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    final String expected = "K=a; V=1; I=1\n"
+        + "K=b; V=2; I=2\n";
+    assertThat(CalciteAssert.toString(resultSet), is(expected));
+    connection.close();
+  }
+
+  @Test public void testUnnestItemsInMapWithNoAliasAndAdditionalArgument()
+      throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    final String sql =
+        "select * from unnest(MAP['a', 1, 'b', 2], array[5, 6, 7])";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+
+    List<String> map = FlatLists.of("KEY=a; VALUE=1", "KEY=b; VALUE=2");
+    List<String> array = FlatLists.of(" EXPR$1=5", " EXPR$1=6", " EXPR$1=7");
+
+    final StringBuilder b = new StringBuilder();
+    for (List<String> row : Linq4j.product(FlatLists.of(map, array))) {
+      b.append(row.get(0)).append(";").append(row.get(1)).append("\n");
+    }
+    final String expected = b.toString();
+
+    assertThat(CalciteAssert.toString(resultSet), is(expected));
+    connection.close();
   }
 
   private CalciteAssert.AssertQuery withFoodMartQuery(int id)
