@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
@@ -59,7 +60,8 @@ public class CassandraRules {
   public static final RelOptRule[] RULES = {
     CassandraFilterRule.INSTANCE,
     CassandraProjectRule.INSTANCE,
-    CassandraSortRule.INSTANCE
+    CassandraSortRule.INSTANCE,
+    CassandraLimitRule.INSTANCE
   };
 
   static List<String> cassandraFieldNames(final RelDataType rowType) {
@@ -277,8 +279,8 @@ public class CassandraRules {
     private static final Predicate<Sort> SORT_PREDICATE =
         new Predicate<Sort>() {
           public boolean apply(Sort input) {
-            // CQL has no support for offsets
-            return input.offset == null;
+            // Limits are handled by CassandraLimit
+            return input.offset == null && input.fetch == null;
           }
         };
     private static final Predicate<CassandraFilter> FILTER_PREDICATE =
@@ -304,7 +306,7 @@ public class CassandraRules {
               .replace(sort.getCollation());
       return new CassandraSort(sort.getCluster(), traitSet,
           convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), filter.getImplicitCollation(), sort.fetch);
+          sort.getCollation());
     }
 
     public boolean matches(RelOptRuleCall call) {
@@ -378,6 +380,35 @@ public class CassandraRules {
       final Sort sort = call.rel(0);
       CassandraFilter filter = call.rel(2);
       final RelNode converted = convert(sort, filter);
+      if (converted != null) {
+        call.transformTo(converted);
+      }
+    }
+  }
+
+  /**
+   * Rule to convert a {@link org.apache.calcite.adapter.enumerable.EnumerableLimit} to a
+   * {@link CassandraLimit}.
+   */
+  private static class CassandraLimitRule extends RelOptRule {
+    private static final CassandraLimitRule INSTANCE = new CassandraLimitRule();
+
+    private CassandraLimitRule() {
+      super(operand(EnumerableLimit.class, operand(CassandraToEnumerableConverter.class, any())),
+        "CassandraLimitRule");
+    }
+
+    public RelNode convert(EnumerableLimit limit) {
+      final RelTraitSet traitSet =
+          limit.getTraitSet().replace(CassandraRel.CONVENTION);
+      return new CassandraLimit(limit.getCluster(), traitSet,
+        convert(limit.getInput(), CassandraRel.CONVENTION), limit.offset, limit.fetch);
+    }
+
+    /** @see org.apache.calcite.rel.convert.ConverterRule */
+    public void onMatch(RelOptRuleCall call) {
+      final EnumerableLimit limit = call.rel(0);
+      final RelNode converted = convert(limit);
       if (converted != null) {
         call.transformTo(converted);
       }
