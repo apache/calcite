@@ -192,15 +192,22 @@ limitations under the License.
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                    <addHeader>false</addHeader>
+                  <addHeader>false</addHeader>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
                   <resources>
                     <resource>LICENSE.txt</resource>
+                    <!-- Prevent the default LICENSE from conflicting with our custom LICENSE -->
+                    <resource>LICENSE</resource>
                   </resources>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.apache.calcite.avatica.hsqldb.HsqldbServer</mainClass>
+                </transformer>
+                <!-- Use a custom LICENSE file -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                  <resource>META-INF/LICENSE</resource>
+                  <file>src/main/shaded-resources/LICENSE</file>
                 </transformer>
               </transformers>
             </configuration>
