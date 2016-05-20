@@ -286,7 +286,7 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rc0 -Papache-release -Duser.name=${asf.username} release:prepare
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
-mvn -Papache-release release:perform
+mvn -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
 {% endhighlight %}
 
 Verify the staged artifacts in the Nexus repository:
