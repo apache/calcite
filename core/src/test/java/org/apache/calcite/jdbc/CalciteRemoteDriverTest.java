@@ -37,6 +37,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.hamcrest.CoreMatchers;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -795,6 +796,37 @@ public class CalciteRemoteDriverTest {
     assertThat(resultSet, nullValue());
     int updateCount = statement.getUpdateCount();
     assertThat(updateCount, is(1));
+    connection.close();
+  }
+
+  /** Test remote Statement batched insert. */
+  @Test public void testInsertBatch() throws Exception {
+    final Connection connection = DriverManager.getConnection(
+        "jdbc:avatica:remote:factory="
+            + LocalServiceModifiableFactory.class.getName());
+    assertThat(connection.getMetaData().supportsBatchUpdates(), is(true));
+    assertThat(connection.isClosed(), is(false));
+    Statement statement = connection.createStatement();
+    assertThat(statement.isClosed(), is(false));
+
+    String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
+    statement.addBatch(sql);
+    statement.addBatch(sql);
+    int[] updateCounts = statement.executeBatch();
+    assertThat(updateCounts.length, is(2));
+    assertThat(updateCounts[0], is(1));
+    assertThat(updateCounts[1], is(1));
+    ResultSet resultSet = statement.getResultSet();
+    assertThat(resultSet, nullValue());
+
+    // Now empty batch
+    statement.clearBatch();
+    updateCounts = statement.executeBatch();
+    assertThat(updateCounts.length, is(0));
+    resultSet = statement.getResultSet();
+    assertThat(resultSet, nullValue());
+
+    connection.close();
   }
 
   /**

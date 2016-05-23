@@ -57,6 +57,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -151,7 +153,13 @@ public class CalciteMetaImpl extends MetaImpl {
 
   @Override public void closeStatement(StatementHandle h) {
     final CalciteConnectionImpl calciteConnection = getConnection();
-    CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
+    final CalciteServerStatement stmt;
+    try {
+      stmt = calciteConnection.server.getStatement(h);
+    } catch (NoSuchStatementException e) {
+      // statement is not valid; nothing to do
+      return;
+    }
     // stmt.close(); // TODO: implement
     calciteConnection.server.removeStatement(h);
   }
@@ -553,7 +561,13 @@ public class CalciteMetaImpl extends MetaImpl {
     final StatementHandle h = createStatement(ch);
     final CalciteConnectionImpl calciteConnection = getConnection();
 
-    CalciteServerStatement statement = calciteConnection.server.getStatement(h);
+    final CalciteServerStatement statement;
+    try {
+      statement = calciteConnection.server.getStatement(h);
+    } catch (NoSuchStatementException e) {
+      // Not possible. We just created a statement.
+      throw new AssertionError("missing statement", e);
+    }
     h.signature =
         calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
             statement.createPrepareContext(), maxRowCount);
@@ -562,7 +576,14 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public ExecuteResult prepareAndExecute(StatementHandle h,
-      String sql, long maxRowCount, PrepareCallback callback) {
+      String sql, long maxRowCount, PrepareCallback callback)
+      throws NoSuchStatementException {
+    return prepareAndExecute(h, sql, maxRowCount, -1, callback);
+  }
+
+  @Override public ExecuteResult prepareAndExecute(StatementHandle h,
+      String sql, long maxRowCount, int maxRowsInFirstFrame,
+      PrepareCallback callback) throws NoSuchStatementException {
     final CalcitePrepare.CalciteSignature<Object> signature;
     try {
       synchronized (callback.getMonitor()) {
@@ -585,7 +606,8 @@ public class CalciteMetaImpl extends MetaImpl {
     // TODO: share code with prepare and createIterable
   }
 
-  @Override public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) {
+  @Override public Frame fetch(StatementHandle h, long offset,
+      int fetchMaxRowCount) throws NoSuchStatementException {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
     final Signature signature = stmt.getSignature();
@@ -608,7 +630,14 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public ExecuteResult execute(StatementHandle h,
-      List<TypedValue> parameterValues, long maxRowCount) {
+      List<TypedValue> parameterValues, long maxRowCount)
+      throws NoSuchStatementException {
+    return execute(h, parameterValues, Ints.saturatedCast(maxRowCount));
+  }
+
+  @Override public ExecuteResult execute(StatementHandle h,
+      List<TypedValue> parameterValues, int maxRowsInFirstFrame)
+      throws NoSuchStatementException {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
     final Signature signature = stmt.getSignature();
@@ -631,6 +660,61 @@ public class CalciteMetaImpl extends MetaImpl {
     }
 
     return new ExecuteResult(ImmutableList.of(metaResultSet));
+  }
+
+  @Override public ExecuteBatchResult executeBatch(StatementHandle h,
+      List<List<TypedValue>> parameterValueLists) throws NoSuchStatementException {
+    final List<Long> updateCounts = new ArrayList<>();
+    for (List<TypedValue> parameterValueList : parameterValueLists) {
+      ExecuteResult executeResult = execute(h, parameterValueList, -1);
+      final long updateCount =
+          executeResult.resultSets.size() == 1
+              ? executeResult.resultSets.get(0).updateCount
+              : -1L;
+      updateCounts.add(updateCount);
+    }
+    return new ExecuteBatchResult(Longs.toArray(updateCounts));
+  }
+
+  @Override public ExecuteBatchResult prepareAndExecuteBatch(
+      final StatementHandle h,
+      List<String> sqlCommands) throws NoSuchStatementException {
+    final CalciteConnectionImpl calciteConnection = getConnection();
+    final CalciteServerStatement statement =
+        calciteConnection.server.getStatement(h);
+    final List<Long> updateCounts = new ArrayList<>();
+    final Meta.PrepareCallback callback =
+        new Meta.PrepareCallback() {
+          long updateCount;
+          Signature signature;
+
+          public Object getMonitor() {
+            return statement;
+          }
+
+          public void clear() throws SQLException {}
+
+          public void assign(Meta.Signature signature, Meta.Frame firstFrame,
+              long updateCount) throws SQLException {
+            this.signature = signature;
+            this.updateCount = updateCount;
+          }
+
+          public void execute() throws SQLException {
+            if (signature.statementType.canUpdate()) {
+              final Iterable<Object> iterable =
+                  _createIterable(h, signature, ImmutableList.<TypedValue>of(),
+                      null);
+              final Iterator<Object> iterator = iterable.iterator();
+              updateCount = ((Number) iterator.next()).longValue();
+            }
+            updateCounts.add(updateCount);
+          }
+        };
+    for (String sqlCommand : sqlCommands) {
+      Util.discard(prepareAndExecute(h, sqlCommand, -1L, -1, callback));
+    }
+    return new ExecuteBatchResult(Longs.toArray(updateCounts));
   }
 
   /** A trojan-horse method, subject to change without notice. */

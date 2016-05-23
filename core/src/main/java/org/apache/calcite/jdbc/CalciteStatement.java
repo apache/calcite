@@ -19,6 +19,7 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.AvaticaResultSet;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.server.CalciteServerStatement;
 
@@ -48,7 +49,13 @@ public abstract class CalciteStatement extends AvaticaStatement {
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == CalciteServerStatement.class) {
-      return iface.cast(getConnection().server.getStatement(handle));
+      final CalciteServerStatement statement;
+      try {
+        statement = getConnection().server.getStatement(handle);
+      } catch (NoSuchStatementException e) {
+        throw new AssertionError("invalid statement", e);
+      }
+      return iface.cast(statement);
     }
     return super.unwrap(iface);
   }
@@ -65,8 +72,12 @@ public abstract class CalciteStatement extends AvaticaStatement {
       Queryable<T> queryable) {
     final CalciteConnectionImpl calciteConnection = getConnection();
     final CalcitePrepare prepare = calciteConnection.prepareFactory.apply();
-    final CalciteServerStatement serverStatement =
-        calciteConnection.server.getStatement(handle);
+    final CalciteServerStatement serverStatement;
+    try {
+      serverStatement = calciteConnection.server.getStatement(handle);
+    } catch (NoSuchStatementException e) {
+      throw new AssertionError("invalid statement", e);
+    }
     final CalcitePrepare.Context prepareContext =
         serverStatement.createPrepareContext();
     return prepare.prepareQueryable(prepareContext, queryable);

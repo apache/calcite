@@ -17,6 +17,7 @@
 package org.apache.calcite.server;
 
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.jdbc.CalciteConnection;
 
 /**
@@ -30,7 +31,14 @@ public interface CalciteServer {
 
   void addStatement(CalciteConnection connection, Meta.StatementHandle h);
 
-  CalciteServerStatement getStatement(Meta.StatementHandle h);
+  /** Returns the statement with a given handle.
+   *
+   * @param h Statement handle
+   * @return Statement, never null
+   * @throws NoSuchStatementException if handle does not represent a statement
+   */
+  CalciteServerStatement getStatement(Meta.StatementHandle h)
+      throws NoSuchStatementException;
 }
 
 // End CalciteServer.java

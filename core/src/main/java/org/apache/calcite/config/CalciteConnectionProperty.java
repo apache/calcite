@@ -18,7 +18,6 @@ package org.apache.calcite.config;
 
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.util.Bug;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,8 +47,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
 
   /** How many rows the Druid adapter should fetch at a time when executing
    * "select" queries. */
-  DRUID_FETCH("druidFetch", Type.STRING, "16384",
-      Bug.upgrade("convert to Type.NUMBER after [CALCITE-1207]")),
+  DRUID_FETCH("druidFetch", Type.NUMBER, 16384, false),
 
   /** URI of the model. */
   MODEL("model", Type.STRING, null, false),

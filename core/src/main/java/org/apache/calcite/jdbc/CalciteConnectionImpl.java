@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.Helper;
 import org.apache.calcite.avatica.InternalProperty;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.MetaImpl;
+import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -324,8 +325,13 @@ abstract class CalciteConnectionImpl
       statementMap.put(h.id, new CalciteServerStatementImpl(c));
     }
 
-    public CalciteServerStatement getStatement(Meta.StatementHandle h) {
-      return statementMap.get(h.id);
+    public CalciteServerStatement getStatement(Meta.StatementHandle h)
+        throws NoSuchStatementException {
+      CalciteServerStatement statement = statementMap.get(h.id);
+      if (statement == null) {
+        throw new NoSuchStatementException(h);
+      }
+      return statement;
     }
   }
 
