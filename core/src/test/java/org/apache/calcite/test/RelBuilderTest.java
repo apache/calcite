@@ -121,6 +121,18 @@ public class RelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testScanQualifiedTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM "scott"."emp"
+    final RelNode root =
+        RelBuilder.create(config().build())
+            .scan("scott", "EMP")
+            .build();
+    assertThat(str(root),
+        is("LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
   @Test public void testScanInvalidTable() {
     // Equivalent SQL:
     //   SELECT *
@@ -133,6 +145,36 @@ public class RelBuilderTest {
       fail("expected error, got " + root);
     } catch (Exception e) {
       assertThat(e.getMessage(), is("Table 'ZZZ' not found"));
+    }
+  }
+
+  @Test public void testScanInvalidSchema() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM "zzz"."emp"
+    try {
+      final RelNode root =
+          RelBuilder.create(config().build())
+              .scan("ZZZ", "EMP") // the table exists, but the schema does not
+              .build();
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'ZZZ.EMP' not found"));
+    }
+  }
+
+  @Test public void testScanInvalidQualifiedTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM "scott"."zzz"
+    try {
+      final RelNode root =
+          RelBuilder.create(config().build())
+              .scan("scott", "ZZZ") // the schema is valid, but the table does not exist
+              .build();
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'scott.ZZZ' not found"));
     }
   }
 

@@ -49,8 +49,12 @@ public class PigRelBuilder extends RelBuilder {
         relBuilder.relOptSchema);
   }
 
-  @Override public PigRelBuilder scan(String tableName) {
-    return (PigRelBuilder) super.scan(tableName);
+  @Override public PigRelBuilder scan(String... tableNames) {
+    return (PigRelBuilder) super.scan(tableNames);
+  }
+
+  @Override public PigRelBuilder scan(Iterable<String> tableNames) {
+    return (PigRelBuilder) super.scan(tableNames);
   }
 
   /** Loads a data set.

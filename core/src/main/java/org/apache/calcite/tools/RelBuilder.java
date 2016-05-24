@@ -64,6 +64,7 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -663,21 +664,34 @@ public class RelBuilder {
   /** Creates a {@link org.apache.calcite.rel.core.TableScan} of the table
    * with a given name.
    *
-   * <p>Throws if the table does not exist within the current schema.
+   * <p>Throws if the table does not exist.
    *
    * <p>Returns this builder.
    *
-   * @param tableName Name of table
+   * @param tableNames Name of table (can optionally be qualified)
    */
-  public RelBuilder scan(String tableName) {
-    final RelOptTable relOptTable =
-        relOptSchema.getTableForMember(ImmutableList.of(tableName));
+  public RelBuilder scan(Iterable<String> tableNames) {
+    final List<String> names = ImmutableList.copyOf(tableNames);
+    final RelOptTable relOptTable = relOptSchema.getTableForMember(names);
     if (relOptTable == null) {
-      throw Static.RESOURCE.tableNotFound(tableName).ex();
+      throw Static.RESOURCE.tableNotFound(Joiner.on(".").join(names)).ex();
     }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
     return this;
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.TableScan} of the table
+   * with a given name.
+   *
+   * <p>Throws if the table does not exist.
+   *
+   * <p>Returns this builder.
+   *
+   * @param tableNames Name of table (can optionally be qualified)
+   */
+  public RelBuilder scan(String... tableNames) {
+    return scan(ImmutableList.copyOf(tableNames));
   }
 
   /** Creates a {@link org.apache.calcite.rel.core.Filter} of an array of
