@@ -6334,10 +6334,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select sum(^max(min(empno))^) from emp",
         ERR_NESTED_AGG);
 
-    // in OVER clause
-    checkFails(
-        "select ^sum(max(empno)) OVER^ (order by deptno ROWS 2 PRECEDING) from emp",
-        ERR_NESTED_AGG);
+    // in OVER clause - this should be OK
+    check("select ^sum(max(empno)) OVER^ (order by deptno ROWS 2 PRECEDING) from emp");
+
+    // in OVER clause with more than one level of nesting
+    checkFails("select ^avg(sum(min(sal))) OVER^ (partition by deptno) from emp"
+          + " group by deptno", ERR_NESTED_AGG);
 
     // OVER in clause
     checkFails(

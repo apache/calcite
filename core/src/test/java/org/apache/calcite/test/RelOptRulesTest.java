@@ -2310,6 +2310,17 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-750">[CALCITE-750]
+   * Support nested aggregates - allows only one level nesting of aggregates
+   * under window aggregates i.e. window_agg(standard_agg) </a>. */
+  @Test public void testNestedAggregates() {
+    final HepProgram program = HepProgram.builder()
+                    .addRuleInstance(ProjectToWindowRule.PROJECT)
+                    .build();
+    checkPlanning(program, "SELECT avg(sum(sal) + 2*min(empno) + 3*avg(empno)) "
+            + "over (partition by deptno) from emp group by deptno");
+  }
 }
 
 // End RelOptRulesTest.java
