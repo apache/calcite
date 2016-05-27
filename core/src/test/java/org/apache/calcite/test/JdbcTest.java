@@ -52,6 +52,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ModifiableTable;
@@ -2284,6 +2285,50 @@ public class JdbcTest {
             "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=2",
             "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=4",
             "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=5");
+  }
+
+  @Test
+  public void testUnnestItemsInMap() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    ResultSet resultSet = connection.createStatement()
+        .executeQuery("select * from unnest(MAP['a', 1, 'b', 2]) as um(k, v)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("K=a; V=1\nK=b; V=2\n"));
+    connection.close();
+  }
+
+  @Test
+  public void testUnnestItemsInMapWithOrdinality() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select * from unnest(MAP['a', 1, 'b', 2]) with ordinality as um(k, v, i)");
+
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("K=a; V=1; I=1\nK=b; V=2; I=2\n"));
+    connection.close();
+  }
+
+  @Test
+  public void testUnnestItemsInMapWithNoAliasAndAdditionalArgument()
+      throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select * from unnest(MAP['a', 1, 'b', 2], array[5, 6, 7])");
+
+    List<String> entriesMap = FlatLists.of("KEY=a; VALUE=1", "KEY=b; VALUE=2");
+    List<String> entriesArray = FlatLists.of(" EXPR$1=5", " EXPR$1=6", " EXPR$1=7");
+    Iterable<List<String>> product = Linq4j.product(FlatLists.of(entriesMap, entriesArray));
+    StringBuilder expectedResult = new StringBuilder();
+    for (List<String> row : product) {
+      expectedResult.append(row.get(0) + ";" + row.get(1) + "\n");
+    }
+
+    String resultSetAsString = CalciteAssert.toString(resultSet);
+
+    assertThat(resultSetAsString,
+        equalTo(expectedResult.toString()));
+
+    connection.close();
   }
 
   private CalciteAssert.AssertQuery withFoodMartQuery(int id)

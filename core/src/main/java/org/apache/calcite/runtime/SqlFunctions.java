@@ -29,6 +29,7 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.runtime.FlatLists.ComparableList;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -42,6 +43,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -1489,52 +1491,79 @@ public class SqlFunctions {
     }
   }
 
-  public static <E extends Comparable>
-  Function1<Object, Enumerable<FlatLists.ComparableList<E>>>
-  flatProduct(final int[] fieldCounts, final boolean withOrdinality) {
+  /**
+   * Type of argument passed into flatProduct
+   *
+   */
+  public enum FlatProductInputType {
+    SCALAR, LIST, MAP;
+  }
+
+  public static Function1<Object, Enumerable<ComparableList<Comparable>>>
+  flatProduct(final int[] fieldCounts, final boolean withOrdinality,
+    final FlatProductInputType[] inputTypes) {
     if (fieldCounts.length == 1) {
-      if (!withOrdinality) {
-        //noinspection unchecked
+      if (!withOrdinality && inputTypes[0].equals(FlatProductInputType.SCALAR)) {
         return (Function1) LIST_AS_ENUMERABLE;
       } else {
-        return new Function1<Object, Enumerable<FlatLists.ComparableList<E>>>() {
-          public Enumerable<FlatLists.ComparableList<E>> apply(Object row) {
-            return p2(new Object[] {row}, fieldCounts, true);
+        return new Function1<Object, Enumerable<ComparableList<Comparable>>>() {
+          public Enumerable<ComparableList<Comparable>> apply(Object row) {
+            return p2(new Object[] { row }, fieldCounts, withOrdinality,
+                  inputTypes);
           }
         };
       }
     }
-    return new Function1<Object, Enumerable<FlatLists.ComparableList<E>>>() {
-      public Enumerable<FlatLists.ComparableList<E>> apply(Object lists) {
-        return p2((Object[]) lists, fieldCounts, withOrdinality);
+    return new Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>>() {
+      public Enumerable<FlatLists.ComparableList<Comparable>> apply(Object lists) {
+        return p2((Object[]) lists, fieldCounts, withOrdinality,
+            inputTypes);
       }
     };
   }
 
-  private static <E extends Comparable>
-  Enumerable<FlatLists.ComparableList<E>> p2(Object[] lists, int[] fieldCounts,
-      boolean withOrdinality) {
-    final List<Enumerator<List<E>>> enumerators = new ArrayList<>();
+  private static
+  Enumerable<FlatLists.ComparableList<Comparable>> p2(Object[] lists, int[] fieldCounts,
+          boolean withOrdinality, FlatProductInputType[] inputTypes) {
+    final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
     int totalFieldCount = 0;
     for (int i = 0; i < lists.length; i++) {
       int fieldCount = fieldCounts[i];
-      if (fieldCount < 0) {
-        ++totalFieldCount;
-        @SuppressWarnings("unchecked")
-        List<E> list = (List<E>) lists[i];
-        enumerators.add(
-            Linq4j.transform(
-                Linq4j.enumerator(list),
-                new Function1<E, List<E>>() {
-                  public List<E> apply(E a0) {
+      FlatProductInputType inputType = inputTypes[i];
+      Object inputObject = lists[i];
+      switch (inputType) {
+      case SCALAR:
+        enumerators
+            .add(Linq4j.transform(Linq4j.enumerator((List<Comparable>) inputObject),
+                new Function1<Comparable, List<Comparable>>() {
+                  @Override public List<Comparable> apply(Comparable a0) {
                     return FlatLists.of(a0);
                   }
                 }));
+
+        break;
+      case LIST:
+        enumerators.add(Linq4j.enumerator((List<List<Comparable>>) inputObject));
+        break;
+      case MAP:
+        Enumerator<Entry<Comparable, Comparable>> enumerator =
+          Linq4j.enumerator(((Map<Comparable, Comparable>) inputObject).entrySet());
+
+        Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
+          new Function1<Entry<Comparable, Comparable>, List<Comparable>>() {
+            @Override public List<Comparable> apply(Entry<Comparable, Comparable> entry) {
+              return FlatLists.<Comparable>of(entry.getKey(), entry.getValue());
+            }
+          });
+        enumerators.add(transformed);
+        break;
+      default:
+        break;
+      }
+      if (fieldCount < 0) {
+        ++totalFieldCount;
       } else {
         totalFieldCount += fieldCount;
-        @SuppressWarnings("unchecked")
-        List<List<E>> list = (List<List<E>>) lists[i];
-        enumerators.add(Linq4j.enumerator(list));
       }
     }
     if (withOrdinality) {
@@ -1592,6 +1621,8 @@ public class SqlFunctions {
       return FlatLists.ofComparable(list);
     }
   }
+
+
 }
 
 // End SqlFunctions.java
