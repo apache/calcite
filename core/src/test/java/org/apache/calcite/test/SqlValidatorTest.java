@@ -6699,6 +6699,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'ORDINALITY' not found in any table");
   }
 
+  @Test public void unnestMapMustNameColumnsKeyAndValueWhenNotAliased() {
+    checkResultType("select * from unnest(map[1, 12, 2, 22])",
+        "RecordType(INTEGER NOT NULL KEY, INTEGER NOT NULL VALUE) NOT NULL");
+  }
+
   @Test public void testCorrelationJoin() {
     check("select *,"
         + "         multiset(select * from emp where deptno=dept.deptno) "

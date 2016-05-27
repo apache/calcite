@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -25,6 +26,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
+
 
 /**
  * The <code>UNNEST</code> operator.
@@ -97,6 +99,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
   public boolean argumentMustBeScalar(int ordinal) {
     return false;
   }
+
 }
 
 // End SqlUnnestOperator.java
