@@ -19,6 +19,7 @@ package org.apache.calcite.schema.impl;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
@@ -135,6 +136,19 @@ public class AbstractSchema implements Schema {
 
   public final Schema getSubSchema(String name) {
     return getSubSchemaMap().get(name);
+  }
+
+  /** Schema factory that creates an
+   * {@link org.apache.calcite.schema.impl.AbstractSchema}. */
+  public static class Factory implements SchemaFactory {
+    public static final Factory INSTANCE = new Factory();
+
+    private Factory() {}
+
+    public Schema create(SchemaPlus parentSchema, String name,
+        Map<String, Object> operand) {
+      return new AbstractSchema();
+    }
   }
 }
 

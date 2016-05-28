@@ -5313,6 +5313,91 @@ public class JdbcTest {
         .throws_("Table 'adhoc.EMPLOYEES' not found");
   }
 
+  /** Connects to a custom schema without writing a model.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1259">[CALCITE-1259]
+   * Allow connecting to a single schema without writing a model</a>. */
+  @Test public void testCustomSchemaDirectConnection() throws Exception {
+    final String url = "jdbc:calcite:"
+        + "schemaFactory=" + MySchemaFactory.class.getName()
+        + "; schema.tableName=ELVIS";
+    checkCustomSchema(url, "adhoc"); // implicit schema is called 'adhoc'
+    checkCustomSchema(url + "; schema=xyz", "xyz"); // explicit schema
+  }
+
+  private void checkCustomSchema(String url, String schemaName) throws SQLException {
+    try (Connection connection = DriverManager.getConnection(url)) {
+      assertThat(connection.getSchema(), is(schemaName));
+      final String sql = "select * from \"" + schemaName + "\".ELVIS where \"deptno\" = 10";
+      final String sql2 = "select * from ELVIS where \"deptno\" = 10";
+      String expected = ""
+          + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+          + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+          + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n";
+      try (Statement statement = connection.createStatement()) {
+        try (ResultSet resultSet = statement.executeQuery(sql)) {
+          assertThat(CalciteAssert.toString(resultSet), is(expected));
+        }
+        try (ResultSet resultSet = statement.executeQuery(sql2)) {
+          assertThat(CalciteAssert.toString(resultSet), is(expected));
+        }
+      }
+    }
+  }
+
+  /** Connects to a JDBC schema without writing a model. */
+  @Test public void testJdbcSchemaDirectConnection() throws Exception {
+    checkJdbcSchemaDirectConnection(
+        "schemaFactory=org.apache.calcite.adapter.jdbc.JdbcSchema$Factory");
+    checkJdbcSchemaDirectConnection("schemaType=JDBC");
+  }
+
+  private void checkJdbcSchemaDirectConnection(String s) throws SQLException {
+    final StringBuilder b = new StringBuilder("jdbc:calcite:");
+    b.append(s);
+    pv(b, "schema.jdbcUser", SCOTT.username);
+    pv(b, "schema.jdbcPassword", SCOTT.password);
+    pv(b, "schema.jdbcUrl", SCOTT.url);
+    pv(b, "schema.jdbcCatalog", SCOTT.catalog);
+    pv(b, "schema.jdbcDriver", SCOTT.driver);
+    pv(b, "schema.jdbcSchema", SCOTT.schema);
+    final String url =  b.toString();
+    Connection connection = DriverManager.getConnection(url);
+    assertThat(connection.getSchema(), is("adhoc"));
+    String expected = "C=14\n";
+    final String sql = "select count(*) as c from emp";
+    try (Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(CalciteAssert.toString(resultSet), is(expected));
+    }
+  }
+
+  private void pv(StringBuilder b, String p, String v) {
+    if (v != null) {
+      b.append("; ").append(p).append("=").append(v);
+    }
+  }
+
+  /** Connects to a map schema without writing a model. */
+  @Test public void testMapSchemaDirectConnection() throws Exception {
+    checkMapSchemaDirectConnection("schemaType=MAP");
+    checkMapSchemaDirectConnection(
+        "schemaFactory=org.apache.calcite.schema.impl.AbstractSchema$Factory");
+  }
+
+  private void checkMapSchemaDirectConnection(String s) throws SQLException {
+    final String url = "jdbc:calcite:" + s;
+    Connection connection = DriverManager.getConnection(url);
+    assertThat(connection.getSchema(), is("adhoc"));
+    String expected = "EXPR$0=1\n";
+    final String sql = "values 1";
+    try (Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(CalciteAssert.toString(resultSet), is(expected));
+    }
+  }
+
   /** Tests that an immutable schema in a model cannot contain a view. */
   @Test public void testModelImmutableSchemaCannotContainView()
       throws Exception {

@@ -19,6 +19,7 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -116,6 +117,21 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   public boolean caseSensitive() {
     return CalciteConnectionProperty.CASE_SENSITIVE.wrap(properties)
         .getBoolean(lex().caseSensitive);
+  }
+
+  public <T> T schemaFactory(Class<T> schemaFactoryClass,
+      T defaultSchemaFactory) {
+    return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
+        .getPlugin(schemaFactoryClass, defaultSchemaFactory);
+  }
+
+  public JsonSchema.Type schemaType() {
+    // Avatica won't allow enum properties whose default is null, so we use
+    // NONE, which is equivalent to null.
+    final JsonSchema.Type type =
+        CalciteConnectionProperty.SCHEMA_TYPE.wrap(properties)
+            .getEnum(JsonSchema.Type.class);
+    return type == null || type == JsonSchema.Type.NONE ? null : type;
   }
 
   public boolean spark() {

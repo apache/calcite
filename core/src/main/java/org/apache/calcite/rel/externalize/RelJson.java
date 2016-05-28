@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.externalize;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
@@ -447,15 +448,7 @@ public class RelJson {
     }
     String class_ = (String) map.get("class");
     if (class_ != null) {
-      try {
-        return (SqlOperator) Class.forName(class_).newInstance();
-      } catch (InstantiationException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (ClassNotFoundException e) {
-        throw new RuntimeException(e);
-      }
+      return AvaticaUtils.instantiatePlugin(SqlOperator.class, class_);
     }
     return null;
   }

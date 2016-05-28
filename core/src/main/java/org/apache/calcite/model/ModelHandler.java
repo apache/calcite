@@ -17,6 +17,7 @@
 package org.apache.calcite.model;
 
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
@@ -206,8 +207,9 @@ public class ModelHandler {
   public void visit(JsonCustomSchema jsonSchema) {
     try {
       final SchemaPlus parentSchema = currentMutableSchema("sub-schema");
-      final Class clazz = Class.forName(jsonSchema.factory);
-      final SchemaFactory schemaFactory = (SchemaFactory) clazz.newInstance();
+      final SchemaFactory schemaFactory =
+          AvaticaUtils.instantiatePlugin(SchemaFactory.class,
+              jsonSchema.factory);
       final Schema schema =
           schemaFactory.create(
               parentSchema, jsonSchema.name, operandMap(jsonSchema.operand));
@@ -331,8 +333,9 @@ public class ModelHandler {
   public void visit(JsonCustomTable jsonTable) {
     try {
       final SchemaPlus schema = currentMutableSchema("table");
-      final Class clazz = Class.forName(jsonTable.factory);
-      final TableFactory tableFactory = (TableFactory) clazz.newInstance();
+      final TableFactory tableFactory =
+          AvaticaUtils.instantiatePlugin(TableFactory.class,
+              jsonTable.factory);
       final Table table =
           tableFactory.create(schema, jsonTable.name,
               operandMap(jsonTable.operand), null);

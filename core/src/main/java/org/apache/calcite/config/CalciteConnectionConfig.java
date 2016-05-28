@@ -19,6 +19,7 @@ package org.apache.calcite.config;
 import org.apache.calcite.avatica.ConnectionConfig;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
 /** Interface for reading connection properties within Calcite code. There is
@@ -47,6 +48,10 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   Casing quotedCasing();
   /** @see CalciteConnectionProperty#CASE_SENSITIVE */
   boolean caseSensitive();
+  /** @see CalciteConnectionProperty#SCHEMA_FACTORY */
+  <T> T schemaFactory(Class<T> schemaFactoryClass, T defaultSchemaFactory);
+  /** @see CalciteConnectionProperty#SCHEMA_TYPE */
+  JsonSchema.Type schemaType();
   /** @see CalciteConnectionProperty#SPARK */
   boolean spark();
   /** @see CalciteConnectionProperty#FORCE_DECORRELATE */

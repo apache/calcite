@@ -103,6 +103,14 @@ public abstract class JsonSchema {
       jsonMaterialization.accept(modelHandler);
     }
   }
+
+  /** Built-in schema types. */
+  public enum Type {
+    NONE,
+    MAP,
+    JDBC,
+    CUSTOM
+  }
 }
 
 // End JsonSchema.java

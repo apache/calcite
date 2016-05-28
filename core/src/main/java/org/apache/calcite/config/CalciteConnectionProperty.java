@@ -17,6 +17,7 @@
 package org.apache.calcite.config;
 
 import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
 import java.util.HashMap;
@@ -77,6 +78,23 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
 
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
+
+  /** Schema factory.
+   *
+   * <p>The name of a class that implements
+   * {@link org.apache.calcite.schema.SchemaFactory}.
+   *
+   * <p>Ignored if {@link #MODEL} is specified. */
+  SCHEMA_FACTORY("schemaFactory", Type.PLUGIN, null, false),
+
+  /** Schema type.
+   *
+   * <p>Value may be null, "MAP", "JDBC", or "CUSTOM"
+   * (implicit if {@link #SCHEMA_FACTORY} is specified).
+   * The value "NONE" is converted to null.
+   *
+   * <p>Ignored if {@link #MODEL} is specified. */
+  SCHEMA_TYPE("schemaType", Type.ENUM, JsonSchema.Type.NONE, false),
 
   /** Specifies whether Spark should be used as the engine for processing that
    * cannot be pushed to the source system. If false (the default), Calcite

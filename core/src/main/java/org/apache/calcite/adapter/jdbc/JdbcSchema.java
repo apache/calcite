@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelDataType;
@@ -115,8 +116,8 @@ public class JdbcSchema implements Schema {
     try {
       final String dataSourceName = (String) operand.get("dataSource");
       if (dataSourceName != null) {
-        final Class<?> clazz = Class.forName((String) dataSourceName);
-        dataSource = (DataSource) clazz.newInstance();
+        dataSource =
+            AvaticaUtils.instantiatePlugin(DataSource.class, dataSourceName);
       } else {
         final String jdbcUrl = (String) operand.get("jdbcUrl");
         final String jdbcDriver = (String) operand.get("jdbcDriver");
@@ -422,6 +423,10 @@ public class JdbcSchema implements Schema {
    * }</pre>
    */
   public static class Factory implements SchemaFactory {
+    public static final Factory INSTANCE = new Factory();
+
+    private Factory() {}
+
     public Schema create(
         SchemaPlus parentSchema,
         String name,
