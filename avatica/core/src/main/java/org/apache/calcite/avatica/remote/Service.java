@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaClientRuntimeException;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaSeverity;
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.BuiltInConnectionProperty;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
@@ -904,7 +905,7 @@ public interface Service {
 
     public PrepareAndExecuteRequest(String connectionId, int statementId, String sql,
         long maxRowCount) {
-      this(connectionId, statementId, sql, maxRowCount, (int) maxRowCount);
+      this(connectionId, statementId, sql, maxRowCount, AvaticaUtils.toSaturatedInt(maxRowCount));
     }
 
     @JsonCreator
@@ -3028,7 +3029,7 @@ public interface Service {
 
     public final String connectionId;
     public final int statementId;
-    public final int[] updateCounts;
+    public final long[] updateCounts;
     public final boolean missingStatement;
     public final RpcMetadataResponse rpcMetadata;
 
@@ -3043,7 +3044,7 @@ public interface Service {
     @JsonCreator
     public ExecuteBatchResponse(@JsonProperty("connectionId") String connectionId,
         @JsonProperty("statementId") int statementId,
-        @JsonProperty("updateCounts") int[] updateCounts,
+        @JsonProperty("updateCounts") long[] updateCounts,
         @JsonProperty("missingStatement") boolean missingStatement,
         @JsonProperty("rpcMetadata") RpcMetadataResponse rpcMetadata) {
       this.connectionId = connectionId;
@@ -3075,9 +3076,9 @@ public interface Service {
       Responses.ExecuteBatchResponse msg = ProtobufService.castProtobufMessage(genericMsg,
           Responses.ExecuteBatchResponse.class);
 
-      int[] updateCounts = new int[msg.getUpdateCountsCount()];
+      long[] updateCounts = new long[msg.getUpdateCountsCount()];
       int i = 0;
-      for (Integer updateCount : msg.getUpdateCountsList()) {
+      for (Long updateCount : msg.getUpdateCountsList()) {
         updateCounts[i++] = updateCount;
       }
 

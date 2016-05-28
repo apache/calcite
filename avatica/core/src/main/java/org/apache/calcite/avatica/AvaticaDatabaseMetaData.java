@@ -1100,7 +1100,7 @@ public class AvaticaDatabaseMetaData implements AvaticaSpecificDatabaseMetaData 
   }
 
   public boolean supportsBatchUpdates() throws SQLException {
-    return false;
+    return true;
   }
 
   public ResultSet getUDTs(

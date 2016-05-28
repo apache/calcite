@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.Meta.Signature;
 import org.apache.calcite.avatica.Meta.StatementHandle;
@@ -130,7 +131,8 @@ public class ProtobufSerializationTest {
           prepareAndExecuteReq.serialize();
       assertEquals(maxRowCount, prepareAndExecuteProtoReq.getMaxRowCount());
       assertEquals(maxRowCount, prepareAndExecuteProtoReq.getMaxRowsTotal());
-      assertEquals((int) maxRowCount, prepareAndExecuteProtoReq.getFirstFrameMaxSize());
+      assertEquals(AvaticaUtils.toSaturatedInt(maxRowCount),
+          prepareAndExecuteProtoReq.getFirstFrameMaxSize());
 
       assertEquals(prepareAndExecuteReq,
           prepareAndExecuteReq.deserialize(prepareAndExecuteProtoReq));
@@ -175,7 +177,8 @@ public class ProtobufSerializationTest {
 
     prepareAndExecuteReq = new Service.PrepareAndExecuteRequest().deserialize(protoPrepare);
     assertEquals(maxRowCount, prepareAndExecuteReq.maxRowCount);
-    assertEquals((int) maxRowCount, prepareAndExecuteReq.maxRowsInFirstFrame);
+    assertEquals(AvaticaUtils.toSaturatedInt(maxRowCount),
+        prepareAndExecuteReq.maxRowsInFirstFrame);
 
     // Both the new and old provided should default to the new (firstFrameMaxSize should be the
     // the same as what ultimately is set to maxRowCount)
@@ -185,7 +188,8 @@ public class ProtobufSerializationTest {
 
     prepareAndExecuteReq = new Service.PrepareAndExecuteRequest().deserialize(protoPrepare);
     assertEquals(maxRowCount, prepareAndExecuteReq.maxRowCount);
-    assertEquals((int) maxRowCount, prepareAndExecuteReq.maxRowsInFirstFrame);
+    assertEquals(AvaticaUtils.toSaturatedInt(maxRowCount),
+        prepareAndExecuteReq.maxRowsInFirstFrame);
 
     // Same as previous example, but explicitly setting maxRowsInFirstFrame too
     protoPrepare = Requests.PrepareAndExecuteRequest.newBuilder().

@@ -11627,17 +11627,17 @@ package org.apache.calcite.avatica.proto;
     int getStatementId();
 
     /**
-     * <code>repeated uint32 update_counts = 3;</code>
+     * <code>repeated uint64 update_counts = 3;</code>
      */
-    java.util.List<java.lang.Integer> getUpdateCountsList();
+    java.util.List<java.lang.Long> getUpdateCountsList();
     /**
-     * <code>repeated uint32 update_counts = 3;</code>
+     * <code>repeated uint64 update_counts = 3;</code>
      */
     int getUpdateCountsCount();
     /**
-     * <code>repeated uint32 update_counts = 3;</code>
+     * <code>repeated uint64 update_counts = 3;</code>
      */
-    int getUpdateCounts(int index);
+    long getUpdateCounts(int index);
 
     /**
      * <code>optional bool missing_statement = 4;</code>
@@ -11720,21 +11720,21 @@ package org.apache.calcite.avatica.proto;
             }
             case 24: {
               if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
-                updateCounts_ = new java.util.ArrayList<java.lang.Integer>();
+                updateCounts_ = new java.util.ArrayList<java.lang.Long>();
                 mutable_bitField0_ |= 0x00000004;
               }
-              updateCounts_.add(input.readUInt32());
+              updateCounts_.add(input.readUInt64());
               break;
             }
             case 26: {
               int length = input.readRawVarint32();
               int limit = input.pushLimit(length);
               if (!((mutable_bitField0_ & 0x00000004) == 0x00000004) && input.getBytesUntilLimit() > 0) {
-                updateCounts_ = new java.util.ArrayList<java.lang.Integer>();
+                updateCounts_ = new java.util.ArrayList<java.lang.Long>();
                 mutable_bitField0_ |= 0x00000004;
               }
               while (input.getBytesUntilLimit() > 0) {
-                updateCounts_.add(input.readUInt32());
+                updateCounts_.add(input.readUInt64());
               }
               input.popLimit(limit);
               break;
@@ -11829,24 +11829,24 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int UPDATE_COUNTS_FIELD_NUMBER = 3;
-    private java.util.List<java.lang.Integer> updateCounts_;
+    private java.util.List<java.lang.Long> updateCounts_;
     /**
-     * <code>repeated uint32 update_counts = 3;</code>
+     * <code>repeated uint64 update_counts = 3;</code>
      */
-    public java.util.List<java.lang.Integer>
+    public java.util.List<java.lang.Long>
         getUpdateCountsList() {
       return updateCounts_;
     }
     /**
-     * <code>repeated uint32 update_counts = 3;</code>
+     * <code>repeated uint64 update_counts = 3;</code>
      */
     public int getUpdateCountsCount() {
       return updateCounts_.size();
     }
     /**
-     * <code>repeated uint32 update_counts = 3;</code>
+     * <code>repeated uint64 update_counts = 3;</code>
      */
-    public int getUpdateCounts(int index) {
+    public long getUpdateCounts(int index) {
       return updateCounts_.get(index);
     }
     private int updateCountsMemoizedSerializedSize = -1;
@@ -11909,7 +11909,7 @@ package org.apache.calcite.avatica.proto;
         output.writeRawVarint32(updateCountsMemoizedSerializedSize);
       }
       for (int i = 0; i < updateCounts_.size(); i++) {
-        output.writeUInt32NoTag(updateCounts_.get(i));
+        output.writeUInt64NoTag(updateCounts_.get(i));
       }
       if (missingStatement_ != false) {
         output.writeBool(4, missingStatement_);
@@ -11935,7 +11935,7 @@ package org.apache.calcite.avatica.proto;
         int dataSize = 0;
         for (int i = 0; i < updateCounts_.size(); i++) {
           dataSize += com.google.protobuf.CodedOutputStream
-            .computeUInt32SizeNoTag(updateCounts_.get(i));
+            .computeUInt64SizeNoTag(updateCounts_.get(i));
         }
         size += dataSize;
         if (!getUpdateCountsList().isEmpty()) {
@@ -12280,56 +12280,56 @@ package org.apache.calcite.avatica.proto;
         return this;
       }
 
-      private java.util.List<java.lang.Integer> updateCounts_ = java.util.Collections.emptyList();
+      private java.util.List<java.lang.Long> updateCounts_ = java.util.Collections.emptyList();
       private void ensureUpdateCountsIsMutable() {
         if (!((bitField0_ & 0x00000004) == 0x00000004)) {
-          updateCounts_ = new java.util.ArrayList<java.lang.Integer>(updateCounts_);
+          updateCounts_ = new java.util.ArrayList<java.lang.Long>(updateCounts_);
           bitField0_ |= 0x00000004;
          }
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
-      public java.util.List<java.lang.Integer>
+      public java.util.List<java.lang.Long>
           getUpdateCountsList() {
         return java.util.Collections.unmodifiableList(updateCounts_);
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
       public int getUpdateCountsCount() {
         return updateCounts_.size();
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
-      public int getUpdateCounts(int index) {
+      public long getUpdateCounts(int index) {
         return updateCounts_.get(index);
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
       public Builder setUpdateCounts(
-          int index, int value) {
+          int index, long value) {
         ensureUpdateCountsIsMutable();
         updateCounts_.set(index, value);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
-      public Builder addUpdateCounts(int value) {
+      public Builder addUpdateCounts(long value) {
         ensureUpdateCountsIsMutable();
         updateCounts_.add(value);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
       public Builder addAllUpdateCounts(
-          java.lang.Iterable<? extends java.lang.Integer> values) {
+          java.lang.Iterable<? extends java.lang.Long> values) {
         ensureUpdateCountsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
             values, updateCounts_);
@@ -12337,7 +12337,7 @@ package org.apache.calcite.avatica.proto;
         return this;
       }
       /**
-       * <code>repeated uint32 update_counts = 3;</code>
+       * <code>repeated uint64 update_counts = 3;</code>
        */
       public Builder clearUpdateCounts() {
         updateCounts_ = java.util.Collections.emptyList();
@@ -12692,7 +12692,7 @@ package org.apache.calcite.avatica.proto;
       "ress\030\001 \001(\t\"\020\n\016CommitResponse\"\022\n\020Rollback" +
       "Response\"\225\001\n\024ExecuteBatchResponse\022\025\n\rcon" +
       "nection_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\025",
-      "\n\rupdate_counts\030\003 \003(\r\022\031\n\021missing_stateme" +
+      "\n\rupdate_counts\030\003 \003(\004\022\031\n\021missing_stateme" +
       "nt\030\004 \001(\010\022\036\n\010metadata\030\005 \001(\0132\014.RpcMetadata" +
       "B\"\n org.apache.calcite.avatica.protob\006pr" +
       "oto3"

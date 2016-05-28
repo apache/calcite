@@ -358,7 +358,7 @@ public class ProtobufTranslationImplTest<T> {
     responses.add(new CommitResponse());
     responses.add(new RollbackResponse());
 
-    int[] updateCounts = new int[]{1, 0, 1, 1};
+    long[] updateCounts = new long[]{1, 0, 1, 1};
     responses.add(
         new ExecuteBatchResponse("connectionId", 12345, updateCounts, false, rpcMetadata));
 

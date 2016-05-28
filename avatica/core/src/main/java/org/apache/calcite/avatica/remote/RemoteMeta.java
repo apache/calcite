@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaConnection.CallableWithoutException;
 import org.apache.calcite.avatica.AvaticaParameter;
+import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.ConnectionPropertiesImpl;
 import org.apache.calcite.avatica.Meta;
@@ -245,7 +246,11 @@ class RemoteMeta extends MetaImpl {
 
   @Override public ExecuteResult prepareAndExecute(StatementHandle h, String sql, long maxRowCount,
       PrepareCallback callback) throws NoSuchStatementException {
-    return prepareAndExecute(h, sql, maxRowCount, (int) maxRowCount, callback);
+    // The old semantics were that maxRowCount was also treated as the maximum number of
+    // elements in the first Frame of results. A value of -1 would also preserve this, but an
+    // explicit (positive) number is easier to follow, IMO.
+    return prepareAndExecute(h, sql, maxRowCount, AvaticaUtils.toSaturatedInt(maxRowCount),
+        callback);
   }
 
   @Override public ExecuteResult prepareAndExecute(final StatementHandle h, final String sql,
@@ -324,7 +329,7 @@ class RemoteMeta extends MetaImpl {
 
   @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
       long maxRowCount) throws NoSuchStatementException {
-    return execute(h, parameterValues, (int) maxRowCount);
+    return execute(h, parameterValues, AvaticaUtils.toSaturatedInt(maxRowCount));
   }
 
   @Override public ExecuteResult execute(final StatementHandle h,

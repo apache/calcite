@@ -30,6 +30,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -146,6 +147,15 @@ public class AvaticaUtilsTest {
     properties.setProperty(s.name, "  ");
     env = s.wrap(properties);
     assertThat(env.getString(), is("  "));
+  }
+
+  @Test public void testLongToIntegerTranslation() {
+    long[] longValues = new long[] {Integer.MIN_VALUE, -5, 0, 1, Integer.MAX_VALUE,
+      ((long) Integer.MAX_VALUE) + 1L, Long.MAX_VALUE};
+    int[] convertedValues = AvaticaUtils.toSaturatedInts(longValues);
+    int[] intValues = new int[] {Integer.MIN_VALUE, -5, 0, 1, Integer.MAX_VALUE,
+      Integer.MAX_VALUE, Integer.MAX_VALUE};
+    assertArrayEquals(convertedValues, intValues);
   }
 
   /** Dummy implementation of {@link ConnectionProperty}. */

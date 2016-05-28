@@ -155,13 +155,12 @@ public abstract class AvaticaStatement
   /**
    * Executes a collection of updates in a single batch RPC.
    *
-   * @return an array of integers mapping to the update count per SQL command.
+   * @return an array of long mapping to the update count per SQL command.
    */
-  protected int[] executeBatchInternal() throws SQLException {
+  protected long[] executeBatchInternal() throws SQLException {
     for (int i = 0; i < connection.maxRetriesPerExecute; i++) {
       try {
-        Meta.ExecuteBatchResult result = connection.prepareAndUpdateBatch(this, batchedSql);
-        return result.updateCounts;
+        return connection.prepareAndUpdateBatch(this, batchedSql).updateCounts;
       } catch (NoSuchStatementException e) {
         resetStatement();
       }
@@ -219,7 +218,7 @@ public abstract class AvaticaStatement
   }
 
   public final int executeUpdate(String sql) throws SQLException {
-    return (int) executeLargeUpdate(sql);
+    return AvaticaUtils.toSaturatedInt(executeLargeUpdate(sql));
   }
 
   public long executeLargeUpdate(String sql) throws SQLException {
@@ -266,7 +265,7 @@ public abstract class AvaticaStatement
   }
 
   public final int getMaxRows() {
-    return (int) getLargeMaxRows();
+    return AvaticaUtils.toSaturatedInt(getLargeMaxRows());
   }
 
   public long getLargeMaxRows() {
@@ -346,7 +345,7 @@ public abstract class AvaticaStatement
   }
 
   public int getUpdateCount() throws SQLException {
-    return (int) updateCount;
+    return AvaticaUtils.toSaturatedInt(updateCount);
   }
 
   public long getLargeUpdateCount() throws SQLException {
@@ -390,12 +389,16 @@ public abstract class AvaticaStatement
   }
 
   public int[] executeBatch() throws SQLException {
+    return AvaticaUtils.toSaturatedInts(executeLargeBatch());
+  }
+
+  public long[] executeLargeBatch() throws SQLException {
     try {
       return executeBatchInternal();
     } finally {
       // If we failed to send this batch, that's a problem for the user to handle, not us.
       // Make sure we always clear the statements we collected to submit in one RPC.
-      this.batchedSql.clear();
+      clearBatch();
     }
   }
 
@@ -551,6 +554,7 @@ public abstract class AvaticaStatement
     }
     return parameterValues;
   }
+
 }
 
 // End AvaticaStatement.java

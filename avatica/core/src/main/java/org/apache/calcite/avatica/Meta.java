@@ -225,7 +225,8 @@ public interface Meta {
    *     first frame of data
    * @deprecated See {@link #prepareAndExecute(StatementHandle, String, long, int, PrepareCallback)}
    */
-  @Deprecated ExecuteResult prepareAndExecute(StatementHandle h, String sql,
+  @Deprecated // to be removed before 2.0
+  ExecuteResult prepareAndExecute(StatementHandle h, String sql,
       long maxRowCount, PrepareCallback callback) throws NoSuchStatementException;
 
   /** Prepares and executes a statement.
@@ -234,7 +235,9 @@ public interface Meta {
    * @param sql SQL query
    * @param maxRowCount Maximum number of rows for the entire query. Negative for no limit
    *    (different meaning than JDBC).
-   * @param maxRowsInFirstFrame Maximum number of rows for the first frame.
+   * @param maxRowsInFirstFrame Maximum number of rows for the first frame. This value should
+   *    always be less than or equal to {@code maxRowCount} as the number of results are guaranteed
+   *    to be restricted by {@code maxRowCount} and the underlying database.
    * @param callback Callback to lock, clear and assign cursor
    *
    * @return Result containing statement ID, and if a query, a result set and
@@ -288,7 +291,8 @@ public interface Meta {
    * @return Execute result
    * @deprecated See {@link #execute(StatementHandle, List, int)}
    */
-  @Deprecated ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
+  @Deprecated // to be removed before 2.0
+  ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
       long maxRowCount) throws NoSuchStatementException;
 
   /** Executes a prepared statement.
@@ -307,7 +311,13 @@ public interface Meta {
    */
   StatementHandle createStatement(ConnectionHandle ch);
 
-  /** Closes a statement. */
+  /** Closes a statement.
+   *
+   * <p>If the statement handle is not known, or is already closed, does
+   * nothing.
+   *
+   * @param h Statement handle
+   */
   void closeStatement(StatementHandle h);
 
   /**
@@ -326,29 +336,30 @@ public interface Meta {
   void closeConnection(ConnectionHandle ch);
 
   /**
-   * Re-set the {@link ResultSet} on a Statement. Not a JDBC method.
+   * Re-sets the {@link ResultSet} on a Statement. Not a JDBC method.
+   *
    * @return True if there are results to fetch after resetting to the given offset. False otherwise
    */
   boolean syncResults(StatementHandle sh, QueryState state, long offset)
       throws NoSuchStatementException;
 
   /**
-   * Makes all changes since the last commit/rollback permanent. Analogy to
+   * Makes all changes since the last commit/rollback permanent. Analogous to
    * {@link Connection#commit()}.
    *
-   * @param ch A reference to the real JDBC Connection.
+   * @param ch A reference to the real JDBC Connection
    */
   void commit(ConnectionHandle ch);
 
   /**
-   * Undoes all changes since the last commit/rollback. Analogy to
+   * Undoes all changes since the last commit/rollback. Analogous to
    * {@link Connection#rollback()};
    *
-   * @param ch A reference to the real JDBC Connection.
+   * @param ch A reference to the real JDBC Connection
    */
   void rollback(ConnectionHandle ch);
 
-  /** Sync client and server view of connection properties.
+  /** Synchronizes client and server view of connection properties.
    *
    * <p>Note: this interface is considered "experimental" and may undergo further changes as this
    * functionality is extended to other aspects of state management for
@@ -522,9 +533,9 @@ public interface Meta {
    * Response from a collection of SQL commands or parameter values in a single batch.
    */
   class ExecuteBatchResult {
-    public final int[] updateCounts;
+    public final long[] updateCounts;
 
-    public ExecuteBatchResult(int[] updateCounts) {
+    public ExecuteBatchResult(long[] updateCounts) {
       this.updateCounts = Objects.requireNonNull(updateCounts);
     }
   }

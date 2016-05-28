@@ -244,10 +244,13 @@ public abstract class AvaticaPreparedStatement
   }
 
   @Override public int[] executeBatch() throws SQLException {
+    return AvaticaUtils.toSaturatedInts(executeLargeBatch());
+  }
+
+  public long[] executeLargeBatch() throws SQLException {
     // Overriding the implementation in AvaticaStatement.
     try {
-      final int[] updateCounts = getConnection().executeBatchUpdateInternal(this);
-      return updateCounts;
+      return getConnection().executeBatchUpdateInternal(this);
     } finally {
       // If we failed to send this batch, that's a problem for the user to handle, not us.
       // Make sure we always clear the statements we collected to submit in one RPC.

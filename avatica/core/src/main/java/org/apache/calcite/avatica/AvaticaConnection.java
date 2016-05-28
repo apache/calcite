@@ -523,15 +523,12 @@ public abstract class AvaticaConnection implements Connection {
    * @param pstmt The prepared statement.
    * @return An array of update counts containing one element for each command in the batch.
    */
-  protected int[] executeBatchUpdateInternal(AvaticaPreparedStatement pstmt) throws SQLException {
+  protected long[] executeBatchUpdateInternal(AvaticaPreparedStatement pstmt) throws SQLException {
     try {
       // Get the handle from the statement
       Meta.StatementHandle handle = pstmt.handle;
       // Execute it against meta
-      final Meta.ExecuteBatchResult executeBatchResult =
-          meta.executeBatch(handle, pstmt.getParameterValueBatch());
-      // Send back just the update counts
-      return executeBatchResult.updateCounts;
+      return meta.executeBatch(handle, pstmt.getParameterValueBatch()).updateCounts;
     } catch (Exception e) {
       throw helper.createException(e.getMessage(), e);
     }
@@ -610,7 +607,11 @@ public abstract class AvaticaConnection implements Connection {
             }
           }
         };
-    return meta.prepareAndExecute(statement.handle, sql, maxRowCount, callback);
+    // The old semantics were that maxRowCount was also treated as the maximum number of
+    // elements in the first Frame of results. A value of -1 would also preserve this, but an
+    // explicit (positive) number is easier to follow, IMO.
+    return meta.prepareAndExecute(statement.handle, sql, maxRowCount,
+        AvaticaUtils.toSaturatedInt(maxRowCount), callback);
   }
 
   protected ExecuteBatchResult prepareAndUpdateBatch(final AvaticaStatement statement,

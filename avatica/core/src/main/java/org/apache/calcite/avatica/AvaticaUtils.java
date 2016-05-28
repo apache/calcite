@@ -25,6 +25,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.AbstractList;
@@ -44,6 +45,8 @@ public class AvaticaUtils {
       method(long.class, Statement.class, "getLargeMaxRows");
   private static final MethodHandle GET_LARGE_UPDATE_COUNT =
       method(void.class, Statement.class, "getLargeUpdateCount");
+  private static final MethodHandle EXECUTE_LARGE_BATCH =
+      method(long[].class, Statement.class, "executeLargeBatch");
 
   private static final Set<String> UNIQUE_STRINGS = new HashSet<>();
 
@@ -311,6 +314,26 @@ public class AvaticaUtils {
     return statement.getUpdateCount();
   }
 
+  /** Invokes {@code Statement#executeLargeBatch}, falling back on
+   * {@link PreparedStatement#executeBatch} if the method does not exist
+   * (before JDK 1.8) or throws {@link UnsupportedOperationException}. */
+  public static long[] executeLargeBatch(Statement statement)
+      throws SQLException {
+    if (EXECUTE_LARGE_BATCH != null) {
+      try {
+        // Call Statement.executeLargeBatch
+        return (long[]) EXECUTE_LARGE_BATCH.invokeExact();
+      } catch (UnsupportedOperationException e) {
+        // ignore, and fall through to call Statement.executeBatch
+      } catch (Error | RuntimeException | SQLException e) {
+        throw e;
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return toLongs(statement.executeBatch());
+  }
+
   /** Generates a string that is unique in the execution of the JVM.
    * It is used by tests to ensure that they create distinct temporary tables.
    * The strings are never thrown away, so don't put too much in there!
@@ -323,6 +346,44 @@ public class AvaticaUtils {
       }
       return s;
     }
+  }
+
+  /** Converts a {@code long} to {@code int}, rounding as little as possible
+   * if the value is outside the legal range for an {@code int}. */
+  public static int toSaturatedInt(long value) {
+    if (value > Integer.MAX_VALUE) {
+      return Integer.MAX_VALUE;
+    }
+    if (value < Integer.MIN_VALUE) {
+      return Integer.MIN_VALUE;
+    }
+    return (int) value;
+  }
+
+  /**
+   * Converts an array of {@code long} values to an array of {@code int}
+   * values, truncating values outside the legal range for an {@code int}
+   * to {@link Integer#MIN_VALUE} or {@link Integer#MAX_VALUE}.
+   *
+   * @param longs An array of {@code long}s
+   * @return An array of {@code int}s
+   */
+  public static int[] toSaturatedInts(long[] longs) {
+    final int[] ints = new int[longs.length];
+    for (int i = 0; i < longs.length; i++) {
+      ints[i] = toSaturatedInt(longs[i]);
+    }
+    return ints;
+  }
+
+  /** Converts an array of {@code int} values to an array of {@code long}
+   * values. */
+  public static long[] toLongs(int[] ints) {
+    final long[] longs = new long[ints.length];
+    for (int i = 0; i < ints.length; i++) {
+      longs[i] = ints[i];
+    }
+    return longs;
   }
 }
 

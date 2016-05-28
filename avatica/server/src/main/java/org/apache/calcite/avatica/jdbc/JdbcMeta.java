@@ -710,7 +710,8 @@ public class JdbcMeta implements ProtobufMeta {
 
   public ExecuteResult prepareAndExecute(StatementHandle h, String sql,
       long maxRowCount, PrepareCallback callback) throws NoSuchStatementException {
-    return prepareAndExecute(h, sql, maxRowCount, (int) maxRowCount, callback);
+    return prepareAndExecute(h, sql, maxRowCount, AvaticaUtils.toSaturatedInt(maxRowCount),
+        callback);
   }
 
   public ExecuteResult prepareAndExecute(StatementHandle h, String sql, long maxRowCount,
@@ -818,7 +819,7 @@ public class JdbcMeta implements ProtobufMeta {
 
   @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
       long maxRowCount) throws NoSuchStatementException {
-    return execute(h, parameterValues, (int) maxRowCount);
+    return execute(h, parameterValues, AvaticaUtils.toSaturatedInt(maxRowCount));
   }
 
   @Override public ExecuteResult execute(StatementHandle h,
@@ -912,7 +913,7 @@ public class JdbcMeta implements ProtobufMeta {
       }
 
       // Execute the batch and return the results
-      return new ExecuteBatchResult(stmt.executeBatch());
+      return new ExecuteBatchResult(AvaticaUtils.executeLargeBatch(stmt));
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -944,7 +945,7 @@ public class JdbcMeta implements ProtobufMeta {
         }
         preparedStmt.addBatch();
       }
-      return new ExecuteBatchResult(preparedStmt.executeBatch());
+      return new ExecuteBatchResult(AvaticaUtils.executeLargeBatch(preparedStmt));
     } catch (SQLException e) {
       throw propagate(e);
     }
@@ -967,7 +968,7 @@ public class JdbcMeta implements ProtobufMeta {
         }
         preparedStmt.addBatch();
       }
-      return new ExecuteBatchResult(preparedStmt.executeBatch());
+      return new ExecuteBatchResult(AvaticaUtils.executeLargeBatch(preparedStmt));
     } catch (SQLException e) {
       throw propagate(e);
     }
