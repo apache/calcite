@@ -53,7 +53,7 @@ limitations under the License.
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.8.0</avatica.version>
+    <avatica.version>1.9.0</avatica.version>
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.0.0</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
@@ -107,14 +107,13 @@ limitations under the License.
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
     <pentaho-aggdesigner.version>5.1.5-jhyde</pentaho-aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc3</postgresql.version>
-    <protobuf.version>3.0.0-beta-1</protobuf.version>
     <quidem.version>0.7</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
     <slf4j.version>1.7.13</slf4j.version>
     <spark.version>1.6.1</spark.version>
-    <sqlline.version>1.1.9</sqlline.version>
+    <sqlline.version>1.2.0</sqlline.version>
     <xalan.version>2.7.1</xalan.version>
     <xerces.version>2.9.1</xerces.version>
   </properties>
@@ -156,7 +155,7 @@ limitations under the License.
       <!-- Sorted by groupId, artifactId; calcite (and avatica) dependencies first. -->
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
-        <artifactId>avatica</artifactId>
+        <artifactId>avatica-core</artifactId>
         <version>${avatica.version}</version>
       </dependency>
       <dependency>
@@ -226,11 +225,6 @@ limitations under the License.
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>${protobuf.version}</version>
       </dependency>
       <dependency>
         <groupId>com.oracle</groupId>

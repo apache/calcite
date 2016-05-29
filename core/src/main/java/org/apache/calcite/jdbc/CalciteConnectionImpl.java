@@ -219,6 +219,12 @@ abstract class CalciteConnectionImpl
     }
   }
 
+  @Override public AtomicBoolean getCancelFlag(Meta.StatementHandle handle)
+      throws NoSuchStatementException {
+    final CalciteServerStatement serverStatement = server.getStatement(handle);
+    return ((CalciteServerStatementImpl) serverStatement).cancelFlag;
+  }
+
   // CalciteConnection methods
 
   public SchemaPlus getRootSchema() {
@@ -287,14 +293,6 @@ abstract class CalciteConnectionImpl
     map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
     final DataContext dataContext = createDataContext(map);
     return signature.enumerable(dataContext);
-  }
-
-  /** Returns the flag that is used to request or check cancel for a particular
-   * statement. */
-  AtomicBoolean getCancelFlag(Meta.StatementHandle handle)
-      throws NoSuchStatementException {
-    final CalciteServerStatement serverStatement = server.getStatement(handle);
-    return ((CalciteServerStatementImpl) serverStatement).cancelFlag;
   }
 
   public DataContext createDataContext(Map<String, Object> parameterValues) {

@@ -127,12 +127,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   public JsonSchema.Type schemaType() {
-    // Avatica won't allow enum properties whose default is null, so we use
-    // NONE, which is equivalent to null.
-    final JsonSchema.Type type =
-        CalciteConnectionProperty.SCHEMA_TYPE.wrap(properties)
-            .getEnum(JsonSchema.Type.class);
-    return type == null || type == JsonSchema.Type.NONE ? null : type;
+    return CalciteConnectionProperty.SCHEMA_TYPE.wrap(properties)
+        .getEnum(JsonSchema.Type.class);
   }
 
   public boolean spark() {

@@ -622,8 +622,6 @@ public interface CalciteResource {
   @BaseMessage("SELECT must have a FROM clause")
   ExInst<SqlValidatorException> selectMissingFrom();
 
-  @BaseMessage("Statement canceled")
-  Inst statementCanceled();
 }
 
 // End CalciteResource.java

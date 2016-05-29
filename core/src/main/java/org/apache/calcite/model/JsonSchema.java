@@ -106,7 +106,6 @@ public abstract class JsonSchema {
 
   /** Built-in schema types. */
   public enum Type {
-    NONE,
     MAP,
     JDBC,
     CUSTOM
