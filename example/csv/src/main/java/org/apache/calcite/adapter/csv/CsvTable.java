@@ -31,7 +31,7 @@ import java.util.List;
  */
 public abstract class CsvTable extends AbstractTable {
   protected final File file;
-  private final RelProtoDataType protoRowType;
+  protected final RelProtoDataType protoRowType;
   protected List<CsvFieldType> fieldTypes;
 
   /** Creates a CsvAbstractTable. */
