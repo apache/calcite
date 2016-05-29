@@ -30,6 +30,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -147,6 +148,46 @@ public class AvaticaUtilsTest {
     properties.setProperty(s.name, "  ");
     env = s.wrap(properties);
     assertThat(env.getString(), is("  "));
+
+    try {
+      final ConnectionPropertyImpl t =
+          new ConnectionPropertyImpl("T", null, ConnectionProperty.Type.ENUM);
+      fail("should throw if you specify an enum property without a class, got "
+          + t);
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("must specify value class for an ENUM"));
+      // ok
+    }
+
+    // An enum with a default value
+    final ConnectionPropertyImpl t = new ConnectionPropertyImpl("T", Size.BIG,
+        ConnectionProperty.Type.ENUM, Size.class);
+    env = t.wrap(properties);
+    assertThat(env.getEnum(Size.class), is(Size.BIG));
+    assertThat(env.getEnum(Size.class, Size.SMALL), is(Size.SMALL));
+    assertThat(env.getEnum(Size.class, null), nullValue());
+    try {
+      final Weight envEnum = env.getEnum(Weight.class, null);
+      fail("expected error, got " + envEnum);
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(),
+          is("wrong value class; expected " + Size.class));
+    }
+
+    // An enum with no default value
+    final ConnectionPropertyImpl u = new ConnectionPropertyImpl("U", null,
+        ConnectionProperty.Type.ENUM, Size.class);
+    env = u.wrap(properties);
+    assertThat(env.getEnum(Size.class), nullValue());
+    assertThat(env.getEnum(Size.class, Size.SMALL), is(Size.SMALL));
+    assertThat(env.getEnum(Size.class, null), nullValue());
+    try {
+      final Weight envEnum = env.getEnum(Weight.class, null);
+      fail("expected error, got " + envEnum);
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(),
+          is("wrong value class; expected " + Size.class));
+    }
   }
 
   @Test public void testLongToIntegerTranslation() {
@@ -162,12 +203,22 @@ public class AvaticaUtilsTest {
   private static class ConnectionPropertyImpl implements ConnectionProperty {
     private final String name;
     private final Object defaultValue;
+    private final Class<?> valueClass;
     private Type type;
 
     ConnectionPropertyImpl(String name, Object defaultValue, Type type) {
+      this(name, defaultValue, type, type.defaultValueClass());
+    }
+
+    ConnectionPropertyImpl(String name, Object defaultValue, Type type,
+        Class valueClass) {
       this.name = name;
       this.defaultValue = defaultValue;
       this.type = type;
+      this.valueClass = valueClass;
+      if (!type.valid(defaultValue, valueClass)) {
+        throw new AssertionError(name);
+      }
     }
 
     public String name() {
@@ -186,6 +237,10 @@ public class AvaticaUtilsTest {
       return type;
     }
 
+    public Class valueClass() {
+      return valueClass;
+    }
+
     public ConnectionConfigImpl.PropEnv wrap(Properties properties) {
       final HashMap<String, ConnectionProperty> map = new HashMap<>();
       map.put(name, this);
@@ -198,6 +253,15 @@ public class AvaticaUtilsTest {
     }
   }
 
+  /** How large? */
+  private enum Size {
+    BIG, SMALL
+  }
+
+  /** How heavy? */
+  private enum Weight {
+    HEAVY, LIGHT
+  }
 }
 
 // End AvaticaUtilsTest.java

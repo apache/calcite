@@ -41,7 +41,9 @@ public interface ConnectionConfig {
   String avaticaUser();
   /** @see BuiltInConnectionProperty#AVATICA_PASSWORD */
   String avaticaPassword();
+  /** @see BuiltInConnectionProperty#HTTP_CLIENT_FACTORY */
   AvaticaHttpClientFactory httpClientFactory();
+  /** @see BuiltInConnectionProperty#HTTP_CLIENT_IMPL */
   String httpClientClass();
   /** @see BuiltInConnectionProperty#PRINCIPAL */
   String kerberosPrincipal();

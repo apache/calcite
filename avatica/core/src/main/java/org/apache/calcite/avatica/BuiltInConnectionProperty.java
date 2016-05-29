@@ -71,6 +71,7 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   private final String camelName;
   private final Type type;
   private final Object defaultValue;
+  private Class valueClass;
   private final boolean required;
 
   /** Deprecated; use {@link #TIME_ZONE}. */
@@ -95,11 +96,17 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
 
   BuiltInConnectionProperty(String camelName, Type type, Object defaultValue,
       boolean required) {
+    this(camelName, type, defaultValue, type.defaultValueClass(), required);
+  }
+
+  BuiltInConnectionProperty(String camelName, Type type, Object defaultValue,
+      Class valueClass, boolean required) {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
+    this.valueClass = valueClass;
     this.required = required;
-    assert defaultValue == null || type.valid(defaultValue);
+    assert type.valid(defaultValue, valueClass);
   }
 
   public String camelName() {
@@ -116,6 +123,10 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
 
   public boolean required() {
     return required;
+  }
+
+  public Class valueClass() {
+    return valueClass;
   }
 
   public PropEnv wrap(Properties properties) {

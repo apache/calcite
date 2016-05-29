@@ -39,7 +39,7 @@ public enum AvaticaRemoteConnectionProperty implements ConnectionProperty {
   private static final Map<String, AvaticaRemoteConnectionProperty> NAME_TO_PROPS;
 
   static {
-    NAME_TO_PROPS = new HashMap<String, AvaticaRemoteConnectionProperty>();
+    NAME_TO_PROPS = new HashMap<>();
     for (AvaticaRemoteConnectionProperty p
         : AvaticaRemoteConnectionProperty.values()) {
       NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
@@ -53,7 +53,7 @@ public enum AvaticaRemoteConnectionProperty implements ConnectionProperty {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
-    assert defaultValue == null || type.valid(defaultValue);
+    assert type.valid(defaultValue, type.defaultValueClass());
   }
 
   public String camelName() {
@@ -66,6 +66,10 @@ public enum AvaticaRemoteConnectionProperty implements ConnectionProperty {
 
   public Type type() {
     return type;
+  }
+
+  public Class valueClass() {
+    return type.defaultValueClass();
   }
 
   public PropEnv wrap(Properties properties) {
