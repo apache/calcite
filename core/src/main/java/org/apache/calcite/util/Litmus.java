@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.slf4j.helpers.MessageFormatter;
+
 /**
  * Callback to be called when a test for validity succeeds or fails.
  */
@@ -24,7 +26,8 @@ public interface Litmus {
    * an {@link java.lang.AssertionError} on failure. */
   Litmus THROW = new Litmus() {
     public boolean fail(String message, Object... args) {
-      final String s = message == null ? null : String.format(message, args);
+      final String s = message == null
+          ? null : MessageFormatter.arrayFormat(message, args).getMessage();
       throw new AssertionError(s);
     }
 
