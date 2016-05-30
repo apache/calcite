@@ -127,7 +127,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
     final String signature = signature();
     if (!isValidSignature(signature)) {
-      return litmus.fail("invalid signature [%s]", signature);
+      return litmus.fail("invalid signature [{}]", signature);
     }
     if (rels.isEmpty()) {
       return litmus.fail("must have at least one rel");
@@ -161,7 +161,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         if (r instanceof Filter) {
           final Filter filter = (Filter) r;
           if (!isValidFilter(filter.getCondition())) {
-            return litmus.fail("invalid filter [%s]", filter.getCondition());
+            return litmus.fail("invalid filter [{}]", filter.getCondition());
           }
         }
       }

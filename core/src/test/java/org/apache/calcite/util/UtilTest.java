@@ -1791,6 +1791,32 @@ public class UtilTest {
     }
     assertThat(local2.get(), is("x"));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1264">[CALCITE-1264]
+   * Litmus argument interpolation</a>. */
+  @Test public void testLitmus() {
+    boolean b = checkLitmus(2, Litmus.THROW);
+    assertThat(b, is(true));
+    b = checkLitmus(2, Litmus.IGNORE);
+    assertThat(b, is(true));
+    try {
+      b = checkLitmus(-1, Litmus.THROW);
+      fail("expected fail, got " + b);
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("-1 is less than 0"));
+    }
+    b = checkLitmus(-1, Litmus.IGNORE);
+    assertThat(b, is(false));
+  }
+
+  private boolean checkLitmus(int i, Litmus litmus) {
+    if (i < 0) {
+      return litmus.fail("{} is less than {}", i, 0);
+    } else {
+      return litmus.succeed();
+    }
+  }
 }
 
 // End UtilTest.java
