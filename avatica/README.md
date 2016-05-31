@@ -25,3 +25,6 @@ Apache Calcite's Avatica is a framework for building database drivers.
 Avatica is a sub-project of [Apache Calcite](https://calcite.apache.org).
 
 For more details, see the [home page](https://calcite.apache.org/avatica).
+
+Release notes for all published versions are available on the [history
+page](https://calcite.apache.org/avatica/docs/history.html).
