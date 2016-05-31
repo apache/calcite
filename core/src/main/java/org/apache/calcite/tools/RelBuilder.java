@@ -250,6 +250,20 @@ public class RelBuilder {
     return peek(inputCount - 1 - inputOrdinal);
   }
 
+  /** Returns the number of fields in all inputs before (to the left of)
+   * the given input.
+   *
+   * @param inputCount Number of inputs
+   * @param inputOrdinal Input ordinal
+   */
+  private int inputOffset(int inputCount, int inputOrdinal) {
+    int offset = 0;
+    for (int i = 0; i < inputOrdinal; i++) {
+      offset += peek(inputCount, i).getRowType().getFieldCount();
+    }
+    return offset;
+  }
+
   // Methods that return scalar expressions
 
   /** Creates a literal (constant expression). */
@@ -327,7 +341,11 @@ public class RelBuilder {
       throw new IllegalArgumentException("field ordinal [" + fieldOrdinal
           + "] out of range; input fields are: " + rowType.getFieldNames());
     }
-    return cluster.getRexBuilder().makeInputRef(input, fieldOrdinal);
+    final RelDataType fieldType =
+        rowType.getFieldList().get(fieldOrdinal).getType();
+    final int offset = inputOffset(inputCount, inputOrdinal);
+    return cluster.getRexBuilder()
+        .makeInputRef(fieldType, offset + fieldOrdinal);
   }
 
   /** Creates a reference to a field of the current record which originated

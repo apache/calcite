@@ -815,7 +815,7 @@ public class RelBuilderTest {
                     builder.field(2, 1, "DEPTNO")))
             .build();
     final String expected = ""
-        + "LogicalJoin(condition=[=($7, $0)], joinType=[inner])\n"
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
@@ -834,7 +834,7 @@ public class RelBuilderTest {
             .join(JoinRelType.INNER, "DEPTNO")
             .build();
     final String expected = ""
-        + "LogicalJoin(condition=[=($7, $0)], joinType=[inner])\n"
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
@@ -864,7 +864,7 @@ public class RelBuilderTest {
             .build();
     // Note that "dept.deptno IS NOT NULL" has been simplified away.
     final String expected = ""
-        + "LogicalJoin(condition=[AND(=($7, $0), =($0, 123))], joinType=[left])\n"
+        + "LogicalJoin(condition=[AND(=($7, $8), =($0, 123))], joinType=[left])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(str(root), is(expected));
