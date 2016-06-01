@@ -292,6 +292,7 @@ public interface CalcitePrepare {
     @JsonIgnore private final List<RelCollation> collationList;
     private final long maxRowCount;
     private final Bindable<T> bindable;
+    private DataContext dataContext = null;
 
     public CalciteSignature(String sql, List<AvaticaParameter> parameterList,
         Map<String, Object> internalParameters, RelDataType rowType,
@@ -325,12 +326,17 @@ public interface CalcitePrepare {
 
     public Enumerable<T> enumerable(DataContext dataContext) {
       Enumerable<T> enumerable = bindable.bind(dataContext);
+      this.dataContext = dataContext;
       if (maxRowCount >= 0) {
         // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
         // "no limit", and 0 is a valid limit.
         enumerable = EnumerableDefaults.take(enumerable, maxRowCount);
       }
       return enumerable;
+    }
+
+    public DataContext getDataContext() {
+      return dataContext;
     }
 
     public List<RelCollation> getCollationList() {

@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.AvaticaResultSet;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.util.CancelFlag;
 
 import java.sql.SQLException;
 
@@ -70,6 +72,16 @@ public abstract class CalciteStatement extends AvaticaStatement {
     final CalcitePrepare.Context prepareContext =
         serverStatement.createPrepareContext();
     return prepare.prepareQueryable(prepareContext, queryable);
+  }
+
+  public synchronized void cancel() throws SQLException {
+    CalcitePrepare.CalciteSignature signature =
+      (CalcitePrepare.CalciteSignature) this.getSignature();
+    DataContext dataContext = signature.getDataContext();
+    CancelFlag cancelFlag = (CancelFlag)
+      dataContext.get(DataContext.Variable.CANCEL_FLAG.camelName);
+    cancelFlag.requestCancel();
+    super.cancel();
   }
 
   @Override protected void close_() {

@@ -62,10 +62,13 @@ public class CsvStreamScannableTable extends CsvScannableTable
 
   public Enumerable<Object[]> scan(DataContext root) {
     final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final DataContext theContext = root;
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvStreamEnumerator<Object[]>(file,
+        CsvStreamEnumerator result = new CsvStreamEnumerator<Object[]>(file,
             null, new CsvEnumerator.ArrayRowConverter(fieldTypes, fields, true));
+        result.setDataContext(theContext);
+        return result;
       }
     };
   }

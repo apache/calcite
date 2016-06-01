@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerator;
 
 import java.io.File;
@@ -43,6 +44,10 @@ public class CsvStreamEnumerator<E> implements Enumerator<E> {
     }
   }
 
+  public void setDataContext(DataContext root) {
+    this.streamReader.setDataContext(root);
+  }
+
   public boolean moveNext() {
     return true;
   }
@@ -53,7 +58,6 @@ public class CsvStreamEnumerator<E> implements Enumerator<E> {
       for (;;) {
         final String[] strings = streamReader.readNext();
         if (strings == null) {
-          current = null;
           streamReader.close();
           return current;
         } else {

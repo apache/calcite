@@ -57,6 +57,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Holder;
 
 import com.google.common.base.Preconditions;
@@ -372,6 +373,7 @@ abstract class CalciteConnectionImpl
       builder.put(Variable.UTC_TIMESTAMP.camelName, time)
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
+          .put(Variable.CANCEL_FLAG.camelName, new CancelFlag())
           .put(Variable.TIME_ZONE.camelName, timeZone);
       for (Map.Entry<String, Object> entry : parameters.entrySet()) {
         Object e = entry.getValue();

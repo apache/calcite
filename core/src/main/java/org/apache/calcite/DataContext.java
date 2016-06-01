@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.advise.SqlAdvisor;
+import org.apache.calcite.util.CancelFlag;
 
 import com.google.common.base.CaseFormat;
 
@@ -75,6 +76,9 @@ public interface DataContext {
 
     /** The Spark engine. Available if Spark is on the class path. */
     SPARK_CONTEXT("sparkContext", Object.class),
+
+    /** indicate whether the processing has been canceled*/
+    CANCEL_FLAG("cancelFlag", CancelFlag.class),
 
     /** Sql advisor that suggests completion hints. */
     SQL_ADVISOR("sqlAdvisor", SqlAdvisor.class),

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.util.CancelFlag;
+
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
@@ -36,6 +39,7 @@ public class CsvStreamReader implements Closeable {
   protected int skipLines;
   protected Tailer tailer;
   protected Queue<String> contentQueue;
+  protected DataContext dataContext;
 
   /**
    * The default line to start reading.
@@ -57,6 +61,16 @@ public class CsvStreamReader implements Closeable {
       CSVParser.DEFAULT_STRICT_QUOTES,
       CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE
     );
+  }
+
+  public void setDataContext(DataContext dataContext) {
+    this.dataContext = dataContext;
+  }
+
+  protected Boolean isQueryCanceled() {
+    CancelFlag cancelFlag = (CancelFlag)
+      dataContext.get(DataContext.Variable.CANCEL_FLAG.camelName);
+    return cancelFlag.isCancelRequested();
   }
 
   /**
@@ -107,9 +121,13 @@ public class CsvStreamReader implements Closeable {
       while (nextLine == null) {
         try {
           Thread.sleep(DEFAULT_MONITOR_DELAY);
-          nextLine = getNextLine();
+          if (isQueryCanceled()) {
+            return null;
+          } else {
+            nextLine = getNextLine();
+          }
         } catch (InterruptedException e) {
-          return null; // should throw if still pending?
+          //ignore
         }
       }
       String[] r = parser.parseLineMulti(nextLine);
