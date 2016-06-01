@@ -3489,33 +3489,39 @@ SqlIntervalQualifier IntervalQualifier() :
     }
 }
 
+/**
+ * Parses time unit for EXTRACT, CEIL and FLOOR functions.
+ */
 TimeUnit TimeUnit() :
 {}
 {
-    <YEAR>
-    {
-        return TimeUnit.YEAR;
-    }
-    | <MONTH>
-    {
-        return TimeUnit.MONTH;
-    }
-    | <DAY>
-    {
-        return TimeUnit.DAY;
-    }
-    | <HOUR>
-    {
-        return TimeUnit.HOUR;
-    }
-    | <MINUTE>
-    {
-        return TimeUnit.MINUTE;
-    }
-    |   <SECOND>
-    {
-        return TimeUnit.SECOND;
-    }
+    <SECOND> { return TimeUnit.SECOND; }
+    |
+    <MINUTE> { return TimeUnit.MINUTE; }
+    |
+    <HOUR> { return TimeUnit.HOUR; }
+    |
+    <DAY> { return TimeUnit.DAY; }
+    |
+    <DOW> { return TimeUnit.DOW; }
+    |
+    <DOY> { return TimeUnit.DOY; }
+    |
+    <WEEK> { return TimeUnit.WEEK; }
+    |
+    <MONTH> { return TimeUnit.MONTH; }
+    |
+    <QUARTER> { return TimeUnit.QUARTER; }
+    |
+    <YEAR> { return TimeUnit.YEAR; }
+    |
+    <EPOCH> { return TimeUnit.EPOCH; }
+    |
+    <DECADE> { return TimeUnit.DECADE; }
+    |
+    <CENTURY> { return TimeUnit.CENTURY; }
+    |
+    <MILLENNIUM> { return TimeUnit.MILLENNIUM; }
 }
 
 TimeUnit TimestampInterval() :
@@ -4862,6 +4868,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CATALOG_NAME: "CATALOG_NAME" >
     | < CEIL: "CEIL" >
     | < CEILING: "CEILING" >
+    | < CENTURY: "CENTURY" >
     | < CHAIN: "CHAIN" >
     | < CHAR: "CHAR" >
     | < CHAR_LENGTH: "CHAR_LENGTH" >
@@ -4935,6 +4942,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DAY: "DAY" >
     | < DEALLOCATE: "DEALLOCATE" >
     | < DEC: "DEC" >
+    | < DECADE: "DECADE" >
     | < DECIMAL: "DECIMAL" >
     | < DECLARE: "DECLARE" >
     | < DEFAULT_KW: "DEFAULT" >
@@ -4961,6 +4969,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DISTINCT: "DISTINCT" >
     | < DOMAIN: "DOMAIN" >
     | < DOUBLE: "DOUBLE" >
+    | < DOW: "DOW" >
+    | < DOY: "DOY" >
     | < DROP: "DROP" >
     | < DYNAMIC: "DYNAMIC" >
     | < DYNAMIC_FUNCTION: "DYNAMIC_FUNCTION" >
@@ -4970,6 +4980,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < ELSE: "ELSE" >
     | < END: "END" >
     | < END_EXEC: "END-EXEC" >
+    | < EPOCH: "EPOCH" >
     | < EQUALS: "EQUALS" >
     | < ESCAPE: "ESCAPE" >
     | < EVERY: "EVERY" >
@@ -5082,6 +5093,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MESSAGE_TEXT: "MESSAGE_TEXT" >
     | < METHOD: "METHOD" >
     | < MICROSECOND: "MICROSECOND" >
+    | < MILLENNIUM: "MILLENNIUM" >
     | < MIN: "MIN" >
     | < MINUTE: "MINUTE" >
     | < MINVALUE: "MINVALUE" >
@@ -5403,6 +5415,7 @@ String CommonNonReservedKeyWord() :
         | <CASCADE>
         | <CATALOG>
         | <CATALOG_NAME>
+        | <CENTURY>
         | <CHAIN>
         | <CHARACTER_SET_CATALOG>
         | <CHARACTER_SET_NAME>
@@ -5434,6 +5447,7 @@ String CommonNonReservedKeyWord() :
         | <DATABASE>
         | <DATETIME_INTERVAL_CODE>
         | <DATETIME_INTERVAL_PRECISION>
+        | <DECADE>
         | <DEFAULTS>
         | <DEFERRABLE>
         | <DEFERRED>
@@ -5448,8 +5462,11 @@ String CommonNonReservedKeyWord() :
         | <DIAGNOSTICS>
         | <DISPATCH>
         | <DOMAIN>
+        | <DOW>
+        | <DOY>
         | <DYNAMIC_FUNCTION>
         | <DYNAMIC_FUNCTION_CODE>
+        | <EPOCH>
         | <EQUALS>
         | <EXCEPTION>
         | <EXCLUDE>
@@ -5496,6 +5513,7 @@ String CommonNonReservedKeyWord() :
         | <MESSAGE_LENGTH>
         | <MESSAGE_OCTET_LENGTH>
         | <MESSAGE_TEXT>
+        | <MILLENNIUM>
         | <MINVALUE>
         | <MORE_KW>
         | <MUMPS>
