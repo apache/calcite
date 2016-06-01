@@ -27,6 +27,7 @@ import com.google.common.base.CaseFormat;
 
 import java.lang.reflect.Modifier;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Runtime context allowing access to the tables in a database.
@@ -76,7 +77,13 @@ public interface DataContext {
     /** The Spark engine. Available if Spark is on the class path. */
     SPARK_CONTEXT("sparkContext", Object.class),
 
-    /** Sql advisor that suggests completion hints. */
+    /** A mutable flag that indicates whether user has requested that the
+     * current statement be canceled. Cancellation may not be immediate, but
+     * implementations of relational operators should check the flag fairly
+     * frequently and cease execution (e.g. by returning end of data). */
+    CANCEL_FLAG("cancelFlag", AtomicBoolean.class),
+
+    /** Advisor that suggests completion hints for SQL statements. */
     SQL_ADVISOR("sqlAdvisor", SqlAdvisor.class),
 
     /** Time zone in which the current statement is executing. Required;

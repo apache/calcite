@@ -16,13 +16,28 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelOptPlanner;
+
+import com.google.common.base.Preconditions;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * CancelFlag is used to post and check cancellation requests.
+ *
+ * <p>Pass it to {@link RelOptPlanner} by putting it into a {@link Context}.
  */
 public class CancelFlag {
   //~ Instance fields --------------------------------------------------------
 
-  private boolean cancelRequested;
+  /** The flag that holds the cancel state.
+   * Feel free to use the flag directly. */
+  public final AtomicBoolean atomicBoolean;
+
+  public CancelFlag(AtomicBoolean atomicBoolean) {
+    this.atomicBoolean = Preconditions.checkNotNull(atomicBoolean);
+  }
 
   //~ Methods ----------------------------------------------------------------
 
@@ -30,21 +45,21 @@ public class CancelFlag {
    * @return whether a cancellation has been requested
    */
   public boolean isCancelRequested() {
-    return cancelRequested;
+    return atomicBoolean.get();
   }
 
   /**
    * Requests a cancellation.
    */
   public void requestCancel() {
-    cancelRequested = true;
+    atomicBoolean.compareAndSet(false, true);
   }
 
   /**
    * Clears any pending cancellation request.
    */
   public void clearCancel() {
-    cancelRequested = false;
+    atomicBoolean.compareAndSet(true, false);
   }
 }
 

@@ -28,12 +28,18 @@ import java.util.Map;
  * Factory that creates a {@link CsvSchema}.
  *
  * <p>Allows a custom schema to be included in a <code><i>model</i>.json</code>
- * file.</p>
+ * file.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvSchemaFactory implements SchemaFactory {
-  // public constructor, per factory contract
-  public CsvSchemaFactory() {
+  /** Name of the column that is implicitly created in a CSV stream table
+   * to hold the data arrival time. */
+  static final String ROWTIME_COLUMN_NAME = "ROWTIME";
+
+  /** Public singleton, per factory contract. */
+  public static final CsvSchemaFactory INSTANCE = new CsvSchemaFactory();
+
+  private CsvSchemaFactory() {
   }
 
   public Schema create(SchemaPlus parentSchema, String name,

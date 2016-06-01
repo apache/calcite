@@ -30,6 +30,7 @@ import org.apache.calcite.schema.Table;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file.
@@ -49,7 +50,7 @@ public class CsvStreamScannableTable extends CsvScannableTable
       return protoRowType.apply(typeFactory);
     }
     if (fieldTypes == null) {
-      fieldTypes = new ArrayList<CsvFieldType>();
+      fieldTypes = new ArrayList<>();
       return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, file, fieldTypes, true);
     } else {
       return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, file, null, true);
@@ -62,10 +63,11 @@ public class CsvStreamScannableTable extends CsvScannableTable
 
   public Enumerable<Object[]> scan(DataContext root) {
     final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvStreamEnumerator<Object[]>(file,
-            null, new CsvEnumerator.ArrayRowConverter(fieldTypes, fields, true));
+        return new CsvEnumerator<>(file, cancelFlag, true, null,
+            new CsvEnumerator.ArrayRowConverter(fieldTypes, fields, true));
       }
     };
   }

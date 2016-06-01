@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlKind;
 import java.io.File;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file that can implement simple filtering.
@@ -58,9 +59,10 @@ public class CsvFilterableTable extends CsvTable
       }
     }
     final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvEnumerator<Object[]>(file, filterValues,
+        return new CsvEnumerator<>(file, cancelFlag, false, filterValues,
             new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };

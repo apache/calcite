@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -60,7 +61,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private Pattern ruleDescExclusionFilter;
 
-  private CancelFlag cancelFlag;
+  private final AtomicBoolean cancelFlag;
 
   private final Set<Class<? extends RelNode>> classes = new HashSet<>();
 
@@ -76,7 +77,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /**
    * Creates an AbstractRelOptPlanner.
    */
-  protected AbstractRelOptPlanner(RelOptCostFactory costFactory, //
+  protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
       Context context) {
     assert costFactory != null;
     this.costFactory = costFactory;
@@ -85,9 +86,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
     this.context = context;
 
-    // In case no one calls setCancelFlag, set up a
-    // dummy here.
-    cancelFlag = new CancelFlag();
+    final CancelFlag cancelFlag = context.unwrap(CancelFlag.class);
+    this.cancelFlag = cancelFlag != null ? cancelFlag.atomicBoolean
+        : new AtomicBoolean();
 
     // Add abstract RelNode classes. No RelNodes will ever be registered with
     // these types, but some operands may use them.
@@ -108,7 +109,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   public void setCancelFlag(CancelFlag cancelFlag) {
-    this.cancelFlag = cancelFlag;
+    // ignored
   }
 
   /**
@@ -116,7 +117,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * an exception.
    */
   public void checkCancel() {
-    if (cancelFlag.isCancelRequested()) {
+    if (cancelFlag.get()) {
       throw RESOURCE.preparationAborted().ex();
     }
   }

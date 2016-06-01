@@ -21,17 +21,21 @@ import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
 import au.com.bytecode.opencsv.CSVParser;
+import au.com.bytecode.opencsv.CSVReader;
+
+import com.google.common.base.Throwables;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
 /**
- * CSVSreamReader that can read newly appended file content
+ * Extension to {@link CSVReader} that can read newly appended file content.
  */
-public class CsvStreamReader implements Closeable {
+class CsvStreamReader extends CSVReader implements Closeable {
   protected CSVParser parser;
   protected int skipLines;
   protected Tailer tailer;
@@ -47,48 +51,44 @@ public class CsvStreamReader implements Closeable {
    */
   public static final long DEFAULT_MONITOR_DELAY = 2000;
 
-  public CsvStreamReader(File csvFile) {
-    this(
-      csvFile,
+  CsvStreamReader(File csvFile) {
+    this(csvFile,
       CSVParser.DEFAULT_SEPARATOR,
       CSVParser.DEFAULT_QUOTE_CHARACTER,
       CSVParser.DEFAULT_ESCAPE_CHARACTER,
       DEFAULT_SKIP_LINES,
       CSVParser.DEFAULT_STRICT_QUOTES,
-      CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE
-    );
+      CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
   }
 
   /**
-   * Constructs CSVReader with supplied separator and quote char.
+   * Creates a CsvStreamReader with supplied separator and quote char.
    *
-   * @param csvFile the file to an underlying CSV source.
-   * @param separator the delimiter to use for separating entries
-   * @param quotechar the character to use for quoted elements
-   * @param escape the character to use for escaping a separator or quote
-   * @param line the line number to skip for start reading
-   * @param strictQuotes sets if characters outside the quotes are ignored
-   * @param ignoreLeadingWhiteSpace it true, parser should ignore
+   * @param csvFile The file to an underlying CSV source.
+   * @param separator The delimiter to use for separating entries
+   * @param quoteChar The character to use for quoted elements
+   * @param escape The character to use for escaping a separator or quote
+   * @param line The line number to skip for start reading
+   * @param strictQuotes Sets if characters outside the quotes are ignored
+   * @param ignoreLeadingWhiteSpace If true, parser should ignore
    *  white space before a quote in a field
    */
-  public CsvStreamReader(File csvFile, char separator, char quotechar, char escape, int line,
-                         boolean strictQuotes, boolean ignoreLeadingWhiteSpace) {
-    contentQueue = new ArrayDeque<String>();
-    TailerListener listener = new CSVContentListener(contentQueue);
-    tailer = Tailer.create(csvFile, listener, DEFAULT_MONITOR_DELAY, false, true, 4096);
-    this.parser = new CSVParser(
-      separator,
-      quotechar,
-      escape,
-      strictQuotes,
-      ignoreLeadingWhiteSpace
-    );
+  private CsvStreamReader(File csvFile, char separator, char quoteChar,
+      char escape, int line, boolean strictQuotes,
+      boolean ignoreLeadingWhiteSpace) {
+    super(new StringReader("")); // dummy call to base constructor
+    contentQueue = new ArrayDeque<>();
+    TailerListener listener = new CsvContentListener(contentQueue);
+    tailer = Tailer.create(csvFile, listener, DEFAULT_MONITOR_DELAY, false,
+        true, 4096);
+    this.parser = new CSVParser(separator, quoteChar, escape, strictQuotes,
+        ignoreLeadingWhiteSpace);
     this.skipLines = line;
     try {
-      //wait for tailer to capture data
+      // wait for tailer to capture data
       Thread.sleep(DEFAULT_MONITOR_DELAY);
     } catch (InterruptedException e) {
-      //ignore the interruption
+      throw Throwables.propagate(e);
     }
   }
 
@@ -100,17 +100,11 @@ public class CsvStreamReader implements Closeable {
    * @throws IOException if bad things happen during the read
    */
   public String[] readNext() throws IOException {
-
     String[] result = null;
     do {
       String nextLine = getNextLine();
-      while (nextLine == null) {
-        try {
-          Thread.sleep(DEFAULT_MONITOR_DELAY);
-          nextLine = getNextLine();
-        } catch (InterruptedException e) {
-          return null; // should throw if still pending?
-        }
+      if (nextLine == null) {
+        return null;
       }
       String[] r = parser.parseLineMulti(nextLine);
       if (r.length > 0) {
@@ -146,11 +140,11 @@ public class CsvStreamReader implements Closeable {
   public void close() throws IOException {
   }
 
-  /** csv file content watcher*/
-  class CSVContentListener extends TailerListenerAdapter {
-    Queue<String> contentQueue;
+  /** Watches for content being appended to a CSV file. */
+  private static class CsvContentListener extends TailerListenerAdapter {
+    final Queue<String> contentQueue;
 
-    CSVContentListener(Queue<String> contentQueue) {
+    CsvContentListener(Queue<String> contentQueue) {
       this.contentQueue = contentQueue;
     }
 

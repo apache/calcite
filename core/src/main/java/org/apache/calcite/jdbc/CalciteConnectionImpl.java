@@ -76,6 +76,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Implementation of JDBC connection
@@ -197,7 +198,6 @@ abstract class CalciteConnectionImpl
       final CalcitePreparedStatement calcitePreparedStatement =
           (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
               signature, resultSetType, resultSetConcurrency, resultSetHoldability);
-      server.addStatement(this, calcitePreparedStatement.handle);
       server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
       return calcitePreparedStatement;
     } catch (Exception e) {
@@ -278,8 +278,23 @@ abstract class CalciteConnectionImpl
       map.put("?" + o.i, o.e.toLocal());
     }
     map.putAll(signature.internalParameters);
+    final AtomicBoolean cancelFlag;
+    try {
+      cancelFlag = getCancelFlag(handle);
+    } catch (NoSuchStatementException e) {
+      throw Throwables.propagate(e);
+    }
+    map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
     final DataContext dataContext = createDataContext(map);
     return signature.enumerable(dataContext);
+  }
+
+  /** Returns the flag that is used to request or check cancel for a particular
+   * statement. */
+  AtomicBoolean getCancelFlag(Meta.StatementHandle handle)
+      throws NoSuchStatementException {
+    final CalciteServerStatement serverStatement = server.getStatement(handle);
+    return ((CalciteServerStatementImpl) serverStatement).cancelFlag;
   }
 
   public DataContext createDataContext(Map<String, Object> parameterValues) {
@@ -301,7 +316,7 @@ abstract class CalciteConnectionImpl
 
   /** Implementation of Queryable. */
   static class CalciteQueryable<T> extends BaseQueryable<T> {
-    public CalciteQueryable(CalciteConnection connection, Type elementType,
+    CalciteQueryable(CalciteConnection connection, Type elementType,
         Expression expression) {
       super(connection, elementType, expression);
     }
@@ -322,7 +337,11 @@ abstract class CalciteConnectionImpl
     public void addStatement(CalciteConnection connection,
         Meta.StatementHandle h) {
       final CalciteConnectionImpl c = (CalciteConnectionImpl) connection;
-      statementMap.put(h.id, new CalciteServerStatementImpl(c));
+      final CalciteServerStatement previous =
+          statementMap.put(h.id, new CalciteServerStatementImpl(c));
+      if (previous != null) {
+        throw new AssertionError();
+      }
     }
 
     public CalciteServerStatement getStatement(Meta.StatementHandle h)
@@ -432,7 +451,7 @@ abstract class CalciteConnectionImpl
   static class ContextImpl implements CalcitePrepare.Context {
     private final CalciteConnectionImpl connection;
 
-    public ContextImpl(CalciteConnectionImpl connection) {
+    ContextImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
     }
 
@@ -491,8 +510,9 @@ abstract class CalciteConnectionImpl
     private final CalciteConnectionImpl connection;
     private Iterator<Object> iterator;
     private Meta.Signature signature;
+    private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
-    public CalciteServerStatementImpl(CalciteConnectionImpl connection) {
+    CalciteServerStatementImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
     }
 

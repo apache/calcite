@@ -51,7 +51,10 @@ import java.util.Iterator;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for streaming queries.
@@ -232,6 +235,45 @@ public class StreamTest {
         .explainContains("EnumerableInterpreter\n"
             + "  BindableTableScan(table=[[INFINITE_STREAMS, ORDERS, (STREAM)]])")
         .returnsCount(100);
+  }
+
+  @Test(timeout = 10000) public void testStreamCancel() {
+    final String explain = "EnumerableInterpreter\n"
+        + "  BindableTableScan(table=[[INFINITE_STREAMS, ORDERS, (STREAM)]])";
+    CalciteAssert.model(STREAM_MODEL)
+        .withDefaultSchema(INFINITE_STREAM_SCHEMA_NAME)
+        .query("select stream * from orders")
+        .explainContains(explain)
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(final ResultSet resultSet) {
+                int n = 0;
+                try {
+                  while (resultSet.next()) {
+                    if (++n == 5) {
+                      new Thread(
+                          new Runnable() {
+                            @Override public void run() {
+                              try {
+                                Thread.sleep(3);
+                                resultSet.getStatement().cancel();
+                              } catch (InterruptedException | SQLException e) {
+                                // ignore
+                              }
+                            }
+                          }).start();
+                    }
+                  }
+                  fail("expected cancel, got end-of-data");
+                } catch (SQLException e) {
+                  assertThat(e.getMessage(), is("Statement canceled"));
+                }
+                // With a 3 millisecond delay, typically n is between 200 - 400
+                // before cancel takes effect.
+                assertTrue("n is " + n, n > 5);
+                return null;
+              }
+            });
   }
 
   @Test public void testStreamToRelationJoin() {

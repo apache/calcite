@@ -97,7 +97,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
         physType,
         Blocks.toBlock(
             Expressions.call(table.getExpression(CsvTranslatableTable.class),
-                "project", Expressions.constant(fields))));
+                "project", implementor.getRootExpression(),
+                Expressions.constant(fields))));
   }
 }
 

@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file.
@@ -44,9 +45,10 @@ public class CsvScannableTable extends CsvTable
 
   public Enumerable<Object[]> scan(DataContext root) {
     final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvEnumerator<Object[]>(file,
+        return new CsvEnumerator<>(file, cancelFlag, false,
             null, new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };
