@@ -386,8 +386,8 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       final List<Expression> list = Lists.newArrayList();
       for (ImmutableBitSet set : groupSets) {
         list.add(
-            inputPhysType.generateSelector(parameter, groupSet.toList(),
-                set.toList(), keyPhysType.getFormat()));
+            inputPhysType.generateSelector(parameter, groupSet.asList(),
+                set.asList(), keyPhysType.getFormat()));
       }
       final Expression keySelectors_ =
           builder.append("keySelectors",
@@ -443,7 +443,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       final Expression keySelector_ =
           builder.append("keySelector",
               inputPhysType.generateSelector(parameter,
-                  groupSet.toList(),
+                  groupSet.asList(),
                   keyPhysType.getFormat()));
       final Expression resultSelector_ =
           builder.append("resultSelector",

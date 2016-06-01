@@ -36,13 +36,14 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+
+import com.google.common.primitives.Ints;
 
 import org.slf4j.Logger;
 
@@ -180,7 +181,7 @@ public abstract class CalcRelSplitter {
 
         // Project the expressions which are computed at this level or
         // before, and will be used at later levels.
-        IntList projectExprOrdinalList = new IntList();
+        List<Integer> projectExprOrdinalList = new ArrayList<>();
         for (int i = 0; i < exprs.length; i++) {
           RexNode expr = exprs[i];
           if (expr instanceof RexLiteral) {
@@ -194,7 +195,7 @@ public abstract class CalcRelSplitter {
             projectExprOrdinalList.add(i);
           }
         }
-        projectExprOrdinals = projectExprOrdinalList.toIntArray();
+        projectExprOrdinals = Ints.toArray(projectExprOrdinalList);
       }
 
       final RelType relType = relTypes[levelTypeOrdinals[level]];

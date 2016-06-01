@@ -30,7 +30,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.IntList;
 
 import com.google.common.collect.Lists;
 
@@ -79,7 +78,7 @@ public class SemiJoinRule extends RelOptRule {
       return;
     }
     final List<Integer> newRightKeyBuilder = Lists.newArrayList();
-    final IntList aggregateKeys = aggregate.getGroupSet().toList();
+    final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
     for (int key : joinInfo.rightKeys) {
       newRightKeyBuilder.add(aggregateKeys.get(key));
     }

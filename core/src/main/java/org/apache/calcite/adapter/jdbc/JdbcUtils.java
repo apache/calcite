@@ -22,7 +22,6 @@ import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.ImmutableNullableList;
-import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Pair;
 
 import org.apache.commons.dbcp.BasicDataSource;
@@ -31,6 +30,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Ints;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -124,7 +124,7 @@ final class JdbcUtils {
             return new ObjectArrayRowBuilder(
                 resultSet,
                 Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
-                IntList.toArray(Pair.right(list)));
+                Ints.toArray(Pair.right(list)));
           } catch (SQLException e) {
             throw new RuntimeException(e);
           }

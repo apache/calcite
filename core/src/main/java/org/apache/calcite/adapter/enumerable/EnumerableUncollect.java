@@ -28,7 +28,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.IntList;
+
+import com.google.common.primitives.Ints;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +113,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
 
     final Expression lambda =
         Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
-            Expressions.constant(IntList.toArray(fieldCounts)),
+            Expressions.constant(Ints.toArray(fieldCounts)),
             Expressions.constant(withOrdinality),
             Expressions.constant(
                 inputTypes.toArray(new FlatProductInputType[inputTypes.size()])));
@@ -125,6 +126,5 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
   }
 
 }
-
 
 // End EnumerableUncollect.java

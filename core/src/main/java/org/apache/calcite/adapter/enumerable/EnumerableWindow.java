@@ -694,7 +694,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             0, "key",
             inputPhysType.selector(
                 v_,
-                group.keys.toList(),
+                group.keys.asList(),
                 JavaRowFormat.CUSTOM));
     builder2.add(declare);
     final ParameterExpression key_ = declare.parameter;

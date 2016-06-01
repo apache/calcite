@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.util;
 
-import java.util.AbstractList;
+import com.google.common.primitives.Ints;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,11 +26,12 @@ import java.util.List;
  * Extension to {@link ArrayList} to help build an array of <code>int</code>
  * values.
  */
+@Deprecated // to be removed before 2.0
 public class IntList extends ArrayList<Integer> {
   //~ Methods ----------------------------------------------------------------
 
   public int[] toIntArray() {
-    return toArray(this);
+    return Ints.toArray(this);
   }
 
   /**
@@ -38,13 +40,12 @@ public class IntList extends ArrayList<Integer> {
    *
    * @param integers List of Integer objects
    * @return Array of primitive <code>int</code>s
+   *
+   * @deprecated Use {@link Ints#toArray(java.util.Collection)}
    */
+  @Deprecated // to be removed before 2.0
   public static int[] toArray(List<Integer> integers) {
-    final int[] ints = new int[integers.size()];
-    for (int i = 0; i < ints.length; i++) {
-      ints[i] = integers.get(i);
-    }
-    return ints;
+    return Ints.toArray(integers);
   }
 
   /**
@@ -56,20 +57,9 @@ public class IntList extends ArrayList<Integer> {
    * @param args Array of primitive <code>int</code> values
    * @return List backed by array
    */
+  @Deprecated // to be removed before 2.0
   public static List<Integer> asList(final int[] args) {
-    return new AbstractList<Integer>() {
-      public Integer get(int index) {
-        return args[index];
-      }
-
-      public int size() {
-        return args.length;
-      }
-
-      public Integer set(int index, Integer element) {
-        return args[index] = element;
-      }
-    };
+    return Ints.asList(args);
   }
 
   public ImmutableIntList asImmutable() {

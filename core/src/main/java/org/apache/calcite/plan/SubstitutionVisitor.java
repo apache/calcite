@@ -54,7 +54,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -1316,7 +1315,7 @@ public class SubstitutionVisitor {
     } else {
       // Target is coarser level of aggregation. Generate an aggregate.
       final ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
-      final IntList targetGroupList = target.getGroupSet().toList();
+      final List<Integer> targetGroupList = target.getGroupSet().asList();
       for (int c : query.getGroupSet()) {
         int c2 = targetGroupList.indexOf(c);
         if (c2 < 0) {

@@ -30,6 +30,7 @@ import com.google.common.collect.Ordering;
 import java.io.Serializable;
 import java.nio.LongBuffer;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
@@ -595,8 +596,8 @@ public class ImmutableBitSet
   }
 
   /** Converts this bit set to a list. */
-  public IntList toList() {
-    final IntList list = new IntList();
+  public List<Integer> toList() {
+    final List<Integer> list = new ArrayList<>();
     for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
       list.add(i);
     }

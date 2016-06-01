@@ -76,7 +76,7 @@ public class AggregateRemoveRule extends RelOptRule {
     relBuilder.push(newInput);
     if (newInput.getRowType().getFieldCount()
         > aggregate.getRowType().getFieldCount()) {
-      relBuilder.project(relBuilder.fields(aggregate.getGroupSet().toList()));
+      relBuilder.project(relBuilder.fields(aggregate.getGroupSet().asList()));
     }
     call.transformTo(relBuilder.build());
   }

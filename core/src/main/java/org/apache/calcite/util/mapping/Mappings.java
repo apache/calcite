@@ -18,13 +18,13 @@ package org.apache.calcite.util.mapping;
 
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.IntList;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Ints;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -396,7 +396,7 @@ public abstract class Mappings {
    *
    * <p>Throws if sources and targets are not one to one.</p> */
   public static Mapping bijection(List<Integer> targets) {
-    return new Permutation(IntList.toArray(targets));
+    return new Permutation(Ints.toArray(targets));
   }
 
   /** Creates a bijection.
@@ -407,7 +407,7 @@ public abstract class Mappings {
     for (int i = 0; i < targets.size(); i++) {
       targetList.add(targets.get(i));
     }
-    return new Permutation(IntList.toArray(targetList));
+    return new Permutation(Ints.toArray(targetList));
   }
 
   /**

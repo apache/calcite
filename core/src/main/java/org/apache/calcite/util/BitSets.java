@@ -18,8 +18,10 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableSortedMap;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -119,8 +121,8 @@ public final class BitSets {
    * @param bitSet Bit set
    * @return List of set bits
    */
-  public static IntList toList(final BitSet bitSet) {
-    final IntList list = new IntList();
+  public static List<Integer> toList(final BitSet bitSet) {
+    final List<Integer> list = new ArrayList<>();
     for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i + 1)) {
       list.add(i);
     }

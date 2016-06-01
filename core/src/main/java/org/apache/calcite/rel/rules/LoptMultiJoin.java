@@ -30,7 +30,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.IntList;
+import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -577,7 +577,7 @@ public class LoptMultiJoin {
       } else {
         // multiple factor references -- set a weight for each
         // combination of factors referenced within the filter
-        final IntList list = factorRefs.toList();
+        final List<Integer> list  = ImmutableIntList.copyOf(factorRefs);
         for (int outer : list) {
           for (int inner : list) {
             if (outer != inner) {

@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1055,7 +1056,7 @@ public class UtilTest {
     for (Integer integer : set) {
       list.add(integer);
     }
-    assertEquals(new HashSet<>(IntList.asList(ints)), set);
+    assertEquals(new HashSet<>(Ints.asList(ints)), set);
     return list;
   }
 
