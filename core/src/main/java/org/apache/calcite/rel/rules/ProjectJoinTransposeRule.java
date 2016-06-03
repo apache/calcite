@@ -53,7 +53,7 @@ public class ProjectJoinTransposeRule extends RelOptRule {
    * @param preserveExprCondition Condition for expressions that should be
    *                              preserved in the projection
    */
-  private ProjectJoinTransposeRule(
+  public ProjectJoinTransposeRule(
       PushProjector.ExprCondition preserveExprCondition) {
     super(
         operand(LogicalProject.class,
