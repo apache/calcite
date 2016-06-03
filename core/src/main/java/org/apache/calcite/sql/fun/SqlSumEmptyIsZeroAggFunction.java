@@ -39,7 +39,7 @@ import java.util.List;
 public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
-  SqlSumEmptyIsZeroAggFunction() {
+  public SqlSumEmptyIsZeroAggFunction() {
     super("$SUM0",
         null,
         SqlKind.SUM0,
