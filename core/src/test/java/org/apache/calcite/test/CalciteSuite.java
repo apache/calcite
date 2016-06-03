@@ -26,6 +26,7 @@ import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
 import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
+import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
@@ -36,6 +37,7 @@ import org.apache.calcite.sql.test.SqlAdvisorTest;
 import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
 import org.apache.calcite.sql.test.SqlTypeNameTest;
+import org.apache.calcite.sql.type.SqlTypeFactoryTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
 import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
@@ -94,6 +96,8 @@ import org.junit.runners.Suite;
     ExceptionMessageTest.class,
     InduceGroupingTypeTest.class,
     RelOptPlanReaderTest.class,
+    RexBuilderTest.class,
+    SqlTypeFactoryTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
