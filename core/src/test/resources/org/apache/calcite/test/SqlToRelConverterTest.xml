@@ -1668,6 +1668,23 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNestedAggregates">
+        <Resource name="sql">
+            <![CDATA[SELECT
+  avg(sum(sal) + 2 * min(empno) + 3 * avg(empno))
+  over (partition by deptno)
+from emp
+group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
+    LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWithAlias">
         <Resource name="sql">
             <![CDATA[with w(x, y) as (select * from dept where deptno > 10)

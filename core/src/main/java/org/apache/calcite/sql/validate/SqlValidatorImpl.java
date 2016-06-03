@@ -223,6 +223,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<>();
   private final AggFinder aggFinder;
   private final AggFinder aggOrOverFinder;
+  private final AggFinder overFinder;
   private final SqlConformance conformance;
   private final Map<SqlNode, SqlNode> originalExprs = new HashMap<>();
 
@@ -244,7 +245,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // if it's OK to expand the signature of that method.
   private boolean validatingSqlMerge;
 
-  private boolean nestedAgg;                        // Allow nested aggregates
+  private boolean inWindow;                        // Allow nested aggregates
 
   //~ Constructors -----------------------------------------------------------
 
@@ -273,25 +274,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     rewriteCalls = true;
     expandColumnReferences = true;
-    aggFinder = new AggFinder(opTab, false);
-    aggOrOverFinder = new AggFinder(opTab, true);
+    aggFinder = new AggFinder(opTab, false, true, null);
+    aggOrOverFinder = new AggFinder(opTab, true, true, null);
+    overFinder = new AggFinder(opTab, true, false, aggOrOverFinder);
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  /**
-   * Allows nested aggregates within window aggregates
-   */
-  public void enableNestedAggregates() {
-    this.nestedAgg = true;
-  }
-
-  /**
-   * Disallows nested aggregates within window aggregates
-   */
-  public void disableNestedAggregates() {
-    this.nestedAgg = false;
-  }
 
   public SqlConformance getConformance() {
     return conformance;
@@ -4068,6 +4056,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode windowOrId,
       SqlValidatorScope scope,
       SqlCall call) {
+    // Enable nested aggregates with window aggregates (OVER operator)
+    inWindow = true;
+
     final SqlWindow targetWindow;
     switch (windowOrId.getKind()) {
     case IDENTIFIER:
@@ -4087,44 +4078,47 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetWindow.validate(this, scope);
     targetWindow.setWindowCall(null);
     call.validate(this, scope);
+
+    validateAggregateParams(call, null, scope);
+
+    // Disable nested aggregates post validation
+    inWindow = false;
   }
 
   public void validateAggregateParams(SqlCall aggCall, SqlNode filter,
       SqlValidatorScope scope) {
-    // For agg(expr), expr cannot itself contain aggregate function
-    // invocations.  For example, SUM(2*MAX(x)) is illegal; when
+    // For "agg(expr)", expr cannot itself contain aggregate function
+    // invocations.  For example, "SUM(2 * MAX(x))" is illegal; when
     // we see it, we'll report the error for the SUM (not the MAX).
     // For more than one level of nesting, the error which results
     // depends on the traversal order for validation.
-
-    // For window function agg(expr), expr can contain an aggregate function
-    // For example, AVG(2*MAX(x)) OVER (partition by y) GROUP BY y is legal; Only
-    // one level of nesting is allowed since non-window aggregates cannot nest aggregates.
-    aggOrOverFinder.disableNestedAggregates();
+    //
+    // For a windowed aggregate "agg(expr)", expr can contain an aggregate
+    // function. For example,
+    //   SELECT AVG(2 * MAX(x)) OVER (PARTITION BY y)
+    //   FROM t
+    //   GROUP BY y
+    // is legal. Only one level of nesting is allowed since non-windowed
+    // aggregates cannot nest aggregates.
 
     // Store nesting level of each aggregate. If an aggregate is found at an invalid
     // nesting level, throw an assert.
-    if (nestedAgg) {
-      aggOrOverFinder.enableNestedAggregates();
-      aggOrOverFinder.addAggLevel(1);
+    final AggFinder a;
+    if (inWindow) {
+      a = overFinder;
+    } else {
+      a = aggOrOverFinder;
     }
 
     for (SqlNode param : aggCall.getOperandList()) {
-      if (aggOrOverFinder.findAgg(param) != null) {
+      if (a.findAgg(param) != null) {
         throw newValidationError(aggCall, RESOURCE.nestedAggIllegal());
       }
     }
     if (filter != null) {
-      if (aggOrOverFinder.findAgg(filter) != null) {
+      if (a.findAgg(filter) != null) {
         throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
       }
-    }
-    // Disallow nested aggregates post call to this function
-    if (nestedAgg) {
-      aggOrOverFinder.removeAggLevel();
-      // Assert we don't have dangling items left in the stack
-      assert aggOrOverFinder.isEmptyAggLevel();
-      aggOrOverFinder.disableNestedAggregates();
     }
   }
 

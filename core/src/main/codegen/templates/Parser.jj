@@ -4351,8 +4351,6 @@ SqlNode NamedFunctionCall() :
     SqlParserPos starPos;
     SqlParserPos filterPos = null;
     SqlNode filter = null;
-    SqlParserPos overPos = null;
-    SqlCall function = null;
     SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
     SqlNode e = null;
     SqlLiteral quantifier = null;
@@ -4396,17 +4394,16 @@ SqlNode NamedFunctionCall() :
         ]
         [
             <OVER>
-            {
-                overPos = getPos();
-                pos = pos.plus(overPos);
-            }
             (
                 id = SimpleIdentifier()
-                | e = WindowSpecification()
+            |   e = WindowSpecification()
             )
+            {
+                pos = pos.plus(getPos());
+            }
         ]
         {
-            function = createCall(
+            SqlCall function = createCall(
                 qualifiedName, pos, funcType, quantifier,
                 SqlParserUtil.toNodeArray(args));
 
@@ -4414,14 +4411,11 @@ SqlNode NamedFunctionCall() :
                 function = SqlStdOperatorTable.FILTER.createCall(filterPos,
                     function, filter);
             }
-            if (overPos != null) {
-                if (id != null) {
-                    function = SqlStdOperatorTable.OVER.createCall(overPos,
-                        function, id);
-                } else {
-                    function = SqlStdOperatorTable.OVER.createCall(overPos,
-                        function, e);
-                }
+            if (id != null) {
+                return SqlStdOperatorTable.OVER.createCall(pos, function, id);
+            }
+            if (e != null) {
+                return SqlStdOperatorTable.OVER.createCall(pos, function, e);
             }
             return function;
         }

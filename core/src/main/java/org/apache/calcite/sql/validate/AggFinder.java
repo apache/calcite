@@ -29,8 +29,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 
 /**
@@ -40,17 +38,15 @@ import java.util.List;
 class AggFinder extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
-  // Maximum allowed nesting level of aggregates
-  private static final int MAX_AGG_LEVEL = 2;
   private final SqlOperatorTable opTab;
+
+  /** Whether to find windowed aggregates. */
   private final boolean over;
 
-  private boolean nestedAgg;                        // Allow nested aggregates
+  /** Whether to find regular (non-windowed) aggregates. */
+  private boolean aggregate;
 
-  // Stores aggregate nesting level while visiting the tree to keep track of
-  // nested aggregates within window aggregates. An explicit stack is used
-  // instead of recursion to obey the SqlVisitor interface
-  private Deque<Integer> aggLevelStack;
+  private final AggFinder delegate;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -58,55 +54,21 @@ class AggFinder extends SqlBasicVisitor<Void> {
    * Creates an AggFinder.
    *
    * @param opTab Operator table
-   * @param over Whether to find windowed function calls {@code Agg(x) OVER
+   * @param over Whether to find windowed function calls {@code agg(x) OVER
    *             windowSpec}
+   * @param aggregate Whether to find non-windowed aggregate calls
+   * @param delegate Finder to which to delegate when processing the arguments
+   *                  to a non-windowed aggregate
    */
-  AggFinder(SqlOperatorTable opTab, boolean over) {
+  AggFinder(SqlOperatorTable opTab, boolean over, boolean aggregate,
+      AggFinder delegate) {
     this.opTab = opTab;
     this.over = over;
-    this.nestedAgg = false;
-    this.aggLevelStack = new ArrayDeque<Integer>();
+    this.aggregate = aggregate;
+    this.delegate = delegate;
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  /**
-   * Allows nested aggregates within window aggregates
-   */
-  public void enableNestedAggregates()  {
-    this.nestedAgg = true;
-    this.aggLevelStack.clear();
-  }
-
-  /**
-   * Disallows nested aggregates within window aggregates
-   */
-  public void disableNestedAggregates()  {
-    this.nestedAgg = false;
-    this.aggLevelStack.clear();
-  }
-
-  public void addAggLevel(int aggLevel) {
-    aggLevelStack.push(aggLevel);
-  }
-
-  public void removeAggLevel() {
-    if (!aggLevelStack.isEmpty()) {
-      aggLevelStack.pop();
-    }
-  }
-
-  public int getAggLevel() {
-    if (!aggLevelStack.isEmpty()) {
-      return aggLevelStack.peek();
-    } else {
-      return -1;
-    }
-  }
-
-  public boolean isEmptyAggLevel() {
-    return aggLevelStack.isEmpty();
-  }
 
   /**
    * Finds an aggregate.
@@ -138,20 +100,13 @@ class AggFinder extends SqlBasicVisitor<Void> {
 
   public Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
-    final int parAggLevel = this.getAggLevel(); //parent aggregate nesting level
     // If nested aggregates disallowed or found an aggregate at invalid level
     if (operator.isAggregator()) {
-      if (!nestedAgg || (parAggLevel + 1) > MAX_AGG_LEVEL) {
-        throw new Util.FoundOne(call);
-      } else {
-        if (parAggLevel >= 0) {
-          this.addAggLevel(parAggLevel + 1);
-        }
+      if (delegate != null) {
+        return call.getOperator().acceptCall(delegate, call);
       }
-    } else {
-      // Add the parent aggregate level before visiting its children
-      if (parAggLevel >= 0) {
-        this.addAggLevel(parAggLevel);
+      if (aggregate) {
+        throw new Util.FoundOne(call);
       }
     }
     // User-defined function may not be resolved yet.
@@ -164,12 +119,8 @@ class AggFinder extends SqlBasicVisitor<Void> {
       for (SqlOperator sqlOperator : list) {
         if (sqlOperator.isAggregator()) {
           // If nested aggregates disallowed or found aggregate at invalid level
-          if (!nestedAgg || (parAggLevel + 1) > MAX_AGG_LEVEL) {
+          if (aggregate) {
             throw new Util.FoundOne(call);
-          } else {
-            if (parAggLevel >= 0) {
-              this.addAggLevel(parAggLevel + 1);
-            }
           }
         }
       }
@@ -186,12 +137,7 @@ class AggFinder extends SqlBasicVisitor<Void> {
         return null;
       }
     }
-    super.visit(call);
-    // Remove the parent aggregate level after visiting its children
-    if (parAggLevel >= 0) {
-      this.removeAggLevel();
-    }
-    return null;
+    return super.visit(call);
   }
 }
 

@@ -23,7 +23,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -68,16 +67,8 @@ public class SqlOverOperator extends SqlBinaryOperator {
     if (!aggCall.getOperator().isAggregator()) {
       throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
     }
-    // Enable nested aggregates with window aggregates (OVER operator)
-    if (validator instanceof SqlValidatorImpl) {
-      ((SqlValidatorImpl) validator).enableNestedAggregates();
-    }
-    validator.validateWindow(call.operand(1), scope, aggCall);
-    validator.validateAggregateParams(aggCall, null, scope);
-    // Disable nested aggregates post validation
-    if (validator instanceof SqlValidatorImpl) {
-      ((SqlValidatorImpl) validator).disableNestedAggregates();
-    }
+    final SqlNode window = call.operand(1);
+    validator.validateWindow(window, scope, aggCall);
   }
 
   public RelDataType deriveType(

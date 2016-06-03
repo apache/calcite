@@ -1131,6 +1131,34 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNestedAggregates">
+        <Resource name="sql">
+            <![CDATA[SELECT
+  avg(sum(sal) + 2 * min(empno) + 3 * avg(empno))
+  over (partition by deptno)
+from emp
+group by deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
+    LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(/($0, $1)):INTEGER NOT NULL])
+  LogicalProject($0=[$2], $1=[$3])
+    LogicalWindow(window#0=[window(partition {0} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($1), COUNT($1)])])
+      LogicalProject(DEPTNO=[$0], $1=[+(+($1, *(2, $2)), *(3, $3))])
+        LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushSumConstantThroughUnion">
         <Resource name="sql">
             <![CDATA[select ename, sum(u) from
@@ -5217,32 +5245,5 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
-    </TestCase>
-    <TestCase name="testNestedAggregates">
-        <Resource name="sql">
-            <![CDATA[SELECT avg(sum(sal) + 2*min(empno) + 3*avg(empno))) over
-    (partition by deptno)
-    from emp
-    group by deptno]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))):INTEGER NOT NULL])
-  LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
-    LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-LogicalProject(EXPR$0=[CAST(/($0, $1)):INTEGER NOT NULL])
-  LogicalProject($0=[$2], $1=[$3])
-    LogicalWindow(window#0=[window(partition {0} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($1), COUNT($1)])])
-      LogicalProject(DEPTNO=[$0], $1=[+(+($1, *(2, $2)), *(3, $3))])
-        LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
-          LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-          </Resource>
     </TestCase>
 </Root>
