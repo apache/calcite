@@ -3363,7 +3363,7 @@ LogicalProject(**=[$0], **0=[$1])
             <![CDATA[
 LogicalAggregate(group=[{0}], CNT=[COUNT()])
   LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
-    LogicalFilter(condition=[>(CAST(ITEM($0, 'N_NATIONKEY')):INTEGER, 5)])
+    LogicalFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 5)])
       LogicalProject(**=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, NATION]])
 ]]>
@@ -3391,7 +3391,7 @@ LogicalProject(**=[$0], **0=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(**=[$1], R_REGIONKEY=[$2], R_NAME=[$3], R_COMMENT=[$4])
-  LogicalFilter(condition=[=(CAST($0):INTEGER, $2)])
+  LogicalFilter(condition=[=($0, $2)])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, NATION]])
       LogicalTableScan(table=[[CATALOG, SALES, REGION]])
