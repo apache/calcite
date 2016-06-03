@@ -508,7 +508,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         new HepPlanner(program), sql, true);
   }
 
-  protected void semiJoinTrim() {
+  @Test public void testSemiJoinTrim() {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");
 
@@ -555,10 +555,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     root = root.withRel(converter.trimUnusedFields(false, root.rel));
     String planAfter = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-  }
-
-  @Test public void testSemiJoinTrim() {
-    semiJoinTrim();
   }
 
   @Test public void testReduceAverage() {
@@ -1680,7 +1676,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " group by deptno,job");
   }
 
-  public void transitiveInference(RelOptRule... extraRules) throws Exception {
+  private void transitiveInference(RelOptRule... extraRules) throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     final String sql = diffRepos.expand(null, "${sql}");
 

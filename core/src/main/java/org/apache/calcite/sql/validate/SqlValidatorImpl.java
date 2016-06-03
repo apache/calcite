@@ -141,35 +141,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   public static final String UPDATE_ANON_PREFIX = "SYS$ANON";
 
-  private SqlNode top;
-
-  @VisibleForTesting
-  public SqlValidatorScope getEmptyScope() {
-    return new EmptyScope(this);
-  }
-
-  //~ Enums ------------------------------------------------------------------
-
-  /**
-   * Validation status.
-   */
-  public enum Status {
-    /**
-     * Validation has not started for this scope.
-     */
-    UNVALIDATED,
-
-    /**
-     * Validation is in progress for this scope.
-     */
-    IN_PROGRESS,
-
-    /**
-     * Validation has completed (perhaps unsuccessfully).
-     */
-    VALID
-  }
-
   //~ Instance fields --------------------------------------------------------
 
   private final SqlOperatorTable opTab;
@@ -254,6 +225,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final AggFinder aggOrOverFinder;
   private final SqlConformance conformance;
   private final Map<SqlNode, SqlNode> originalExprs = new HashMap<>();
+
+  private SqlNode top;
 
   // REVIEW jvs 30-June-2006: subclasses may override shouldExpandIdentifiers
   // in a way that ignores this; we should probably get rid of the protected
@@ -888,6 +861,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (namespace.getNode() != null) {
       setValidatedNodeType(namespace.getNode(), namespace.getType());
     }
+  }
+
+  @VisibleForTesting
+  public SqlValidatorScope getEmptyScope() {
+    return new EmptyScope(this);
   }
 
   public SqlValidatorScope getCursorScope(SqlSelect select) {
@@ -4650,6 +4628,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       cursorPosToSelectMap = new HashMap<>();
       columnListParamToParentCursorMap = new HashMap<>();
     }
+  }
+
+  //~ Enums ------------------------------------------------------------------
+
+  /**
+   * Validation status.
+   */
+  public enum Status {
+    /**
+     * Validation has not started for this scope.
+     */
+    UNVALIDATED,
+
+    /**
+     * Validation is in progress for this scope.
+     */
+    IN_PROGRESS,
+
+    /**
+     * Validation has completed (perhaps unsuccessfully).
+     */
+    VALID
   }
 
 }

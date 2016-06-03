@@ -2660,6 +2660,17 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], updateColu
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectWithoutFrom">
+        <Resource name="sql">
+            <![CDATA[select 2+2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[+(2, 2)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUpdateWhere">
         <Resource name="sql">
             <![CDATA[update emp set empno = empno + 1 where deptno = 10]]>
@@ -3297,7 +3308,9 @@ LogicalProject(**=[$0])
     </TestCase>
     <TestCase name="testReferDynamicStarInSelectOB">
         <Resource name="sql">
-            <![CDATA[select n_nationkey, n_name from (select * from SALES.NATION) order by n_regionkey]]>
+            <![CDATA[select n_nationkey, n_name
+from (select * from SALES.NATION)
+order by n_regionkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3311,7 +3324,7 @@ LogicalProject(N_NATIONKEY=[$0], N_NAME=[$1])
     </TestCase>
     <TestCase name="testDynamicStarInTableJoin">
         <Resource name="sql">
-            <![CDATA[select * from (select * from SALES.NATION) T1, (SELECT * from SALES.CUSTOMER) T2 where T1.n_nationkey = T2.c_nationkey ]]>
+            <![CDATA[select * from  (select * from SALES.NATION) T1,  (SELECT * from SALES.CUSTOMER) T2  where T1.n_nationkey = T2.c_nationkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3327,7 +3340,7 @@ LogicalProject(**=[$0], **0=[$1])
     </TestCase>
     <TestCase name="testReferDynamicStarInSelectWhereGB">
         <Resource name="sql">
-            <![CDATA[select n_regionkey, count(*) as cnt from (select * from SALES.NATION) where n_nationkey > 5 group by n_regionkey ]]>
+            <![CDATA[select n_regionkey, count(*) as cnt from (select * from SALES.NATION) where n_nationkey > 5 group by n_regionkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3341,7 +3354,7 @@ LogicalAggregate(group=[{0}], CNT=[COUNT()])
     </TestCase>
     <TestCase name="testDynamicStarInJoinAndSubQ">
         <Resource name="sql">
-            <![CDATA[select * from (select * from SALES.NATION T1, SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey) ]]>
+            <![CDATA[select * from  (select * from SALES.NATION T1,  SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3356,7 +3369,7 @@ LogicalProject(**=[$0], **0=[$1])
     </TestCase>
     <TestCase name="testStarJoinStaticDynTable">
         <Resource name="sql">
-            <![CDATA[select * from SALES.NATION N, SALES.REGION R where N.n_regionkey = R.r_regionkey ]]>
+            <![CDATA[select * from SALES.NATION N, SALES.REGION as R where N.n_regionkey = R.r_regionkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3370,7 +3383,7 @@ LogicalProject(**=[$1], R_REGIONKEY=[$2], R_NAME=[$3], R_COMMENT=[$4])
     </TestCase>
     <TestCase name="testGrpByColFromStarInSubQuery">
         <Resource name="sql">
-            <![CDATA[select * from SALES.NATION N, SALES.REGION R where N.n_regionkey = R.r_regionkey ]]>
+            <![CDATA[SELECT n.n_nationkey AS col  from (SELECT * FROM SALES.NATION) as n  group by n.n_nationkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
