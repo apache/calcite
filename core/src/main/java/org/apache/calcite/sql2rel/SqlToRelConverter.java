@@ -2521,11 +2521,15 @@ public class SqlToRelConverter {
       // agg converter knows which aggregations are required
 
       selectList.accept(aggConverter);
+      // Assert we don't have dangling items left in the stack
+      assert aggConverter.isEmptyAggLevel();
       for (SqlNode expr : orderExprList) {
         expr.accept(aggConverter);
+        assert aggConverter.isEmptyAggLevel();
       }
       if (having != null) {
         having.accept(aggConverter);
+        assert aggConverter.isEmptyAggLevel();
       }
 
       // compute inputs to the aggregator
@@ -4449,6 +4453,15 @@ public class SqlToRelConverter {
     private final Map<AggregateCall, RexNode> aggCallMapping =
         Maps.newHashMap();
 
+    // Minimum allowed nesting level for converting aggregates within the
+    // OVER operator
+    private static final int MIN_AGG_LEVEL = 1;
+
+    // Stores aggregate nesting level while visiting the tree to keep track of
+    // nested aggregates within window aggregates. An explicit stack is used
+    // instead of recursion to obey the SqlVisitor interface
+    private Deque<Integer> aggLevelStack = new ArrayDeque<Integer>();
+
     /**
      * Creates an AggConverter.
      *
@@ -4549,7 +4562,30 @@ public class SqlToRelConverter {
       return null;
     }
 
+    public void addAggLevel(int aggLevel) {
+      aggLevelStack.push(aggLevel);
+    }
+
+    public void removeAggLevel() {
+      if (!aggLevelStack.isEmpty()) {
+        aggLevelStack.pop();
+      }
+    }
+
+    public int getAggLevel() {
+      if (!aggLevelStack.isEmpty()) {
+        return aggLevelStack.peek();
+      } else {
+        return -1;
+      }
+    }
+
+    public boolean isEmptyAggLevel() {
+      return aggLevelStack.isEmpty();
+    }
+
     public Void visit(SqlCall call) {
+      int parAggLevel;                                 //parent aggregate nesting level
       switch (call.getKind()) {
       case FILTER:
         translateAgg((SqlCall) call.operand(0), call.operand(1), call);
@@ -4560,18 +4596,40 @@ public class SqlToRelConverter {
         return null;
       }
       // ignore window aggregates and ranking functions (associated with OVER operator)
+      // However, do not ignore nested window aggregates
       if (call.getOperator().getKind() == SqlKind.OVER) {
-        return null;
+        if (call.operand(0).getKind() == SqlKind.RANK) {
+          return null;
+        }
+        // Track aggregate nesting levels only within an OVER operator.
+        this.addAggLevel(0);
       }
+
+      parAggLevel = this.getAggLevel();
+      // Do not translate the top level window aggregate. Only do so for
+      // nested aggregates, if present
       if (call.getOperator().isAggregator()) {
-        translateAgg(call, null, call);
-        return null;
+        if (parAggLevel < 0
+            || (parAggLevel + 1) > MIN_AGG_LEVEL) {
+          translateAgg(call, null, call);
+          return null;
+        } else if (parAggLevel >= 0) {
+          // Add the parent aggregate level before visiting its children
+          this.addAggLevel(parAggLevel + 1);
+        }
+      } else if (call.getOperator().getKind() != SqlKind.OVER
+                 && parAggLevel >= 0) {
+        this.addAggLevel(parAggLevel);
       }
       for (SqlNode operand : call.getOperandList()) {
         // Operands are occasionally null, e.g. switched CASE arg 0.
         if (operand != null) {
           operand.accept(this);
         }
+      }
+      // Remove the parent aggregate level after visiting its children
+      if (parAggLevel >= 0) {
+        this.removeAggLevel();
       }
       return null;
     }
