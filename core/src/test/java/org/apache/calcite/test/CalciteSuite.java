@@ -29,6 +29,7 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
+import org.apache.calcite.sql.SqlSetOptionOperatorTest;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.SqlUnParserTest;
 import org.apache.calcite.sql.test.SqlAdvisorTest;
@@ -97,6 +98,7 @@ import org.junit.runners.Suite;
     // medium tests (above 0.1s)
     SqlParserTest.class,
     SqlUnParserTest.class,
+    SqlSetOptionOperatorTest.class,
     SqlPrettyWriterTest.class,
     SqlValidatorTest.class,
     SqlAdvisorTest.class,
