@@ -383,17 +383,16 @@ limitations under the License.
       </build>
       <dependencies>
         <dependency>
-          <!-- Oracle's driver is not open source. Install the jar in your
-               local maven repository as follows:
+          <!-- Oracle's driver is not open source. If you wish to test against
+               Oracle, install the jar in your local maven repository as follows:
 
                $ cd $ORACLE_HOME/jdbc/lib
                $ mvn install:install-file -DgroupId=com.oracle
-                 -DartifactId=ojdbc6 -Dversion=11.2.0.2.0 -Dpackaging=jar
-                 -Dfile=ojdbc6.jar -DgeneratePom=true
+                 -DartifactId=ojdbc6 -Dversion=${oracle-jdbc6-driver.version}
+                 -Dpackaging=jar -Dfile=ojdbc6.jar -DgeneratePom=true
           -->
           <groupId>com.oracle</groupId>
           <artifactId>ojdbc6</artifactId>
-          <version>11.2.0.2.0</version>
           <scope>test</scope>
         </dependency>
       </dependencies>
