@@ -304,15 +304,17 @@ public class SqlValidatorUtil {
         ? new LinkedHashSet<String>()
             : new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
     int changeCount = 0;
+    final List<String> newNameList = new ArrayList<>();
     for (String name : nameList) {
       String uniqueName = uniquify(name, used, suggester);
       if (!uniqueName.equals(name)) {
         ++changeCount;
       }
+      newNameList.add(uniqueName);
     }
     return changeCount == 0
         ? nameList
-        : new ArrayList<>(used);
+        : newNameList;
   }
 
   /**
