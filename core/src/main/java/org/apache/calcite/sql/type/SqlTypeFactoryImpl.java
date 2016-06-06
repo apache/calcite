@@ -219,12 +219,18 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     int nullCount = 0;
     int nullableCount = 0;
     int javaCount = 0;
+    int anyCount = 0;
 
     for (RelDataType type : types) {
       final SqlTypeName typeName = type.getSqlTypeName();
       if (typeName == null) {
         return null;
       }
+
+      if (typeName == SqlTypeName.ANY) {
+        anyCount++;
+      }
+
       if (type.isNullable()) {
         ++nullableCount;
       }
@@ -234,6 +240,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       if (isJavaType(type)) {
         ++javaCount;
       }
+    }
+
+
+    //  if any of the inputs are ANY, the output is ANY
+    if (anyCount > 0) {
+      return createTypeWithNullability(createSqlType(SqlTypeName.ANY), nullCount > 0);
     }
 
     for (int i = 0; i < types.size(); ++i) {
