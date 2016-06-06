@@ -28,7 +28,7 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.8.0">1.8.0</a> / 2016-05-20
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.8.0">1.8.0</a> / 2016-06-04
 {: #v1-8-0}
 
 Apache Calcite Avatica 1.8.0 continues the focus on compatibility with previous
@@ -38,58 +38,97 @@ in this release, increasing as much as two to three times over previous versions
 with the addition of new API support. The documentation for both users and developers
 continues to receive improvements.
 
-Authentication is a major theme of this release, providing multiple layers of
-additional authentication mechanisms over previous versions. In these earlier
-versions, the only authentication provided by Avatica was achieved via the JDBC URL's
-standard user and password options. These have always been passed directly into
-the backend database's authentication system, but not all databases provide username
-and password based authentication systems. [CALCITE-1173](https://issues.apache.org/jira/browse/CALCITE-1173)
-adds Avatica-level authentication over [HTTP Basic](https://en.wikipedia.org/wiki/Basic_access_authentication)
-and [HTTP Digest](https://en.wikipedia.org/wiki/Digest_access_authentication)
-authentication mechanisms. These are provided specifically for the case when
-Avatica is used with a database that _does not already_ provide its own authentication
-implementation.
+A number of protocol issues are resolved relating to the proper serialization of
+decimals, the wire-API semantics of signed integers that were marked as unsigned
+integers, and the unintentional Base64-encoding of binary data using the Protocol
+Buffers serialization in Avatica. These issues were fixed in such a way to be
+backwards compatible, but older clients/servers may still compute incorrect data.
 
-Some systems rely on [Kerberos](http://web.mit.edu/kerberos/) for strong, centrally-
-managed authentication. [CALCITE-1159](https://issues.apache.org/jira/browse/CALCITE-1159)
-introduces Kerberos-based authentication for clients via [SPNEGO](https://en.wikipedia.org/wiki/SPNEGO).
-The Avatica server can be configured to only allow clients with a valid Kerberos ticket,
-optionally, also passing this information to the backend database to implement
-basic "impersonation" (where the Avatica server issues requests on behalf of the end user).
+Users of Avatica 1.7.x should not notice any issues in upgrading existing applications
+and are encouraged to upgrade as soon as possible.
 
-Building on top of the work done in Avatica-1.7.0 in [CALCITE-1091](https://issues.apache.org/jira/browse/CALCITE-1091),
-this release also contains [CALCITE-1128](https://issues.apache.org/jira/browse/CALCITE-1128) which
-implements the batch-oriented JDBC APIs on `Statement`. Through careful inspection, it
-was observed that the overall performance of Avatica clients in 100% write workloads was
-dominated by the cost of the HTTP calls. By leveraging the `Statement#addBatch()`
-and `Statement#executeBatch()` API calls, clients can efficiently batch multiple updates
-in a single HTTP call. In testing this over the previous single HTTP call per update with
-[Apache Phoenix](https://phoenix.apache.org), it was observed that performance increased by
-two to three times, bringing Avatica's performance on par with the Phoenix "native" driver.
+Features and bug fixes
 
-Returning back to compatibility, a new component appears in this release which is designed to
-test versions of Avatica against each other. [CALCITE-1190](https://issues.apache.org/jira/browse/CALCITE-1190)
-introduces a "Technology Compatibility Kit" (TCK) which automates the testing of one version
-of Avatica against other versions. To further ease this testing, a runnable JAR to launch
-an HSQLDB instance and an Avatica server also makes it debut with these changes. This TCK
-makes it much easier to run tests of newer clients against older servers and vice versa.
-Validating the backwards compatibility that is being built is extremely important to be
-confident in the guarantees being provided to users.
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1159'>CALCITE-1159</a>]
+  Support Kerberos-authenticated clients using SPNEGO
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1173'>CALCITE-1173</a>]
+  Basic and Digest authentication
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1249'>CALCITE-1249</a>]
+  L&N incorrect for source and non-shaded jars for avatica-standalone-server module
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1103'>CALCITE-1103</a>]
+  Decimal data serialized as Double in Protocol Buffer API
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1205'>CALCITE-1205</a>]
+  Inconsistency in protobuf TypedValue field names
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1207'>CALCITE-1207</a>]
+  Allow numeric connection properties, and K, M, G suffixes
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1209'>CALCITE-1209</a>]
+  Byte strings not being correctly decoded when sent to avatica using protocol buffers
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1213'>CALCITE-1213</a>]
+  Changing AvaticaDatabaseMetaData from class to interface breaks compatibility
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1218'>CALCITE-1218</a>]
+  Mishandling of uncaught exceptions results in no ErrorResponse sent to client
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1230'>CALCITE-1230</a>]
+  Add SQLSTATE reference data as enum SqlState
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1243'>CALCITE-1243</a>]
+  max_row_count in protobuf Requests should be signed int
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1247'>CALCITE-1247</a>]
+  JdbcMeta#prepare doesn't set maxRowCount on the Statement
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1254'>CALCITE-1254</a>]
+  Support PreparedStatement.executeLargeBatch
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-643'>CALCITE-643</a>]
+  User authentication for avatica clients
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1128'>CALCITE-1128</a>]
+  Support addBatch()/executeBatch() in remote driver
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1179'>CALCITE-1179</a>]
+  Extend list of time units and time unit ranges
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1180'>CALCITE-1180</a>]
+  Support clearBatch() in remote driver
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1185'>CALCITE-1185</a>]
+  Send back ErrorResponse on failure to parse requests
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1192'>CALCITE-1192</a>]
+  Document protobuf and json REP types with examples
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1214'>CALCITE-1214</a>]
+  Support url-based kerberos login
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1236'>CALCITE-1236</a>]
+  Log exceptions sent back to client in server log
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-836'>CALCITE-836</a>]
+  Provide a way for the Avatica client to query the server versions
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1156'>CALCITE-1156</a>]
+  Bump jetty version
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1184'>CALCITE-1184</a>]
+  Update Kerby dependency to 1.0.0-RC2
 
-Finally, a number of bugs are also fixed in the Protocol Buffer wire API. Some of these
-include [CALCITE-1113](https://issues.apache.org/jira/browse/CALCITE-1113) and
-[CALCITE-1103](https://issues.apache.org/jira/browse/CALCITE-1103) which fix how certain
-numbers are serialized, [CALITE-1243](https://issues.apache.org/jira/browse/CALCITE-1243)
-which corrects some fields in Protocol Buffer messages which were incorrectly marked
-as unsigned integers instead of signed integers, and [CALCITE-1209](https://issues.apache.org/jira/browse/CALCITE-1209)
-which removes incorrect parsing of binary fields as Base64-encoded strings. All of
-these issues are fixed in a backwards-compatible manner and should have no additional negative
-impact on older clients (older clients will not break, but they may continue to return
-incorrect data for certain numbers).
+Tests
 
-For users of the Avatica driver, a new [client reference page]({{ base_url }}/avatica/docs/client_reference.html)
-is added which details the options that are available in the Avatica JDBC Driver's URL.
-The wire API documentation for Protocol Buffers continues to receive updates as the API continues to evolve.
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1190'>CALCITE-1190</a>]
+  Cross-Version Compatibility Test Harness
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1113'>CALCITE-1113</a>]
+  Parameter precision and scale are not returned from Avatica REST API
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1186'>CALCITE-1186</a>]
+  Parameter 'signed' metadata is always returned as false
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1189'>CALCITE-1189</a>]
+  Unit test failure when JVM default charset is not UTF-8
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1061'>CALCITE-1061</a>]
+  RemoteMetaTest#testRemoteStatementInsert's use of hsqldb isn't guarded
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1194'>CALCITE-1194</a>]
+  Avatica metrics has non-test dependency on JUnit
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-835'>CALCITE-835</a>]
+  Unicode character seems to be handled incorrectly in Avatica
+
+Web site and documentation
+
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1251'>CALCITE-1251</a>]
+  Write release notes
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1201'>CALCITE-1201</a>]
+  Bad character in JSON docs
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1267'>CALCITE-1267</a>]
+  Point to release notes on website in README
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1163'>CALCITE-1163</a>]
+  Avatica sub-site logo leads to Calcite site instead of Avatica's
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-1202'>CALCITE-1202</a>]
+  Lock version of Jekyll used by website
+
+
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.7.1">1.7.1</a> / 2016-03-18
 {: #v1-7-1}
