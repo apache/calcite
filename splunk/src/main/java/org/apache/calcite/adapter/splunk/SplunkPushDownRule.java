@@ -415,7 +415,7 @@ public class SplunkPushDownRule
     assert false;
 /*
     RelNode rel =
-        new EnumerableRules.EnumerableTableAccessRel(
+        new EnumerableTableScan(
             udxRel.getCluster(),
             udxRel.getTable(),
             udxRel.getRowType(),
