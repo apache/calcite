@@ -63,6 +63,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import scala.Tuple2;
 
@@ -409,9 +410,9 @@ public abstract class SparkRules {
             }
             //CHECKSTYLE: IGNORE 1
         ).map(
-            new Function<Tuple2<String, List<String>>, Object>() {
-              @Override public Object call(Tuple2<String, List<String>> pair) {
-                return pair._1() + ":" + pair._2().size();
+            new Function<Tuple2<String, Iterable<String>>, Object>() {
+              @Override public Object call(Tuple2<String, Iterable<String>> pair) {
+                return pair._1() + ":" + Iterables.size(pair._2());
               }
             }).collect().toString();
     System.out.print(s);
