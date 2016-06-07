@@ -246,7 +246,6 @@ public class SqlValidatorUtil {
    * aware version.
    *
    * @param nameList List of strings
-   * @param caseSensitive Whether this uniquification should be case sensitive.
    * @return List of unique strings
    */
   @Deprecated public static List<String> uniquify(List<String> nameList) {
