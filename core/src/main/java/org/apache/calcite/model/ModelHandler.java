@@ -212,7 +212,7 @@ public class ModelHandler {
               jsonSchema.factory);
       final Schema schema =
           schemaFactory.create(
-              parentSchema, jsonSchema.name, operandMap(jsonSchema.operand));
+              parentSchema, jsonSchema.name, operandMap(jsonSchema, jsonSchema.operand));
       final SchemaPlus schemaPlus = parentSchema.add(jsonSchema.name, schema);
       populateSchema(jsonSchema, schemaPlus);
     } catch (Exception e) {
@@ -221,7 +221,8 @@ public class ModelHandler {
   }
 
   /** Adds extra entries to an operand to a custom schema. */
-  protected Map<String, Object> operandMap(Map<String, Object> operand) {
+  protected Map<String, Object> operandMap(JsonSchema jsonSchema,
+      Map<String, Object> operand) {
     if (operand == null) {
       return ImmutableMap.of();
     }
@@ -238,6 +239,13 @@ public class ModelHandler {
             final File file = new File(modelUri);
             builder.put(extraOperand.camelName, file.getParentFile());
           }
+          break;
+        case TABLES:
+          if (jsonSchema instanceof JsonCustomSchema) {
+            builder.put(extraOperand.camelName,
+                ((JsonCustomSchema) jsonSchema).tables);
+          }
+          break;
         }
       }
     }
@@ -338,7 +346,7 @@ public class ModelHandler {
               jsonTable.factory);
       final Table table =
           tableFactory.create(schema, jsonTable.name,
-              operandMap(jsonTable.operand), null);
+              operandMap(null, jsonTable.operand), null);
       schema.add(jsonTable.name, table);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonTable, e);
@@ -428,7 +436,10 @@ public class ModelHandler {
     MODEL_URI("modelUri"),
 
     /** Base directory from which to read files. */
-    BASE_DIRECTORY("baseDirectory");
+    BASE_DIRECTORY("baseDirectory"),
+
+    /** Tables defined in this schema. */
+    TABLES("tables");
 
     public final String camelName;
 

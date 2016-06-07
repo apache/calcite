@@ -17,17 +17,15 @@
 package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +37,11 @@ import java.util.Set;
  * <p>A table corresponds to what Druid calls a "data source".
  */
 public class DruidTableFactory implements TableFactory {
+  @SuppressWarnings("unused")
+  public static final DruidTableFactory INSTANCE = new DruidTableFactory();
+
+  private DruidTableFactory() {}
+
   public Table create(SchemaPlus schema, String name, Map operand,
       RelDataType rowType) {
     final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
@@ -46,17 +49,18 @@ public class DruidTableFactory implements TableFactory {
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
     String timestampColumnName = (String) operand.get("timestampColumn");
-    final ImmutableMap.Builder<String, SqlTypeName> fieldBuilder =
-        ImmutableMap.builder();
-    if (operand.get("dimensions") != null) {
+    final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
+    final Object dimensionsRaw = operand.get("dimensions");
+    if (dimensionsRaw instanceof List) {
       //noinspection unchecked
-      final List<String> dimensions = (List<String>) operand.get("dimensions");
+      final List<String> dimensions = (List<String>) dimensionsRaw;
       for (String dimension : dimensions) {
         fieldBuilder.put(dimension, SqlTypeName.VARCHAR);
       }
     }
-    if (operand.get("metrics") != null) {
-      final List metrics = (List) operand.get("metrics");
+    final Object metricsRaw = operand.get("metrics");
+    if (metricsRaw instanceof List) {
+      final List metrics = (List) metricsRaw;
       for (Object metric : metrics) {
         final SqlTypeName sqlTypeName;
         final String metricName;
@@ -83,32 +87,23 @@ public class DruidTableFactory implements TableFactory {
         metricNameBuilder.add(metricName);
       }
     }
-    fieldBuilder.put(timestampColumnName, SqlTypeName.VARCHAR);
-    final ImmutableMap<String, SqlTypeName> fields = fieldBuilder.build();
-    String interval = Util.first((String) operand.get("interval"),
-        "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z");
-    return new DruidTable(druidSchema, Util.first(dataSource, name),
-        new MapRelProtoDataType(fields),
-        ImmutableSet.copyOf(metricNameBuilder), interval, timestampColumnName);
+    if (timestampColumnName != null) {
+      fieldBuilder.put(timestampColumnName, SqlTypeName.VARCHAR);
+    }
+    final String dataSourceName = Util.first(dataSource, name);
+    DruidConnectionImpl c;
+    if (dimensionsRaw == null || metricsRaw == null) {
+      c = new DruidConnectionImpl(druidSchema.url, druidSchema.url.replace(":8082", ":8081"));
+    } else {
+      c = null;
+    }
+    final Object interval = operand.get("interval");
+    final List<String> intervals = interval instanceof String
+        ? ImmutableList.of((String) interval) : null;
+    return DruidTable.create(druidSchema, dataSourceName, intervals,
+        fieldBuilder, metricNameBuilder, timestampColumnName, c);
   }
 
-  /** Creates a {@link org.apache.calcite.rel.type.RelDataType} from a map of
-   * field names and types. */
-  private static class MapRelProtoDataType implements RelProtoDataType {
-    private final ImmutableMap<String, SqlTypeName> fields;
-
-    public MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields) {
-      this.fields = fields;
-    }
-
-    public RelDataType apply(RelDataTypeFactory typeFactory) {
-      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
-      for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
-        builder.add(field.getKey(), field.getValue()).nullable(true);
-      }
-      return builder.build();
-    }
-  }
 }
 
 // End DruidTableFactory.java

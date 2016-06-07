@@ -51,7 +51,8 @@ A basic example of a model file is given below:
       "name": "wiki",
       "factory": "org.apache.calcite.adapter.druid.DruidSchemaFactory",
       "operand": {
-        "url": "http://localhost:8082/druid/v2/?pretty"
+        "url": "http://localhost:8082",
+        "coordinatorUrl": "http://localhost:8081"
       },
       "tables": [
         {

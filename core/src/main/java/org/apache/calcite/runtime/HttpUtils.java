@@ -126,7 +126,8 @@ public class HttpUtils {
       Map<String, String> headers,
       int cTimeout,
       int rTimeout) throws IOException {
-    return executeMethod("POST", url, data, headers, cTimeout, rTimeout);
+    return executeMethod(data == null ? "GET" : "POST", url, data, headers,
+        cTimeout, rTimeout);
   }
 
   public static InputStream executeMethod(

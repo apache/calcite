@@ -23,14 +23,19 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,6 +43,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -49,21 +55,26 @@ import static org.apache.calcite.runtime.HttpUtils.post;
  * Implementation of {@link DruidConnection}.
  */
 class DruidConnectionImpl implements DruidConnection {
-  final String url;
+  private final String url;
+  private final String coordinatorUrl;
 
-  public DruidConnectionImpl(String url) {
-    this.url = url;
+  public DruidConnectionImpl(String url, String coordinatorUrl) {
+    this.url = Preconditions.checkNotNull(url);
+    this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
   }
 
   public void request(QueryType queryType, String data, Sink sink,
       List<String> fieldNames, Page page) throws IOException {
+    final String url = this.url + "/druid/v2/?pretty";
+    final Map<String, String> requestHeaders =
+        ImmutableMap.of("Content-Type", "application/json");
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println(data);
     }
-    final Map<String, String> requestHeaders =
-        ImmutableMap.of("Content-Type", "application/json");
-    final InputStream in = post(url, data, requestHeaders, 10000, 1800000);
-    parse(queryType, in, sink, fieldNames, page);
+    try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
+         InputStream in = traceResponse(in0)) {
+      parse(queryType, in, sink, fieldNames, page);
+    }
   }
 
   /** Parses the output of a {@code topN} query, sending the results to a
@@ -290,6 +301,77 @@ class DruidConnectionImpl implements DruidConnection {
     };
   }
 
+  /** Reads segment metadata, and populates a list of columns and metrics. */
+  void metadata(String dataSourceName, List<String> intervals,
+      Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
+    final String url = this.url + "/druid/v2/?pretty";
+    final Map<String, String> requestHeaders =
+        ImmutableMap.of("Content-Type", "application/json");
+    final String data = DruidQuery.metadataQuery(dataSourceName, intervals);
+    if (CalcitePrepareImpl.DEBUG) {
+      System.out.println("Druid: " + data);
+    }
+    try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
+         InputStream in = traceResponse(in0)) {
+      final ObjectMapper mapper = new ObjectMapper();
+      final CollectionType listType =
+          mapper.getTypeFactory().constructCollectionType(List.class,
+              JsonSegmentMetadata.class);
+      final List<JsonSegmentMetadata> list = mapper.readValue(in, listType);
+      in.close();
+      for (JsonSegmentMetadata o : list) {
+        for (Map.Entry<String, JsonColumn> entry : o.columns.entrySet()) {
+          fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
+        }
+        if (o.aggregators != null) {
+          for (Map.Entry<String, JsonAggregator> entry
+              : o.aggregators.entrySet()) {
+            fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
+            metricNameBuilder.add(entry.getKey());
+          }
+        }
+      }
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
+    }
+  }
+
+  /** Reads data source names from Druid. */
+  Set<String> tableNames() {
+    final Map<String, String> requestHeaders =
+        ImmutableMap.of("Content-Type", "application/json");
+    final String data = null;
+    final String url = coordinatorUrl + "/druid/coordinator/v1/metadata/datasources";
+    if (CalcitePrepareImpl.DEBUG) {
+      System.out.println("Druid: table names" + data + "; " + url);
+    }
+    try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
+         InputStream in = traceResponse(in0)) {
+      final ObjectMapper mapper = new ObjectMapper();
+      final CollectionType listType =
+          mapper.getTypeFactory().constructCollectionType(List.class,
+              String.class);
+      final List<String> list = mapper.readValue(in, listType);
+      return ImmutableSet.copyOf(list);
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
+    }
+  }
+
+  private InputStream traceResponse(InputStream in) {
+    if (CalcitePrepareImpl.DEBUG) {
+      try {
+        final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
+        in.close();
+        System.out.println("Response: " + new String(bytes));
+        in = new ByteArrayInputStream(bytes);
+      } catch (IOException e) {
+        throw Throwables.propagate(e);
+      }
+    }
+    return in;
+  }
+
   /** A {@link Sink} that is also {@link Runnable}. */
   private interface RunnableQueueSink extends Sink, Runnable {
   }
@@ -341,6 +423,63 @@ class DruidConnectionImpl implements DruidConnection {
 
     @Override public String toString() {
       return "{" + pagingIdentifier + ": " + offset + "}";
+    }
+  }
+
+
+  /** Result of a "segmentMetadata" call, populated by Jackson. */
+  @SuppressWarnings({ "WeakerAccess", "unused" })
+  private static class JsonSegmentMetadata {
+    public String id;
+    public List<String> intervals;
+    public Map<String, JsonColumn> columns;
+    public int size;
+    public int numRows;
+    public Map<String, JsonAggregator> aggregators;
+  }
+
+  /** Element of the "columns" collection in the result of a
+   * "segmentMetadata" call, populated by Jackson. */
+  @SuppressWarnings({ "WeakerAccess", "unused" })
+  private static class JsonColumn {
+    public String type;
+    public boolean hasMultipleValues;
+    public int size;
+    public Integer cardinality;
+    public String errorMessage;
+
+    SqlTypeName sqlType() {
+      return sqlType(type);
+    }
+
+    static SqlTypeName sqlType(String type) {
+      switch (type) {
+      case "LONG":
+        return SqlTypeName.BIGINT;
+      case "DOUBLE":
+        return SqlTypeName.DOUBLE;
+      case "FLOAT":
+        return SqlTypeName.REAL;
+      case "STRING":
+        return SqlTypeName.VARCHAR;
+      case "hyperUnique":
+        return SqlTypeName.VARBINARY;
+      default:
+        throw new AssertionError("unknown type " + type);
+      }
+    }
+  }
+
+  /** Element of the "aggregators" collection in the result of a
+   * "segmentMetadata" call, populated by Jackson. */
+  @SuppressWarnings({ "WeakerAccess", "unused" })
+  private static class JsonAggregator {
+    public String type;
+    public String name;
+    public String fieldName;
+
+    SqlTypeName sqlType() {
+      return JsonColumn.sqlType(type);
     }
   }
 }

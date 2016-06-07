@@ -18,30 +18,62 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
 
 /**
  * Schema mapped onto a Druid instance.
  */
 public class DruidSchema extends AbstractSchema {
   final String url;
+  final String coordinatorUrl;
+  private final boolean discoverTables;
 
   /**
    * Creates a Druid schema.
    *
-   * @param url URL of query REST service
+   * @param url URL of query REST service, e.g. "http://localhost:8082"
+   * @param coordinatorUrl URL of coordinator REST service,
+   *                       e.g. "http://localhost:8081"
+   * @param discoverTables If true, ask Druid what tables exist;
+   *                       if false, only create tables explicitly in the model
    */
-  public DruidSchema(String url) {
+  public DruidSchema(String url, String coordinatorUrl,
+      boolean discoverTables) {
     this.url = Preconditions.checkNotNull(url);
+    this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
+    this.discoverTables = discoverTables;
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    return builder.build();
+    if (!discoverTables) {
+      return ImmutableMap.of();
+    }
+    final DruidConnectionImpl connection =
+        new DruidConnectionImpl(url, coordinatorUrl);
+    return Maps.asMap(ImmutableSet.copyOf(connection.tableNames()),
+        CacheBuilder.<String, Table>newBuilder()
+            .build(new CacheLoader<String, Table>() {
+              public Table load(@Nonnull String tableName) throws Exception {
+                final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
+                final Set<String> metricNameSet = new LinkedHashSet<>();
+                connection.metadata(tableName, null, fieldMap, metricNameSet);
+                return DruidTable.create(DruidSchema.this, tableName, null,
+                    fieldMap, metricNameSet, null, connection);
+              }
+            }));
   }
 }
 

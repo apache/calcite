@@ -13,6 +13,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Druid model that has one table defined, and table has no columns, so adapter
+ * needs to discover columns.
  */
 {
   "version": "1.0",
@@ -33,51 +36,7 @@
           "operand": {
             "dataSource": "wikiticker",
             "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
-            "timestampColumn": "time",
-            "dimensions": [
-              "channel",
-              "cityName",
-              "comment",
-              "countryIsoCode",
-              "countryName",
-              "isAnonymous",
-              "isMinor",
-              "isNew",
-              "isRobot",
-              "isUnpatrolled",
-              "metroCode",
-              "namespace",
-              "page",
-              "regionIsoCode",
-              "regionName",
-              "user"
-            ],
-            "metrics": [
-              {
-                "name" : "count",
-                "type" : "count"
-              },
-              {
-                "name" : "added",
-                "type" : "longSum",
-                "fieldName" : "added"
-              },
-              {
-                "name" : "deleted",
-                "type" : "longSum",
-                "fieldName" : "deleted"
-              },
-              {
-                "name" : "delta",
-                "type" : "longSum",
-                "fieldName" : "delta"
-              },
-              {
-                "name" : "user_unique",
-                "type" : "hyperUnique",
-                "fieldName" : "user"
-              }
-            ]
+            "timestampColumn": "time"
           }
         }
       ]

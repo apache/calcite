@@ -25,25 +25,33 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Table mapped onto a Druid table.
  */
 public class DruidTable extends AbstractTable implements TranslatableTable {
+  protected static final String DEFAULT_INTERVAL =
+      "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z";
   final DruidSchema schema;
   final String dataSource;
   final RelProtoDataType protoRowType;
   final ImmutableSet<String> metricFieldNames;
-  final String interval;
+  final List<String> intervals;
   final String timestampFieldName;
 
   /**
@@ -53,18 +61,50 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @param dataSource Druid data source name
    * @param protoRowType Field names and types
    * @param metricFieldNames Names of fields that are metrics
-   * @param interval Default interval if query does not constrain the time
+   * @param intervals Default interval if query does not constrain the time, or null
    * @param timestampFieldName Name of the column that contains the time
    */
   public DruidTable(DruidSchema schema, String dataSource,
-      RelProtoDataType protoRowType, Set<String> metricFieldNames, String interval,
+      RelProtoDataType protoRowType, Set<String> metricFieldNames, List<String> intervals,
       String timestampFieldName) {
     this.timestampFieldName = Preconditions.checkNotNull(timestampFieldName);
     this.schema = Preconditions.checkNotNull(schema);
     this.dataSource = Preconditions.checkNotNull(dataSource);
     this.protoRowType = protoRowType;
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
-    this.interval = Preconditions.checkNotNull(interval);
+    this.intervals = Preconditions.checkNotNull(
+        Util.first(intervals, ImmutableList.of(DEFAULT_INTERVAL)));
+  }
+
+  /** Creates a {@link DruidTable}
+   *
+   * @param druidSchema Druid schema
+   * @param dataSourceName Data source name in Druid, also table name
+   * @param intervals Intervals, or null to use default
+   * @param fieldMap Mutable map of fields (dimensions plus metrics);
+   *        may be partially populated already
+   * @param metricNameSet Mutable set of metric names;
+   *        may be partially populated already
+   * @param timestampColumnName Name of timestamp column, or null
+   * @param connection If not null, use this connection to find column
+   *                   definitions
+   * @return A table
+   */
+  static Table create(DruidSchema druidSchema, String dataSourceName,
+      List<String> intervals, Map<String, SqlTypeName> fieldMap,
+      Set<String> metricNameSet, String timestampColumnName,
+      DruidConnectionImpl connection) {
+    if (connection != null) {
+      connection.metadata(dataSourceName, intervals, fieldMap, metricNameSet);
+    }
+    final ImmutableMap<String, SqlTypeName> fields =
+        ImmutableMap.copyOf(fieldMap);
+    if (timestampColumnName == null) {
+      timestampColumnName = Iterables.get(fieldMap.keySet(), 0);
+    }
+    return new DruidTable(druidSchema, dataSourceName,
+        new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
+        intervals, Util.first(timestampColumnName, "__time"));
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -84,6 +124,23 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         ImmutableList.<RelNode>of(scan));
   }
 
+  /** Creates a {@link RelDataType} from a map of
+   * field names and types. */
+  private static class MapRelProtoDataType implements RelProtoDataType {
+    private final ImmutableMap<String, SqlTypeName> fields;
+
+    MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields) {
+      this.fields = fields;
+    }
+
+    public RelDataType apply(RelDataTypeFactory typeFactory) {
+      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
+        builder.add(field.getKey(), field.getValue()).nullable(true);
+      }
+      return builder.build();
+    }
+  }
 }
 
 // End DruidTable.java
