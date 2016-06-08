@@ -2382,6 +2382,15 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test public void testDistinctNonDistinctAggregates() {
+    final HepProgram program = HepProgram.builder()
+            .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+            .build();
+    checkPlanning(program, "select emp.empno, count(*), avg(distinct dept.deptno)\n"
+            + " from sales.emp emp inner join sales.dept dept\n"
+            + " on emp.deptno = dept.deptno\n"
+            + " group by emp.empno");
+  }
 }
 
 // End RelOptRulesTest.java
