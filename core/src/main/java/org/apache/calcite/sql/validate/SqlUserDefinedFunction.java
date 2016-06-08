@@ -56,7 +56,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
         SqlFunctionCategory.USER_DEFINED_FUNCTION);
   }
 
-  public SqlUserDefinedFunction(SqlIdentifier opName,
+  protected SqlUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,

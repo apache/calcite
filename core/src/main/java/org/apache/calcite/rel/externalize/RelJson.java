@@ -339,7 +339,7 @@ public class RelJson {
           map.put("type", toJson(node.getType()));
         }
         if (call.getOperator() instanceof SqlFunction) {
-          if (((SqlFunction) call.getOperator()).getFunctionType().isUserdefined()) {
+          if (((SqlFunction) call.getOperator()).getFunctionType().isUserDefined()) {
             map.put("class", call.getOperator().getClass().getName());
           }
         }

@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelWriterTest;
 import org.apache.calcite.plan.volcano.TraitPropagationTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTest;
 import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
+import org.apache.calcite.prepare.LookupOperatorOverloadsTest;
 import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rex.RexBuilderTest;
@@ -119,6 +120,7 @@ import org.junit.runners.Suite;
     ChunkListTest.class,
     FrameworksTest.class,
     EnumerableCorrelateTest.class,
+    LookupOperatorOverloadsTest.class,
 
     // slow tests (above 1s)
     UdfTest.class,

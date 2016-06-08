@@ -41,7 +41,7 @@ public enum SqlFunctionCategory {
     Util.discard(description);
   }
 
-  public final boolean isUserdefined() {
+  public final boolean isUserDefined() {
     return isOneOf(
         USER_DEFINED_FUNCTION,
         USER_DEFINED_PROCEDURE,
@@ -63,7 +63,7 @@ public enum SqlFunctionCategory {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  public final boolean isUnresolvedUserDefinedFunction() {
+  public final boolean isUserDefinedNotSpecificFunction() {
     return isOneOf(
         USER_DEFINED_FUNCTION,
         USER_DEFINED_TABLE_FUNCTION);

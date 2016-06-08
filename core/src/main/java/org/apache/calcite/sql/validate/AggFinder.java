@@ -25,12 +25,12 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Util;
 
-import static org.apache.calcite.sql.SqlKind.QUERY;
-import static org.apache.calcite.sql.SqlSyntax.FUNCTION;
-
 import com.google.common.collect.Lists;
 
 import java.util.List;
+
+import static org.apache.calcite.sql.SqlKind.QUERY;
+import static org.apache.calcite.sql.SqlSyntax.FUNCTION;
 
 /**
  * Visitor which looks for an aggregate function inside a tree of
@@ -113,7 +113,7 @@ class AggFinder extends SqlBasicVisitor<Void> {
     // User-defined function may not be resolved yet.
     if (operator instanceof SqlFunction) {
       SqlFunction sqlFunction = (SqlFunction) operator;
-      if (sqlFunction.getFunctionType().isUnresolvedUserDefinedFunction()) {
+      if (sqlFunction.getFunctionType().isUserDefinedNotSpecificFunction()) {
         final List<SqlOperator> list = Lists.newArrayList();
         opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
             sqlFunction.getFunctionType(), FUNCTION, list);

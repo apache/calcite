@@ -60,10 +60,11 @@ import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+
+import javax.annotation.Nullable;
 
 /**
  * Implementation of {@link org.apache.calcite.prepare.Prepare.CatalogReader}
@@ -227,25 +228,30 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public void lookupOperatorOverloads(final SqlIdentifier opName,
-      SqlFunctionCategory category,
+      final SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList) {
     if (syntax != SqlSyntax.FUNCTION) {
       return;
     }
-    final Collection<Function> functions = getFunctionsFrom(opName.names);
-    for (Iterator<Function> iterator = functions.iterator(); iterator.hasNext();) {
-      Function function = iterator.next();
-      if (function instanceof TableMacro || function instanceof TableFunction) {
-        if (category == null || !category.isTableFunction()) {
-          iterator.remove();
-        }
-      } else {
-        if (category != null && category.isTableFunction()) {
-          iterator.remove();
+    final Collection<Function> functionsOld = getFunctionsFrom(opName.names);
+
+    final Collection<Function> functions = Collections2.filter(functionsOld,
+      new Predicate<Function>() {
+        @Override public boolean apply(@Nullable Function function) {
+          if (function instanceof TableMacro || function instanceof TableFunction) {
+            if (category == null || !category.isTableFunction()) {
+              return false;
+            }
+          } else {
+            if (category != null && category.isTableFunction()) {
+              return false;
+            }
+          }
+          return true;
         }
       }
-    }
+    );
     if (functions.isEmpty()) {
       return;
     }

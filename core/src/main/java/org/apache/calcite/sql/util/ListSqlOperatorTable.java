@@ -69,7 +69,7 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
       } else {
         functionCategory = SqlFunctionCategory.SYSTEM;
       }
-      if (category != functionCategory && !category.isUnresolvedUserDefinedFunction()) {
+      if (category != functionCategory && !category.isUserDefinedNotSpecificFunction()) {
         continue;
       }
       operatorList.add(operator);
