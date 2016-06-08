@@ -399,9 +399,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeFieldName("pagingSpec");
         generator.writeStartObject();
         final int fetch =
-            Integer.parseInt(
-                CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties())
-                    .getString());
+            CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties())
+                .getInt();
         generator.writeNumberField("threshold", fetch);
         generator.writeEndObject();
 
