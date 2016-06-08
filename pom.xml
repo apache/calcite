@@ -474,6 +474,9 @@ limitations under the License.
             <!-- Images -->
             <exclude>site/img/*.png</exclude>
             <exclude>site/favicon.ico</exclude>
+
+            <!-- Not source files, generated during the release process -->
+            <exclude>git.properties</exclude>
           </excludes>
         </configuration>
       </plugin>
