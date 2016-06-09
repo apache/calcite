@@ -22,6 +22,7 @@ import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
@@ -40,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -58,13 +60,24 @@ class DruidConnectionImpl implements DruidConnection {
   private final String url;
   private final String coordinatorUrl;
 
-  public DruidConnectionImpl(String url, String coordinatorUrl) {
+  DruidConnectionImpl(String url, String coordinatorUrl) {
     this.url = Preconditions.checkNotNull(url);
     this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
   }
 
+  /** Executes a query request.
+   *
+   * @param queryType Query type
+   * @param data Data to post
+   * @param sink Sink to which to send the parsed rows
+   * @param fieldNames Names of fields
+   * @param fieldTypes Types of fields (never null, but elements may be null)
+   * @param page Page definition (in/out)
+   * @throws IOException on error
+   */
   public void request(QueryType queryType, String data, Sink sink,
-      List<String> fieldNames, Page page) throws IOException {
+      List<String> fieldNames, List<Primitive> fieldTypes, Page page)
+      throws IOException {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
@@ -73,14 +86,14 @@ class DruidConnectionImpl implements DruidConnection {
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
-      parse(queryType, in, sink, fieldNames, page);
+      parse(queryType, in, sink, fieldNames, fieldTypes, page);
     }
   }
 
   /** Parses the output of a {@code topN} query, sending the results to a
    * {@link Sink}. */
   private void parse(QueryType queryType, InputStream in, Sink sink,
-      List<String> fieldNames, Page page) {
+      List<String> fieldNames, List<Primitive> fieldTypes, Page page) {
     final JsonFactory factory = new JsonFactory();
     final Row.RowBuilder rowBuilder = Row.newBuilder(fieldNames.size());
 
@@ -105,7 +118,7 @@ class DruidConnectionImpl implements DruidConnection {
               && parser.nextToken() == JsonToken.START_ARRAY) {
             while (parser.nextToken() == JsonToken.START_OBJECT) {
               // loop until token equal to "}"
-              parseFields(fieldNames, rowBuilder, parser);
+              parseFields(fieldNames, fieldTypes, rowBuilder, parser);
               sink.send(rowBuilder.build());
               rowBuilder.reset();
             }
@@ -145,7 +158,7 @@ class DruidConnectionImpl implements DruidConnection {
                 if (parser.nextToken() == JsonToken.FIELD_NAME
                     && parser.getCurrentName().equals("event")
                     && parser.nextToken() == JsonToken.START_OBJECT) {
-                  parseFields(fieldNames, rowBuilder, parser);
+                  parseFields(fieldNames, fieldTypes, rowBuilder, parser);
                   sink.send(rowBuilder.build());
                   rowBuilder.reset();
                 }
@@ -165,7 +178,7 @@ class DruidConnectionImpl implements DruidConnection {
             if (parser.nextToken() == JsonToken.FIELD_NAME
                 && parser.getCurrentName().equals("event")
                 && parser.nextToken() == JsonToken.START_OBJECT) {
-              parseFields(fieldNames, rowBuilder, parser);
+              parseFields(fieldNames, fieldTypes, rowBuilder, parser);
               sink.send(rowBuilder.build());
               rowBuilder.reset();
             }
@@ -178,15 +191,15 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private void parseFields(List<String> fieldNames, Row.RowBuilder rowBuilder,
-      JsonParser parser) throws IOException {
+  private void parseFields(List<String> fieldNames, List<Primitive> fieldTypes,
+      Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     while (parser.nextToken() == JsonToken.FIELD_NAME) {
-      parseField(fieldNames, rowBuilder, parser);
+      parseField(fieldNames, fieldTypes, rowBuilder, parser);
     }
   }
 
-  private void parseField(List<String> fieldNames, Row.RowBuilder rowBuilder,
-      JsonParser parser) throws IOException {
+  private void parseField(List<String> fieldNames, List<Primitive> fieldTypes,
+      Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     final String fieldName = parser.getCurrentName();
 
     // Move to next token, which is name's value
@@ -197,10 +210,35 @@ class DruidConnectionImpl implements DruidConnection {
     }
     switch (token) {
     case VALUE_NUMBER_INT:
-      rowBuilder.set(i, parser.getIntValue());
-      break;
     case VALUE_NUMBER_FLOAT:
-      rowBuilder.set(i, parser.getDoubleValue());
+      Primitive type = fieldTypes.get(i);
+      if (type == null) {
+        if (token == JsonToken.VALUE_NUMBER_INT) {
+          type = Primitive.INT;
+        } else {
+          type = Primitive.FLOAT;
+        }
+      }
+      switch (type) {
+      case BYTE:
+        rowBuilder.set(i, parser.getIntValue());
+        break;
+      case SHORT:
+        rowBuilder.set(i, parser.getShortValue());
+        break;
+      case INT:
+        rowBuilder.set(i, parser.getIntValue());
+        break;
+      case LONG:
+        rowBuilder.set(i, parser.getLongValue());
+        break;
+      case FLOAT:
+        rowBuilder.set(i, parser.getFloatValue());
+        break;
+      case DOUBLE:
+        rowBuilder.set(i, parser.getDoubleValue());
+        break;
+      }
       break;
     case VALUE_TRUE:
       rowBuilder.set(i, true);
@@ -287,7 +325,9 @@ class DruidConnectionImpl implements DruidConnection {
           public void run() {
             try {
               final Page page = new Page();
-              request(queryType, request, this, fieldNames, page);
+              final List<Primitive> fieldTypes =
+                  Collections.nCopies(fieldNames.size(), null);
+              request(queryType, request, this, fieldNames, fieldTypes, page);
               enumerator.done.set(true);
             } catch (Throwable e) {
               enumerator.throwableHolder.set(e);

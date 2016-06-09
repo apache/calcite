@@ -24,6 +24,7 @@ import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.interpreter.Node;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -41,6 +42,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -674,6 +676,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     public void run() throws InterruptedException {
+      final List<Primitive> fieldTypes = new ArrayList<>();
+      for (RelDataTypeField field : query.getRowType().getFieldList()) {
+        fieldTypes.add(getPrimitive(field));
+      }
       try {
         final DruidConnectionImpl connection =
             new DruidConnectionImpl(query.druidTable.schema.url,
@@ -685,10 +691,30 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           final String queryString =
               querySpec.getQueryString(page.pagingIdentifier, page.offset);
           connection.request(querySpec.queryType, queryString, sink,
-              querySpec.fieldNames, page);
+              querySpec.fieldNames, fieldTypes, page);
         } while (page.pagingIdentifier != null && page.offset > previousOffset);
       } catch (IOException e) {
         throw Throwables.propagate(e);
+      }
+    }
+
+    private Primitive getPrimitive(RelDataTypeField field) {
+      switch (field.getType().getSqlTypeName()) {
+      case BIGINT:
+        return Primitive.LONG;
+      case INTEGER:
+        return Primitive.INT;
+      case SMALLINT:
+        return Primitive.SHORT;
+      case TINYINT:
+        return Primitive.BYTE;
+      case REAL:
+        return Primitive.FLOAT;
+      case DOUBLE:
+      case FLOAT:
+        return Primitive.DOUBLE;
+      default:
+        return null;
       }
     }
   }

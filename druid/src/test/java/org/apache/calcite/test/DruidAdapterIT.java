@@ -200,6 +200,29 @@ public class DruidAdapterIT {
         .explainContains(explain);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1281">[CALCITE-1281]
+   * Druid adapter wrongly returns all numeric values as int or float</a>. */
+  @Test public void testSelectCount() {
+    final String sql = "select count(*) as c from \"foodmart\"";
+    sql(sql)
+        .returns(new Function<ResultSet, Void>() {
+          public Void apply(ResultSet input) {
+            try {
+              assertThat(input.next(), is(true));
+              assertThat(input.getInt(1), is(86829));
+              assertThat(input.getLong(1), is(86829L));
+              assertThat(input.getString(1), is("86829"));
+              assertThat(input.wasNull(), is(false));
+              assertThat(input.next(), is(false));
+              return null;
+            } catch (SQLException e) {
+              throw Throwables.propagate(e);
+            }
+          }
+        });
+  }
+
   @Test public void testSort() {
     // Note: We do not push down SORT yet
     final String explain = "PLAN="
@@ -455,7 +478,6 @@ public class DruidAdapterIT {
             "C=21610; state_province=OR");
   }
 
-  @Ignore("TODO: fix invalid cast from Integer to Long")
   @Test public void testGroupByAvgSumCount() {
     final String sql = "select \"state_province\",\n"
         + " avg(\"unit_sales\") as a,\n"
@@ -467,11 +489,14 @@ public class DruidAdapterIT {
         + "order by 1";
     String druidQuery = "'aggregations':["
         + "{'type':'longSum','name':'$f1','fieldName':'unit_sales'},"
-        + "{'type':'count','name':'$f2'}]";
+        + "{'type':'count','name':'$f2','fieldName':'unit_sales'},"
+        + "{'type':'count','name':'C','fieldName':'store_sqft'},"
+        + "{'type':'count','name':'C0'}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql)
         .limit(2)
-        .returnsUnordered("state_province=CA; A=3; S=74748; C=23190; C0=23190",
-            "state_province=OR; A=3; S=67659; C=19027; C0=19027")
+        .returnsUnordered("state_province=CA; A=3; S=74748; C=24441; C0=24441",
+            "state_province=OR; A=3; S=67659; C=21610; C0=21610")
         .queryContains(druidChecker(druidQuery));
   }
 
