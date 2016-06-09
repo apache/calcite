@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -42,8 +43,17 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR;
+import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_FUNCTION;
+import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_PROCEDURE;
+import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_SPECIFIC_FUNCTION;
+import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
+import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import static java.util.Arrays.asList;
 
 /**
  * Test for lookupOperatorOverloads() in {@link CalciteCatalogReader}
@@ -57,6 +67,64 @@ public class LookupOperatorOverloadsTest {
       assertTrue(op instanceof SqlUserDefinedTableFunction);
       assertTrue(name.equals(op.getName()));
     }
+  }
+
+  @Test
+  public void testIsUserDefined() throws SQLException {
+    List<SqlFunctionCategory> cats = new ArrayList<>();
+    for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
+      if (sqlFunctionCategory.isUserDefined()) {
+        cats.add(sqlFunctionCategory);
+      }
+    }
+    assertEquals(
+        asList(
+            USER_DEFINED_FUNCTION,
+            USER_DEFINED_PROCEDURE,
+            USER_DEFINED_CONSTRUCTOR,
+            USER_DEFINED_SPECIFIC_FUNCTION,
+            USER_DEFINED_TABLE_FUNCTION,
+            USER_DEFINED_TABLE_SPECIFIC_FUNCTION),
+        cats);
+  }
+
+  @Test
+  public void testIsTableFunction() throws SQLException {
+    List<SqlFunctionCategory> cats = new ArrayList<>();
+    for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
+      if (sqlFunctionCategory.isTableFunction()) {
+        cats.add(sqlFunctionCategory);
+      }
+    }
+    assertEquals(
+        asList(USER_DEFINED_TABLE_FUNCTION, USER_DEFINED_TABLE_SPECIFIC_FUNCTION),
+        cats);
+  }
+
+  @Test
+  public void testIsSpecific() throws SQLException {
+    List<SqlFunctionCategory> cats = new ArrayList<>();
+    for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
+      if (sqlFunctionCategory.isSpecific()) {
+        cats.add(sqlFunctionCategory);
+      }
+    }
+    assertEquals(
+        asList(USER_DEFINED_SPECIFIC_FUNCTION, USER_DEFINED_TABLE_SPECIFIC_FUNCTION),
+        cats);
+  }
+
+  @Test
+  public void testIsUserDefinedNotSpecificFunction() throws SQLException {
+    List<SqlFunctionCategory> cats = new ArrayList<>();
+    for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
+      if (sqlFunctionCategory.isUserDefinedNotSpecificFunction()) {
+        cats.add(sqlFunctionCategory);
+      }
+    }
+    assertEquals(
+        asList(USER_DEFINED_FUNCTION, USER_DEFINED_TABLE_FUNCTION),
+        cats);
   }
 
   @Test
