@@ -226,11 +226,9 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       if (typeName == null) {
         return null;
       }
-
       if (typeName == SqlTypeName.ANY) {
         anyCount++;
       }
-
       if (type.isNullable()) {
         ++nullableCount;
       }
@@ -242,10 +240,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       }
     }
 
-
     //  if any of the inputs are ANY, the output is ANY
     if (anyCount > 0) {
-      return createTypeWithNullability(createSqlType(SqlTypeName.ANY), nullCount > 0);
+      return createTypeWithNullability(createSqlType(SqlTypeName.ANY),
+          nullCount > 0 || nullableCount > 0);
     }
 
     for (int i = 0; i < types.size(); ++i) {

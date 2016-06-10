@@ -23,33 +23,59 @@ import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 /**
- * Test for {@link SqlTypeFactoryImpl}
+ * Test for {@link SqlTypeFactoryImpl}.
  */
 public class SqlTypeFactoryTest {
 
-  @Test
-  public void testLeastRestrictiveWithAny() {
-    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataType sqlBigInt = typeFactory.createSqlType(SqlTypeName.BIGINT);
-    final RelDataType sqlAny = typeFactory.createSqlType(SqlTypeName.ANY);
-
+  @Test public void testLeastRestrictiveWithAny() {
+    Fixture f = new Fixture();
     RelDataType leastRestrictive =
-            typeFactory.leastRestrictive(Lists.newArrayList(sqlBigInt, sqlAny));
-    assertEquals(leastRestrictive.getSqlTypeName(), SqlTypeName.ANY);
+        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlBigInt, f.sqlAny));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ANY));
   }
 
-  @Test
-  public void testLeastRestrictiveWithNumbers() {
-    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataType sqlBigInt = typeFactory.createSqlType(SqlTypeName.BIGINT);
-    final RelDataType sqlInt = typeFactory.createSqlType(SqlTypeName.INTEGER);
-
+  @Test public void testLeastRestrictiveWithNumbers() {
+    Fixture f = new Fixture();
     RelDataType leastRestrictive =
-            typeFactory.leastRestrictive(Lists.newArrayList(sqlBigInt, sqlInt));
-    assertEquals(leastRestrictive.getSqlTypeName(), SqlTypeName.BIGINT);
+        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlBigInt, f.sqlInt));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.BIGINT));
   }
+
+  @Test public void testLeastRestrictiveWithNullability() {
+    Fixture f = new Fixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlVarcharNullable, f.sqlAny));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ANY));
+    assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
+  @Test public void testLeastRestrictiveWithNull() {
+    Fixture f = new Fixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlNull, f.sqlNull));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.NULL));
+    assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
+  /** Sets up data needed by a test. */
+  private static class Fixture {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType sqlBigInt = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.BIGINT), false);
+    final RelDataType sqlInt = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+    final RelDataType sqlVarcharNullable = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+    final RelDataType sqlNull = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.NULL), false);
+    final RelDataType sqlAny = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.ANY), false);
+  }
+
 }
+
 // End SqlTypeFactoryTest.java
