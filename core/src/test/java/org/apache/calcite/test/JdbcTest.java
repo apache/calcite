@@ -87,7 +87,6 @@ import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
@@ -100,21 +99,14 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import net.hydromatic.quidem.Quidem;
-
 import org.hsqldb.jdbcDriver;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.net.URL;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -4411,12 +4403,11 @@ public class JdbcTest {
             "U=b; V=c");
   }
 
-  /** Tests CALCITE-980: different flavors of boolean logic */
-  @Test public void testBooleansInWhere() throws Exception {
-    checkRun("sql/conditions.iq");
-  }
-
-  /** Tests CALCITE-980: different flavors of boolean logic */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-980">[CALCITE-980]
+   * different flavors of boolean logic</a>.
+   *
+   * @see QuidemTest sql/conditions.iq */
   @Ignore("Fails with org.codehaus.commons.compiler.CompileException: Line 16, Column 112:"
       + " Cannot compare types \"int\" and \"java.lang.String\"\n")
   @Test public void testComparingIntAndString() throws Exception {
@@ -4813,198 +4804,6 @@ public class JdbcTest {
             + "    (30, 'Engineering'),\n"
             + "    (40, 'Empty'))\n"
             + sql);
-  }
-
-  /** Runs the dummy script, which is checked in empty but which you may
-   * use as scratch space during development. */
-  // Do not add '@Ignore'; just remember not to commit changes to dummy.iq
-  @Test public void testRunDummy() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun("sql/dummy.iq");
-    }
-  }
-
-  @Test public void testRunAgg() throws Exception {
-    checkRun("sql/agg.iq");
-  }
-
-  @Test public void testRunJoin() throws Exception {
-    checkRun("sql/join.iq");
-  }
-
-  @Test public void testRunOuter() throws Exception {
-    checkRun("sql/outer.iq");
-  }
-
-  @Test public void testRunWinAgg() throws Exception {
-    checkRun("sql/winagg.iq");
-  }
-
-  @Test public void testRunMisc() throws Exception {
-    switch (CalciteAssert.DB) {
-    case ORACLE:
-      // There are formatting differences (e.g. "4.000" vs "4") when using
-      // Oracle as the JDBC data source.
-      return;
-    }
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun("sql/misc.iq");
-    }
-  }
-
-  @Test public void testRunSequence() throws Exception {
-    checkRun("sql/sequence.iq");
-  }
-
-  @Test public void testRunSort() throws Exception {
-    checkRun("sql/sort.iq");
-  }
-
-  @Test public void testRunScalar() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun("sql/scalar.iq");
-    }
-  }
-
-  @Test public void testRunSubquery() throws Exception {
-    checkRun("sql/subquery.iq");
-  }
-
-  private void checkRun(String path) throws Exception {
-    final File inFile;
-    final File outFile;
-    if (path.startsWith("/")) {
-      // e.g. path = "/tmp/foo.iq"
-      inFile = new File(path);
-      outFile = new File(path + ".out");
-    } else {
-      // e.g. path = "sql/outer.iq"
-      // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
-      final URL inUrl = JdbcTest.class.getResource("/" + path);
-      String x = inUrl.getFile();
-      assert x.endsWith(path);
-      x = x.substring(0, x.length() - path.length());
-      assert x.endsWith("/test-classes/");
-      x = x.substring(0, x.length() - "/test-classes/".length());
-      final File base = new File(x);
-      inFile = new File(base, "/test-classes/" + path);
-      outFile = new File(base, "/surefire/" + path);
-    }
-    outFile.getParentFile().mkdirs();
-    final FileReader fileReader = new FileReader(inFile);
-    final BufferedReader bufferedReader = new BufferedReader(fileReader);
-    final FileWriter writer = new FileWriter(outFile);
-    final Function<String, Object> env =
-        new Function<String, Object>() {
-          public Object apply(String varName) {
-            switch (varName) {
-            case "jdk18":
-              return System.getProperty("java.version").startsWith("1.8");
-            case "fixed":
-              return new Function<String, Object>() {
-                public Object apply(String v) {
-                  switch (v) {
-                  case "calcite1045":
-                    return Bug.CALCITE_1045_FIXED;
-                  case "calcite1048":
-                    return Bug.CALCITE_1048_FIXED;
-                  }
-                  return null;
-                }
-              };
-            default:
-              return null;
-            }
-          }
-        };
-    final Quidem.NewConnectionFactory connectionFactory =
-        new Quidem.NewConnectionFactory() {
-          public Connection connect(String name) throws Exception {
-            return connect(name, false);
-          }
-
-          public Connection connect(String name, boolean reference)
-              throws Exception {
-            if (reference) {
-              if (name.equals("foodmart")) {
-                final ConnectionSpec db =
-                    CalciteAssert.DatabaseInstance.HSQLDB.foodmart;
-                final Connection connection = DriverManager.getConnection(db.url,
-                    db.username,
-                    db.password);
-                connection.setSchema("foodmart");
-                return connection;
-              }
-              return null;
-            }
-            if (name.equals("hr")) {
-              return CalciteAssert.hr()
-                  .connect();
-            }
-            if (name.equals("foodmart")) {
-              return CalciteAssert.that()
-                  .with(CalciteAssert.Config.FOODMART_CLONE)
-                  .connect();
-            }
-            if (name.equals("scott")) {
-              return CalciteAssert.that()
-                  .with(CalciteAssert.Config.SCOTT)
-                  .connect();
-            }
-            if (name.equals("jdbc_scott")) {
-              return CalciteAssert.that()
-                  .with(CalciteAssert.Config.JDBC_SCOTT)
-                  .connect();
-            }
-            if (name.equals("post")) {
-              return CalciteAssert.that()
-                  .with(CalciteAssert.Config.REGULAR)
-                  .with(CalciteAssert.SchemaSpec.POST)
-                  .withDefaultSchema("POST")
-                  .connect();
-            }
-            if (name.equals("catchall")) {
-              return CalciteAssert.that()
-                  .withSchema("s",
-                      new ReflectiveSchema(
-                          new ReflectiveSchemaTest.CatchallSchema()))
-                  .connect();
-            }
-            if (name.equals("orinoco")) {
-              return CalciteAssert.that()
-                  .with(CalciteAssert.SchemaSpec.ORINOCO)
-                  .withDefaultSchema("ORINOCO")
-                  .connect();
-            }
-            if (name.equals("seq")) {
-              final Connection connection = CalciteAssert.that()
-                  .withSchema("s", new AbstractSchema())
-                  .connect();
-              connection.unwrap(CalciteConnection.class).getRootSchema()
-                  .getSubSchema("s")
-                  .add("my_seq",
-                      new AbstractTable() {
-                        public RelDataType getRowType(
-                            RelDataTypeFactory typeFactory) {
-                          return typeFactory.builder()
-                              .add("$seq", SqlTypeName.BIGINT).build();
-                        }
-
-                        @Override public Schema.TableType getJdbcTableType() {
-                          return Schema.TableType.SEQUENCE;
-                        }
-                      });
-              return connection;
-            }
-            throw new RuntimeException("unknown connection '" + name + "'");
-          }
-        };
-    new Quidem(bufferedReader, writer, env, connectionFactory).execute();
-    final String diff = DiffTestCase.diff(inFile, outFile);
-    if (!diff.isEmpty()) {
-      fail("Files differ: " + outFile + " " + inFile + "\n"
-          + diff);
-    }
   }
 
   @Test public void testScalarSubQueryUncorrelated() {

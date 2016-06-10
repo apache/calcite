@@ -134,6 +134,7 @@ import org.junit.runners.Suite;
     LatticeTest.class,
     ReflectiveSchemaTest.class,
     JdbcTest.class,
+    QuidemTest.class,
     CalciteRemoteDriverTest.class,
     StreamTest.class,
 
