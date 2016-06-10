@@ -17,7 +17,7 @@
 tck_jar: /home/user/avatica-tck-1.8.0-SNAPSHOT-shaded.jar
 
 # Global template, can be overriden in each version. <url> is automatically replaced by the framework
-client_url_template: jdbc:avatica:remote;url=<url>;serialization=PROTOBUF
+client_url_template: jdbc:avatica:remote:url=<url>;serialization=PROTOBUF
 
 # Specifies all versions to be tested against one another
 versions:
