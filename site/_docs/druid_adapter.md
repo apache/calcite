@@ -140,7 +140,7 @@ sqlline>
 {% endhighlight %}
 
 That query shows the top 5 countries of origin of wiki page edits
-on 2015-09-12 (the date covered by the wikiticker data set).
+on 2015-09-12 (the date covered by the `wikiticker` data set).
 
 Now let's see how the query was evaluated:
 
@@ -173,3 +173,103 @@ into a single Druid data set called "foodmart".
 
 You can access it via the
 `druid/src/test/resources/druid-foodmart-model.json` model.
+
+# Simplifying the model
+
+If less metadata is provided in the model, the Druid adapter can discover
+it automatically from Druid. Here is a schema equivalent to the previous one
+but with `dimensions`, `metrics` and `timestampColumn` removed:
+
+{% highlight json %}
+{
+  "version": "1.0",
+  "defaultSchema": "wiki",
+  "schemas": [
+    {
+      "type": "custom",
+      "name": "wiki",
+      "factory": "org.apache.calcite.adapter.druid.DruidSchemaFactory",
+      "operand": {
+        "url": "http://localhost:8082",
+        "coordinatorUrl": "http://localhost:8081"
+      },
+      "tables": [
+        {
+          "name": "wiki",
+          "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
+          "operand": {
+            "dataSource": "wikiticker",
+            "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endhighlight %}
+
+Calcite dispatches a
+[segmentMetadataQuery](http://druid.io/docs/latest/querying/segmentmetadataquery.html)
+to Druid to discover the columns of the table.
+Now, let's take out the `tables` element:
+
+{% highlight json %}
+{
+  "version": "1.0",
+  "defaultSchema": "wiki",
+  "schemas": [
+    {
+      "type": "custom",
+      "name": "wiki",
+      "factory": "org.apache.calcite.adapter.druid.DruidSchemaFactory",
+      "operand": {
+        "url": "http://localhost:8082",
+        "coordinatorUrl": "http://localhost:8081"
+      }
+    }
+  ]
+}
+{% endhighlight %}
+
+Calcite discovers the "wikiticker" data source via the
+[/druid/coordinator/v1/metadata/datasources](http://druid.io/docs/latest/design/coordinator.html#metadata-store-information)
+REST call. Now that the "wiki" table element is removed, the table is called
+"wikiticker". Any other data sources present in Druid will also appear as
+tables.
+
+Our model is now a single schema based on a custom schema factory with only two
+operands, so we can
+[dispense with the model](https://issues.apache.org/jira/browse/CALCITE-1206)
+and supply the operands as part of the connect string:
+
+{% highlight bash %}
+  jdbc:calcite:schemaFactory=org.apache.calcite.adapter.druid.DruidSchemaFactory; schema.url=http://localhost:8082; schema.coordinatorUrl=http://localhost:8081
+{% endhighlight %}
+
+In fact, those are the
+[default values of the operands]({{ site.apiRoot }}/org/apache/calcite/adapter/druid/DruidSchemaFactory.html),
+so we can omit them:
+
+{% highlight bash %}
+  jdbc:calcite:schemaFactory=org.apache.calcite.adapter.druid.DruidSchemaFactory
+{% endhighlight %}
+
+Now, we can connect to `sqlline` using a very simple connect string, and list
+the available tables:
+
+{% highlight bash %}
+$ ./sqlline
+sqlline> !connect jdbc:calcite:schemaFactory=org.apache.calcite.adapter.druid.DruidSchemaFactory admin admin
+sqlline> !tables
++-----------+-------------+------------+--------------+
+| TABLE_CAT | TABLE_SCHEM | TABLE_NAME | TABLE_TYPE   |
++-----------+-------------+------------+--------------+
+|           | adhoc       | foodmart   | TABLE        |
+|           | adhoc       | wikiticker | TABLE        |
+|           | metadata    | COLUMNS    | SYSTEM_TABLE |
+|           | metadata    | TABLES     | SYSTEM_TABLE |
++-----------+-------------+------------+--------------+
+{% endhighlight %}
+
+We see the two system tables (`TABLES` and `COLUMNS`),
+and the two tables in Druid (`foodmart` and `wikiticker`).
