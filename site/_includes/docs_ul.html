@@ -4,6 +4,7 @@
 {% for item in items %}
   {% comment %} Account for the baseurl to make sure we compare the full URI. {% endcomment %}
   {% capture item_url %}{{site.baseurl}}{{ item | prepend:"/docs/" | append:".html" }}{% endcapture %}
+  {% capture item_url2 %}{{site.baseurl}}{{ item | prepend:"/docs/" | append:"/" }}{% endcapture %}
   {% capture current_url %}{{ site.baseurl }}{{ page.url }}{% endcapture %}
 
   {% if item_url == current_url %}
@@ -12,18 +13,22 @@
     {% assign c = "" %}
   {% endif %}
 
-  {% for p in site.docs %}
-    {% capture p_url %}{{site.baseurl}}{{p.url}}{% endcapture %}
-    {% if p.sidebar_title != nil %}
-      {% assign anchor_text = p.sidebar_title %}
-    {% else %}
-      {% assign anchor_text = p.title %}
-    {% endif %}
-    {% if p_url == item_url %}
-      <li class="{{ c }}"><a href="{{ p_url }}">{{ anchor_text }}</a></li>
-      {% break %}
-    {% endif %}
-  {% endfor %}
+  {% for p in site.docs %}{% comment %}
+    {% endcomment %}{% capture p_url %}{{site.baseurl}}{{p.url}}{% endcapture %}{% comment %}
+    {% endcomment %}{% if p.sidebar_title != nil %}{% comment %}
+      {% endcomment %}{% assign anchor_text = p.sidebar_title %}{% comment %}
+    {% endcomment %}{% else %}{% comment %}
+      {% endcomment %}{% assign anchor_text = p.title %}{% comment %}
+    {% endcomment %}{% endif %}{% comment %}
+    {% endcomment %}{% if p_url == item_url %}{% comment %}
+      {% endcomment %}<li class="{{ c }}"><a href="{{ p_url }}">{{ anchor_text }}</a></li>{% comment %}
+      {% endcomment %}{% break %}{% comment %}
+    {% endcomment %}{% endif %}{% comment %}
+    {% endcomment %}{% if p_url == item_url2 %}{% comment %}
+      {% endcomment %}<li class="{{ c }}"><a href="{{ p.external_url }}">{{ anchor_text }}</a></li>{% comment %}
+      {% endcomment %}{% break %}{% comment %}
+    {% endcomment %}{% endif %}{% comment %}
+  {% endcomment %}{% endfor %}
 
 {% endfor %}
 </ul>

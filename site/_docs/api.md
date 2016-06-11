@@ -1,7 +1,7 @@
 ---
 title: API
 layout: external
-external_url: http://calcite.apache.org/apidocs
+external_url: /apidocs
 ---
 {% comment %}
 Ideally, we want to use {{ site.apiRoot }} instead of hardcoding
