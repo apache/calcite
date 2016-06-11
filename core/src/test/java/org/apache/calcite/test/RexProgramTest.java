@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
@@ -50,7 +51,10 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -235,7 +239,8 @@ public class RexProgramTest {
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
-            + "expr#9=[NOT($t8)], a=[$t5], b=[$t6], $condition=[$t9])"));
+            + "expr#9=[CAST($t8):BOOLEAN], expr#10=[IS FALSE($t9)], "
+            + "a=[$t5], b=[$t6], $condition=[$t10])"));
   }
 
   /**
@@ -256,7 +261,8 @@ public class RexProgramTest {
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
-            + "expr#9=[NOT($t8)], a=[$t5], b=[$t6], $condition=[$t9])"));
+            + "expr#9=[CAST($t8):BOOLEAN], expr#10=[IS FALSE($t9)], "
+            + "a=[$t5], b=[$t6], $condition=[$t10])"));
   }
 
   /**
@@ -892,6 +898,103 @@ public class RexProgramTest {
 
     checkSimplifyFilter(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
         "false");
+  }
+
+  @Test public void testSimplifyCaseNotNullableBoolean() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+
+    RexNode condition = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+        rexBuilder.makeInputRef(
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.VARCHAR), true),
+            0),
+        rexBuilder.makeLiteral("S"));
+    RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
+    RexLiteral falseLiteral = rexBuilder.makeLiteral(false);
+    RexCall caseNode = (RexCall) rexBuilder.makeCall(
+        SqlStdOperatorTable.CASE, condition, trueLiteral, falseLiteral);
+
+
+    RexCall result = (RexCall) RexUtil.simplify(rexBuilder, caseNode, false);
+    assertFalse(result.getType().isNullable());
+    assertEquals(result.getType().getSqlTypeName(), SqlTypeName.BOOLEAN);
+    assertEquals(result.getOperator(), SqlStdOperatorTable.CASE);
+    assertEquals(result.getOperands().size(), 3);
+    assertEquals(result.getOperands().get(0), condition);
+    assertEquals(result.getOperands().get(1), trueLiteral);
+    assertEquals(result.getOperands().get(2), falseLiteral);
+  }
+
+  @Test public void testSimplifyCaseNullableBoolean() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+
+    RexNode condition = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+        rexBuilder.makeInputRef(
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.VARCHAR), false),
+            0),
+        rexBuilder.makeLiteral("S"));
+    RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
+    RexLiteral falseLiteral = rexBuilder.makeLiteral(false);
+    RexCall caseNode = (RexCall) rexBuilder.makeCall(
+        SqlStdOperatorTable.CASE, condition, trueLiteral, falseLiteral);
+
+
+    RexCall result = (RexCall) RexUtil.simplify(rexBuilder, caseNode, false);
+    assertFalse(result.getType().isNullable());
+    assertEquals(result.getType().getSqlTypeName(), SqlTypeName.BOOLEAN);
+    assertEquals(result, condition);
+  }
+
+  @Test public void testSimplifyCaseNullableVarChar() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+
+    RexNode condition = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+        rexBuilder.makeInputRef(
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.VARCHAR), false),
+            0),
+        rexBuilder.makeLiteral("S"));
+    RexLiteral aLiteral = rexBuilder.makeLiteral("A");
+    RexLiteral bLiteral = rexBuilder.makeLiteral("B");
+    RexCall caseNode = (RexCall) rexBuilder.makeCall(
+        SqlStdOperatorTable.CASE, condition, aLiteral, bLiteral);
+
+
+    RexCall result = (RexCall) RexUtil.simplify(rexBuilder, caseNode, false);
+    assertFalse(result.getType().isNullable());
+    assertEquals(result.getType().getSqlTypeName(), SqlTypeName.CHAR);
+    assertEquals(result, caseNode);
+  }
+
+
+  @Test public void testSimplifyAnd() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+
+    RelDataType booleanNotNullableType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
+    RelDataType booleanNullableType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
+    RexNode andCondition = rexBuilder.makeCall(SqlStdOperatorTable.AND,
+        rexBuilder.makeInputRef(
+            booleanNotNullableType,
+            0),
+        rexBuilder.makeInputRef(
+            booleanNullableType,
+            1),
+        rexBuilder.makeInputRef(
+            booleanNotNullableType,
+            2)
+    );
+    RexNode result = RexUtil.simplify(rexBuilder, andCondition, false);
+    assertTrue(result.getType().isNullable());
+    assertTrue(result.getType().getSqlTypeName() == SqlTypeName.BOOLEAN);
   }
 }
 

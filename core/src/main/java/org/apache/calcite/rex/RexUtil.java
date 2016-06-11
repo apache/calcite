@@ -1550,7 +1550,15 @@ public class RexUtil {
           notTerms.add(pair.e.getKey());
         }
       }
-      return composeDisjunction(rexBuilder, terms, false);
+      RexNode disjunction = composeDisjunction(rexBuilder, terms, false);
+
+      assert call.getType().getSqlTypeName() == disjunction.getType().getSqlTypeName();
+      if (call.getType().isNullable() == disjunction.getType().isNullable()) {
+        return disjunction;
+      } else if (call.getType().isNullable() && !disjunction.getType().isNullable()) {
+        return rexBuilder.ensureType(call.getType(), disjunction, false);
+      }
+      // if call is not nullable, but the disjunction is, we should not use the disjunction.
     }
     if (newOperands.equals(operands)) {
       return call;
