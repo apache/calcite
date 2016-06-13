@@ -263,8 +263,7 @@ public abstract class SqlUtil {
     if (operator instanceof SqlFunction) {
       SqlFunction function = (SqlFunction) operator;
 
-      switch (function.getFunctionType()) {
-      case USER_DEFINED_SPECIFIC_FUNCTION:
+      if (function.getFunctionType().isSpecific()) {
         writer.keyword("SPECIFIC");
       }
       SqlIdentifier id = function.getSqlIdentifier();

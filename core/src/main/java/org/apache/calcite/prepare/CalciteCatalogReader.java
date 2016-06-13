@@ -64,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 
+import javax.annotation.Nullable;
+
 /**
  * Implementation of {@link org.apache.calcite.prepare.Prepare.CatalogReader}
  * and also {@link org.apache.calcite.sql.SqlOperatorTable} based on tables and
@@ -226,13 +228,30 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public void lookupOperatorOverloads(final SqlIdentifier opName,
-      SqlFunctionCategory category,
+      final SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList) {
     if (syntax != SqlSyntax.FUNCTION) {
       return;
     }
-    final Collection<Function> functions = getFunctionsFrom(opName.names);
+    final Collection<Function> functionsOld = getFunctionsFrom(opName.names);
+
+    final Collection<Function> functions = Collections2.filter(functionsOld,
+      new Predicate<Function>() {
+        @Override public boolean apply(@Nullable Function function) {
+          if (function instanceof TableMacro || function instanceof TableFunction) {
+            if (category == null || !category.isTableFunction()) {
+              return false;
+            }
+          } else {
+            if (category != null && category.isTableFunction()) {
+              return false;
+            }
+          }
+          return true;
+        }
+      }
+    );
     if (functions.isEmpty()) {
       return;
     }
