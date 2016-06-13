@@ -75,7 +75,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -137,6 +136,24 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           }
         });
 
+    registerOp(SqlStdOperatorTable.MINUS,
+        new SqlRexConvertlet() {
+          public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+            final RexCall e =
+                (RexCall) StandardConvertletTable.this.convertCall(cx, call,
+                    call.getOperator());
+            switch (e.getOperands().get(0).getType().getSqlTypeName()) {
+            case DATE:
+            case TIME:
+            case TIMESTAMP:
+              return convertDatetimeMinus(cx, SqlStdOperatorTable.MINUS_DATE,
+                  call);
+            default:
+              return e;
+            }
+          }
+        });
+
     registerOp(OracleSqlOperatorTable.LTRIM,
         new TrimConvertlet(SqlTrimFunction.Flag.LEADING));
     registerOp(OracleSqlOperatorTable.RTRIM,
@@ -172,7 +189,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 call.getOperandList(), SqlOperandTypeChecker.Consistency.NONE);
             final RelDataType type =
                 cx.getValidator().getValidatedNodeType(call);
-            final List<RexNode> exprs = new ArrayList<RexNode>();
+            final List<RexNode> exprs = new ArrayList<>();
             for (int i = 1; i < operands.size() - 1; i += 2) {
               exprs.add(
                   RelOptUtil.isDistinctFrom(rexBuilder, operands.get(0),
@@ -458,17 +475,25 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (right instanceof SqlIntervalQualifier) {
       final SqlIntervalQualifier intervalQualifier =
           (SqlIntervalQualifier) right;
-      if (left instanceof SqlIntervalLiteral
-          || left instanceof SqlNumericLiteral) {
+      if (left instanceof SqlIntervalLiteral) {
         RexLiteral sourceInterval =
             (RexLiteral) cx.convertExpression(left);
         BigDecimal sourceValue =
             (BigDecimal) sourceInterval.getValue();
         RexLiteral castedInterval =
+            cx.getRexBuilder().makeIntervalLiteral(sourceValue,
+                intervalQualifier);
+        return castToValidatedType(cx, call, castedInterval);
+      } else if (left instanceof SqlNumericLiteral) {
+        RexLiteral sourceInterval =
+            (RexLiteral) cx.convertExpression(left);
+        BigDecimal sourceValue =
+            (BigDecimal) sourceInterval.getValue();
+        final BigDecimal multiplier = intervalQualifier.getUnit().multiplier;
+        sourceValue = sourceValue.multiply(multiplier);
+        RexLiteral castedInterval =
             cx.getRexBuilder().makeIntervalLiteral(
-                sourceValue.multiply(
-                    intervalQualifier.getStartUnit().multiplier,
-                    MathContext.UNLIMITED),
+                sourceValue,
                 intervalQualifier);
         return castToValidatedType(cx, call, castedInterval);
       }
@@ -746,7 +771,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         rexBuilder.makeExactLiteral(val, resType));
   }
 
-  private RexNode divide(RexBuilder rexBuilder, RexNode res, BigDecimal val) {
+  private static RexNode divide(RexBuilder rexBuilder, RexNode res,
+      BigDecimal val) {
     if (val.equals(BigDecimal.ONE)) {
       return res;
     }
@@ -777,14 +803,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final List<RexNode> exprs = convertExpressionList(cx, operands,
         SqlOperandTypeChecker.Consistency.NONE);
 
-    // TODO: Handle year month interval (represented in months)
-    for (RexNode expr : exprs) {
-      if (SqlTypeName.INTERVAL_YEAR_MONTH
-          == expr.getType().getSqlTypeName()) {
-        throw Util.needToImplement(
-            "Datetime subtraction of year month interval");
-      }
-    }
     RelDataType int8Type =
         cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
     final RexNode[] casts = new RexNode[2];
@@ -800,16 +818,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 int8Type,
                 exprs.get(1).getType().isNullable()),
             exprs.get(1));
-    final RexNode minus =
-        rexBuilder.makeCall(
-            SqlStdOperatorTable.MINUS,
-            casts);
     final RelDataType resType =
         cx.getValidator().getValidatedNodeType(call);
-    return rexBuilder.makeReinterpretCast(
-        resType,
-        minus,
-        rexBuilder.makeLiteral(false));
+    return rexBuilder.makeCall(resType, op, exprs.subList(0, 2));
   }
 
   public RexNode convertFunction(
@@ -1014,7 +1025,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     case DATE:
     case TIME:
     case TIMESTAMP:
-      return convertCall(cx, call, SqlStdOperatorTable.DATETIME_PLUS);
+      // Use special "+" operator for datetime + interval.
+      // Re-order operands, if necessary, so that interval is second.
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      List<RexNode> operands = ((RexCall) rex).getOperands();
+      if (operands.size() == 2) {
+        final SqlTypeName sqlTypeName = operands.get(0).getType().getSqlTypeName();
+        switch (sqlTypeName) {
+        case INTERVAL_DAY_TIME:
+        case INTERVAL_YEAR_MONTH:
+          operands = ImmutableList.of(operands.get(1), operands.get(0));
+        }
+      }
+      return rexBuilder.makeCall(rex.getType(),
+          SqlStdOperatorTable.DATETIME_PLUS, operands);
     default:
       return rex;
     }
@@ -1421,7 +1445,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   /** Convertlet that handles the {@code TIMESTAMPADD} function. */
-  private class TimestampAddConvertlet implements SqlRexConvertlet {
+  private static class TimestampAddConvertlet implements SqlRexConvertlet {
     public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPADD(unit, count, timestamp)
       //  => timestamp + count * INTERVAL '1' UNIT
@@ -1439,7 +1463,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   /** Convertlet that handles the {@code TIMESTAMPDIFF} function. */
-  private class TimestampDiffConvertlet implements SqlRexConvertlet {
+  private static class TimestampDiffConvertlet implements SqlRexConvertlet {
     public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPDIFF(unit, t1, t2)
       //    => (t2 - t1) UNIT
@@ -1450,13 +1474,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           cx.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       final SqlIntervalQualifier qualifier =
           new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
-      return divide(cx.getRexBuilder(),
-          rexBuilder.makeCast(intType,
-              rexBuilder.makeCall(SqlStdOperatorTable.MINUS_DATE,
-                  cx.convertExpression(call.operand(2)),
-                  cx.convertExpression(call.operand(1)),
-                  cx.getRexBuilder().makeIntervalLiteral(qualifier))),
-          unit.multiplier);
+      final RelDataType intervalType =
+          cx.getTypeFactory().createSqlIntervalType(qualifier);
+      return rexBuilder.makeCast(intType,
+          rexBuilder.makeCall(intervalType, SqlStdOperatorTable.MINUS_DATE,
+              ImmutableList.of(cx.convertExpression(call.operand(2)),
+                  cx.convertExpression(call.operand(1)))));
     }
   }
 }

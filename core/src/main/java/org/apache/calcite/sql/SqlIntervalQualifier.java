@@ -252,6 +252,12 @@ public class SqlIntervalQualifier extends SqlNode {
     return timeUnitRange.endUnit;
   }
 
+  /** Returns {@code SECOND} for both {@code HOUR TO SECOND} and
+   * {@code SECOND}. */
+  public TimeUnit getUnit() {
+    return Util.first(timeUnitRange.endUnit, timeUnitRange.startUnit);
+  }
+
   public SqlNode clone(SqlParserPos pos) {
     return new SqlIntervalQualifier(timeUnitRange.startUnit, startPrecision,
         timeUnitRange.endUnit, fractionalSecondPrecision, pos);

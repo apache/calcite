@@ -45,6 +45,7 @@ import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -946,6 +947,34 @@ public class RexImpTable {
     return Expressions.constant(null, type);
   }
 
+  /** Multiplies an expression by a constant and divides by another constant,
+   * optimizing appropriately.
+   *
+   * <p>For example, {@code multiplyDivide(e, 10, 1000)} returns
+   * {@code e / 100}. */
+  public static Expression multiplyDivide(Expression e, BigDecimal multiplier,
+      BigDecimal divider) {
+    if (multiplier.equals(BigDecimal.ONE)) {
+      if (divider.equals(BigDecimal.ONE)) {
+        return e;
+      }
+      return Expressions.divide(e,
+          Expressions.constant(divider.intValueExact()));
+    }
+    final BigDecimal x =
+        multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY);
+    switch (x.compareTo(BigDecimal.ONE)) {
+    case 0:
+      return e;
+    case 1:
+      return Expressions.multiply(e, Expressions.constant(x.intValueExact()));
+    case -1:
+      return multiplyDivide(e, BigDecimal.ONE, x);
+    default:
+      throw new AssertionError();
+    }
+  }
+
   /** Implementor for the {@code COUNT} aggregate function. */
   static class CountImplementor extends StrictAggImplementor {
     @Override public void implementNotNullAdd(AggContext info,
@@ -1635,6 +1664,7 @@ public class RexImpTable {
             Primitive.ofBoxOr(expressions.get(0).getType());
         final SqlBinaryOperator op = (SqlBinaryOperator) call.getOperator();
         if (primitive == null
+            || expressions.get(1).getType() == BigDecimal.class
             || COMPARISON_OPERATORS.contains(op)
             && !COMP_OP_TYPES.contains(primitive)) {
           return Expressions.call(
@@ -1643,8 +1673,12 @@ public class RexImpTable {
               expressions);
         }
       }
-      return Expressions.makeBinary(
-          expressionType, expressions.get(0), expressions.get(1));
+
+      final Type returnType =
+          translator.typeFactory.getJavaClass(call.getType());
+      return Types.castIfNecessary(returnType,
+          Expressions.makeBinary(expressionType, expressions.get(0),
+              expressions.get(1)));
     }
   }
 
@@ -1922,24 +1956,59 @@ public class RexImpTable {
         List<Expression> translatedOperands) {
       final RexNode operand0 = call.getOperands().get(0);
       final Expression trop0 = translatedOperands.get(0);
+      final SqlTypeName typeName1 =
+          call.getOperands().get(1).getType().getSqlTypeName();
       Expression trop1 = translatedOperands.get(1);
       switch (operand0.getType().getSqlTypeName()) {
       case DATE:
-        trop1 =
-            Expressions.convert_(
-                Expressions.divide(trop1,
-                    Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
-                int.class);
+        switch (typeName1) {
+        case INTERVAL_DAY_TIME:
+          trop1 =
+              Expressions.convert_(
+                  Expressions.divide(trop1,
+                      Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+                  int.class);
+        }
         break;
       case TIME:
         trop1 = Expressions.convert_(trop1, int.class);
         break;
       }
-      switch (call.getKind()) {
-      case MINUS:
-        return Expressions.subtract(trop0, trop1);
+      final SqlIntervalQualifier interval = call.getType().getIntervalQualifier();
+      switch (typeName1) {
+      case INTERVAL_YEAR_MONTH:
+        switch (call.getKind()) {
+        case MINUS:
+          trop1 = Expressions.negate(trop1);
+        }
+        return Expressions.call(BuiltInMethod.ADD_MONTHS.method, trop0, trop1);
+
+      case INTERVAL_DAY_TIME:
+        switch (call.getKind()) {
+        case MINUS:
+          return Expressions.subtract(trop0, trop1);
+        default:
+          return Expressions.add(trop0, trop1);
+        }
+
       default:
-        return Expressions.add(trop0, trop1);
+        switch (call.getKind()) {
+        case MINUS:
+          Class targetType = interval.isYearMonth() ? int.class : long.class;
+          if (interval.isYearMonth()) {
+            return Expressions.call(BuiltInMethod.SUBTRACT_MONTHS.method,
+                trop0, trop1);
+          }
+          TimeUnit fromUnit =
+              typeName1 == SqlTypeName.DATE ? TimeUnit.DAY : TimeUnit.MILLISECOND;
+          TimeUnit toUnit = interval.isYearMonth() ? TimeUnit.MONTH : TimeUnit.MILLISECOND;
+          return multiplyDivide(
+              Expressions.convert_(Expressions.subtract(trop0, trop1),
+                  targetType),
+              fromUnit.multiplier, toUnit.multiplier);
+        default:
+          return Expressions.add(trop0, trop1);
+        }
       }
     }
   }

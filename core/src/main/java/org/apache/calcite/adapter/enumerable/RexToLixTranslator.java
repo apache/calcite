@@ -413,6 +413,15 @@ public class RexToLixTranslator {
                     (long) Math.pow(10, 3 - targetScale)));
       }
       break;
+    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR_MONTH:
+      switch (sourceType.getSqlTypeName().getFamily()) {
+      case NUMERIC:
+        final SqlIntervalQualifier interval = targetType.getIntervalQualifier();
+        final BigDecimal multiplier = interval.getUnit().multiplier;
+        final BigDecimal divider = BigDecimal.ONE;
+        convert = RexImpTable.multiplyDivide(convert, multiplier, divider);
+      }
     }
     return convert;
   }

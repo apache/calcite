@@ -217,6 +217,9 @@ public class RexLiteral extends RexNode {
       return value instanceof Calendar;
     case INTERVAL_DAY_TIME:
     case INTERVAL_YEAR_MONTH:
+      // The value of a DAY-TIME interval (whatever the start and end units,
+      // even say HOUR TO MINUTE) is in milliseconds (perhaps fractional
+      // milliseconds). The value of a YEAR-MONTH interval is in months.
       return value instanceof BigDecimal;
     case VARBINARY: // not allowed -- use Binary
       if (strict) {

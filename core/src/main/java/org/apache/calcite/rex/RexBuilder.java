@@ -511,17 +511,29 @@ public class RexBuilder {
           break;
         case INTERVAL_DAY_TIME:
           assert value instanceof BigDecimal;
-          BigDecimal value2 = (BigDecimal) value;
-          final BigDecimal multiplier =
-              literal.getType().getIntervalQualifier().getStartUnit()
-                  .multiplier;
           typeName = type.getSqlTypeName();
+          switch (typeName) {
+          case BIGINT:
+          case INTEGER:
+          case SMALLINT:
+          case TINYINT:
+          case FLOAT:
+          case REAL:
+          case DECIMAL:
+            BigDecimal value2 = (BigDecimal) value;
+            final BigDecimal multiplier =
+                baseUnit(literal.getType().getIntervalQualifier().getUnit()).multiplier;
+            final BigDecimal divider =
+                literal.getType().getIntervalQualifier().getUnit().multiplier;
+            value = value2.multiply(multiplier)
+                .divide(divider, 0, BigDecimal.ROUND_HALF_DOWN);
+          }
+
           // Not all types are allowed for literals
           switch (typeName) {
           case INTEGER:
             typeName = SqlTypeName.BIGINT;
           }
-          value = value2.divide(multiplier, 0, BigDecimal.ROUND_HALF_DOWN);
         }
         final RexLiteral literal2 =
             makeLiteral(value, type, typeName);
@@ -532,9 +544,6 @@ public class RexBuilder {
         }
         return literal2;
       }
-    } else if (SqlTypeUtil.isInterval(type)
-        && SqlTypeUtil.isExactNumeric(exp.getType())) {
-      return makeCastExactToInterval(type, exp);
     } else if (SqlTypeUtil.isExactNumeric(type)
         && SqlTypeUtil.isInterval(exp.getType())) {
       return makeCastIntervalToExact(type, exp);
@@ -546,6 +555,17 @@ public class RexBuilder {
       return makeCastBooleanToExact(type, exp);
     }
     return makeAbstractCast(type, exp);
+  }
+
+  /** Returns the lowest granularity unit for the given unit.
+   * YEAR and MONTH intervals are stored as months;
+   * HOUR, MINUTE, SECOND intervals are stored as milliseconds. */
+  protected static TimeUnit baseUnit(TimeUnit unit) {
+    if (unit.yearMonth) {
+      return TimeUnit.MONTH;
+    } else {
+      return TimeUnit.MILLISECOND;
+    }
   }
 
   private boolean canRemoveCastFromLiteral(RelDataType toType, Comparable value,
@@ -604,25 +624,14 @@ public class RexBuilder {
   }
 
   private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
-    IntervalSqlType intervalType = (IntervalSqlType) exp.getType();
-    TimeUnit endUnit = intervalType.getIntervalQualifier().getEndUnit();
-    if (endUnit == null) {
-      endUnit = intervalType.getIntervalQualifier().getStartUnit();
-    }
-    int scale = 0;
-    if (endUnit == TimeUnit.SECOND) {
-      scale = Math.min(
-          intervalType.getIntervalQualifier()
-              .getFractionalSecondPrecision(typeFactory.getTypeSystem()),
-          3);
-    }
-    BigDecimal multiplier = endUnit.multiplier.scaleByPowerOfTen(-scale);
-    RexNode value = decodeIntervalOrDecimal(exp);
-    if (multiplier.longValue() != 1) {
-      value = makeCall(
-          SqlStdOperatorTable.DIVIDE_INTEGER,
-          value, makeBigintLiteral(multiplier));
-    }
+    final IntervalSqlType intervalType = (IntervalSqlType) exp.getType();
+    final TimeUnit endUnit = intervalType.getIntervalQualifier().getUnit();
+    final TimeUnit baseUnit = baseUnit(endUnit);
+    final BigDecimal multiplier = baseUnit.multiplier;
+    final int scale = 0;
+    BigDecimal divider = endUnit.multiplier.scaleByPowerOfTen(-scale);
+    RexNode value = multiplyDivide(decodeIntervalOrDecimal(exp),
+        multiplier, divider);
     if (scale > 0) {
       RelDataType decimalType =
           getTypeFactory().createSqlType(
@@ -634,30 +643,26 @@ public class RexBuilder {
     return ensureType(toType, value, false);
   }
 
-  private RexNode makeCastExactToInterval(RelDataType toType, RexNode exp) {
-    IntervalSqlType intervalType = (IntervalSqlType) toType;
-    TimeUnit endUnit = intervalType.getIntervalQualifier().getEndUnit();
-    if (endUnit == null) {
-      endUnit = intervalType.getIntervalQualifier().getStartUnit();
+  private RexNode multiplyDivide(RexNode e, BigDecimal multiplier,
+      BigDecimal divider) {
+    assert multiplier.signum() > 0;
+    assert divider.signum() > 0;
+    switch (multiplier.compareTo(divider)) {
+    case 0:
+      return e;
+    case 1:
+      // E.g. multiplyDivide(e, 1000, 10) ==> e * 100
+      return makeCall(SqlStdOperatorTable.MULTIPLY, e,
+          makeExactLiteral(
+              multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY)));
+    case -1:
+      // E.g. multiplyDivide(e, 10, 1000) ==> e / 100
+      return makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, e,
+          makeExactLiteral(
+              divider.divide(multiplier, BigDecimal.ROUND_UNNECESSARY)));
+    default:
+      throw new AssertionError(multiplier + "/" + divider);
     }
-    int scale = 0;
-    if (endUnit == TimeUnit.SECOND) {
-      scale = Math.min(
-          intervalType.getIntervalQualifier()
-              .getFractionalSecondPrecision(typeFactory.getTypeSystem()),
-          3);
-    }
-    BigDecimal multiplier = endUnit.multiplier.scaleByPowerOfTen(-scale);
-    RelDataType decimalType =
-        getTypeFactory().createSqlType(SqlTypeName.DECIMAL,
-            scale + intervalType.getPrecision(),
-            scale);
-    RexNode value = decodeIntervalOrDecimal(ensureType(decimalType, exp, true));
-    if (multiplier.longValue() != 1) {
-      value = makeCall(SqlStdOperatorTable.MULTIPLY,
-          value, makeExactLiteral(multiplier));
-    }
-    return encodeIntervalOrDecimal(value, toType, false);
   }
 
   /**
@@ -738,24 +743,6 @@ public class RexBuilder {
         type,
         SqlStdOperatorTable.REINTERPRET,
         args);
-  }
-
-  /**
-   * Makes an expression which converts a value of type T to a value of type T
-   * NOT NULL, or throws if the value is NULL. If the expression is already
-   * NOT NULL, does nothing.
-   */
-  public RexNode makeNotNullCast(RexNode expr) {
-    RelDataType type = expr.getType();
-    if (!type.isNullable()) {
-      return expr;
-    }
-    RelDataType typeNotNull =
-        getTypeFactory().createTypeWithNullability(type, false);
-    return new RexCall(
-        typeNotNull,
-        SqlStdOperatorTable.CAST,
-        ImmutableList.of(expr));
   }
 
   /**

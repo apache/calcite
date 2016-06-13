@@ -272,11 +272,6 @@ public abstract class SqlOperatorBaseTest {
    */
   public static final boolean DECIMAL = false;
 
-  /**
-   * Whether INTERVAL type is implemented.
-   */
-  public static final boolean INTERVAL = false;
-
   private final boolean enable;
 
   protected final SqlTester tester;
@@ -343,7 +338,6 @@ public abstract class SqlOperatorBaseTest {
       assertThat(sqlOperator, equalTo(routines.get(0)));
     }
   }
-
 
   @Test public void testBetween() {
     tester.setFor(
@@ -820,10 +814,6 @@ public abstract class SqlOperatorBaseTest {
           "-5.0");
     }
 
-    if (!INTERVAL) {
-      return;
-    }
-
     // Interval to bigint
     tester.checkScalarExact(
         "cast(INTERVAL '1.25' second as bigint)",
@@ -855,9 +845,6 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCastToInterval() {
     tester.setFor(SqlStdOperatorTable.CAST);
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "cast(5 as interval second)",
         "+5.000000",
@@ -882,14 +869,23 @@ public abstract class SqlOperatorBaseTest {
         "cast(5 as interval year)",
         "+5",
         "INTERVAL YEAR NOT NULL");
-    tester.checkScalar(
-        "cast(5.7 as interval day)",
-        "+6",
-        "INTERVAL DAY NOT NULL");
-    tester.checkScalar(
-        "cast(-5.7 as interval day)",
-        "-6",
-        "INTERVAL DAY NOT NULL");
+    if (DECIMAL) {
+      // Due to DECIMAL rounding bugs, currently returns "+5"
+      tester.checkScalar(
+          "cast(5.7 as interval day)",
+          "+6",
+          "INTERVAL DAY NOT NULL");
+      tester.checkScalar(
+          "cast(-5.7 as interval day)",
+          "-6",
+          "INTERVAL DAY NOT NULL");
+    } else {
+      // An easier case
+      tester.checkScalar(
+          "cast(6.2 as interval day)",
+          "+6",
+          "INTERVAL DAY NOT NULL");
+    }
     tester.checkScalar(
         "cast(3456 as interval month(4))",
         "+3456",
@@ -901,13 +897,26 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testCastIntervalToInterval() {
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "cast(interval '2 5' day to hour as interval hour to minute)",
-        "+29:00",
+        "+53:00",
         "INTERVAL HOUR TO MINUTE NOT NULL");
+    tester.checkScalar(
+        "cast(interval '2 5' day to hour as interval day to minute)",
+        "+2 05:00",
+        "INTERVAL DAY TO MINUTE NOT NULL");
+    tester.checkScalar(
+        "cast(interval '2 5' day to hour as interval hour to second)",
+        "+53:00:00.000000",
+        "INTERVAL HOUR TO SECOND NOT NULL");
+    tester.checkScalar(
+        "cast(interval '2 5' day to hour as interval hour)",
+        "+53",
+        "INTERVAL HOUR NOT NULL");
+    tester.checkScalar(
+        "cast(interval '-29:15' hour to minute as interval day to hour)",
+        "-1 05",
+        "INTERVAL DAY TO HOUR NOT NULL");
   }
 
   @Test public void testCastWithRoundingToScalar() {
@@ -1967,16 +1976,13 @@ public abstract class SqlOperatorBaseTest {
         "interval '2' day / cast(null as bigint)");
     tester.checkNull(
         "cast(null as interval month) / 2");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "interval '3-3' year to month / 15e-1",
-        "+02-02",
+        "+2-02",
         "INTERVAL YEAR TO MONTH NOT NULL");
     tester.checkScalar(
         "interval '3-4' year to month / 4.5",
-        "+00-08",
+        "+0-09",
         "INTERVAL YEAR TO MONTH NOT NULL");
   }
 
@@ -2550,9 +2556,6 @@ public abstract class SqlOperatorBaseTest {
         "time '12:03:01' - interval '1:1' hour to minute",
         "11:02:01",
         "TIME(0) NOT NULL");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "date '2005-03-02' - interval '5' day",
         "2005-02-25",
@@ -2562,17 +2565,26 @@ public abstract class SqlOperatorBaseTest {
         "2003-08-06 14:58:01",
         "TIMESTAMP(0) NOT NULL");
 
-    // TODO: Tests with interval year months (not supported)
+    // Datetime minus year-month interval
+    tester.checkScalar(
+        "timestamp '2003-08-02 12:54:01' - interval '12' year",
+        "1991-08-02 12:54:01",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "date '2003-08-02' - interval '12' year",
+        "1991-08-02",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2003-08-02' - interval '12-3' year to month",
+        "1991-05-02",
+        "DATE NOT NULL");
   }
 
   @Test public void testMinusDateOperator() {
     tester.setFor(SqlStdOperatorTable.MINUS_DATE);
-    if (!enable) {
-      return;
-    }
     tester.checkScalar(
         "(time '12:03:34' - time '11:57:23') minute to second",
-        "+6:11",
+        "+6:11.000000",
         "INTERVAL MINUTE TO SECOND NOT NULL");
     tester.checkScalar(
         "(time '12:03:23' - time '11:57:23') minute",
@@ -2584,7 +2596,7 @@ public abstract class SqlOperatorBaseTest {
         "INTERVAL MINUTE NOT NULL");
     tester.checkScalar(
         "(timestamp '2004-05-01 12:03:34' - timestamp '2004-04-29 11:57:23') day to second",
-        "+2 00:06:11",
+        "+2 00:06:11.000000",
         "INTERVAL DAY TO SECOND NOT NULL");
     tester.checkScalar(
         "(timestamp '2004-05-01 12:03:34' - timestamp '2004-04-29 11:57:23') day to hour",
@@ -2889,9 +2901,6 @@ public abstract class SqlOperatorBaseTest {
         "time '12:03:01' + interval '1:1' hour to minute",
         "13:04:01",
         "TIME(0) NOT NULL");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "interval '5' day + date '2005-03-02'",
         "2005-03-07",
@@ -2901,7 +2910,15 @@ public abstract class SqlOperatorBaseTest {
         "2003-07-29 10:50:01",
         "TIMESTAMP(0) NOT NULL");
 
-    // TODO: Tests with interval year months (not supported)
+    // Datetime plus year-to-month interval
+    tester.checkScalar(
+        "interval '5-3' year to month + date '2005-03-02'",
+        "2010-06-02",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "timestamp '2003-08-02 12:54:01' + interval '5-3' year to month",
+        "2008-11-02 12:54:01",
+        "TIMESTAMP(0) NOT NULL");
   }
 
   @Test public void testDescendingOperator() {
@@ -3848,9 +3865,6 @@ public abstract class SqlOperatorBaseTest {
         "nullif(interval '2' month, interval '3' year)",
         "+2",
         "INTERVAL MONTH");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "nullif(interval '2 5' day to hour, interval '5' second)",
         "+2 05",
@@ -4734,9 +4748,6 @@ public abstract class SqlOperatorBaseTest {
         "extract(year from interval '4-2' year to month)",
         "4",
         "BIGINT NOT NULL");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar(
         "extract(month from interval '4-2' year to month)",
         "2",
@@ -5038,9 +5049,6 @@ public abstract class SqlOperatorBaseTest {
         "timestampadd(HOUR, -2000, timestamp '2016-02-24 12:42:25')",
         "2015-12-03 04:42:25",
         "TIMESTAMP(0) NOT NULL");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkNull("timestampadd(HOUR, CAST(NULL AS INTEGER),"
         + " timestamp '2016-02-24 12:42:25')");
     tester.checkNull(
@@ -5060,9 +5068,6 @@ public abstract class SqlOperatorBaseTest {
         + "timestamp '2016-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:20')",
         "-5000000", "INTEGER NOT NULL");
-    if (!INTERVAL) {
-      return;
-    }
     tester.checkScalar("timestampdiff(YEAR, "
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:25')",

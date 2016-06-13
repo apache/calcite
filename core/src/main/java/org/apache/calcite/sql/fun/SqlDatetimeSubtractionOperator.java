@@ -29,13 +29,15 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
  * A special operator for the subtraction of two DATETIMEs. The format of
- * DATETIME substraction is:
+ * DATETIME subtraction is:
  *
  * <blockquote><code>"(" &lt;datetime&gt; "-" &lt;datetime&gt; ")"
  * &lt;interval qualifier&gt;</code></blockquote>
  *
  * <p>This operator is special since it needs to hold the
- * additional interval qualifier specification.</p>
+ * additional interval qualifier specification, when in {@link SqlCall} form.
+ * In {@link org.apache.calcite.rex.RexNode} form, it has only two parameters,
+ * and the return type describes the desired type of interval.
  */
 public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------

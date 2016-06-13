@@ -3764,8 +3764,6 @@ public class JdbcTest {
   }
 
   /** Tests for DATE +- INTERVAL window frame */
-  @Ignore("DATE/TIMESTAMP/INTERVAL support is broken:"
-      + "1 year is converted to 12 months instead of milliseconds")
   @Test public void testWinIntervalFrame() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -3777,12 +3775,11 @@ public class JdbcTest {
             + "  DATE '2014-06-12' + \"empid\"*interval '0' day \"hire_date\"\n"
             + "  from \"hr\".\"emps\")")
         .typeIs(
-            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, hire_date DATE NOT NULL, R BIGINT]")
-        .returnsUnordered(
-            "deptno=10; R=1",
-            "deptno=10; R=1",
-            "deptno=10; R=1",
-            "deptno=20; R=4"); // 4 for rank and 2 for dense_rank
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, hire_date DATE NOT NULL, R BIGINT NOT NULL]")
+        .returnsUnordered("deptno=10; empid=100; hire_date=2014-06-12; R=3",
+            "deptno=10; empid=110; hire_date=2014-06-12; R=3",
+            "deptno=10; empid=150; hire_date=2014-06-12; R=3",
+            "deptno=20; empid=200; hire_date=2014-06-12; R=1");
   }
 
   private void startOfGroupStep1(String startOfGroup) {

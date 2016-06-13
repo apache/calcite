@@ -3714,7 +3714,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "cast(1 as DECIMAL(19, 2)) + cast(1 as DECIMAL(19, 2))",
         "DECIMAL(19, 2) NOT NULL");
 
-    // substraction operator
+    // subtraction operator
     checkExpType(
         "cast(1 as TINYINT) - cast(5 as BIGINT)",
         "BIGINT NOT NULL");

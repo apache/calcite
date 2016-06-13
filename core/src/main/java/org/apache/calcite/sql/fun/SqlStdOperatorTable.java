@@ -139,7 +139,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.AND,
           28,
           true,
-          ReturnTypes.ARG0_NULLABLE, // more efficient than BOOLEAN_NULLABLE
+          ReturnTypes.BOOLEAN_NULLABLE_OPTIMIZED,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
 
@@ -428,7 +428,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OR,
           26,
           true,
-          ReturnTypes.ARG0_NULLABLE, // more efficient than BOOLEAN_NULLABLE
+          ReturnTypes.BOOLEAN_NULLABLE_OPTIMIZED,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
 
@@ -454,7 +454,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.PLUS,
           40,
           true,
-          ReturnTypes.NULLABLE_SUM,
+          ReturnTypes.ARG0_NULLABLE,
           InferTypes.FIRST_KNOWN,
           OperandTypes.PLUS_OPERATOR);
 
@@ -896,7 +896,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * A special operator for the subtraction of two DATETIMEs. The format of
-   * DATETIME substraction is:
+   * DATETIME subtraction is:
    *
    * <blockquote><code>"(" &lt;datetime&gt; "-" &lt;datetime&gt; ")"
    * &lt;interval qualifier&gt;</code></blockquote>
@@ -904,7 +904,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>This operator is special since it needs to hold the
    * additional interval qualifier specification.</p>
    */
-  public static final SqlOperator MINUS_DATE =
+  public static final SqlDatetimeSubtractionOperator MINUS_DATE =
       new SqlDatetimeSubtractionOperator();
 
   /**
@@ -1347,8 +1347,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Returns modified timestamp.
    */
   public static final SqlFunction TIMESTAMP_ADD =
-      new SqlFunction("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG2,
-          null,
+      new SqlFunction("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD,
+          ReturnTypes.ARG2_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
               SqlTypeFamily.DATETIME), SqlFunctionCategory.TIMEDATE);
 

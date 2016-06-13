@@ -104,23 +104,7 @@ public abstract class ReturnTypes {
    * returned type will also be nullable.
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE =
-      new SqlReturnTypeInference() {
-        // Equivalent to
-        //   cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
-        // but implemented by hand because used in AND, which is a very common
-        // operator.
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-          final int n = opBinding.getOperandCount();
-          RelDataType type1 = null;
-          for (int i = 0; i < n; i++) {
-            type1 = opBinding.getOperandType(i);
-            if (type1.isNullable()) {
-              break;
-            }
-          }
-          return type1;
-        }
-      };
+      cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -193,6 +177,31 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference BOOLEAN_NULLABLE =
       cascade(BOOLEAN, SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy with similar effect to {@link #BOOLEAN_NULLABLE},
+   * which is more efficient, but can only be used if all arguments are
+   * BOOLEAN.
+   */
+  public static final SqlReturnTypeInference BOOLEAN_NULLABLE_OPTIMIZED =
+      new SqlReturnTypeInference() {
+        // Equivalent to
+        //   cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
+        // but implemented by hand because used in AND, which is a very common
+        // operator.
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final int n = opBinding.getOperandCount();
+          RelDataType type1 = null;
+          for (int i = 0; i < n; i++) {
+            type1 = opBinding.getOperandType(i);
+            if (type1.isNullable()) {
+              break;
+            }
+          }
+          return type1;
+        }
+      };
+
   /**
    * Type-inference strategy whereby the result type of a call is Boolean
    * not null.

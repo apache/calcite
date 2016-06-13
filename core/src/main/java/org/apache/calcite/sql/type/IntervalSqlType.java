@@ -26,6 +26,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
 
+import com.google.common.base.Preconditions;
+
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.
  */
@@ -33,7 +35,7 @@ public class IntervalSqlType extends AbstractSqlType {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeSystem typeSystem;
-  private SqlIntervalQualifier intervalQualifier;
+  private final SqlIntervalQualifier intervalQualifier;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,19 +51,17 @@ public class IntervalSqlType extends AbstractSqlType {
             : SqlTypeName.INTERVAL_DAY_TIME,
         isNullable,
         null);
-    this.typeSystem = typeSystem;
-    this.intervalQualifier = intervalQualifier;
+    this.typeSystem = Preconditions.checkNotNull(typeSystem);
+    this.intervalQualifier = Preconditions.checkNotNull(intervalQualifier);
     computeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelDataTypeImpl
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("INTERVAL ");
-    SqlDialect dialect = null;
-    dialect = SqlDialect.DUMMY;
-    SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
+    final SqlDialect dialect = SqlDialect.DUMMY;
+    final SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
     writer.setAlwaysUseParentheses(false);
     writer.setSelectListItemsOnSeparateLines(false);
     writer.setIndentation(0);
@@ -70,8 +70,7 @@ public class IntervalSqlType extends AbstractSqlType {
     sb.append(new SqlString(dialect, sql).getSql());
   }
 
-  // implement RelDataType
-  public SqlIntervalQualifier getIntervalQualifier() {
+  @Override public SqlIntervalQualifier getIntervalQualifier() {
     return intervalQualifier;
   }
 

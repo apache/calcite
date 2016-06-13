@@ -176,24 +176,8 @@ public class RexSqlStandardConvertletTable
    *
    * @param op operator instance
    */
-  protected void registerEquivOp(final SqlOperator op) {
-    registerOp(
-        op,
-        new RexSqlConvertlet() {
-          public SqlNode convertCall(
-              RexToSqlNodeConverter converter,
-              RexCall call) {
-            SqlNode[] operands =
-                convertExpressionList(converter, call.operands);
-            if (operands == null) {
-              return null;
-            }
-            return new SqlBasicCall(
-                op,
-                operands,
-                SqlParserPos.ZERO);
-          }
-        });
+  protected void registerEquivOp(SqlOperator op) {
+    registerOp(op, new EquivConvertlet(op));
   }
 
   /**
@@ -264,6 +248,24 @@ public class RexSqlStandardConvertletTable
             return op.createCall(null, SqlParserPos.ZERO, newOperands);
           }
         });
+  }
+
+  /** Convertlet that converts a {@link SqlCall} to a {@link RexCall} of the
+   * same operator. */
+  private class EquivConvertlet implements RexSqlConvertlet {
+    private final SqlOperator op;
+
+    EquivConvertlet(SqlOperator op) {
+      this.op = op;
+    }
+
+    public SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
+      SqlNode[] operands = convertExpressionList(converter, call.operands);
+      if (operands == null) {
+        return null;
+      }
+      return new SqlBasicCall(op, operands, SqlParserPos.ZERO);
+    }
   }
 }
 
