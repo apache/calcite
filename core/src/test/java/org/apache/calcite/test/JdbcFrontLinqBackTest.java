@@ -274,6 +274,29 @@ public class JdbcFrontLinqBackTest {
             "empid=1; deptno=0; name=foo; salary=10.0; commission=null");
   }
 
+  @Test public void testDelete() {
+    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    CalciteAssert.AssertThat with = mutable(employees);
+    with.query("select * from \"foo\".\"bar\"")
+        .returnsUnordered(
+            "empid=0; deptno=0; name=first; salary=0.0; commission=null");
+    with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
+        .updates(4);
+    with.query("select count(*) as c from \"foo\".\"bar\"")
+        .returnsUnordered("C=5");
+    final String deleteSql = "delete from \"foo\".\"bar\" "
+        + "where \"deptno\" = 10";
+    with.query(deleteSql)
+        .updates(3);
+    final String sql = "select \"name\", count(*) as c\n"
+        + "from \"foo\".\"bar\"\n"
+        + "group by \"name\"";
+    with.query(sql)
+        .returnsUnordered(
+            "name=Eric; C=1",
+            "name=first; C=1");
+  }
+
   /**
    * Creates the post processor routine to be applied against a Connection.
    *

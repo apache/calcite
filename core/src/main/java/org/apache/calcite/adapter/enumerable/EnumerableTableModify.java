@@ -31,6 +31,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -121,20 +122,39 @@ public class EnumerableTableModify extends TableModify
     } else {
       convertedChildExp = childExp;
     }
+    final Method method;
+    switch (getOperation()) {
+    case INSERT:
+      method = BuiltInMethod.INTO.method;
+      break;
+    case DELETE:
+      method = BuiltInMethod.REMOVE_ALL.method;
+      break;
+    default:
+      throw new AssertionError(getOperation());
+    }
     builder.add(
         Expressions.statement(
             Expressions.call(
-                convertedChildExp, "into", collectionParameter)));
+                convertedChildExp, method, collectionParameter)));
+    final Expression updatedCountParameter =
+        builder.append(
+            "updatedCount",
+            Expressions.call(collectionParameter, "size"),
+            false);
     builder.add(
         Expressions.return_(
             null,
             Expressions.call(
                 BuiltInMethod.SINGLETON_ENUMERABLE.method,
                 Expressions.convert_(
-                    Expressions.subtract(
-                        Expressions.call(
-                            collectionParameter, "size"),
-                        countParameter),
+                    Expressions.condition(
+                        Expressions.greaterThanOrEqual(
+                            updatedCountParameter, countParameter),
+                        Expressions.subtract(
+                            updatedCountParameter, countParameter),
+                        Expressions.subtract(
+                            countParameter, updatedCountParameter)),
                     long.class))));
     final PhysType physType =
         PhysTypeImpl.of(

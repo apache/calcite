@@ -632,24 +632,27 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   /**
-   * Routine to figure out the StatementType and defaults to SELECT
-   * As CASE increases the default may change
-   * @param kind a SqlKind
-   * @return Meta.StatementType*/
+   * Deduces the broad type of statement.
+   * Currently returns SELECT for most statement types, but this may change.
+   *
+   * @param kind Kind of statement
+   */
   private Meta.StatementType getStatementType(SqlKind kind) {
     switch (kind) {
     case INSERT:
-      return Meta.StatementType.INSERT;
+    case DELETE:
+      return Meta.StatementType.IS_DML;
     default:
       return Meta.StatementType.SELECT;
     }
   }
 
   /**
-   * Routine to figure out the StatementType if call does not have sql
-   * defaults to SELECT
-   * @param preparedResult An objecet returned from prepareQueryable or prepareRel
-   * @return Meta.StatementType*/
+   * Deduces the broad type of statement for a prepare result.
+   * Currently returns SELECT for most statement types, but this may change.
+   *
+   * @param preparedResult Prepare result
+   */
   private Meta.StatementType getStatementType(Prepare.PreparedResult preparedResult) {
     if (preparedResult.isDml()) {
       return Meta.StatementType.IS_DML;
@@ -725,6 +728,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           sqlNode, Object.class, validator, true);
       switch (sqlNode.getKind()) {
       case INSERT:
+      case DELETE:
       case EXPLAIN:
         // FIXME: getValidatedNodeType is wrong for DML
         x = RelOptUtil.createDmlRowType(sqlNode.getKind(), typeFactory);

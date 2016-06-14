@@ -480,9 +480,14 @@ public interface ExtendedEnumerable<TSource> {
       EqualityComparer<TSource> comparer);
 
   /**
-   * Copies the contents of the sequence into a collection.
+   * Copies the contents of this sequence into a collection.
    */
   <C extends Collection<? super TSource>> C into(C sink);
+
+  /**
+   * Removes the contents of this sequence from a collection.
+   */
+  <C extends Collection<? super TSource>> C removeAll(C sink);
 
   /**
    * Correlates the elements of two sequences based on

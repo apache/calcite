@@ -2902,6 +2902,7 @@ public abstract class EnumerableDefaults {
             source, (Class) Object.class, null, null);
   }
 
+  /** Default implementation of {@link ExtendedEnumerable#into(Collection)}. */
   public static <T, C extends Collection<? super T>> C into(
       Enumerable<T> source, C sink) {
     try (Enumerator<T> enumerator = source.enumerator()) {
@@ -2910,6 +2911,15 @@ public abstract class EnumerableDefaults {
         sink.add(t);
       }
     }
+    return sink;
+  }
+
+  /** Default implementation of {@link ExtendedEnumerable#removeAll(Collection)}. */
+  public static <T, C extends Collection<? super T>> C remove(
+      Enumerable<T> source, C sink) {
+    List<T> tempList = new ArrayList<>();
+    source.into(tempList);
+    sink.removeAll(tempList);
     return sink;
   }
 

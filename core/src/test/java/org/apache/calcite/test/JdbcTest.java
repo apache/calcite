@@ -128,6 +128,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -6479,9 +6480,15 @@ public class JdbcTest {
       this.commission = commission;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Employee [empid: " + empid + ", deptno: " + deptno
           + ", name: " + name + "]";
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Employee
+          && empid == ((Employee) obj).empid;
     }
   }
 
@@ -6501,9 +6508,15 @@ public class JdbcTest {
       this.location = location;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Department [deptno: " + deptno + ", name: " + name
           + ", employees: " + employees + ", location: " + location + "]";
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Department
+          && deptno == ((Department) obj).deptno;
     }
   }
 
@@ -6519,6 +6532,13 @@ public class JdbcTest {
     @Override public String toString() {
       return "Location [x: " + x + ", y: " + y + "]";
     }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Location
+          && x == ((Location) obj).x
+          && y == ((Location) obj).y;
+    }
   }
 
   public static class Dependent {
@@ -6532,6 +6552,13 @@ public class JdbcTest {
 
     @Override public String toString() {
       return "Dependent [empid: " + empid + ", name: " + name + "]";
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Dependent
+          && empid == ((Dependent) obj).empid
+          && Objects.equals(name, ((Dependent) obj).name);
     }
   }
 
@@ -6557,6 +6584,12 @@ public class JdbcTest {
       this.EMPNO = EMPNO;
       this.DEPTNO = DEPTNO;
     }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof LingualEmp
+          && EMPNO == ((LingualEmp) obj).EMPNO;
+    }
   }
 
   public static class FoodmartJdbcSchema extends JdbcSchema {
@@ -6574,6 +6607,12 @@ public class JdbcTest {
     public Customer(int customer_id) {
       this.customer_id = customer_id;
     }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Customer
+          && customer_id == ((Customer) obj).customer_id;
+    }
   }
 
   public static class SalesFact {
@@ -6583,6 +6622,13 @@ public class JdbcTest {
     public SalesFact(int cust_id, int prod_id) {
       this.cust_id = cust_id;
       this.prod_id = prod_id;
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof SalesFact
+          && cust_id == ((SalesFact) obj).cust_id
+          && prod_id == ((SalesFact) obj).prod_id;
     }
   }
 

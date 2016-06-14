@@ -115,6 +115,7 @@ public enum BuiltInMethod {
   AS_QUERYABLE(Enumerable.class, "asQueryable"),
   ABSTRACT_ENUMERABLE_CTOR(AbstractEnumerable.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),
+  REMOVE_ALL(ExtendedEnumerable.class, "removeAll", Collection.class),
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
   SCHEMA_GET_TABLE(Schema.class, "getTable", String.class),
   SCHEMA_PLUS_UNWRAP(SchemaPlus.class, "unwrap", Class.class),

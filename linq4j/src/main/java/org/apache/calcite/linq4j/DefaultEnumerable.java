@@ -343,6 +343,10 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.into(getThis(), sink);
   }
 
+  public <C extends Collection<? super T>> C removeAll(C sink) {
+    return EnumerableDefaults.remove(getThis(), sink);
+  }
+
   public <TInner, TKey, TResult> Enumerable<TResult> join(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
