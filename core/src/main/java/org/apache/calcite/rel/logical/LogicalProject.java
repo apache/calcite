@@ -101,7 +101,8 @@ public final class LogicalProject extends Project {
         fieldNames == null
             ? null
             : SqlValidatorUtil.uniquify(fieldNames,
-                SqlValidatorUtil.F_SUGGESTER);
+                SqlValidatorUtil.F_SUGGESTER,
+                input.getCluster().getTypeFactory().getTypeSystem().isSchemaCaseSensitive());
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
             fieldNames2);

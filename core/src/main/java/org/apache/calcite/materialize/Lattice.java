@@ -143,7 +143,7 @@ public class Lattice {
     }
     uniqueColumnNames =
         ImmutableList.copyOf(
-            SqlValidatorUtil.uniquify(Lists.transform(columns, GET_ALIAS)));
+            SqlValidatorUtil.uniquify(Lists.transform(columns, GET_ALIAS), true));
     if (rowCountEstimate == null) {
       // We could improve this when we fix
       // [CALCITE-429] Add statistics SPI for lattice optimization algorithm

@@ -145,8 +145,9 @@ public abstract class SqlCall extends SqlNode {
     SqlCall that = (SqlCall) node;
 
     // Compare operators by name, not identity, because they may not
-    // have been resolved yet.
-    if (!this.getOperator().getName().equals(that.getOperator().getName())) {
+    // have been resolved yet. Use case insensitive comparison since
+    // this may be a case insensitive system.
+    if (!this.getOperator().getName().equalsIgnoreCase(that.getOperator().getName())) {
       return litmus.fail("{} != {}", this, node);
     }
     return equalDeep(this.getOperandList(), that.getOperandList(), litmus);

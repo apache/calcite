@@ -50,7 +50,8 @@ public interface EnumerableRel
               RexUtil.createStructType(cluster.getTypeFactory(), projects,
                   fieldNames == null ? null
                       : SqlValidatorUtil.uniquify(fieldNames,
-                          SqlValidatorUtil.F_SUGGESTER));
+                          SqlValidatorUtil.F_SUGGESTER,
+                          cluster.getTypeFactory().getTypeSystem().isSchemaCaseSensitive()));
           return EnumerableProject.create(child, projects, rowType);
         }
       };

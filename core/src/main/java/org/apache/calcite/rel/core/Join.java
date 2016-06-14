@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Relational expression that combines two relational expressions according to
@@ -323,7 +324,9 @@ public abstract class Join extends BiRel {
     // to ensure that the contains() call to check for name uniqueness
     // runs in constant time; otherwise, if the number of fields is large,
     // doing a contains() on a list can be expensive
-    final HashSet<String> uniqueNameList = new HashSet<>();
+    final Set<String> uniqueNameList =
+        typeFactory.getTypeSystem().isSchemaCaseSensitive()
+        ? new HashSet<String>() : new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
     addFields(systemFieldList, typeList, nameList, uniqueNameList);
     addFields(leftType.getFieldList(), typeList, nameList, uniqueNameList);
     if (rightType != null) {
@@ -341,7 +344,7 @@ public abstract class Join extends BiRel {
       List<RelDataTypeField> fieldList,
       List<RelDataType> typeList,
       List<String> nameList,
-      HashSet<String> uniqueNameList) {
+      Set<String> uniqueNameList) {
     for (RelDataTypeField field : fieldList) {
       String name = field.getName();
 

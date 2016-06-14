@@ -92,6 +92,8 @@ public interface SqlValidatorCatalogReader {
 
   RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList);
+
+  boolean isCaseSensitive();
 }
 
 // End SqlValidatorCatalogReader.java
