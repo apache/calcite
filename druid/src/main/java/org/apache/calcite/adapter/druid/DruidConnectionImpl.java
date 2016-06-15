@@ -519,7 +519,16 @@ class DruidConnectionImpl implements DruidConnection {
     public String fieldName;
 
     SqlTypeName sqlType() {
-      return JsonColumn.sqlType(type);
+      if (type.startsWith("long")) {
+        return SqlTypeName.BIGINT;
+      }
+      if (type.startsWith("double")) {
+        return SqlTypeName.DOUBLE;
+      }
+      if (type.equals("hyperUnique")) {
+        return SqlTypeName.VARBINARY;
+      }
+      throw new AssertionError("unknown type " + type);
     }
   }
 }
