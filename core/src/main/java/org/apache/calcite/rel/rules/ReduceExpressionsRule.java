@@ -1010,6 +1010,11 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         callConstancy = Constancy.NON_CONSTANT;
       }
 
+      // we will not reduce AS operator
+      if (call.getOperator() == SqlStdOperatorTable.AS) {
+        callConstancy = Constancy.NON_CONSTANT;
+      }
+
       // Row operator itself can't be reduced to a literal, but if
       // the operands are constants, we still want to reduce those
       if ((callConstancy == Constancy.REDUCIBLE_CONSTANT)
