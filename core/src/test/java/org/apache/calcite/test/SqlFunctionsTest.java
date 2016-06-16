@@ -381,11 +381,11 @@ public class SqlFunctionsTest {
     assertThat((int) date, is(date1));
 
     assertThat(subtractMonths(date1, date0),
-        anyOf(is((long) months), is((long) months + 1)));
+        anyOf(is(months), is(months + 1)));
     assertThat(subtractMonths(date1 + 1, date0),
-        anyOf(is((long) months), is((long) months + 1)));
+        anyOf(is(months), is(months + 1)));
     assertThat(subtractMonths(date1, date0 + 1),
-        anyOf(is((long) months), is((long) months - 1)));
+        anyOf(is(months), is(months - 1)));
     assertThat(subtractMonths(d2ts(date1, 1), d2ts(date0, 0)),
         anyOf(is(months), is(months + 1)));
     assertThat(subtractMonths(d2ts(date1, 0), d2ts(date0, 1)),

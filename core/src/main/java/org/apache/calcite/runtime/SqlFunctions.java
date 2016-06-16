@@ -1650,7 +1650,7 @@ public class SqlFunctions {
 
   /** Finds the number of months between two dates, each represented as the
    * number of days since the epoch. */
-  public static long subtractMonths(int date0, int date1) {
+  public static int subtractMonths(int date0, int date1) {
     if (date0 < date1) {
       return -subtractMonths(date1, date0);
     }
@@ -1679,7 +1679,7 @@ public class SqlFunctions {
         DateTimeUtils.floorMod(t1, DateTimeUtils.MILLIS_PER_DAY);
     final int d1 = (int) DateTimeUtils.floorDiv(t1 - millis1,
         DateTimeUtils.MILLIS_PER_DAY);
-    int x = (int) subtractMonths(d0, d1);
+    int x = subtractMonths(d0, d1);
     final long d2 = addMonths(d1, x);
     if (d2 == d0 && millis0 < millis1) {
       --x;
