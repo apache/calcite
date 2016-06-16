@@ -304,7 +304,10 @@ public class SqlLiteral extends SqlNode {
    */
   public static Comparable value(SqlNode node) {
     if (node instanceof SqlLiteral) {
-      SqlLiteral literal = (SqlLiteral) node;
+      final SqlLiteral literal = (SqlLiteral) node;
+      if (literal.getTypeName() == SqlTypeName.SYMBOL) {
+        return (Enum) literal.value;
+      }
       switch (literal.getTypeName().getFamily()) {
       case CHARACTER:
         return (NlsString) literal.value;

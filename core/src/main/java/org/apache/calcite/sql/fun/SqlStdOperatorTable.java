@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -29,6 +32,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
@@ -43,10 +47,11 @@ import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlModality;
@@ -454,7 +459,31 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.PLUS,
           40,
           true,
-          ReturnTypes.ARG0_NULLABLE,
+          new SqlReturnTypeInference() {
+        @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType unit = opBinding.getOperandType(1);
+          final TimeUnit addUnit;
+          if (unit instanceof IntervalSqlType) {
+            addUnit = unit.getIntervalQualifier().getStartUnit();
+          } else {
+            addUnit = null;
+          }
+          switch (addUnit) {
+          case HOUR:
+          case MINUTE:
+          case SECOND:
+          case MILLISECOND:
+          case MICROSECOND:
+            return typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
+                opBinding.getOperandType(0).isNullable()
+                    || opBinding.getOperandType(1).isNullable());
+          default:
+            return opBinding.getOperandType(0);
+          }
+        }
+      },
           InferTypes.FIRST_KNOWN,
           OperandTypes.PLUS_OPERATOR);
 
@@ -1321,67 +1350,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CURRENT_DATE =
       new SqlCurrentDateFunction();
 
-  /**
-   * <p>The <code>TIMESTAMPADD</code> function, which adds an interval to a
-   * timestamp.
-   *
-   * <p>The SQL syntax is
-   *
-   * <blockquote>
-   * <code>TIMESTAMPADD(<i>timestamp interval</i>, <i>quantity</i>, <i>timestamp</i>)</code>
-   * </blockquote>
-   *
-   * <p>The interval time unit can one of the following literals:<ul>
-   * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
-   *     SQL_TSI_FRAC_SECOND)
-   * <li>SECOND (and synonym SQL_TSI_SECOND)
-   * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
-   * <li>HOUR (and synonym  SQL_TSI_HOUR)
-   * <li>DAY (and synonym SQL_TSI_DAY)
-   * <li>WEEK (and synonym  SQL_TSI_WEEK)
-   * <li>MONTH (and synonym SQL_TSI_MONTH)
-   * <li>QUARTER (and synonym SQL_TSI_QUARTER)
-   * <li>YEAR (and synonym  SQL_TSI_YEAR)
-   * </ul>
-   *
-   * <p>Returns modified timestamp.
-   */
-  public static final SqlFunction TIMESTAMP_ADD =
-      new SqlFunction("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD,
-          ReturnTypes.ARG2_NULLABLE, null,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
-              SqlTypeFamily.DATETIME), SqlFunctionCategory.TIMEDATE);
+  /** The <code>TIMESTAMPADD</code> function. */
+  public static final SqlFunction TIMESTAMP_ADD = new SqlTimestampAddFunction();
 
-  /**
-   * <p>The <code>TIMESTAMPDIFF</code> function, which calculates the difference
-   * between two timestamps.
-   *
-   * <p>The SQL syntax is
-   *
-   * <blockquote>
-   * <code>TIMESTAMPDIFF(<i>timestamp interval</i>, <i>timestamp</i>, <i>timestamp</i>)</code>
-   * </blockquote>
-   *
-   * <p>The interval time unit can one of the following literals:<ul>
-   * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
-   *     SQL_TSI_FRAC_SECOND)
-   * <li>SECOND (and synonym SQL_TSI_SECOND)
-   * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
-   * <li>HOUR (and synonym  SQL_TSI_HOUR)
-   * <li>DAY (and synonym SQL_TSI_DAY)
-   * <li>WEEK (and synonym  SQL_TSI_WEEK)
-   * <li>MONTH (and synonym SQL_TSI_MONTH)
-   * <li>QUARTER (and synonym SQL_TSI_QUARTER)
-   * <li>YEAR (and synonym  SQL_TSI_YEAR)
-   * </ul>
-   *
-   * <p>Returns difference between two timestamps in indicated timestamp interval.
-   */
-  public static final SqlFunction TIMESTAMP_DIFF =
-      new SqlFunction("TIMESTAMPDIFF", SqlKind.TIMESTAMP_DIFF,
-          ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
-              SqlTypeFamily.DATETIME), SqlFunctionCategory.TIMEDATE);
+  /** The <code>TIMESTAMPDIFF</code> function. */
+  public static final SqlFunction TIMESTAMP_DIFF = new SqlTimestampDiffFunction();
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be

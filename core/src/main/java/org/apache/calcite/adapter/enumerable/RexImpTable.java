@@ -1954,28 +1954,37 @@ public class RexImpTable {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
       final RexNode operand0 = call.getOperands().get(0);
-      final Expression trop0 = translatedOperands.get(0);
+      Expression trop0 = translatedOperands.get(0);
       final SqlTypeName typeName1 =
           call.getOperands().get(1).getType().getSqlTypeName();
       Expression trop1 = translatedOperands.get(1);
+      final SqlTypeName typeName = call.getType().getSqlTypeName();
       switch (operand0.getType().getSqlTypeName()) {
       case DATE:
-        switch (typeName1) {
-        case INTERVAL_DAY:
-        case INTERVAL_DAY_HOUR:
-        case INTERVAL_DAY_MINUTE:
-        case INTERVAL_DAY_SECOND:
-        case INTERVAL_HOUR:
-        case INTERVAL_HOUR_MINUTE:
-        case INTERVAL_HOUR_SECOND:
-        case INTERVAL_MINUTE:
-        case INTERVAL_MINUTE_SECOND:
-        case INTERVAL_SECOND:
-          trop1 =
-              Expressions.convert_(
-                  Expressions.divide(trop1,
-                      Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
-                  int.class);
+        switch (typeName) {
+        case TIMESTAMP:
+          trop0 = Expressions.convert_(
+              Expressions.multiply(trop0,
+                  Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+              long.class);
+          break;
+        default:
+          switch (typeName1) {
+          case INTERVAL_DAY:
+          case INTERVAL_DAY_HOUR:
+          case INTERVAL_DAY_MINUTE:
+          case INTERVAL_DAY_SECOND:
+          case INTERVAL_HOUR:
+          case INTERVAL_HOUR_MINUTE:
+          case INTERVAL_HOUR_SECOND:
+          case INTERVAL_MINUTE:
+          case INTERVAL_MINUTE_SECOND:
+          case INTERVAL_SECOND:
+            trop1 = Expressions.convert_(
+                Expressions.divide(trop1,
+                    Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+                int.class);
+          }
         }
         break;
       case TIME:
@@ -2012,7 +2021,7 @@ public class RexImpTable {
       default:
         switch (call.getKind()) {
         case MINUS:
-          switch (call.getType().getSqlTypeName()) {
+          switch (typeName) {
           case INTERVAL_YEAR:
           case INTERVAL_YEAR_MONTH:
           case INTERVAL_MONTH:

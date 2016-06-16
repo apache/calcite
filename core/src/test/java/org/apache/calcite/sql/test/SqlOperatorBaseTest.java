@@ -5056,6 +5056,27 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "timestampadd(MONTH, 3, timestamp '2016-02-24 12:42:25')",
         "2016-05-24 12:42:25", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "timestampadd(MONTH, 3, cast(null as timestamp))",
+        null, "TIMESTAMP(0)");
+
+    // TIMESTAMPADD with DATE; returns a TIMESTAMP value for sub-day intervals.
+    tester.checkScalar("timestampadd(MONTH, 1, date '2016-06-15')",
+        "2016-07-15", "DATE NOT NULL");
+    tester.checkScalar("timestampadd(DAY, 1, date '2016-06-15')",
+        "2016-06-16", "DATE NOT NULL");
+    tester.checkScalar("timestampadd(HOUR, -1, date '2016-06-15')",
+        "2016-06-14 23:00:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("timestampadd(MINUTE, 1, date '2016-06-15')",
+        "2016-06-15 00:01:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("timestampadd(SQL_TSI_SECOND, -1, date '2016-06-15')",
+        "2016-06-14 23:59:59", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("timestampadd(SECOND, 1, date '2016-06-15')",
+        "2016-06-15 00:00:01", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("timestampadd(SECOND, 1, cast(null as date))",
+        null, "TIMESTAMP(0)");
+    tester.checkScalar("timestampadd(DAY, 1, cast(null as date))",
+        null, "DATE");
   }
 
   @Test public void testTimestampDiff() {
@@ -5096,6 +5117,40 @@ public abstract class SqlOperatorBaseTest {
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2614-02-24 12:42:25')",
         "(?s)Encountered \"CENTURY\" at .*", false);
+    tester.checkScalar("timestampdiff(QUARTER, "
+        + "timestamp '2014-02-24 12:42:25', "
+        + "cast(null as timestamp))",
+        null, "INTEGER");
+    tester.checkScalar("timestampdiff(QUARTER, "
+        + "cast(null as timestamp), "
+        + "timestamp '2014-02-24 12:42:25')",
+        null, "INTEGER");
+
+    // timestampdiff with date
+    tester.checkScalar(
+        "timestampdiff(MONTH, date '2016-03-15', date '2016-06-14')",
+        "2",
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "timestampdiff(DAY, date '2016-06-15', date '2016-06-14')",
+        "-1",
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "timestampdiff(HOUR, date '2016-06-15', date '2016-06-14')",
+        "-24",
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "timestampdiff(MINUTE, date '2016-06-15',  date '2016-06-15')",
+        "0",
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "timestampdiff(SECOND, cast(null as date), date '2016-06-15')",
+        null,
+        "INTEGER");
+    tester.checkScalar(
+        "timestampdiff(DAY, date '2016-06-15', cast(null as date))",
+        null,
+        "INTEGER");
   }
 
   @Test public void testDenseRankFunc() {
