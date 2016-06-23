@@ -192,7 +192,10 @@ public class StreamRules {
         final Table table1 = streamableTable.stream();
         final RelOptTable relOptTable2 =
             RelOptTableImpl.create(relOptTable.getRelOptSchema(),
-                relOptTable.getRowType(), table1);
+                relOptTable.getRowType(), table1,
+                ImmutableList.<String>builder()
+                    .addAll(relOptTable.getQualifiedName())
+                    .add("(STREAM)").build());
         final LogicalTableScan newScan =
             LogicalTableScan.create(cluster, relOptTable2);
         call.transformTo(newScan);

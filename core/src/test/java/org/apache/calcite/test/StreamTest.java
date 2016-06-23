@@ -115,7 +115,7 @@ public class StreamTest {
             + "  LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3])\n"
             + "    LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains("EnumerableInterpreter\n"
-            + "  BindableTableScan(table=[[]])")
+            + "  BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
             startsWith(
                 "ROWTIME=2015-02-15 10:15:00; ID=1; PRODUCT=paint; UNITS=10",
@@ -134,7 +134,7 @@ public class StreamTest {
         .explainContains(
             "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[6], expr#5=[>($t3, $t4)], PRODUCT=[$t2], $condition=[$t5])\n"
                 + "  EnumerableInterpreter\n"
-                + "    BindableTableScan(table=[[]])")
+                + "    BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
             startsWith("PRODUCT=paint",
                 "PRODUCT=brush"));
@@ -159,7 +159,7 @@ public class StreamTest {
                 + "  EnumerableAggregate(group=[{0, 1}], C=[COUNT()])\n"
                 + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2])\n"
                 + "      EnumerableInterpreter\n"
-                + "        BindableTableScan(table=[[]])")
+                + "        BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
             startsWith("ROWTIME=2015-02-15 10:00:00; PRODUCT=paint; C=2"));
   }
@@ -180,7 +180,7 @@ public class StreamTest {
             "EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
                 + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2], UNITS=[$t3])\n"
                 + "    EnumerableInterpreter\n"
-                + "      BindableTableScan(table=[[]])")
+                + "      BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
             startsWith("ROWTIME=2015-02-15 10:00:00; PRODUCT=paper; UNITS=5",
                 "ROWTIME=2015-02-15 10:00:00; PRODUCT=paint; UNITS=10",
@@ -230,7 +230,7 @@ public class StreamTest {
         .query("select stream * from orders")
         .limit(100)
         .explainContains("EnumerableInterpreter\n"
-            + "  BindableTableScan(table=[[]])")
+            + "  BindableTableScan(table=[[INFINITE_STREAMS, ORDERS, (STREAM)]])")
         .returnsCount(100);
   }
 
@@ -252,7 +252,7 @@ public class StreamTest {
             + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], proj#0..4=[{exprs}])\n"
             + "      EnumerableInterpreter\n"
-            + "        BindableTableScan(table=[[]])\n"
+            + "        BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
             + "    EnumerableInterpreter\n"
             + "      BindableTableScan(table=[[STREAM_JOINS, PRODUCTS]])")
         .returns(

@@ -169,15 +169,12 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     }
   }
 
-  public static RelOptTableImpl create(
-      RelOptSchema schema,
-      RelDataType rowType,
-      Table table) {
+  public static RelOptTableImpl create(RelOptSchema schema,
+      RelDataType rowType, Table table, ImmutableList<String> names) {
     assert table instanceof TranslatableTable
         || table instanceof ScannableTable
         || table instanceof ModifiableTable;
-    return new RelOptTableImpl(schema, rowType, ImmutableList.<String>of(),
-        table, null, null);
+    return new RelOptTableImpl(schema, rowType, names, table, null, null);
   }
 
   public <T> T unwrap(Class<T> clazz) {

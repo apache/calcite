@@ -2120,7 +2120,8 @@ public class SqlToRelConverter {
       final TranslatableTable table =
           udf.getTable(typeFactory, callBinding.operands());
       final RelDataType rowType = table.getRowType(typeFactory);
-      RelOptTable relOptTable = RelOptTableImpl.create(null, rowType, table);
+      RelOptTable relOptTable = RelOptTableImpl.create(null, rowType, table,
+          udf.getNameAsId().names);
       RelNode converted = toRel(relOptTable);
       bb.setRoot(converted, true);
       return;
