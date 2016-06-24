@@ -2535,6 +2535,21 @@ LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testOrderByOver">
+        <Resource name="sql">
+            <![CDATA[select deptno, rank() over(partition by empno order by deptno)
+   from emp order by row_number() over(partition by empno order by deptno)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testValuesUsing">
         <Resource name="sql">
             <![CDATA[select d.deptno, min(e.empid) as empid

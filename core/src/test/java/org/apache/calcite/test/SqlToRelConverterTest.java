@@ -1640,6 +1640,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1313">[CALCITE-1313]
+   * Validator should derive type of expression in ORDER BY</a>.
+   */
+  @Test public void testOrderByOver() {
+    String sql = "select deptno, rank() over(partition by empno order by deptno)\n"
+        + "from emp order by row_number() over(partition by empno order by deptno)";
+    sql(sql).ok();
+  }
+
   /**
    * Test case (correlated scalar aggregate subQuery) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
