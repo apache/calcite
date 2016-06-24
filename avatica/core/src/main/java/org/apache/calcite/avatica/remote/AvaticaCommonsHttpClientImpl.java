@@ -20,6 +20,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.AuthSchemes;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -48,6 +49,7 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -70,7 +72,7 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   private static final String MAX_POOLED_CONNECTIONS_DEFAULT = "100";
 
   protected final HttpHost host;
-  protected final URL url;
+  protected final URI uri;
   protected final HttpProcessor httpProcessor;
   protected final HttpRequestExecutor httpExecutor;
   protected final BasicAuthCache authCache;
@@ -83,7 +85,7 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
 
   public AvaticaCommonsHttpClientImpl(URL url) {
     this.host = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
-    this.url = Objects.requireNonNull(url);
+    this.uri = toURI(Objects.requireNonNull(url));
 
     this.httpProcessor = HttpProcessorBuilder.create()
         .add(new RequestContent())
@@ -111,37 +113,48 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   }
 
   public byte[] send(byte[] request) {
-    HttpClientContext context = HttpClientContext.create();
+    while (true) {
+      HttpClientContext context = HttpClientContext.create();
 
-    context.setTargetHost(host);
+      context.setTargetHost(host);
 
-    // Set the credentials if they were provided.
-    if (null != this.credentials) {
-      context.setCredentialsProvider(credentialsProvider);
-      context.setAuthSchemeRegistry(authRegistry);
-      context.setAuthCache(authCache);
-    }
-
-    ByteArrayEntity entity = new ByteArrayEntity(request, ContentType.APPLICATION_OCTET_STREAM);
-
-    // Create the client with the AuthSchemeRegistry and manager
-    HttpPost post = new HttpPost(toURI(url));
-    post.setEntity(entity);
-
-    try (CloseableHttpResponse response = client.execute(post, context)) {
-      final int statusCode = response.getStatusLine().getStatusCode();
-      if (HttpURLConnection.HTTP_OK == statusCode
-          || HttpURLConnection.HTTP_INTERNAL_ERROR == statusCode) {
-        return EntityUtils.toByteArray(response.getEntity());
+      // Set the credentials if they were provided.
+      if (null != this.credentials) {
+        context.setCredentialsProvider(credentialsProvider);
+        context.setAuthSchemeRegistry(authRegistry);
+        context.setAuthCache(authCache);
       }
 
-      throw new RuntimeException("Failed to execute HTTP Request, got HTTP/" + statusCode);
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      LOG.debug("Failed to execute HTTP request", e);
-      throw new RuntimeException(e);
+      ByteArrayEntity entity = new ByteArrayEntity(request, ContentType.APPLICATION_OCTET_STREAM);
+
+      // Create the client with the AuthSchemeRegistry and manager
+      HttpPost post = new HttpPost(uri);
+      post.setEntity(entity);
+
+      try (CloseableHttpResponse response = execute(post, context)) {
+        final int statusCode = response.getStatusLine().getStatusCode();
+        if (HttpURLConnection.HTTP_OK == statusCode
+            || HttpURLConnection.HTTP_INTERNAL_ERROR == statusCode) {
+          return EntityUtils.toByteArray(response.getEntity());
+        } else if (HttpURLConnection.HTTP_UNAVAILABLE == statusCode) {
+          LOG.debug("Failed to connect to server (HTTP/503), retrying");
+          continue;
+        }
+
+        throw new RuntimeException("Failed to execute HTTP Request, got HTTP/" + statusCode);
+      } catch (RuntimeException e) {
+        throw e;
+      } catch (Exception e) {
+        LOG.debug("Failed to execute HTTP request", e);
+        throw new RuntimeException(e);
+      }
     }
+  }
+
+  // Visible for testing
+  CloseableHttpResponse execute(HttpPost post, HttpClientContext context)
+      throws IOException, ClientProtocolException {
+    return client.execute(post, context);
   }
 
   @Override public void setUsernamePassword(AuthenticationType authType, String username,
