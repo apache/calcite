@@ -19,6 +19,7 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -49,12 +50,11 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
    * Returns the first type matching any type in typeNames at or after
    * position start (zero based).
    */
-  public MatchReturnTypeInference(int start, List<SqlTypeName> typeNames) {
-    assert start >= 0;
-    assert null != typeNames;
-    assert typeNames.size() > 0;
+  public MatchReturnTypeInference(int start, Iterable<SqlTypeName> typeNames) {
+    Preconditions.checkArgument(start >= 0);
     this.start = start;
     this.typeNames = ImmutableList.copyOf(typeNames);
+    Preconditions.checkArgument(!this.typeNames.isEmpty());
   }
 
   //~ Methods ----------------------------------------------------------------

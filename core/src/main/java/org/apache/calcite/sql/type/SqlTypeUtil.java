@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -267,7 +268,7 @@ public abstract class SqlTypeUtil {
    * @see #isOfSameTypeName(SqlTypeName, RelDataType)
    */
   public static boolean isOfSameTypeName(
-      List<SqlTypeName> typeNames,
+      Collection<SqlTypeName> typeNames,
       RelDataType type) {
     for (SqlTypeName typeName : typeNames) {
       if (isOfSameTypeName(typeName, type)) {

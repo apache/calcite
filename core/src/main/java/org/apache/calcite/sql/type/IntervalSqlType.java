@@ -46,11 +46,7 @@ public class IntervalSqlType extends AbstractSqlType {
   public IntervalSqlType(RelDataTypeSystem typeSystem,
       SqlIntervalQualifier intervalQualifier,
       boolean isNullable) {
-    super(intervalQualifier.isYearMonth()
-            ? SqlTypeName.INTERVAL_YEAR_MONTH
-            : SqlTypeName.INTERVAL_DAY_TIME,
-        isNullable,
-        null);
+    super(intervalQualifier.typeName(), isNullable, null);
     this.typeSystem = Preconditions.checkNotNull(typeSystem);
     this.intervalQualifier = Preconditions.checkNotNull(intervalQualifier);
     computeDigest();
@@ -85,24 +81,17 @@ public class IntervalSqlType extends AbstractSqlType {
   public IntervalSqlType combine(
       RelDataTypeFactoryImpl typeFactory,
       IntervalSqlType that) {
-    assert this.intervalQualifier.isYearMonth()
-        == that.intervalQualifier.isYearMonth();
+    assert this.typeName.isYearMonth() == that.typeName.isYearMonth();
     boolean nullable = isNullable || that.isNullable;
-    TimeUnit thisStart =
-        this.intervalQualifier.getStartUnit();
-    TimeUnit thisEnd =
-        this.intervalQualifier.getEndUnit();
-    TimeUnit thatStart =
-        that.intervalQualifier.getStartUnit();
-    TimeUnit thatEnd =
-        that.intervalQualifier.getEndUnit();
-
-    assert null != thisStart;
-    assert null != thatStart;
+    TimeUnit thisStart = Preconditions.checkNotNull(typeName.getStartUnit());
+    TimeUnit thisEnd = typeName.getEndUnit();
+    final TimeUnit thatStart =
+        Preconditions.checkNotNull(that.typeName.getStartUnit());
+    final TimeUnit thatEnd = that.typeName.getEndUnit();
 
     int secondPrec =
         this.intervalQualifier.getStartPrecisionPreservingDefault();
-    int fracPrec =
+    final int fracPrec =
         SqlIntervalQualifier.combineFractionalSecondPrecisionPreservingDefault(
             typeSystem,
             this.intervalQualifier,

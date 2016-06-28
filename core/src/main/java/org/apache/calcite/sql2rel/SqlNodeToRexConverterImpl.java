@@ -138,8 +138,19 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case DATE:
       return rexBuilder.makeDateLiteral((Calendar) value);
 
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       SqlIntervalQualifier sqlIntervalQualifier =
           ((SqlIntervalLiteral.IntervalValue) value).getIntervalQualifier();
       l = (long) SqlLiteral.value(literal);

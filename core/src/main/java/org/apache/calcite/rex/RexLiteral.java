@@ -215,8 +215,19 @@ public class RexLiteral extends RexNode {
     case TIME:
     case TIMESTAMP:
       return value instanceof Calendar;
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       // The value of a DAY-TIME interval (whatever the start and end units,
       // even say HOUR TO MINUTE) is in milliseconds (perhaps fractional
       // milliseconds). The value of a YEAR-MONTH interval is in months.
@@ -386,8 +397,19 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP:
       printDatetime(pw, new ZonelessTimestamp(), value);
       break;
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       if (value instanceof BigDecimal) {
         pw.print(value.toString());
       } else {
@@ -469,13 +491,24 @@ public class RexLiteral extends RexNode {
       return new RexLiteral(new ByteString(bytes), type, typeName);
     case NULL:
       return new RexLiteral(null, type, typeName);
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       long millis =
           SqlParserUtil.intervalToMillis(
               literal,
               type.getIntervalQualifier());
       return new RexLiteral(BigDecimal.valueOf(millis), type, typeName);
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
       long months =
           SqlParserUtil.intervalToMonths(
               literal,

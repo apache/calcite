@@ -53,7 +53,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
-import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -86,6 +86,7 @@ import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -287,12 +288,13 @@ public class CalciteAssert {
     };
   }
 
-  public static Function<ResultSet, Void> checkResultCount(final int expected) {
+  public static Function<ResultSet, Void>
+  checkResultCount(final Matcher<Integer> expected) {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final int count = CalciteAssert.countRows(resultSet);
-          assertEquals(expected, count);
+          assertThat(count, expected);
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -304,7 +306,7 @@ public class CalciteAssert {
   public static Function<Integer, Void> checkUpdateCount(final int expected) {
     return new Function<Integer, Void>() {
       public Void apply(Integer updateCount) {
-        assertThat(updateCount, CoreMatchers.is(expected));
+        assertThat(updateCount, is(expected));
         return null;
       }
     };
@@ -1194,7 +1196,7 @@ public class CalciteAssert {
     }
 
     public AssertQuery returnsCount(int expectedCount) {
-      return returns(checkResultCount(expectedCount));
+      return returns(checkResultCount(is(expectedCount)));
     }
 
     public final AssertQuery returns(Function<ResultSet, Void> checker) {

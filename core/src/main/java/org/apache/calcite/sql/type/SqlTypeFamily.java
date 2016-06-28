@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.sql.Types;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -118,7 +118,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   /**
    * @return collection of {@link SqlTypeName}s included in this family
    */
-  public List<SqlTypeName> getTypeNames() {
+  public Collection<SqlTypeName> getTypeNames() {
     switch (this) {
     case CHARACTER:
       return SqlTypeName.CHAR_TYPES;
@@ -135,9 +135,9 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case BOOLEAN:
       return SqlTypeName.BOOLEAN_TYPES;
     case INTERVAL_YEAR_MONTH:
-      return ImmutableList.of(SqlTypeName.INTERVAL_YEAR_MONTH);
+      return SqlTypeName.YEAR_INTERVAL_TYPES;
     case INTERVAL_DAY_TIME:
-      return ImmutableList.of(SqlTypeName.INTERVAL_DAY_TIME);
+      return SqlTypeName.DAY_INTERVAL_TYPES;
     case STRING:
       return SqlTypeName.STRING_TYPES;
     case APPROXIMATE_NUMERIC:

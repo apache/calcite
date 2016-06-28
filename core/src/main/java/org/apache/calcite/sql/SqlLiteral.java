@@ -129,7 +129,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <td>An {@link Enum}</td>
  * </tr>
  * <tr>
- * <td>{@link SqlTypeName#INTERVAL_DAY_TIME}</td>
+ * <td>{@link SqlTypeName#INTERVAL_YEAR}
+ *     .. {@link SqlTypeName#INTERVAL_SECOND}</td>
  * <td>Interval, for example <code>INTERVAL '1:34' HOUR</code>.</td>
  * <td>{@link SqlIntervalLiteral.IntervalValue}.</td>
  * </tr>
@@ -197,8 +198,19 @@ public class SqlLiteral extends SqlNode {
     case TIME:
     case TIMESTAMP:
       return value instanceof Calendar;
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       return value instanceof SqlIntervalLiteral.IntervalValue;
     case BINARY:
       return value instanceof BitString;
@@ -281,10 +293,10 @@ public class SqlLiteral extends SqlNode {
    * <li>If the node is a {@link SqlIntervalQualifier},
    * returns its {@link TimeUnitRange}.
    *
-   * <li>If the node is INTERVAL_DAY_TIME in {@link SqlTypeFamily},
+   * <li>If the node is INTERVAL_DAY_TIME_ in {@link SqlTypeFamily},
    * returns its sign multiplied by its millisecond equivalent value
    *
-   * <li>If the node is INTERVAL_YEAR_MONTH in {@link SqlTypeFamily},
+   * <li>If the node is INTERVAL_YEAR_MONTH_ in {@link SqlTypeFamily},
    * returns its sign multiplied by its months equivalent value
    *
    * <li>Otherwise the behavior is not specified.
@@ -632,8 +644,19 @@ public class SqlLiteral extends SqlNode {
               collation);
       return type;
 
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       SqlIntervalLiteral.IntervalValue intervalValue =
           (SqlIntervalLiteral.IntervalValue) value;
       return typeFactory.createSqlIntervalType(
@@ -684,15 +707,8 @@ public class SqlLiteral extends SqlNode {
       String intervalStr,
       SqlIntervalQualifier intervalQualifier,
       SqlParserPos pos) {
-    SqlTypeName typeName =
-        intervalQualifier.isYearMonth() ? SqlTypeName.INTERVAL_YEAR_MONTH
-            : SqlTypeName.INTERVAL_DAY_TIME;
-    return new SqlIntervalLiteral(
-        sign,
-        intervalStr,
-        intervalQualifier,
-        typeName,
-        pos);
+    return new SqlIntervalLiteral(sign, intervalStr, intervalQualifier,
+        intervalQualifier.typeName(), pos);
   }
 
   public static SqlNumericLiteral createNegative(

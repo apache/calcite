@@ -272,7 +272,7 @@ public class CalciteRemoteDriverTest {
   @Test public void testRemoteTypeInfo() throws Exception {
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_TYPEINFO)
-        .returns(CalciteAssert.checkResultCount(31));
+        .returns(CalciteAssert.checkResultCount(is(42)));
   }
 
   @Test public void testRemoteTableTypes() throws Exception {

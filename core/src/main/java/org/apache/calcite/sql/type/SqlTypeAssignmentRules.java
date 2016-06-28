@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.util.Util;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,45 +41,39 @@ public class SqlTypeAssignmentRules {
   //~ Constructors -----------------------------------------------------------
 
   private SqlTypeAssignmentRules() {
-    rules = new HashMap<SqlTypeName, Set<SqlTypeName>>();
+    rules = new HashMap<>();
 
     Set<SqlTypeName> rule;
 
     // IntervalYearMonth is assignable from...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
-    rules.put(SqlTypeName.INTERVAL_YEAR_MONTH, rule);
-
-    // IntervalDayTime is assignable from...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-    rules.put(SqlTypeName.INTERVAL_DAY_TIME, rule);
+    for (SqlTypeName interval : SqlTypeName.YEAR_INTERVAL_TYPES) {
+      rules.put(interval, SqlTypeName.YEAR_INTERVAL_TYPES);
+    }
+    for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
+      rules.put(interval, SqlTypeName.DAY_INTERVAL_TYPES);
+    }
 
     // Multiset is assignable from...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.MULTISET);
-    rules.put(SqlTypeName.MULTISET, rule);
+    rules.put(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
 
     // Tinyint is assignable from...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.TINYINT);
-    rules.put(SqlTypeName.TINYINT, rule);
+    rules.put(SqlTypeName.TINYINT, EnumSet.of(SqlTypeName.TINYINT));
 
     // Smallint is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rules.put(SqlTypeName.SMALLINT, rule);
 
     // Int is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rules.put(SqlTypeName.INTEGER, rule);
 
     // BigInt is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -86,7 +81,7 @@ public class SqlTypeAssignmentRules {
     rules.put(SqlTypeName.BIGINT, rule);
 
     // Float is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -96,7 +91,7 @@ public class SqlTypeAssignmentRules {
     rules.put(SqlTypeName.FLOAT, rule);
 
     // Real is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -107,7 +102,7 @@ public class SqlTypeAssignmentRules {
     rules.put(SqlTypeName.REAL, rule);
 
     // Double is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -119,7 +114,7 @@ public class SqlTypeAssignmentRules {
     rules.put(SqlTypeName.DOUBLE, rule);
 
     // Decimal is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -130,52 +125,46 @@ public class SqlTypeAssignmentRules {
     rules.put(SqlTypeName.DECIMAL, rule);
 
     // VarBinary is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.VARBINARY);
     rule.add(SqlTypeName.BINARY);
     rules.put(SqlTypeName.VARBINARY, rule);
 
     // Char is assignable from...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.CHAR);
-    rules.put(SqlTypeName.CHAR, rule);
+    rules.put(SqlTypeName.CHAR, EnumSet.of(SqlTypeName.CHAR));
 
     // VarChar is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
     rules.put(SqlTypeName.VARCHAR, rule);
 
     // Boolean is assignable from...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.BOOLEAN);
-    rules.put(SqlTypeName.BOOLEAN, rule);
+    rules.put(SqlTypeName.BOOLEAN, EnumSet.of(SqlTypeName.BOOLEAN));
 
     // Binary is assignable from...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.BINARY);
     rule.add(SqlTypeName.VARBINARY);
     rules.put(SqlTypeName.BINARY, rule);
 
     // Date is assignable from ...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIMESTAMP);
     rules.put(SqlTypeName.DATE, rule);
 
     // Time is assignable from ...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.TIMESTAMP);
     rules.put(SqlTypeName.TIME, rule);
 
     // Timestamp is assignable from ...
-    rule = new HashSet<SqlTypeName>();
-    rule.add(SqlTypeName.TIMESTAMP);
-    rules.put(SqlTypeName.TIMESTAMP, rule);
+    rules.put(SqlTypeName.TIMESTAMP, EnumSet.of(SqlTypeName.TIMESTAMP));
 
     // Any is assignable from ...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -193,7 +182,7 @@ public class SqlTypeAssignmentRules {
 
     // Make numbers symmetrical and
     // make varchar/char castable to/from numbers
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -240,27 +229,19 @@ public class SqlTypeAssignmentRules {
     // Exact Numerics are castable from intervals
     for (SqlTypeName exactType : SqlTypeName.EXACT_TYPES) {
       rule = coerceRules.get(exactType);
-      rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-      rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
+      rule.addAll(SqlTypeName.INTERVAL_TYPES);
     }
 
     // intervals are castable from Exact Numeric
-    rule = coerceRules.get(SqlTypeName.INTERVAL_DAY_TIME);
-    rule.add(SqlTypeName.TINYINT);
-    rule.add(SqlTypeName.SMALLINT);
-    rule.add(SqlTypeName.INTEGER);
-    rule.add(SqlTypeName.BIGINT);
-    rule.add(SqlTypeName.DECIMAL);
-    rule.add(SqlTypeName.VARCHAR);
-
-    // intervals  castable from Exact Numeric
-    rule = coerceRules.get(SqlTypeName.INTERVAL_YEAR_MONTH);
-    rule.add(SqlTypeName.TINYINT);
-    rule.add(SqlTypeName.SMALLINT);
-    rule.add(SqlTypeName.INTEGER);
-    rule.add(SqlTypeName.BIGINT);
-    rule.add(SqlTypeName.DECIMAL);
-    rule.add(SqlTypeName.VARCHAR);
+    for (SqlTypeName typeName : SqlTypeName.INTERVAL_TYPES) {
+      rule = coerceRules.get(typeName);
+      rule.add(SqlTypeName.TINYINT);
+      rule.add(SqlTypeName.SMALLINT);
+      rule.add(SqlTypeName.INTEGER);
+      rule.add(SqlTypeName.BIGINT);
+      rule.add(SqlTypeName.DECIMAL);
+      rule.add(SqlTypeName.VARCHAR);
+    }
 
     // varchar is castable from Boolean, Date, time, timestamp, numbers and
     // intervals
@@ -269,8 +250,7 @@ public class SqlTypeAssignmentRules {
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-    rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
+    rule.addAll(SqlTypeName.INTERVAL_TYPES);
 
     // char is castable from Boolean, Date, time and timestamp and numbers
     rule = coerceRules.get(SqlTypeName.CHAR);
@@ -278,8 +258,7 @@ public class SqlTypeAssignmentRules {
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-    rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
+    rule.addAll(SqlTypeName.INTERVAL_TYPES);
 
     // Boolean is castable from char and varchar
     rule = coerceRules.get(SqlTypeName.BOOLEAN);
@@ -289,7 +268,7 @@ public class SqlTypeAssignmentRules {
     // Date, time, and timestamp are castable from
     // char and varchar
     // Date is castable from ...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIMESTAMP);
     rule.add(SqlTypeName.CHAR);
@@ -297,7 +276,7 @@ public class SqlTypeAssignmentRules {
     coerceRules.put(SqlTypeName.DATE, rule);
 
     // Time is castable from ...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.TIMESTAMP);
     rule.add(SqlTypeName.CHAR);
@@ -305,7 +284,7 @@ public class SqlTypeAssignmentRules {
     coerceRules.put(SqlTypeName.TIME, rule);
 
     // Timestamp is castable from ...
-    rule = new HashSet<SqlTypeName>();
+    rule = new HashSet<>();
     rule.add(SqlTypeName.TIMESTAMP);
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIME);
@@ -333,9 +312,9 @@ public class SqlTypeAssignmentRules {
     Map<SqlTypeName, Set<SqlTypeName>> ruleset =
         coerce ? coerceRules : rules;
 
-    if (to.equals(SqlTypeName.NULL)) {
+    if (to == SqlTypeName.NULL) {
       return false;
-    } else if (from.equals(SqlTypeName.NULL)) {
+    } else if (from == SqlTypeName.NULL) {
       return true;
     }
 
@@ -352,7 +331,7 @@ public class SqlTypeAssignmentRules {
 
   @SuppressWarnings("unchecked")
   private static <K, V> Map<K, V> copy(Map<K, V> map) {
-    Map<K, V> copy = new HashMap<K, V>();
+    Map<K, V> copy = new HashMap<>();
     for (Map.Entry<K, V> e : map.entrySet()) {
       if (e.getValue() instanceof Set) {
         copy.put(e.getKey(), (V) copy((Set) e.getValue()));

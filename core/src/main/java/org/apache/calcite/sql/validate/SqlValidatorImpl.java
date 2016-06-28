@@ -2665,8 +2665,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       break;
 
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       if (literal instanceof SqlIntervalLiteral) {
         SqlIntervalLiteral.IntervalValue interval =
             (SqlIntervalLiteral.IntervalValue)

@@ -1877,8 +1877,7 @@ public class Util {
       Class<T> clazz) {
     final T[] ts = clazz.getEnumConstants();
     if (ts == null) {
-      // not an enum type
-      return null;
+      throw new AssertionError("not an enum type");
     }
     ImmutableMap.Builder<String, T> builder = ImmutableMap.builder();
     for (T t : ts) {

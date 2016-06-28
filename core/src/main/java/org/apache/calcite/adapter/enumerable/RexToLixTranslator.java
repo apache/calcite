@@ -323,7 +323,9 @@ public class RexToLixTranslator {
                 BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method,
                 operand));
         break;
+      case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
@@ -331,7 +333,16 @@ public class RexToLixTranslator {
                 operand,
                 Expressions.constant(interval.timeUnitRange)));
         break;
-      case INTERVAL_DAY_TIME:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
@@ -413,12 +424,22 @@ public class RexToLixTranslator {
                     (long) Math.pow(10, 3 - targetScale)));
       }
       break;
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       switch (sourceType.getSqlTypeName().getFamily()) {
       case NUMERIC:
-        final SqlIntervalQualifier interval = targetType.getIntervalQualifier();
-        final BigDecimal multiplier = interval.getUnit().multiplier;
+        final BigDecimal multiplier = targetType.getSqlTypeName().getEndUnit().multiplier;
         final BigDecimal divider = BigDecimal.ONE;
         convert = RexImpTable.multiplyDivide(convert, multiplier, divider);
       }
@@ -614,11 +635,22 @@ public class RexToLixTranslator {
       value2 = ((Calendar) value).getTimeInMillis();
       javaClass = long.class;
       break;
-    case INTERVAL_DAY_TIME:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
       value2 = ((BigDecimal) value).longValue();
       javaClass = long.class;
       break;
+    case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
       value2 = ((BigDecimal) value).intValue();
       javaClass = int.class;
       break;

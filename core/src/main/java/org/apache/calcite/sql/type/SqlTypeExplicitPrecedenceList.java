@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -86,10 +87,32 @@ public class SqlTypeExplicitPrecedenceList
           .put(SqlTypeName.DATE, list(SqlTypeName.DATE))
           .put(SqlTypeName.TIME, list(SqlTypeName.TIME))
           .put(SqlTypeName.TIMESTAMP, list(SqlTypeName.TIMESTAMP))
+          .put(SqlTypeName.INTERVAL_YEAR,
+              list(SqlTypeName.YEAR_INTERVAL_TYPES))
           .put(SqlTypeName.INTERVAL_YEAR_MONTH,
-              list(SqlTypeName.INTERVAL_YEAR_MONTH))
-          .put(SqlTypeName.INTERVAL_DAY_TIME,
-              list(SqlTypeName.INTERVAL_DAY_TIME))
+              list(SqlTypeName.YEAR_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_MONTH,
+              list(SqlTypeName.YEAR_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_DAY,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_DAY_HOUR,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_DAY_MINUTE,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_DAY_SECOND,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_HOUR,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_HOUR_MINUTE,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_HOUR_SECOND,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_MINUTE,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_MINUTE_SECOND,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_SECOND,
+              list(SqlTypeName.DAY_INTERVAL_TYPES))
           .build();
 
   //~ Instance fields --------------------------------------------------------
@@ -98,14 +121,18 @@ public class SqlTypeExplicitPrecedenceList
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTypeExplicitPrecedenceList(List<SqlTypeName> typeNames) {
+  public SqlTypeExplicitPrecedenceList(Iterable<SqlTypeName> typeNames) {
     this.typeNames = ImmutableNullableList.copyOf(typeNames);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  private static SqlTypeExplicitPrecedenceList list(SqlTypeName... array) {
-    return new SqlTypeExplicitPrecedenceList(ImmutableList.copyOf(array));
+  private static SqlTypeExplicitPrecedenceList list(SqlTypeName... typeNames) {
+    return list(Arrays.asList(typeNames));
+  }
+
+  private static SqlTypeExplicitPrecedenceList list(Iterable<SqlTypeName> typeNames) {
+    return new SqlTypeExplicitPrecedenceList(typeNames);
   }
 
   private static SqlTypeExplicitPrecedenceList numeric(SqlTypeName typeName) {

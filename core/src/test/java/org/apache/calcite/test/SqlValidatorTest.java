@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -3456,29 +3457,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // accurately test bounds)
     final RelDataTypeSystem typeSystem =
         getTester().getValidator().getTypeFactory().getTypeSystem();
-    assertTrue(
-        SqlTypeName.INTERVAL_YEAR_MONTH.getMinPrecision() == 1);
-    assertTrue(
-        SqlTypeName.INTERVAL_DAY_TIME.getMinPrecision() == 1);
     final RelDataTypeSystem defTypeSystem = RelDataTypeSystem.DEFAULT;
-    assertEquals(10,
-        defTypeSystem.getMaxPrecision(SqlTypeName.INTERVAL_YEAR_MONTH));
-    assertEquals(10,
-        defTypeSystem.getMaxPrecision(SqlTypeName.INTERVAL_DAY_TIME));
-    assertEquals(2,
-        typeSystem.getDefaultPrecision(SqlTypeName.INTERVAL_YEAR_MONTH));
-    assertEquals(2,
-        typeSystem.getDefaultPrecision(SqlTypeName.INTERVAL_DAY_TIME));
-    assertTrue(
-        SqlTypeName.INTERVAL_YEAR_MONTH.getMinScale() == 1);
-    assertTrue(
-        SqlTypeName.INTERVAL_DAY_TIME.getMinScale() == 1);
-    assertEquals(9, typeSystem.getMaxScale(SqlTypeName.INTERVAL_YEAR_MONTH));
-    assertEquals(9, typeSystem.getMaxScale(SqlTypeName.INTERVAL_DAY_TIME));
-    assertTrue(
-        SqlTypeName.INTERVAL_YEAR_MONTH.getDefaultScale() == 6);
-    assertTrue(
-        SqlTypeName.INTERVAL_DAY_TIME.getDefaultScale() == 6);
+    for (SqlTypeName typeName : SqlTypeName.INTERVAL_TYPES) {
+      assertThat(typeName.getMinPrecision(), is(1));
+      assertThat(typeSystem.getMaxPrecision(typeName), is(10));
+      assertThat(typeSystem.getDefaultPrecision(typeName), is(2));
+      assertThat(typeName.getMinScale(), is(1));
+      assertThat(typeSystem.getMaxScale(typeName), is(9));
+      assertThat(typeName.getDefaultScale(), is(6));
+    }
 
     // Tests that should pass both parser and validator
     subTestIntervalYearPositive();

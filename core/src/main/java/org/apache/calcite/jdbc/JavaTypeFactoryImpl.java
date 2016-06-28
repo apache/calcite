@@ -176,11 +176,22 @@ public class JavaTypeFactoryImpl
       case DATE:
       case TIME:
       case INTEGER:
+      case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
         return type.isNullable() ? Integer.class : int.class;
       case TIMESTAMP:
       case BIGINT:
-      case INTERVAL_DAY_TIME:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
         return type.isNullable() ? Long.class : long.class;
       case SMALLINT:
         return type.isNullable() ? Short.class : short.class;

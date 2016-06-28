@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptUtil;
@@ -620,8 +621,19 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     case MONTH:
     case DAY:
       switch (sqlTypeName) {
+      case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
-      case INTERVAL_DAY_TIME:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
         break;
       case TIMESTAMP:
         res = divide(rexBuilder, res, TimeUnit.DAY.multiplier);
@@ -671,8 +683,19 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case TIMESTAMP:
         // convert to seconds
         return divide(rexBuilder, res, TimeUnit.SECOND.multiplier);
-      case INTERVAL_DAY_TIME:
+      case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
         // no convertlet conversion, pass it as extract
         return convertFunction(cx, (SqlFunction) call.getOperator(), call);
       }
@@ -681,8 +704,19 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     case DOY:
     case WEEK:
       switch (sqlTypeName) {
-      case INTERVAL_DAY_TIME: // fall through
+      case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
         // TODO: is this check better to do in validation phase?
         // Currently there is parameter on TimeUnit to identify these type of units.
         throw new IllegalArgumentException("Extract " + unit + " from "
@@ -1032,8 +1066,19 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       if (operands.size() == 2) {
         final SqlTypeName sqlTypeName = operands.get(0).getType().getSqlTypeName();
         switch (sqlTypeName) {
-        case INTERVAL_DAY_TIME:
+        case INTERVAL_YEAR:
         case INTERVAL_YEAR_MONTH:
+        case INTERVAL_MONTH:
+        case INTERVAL_DAY:
+        case INTERVAL_DAY_HOUR:
+        case INTERVAL_DAY_MINUTE:
+        case INTERVAL_DAY_SECOND:
+        case INTERVAL_HOUR:
+        case INTERVAL_HOUR_MINUTE:
+        case INTERVAL_HOUR_SECOND:
+        case INTERVAL_MINUTE:
+        case INTERVAL_MINUTE_SECOND:
+        case INTERVAL_SECOND:
           operands = ImmutableList.of(operands.get(1), operands.get(0));
         }
       }
@@ -1469,17 +1514,33 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //    => (t2 - t1) UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlLiteral unitLiteral = call.operand(0);
-      final TimeUnit unit = unitLiteral.symbolValue(TimeUnit.class);
+      TimeUnit unit = unitLiteral.symbolValue(TimeUnit.class);
+      BigDecimal multiplier = BigDecimal.ONE;
+      BigDecimal divider = BigDecimal.ONE;
+      switch (unit) {
+      case MICROSECOND:
+      case MILLISECOND:
+      case WEEK:
+        multiplier = BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_SECOND);
+        divider = unit.multiplier;
+        unit = TimeUnit.SECOND;
+        break;
+      case QUARTER:
+        divider = unit.multiplier;
+        unit = TimeUnit.MONTH;
+        break;
+      }
       final RelDataType intType =
           cx.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       final SqlIntervalQualifier qualifier =
           new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
       final RelDataType intervalType =
           cx.getTypeFactory().createSqlIntervalType(qualifier);
-      return rexBuilder.makeCast(intType,
+      RexNode e = rexBuilder.makeCast(intType,
           rexBuilder.makeCall(intervalType, SqlStdOperatorTable.MINUS_DATE,
               ImmutableList.of(cx.convertExpression(call.operand(2)),
                   cx.convertExpression(call.operand(1)))));
+      return rexBuilder.multiplyDivide(e, multiplier, divider);
     }
   }
 }

@@ -5068,10 +5068,34 @@ public abstract class SqlOperatorBaseTest {
         + "timestamp '2016-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:20')",
         "-5000000", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(SQL_TSI_FRAC_SECOND, "
+        + "timestamp '2016-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:20')",
+        "-5000000", "INTEGER NOT NULL");
     tester.checkScalar("timestampdiff(YEAR, "
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:25')",
         "2", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(WEEK, "
+        + "timestamp '2014-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:25')",
+        "104", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(WEEK, "
+        + "timestamp '2014-02-19 12:42:25', "
+        + "timestamp '2016-02-24 12:42:25')",
+        "105", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(MONTH, "
+        + "timestamp '2014-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:25')",
+        "24", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(QUARTER, "
+        + "timestamp '2014-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:25')",
+        "8", "INTEGER NOT NULL");
+    tester.checkFails("timestampdiff(CENTURY, "
+        + "timestamp '2014-02-24 12:42:25', "
+        + "timestamp '2614-02-24 12:42:25')",
+        "(?s)Encountered \"CENTURY\" at .*", false);
   }
 
   @Test public void testDenseRankFunc() {

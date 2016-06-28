@@ -107,6 +107,9 @@ public class SqlIntervalQualifier extends SqlNode {
       int fractionalSecondPrecision,
       SqlParserPos pos) {
     super(pos);
+    if (endUnit == startUnit) {
+      endUnit = null;
+    }
     this.timeUnitRange =
         TimeUnitRange.of(Preconditions.checkNotNull(startUnit), endUnit);
     this.startPrecision = startPrecision;
@@ -128,9 +131,46 @@ public class SqlIntervalQualifier extends SqlNode {
   //~ Methods ----------------------------------------------------------------
 
   public SqlTypeName typeName() {
-    return isYearMonth()
-        ? SqlTypeName.INTERVAL_YEAR_MONTH
-        : SqlTypeName.INTERVAL_DAY_TIME;
+    switch (timeUnitRange) {
+    case YEAR:
+    case CENTURY:
+    case DECADE:
+    case MILLENNIUM:
+      return SqlTypeName.INTERVAL_YEAR;
+    case YEAR_TO_MONTH:
+      return SqlTypeName.INTERVAL_YEAR_MONTH;
+    case MONTH:
+    case QUARTER:
+      return SqlTypeName.INTERVAL_MONTH;
+    case DOW:
+    case DOY:
+    case DAY:
+    case WEEK:
+      return SqlTypeName.INTERVAL_DAY;
+    case DAY_TO_HOUR:
+      return SqlTypeName.INTERVAL_DAY_HOUR;
+    case DAY_TO_MINUTE:
+      return SqlTypeName.INTERVAL_DAY_MINUTE;
+    case DAY_TO_SECOND:
+      return SqlTypeName.INTERVAL_DAY_SECOND;
+    case HOUR:
+      return SqlTypeName.INTERVAL_HOUR;
+    case HOUR_TO_MINUTE:
+      return SqlTypeName.INTERVAL_HOUR_MINUTE;
+    case HOUR_TO_SECOND:
+      return SqlTypeName.INTERVAL_HOUR_SECOND;
+    case MINUTE:
+      return SqlTypeName.INTERVAL_MINUTE;
+    case MINUTE_TO_SECOND:
+      return SqlTypeName.INTERVAL_MINUTE_SECOND;
+    case SECOND:
+    case MILLISECOND:
+    case EPOCH:
+    case MICROSECOND:
+      return SqlTypeName.INTERVAL_SECOND;
+    default:
+      throw new AssertionError(timeUnitRange);
+    }
   }
 
   public void validate(
