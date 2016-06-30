@@ -20,10 +20,12 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +38,9 @@ import java.util.List;
  */
 public class ProjectJoinTransposeRule extends RelOptRule {
   public static final ProjectJoinTransposeRule INSTANCE =
-      new ProjectJoinTransposeRule(PushProjector.ExprCondition.FALSE);
+      new ProjectJoinTransposeRule(
+          PushProjector.ExprCondition.FALSE,
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -54,10 +58,12 @@ public class ProjectJoinTransposeRule extends RelOptRule {
    *                              preserved in the projection
    */
   public ProjectJoinTransposeRule(
-      PushProjector.ExprCondition preserveExprCondition) {
+      PushProjector.ExprCondition preserveExprCondition,
+      RelBuilderFactory relFactory) {
     super(
-        operand(LogicalProject.class,
-            operand(Join.class, any())));
+        operand(Project.class,
+            operand(Join.class, any())),
+        relFactory, null);
     this.preserveExprCondition = preserveExprCondition;
   }
 
@@ -65,7 +71,7 @@ public class ProjectJoinTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    LogicalProject origProj = call.rel(0);
+    Project origProj = call.rel(0);
     final Join join = call.rel(1);
 
     if (join instanceof SemiJoin) {
@@ -80,7 +86,8 @@ public class ProjectJoinTransposeRule extends RelOptRule {
             origProj,
             join.getCondition(),
             join,
-            preserveExprCondition);
+            preserveExprCondition,
+            relBuilderFactory.create(origProj.getCluster(), null));
     if (pushProject.locateAllRefs()) {
       return;
     }

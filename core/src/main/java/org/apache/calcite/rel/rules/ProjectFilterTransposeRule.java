@@ -69,8 +69,8 @@ public class ProjectFilterTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    LogicalProject origProj;
-    LogicalFilter filter;
+    Project origProj;
+    Filter filter;
 
     if (call.rels.length == 2) {
       origProj = call.rel(0);
@@ -94,7 +94,8 @@ public class ProjectFilterTransposeRule extends RelOptRule {
 
     PushProjector pushProjector =
         new PushProjector(
-            origProj, origFilter, rel, preserveExprCondition);
+            origProj, origFilter, rel, preserveExprCondition,
+            relBuilderFactory.create(origProj.getCluster(), null));
     RelNode topProject = pushProjector.convertProject(null);
 
     if (topProject != null) {
