@@ -2761,23 +2761,7 @@ public abstract class RelOptUtil {
       List<Pair<RexNode, String>> projectList,
       boolean optimize) {
     return createProject(child, Pair.left(projectList), Pair.right(projectList),
-        optimize, RelFactories.DEFAULT_PROJECT_FACTORY);
-  }
-
-  /**
-   * Creates a relational expression which projects a list of (expression, name)
-   * pairs.
-   *
-   * @param child             input relational expression
-   * @param projectList       list of (expression, name) pairs
-   * @param optimize          Whether to optimize
-   * @param projectFactory    Factory to create project operators
-   */
-  public static RelNode createProject(
-      RelNode child, List<Pair<RexNode, String>> projectList,
-      boolean optimize, RelFactories.ProjectFactory projectFactory) {
-    return createProject(child, Pair.left(projectList), Pair.right(projectList),
-        optimize, projectFactory);
+        optimize, RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
   }
 
   /**
@@ -2818,7 +2802,7 @@ public abstract class RelOptUtil {
       List<String> fieldNames,
       boolean optimize) {
     return createProject(child, exprs, fieldNames, optimize,
-            RelFactories.DEFAULT_PROJECT_FACTORY);
+            RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
   }
 
   /**
@@ -2836,14 +2820,14 @@ public abstract class RelOptUtil {
    * @param fieldNames     aliases of the expressions, or null to generate
    * @param optimize       Whether to return <code>child</code> unchanged if the
    *                       projections are trivial.
-   * @param projectFactory Factory to create project operators
+   * @param relBuilder     Factory to create project operators
    */
   public static RelNode createProject(
       RelNode child,
       List<? extends RexNode> exprs,
       List<String> fieldNames,
       boolean optimize,
-      RelFactories.ProjectFactory projectFactory) {
+      RelBuilder relBuilder) {
     final RelOptCluster cluster = child.getCluster();
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), exprs,
@@ -2858,7 +2842,9 @@ public abstract class RelOptUtil {
       }
       return child;
     }
-    return projectFactory.createProject(child, exprs, rowType.getFieldNames());
+    relBuilder.push(child);
+    relBuilder.project(exprs, rowType.getFieldNames(), !optimize);
+    return relBuilder.build();
   }
 
   /**
@@ -3004,7 +2990,8 @@ public abstract class RelOptUtil {
             final int pos = posList.get(index);
             return fieldNames.get(pos);
           }
-        }, true, factory);
+        }, true,
+        RelBuilder.proto(factory).create(child.getCluster(), null));
   }
 
   /**

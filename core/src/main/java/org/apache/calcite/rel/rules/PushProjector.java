@@ -20,9 +20,9 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.SetOp;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -31,10 +31,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -60,10 +62,11 @@ import java.util.Set;
 public class PushProjector {
   //~ Instance fields --------------------------------------------------------
 
-  private final LogicalProject origProj;
+  private final Project origProj;
   private final RexNode origFilter;
   private final RelNode childRel;
   private final ExprCondition preserveExprCondition;
+  private final RelBuilder relBuilder;
 
   /**
    * Original projection expressions
@@ -188,15 +191,16 @@ public class PushProjector {
    *                              be preserved in the projection
    */
   public PushProjector(
-      LogicalProject origProj,
+      Project origProj,
       RexNode origFilter,
       RelNode childRel,
-      ExprCondition preserveExprCondition) {
+      ExprCondition preserveExprCondition,
+      RelBuilder relBuilder) {
     this.origProj = origProj;
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
-
+    this.relBuilder = Preconditions.checkNotNull(relBuilder);
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
     } else {
@@ -308,7 +312,9 @@ public class PushProjector {
               origFilter,
               newProject.getRowType().getFieldList(),
               adjustments);
-      projChild = RelOptUtil.createFilter(newProject, newFilter);
+      relBuilder.push(newProject);
+      relBuilder.filter(newFilter);
+      projChild = relBuilder.build();
     } else {
       projChild = newProject;
     }
@@ -411,7 +417,7 @@ public class PushProjector {
    *                  of a join
    * @return created projection
    */
-  public LogicalProject createProjectRefsAndExprs(
+  public Project createProjectRefsAndExprs(
       RelNode projChild,
       boolean adjust,
       boolean rightSide) {
@@ -474,10 +480,12 @@ public class PushProjector {
               ((RexCall) projExpr).getOperator().getName()));
     }
 
-    return (LogicalProject) RelOptUtil.createProject(
+    return (Project) RelOptUtil.createProject(
         projChild,
         Pair.left(newProjects),
-        Pair.right(newProjects));
+        Pair.right(newProjects),
+        false,
+        relBuilder);
   }
 
   /**
@@ -565,7 +573,8 @@ public class PushProjector {
         projChild,
         Pair.left(projects),
         Pair.right(projects),
-        true /* optimize to avoid trivial projections, as per javadoc */);
+        true /* optimize to avoid trivial projections, as per javadoc */,
+        relBuilder);
   }
 
   //~ Inner Classes ----------------------------------------------------------

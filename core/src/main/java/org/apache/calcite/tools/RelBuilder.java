@@ -784,6 +784,20 @@ public class RelBuilder {
   }
 
   /** Creates a {@link org.apache.calcite.rel.core.Project} of the given list
+   * of expressions and field names.
+   *
+   * <p>Infers names as would {@link #project(Iterable, Iterable)} if all
+   * suggested names were null.
+   *
+   * @param nodes Expressions
+   * @param fieldNames field names for expressions
+   */
+  public RelBuilder project(Iterable<? extends RexNode> nodes,
+      Iterable<String> fieldNames) {
+    return project(nodes, fieldNames, false);
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Project} of the given list
    * of expressions, using the given names.
    *
    * <p>Names are deduced as follows:
@@ -804,9 +818,12 @@ public class RelBuilder {
    *
    * @param nodes Expressions
    * @param fieldNames Suggested field names
+   * @param force create project even if it is identity
    */
-  public RelBuilder project(Iterable<? extends RexNode> nodes,
-      Iterable<String> fieldNames) {
+  public RelBuilder project(
+      Iterable<? extends RexNode> nodes,
+      Iterable<String> fieldNames,
+      boolean force) {
     final List<String> names = new ArrayList<>();
     final List<RexNode> exprList = Lists.newArrayList(nodes);
     final Iterator<String> nameIterator = fieldNames.iterator();
@@ -816,7 +833,7 @@ public class RelBuilder {
       names.add(Util.first(name, name2));
     }
     final RelDataType inputRowType = peek().getRowType();
-    if (RexUtil.isIdentity(exprList, inputRowType)) {
+    if (!force && RexUtil.isIdentity(exprList, inputRowType)) {
       if (names.equals(inputRowType.getFieldNames())) {
         // Do not create an identity project if it does not rename any fields
         return this;
