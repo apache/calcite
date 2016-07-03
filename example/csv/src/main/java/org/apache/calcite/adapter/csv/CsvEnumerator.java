@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.csv;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -92,13 +93,22 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  /** Deduces the names and types of a table's columns by reading the first line
-   * of a CSV file. */
   static RelDataType deduceRowType(JavaTypeFactory typeFactory, File file,
-      List<CsvFieldType> fieldTypes) {
+                                   List<CsvFieldType> fieldTypes) {
+    return deduceRowType(typeFactory, file, fieldTypes, false);
+  }
+
+  /** Deduces the names and types of a table's columns by reading the first line
+  * of a CSV file. */
+  static RelDataType deduceRowType(JavaTypeFactory typeFactory, File file,
+      List<CsvFieldType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     CSVReader reader = null;
+    if (stream) {
+      names.add("ROWTIME");
+      types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
+    }
     try {
       reader = openCsv(file);
       final String[] strings = reader.readNext();
@@ -150,7 +160,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  private static CSVReader openCsv(File file) throws IOException {
+  public static CSVReader openCsv(File file) throws IOException {
     final Reader fileReader;
     if (file.getName().endsWith(".gz")) {
       final GZIPInputStream inputStream =
@@ -300,17 +310,44 @@ class CsvEnumerator<E> implements Enumerator<E> {
   static class ArrayRowConverter extends RowConverter<Object[]> {
     private final CsvFieldType[] fieldTypes;
     private final int[] fields;
+    //whether the row to convert is from a stream
+    private final boolean stream;
 
     ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields) {
       this.fieldTypes = fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]);
       this.fields = fields;
+      this.stream = false;
+    }
+
+    ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields, boolean stream) {
+      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]);
+      this.fields = fields;
+      this.stream = stream;
     }
 
     public Object[] convertRow(String[] strings) {
+      if (stream) {
+        return convertStreamRow(strings);
+      } else {
+        return convertNormalRow(strings);
+      }
+    }
+
+    public Object[] convertNormalRow(String[] strings) {
       final Object[] objects = new Object[fields.length];
       for (int i = 0; i < fields.length; i++) {
         int field = fields[i];
         objects[i] = convert(fieldTypes[field], strings[field]);
+      }
+      return objects;
+    }
+
+    public Object[] convertStreamRow(String[] strings) {
+      final Object[] objects = new Object[fields.length + 1];
+      objects[0] = System.currentTimeMillis();
+      for (int i = 0; i < fields.length; i++) {
+        int field = fields[i];
+        objects[i + 1] = convert(fieldTypes[field], strings[field]);
       }
       return objects;
     }
