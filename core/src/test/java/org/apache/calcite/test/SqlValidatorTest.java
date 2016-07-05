@@ -7325,18 +7325,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkFails("select count(1), ^empno^ from emp",
         "Expression 'EMPNO' is not being grouped");
+  }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-319">[CALCITE-319]
+   * Table aliases should follow case-sensitivity policy</a>. */
+  @Test public void testCaseInsensitiveTableAlias() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(false)
+        .withQuoting(Quoting.BRACKET);
+    final SqlTester tester2 = tester.withQuoting(Quoting.BRACKET);
     // Table aliases should follow case-sensitivity preference.
     //
     // In MySQL, table aliases are case-insensitive:
     // mysql> select `D`.day from DAYS as `d`, DAYS as `D`;
     // ERROR 1066 (42000): Not unique table/alias: 'D'
+    tester1.checkQueryFails("select count(*) from dept as [D], ^dept as [d]^",
+        "Duplicate relation name 'd' in FROM clause");
     tester2.checkQuery("select count(*) from dept as [D], dept as [d]");
-    if (!Bug.CALCITE_319_FIXED) {
-      return;
-    }
-    tester1.checkQueryFails("select count(*) from dept as [D], dept as [d]",
-        "xxx");
+    tester2.checkQueryFails("select count(*) from dept as [D], ^dept as [D]^",
+        "Duplicate relation name 'D' in FROM clause");
   }
 
   /** Tests matching of built-in operator names. */

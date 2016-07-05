@@ -2986,7 +2986,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope fromScope = getFromScope(select);
     final List<Pair<String, SqlValidatorNamespace>> children =
         ((SelectScope) fromScope).children;
-    int duplicateAliasOrdinal = Util.firstDuplicate(Pair.left(children));
+    List<String> names = Pair.left(children);
+    if (!catalogReader.isCaseSensitive()) {
+      names = Lists.transform(names,
+          new Function<String, String>() {
+            public String apply(String s) {
+              return s.toUpperCase();
+            }
+          });
+    }
+    final int duplicateAliasOrdinal = Util.firstDuplicate(names);
     if (duplicateAliasOrdinal >= 0) {
       final Pair<String, SqlValidatorNamespace> child =
           children.get(duplicateAliasOrdinal);

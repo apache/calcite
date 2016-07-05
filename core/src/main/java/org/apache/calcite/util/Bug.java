@@ -151,11 +151,6 @@ public abstract class Bug {
    * Array items in MongoDB adapter</a> is fixed. */
   public static final boolean CALCITE_194_FIXED = false;
 
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-319">[CALCITE-319]
-   * Table aliases should follow case-sensitivity policy</a> is fixed. */
-  public static final boolean CALCITE_319_FIXED = false;
-
   /** Whether the remaining issues raised in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-461">[CALCITE-461]
    * Convert more planner rules to handle grouping sets</a> are fixed.
