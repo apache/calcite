@@ -310,7 +310,7 @@ public class Ast {
    * <p>Syntax:
    * <blockquote>
    *   <code>alias = GROUP alias
-   *   ( ALL | BY ( exp | '(' exp [, exp]... ')' ) );</code>
+   *   ( ALL | BY ( exp | '(' exp [, exp]... ')' ) )</code>
    * </blockquote>
    */
   public static class GroupStmt extends Assignment1 {

@@ -7347,6 +7347,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Duplicate relation name 'D' in FROM clause");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1305">[CALCITE-1305]
+   * Case-insensitive table aliases and GROUP BY</a>. */
+  @Test public void testCaseInsensitiveTableAliasInGroupBy() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(false)
+        .withUnquotedCasing(Casing.UNCHANGED);
+    tester1.checkQuery("select deptno, count(*) from EMP AS emp\n"
+        + "group by eMp.deptno");
+    tester1.checkQuery("select deptno, count(*) from EMP AS EMP\n"
+        + "group by eMp.deptno");
+    tester1.checkQuery("select deptno, count(*) from EMP\n"
+        + "group by eMp.deptno");
+    tester1.checkQuery("select * from EMP where exists (\n"
+        + "  select 1 from dept\n"
+        + "  group by eMp.deptno)");
+    tester1.checkQuery("select deptno, count(*) from EMP group by DEPTNO");
+  }
+
   /** Tests matching of built-in operator names. */
   @Test public void testUnquotedBuiltInFunctionNames() {
     final SqlTester mysql = tester

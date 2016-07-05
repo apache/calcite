@@ -182,6 +182,14 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         final SqlIdentifier prefix = identifier.getComponent(0, i);
         fromNs = resolve(prefix.names, null, null);
         if (fromNs != null) {
+          if (fromNs.getEnclosingNode() != null) {
+            String alias =
+                SqlValidatorUtil.getAlias(fromNs.getEnclosingNode(), -1);
+            if (alias != null
+                && !alias.equals(identifier.names.get(i - 1))) {
+              identifier = identifier.setName(i - 1, alias);
+            }
+          }
           break;
         }
       }
