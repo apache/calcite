@@ -486,8 +486,8 @@ read -s GPG_PASSPHRASE
 git clean -xn
 mvn clean
 
-# Do a dry run of the release:prepare step, which sets version numbers.
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+# Do a dry run of the release:prepare step, which sets version numbers
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts:
@@ -508,20 +508,22 @@ Check the artifacts:
 * That directory must contain files `NOTICE`, `LICENSE`,
   `README`, `README.md`
   * Check that the version in `README` is correct
+  * Check that the copyright year in `NOTICE` is correct
 * In each .jar (for example
   `core/target/calcite-core-X.Y.Z.jar` and
   `mongodb/target/calcite-mongodb-X.Y.Z-sources.jar`), check
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
-* In each .jar, check that `org-apache-calcite-jdbc.properties` is
+* In `core/target/calcite-core-X.Y.Z.jar`,
+  check that `org-apache-calcite-jdbc.properties` is
   present and does not contain un-substituted `${...}` variables
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
 
 Now, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
-# Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+# Prepare sets the version numbers, creates a tag, and pushes it to git
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
@@ -582,7 +584,7 @@ git reset --hard HEAD
 ## Validate a release
 
 {% highlight bash %}
-# Check that the signing key (e.g. 2AD3FAE3) is pushed
+# Check that the signing key (e.g. DDB6E9812AD3FAE3) is pushed
 gpg --recv-keys key
 
 # Check keys

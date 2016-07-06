@@ -100,7 +100,7 @@ For example,
 
 makes a connection to the Cassandra adapter, equivalent to writing the following model file:
 
-```json
+{% highlight json %}
 {
   "version": "1.0",
   "defaultSchema": "foodmart",
@@ -116,7 +116,6 @@ makes a connection to the Cassandra adapter, equivalent to writing the following
     }
   ]
 }
-
-```
+{% endhighlight %}
 
 Note how each key in the `operand` section appears with a `schema.` prefix in the connect string.
