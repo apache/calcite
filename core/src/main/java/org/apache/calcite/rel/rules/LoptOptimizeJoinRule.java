@@ -1627,8 +1627,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       projects.add(
           Pair.of(
               (RexNode) rexBuilder.makeInputRef(currFields.get(i).getType(), i),
-              currFields.get(i).getName())
-      );
+              currFields.get(i).getName()));
     }
     for (int i = 0; i < nNewFields; i++) {
       RexNode projExpr;

@@ -229,9 +229,8 @@ PARSER_END(${parser.class})
 
 /* For Debug */
 JAVACODE
-void debug_message1()
-{
-    LOGGER.info("{} , {}", getToken( 0 ).image, getToken( 1 ).image );
+void debug_message1() {
+    LOGGER.info("{} , {}", getToken(0).image, getToken(1).image);
 }
 
 JAVACODE String unquotedIdentifier() {

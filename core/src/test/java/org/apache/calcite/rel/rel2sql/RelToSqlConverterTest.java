@@ -187,8 +187,7 @@ public class RelToSqlConverterTest {
         query,
         "SELECT \"product_class_id\", SUM(\"net_weight\"), MIN(\"low_fat\"), COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
-            + "GROUP BY \"product_class_id\""
-    );
+            + "GROUP BY \"product_class_id\"");
   }
 
   @Test
@@ -368,8 +367,7 @@ public class RelToSqlConverterTest {
             + "INNER JOIN \"foodmart\".\"product_class\" "
             + "ON \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
             + "WHERE \"customer\".\"city\" = 'San Francisco' AND "
-            + "\"product_class\".\"product_department\" = 'Snacks'"
-    );
+            + "\"product_class\".\"product_department\" = 'Snacks'");
   }
 
   @Test public void testSimpleIn() {

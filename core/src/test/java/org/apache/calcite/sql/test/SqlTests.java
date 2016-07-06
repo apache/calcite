@@ -262,11 +262,8 @@ public abstract class SqlTests {
       fail("Query returned 2 or more rows, expected 1");
     }
     if ((actual < (expected - delta)) || (actual > (expected + delta))) {
-      fail(
-          "Query returned " + actual + ", expected " + expected + ((delta == 0)
-              ? ""
-              : ("+/-" + delta))
-      );
+      fail("Query returned " + actual + ", expected " + expected
+          + ((delta == 0) ? "" : ("+/-" + delta)));
     }
   }
 

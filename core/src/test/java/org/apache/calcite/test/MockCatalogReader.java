@@ -385,8 +385,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                         @Override public int size() {
                           return mapping.size();
                         }
-                      }
-                  );
+                      });
                 }
               });
         }
