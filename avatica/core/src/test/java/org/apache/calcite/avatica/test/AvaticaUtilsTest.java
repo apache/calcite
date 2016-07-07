@@ -174,6 +174,22 @@ public class AvaticaUtilsTest {
           is("wrong value class; expected " + Size.class));
     }
 
+    // An enum with a default value that is an anonymous enum,
+    // not specifying value type.
+    final ConnectionPropertyImpl v = new ConnectionPropertyImpl("V",
+        Size.SMALL, ConnectionProperty.Type.ENUM);
+    env = v.wrap(properties);
+    assertThat(env.getEnum(Size.class), is(Size.SMALL));
+    assertThat(env.getEnum(Size.class, Size.BIG), is(Size.BIG));
+    assertThat(env.getEnum(Size.class, null), nullValue());
+    try {
+      final Weight envEnum = env.getEnum(Weight.class, null);
+      fail("expected error, got " + envEnum);
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(),
+          is("wrong value class; expected " + Size.class));
+    }
+
     // An enum with no default value
     final ConnectionPropertyImpl u = new ConnectionPropertyImpl("U", null,
         ConnectionProperty.Type.ENUM, Size.class);
@@ -207,7 +223,7 @@ public class AvaticaUtilsTest {
     private Type type;
 
     ConnectionPropertyImpl(String name, Object defaultValue, Type type) {
-      this(name, defaultValue, type, type.defaultValueClass());
+      this(name, defaultValue, type, null);
     }
 
     ConnectionPropertyImpl(String name, Object defaultValue, Type type,
@@ -215,8 +231,8 @@ public class AvaticaUtilsTest {
       this.name = name;
       this.defaultValue = defaultValue;
       this.type = type;
-      this.valueClass = valueClass;
-      if (!type.valid(defaultValue, valueClass)) {
+      this.valueClass = type.deduceValueClass(defaultValue, valueClass);
+      if (!type.valid(defaultValue, this.valueClass)) {
         throw new AssertionError(name);
       }
     }
@@ -255,7 +271,9 @@ public class AvaticaUtilsTest {
 
   /** How large? */
   private enum Size {
-    BIG, SMALL
+    BIG,
+    SMALL {
+    }
   }
 
   /** How heavy? */

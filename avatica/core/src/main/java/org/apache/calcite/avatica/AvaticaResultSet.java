@@ -69,6 +69,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
   private long timeoutMillis;
   private Cursor timeoutCursor;
 
+  /** Creates an {@link AvaticaResultSet}. */
   public AvaticaResultSet(AvaticaStatement statement,
       QueryState state,
       Meta.Signature signature,
@@ -148,7 +149,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
    * Sets the timeout that this result set will wait for a row from the
    * underlying iterator.
    *
-   * <p>Not a JDBC method.</p>
+   * <p>Not a JDBC method.
    *
    * @param timeoutMillis Timeout in milliseconds. Must be greater than zero.
    */
@@ -166,9 +167,14 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
 */
   }
 
-  // not JDBC
+  /** Sets the flag to indicate that cancel has been requested.
+   *
+   * <p>The implementation should check this flag periodically and cease
+   * processing.
+   *
+   * <p>Not a JDBC method. */
   protected void cancel() {
-    throw new UnsupportedOperationException(); // TODO:
+    statement.cancelFlag.compareAndSet(false, true);
   }
 
   /**
@@ -214,6 +220,9 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
     // TODO: for timeout, see IteratorResultSet.next
     if (isClosed()) {
       throw new SQLException("next() called on closed cursor");
+    }
+    if (statement.cancelFlag.get()) {
+      throw new SQLException("Statement canceled");
     }
     if (cursor.next()) {
       ++row;
