@@ -710,25 +710,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  public boolean canConvert(RelTraitSet fromTraits, RelTraitSet toTraits) {
-    assert fromTraits.size() >= toTraits.size();
-
-    boolean canConvert = true;
-    for (int i = 0; (i < toTraits.size()) && canConvert; i++) {
-      RelTrait fromTrait = fromTraits.getTrait(i);
-      RelTrait toTrait = toTraits.getTrait(i);
-
-      assert fromTrait.getTraitDef() == toTrait.getTraitDef();
-      assert traitDefs.contains(fromTrait.getTraitDef());
-      assert traitDefs.contains(toTrait.getTraitDef());
-
-      canConvert =
-          fromTrait.getTraitDef().canConvert(this, fromTrait, toTrait);
-    }
-
-    return canConvert;
-  }
-
   public RelNode changeTraits(final RelNode rel, RelTraitSet toTraits) {
     assert !rel.getTraitSet().equals(toTraits);
     assert toTraits.allSimple();
