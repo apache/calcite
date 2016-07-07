@@ -49,6 +49,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Implementation of JDBC connection
@@ -662,6 +663,13 @@ public abstract class AvaticaConnection implements Connection {
 
   private Meta.ConnectionProperties sync() {
     return meta.connectionSync(handle, new ConnectionPropertiesImpl());
+  }
+
+  /** Returns or creates a slot whose state can be changed to cancel a
+   * statement. */
+  public AtomicBoolean getCancelFlag(Meta.StatementHandle h)
+      throws NoSuchStatementException {
+    return new AtomicBoolean();
   }
 
   /** A way to call package-protected methods. But only a sub-class of

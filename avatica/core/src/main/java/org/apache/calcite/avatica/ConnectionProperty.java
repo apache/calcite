@@ -57,6 +57,24 @@ public interface ConnectionProperty {
     ENUM,
     PLUGIN;
 
+    /** Deduces the class of a property of this type, given the default value
+     * and the user-specified value class (each of which may be null, unless
+     * this is an enum or a plugin). */
+    public Class deduceValueClass(Object defaultValue, Class valueClass) {
+      if (valueClass != null) {
+        return valueClass;
+      }
+      if (defaultValue != null) {
+        final Class<?> c = defaultValue.getClass();
+        if (c.isAnonymousClass()) {
+          // for default values that are anonymous enums
+          return c.getSuperclass();
+        }
+        return c;
+      }
+      return defaultValueClass();
+    }
+
     /** Returns whether a default value and value types are valid for this
      * kind of property. */
     public boolean valid(Object defaultValue, Class clazz) {
