@@ -4942,7 +4942,23 @@ public class JdbcTest {
                       "deptno=10; name=Theodore\n",
                       CalciteAssert.toString(resultSet));
 
+                  // Now BETWEEN, with 3 arguments, 2 of which are parameters
+                  final String sql2 = "select \"deptno\", \"name\" "
+                      + "from \"hr\".\"emps\"\n"
+                      + "where \"deptno\" between symmetric ? and ?\n"
+                      + "order by 2";
+                  final PreparedStatement preparedStatement2 =
+                      connection.prepareStatement(sql2);
+                  preparedStatement2.setInt(1, 15);
+                  preparedStatement2.setInt(2, 5);
+                  resultSet = preparedStatement2.executeQuery();
+                  assertThat(CalciteAssert.toString(resultSet),
+                      is("deptno=10; name=Bill\n"
+                          + "deptno=10; name=Sebastian\n"
+                          + "deptno=10; name=Theodore\n"));
+
                   resultSet.close();
+                  preparedStatement2.close();
                   preparedStatement.close();
                   return null;
                 } catch (SQLException e) {

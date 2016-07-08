@@ -6573,6 +6573,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 1 from emp having sum(sal) < ?").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1310">[CALCITE-1310]
+   * Infer type of arguments to BETWEEN operator</a>. */
+  @Test public void testBindBetween() {
+    sql("select * from emp where ename between ? and ?").ok();
+    sql("select * from emp where deptno between ? and ?").ok();
+    sql("select * from emp where ? between deptno and ?").ok();
+    sql("select * from emp where ? between ? and deptno").ok();
+    sql("select * from emp where ^?^ between ? and ?")
+        .fails("Illegal use of dynamic parameter");
+  }
+
   @Test public void testUnnest() {
     checkColumnType("select*from unnest(multiset[1])", "INTEGER NOT NULL");
     checkColumnType("select*from unnest(multiset[1, 2])", "INTEGER NOT NULL");
