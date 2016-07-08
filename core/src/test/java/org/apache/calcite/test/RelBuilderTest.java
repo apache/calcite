@@ -413,6 +413,22 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  @Test public void testProjectIdentityWithFieldsRename() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("DEPT")
+            .project(builder.alias(builder.field(0), "a"),
+                builder.alias(builder.field(1), "b"),
+                builder.alias(builder.field(2), "c"))
+            .as("t1")
+            .project(builder.field("a"),
+                builder.field("t1", "c"))
+            .build();
+    final String expected = "LogicalProject(DEPTNO=[$0], LOC=[$2])\n"
+                          + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testProjectLeadingEdge() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
