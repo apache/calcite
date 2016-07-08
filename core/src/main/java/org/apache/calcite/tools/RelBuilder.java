@@ -53,6 +53,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -307,14 +308,15 @@ public class RelBuilder {
    * @param fieldName Field name
    */
   public RexInputRef field(int inputCount, int inputOrdinal, String fieldName) {
-    final RelNode input = peek(inputCount, inputOrdinal);
-    final RelDataType rowType = input.getRowType();
-    final int ordinal = rowType.getFieldNames().indexOf(fieldName);
-    if (ordinal < 0) {
+    final Frame frame = Iterables.get(stack, inputCount - 1 - inputOrdinal);
+    Pair<String, RelDataType> pair = frame.right.get(0);
+    int i = pair.right.getFieldNames().indexOf(fieldName);
+    if (i >= 0) {
+      return field(inputCount, inputOrdinal, i);
+    } else {
       throw new IllegalArgumentException("field [" + fieldName
-          + "] not found; input fields are: " + rowType.getFieldNames());
+          + "] not found; input fields are: " + pair.right.getFieldNames());
     }
-    return field(inputCount, inputOrdinal, ordinal);
   }
 
   /** Creates a reference to an input field by ordinal.
@@ -785,14 +787,22 @@ public class RelBuilder {
       final String name2 = inferAlias(exprList, node);
       names.add(Util.first(name, name2));
     }
-    if (RexUtil.isIdentity(exprList, peek().getRowType())) {
-      return this;
-    }
     final RelDataType inputRowType = peek().getRowType();
-    if (RexUtil.isIdentity(exprList, inputRowType)
-        && names.equals(inputRowType.getFieldNames())) {
-      // Do not create an identity project if it does not rename any fields
-      return this;
+    if (RexUtil.isIdentity(exprList, inputRowType)) {
+      if (names.equals(inputRowType.getFieldNames())) {
+        // Do not create an identity project if it does not rename any fields
+        return this;
+      } else {
+        // create "virtual" row type for project only rename fields
+        final Frame frame = stack.pop();
+        final RelDataType rowType =
+            RexUtil.createStructType(cluster.getTypeFactory(), exprList,
+                names, SqlValidatorUtil.F_SUGGESTER);
+        stack.push(
+            new Frame(frame.rel,
+                ImmutableList.of(Pair.of(frame.right.get(0).left, rowType))));
+        return this;
+      }
     }
     final RelNode project =
         projectFactory.createProject(build(), ImmutableList.copyOf(exprList),
@@ -1110,7 +1120,7 @@ public class RelBuilder {
     final Frame pair = stack.pop();
     stack.push(
         new Frame(pair.rel,
-            ImmutableList.of(Pair.of(alias, pair.rel.getRowType()))));
+            ImmutableList.of(Pair.of(alias, pair.right.get(0).right))));
     return this;
   }
 
