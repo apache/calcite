@@ -413,6 +413,51 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1297">[CALCITE-1297]
+   * RelBuilder does not translate identity projects even if they rename
+   * fields</a>. */
+  @Test public void testProjectIdentityWithFieldsRename() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("DEPT")
+            .project(builder.alias(builder.field(0), "a"),
+                builder.alias(builder.field(1), "b"),
+                builder.alias(builder.field(2), "c"))
+            .as("t1")
+            .project(builder.field("a"),
+                builder.field("t1", "c"))
+            .build();
+    final String expected = "LogicalProject(DEPTNO=[$0], LOC=[$2])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  /** Variation on {@link #testProjectIdentityWithFieldsRename}: don't use a
+   * table alias, and make sure the field names propagate through a filter. */
+  @Test public void testProjectIdentityWithFieldsRenameFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("DEPT")
+            .project(builder.alias(builder.field(0), "a"),
+                builder.alias(builder.field(1), "b"),
+                builder.alias(builder.field(2), "c"))
+            .filter(
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field("a"),
+                    builder.literal(20)))
+            .aggregate(builder.groupKey(0, 1, 2))
+            .project(builder.field("c"),
+                builder.field("a"))
+            .build();
+    final String expected = "LogicalProject(c=[$2], a=[$0])\n"
+        + "  LogicalAggregate(group=[{3, 4, 5}])\n"
+        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], a=[$0], b=[$1], c=[$2])\n"
+        + "      LogicalFilter(condition=[=($0, 20)])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testProjectLeadingEdge() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =

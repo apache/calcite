@@ -53,6 +53,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -235,19 +237,31 @@ public class RelBuilder {
   /** Returns the relational expression at the top of the stack, but does not
    * remove it. */
   public RelNode peek() {
-    return stack.peek().rel;
+    return peek_().rel;
+  }
+
+  private Frame peek_() {
+    return stack.peek();
   }
 
   /** Returns the relational expression {@code n} positions from the top of the
    * stack, but does not remove it. */
   public RelNode peek(int n) {
-    return Iterables.get(stack, n).rel;
+    return peek_(n).rel;
+  }
+
+  private Frame peek_(int n) {
+    return Iterables.get(stack, n);
   }
 
   /** Returns the relational expression {@code n} positions from the top of the
    * stack, but does not remove it. */
   public RelNode peek(int inputCount, int inputOrdinal) {
-    return peek(inputCount - 1 - inputOrdinal);
+    return peek_(inputCount, inputOrdinal).rel;
+  }
+
+  private Frame peek_(int inputCount, int inputOrdinal) {
+    return peek_(inputCount - 1 - inputOrdinal);
   }
 
   /** Returns the number of fields in all inputs before (to the left of)
@@ -307,14 +321,15 @@ public class RelBuilder {
    * @param fieldName Field name
    */
   public RexInputRef field(int inputCount, int inputOrdinal, String fieldName) {
-    final RelNode input = peek(inputCount, inputOrdinal);
-    final RelDataType rowType = input.getRowType();
-    final int ordinal = rowType.getFieldNames().indexOf(fieldName);
-    if (ordinal < 0) {
+    final Frame frame = peek_(inputCount, inputOrdinal);
+    final List<String> fieldNames = Pair.left(frame.fields());
+    int i = fieldNames.indexOf(fieldName);
+    if (i >= 0) {
+      return field(inputCount, inputOrdinal, i);
+    } else {
       throw new IllegalArgumentException("field [" + fieldName
-          + "] not found; input fields are: " + rowType.getFieldNames());
+          + "] not found; input fields are: " + fieldNames);
     }
-    return field(inputCount, inputOrdinal, ordinal);
   }
 
   /** Creates a reference to an input field by ordinal.
@@ -324,7 +339,7 @@ public class RelBuilder {
    * @param fieldOrdinal Field ordinal
    */
   public RexInputRef field(int fieldOrdinal) {
-    return field(1, 0, fieldOrdinal);
+    return (RexInputRef) field(1, 0, fieldOrdinal, false);
   }
 
   /** Creates a reference to a field of a given input relational expression
@@ -335,17 +350,32 @@ public class RelBuilder {
    * @param fieldOrdinal Field ordinal within input
    */
   public RexInputRef field(int inputCount, int inputOrdinal, int fieldOrdinal) {
-    final RelNode input = peek(inputCount, inputOrdinal);
+    return (RexInputRef) field(inputCount, inputOrdinal, fieldOrdinal, false);
+  }
+
+  /** As {@link #field(int, int, int)}, but if {@code alias} is true, the method
+   * may apply an alias to make sure that the field has the same name as in the
+   * input frame. If no alias is applied the expression is definitely a
+   * {@link RexInputRef}. */
+  private RexNode field(int inputCount, int inputOrdinal, int fieldOrdinal,
+      boolean alias) {
+    final Frame frame = peek_(inputCount, inputOrdinal);
+    final RelNode input = frame.rel;
     final RelDataType rowType = input.getRowType();
     if (fieldOrdinal < 0 || fieldOrdinal > rowType.getFieldCount()) {
       throw new IllegalArgumentException("field ordinal [" + fieldOrdinal
           + "] out of range; input fields are: " + rowType.getFieldNames());
     }
-    final RelDataType fieldType =
-        rowType.getFieldList().get(fieldOrdinal).getType();
+    final RelDataTypeField field = rowType.getFieldList().get(fieldOrdinal);
     final int offset = inputOffset(inputCount, inputOrdinal);
-    return cluster.getRexBuilder()
-        .makeInputRef(fieldType, offset + fieldOrdinal);
+    final RexInputRef ref = cluster.getRexBuilder()
+        .makeInputRef(field.getType(), offset + fieldOrdinal);
+    final RelDataTypeField aliasField = frame.fields().get(fieldOrdinal);
+    if (!alias || field.getName().equals(aliasField.getName())) {
+      return ref;
+    } else {
+      return alias(ref, aliasField.getName());
+    }
   }
 
   /** Creates a reference to a field of the current record which originated
@@ -416,7 +446,7 @@ public class RelBuilder {
   public ImmutableList<RexNode> fields(List<? extends Number> ordinals) {
     final ImmutableList.Builder<RexNode> nodes = ImmutableList.builder();
     for (Number ordinal : ordinals) {
-      RexNode node = field(ordinal.intValue());
+      RexNode node = field(1, 0, ordinal.intValue(), true);
       nodes.add(node);
     }
     return nodes.build();
@@ -785,14 +815,22 @@ public class RelBuilder {
       final String name2 = inferAlias(exprList, node);
       names.add(Util.first(name, name2));
     }
-    if (RexUtil.isIdentity(exprList, peek().getRowType())) {
-      return this;
-    }
     final RelDataType inputRowType = peek().getRowType();
-    if (RexUtil.isIdentity(exprList, inputRowType)
-        && names.equals(inputRowType.getFieldNames())) {
-      // Do not create an identity project if it does not rename any fields
-      return this;
+    if (RexUtil.isIdentity(exprList, inputRowType)) {
+      if (names.equals(inputRowType.getFieldNames())) {
+        // Do not create an identity project if it does not rename any fields
+        return this;
+      } else {
+        // create "virtual" row type for project only rename fields
+        final Frame frame = stack.pop();
+        final RelDataType rowType =
+            RexUtil.createStructType(cluster.getTypeFactory(), exprList,
+                names, SqlValidatorUtil.F_SUGGESTER);
+        stack.push(
+            new Frame(frame.rel,
+                ImmutableList.of(Pair.of(frame.right.get(0).left, rowType))));
+        return this;
+      }
     }
     final RelNode project =
         projectFactory.createProject(build(), ImmutableList.copyOf(exprList),
@@ -1110,7 +1148,7 @@ public class RelBuilder {
     final Frame pair = stack.pop();
     stack.push(
         new Frame(pair.rel,
-            ImmutableList.of(Pair.of(alias, pair.rel.getRowType()))));
+            ImmutableList.of(Pair.of(alias, pair.right.get(0).right))));
     return this;
   }
 
@@ -1535,6 +1573,13 @@ public class RelBuilder {
    * <p>Describes a previously created relational expression and
    * information about how table aliases map into its row type. */
   private static class Frame {
+    static final Function<Pair<String, RelDataType>, List<RelDataTypeField>> FN =
+        new Function<Pair<String, RelDataType>, List<RelDataTypeField>>() {
+          public List<RelDataTypeField> apply(Pair<String, RelDataType> input) {
+            return input.right.getFieldList();
+          }
+        };
+
     final RelNode rel;
     final ImmutableList<Pair<String, RelDataType>> right;
 
@@ -1555,6 +1600,10 @@ public class RelBuilder {
         }
       }
       return null;
+    }
+
+    List<RelDataTypeField> fields() {
+      return CompositeList.ofCopy(Iterables.transform(right, FN));
     }
   }
 }

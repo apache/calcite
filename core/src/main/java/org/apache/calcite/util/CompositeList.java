@@ -36,14 +36,14 @@ import java.util.List;
  * @param <T> Element type
  */
 public class CompositeList<T> extends AbstractList<T> {
-  private final ImmutableList<List<? extends T>> lists;
+  private final ImmutableList<List<T>> lists;
 
   /**
    * Creates a CompositeList.
    *
    * @param lists Constituent lists
    */
-  private CompositeList(ImmutableList<List<? extends T>> lists) {
+  private CompositeList(ImmutableList<List<T>> lists) {
     this.lists = lists;
   }
 
@@ -54,8 +54,22 @@ public class CompositeList<T> extends AbstractList<T> {
    * @param <T>   Element type
    * @return List consisting of all lists
    */
+  @SafeVarargs
   public static <T> CompositeList<T> of(List<? extends T>... lists) {
-    return new CompositeList<T>(ImmutableList.copyOf(lists));
+    //noinspection unchecked
+    return new CompositeList<T>((ImmutableList) ImmutableList.copyOf(lists));
+  }
+
+  /**
+   * Creates a CompositeList.
+   *
+   * @param lists Constituent lists
+   * @param <T>   Element type
+   * @return List consisting of all lists
+   */
+  public static <T> CompositeList<T> ofCopy(Iterable<List<T>> lists) {
+    final ImmutableList<List<T>> list = ImmutableList.copyOf(lists);
+    return new CompositeList<T>(list);
   }
 
   /**
@@ -89,7 +103,8 @@ public class CompositeList<T> extends AbstractList<T> {
    */
   public static <T> CompositeList<T> of(List<? extends T> list0,
       List<? extends T> list1) {
-    return new CompositeList<T>(ImmutableList.of(list0, list1));
+    //noinspection unchecked
+    return new CompositeList<T>((ImmutableList) ImmutableList.of(list0, list1));
   }
 
   /**
@@ -104,7 +119,8 @@ public class CompositeList<T> extends AbstractList<T> {
   public static <T> CompositeList<T> of(List<? extends T> list0,
       List<? extends T> list1,
       List<? extends T> list2) {
-    return new CompositeList<T>(ImmutableList.of(list0, list1, list2));
+    //noinspection unchecked
+    return new CompositeList<T>((ImmutableList) ImmutableList.of(list0, list1, list2));
   }
 
   public T get(int index) {
