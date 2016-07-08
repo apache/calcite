@@ -554,9 +554,9 @@ public class CsvTest {
 
       // Add some rows so that the table can deduce its row type.
       final Iterator<String> lines = Arrays.asList(strings).iterator();
-      worker.queue.put(writeLine(pw, lines.next())); // header
+      pw.println(lines.next()); // header
+      pw.flush();
       worker.queue.put(writeLine(pw, lines.next())); // first row
-      worker.queue.put(sleep(10));
       worker.queue.put(writeLine(pw, lines.next())); // second row
       final CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);
