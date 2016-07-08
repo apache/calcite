@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -115,7 +116,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         SqlKind.BETWEEN,
         30,
         null,
-        null, OTC_CUSTOM);
+            InferTypes.FIRST_KNOWN, OTC_CUSTOM);
     this.flag = flag;
     this.negated = negated;
   }
