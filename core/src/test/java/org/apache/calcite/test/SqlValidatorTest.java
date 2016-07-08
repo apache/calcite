@@ -6571,6 +6571,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp\n"
         + "group by deptno, case when deptno = ? then 1 else 2 end").ok();
     sql("select 1 from emp having sum(sal) < ?").ok();
+    sql("select * from emp where deptno between ? and ?").ok();
+    sql("select * from emp where ? between deptno and ?").ok();
+    sql("select * from emp where ? between ? and deptno").ok();
   }
 
   @Test public void testUnnest() {
