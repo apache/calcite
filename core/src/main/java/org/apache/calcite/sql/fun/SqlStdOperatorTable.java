@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -29,6 +32,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
@@ -43,9 +47,11 @@ import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
@@ -454,7 +460,31 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.PLUS,
           40,
           true,
-          ReturnTypes.ARG0_NULLABLE,
+          new SqlReturnTypeInference() {
+        @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType unit = opBinding.getOperandType(1);
+          final TimeUnit addUnit;
+          if (unit instanceof IntervalSqlType) {
+            addUnit = unit.getIntervalQualifier().getStartUnit();
+          } else {
+            addUnit = null;
+          }
+          switch (addUnit) {
+          case HOUR:
+          case MINUTE:
+          case SECOND:
+          case MILLISECOND:
+          case MICROSECOND:
+            return typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
+                opBinding.getOperandType(0).isNullable()
+                    || opBinding.getOperandType(1).isNullable());
+          default:
+            return opBinding.getOperandType(0);
+          }
+        }
+      },
           InferTypes.FIRST_KNOWN,
           OperandTypes.PLUS_OPERATOR);
 
@@ -1348,7 +1378,32 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction TIMESTAMP_ADD =
       new SqlFunction("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD,
-          ReturnTypes.ARG2_NULLABLE, null,
+          new SqlReturnTypeInference() {
+        @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final Comparable unit = opBinding.getOperandLiteralValue(0);
+          final TimeUnit addUnit;
+          if (unit instanceof String) {
+            addUnit = TimeUnit.valueOf((String) unit);
+          } else {
+            addUnit = (TimeUnit) unit;
+          }
+          switch (addUnit) {
+          case HOUR:
+          case MINUTE:
+          case SECOND:
+          case MILLISECOND:
+          case MICROSECOND:
+            return typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
+                opBinding.getOperandType(1).isNullable()
+                    || opBinding.getOperandType(2).isNullable());
+          default:
+            return opBinding.getOperandType(2);
+          }
+        }
+      },
+          null,
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
               SqlTypeFamily.DATETIME), SqlFunctionCategory.TIMEDATE);
 

@@ -69,6 +69,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -1530,16 +1531,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         unit = TimeUnit.MONTH;
         break;
       }
-      final RelDataType intType =
-          cx.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       final SqlIntervalQualifier qualifier =
           new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
+      final RexNode op2 = cx.convertExpression(call.operand(2));
+      final RexNode op1 = cx.convertExpression(call.operand(1));
       final RelDataType intervalType =
-          cx.getTypeFactory().createSqlIntervalType(qualifier);
-      RexNode e = rexBuilder.makeCast(intType,
-          rexBuilder.makeCall(intervalType, SqlStdOperatorTable.MINUS_DATE,
-              ImmutableList.of(cx.convertExpression(call.operand(2)),
-                  cx.convertExpression(call.operand(1)))));
+          cx.getTypeFactory().createTypeWithNullability(
+              cx.getTypeFactory().createSqlIntervalType(qualifier),
+              op1.getType().isNullable() || op2.getType().isNullable());
+      final RexCall rexCall = (RexCall) rexBuilder.makeCall(
+          intervalType, SqlStdOperatorTable.MINUS_DATE,
+          ImmutableList.of(op2, op1));
+      final RelDataType intType =
+          cx.getTypeFactory().createTypeWithNullability(
+              cx.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
+              SqlTypeUtil.containsNullable(rexCall.getType()));
+      RexNode e = rexBuilder.makeCast(intType, rexCall);
       return rexBuilder.multiplyDivide(e, multiplier, divider);
     }
   }
