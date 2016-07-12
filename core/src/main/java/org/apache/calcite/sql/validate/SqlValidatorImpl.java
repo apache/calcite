@@ -3343,7 +3343,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
-    return new OrderExpressionExpander(select, orderExpr).go();
+    SqlNode newSqlNode =  new OrderExpressionExpander(select, orderExpr).go();
+    SqlValidatorScope scope = getOrderScope(select);
+    inferUnknownTypes(unknownType, scope, newSqlNode);
+    final RelDataType type = deriveType(scope, newSqlNode);
+    setValidatedNodeTypeImpl(newSqlNode, type);
+    return newSqlNode;
   }
 
   /**

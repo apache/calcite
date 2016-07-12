@@ -1640,6 +1640,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testOver() {
+    String query = "select deptno, rank() over(partition by empno order by deptno)\n"
+        + "from emp order by row_number() over(partition by empno order by deptno)";
+    sql(query).ok();
+  }
+
   /**
    * Test case (correlated scalar aggregate subQuery) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
