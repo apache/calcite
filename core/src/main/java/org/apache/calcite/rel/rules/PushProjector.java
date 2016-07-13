@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -368,23 +369,29 @@ public class PushProjector {
     assert nSystemProject + nProject + nRightProject
         == projRefs.cardinality();
 
-    //if nothing is projected from the children, then project nothing instead of arbitrarily project
-//    if ((childRel instanceof Join)
-//        || (childRel instanceof SetOp)) {
-//      // if nothing is projected from the children, arbitrarily project
-//      // the first columns; this is necessary since Fennel doesn't
-//      // handle 0-column projections
-//      if ((nProject == 0) && (childPreserveExprs.size() == 0)) {
-//        projRefs.set(0);
-//        nProject = 1;
-//      }
-//      if (childRel instanceof Join) {
-//        if ((nRightProject == 0) && (rightPreserveExprs.size() == 0)) {
-//          projRefs.set(nFields);
-//          nRightProject = 1;
-//        }
-//      }
-//    }
+    if ((childRel instanceof Join)
+        || (childRel instanceof SetOp)) {
+      // if nothing is projected from the children, arbitrarily project
+      // the first columns; this is necessary since Fennel doesn't
+      // handle 0-column projections
+      //if the child relNode should has one column at least,
+      //add arbitrarily project the first columns
+      if (nChildFields > 0) {
+        if ((nProject == 0) && (childPreserveExprs.size() == 0)) {
+          projRefs.set(0);
+          nProject = 1;
+        }
+      }
+
+      if (childRel instanceof Join) {
+        if (((Join) childRel).getRight().getRowType().getFieldCount() > 0) {
+          if ((nRightProject == 0) && (rightPreserveExprs.size() == 0)) {
+            projRefs.set(nFields);
+            nRightProject = 1;
+          }
+        }
+      }
+    }
 
     // no need to push projections if all children fields are being
     // referenced and there are no special preserve expressions; note
