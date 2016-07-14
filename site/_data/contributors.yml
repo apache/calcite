@@ -78,6 +78,12 @@
   org: University of Waterloo
   role: Committer
   homepage: http://michael.mior.ca/
+- name: Milinda Pathirage
+  apacheId: milinda
+  githubId: milinda
+  org: Indiana University
+  role: Committer
+  homepage: http://milinda.pathirage.org/
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
