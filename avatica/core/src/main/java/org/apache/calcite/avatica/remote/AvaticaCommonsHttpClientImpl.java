@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica.remote;
 
 import org.apache.http.HttpHost;
+import org.apache.http.NoHttpResponseException;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -142,6 +143,10 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
         }
 
         throw new RuntimeException("Failed to execute HTTP Request, got HTTP/" + statusCode);
+      } catch (NoHttpResponseException e) {
+        // This can happen when sitting behind a load balancer and a backend server dies
+        LOG.debug("The server failed to issue an HTTP response, retrying");
+        continue;
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {

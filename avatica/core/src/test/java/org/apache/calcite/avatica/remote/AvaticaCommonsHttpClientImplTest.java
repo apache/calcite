@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.apache.http.NoHttpResponseException;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -53,6 +54,41 @@ public class AvaticaCommonsHttpClientImplTest {
         iteration++;
         if (1 == iteration) {
           return badResponse;
+        } else {
+          return goodResponse;
+        }
+      }
+    };
+
+    final AvaticaCommonsHttpClientImpl client = mock(AvaticaCommonsHttpClientImpl.class);
+
+    when(client.send(any(byte[].class))).thenCallRealMethod();
+    when(client.execute(any(HttpPost.class), any(HttpClientContext.class))).then(failThenSucceed);
+
+    when(badResponse.getStatusLine()).thenReturn(badStatusLine);
+    when(badStatusLine.getStatusCode()).thenReturn(HttpURLConnection.HTTP_UNAVAILABLE);
+
+    when(goodResponse.getStatusLine()).thenReturn(goodStatusLine);
+    when(goodStatusLine.getStatusCode()).thenReturn(HttpURLConnection.HTTP_OK);
+    when(goodResponse.getEntity()).thenReturn(responseEntity);
+
+    byte[] responseBytes = client.send(requestBytes);
+    assertEquals("success", new String(responseBytes, UTF_8));
+  }
+
+  @Test public void testRetryOnMissingHttpResponse() throws Exception {
+    final byte[] requestBytes = "fake_request".getBytes(UTF_8);
+    final CloseableHttpResponse badResponse = mock(CloseableHttpResponse.class);
+    final CloseableHttpResponse goodResponse = mock(CloseableHttpResponse.class);
+    final StatusLine badStatusLine = mock(StatusLine.class);
+    final StatusLine goodStatusLine = mock(StatusLine.class);
+    final StringEntity responseEntity = new StringEntity("success");
+    final Answer<CloseableHttpResponse> failThenSucceed = new Answer<CloseableHttpResponse>() {
+      private int iteration = 0;
+      @Override public CloseableHttpResponse answer(InvocationOnMock invocation) throws Throwable {
+        iteration++;
+        if (1 == iteration) {
+          throw new NoHttpResponseException("The server didn't respond!");
         } else {
           return goodResponse;
         }
