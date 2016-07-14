@@ -38,8 +38,8 @@ import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
@@ -6468,7 +6468,8 @@ public class SqlParserTest {
     final File outFile = new File(base, "core/target/surefire/reference.md");
     outFile.getParentFile().mkdirs();
     try (BufferedReader r = new BufferedReader(new FileReader(inFile));
-         PrintWriter w = new PrintWriter(new FileWriter(outFile))) {
+         FileOutputStream fos = new FileOutputStream(outFile);
+         PrintWriter w = new PrintWriter(fos)) {
       String line;
       int stage = 0;
       while ((line = r.readLine()) != null) {
@@ -6493,6 +6494,9 @@ public class SqlParserTest {
           w.println(".");
         }
       }
+      w.flush();
+      fos.flush();
+      fos.getFD().sync();
     }
     String diff = DiffTestCase.diff(outFile, inFile);
     if (!diff.isEmpty()) {
