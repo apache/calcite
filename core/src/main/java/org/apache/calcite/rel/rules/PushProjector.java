@@ -374,14 +374,21 @@ public class PushProjector {
       // if nothing is projected from the children, arbitrarily project
       // the first columns; this is necessary since Fennel doesn't
       // handle 0-column projections
-      if ((nProject == 0) && (childPreserveExprs.size() == 0)) {
-        projRefs.set(0);
-        nProject = 1;
+      //if the child relNode should has one column at least,
+      //add arbitrarily project the first columns
+      if (nChildFields > 0) {
+        if ((nProject == 0) && (childPreserveExprs.size() == 0)) {
+          projRefs.set(0);
+          nProject = 1;
+        }
       }
+
       if (childRel instanceof Join) {
-        if ((nRightProject == 0) && (rightPreserveExprs.size() == 0)) {
-          projRefs.set(nFields);
-          nRightProject = 1;
+        if (((Join) childRel).getRight().getRowType().getFieldCount() > 0) {
+          if ((nRightProject == 0) && (rightPreserveExprs.size() == 0)) {
+            projRefs.set(nFields);
+            nRightProject = 1;
+          }
         }
       }
     }
@@ -435,15 +442,14 @@ public class PushProjector {
         projChild.getRowType().getFieldList();
 
     // add on the input references
-    for (int i = 0; i < nInputRefs; i++) {
-      refIdx = projRefs.nextSetBit(refIdx + 1);
-      assert refIdx >= 0;
-      final RelDataTypeField destField = destFields.get(refIdx - offset);
-      newProjects.add(
-          Pair.of(
-              (RexNode) rexBuilder.makeInputRef(
-                  destField.getType(), refIdx - offset),
-              destField.getName()));
+    if (destFields.size() > 0) {
+      for (int i = 0; i < nInputRefs; i++) {
+        refIdx = projRefs.nextSetBit(refIdx + 1);
+        assert refIdx >= 0;
+        final RelDataTypeField destField = destFields.get(refIdx - offset);
+        newProjects.add(Pair.of((RexNode) rexBuilder
+                .makeInputRef(destField.getType(), refIdx - offset), destField.getName()));
+      }
     }
 
     // add on the expressions that need to be preserved, converting the
