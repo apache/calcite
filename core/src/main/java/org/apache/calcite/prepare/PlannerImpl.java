@@ -218,11 +218,11 @@ public class PlannerImpl implements Planner {
     assert validatedSqlNode != null;
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+        .withTrimUnusedFields(false).withConvertTableAccess(false).build();
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(new ViewExpanderImpl(), validator,
-            createCatalogReader(), cluster, convertletTable);
-    sqlToRelConverter.setTrimUnusedFields(false);
-    sqlToRelConverter.enableTableAccessConversion(false);
+            createCatalogReader(), cluster, convertletTable, config);
     root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
@@ -255,12 +255,11 @@ public class PlannerImpl implements Planner {
 
       final RexBuilder rexBuilder = createRexBuilder();
       final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+      final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+          .withTrimUnusedFields(false).withConvertTableAccess(false).build();
       final SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(new ViewExpanderImpl(), validator,
-              catalogReader, cluster, convertletTable);
-
-      sqlToRelConverter.setTrimUnusedFields(false);
-      sqlToRelConverter.enableTableAccessConversion(false);
+              catalogReader, cluster, convertletTable, config);
 
       root = sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
       root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));

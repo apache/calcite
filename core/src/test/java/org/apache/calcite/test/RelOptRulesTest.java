@@ -519,11 +519,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     final SqlValidator validator =
         t.createValidator(
             catalogReader, typeFactory);
-    final SqlToRelConverter converter =
+    SqlToRelConverter converter =
         t.createSqlToRelConverter(
             validator,
             catalogReader,
-            typeFactory);
+            typeFactory,
+            SqlToRelConverter.Config.DEFAULT);
 
     final SqlNode sqlQuery;
     try {
@@ -551,7 +552,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     String planBefore = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    converter.setTrimUnusedFields(true);
+    converter = t.createSqlToRelConverter(validator, catalogReader, typeFactory,
+        SqlToRelConverter.configBuilder().withTrimUnusedFields(true).build());
     root = root.withRel(converter.trimUnusedFields(false, root.rel));
     String planAfter = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);

@@ -76,9 +76,10 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     } catch (SqlParseException e) {
       throw new RuntimeException("parse failed", e);
     }
-
+    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+        .withTrimUnusedFields(true).build();
     SqlToRelConverter sqlToRelConverter2 =
-        getSqlToRelConverter(getSqlValidator(), catalogReader);
+        getSqlToRelConverter(getSqlValidator(), catalogReader, config);
 
     materialization.queryRel =
         sqlToRelConverter2.convertQuery(node, true, true).rel;

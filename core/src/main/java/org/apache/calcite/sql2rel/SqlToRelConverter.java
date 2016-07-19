@@ -207,7 +207,7 @@ public class SqlToRelConverter {
 
   /** Size of the smallest IN list that will be converted to a semijoin to a
    * static table. */
-  public static final int IN_SUBQUERY_THRESHOLD = 20;
+  public static final int DEFAULT_IN_SUBQUERY_THRESHOLD = 20;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -220,14 +220,10 @@ public class SqlToRelConverter {
   protected final List<RelNode> leaves = new ArrayList<>();
   private final List<SqlDynamicParam> dynamicParamSqlNodes = new ArrayList<>();
   private final SqlOperatorTable opTab;
-  private boolean shouldConvertTableAccess;
   protected final RelDataTypeFactory typeFactory;
   private final SqlNodeToRexConverter exprConverter;
-  private boolean decorrelationEnabled;
-  private boolean trimUnusedFields;
-  private boolean shouldCreateValuesRel;
-  private boolean isExplain;
-  private int nDynamicParamsInExplain;
+  private int explainParamCount;
+  public final SqlToRelConverter.Config config;
 
   /**
    * Fields used in name resolution for correlated subqueries.
@@ -251,10 +247,6 @@ public class SqlToRelConverter {
 
   public final RelOptTable.ViewExpander viewExpander;
 
-  /** Whether to expand sub-queries. If false, each sub-query becomes a
-   * {@link org.apache.calcite.rex.RexSubQuery}. */
-  private boolean expand = true;
-
   //~ Constructors -----------------------------------------------------------
   /**
    * Creates a converter.
@@ -266,7 +258,7 @@ public class SqlToRelConverter {
    * @param rexBuilder      Rex builder
    * @param convertletTable Expression converter
    */
-  @Deprecated // will be removed before 2.0
+  @Deprecated // to be removed before 2.0
   public SqlToRelConverter(
       RelOptTable.ViewExpander viewExpander,
       SqlValidator validator,
@@ -275,7 +267,19 @@ public class SqlToRelConverter {
       RexBuilder rexBuilder,
       SqlRexConvertletTable convertletTable) {
     this(viewExpander, validator, catalogReader,
-        RelOptCluster.create(planner, rexBuilder), convertletTable);
+        RelOptCluster.create(planner, rexBuilder), convertletTable,
+        Config.DEFAULT);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlToRelConverter(
+      RelOptTable.ViewExpander viewExpander,
+      SqlValidator validator,
+      Prepare.CatalogReader catalogReader,
+      RelOptCluster cluster,
+      SqlRexConvertletTable convertletTable) {
+    this(viewExpander, validator, catalogReader, cluster, convertletTable,
+        Config.DEFAULT);
   }
 
   /* Creates a converter. */
@@ -284,7 +288,8 @@ public class SqlToRelConverter {
       SqlValidator validator,
       Prepare.CatalogReader catalogReader,
       RelOptCluster cluster,
-      SqlRexConvertletTable convertletTable) {
+      SqlRexConvertletTable convertletTable,
+      Config config) {
     this.viewExpander = viewExpander;
     this.opTab =
         (validator
@@ -297,14 +302,9 @@ public class SqlToRelConverter {
     this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
     this.cluster = Preconditions.checkNotNull(cluster);
-    this.shouldConvertTableAccess = true;
-    this.exprConverter =
-        new SqlNodeToRexConverterImpl(convertletTable);
-    decorrelationEnabled = true;
-    trimUnusedFields = false;
-    shouldCreateValuesRel = true;
-    isExplain = false;
-    nDynamicParamsInExplain = 0;
+    this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
+    this.explainParamCount = 0;
+    this.config = new ConfigBuilder().withConfig(config).build();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -355,9 +355,9 @@ public class SqlToRelConverter {
    * @return the current count before the optional increment
    */
   public int getDynamicParamCountInExplain(boolean increment) {
-    int retVal = nDynamicParamsInExplain;
+    int retVal = explainParamCount;
     if (increment) {
-      ++nDynamicParamsInExplain;
+      ++explainParamCount;
     }
     return retVal;
   }
@@ -403,41 +403,14 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Indicates that the current statement is part of an EXPLAIN PLAN statement
+   * Sets the number of dynamic parameters in the current EXPLAIN PLAN
+   * statement.
    *
-   * @param nDynamicParams number of dynamic parameters in the statement
+   * @param explainParamCount number of dynamic parameters in the statement
    */
-  public void setIsExplain(int nDynamicParams) {
-    isExplain = true;
-    nDynamicParamsInExplain = nDynamicParams;
-  }
-
-  /**
-   * Controls whether table access references are converted to physical rels
-   * immediately. The optimizer doesn't like leaf rels to have
-   * {@link Convention#NONE}. However, if we are doing further conversion
-   * passes (e.g. {@link RelStructuredTypeFlattener}), then we may need to
-   * defer conversion. To have any effect, this must be called before any
-   * convert method.
-   *
-   * @param enabled true for immediate conversion (the default); false to
-   *                generate logical LogicalTableScan instances
-   */
-  public void enableTableAccessConversion(boolean enabled) {
-    shouldConvertTableAccess = enabled;
-  }
-
-  /**
-   * Controls whether instances of
-   * {@link org.apache.calcite.rel.logical.LogicalValues} are generated. These
-   * may not be supported by all physical implementations. To have any effect,
-   * this must be called before any convert method.
-   *
-   * @param enabled true to allow LogicalValues to be generated (the default);
-   *                false to force substitution of Project+OneRow instead
-   */
-  public void enableValuesRelCreation(boolean enabled) {
-    shouldCreateValuesRel = enabled;
+  public void setDynamicParamCountInExplain(int explainParamCount) {
+    assert config.isExplain();
+    this.explainParamCount = explainParamCount;
   }
 
   private void checkConvertedType(SqlNode query, RelNode result) {
@@ -1041,7 +1014,7 @@ public class SqlToRelConverter {
     case IN:
       call = (SqlBasicCall) subQuery.node;
       query = call.operand(1);
-      if (!expand && !(query instanceof SqlNodeList)) {
+      if (!config.isExpand() && !(query instanceof SqlNodeList)) {
         return;
       }
       final SqlNode leftKeyNode = call.operand(0);
@@ -1153,7 +1126,7 @@ public class SqlToRelConverter {
       // boolean indicating whether the subquery returned 0 or >= 1 row.
       call = (SqlBasicCall) subQuery.node;
       query = call.operand(0);
-      if (!expand) {
+      if (!config.isExpand()) {
         return;
       }
       converted = convertExists(query, RelOptUtil.SubqueryType.EXISTS,
@@ -1168,7 +1141,7 @@ public class SqlToRelConverter {
     case SCALAR_QUERY:
       // Convert the subquery.  If it's non-correlated, convert it
       // to a constant expression.
-      if (!expand) {
+      if (!config.isExpand()) {
         return;
       }
       call = (SqlBasicCall) subQuery.node;
@@ -1331,7 +1304,7 @@ public class SqlToRelConverter {
                 call,
                 this,
                 isExists,
-                isExplain);
+                config.isExplain());
       }
       if (constExpr != null) {
         subQuery.expr = constExpr;
@@ -1465,10 +1438,11 @@ public class SqlToRelConverter {
    * predicate. A threshold of 0 forces usage of an inline table in all cases; a
    * threshold of Integer.MAX_VALUE forces usage of OR in all cases
    *
-   * @return threshold, default {@link #IN_SUBQUERY_THRESHOLD}
+   * @return threshold, default {@link #DEFAULT_IN_SUBQUERY_THRESHOLD}
    */
+  @Deprecated // to be removed before 2.0
   protected int getInSubqueryThreshold() {
-    return IN_SUBQUERY_THRESHOLD;
+    return config.getInSubqueryThreshold();
   }
 
   /**
@@ -1568,7 +1542,7 @@ public class SqlToRelConverter {
           if ((rexLiteral == null) && allowLiteralsOnly) {
             return null;
           }
-          if ((rexLiteral == null) || !shouldCreateValuesRel) {
+          if ((rexLiteral == null) || !config.isCreateValuesRel()) {
             // fallback to convertRowConstructor
             tuple = null;
             break;
@@ -1586,7 +1560,7 @@ public class SqlToRelConverter {
                 bb,
                 rowType,
                 0);
-        if ((rexLiteral != null) && shouldCreateValuesRel) {
+        if ((rexLiteral != null) && config.isCreateValuesRel()) {
           tupleList.add(ImmutableList.of(rexLiteral));
           continue;
         } else {
@@ -1977,7 +1951,7 @@ public class SqlToRelConverter {
               datasetName,
               usedDataset);
       final RelNode tableRel;
-      if (shouldConvertTableAccess) {
+      if (config.isConvertTableAccess()) {
         tableRel = toRel(table);
       } else {
         tableRel = LogicalTableScan.create(cluster, table);
@@ -2840,10 +2814,11 @@ public class SqlToRelConverter {
     }
   }
 
+  @Deprecated // to be removed before 2.0
   protected boolean enableDecorrelation() {
     // disable subquery decorrelation when needed.
     // e.g. if outer joins are not supported.
-    return decorrelationEnabled;
+    return config.isDecorrelationEnabled();
   }
 
   protected RelNode decorrelateQuery(RelNode rootRel) {
@@ -2851,25 +2826,13 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Sets whether to trim unused fields as part of the conversion process.
-   *
-   * @param trim Whether to trim unused fields
-   */
-  public void setTrimUnusedFields(boolean trim) {
-    this.trimUnusedFields = trim;
-  }
-
-  /**
    * Returns whether to trim unused fields as part of the conversion process.
    *
    * @return Whether to trim unused fields
    */
+  @Deprecated // to be removed before 2.0
   public boolean isTrimUnusedFields() {
-    return trimUnusedFields;
-  }
-
-  public void setExpand(boolean expand) {
-    this.expand = expand;
+    return config.isTrimUnusedFields();
   }
 
   /**
@@ -4092,7 +4055,7 @@ public class SqlToRelConverter {
       // expressions.
       final SqlKind kind = expr.getKind();
       final SubQuery subQuery;
-      if (!expand) {
+      if (!config.isExpand()) {
         final SqlCall call;
         final SqlNode query;
         final RelRoot root;
@@ -5061,6 +5024,183 @@ public class SqlToRelConverter {
       this.id = id;
       this.requiredColumns = requiredColumns;
       this.r = r;
+    }
+  }
+
+  /** Creates a builder for a {@link Config}. */
+  public static ConfigBuilder configBuilder() {
+    return new ConfigBuilder();
+  }
+
+  /**
+   * Interface to define the configuration for a SqlToRelConverter.
+   * Provides methods to set each configuration option.
+   *
+   * @see ConfigBuilder
+   * @see SqlToRelConverter#configBuilder()
+   */
+  public interface Config {
+    /** Default configuration. */
+    Config DEFAULT = configBuilder().build();
+
+    /** Returns the {@code convertTableAccess} option. Controls whether table
+     * access references are converted to physical rels immediately. The
+     * optimizer doesn't like leaf rels to have {@link Convention#NONE}.
+     * However, if we are doing further conversion passes (e.g.
+     * {@link RelStructuredTypeFlattener}), then we may need to defer
+     * conversion. */
+    boolean isConvertTableAccess();
+
+    /** Returns the {@code decorrelationEnabled} option. Controls whether to
+     * disable subquery decorrelation when needed. e.g. if outer joins are not
+     * supported. */
+    boolean isDecorrelationEnabled();
+
+    /** Returns the {@code trimUnusedFields} option. Controls whether to trim
+     * unused fields as part of the conversion process. */
+    boolean isTrimUnusedFields();
+
+    /** Returns the {@code createValuesRel} option. Controls whether instances
+     * of {@link org.apache.calcite.rel.logical.LogicalValues} are generated.
+     * These may not be supported by all physical implementations. */
+    boolean isCreateValuesRel();
+
+    /** Returns the {@code explain} option. Describes whether the current
+     * statement is part of an EXPLAIN PLAN statement. */
+    boolean isExplain();
+
+    /** Returns the {@code expand} option. Controls whether to expand
+     * sub-queries. If false, each sub-query becomes a
+     * {@link org.apache.calcite.rex.RexSubQuery}. */
+    boolean isExpand();
+
+    /** Returns the {@code inSubqueryThreshold} option,
+     * default {@link #DEFAULT_IN_SUBQUERY_THRESHOLD}. Controls the list size
+     * threshold under which {@link #convertInToOr} is used. Lists of this size
+     * or greater will instead be converted to use a join against an inline
+     * table ({@link org.apache.calcite.rel.logical.LogicalValues}) rather than
+     * a predicate. A threshold of 0 forces usage of an inline table in all
+     * cases; a threshold of {@link Integer#MAX_VALUE} forces usage of OR in all
+     * cases. */
+    int getInSubqueryThreshold();
+  }
+
+  /** Builder for a {@link Config}. */
+  public static class ConfigBuilder {
+    private boolean convertTableAccess = true;
+    private boolean decorrelationEnabled = true;
+    private boolean trimUnusedFields = false;
+    private boolean createValuesRel = true;
+    private boolean explain;
+    private boolean expand = true;
+    private int inSubqueryThreshold = DEFAULT_IN_SUBQUERY_THRESHOLD;
+
+    private ConfigBuilder() {}
+
+    /** Sets configuration identical to a given {@link Config}. */
+    public ConfigBuilder withConfig(Config config) {
+      this.convertTableAccess = config.isConvertTableAccess();
+      this.decorrelationEnabled = config.isDecorrelationEnabled();
+      this.trimUnusedFields = config.isTrimUnusedFields();
+      this.createValuesRel = config.isCreateValuesRel();
+      this.explain = config.isExplain();
+      this.expand = config.isExpand();
+      this.inSubqueryThreshold = config.getInSubqueryThreshold();
+      return this;
+    }
+
+    public ConfigBuilder withConvertTableAccess(boolean convertTableAccess) {
+      this.convertTableAccess = convertTableAccess;
+      return this;
+    }
+
+    public ConfigBuilder withDecorrelationEnabled(boolean enabled) {
+      this.decorrelationEnabled = enabled;
+      return this;
+    }
+
+    public ConfigBuilder withTrimUnusedFields(boolean trimUnusedFields) {
+      this.trimUnusedFields = trimUnusedFields;
+      return this;
+    }
+
+    public ConfigBuilder withCreateValuesRel(boolean createValuesRel) {
+      this.createValuesRel = createValuesRel;
+      return this;
+    }
+
+    public ConfigBuilder withExplain(boolean explain) {
+      this.explain = explain;
+      return this;
+    }
+
+    public ConfigBuilder withExpand(boolean expand) {
+      this.expand = expand;
+      return this;
+    }
+
+    public ConfigBuilder withInSubqueryThreshold(int inSubqueryThreshold) {
+      this.inSubqueryThreshold = inSubqueryThreshold;
+      return this;
+    }
+
+    /** Builds a {@link Config}. */
+    public Config build() {
+      return new ConfigImpl(convertTableAccess, decorrelationEnabled,
+          trimUnusedFields, createValuesRel, explain, expand,
+          inSubqueryThreshold);
+    }
+  }
+
+  /** Implementation of {@link Config}.
+   * Called by builder; all values are in private final fields. */
+  private static class ConfigImpl implements Config {
+    private final boolean convertTableAccess;
+    private final boolean decorrelationEnabled;
+    private final boolean trimUnusedFields;
+    private final boolean createValuesRel;
+    private final boolean explain;
+    private final int inSubqueryThreshold;
+    private final boolean expand;
+
+    private ConfigImpl(boolean convertTableAccess, boolean decorrelationEnabled,
+        boolean trimUnusedFields, boolean createValuesRel, boolean explain,
+        boolean expand, int inSubqueryThreshold) {
+      this.convertTableAccess = convertTableAccess;
+      this.decorrelationEnabled = decorrelationEnabled;
+      this.trimUnusedFields = trimUnusedFields;
+      this.createValuesRel = createValuesRel;
+      this.explain = explain;
+      this.expand = expand;
+      this.inSubqueryThreshold = inSubqueryThreshold;
+    }
+
+    public boolean isConvertTableAccess() {
+      return convertTableAccess;
+    }
+
+    public boolean isDecorrelationEnabled() {
+      return decorrelationEnabled;
+    }
+
+    public boolean isTrimUnusedFields() {
+      return trimUnusedFields;
+    }
+
+    public boolean isCreateValuesRel() {
+      return createValuesRel;
+    }
+
+    public boolean isExplain() {
+      return explain;
+    }
+
+    public boolean isExpand() {
+      return expand;
+    }
+
+    public int getInSubqueryThreshold() {
+      return inSubqueryThreshold;
     }
   }
 }

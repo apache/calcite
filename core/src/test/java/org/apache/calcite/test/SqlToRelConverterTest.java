@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
@@ -53,7 +54,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
-    return new Sql(sql, true, true, tester, false);
+    return new Sql(sql, true, true, tester, false,
+        SqlToRelConverter.Config.DEFAULT);
   }
 
   protected final void check(
@@ -1819,6 +1821,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1321">[CALCITE-1321]
+   * Configurable IN list size when converting IN clause to join</a>. */
+  @Test public void testInToSemiJoin() {
+    final String sql = "SELECT empno"
+            + " FROM emp AS e"
+            + " WHERE cast(e.empno as bigint) in (130, 131, 132, 133, 134)";
+    // No conversion to join since less than IN-list size threshold 10
+    SqlToRelConverter.Config noConvertConfig = SqlToRelConverter.configBuilder().
+
+        withInSubqueryThreshold(10).build();
+    sql(sql).withConfig(noConvertConfig).convertsTo("${planNotConverted}");
+    // Conversion to join since greater than IN-list size threshold 2
+    SqlToRelConverter.Config convertConfig = SqlToRelConverter.configBuilder().
+        withInSubqueryThreshold(2).build();
+    sql(sql).withConfig(convertConfig).convertsTo("${planConverted}");
+  }
+
   private Tester getTesterWithDynamicTable() {
     return tester.withCatalogReaderFactory(
         new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
@@ -1881,15 +1901,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     private final boolean expand;
     private final boolean decorrelate;
     private final Tester tester;
-    private boolean trim;
+    private final boolean trim;
+    private final SqlToRelConverter.Config config;
 
     Sql(String sql, boolean expand, boolean decorrelate, Tester tester,
-        boolean trim) {
+        boolean trim, SqlToRelConverter.Config config) {
       this.sql = sql;
       this.expand = expand;
       this.decorrelate = decorrelate;
       this.tester = tester;
       this.trim = trim;
+      this.config = config;
     }
 
     public void ok() {
@@ -1899,23 +1921,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     public void convertsTo(String plan) {
       tester.withExpand(expand)
           .withDecorrelation(decorrelate)
+          .withConfig(config)
           .assertConvertsTo(sql, plan, trim);
     }
 
+    public Sql withConfig(SqlToRelConverter.Config config) {
+      return new Sql(sql, expand, decorrelate, tester, trim, config);
+    }
+
     public Sql expand(boolean expand) {
-      return new Sql(sql, expand, decorrelate, tester, trim);
+      return new Sql(sql, expand, decorrelate, tester, trim, config);
     }
 
     public Sql decorrelate(boolean decorrelate) {
-      return new Sql(sql, expand, decorrelate, tester, trim);
+      return new Sql(sql, expand, decorrelate, tester, trim, config);
     }
 
     public Sql with(Tester tester) {
-      return new Sql(sql, expand, decorrelate, tester, trim);
+      return new Sql(sql, expand, decorrelate, tester, trim, config);
     }
 
     public Sql trim(boolean trim) {
-      return new Sql(sql, expand, decorrelate, tester, trim);
+      return new Sql(sql, expand, decorrelate, tester, trim, config);
     }
   }
 }

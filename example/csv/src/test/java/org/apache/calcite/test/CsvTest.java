@@ -371,11 +371,11 @@ public class CsvTest {
     final String sql = "SELECT e.name\n"
         + "FROM emps AS e\n"
         + "WHERE cast(e.empno as bigint) in ";
-    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD - 5),
+    checkSql(sql + range(130, SqlToRelConverter.DEFAULT_IN_SUBQUERY_THRESHOLD - 5),
         "smart", expect("NAME=Alice"));
-    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD),
+    checkSql(sql + range(130, SqlToRelConverter.DEFAULT_IN_SUBQUERY_THRESHOLD),
         "smart", expect("NAME=Alice"));
-    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD + 1000),
+    checkSql(sql + range(130, SqlToRelConverter.DEFAULT_IN_SUBQUERY_THRESHOLD + 1000),
         "smart", expect("NAME=Alice"));
   }
 
@@ -386,7 +386,7 @@ public class CsvTest {
     final String sql = "SELECT e.name\n"
         + "FROM emps AS e\n"
         + "WHERE e.empno in "
-        + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD);
+        + range(130, SqlToRelConverter.DEFAULT_IN_SUBQUERY_THRESHOLD);
     checkSql(sql, "smart", expect("NAME=Alice"));
   }
 
