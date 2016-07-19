@@ -291,20 +291,27 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   private ParseResult convert_(Context context, String sql, boolean analyze,
       boolean fail, CalciteCatalogReader catalogReader, SqlValidator validator,
       SqlNode sqlNode1) {
+    final SqlToRelConverter.Config config;
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final Convention resultConvention =
         ENABLE_BINDABLE ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    if (analyze) {
+      config = SqlToRelConverter.configBuilder().setTrimUnusedFields(true)
+          .setConvertTableAccess(false).build();
+    } else {
+      config = SqlToRelConverter.configBuilder().setTrimUnusedFields(true).build();
+    }
+
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
             context.getRootSchema(), null, planner, resultConvention);
     final SqlToRelConverter converter =
-        preparingStmt.getSqlToRelConverter(validator, catalogReader);
-    if (analyze) {
-      converter.enableTableAccessConversion(false);
-    }
+        preparingStmt.getSqlToRelConverter(validator, catalogReader, config);
+
     final RelRoot root = converter.convertQuery(sqlNode1, false, true);
     if (analyze) {
       return analyze_(validator, sql, sqlNode1, root, fail);
@@ -1095,12 +1102,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     @Override protected SqlToRelConverter getSqlToRelConverter(
         SqlValidator validator,
-        CatalogReader catalogReader) {
+        CatalogReader catalogReader,
+        SqlToRelConverter.Config config) {
       final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
       SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(this, validator, catalogReader, cluster,
-              StandardConvertletTable.INSTANCE);
-      sqlToRelConverter.setTrimUnusedFields(true);
+              StandardConvertletTable.INSTANCE, config);
       return sqlToRelConverter;
     }
 
@@ -1135,9 +1142,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           this.catalogReader.withSchemaPath(schemaPath);
       SqlValidator validator = createSqlValidator(catalogReader);
       SqlNode sqlNode1 = validator.validate(sqlNode);
-
+      final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+              .setTrimUnusedFields(true).build();
       SqlToRelConverter sqlToRelConverter =
-          getSqlToRelConverter(validator, catalogReader);
+          getSqlToRelConverter(validator, catalogReader, config);
       RelRoot root =
           sqlToRelConverter.convertQuery(sqlNode1, true, false);
 

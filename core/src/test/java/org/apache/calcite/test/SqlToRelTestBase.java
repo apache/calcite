@@ -216,6 +216,10 @@ public abstract class SqlToRelTestBase {
      * @see Prepare#THREAD_EXPAND */
     Tester withExpand(boolean expand);
 
+    /** Returns a tester that optionally uses a {@code SqlToRelConverter.Config}.
+     */
+    Tester withConfig(SqlToRelConverter.Config config);
+
     Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory);
 
@@ -467,6 +471,7 @@ public abstract class SqlToRelTestBase {
     catalogReaderFactory;
     private final Function<RelOptCluster, RelOptCluster> clusterFactory;
     private RelDataTypeFactory typeFactory;
+    public final SqlToRelConverter.Config config;
 
     /**
      * Creates a TesterImpl.
@@ -483,17 +488,28 @@ public abstract class SqlToRelTestBase {
         Function<RelDataTypeFactory, Prepare.CatalogReader>
             catalogReaderFactory,
         Function<RelOptCluster, RelOptCluster> clusterFactory) {
+      this(diffRepos, enableDecorrelate, enableTrim, enableExpand,
+          catalogReaderFactory, clusterFactory, SqlToRelConverter.Config.DEFAULT);
+    }
+
+    protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
+        boolean enableTrim, boolean enableExpand,
+        Function<RelDataTypeFactory, Prepare.CatalogReader> catalogReaderFactory,
+        Function<RelOptCluster, RelOptCluster> clusterFactory,
+        SqlToRelConverter.Config config) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
       this.enableTrim = enableTrim;
       this.enableExpand = enableExpand;
       this.catalogReaderFactory = catalogReaderFactory;
       this.clusterFactory = clusterFactory;
+      this.config = config;
     }
 
     public RelRoot convertSqlToRel(String sql) {
       Util.pre(sql != null, "sql != null");
       final SqlNode sqlQuery;
+      final SqlToRelConverter.Config localConfig;
       try {
         sqlQuery = parseQuery(sql);
       } catch (Exception e) {
@@ -505,13 +521,20 @@ public abstract class SqlToRelTestBase {
       final SqlValidator validator =
           createValidator(
               catalogReader, typeFactory);
+      if (config == SqlToRelConverter.Config.DEFAULT) {
+        localConfig = SqlToRelConverter.configBuilder()
+            .setTrimUnusedFields(true).setExpand(enableExpand).build();
+      } else {
+        localConfig = config;
+      }
+
       final SqlToRelConverter converter =
           createSqlToRelConverter(
               validator,
               catalogReader,
-              typeFactory);
-      converter.setTrimUnusedFields(true);
-      converter.setExpand(enableExpand);
+              typeFactory,
+              localConfig);
+
       final SqlNode validatedQuery = validator.validate(sqlQuery);
       RelRoot root =
           converter.convertQuery(validatedQuery, false, true);
@@ -523,7 +546,6 @@ public abstract class SqlToRelTestBase {
         root = root.withRel(converter.decorrelate(sqlQuery, root.rel));
       }
       if (enableTrim) {
-        converter.setTrimUnusedFields(true);
         root = root.withRel(converter.trimUnusedFields(true, root.rel));
       }
       return root;
@@ -532,7 +554,8 @@ public abstract class SqlToRelTestBase {
     protected SqlToRelConverter createSqlToRelConverter(
         final SqlValidator validator,
         final Prepare.CatalogReader catalogReader,
-        final RelDataTypeFactory typeFactory) {
+        final RelDataTypeFactory typeFactory,
+        final SqlToRelConverter.Config config) {
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
       RelOptCluster cluster =
           RelOptCluster.create(getPlanner(), rexBuilder);
@@ -540,7 +563,7 @@ public abstract class SqlToRelTestBase {
         cluster = clusterFactory.apply(cluster);
       }
       return new SqlToRelConverter(null, validator, catalogReader, cluster,
-          StandardConvertletTable.INSTANCE);
+          StandardConvertletTable.INSTANCE, config);
     }
 
     protected final RelDataTypeFactory getTypeFactory() {
@@ -669,6 +692,13 @@ public abstract class SqlToRelTestBase {
           ? this
           : new TesterImpl(diffRepos, enable, enableTrim, enableExpand,
               catalogReaderFactory, clusterFactory);
+    }
+
+    public TesterImpl withConfig(SqlToRelConverter.Config config) {
+      return this.config == config
+          ? this
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+              enableExpand, catalogReaderFactory, clusterFactory, config);
     }
 
     public Tester withTrim(boolean enable) {
