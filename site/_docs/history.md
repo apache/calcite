@@ -56,7 +56,7 @@ And a couple of dozen bug-fixes and enhancements to planner rules and APIs.
 Compatibility: This release is tested
 on Linux, Mac OS X, Microsoft Windows;
 using Oracle JDK 1.7, 1.8;
-Guava versions 12.0.1 to 19.0;
+Guava versions 14.0 to 19.0;
 other software versions as specified in `pom.xml`.
 
 New features

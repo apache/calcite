@@ -19,13 +19,13 @@ package org.apache.calcite.adapter.druid;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Compatible;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -63,7 +63,8 @@ public class DruidSchema extends AbstractSchema {
     }
     final DruidConnectionImpl connection =
         new DruidConnectionImpl(url, coordinatorUrl);
-    return Maps.asMap(ImmutableSet.copyOf(connection.tableNames()),
+    return Compatible.INSTANCE.asMap(
+        ImmutableSet.copyOf(connection.tableNames()),
         CacheBuilder.<String, Table>newBuilder()
             .build(new CacheLoader<String, Table>() {
               public Table load(@Nonnull String tableName) throws Exception {
