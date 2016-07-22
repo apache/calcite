@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 
@@ -79,13 +80,9 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   public Void visit(SqlIdentifier id) {
-    if (isGroupExpr(id)) {
+    if (isGroupExpr(id) || id.isStar()) {
+      // Star may validly occur in "SELECT COUNT(*) OVER w"
       return null;
-    }
-
-    // If it '*' or 'foo.*'?
-    if (id.isStar()) {
-      assert false : "star should have been expanded";
     }
 
     // Is it a call to a parentheses-free function?
@@ -150,10 +147,20 @@ class AggChecker extends SqlBasicVisitor<Void> {
       return null;
     }
     // Visit the operand in window function
-    if (call.getOperator().getKind() == SqlKind.OVER) {
-      SqlCall windowFunction = call.operand(0);
-      if (windowFunction.getOperandList().size() != 0) {
-        windowFunction.operand(0).accept(this);
+    if (call.getKind() == SqlKind.OVER) {
+      for (SqlNode operand : call.<SqlCall>operand(0).getOperandList()) {
+        operand.accept(this);
+      }
+      // Check the OVER clause
+      final SqlNode over = call.operand(1);
+      if (over instanceof SqlCall) {
+        over.accept(this);
+      } else if (over instanceof SqlIdentifier) {
+        // Check the corresponding SqlWindow in WINDOW clause
+        final SqlWindow window =
+            scope.lookupWindow(((SqlIdentifier) over).getSimple());
+        window.getPartitionList().accept(this);
+        window.getOrderList().accept(this);
       }
     }
     if (isGroupExpr(call)) {

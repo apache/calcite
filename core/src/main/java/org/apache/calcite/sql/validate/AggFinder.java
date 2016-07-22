@@ -100,9 +100,9 @@ class AggFinder extends SqlBasicVisitor<Void> {
   public Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
-    if (operator.isAggregator()) {
+    if (operator.isAggregator() && !operator.requiresOver()) {
       if (delegate != null) {
-        return call.getOperator().acceptCall(delegate, call);
+        return operator.acceptCall(delegate, call);
       }
       if (aggregate) {
         throw new Util.FoundOne(call);
@@ -115,8 +115,8 @@ class AggFinder extends SqlBasicVisitor<Void> {
         final List<SqlOperator> list = Lists.newArrayList();
         opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
             sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list);
-        for (SqlOperator sqlOperator : list) {
-          if (sqlOperator.isAggregator()) {
+        for (SqlOperator operator2 : list) {
+          if (operator2.isAggregator() && !operator2.requiresOver()) {
             // If nested aggregates disallowed or found aggregate at invalid level
             if (aggregate) {
               throw new Util.FoundOne(call);

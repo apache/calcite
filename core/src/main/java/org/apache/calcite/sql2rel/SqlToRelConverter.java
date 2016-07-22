@@ -4544,9 +4544,6 @@ public class SqlToRelConverter {
       // Ignore window aggregates and ranking functions (associated with OVER
       // operator). However, do not ignore nested window aggregates.
       if (call.getOperator().getKind() == SqlKind.OVER) {
-        if (call.operand(0).getKind() == SqlKind.RANK) {
-          return null;
-        }
         // Track aggregate nesting levels only within an OVER operator.
         inOver = true;
       }

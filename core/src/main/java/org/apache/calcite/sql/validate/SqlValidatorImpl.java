@@ -34,7 +34,6 @@ import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
 import org.apache.calcite.sql.SqlAccessType;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -2504,7 +2503,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public boolean isAggregate(SqlSelect select) {
-    return getAggregate(select) != null;
+    if (getAggregate(select) != null) {
+      return true;
+    }
+    // Also when nested window aggregates are present
+    for (SqlNode node : select.getSelectList()) {
+      if (node instanceof SqlCall) {
+        SqlCall call = (SqlCall) node;
+        if (call.getOperator().getKind() == SqlKind.OVER
+            && call.getOperandList().size() != 0) {
+          if (call.operand(0) instanceof SqlCall
+              && isNestedAggregateWindow((SqlCall) call.operand(0))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  protected boolean isNestedAggregateWindow(SqlCall windowFunction) {
+    AggFinder nestedAggFinder = new AggFinder(opTab, false, false, aggFinder);
+    return nestedAggFinder.findAgg(windowFunction) != null;
   }
 
   /** Returns the parse tree node (GROUP BY, HAVING, or an aggregate function
@@ -3327,10 +3347,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /**
+   * Validates an item in the ORDER BY clause of a SELECT statement.
+   *
+   * @param select Select statement
+   * @param orderItem ORDER BY clause item
+   */
   private void validateOrderItem(SqlSelect select, SqlNode orderItem) {
-    if (SqlUtil.isCallTo(
-        orderItem,
-        SqlStdOperatorTable.DESC)) {
+    switch (orderItem.getKind()) {
+    case DESCENDING:
       validateFeature(RESOURCE.sQLConformance_OrderByDesc(),
           orderItem.getParserPosition());
       validateOrderItem(select,
@@ -3526,15 +3551,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    // Check expanded select list for aggregation.
-    if (selectScope instanceof AggregatingScope) {
-      AggregatingScope aggScope = (AggregatingScope) selectScope;
-      for (SqlNode selectItem : expandedSelectItems) {
-        boolean matches = aggScope.checkAggregateExpr(selectItem, true);
-        Util.discard(matches);
-      }
-    }
-
     // Create the new select list with expanded items.  Pass through
     // the original parser position so that any overall failures can
     // still reference the original input text.
@@ -3567,9 +3583,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private void validateExpr(SqlNode expr, SqlValidatorScope scope) {
     if (expr instanceof SqlCall) {
-      final SqlCall sqlCall = (SqlCall) expr;
-      if (sqlCall.getOperator().isAggregator()
-          && ((SqlAggFunction) sqlCall.getOperator()).requiresOver()) {
+      final SqlOperator op = ((SqlCall) expr).getOperator();
+      if (op.isAggregator() && op.requiresOver()) {
         throw newValidationError(expr,
             RESOURCE.absentOverClause());
       }
