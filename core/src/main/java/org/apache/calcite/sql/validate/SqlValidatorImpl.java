@@ -2504,7 +2504,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public boolean isAggregate(SqlSelect select) {
-    return getAggregate(select) != null;
+    final SqlNodeList selectItems = select.getSelectList();
+    if (getAggregate(select) != null) {
+      return true;
+    }
+    // Also when nested window aggregates are present
+    for (SqlNode node : selectItems.getList()) {
+      if (node instanceof SqlCall) {
+        SqlCall call = (SqlCall) node;
+        if (call.getOperator().getKind() == SqlKind.OVER
+                && call.getOperandList().size() != 0) {
+          if (call.operand(0) instanceof SqlCall
+              && isNestedAggregateWindow((SqlCall) call.operand(0))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  protected boolean isNestedAggregateWindow(SqlCall windowFunction) {
+    AggFinder nestedAggFinder = new AggFinder(opTab, false, false, aggFinder);
+    return nestedAggFinder.findAgg(windowFunction) != null;
   }
 
   /** Returns the parse tree node (GROUP BY, HAVING, or an aggregate function
@@ -3322,11 +3344,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         orderList.getParserPosition());
     select.setOrderBy(expandedOrderList);
 
+    // Perform all expression validation.
     for (SqlNode orderItem : expandedOrderList) {
       validateOrderItem(select, orderItem);
     }
+
+    // Perform scope-specific validation post all expression validation since
+    // some invalid expressions may trigger incorrect scope validation errors.
+    for (SqlNode orderItem : expandedOrderList) {
+      validateOrderItemScope(select, orderItem);
+    }
   }
 
+  /**
+   * Validates the ORDER BY clause item of a SELECT statement.
+   *
+   * @param select Select statement
+   * @param orderItem ORDER BY clause item
+   */
   private void validateOrderItem(SqlSelect select, SqlNode orderItem) {
     if (SqlUtil.isCallTo(
         orderItem,
@@ -3340,6 +3375,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlValidatorScope orderScope = getOrderScope(select);
     validateExpr(orderItem, orderScope);
+  }
+
+  /**
+   * Validates the ORDER BY clause item of a SELECT statement in the context
+   * of the ORDER BY scope.
+   *
+   * @param select Select statement
+   * @param orderItem ORDER BY clause item
+   */
+  private void validateOrderItemScope(SqlSelect select, SqlNode orderItem) {
+    if (SqlUtil.isCallTo(
+            orderItem,
+            SqlStdOperatorTable.DESC)) {
+      validateOrderItemScope(select, ((SqlCall) orderItem).operand(0));
+      return;
+    }
+    final SqlValidatorScope orderScope = getOrderScope(select);
+    validateExprScope(orderItem, orderScope);
   }
 
   public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
@@ -3526,15 +3579,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    // Check expanded select list for aggregation.
-    if (selectScope instanceof AggregatingScope) {
-      AggregatingScope aggScope = (AggregatingScope) selectScope;
-      for (SqlNode selectItem : expandedSelectItems) {
-        boolean matches = aggScope.checkAggregateExpr(selectItem, true);
-        Util.discard(matches);
-      }
-    }
-
     // Create the new select list with expanded items.  Pass through
     // the original parser position so that any overall failures can
     // still reference the original input text.
@@ -3553,6 +3597,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (SqlNode selectItem : expandedSelectItems) {
       validateExpr(selectItem, selectScope);
+    }
+
+    for (SqlNode selectItem : expandedSelectItems) {
+      validateExprScope(selectItem, selectScope);
     }
 
     assert fieldList.size() >= aliases.size();
@@ -3577,7 +3625,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Call on the expression to validate itself.
     expr.validateExpr(this, scope);
+  }
 
+  /**
+   * Validates an expression within the scope in which the expression occurs.
+   *
+   * @param expr  Expression
+   * @param scope Scope in which expression occurs
+   */
+  private void validateExprScope(SqlNode expr, SqlValidatorScope scope) {
     // Perform any validation specific to the scope. For example, an
     // aggregating scope requires that expressions are valid aggregations.
     scope.validateExpr(expr);

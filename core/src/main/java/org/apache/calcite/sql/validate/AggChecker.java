@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 
@@ -152,8 +153,20 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // Visit the operand in window function
     if (call.getOperator().getKind() == SqlKind.OVER) {
       SqlCall windowFunction = call.operand(0);
-      if (windowFunction.getOperandList().size() != 0) {
+      if (windowFunction.getOperandList().size() != 0
+          && (!(windowFunction.operand(0) instanceof SqlIdentifier)
+              || !((SqlIdentifier) windowFunction.operand(0)).isStar())) {
         windowFunction.operand(0).accept(this);
+      }
+      // Check the OVER clause
+      if (call.operand(1) instanceof SqlCall) {
+        call.operand(1).accept(this);
+      } else if (call.operand(1) instanceof SqlIdentifier) {
+        // Check the corresponding SqlWindow in WINDOW clause
+        SqlWindow window = scope.lookupWindow(((SqlIdentifier) call.operand(1))
+            .getSimple());
+        window.getPartitionList().accept(this);
+        window.getOrderList().accept(this);
       }
     }
     if (isGroupExpr(call)) {

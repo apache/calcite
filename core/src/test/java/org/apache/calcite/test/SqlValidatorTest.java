@@ -4956,7 +4956,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(
             "Invalid number of arguments to function 'GROUPING'. Was expecting 1 arguments");
     sql("select deptno, grouping(^empno^) from emp group by deptno")
-        .fails("Expression 'EMPNO' is not being grouped");
+        .fails("Argument to GROUPING operator must be a grouped expression");
     sql("select deptno, grouping(^deptno + 1^) from emp group by deptno")
         .fails("Argument to GROUPING operator must be a grouped expression");
     sql("select deptno, grouping(emp.^xxx^) from emp")
@@ -5016,7 +5016,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(
             "Invalid number of arguments to function 'GROUPING_ID'. Was expecting 1 arguments");
     sql("select deptno, grouping_id(^empno^) from emp group by deptno")
-        .fails("Expression 'EMPNO' is not being grouped");
+        .fails("Argument to GROUPING_ID operator must be a grouped expression");
     sql("select deptno, grouping_id(^deptno + 1^) from emp group by deptno")
         .fails("Argument to GROUPING_ID operator must be a grouped expression");
     sql("select deptno, grouping_id(emp.^xxx^) from emp")
@@ -6323,18 +6323,107 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testNestedAggOver() {
-    // windowed agg applied to agg is OK
-    check("select sum(max(empno))\n"
-        + "  OVER (order by deptno ROWS 2 PRECEDING)\n"
-        + "from emp");
-    check("select sum(max(empno)) OVER w\n"
-        + "from emp\n"
-        + "window w as (order by deptno ROWS 2 PRECEDING)");
+    sql("select sum(max(empno))\n"
+        + " OVER (order by ^deptno^ ROWS 2 PRECEDING)\n"
+        + " from emp")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select sum(max(empno)) OVER w\n"
+        + " from emp\n"
+        + " window w as (order by ^deptno^ ROWS 2 PRECEDING)")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select sum(max(empno)) OVER w2, sum(deptno) OVER w1\n"
+        + " from emp group by deptno\n"
+        + " window w1 as (partition by ^empno^ ROWS 2 PRECEDING),\n"
+        + " w2 as (order by deptno ROWS 2 PRECEDING)")
+        .fails("Expression 'EMP.EMPNO' is not being grouped");
+    sql("select avg(count(empno)) over w\n"
+        + "from emp group by deptno\n"
+        + "window w as (partition by deptno order by ^empno^)")
+        .fails("Expression 'EMPNO' is not being grouped");
 
     // in OVER clause with more than one level of nesting
     checkFails("select ^avg(sum(min(sal))) OVER (partition by deptno)^\n"
         + "from emp group by deptno",
         ERR_NESTED_AGG);
+
+    // OVER clause columns not appearing in GROUP BY clause NOT OK
+    sql("select avg(^sal^) OVER (), avg(count(empno)) OVER (partition by 1)\n"
+        + " from emp")
+        .fails("Expression 'SAL' is not being grouped");
+    sql("select avg(^sal^) OVER (), avg(count(empno)) OVER (partition by deptno)\n"
+        + " from emp group by deptno")
+        .fails("Expression 'SAL' is not being grouped");
+    sql("select avg(deptno) OVER (partition by ^empno^),\n"
+        + " avg(count(empno)) OVER (partition by deptno)\n"
+        + " from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(deptno) OVER (order by ^empno^),\n"
+        + " avg(count(empno)) OVER (partition by deptno)\n"
+        + " from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by ^empno^)\n"
+        + " from emp")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by ^empno^)\n"
+        + "from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by ^empno^)\n"
+        + " from emp")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by ^empno^)\n"
+        + "from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by deptno order by ^empno^)\n"
+        + "from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(^sal^) OVER (),\n"
+        + " avg(count(empno)) OVER (partition by min(deptno))\n"
+        + " from emp")
+        .fails("Expression 'SAL' is not being grouped");
+    check("select avg(deptno) OVER (),\n"
+        + " avg(count(empno)) OVER (partition by deptno)"
+        + " from emp group by deptno");
+
+    // COUNT(*), PARTITION BY(CONST) with GROUP BY is OK
+    check("select avg(count(*)) OVER ()\n"
+        + " from emp group by deptno");
+    check("select count(*) OVER ()\n"
+        + " from emp group by deptno");
+    check("select avg(count(*)) OVER (partition by 1)\n"
+        + " from emp group by deptno");
+    check("select avg(sum(sal)) OVER (partition by 1)\n"
+        + " from emp");
+    check("select avg(sal), avg(count(empno)) OVER (partition by 1)\n"
+        + " from emp");
+
+    // expression is OK
+    check("select avg(sum(sal)) OVER (partition by 10 - deptno\n"
+        + "   order by deptno / 2 desc)\n"
+        + "from emp group by deptno");
+    check("select avg(sal),\n"
+        + " avg(count(empno)) OVER (partition by min(deptno))\n"
+        + " from emp");
+    check("select avg(min(sal)) OVER (),\n"
+        + " avg(count(empno)) OVER (partition by min(deptno))\n"
+        + " from emp");
+
+    // expression involving non-GROUP column is not OK
+    sql("select avg(2+^sal^) OVER (partition by deptno)\n"
+            + "from emp group by deptno")
+            .fails("Expression 'SAL' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by deptno + ^empno^)\n"
+        + "from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    check("select avg(sum(sal)) OVER (partition by empno + deptno)\n"
+        + "from emp group by empno + deptno");
+    check("select avg(sum(sal)) OVER (partition by empno + deptno + 1)\n"
+        + "from emp group by empno + deptno");
+    sql("select avg(sum(sal)) OVER (partition by ^deptno^ + 1)\n"
+        + "from emp group by empno + deptno")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    check("select avg(empno + deptno) OVER (partition by empno + deptno + 1),\n"
+        + " count(empno + deptno) OVER (partition by empno + deptno + 1)\n"
+        + " from emp group by empno + deptno");
 
     // OVER in clause
     checkFails(
