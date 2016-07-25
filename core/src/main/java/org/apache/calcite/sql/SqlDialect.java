@@ -460,12 +460,13 @@ public class SqlDialect {
    */
   public boolean supportsCharSet() {
     switch (databaseProduct) {
-    case MYSQL:
+    case DB2:
     case H2:
     case HSQLDB:
+    case MYSQL:
+    case ORACLE:
     case PHOENIX:
     case POSTGRESQL:
-    case ORACLE:
       return false;
     default:
       return true;
