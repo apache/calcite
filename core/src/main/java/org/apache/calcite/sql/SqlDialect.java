@@ -466,6 +466,7 @@ public class SqlDialect {
     case PHOENIX:
     case POSTGRESQL:
     case ORACLE:
+    case DB2:
       return false;
     default:
       return true;
