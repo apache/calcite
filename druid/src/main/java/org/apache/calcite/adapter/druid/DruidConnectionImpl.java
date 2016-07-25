@@ -30,6 +30,7 @@ import org.apache.calcite.util.Holder;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 
@@ -341,6 +342,19 @@ class DruidConnectionImpl implements DruidConnection {
     };
   }
 
+  private boolean supportedType(String type) {
+    if (type.startsWith("long")) {
+      return true;
+    }
+    if (type.startsWith("double")) {
+      return true;
+    }
+    if (type.equals("hyperUnique")) {
+      return true;
+    }
+    return false;
+  }
+
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, List<String> intervals,
       Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
@@ -353,7 +367,8 @@ class DruidConnectionImpl implements DruidConnection {
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
-      final ObjectMapper mapper = new ObjectMapper();
+      final ObjectMapper mapper = new ObjectMapper().configure(
+        DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
       final CollectionType listType =
           mapper.getTypeFactory().constructCollectionType(List.class,
               JsonSegmentMetadata.class);
@@ -361,11 +376,17 @@ class DruidConnectionImpl implements DruidConnection {
       in.close();
       for (JsonSegmentMetadata o : list) {
         for (Map.Entry<String, JsonColumn> entry : o.columns.entrySet()) {
+          if (!supportedType(entry.getValue().type)) {
+            continue;
+          }
           fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
         }
         if (o.aggregators != null) {
           for (Map.Entry<String, JsonAggregator> entry
               : o.aggregators.entrySet()) {
+            if (!supportedType(entry.getValue().type)) {
+              continue;
+            }
             fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
             metricNameBuilder.add(entry.getKey());
           }
