@@ -208,16 +208,20 @@ public abstract class Prepare {
 
     init(runtimeContextClass);
 
-    SqlToRelConverter sqlToRelConverter =
-        getSqlToRelConverter(validator, catalogReader);
-    sqlToRelConverter.setExpand(THREAD_EXPAND.get());
+    final SqlToRelConverter sqlToRelConverter;
+    final SqlToRelConverter.ConfigBuilder builder = SqlToRelConverter.configBuilder()
+            .setTrimUnusedFields(true).setExpand(THREAD_EXPAND.get());
 
     SqlExplain sqlExplain = null;
     if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
       // dig out the underlying SQL statement
       sqlExplain = (SqlExplain) sqlQuery;
       sqlQuery = sqlExplain.getExplicandum();
-      sqlToRelConverter.setIsExplain(sqlExplain.getDynamicParamCount());
+      sqlToRelConverter = getSqlToRelConverter(validator, catalogReader,
+          builder.setIsExplain(true).build());
+      sqlToRelConverter.setDynamicParamCountInExplain(sqlExplain.getDynamicParamCount());
+    } else {
+      sqlToRelConverter = getSqlToRelConverter(validator, catalogReader, builder.build());
     }
 
     RelRoot root =
@@ -319,7 +323,8 @@ public abstract class Prepare {
    */
   protected abstract SqlToRelConverter getSqlToRelConverter(
       SqlValidator validator,
-      CatalogReader catalogReader);
+      CatalogReader catalogReader,
+      SqlToRelConverter.Config config);
 
   public abstract RelNode flattenTypes(
       RelNode rootRel,
@@ -342,11 +347,11 @@ public abstract class Prepare {
    * @return Trimmed relational expression
    */
   protected RelRoot trimUnusedFields(RelRoot root) {
+    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+        .setTrimUnusedFields(shouldTrim(root.rel)).setExpand(THREAD_EXPAND.get()).build();
     final SqlToRelConverter converter =
         getSqlToRelConverter(
-            getSqlValidator(), catalogReader);
-    converter.setTrimUnusedFields(shouldTrim(root.rel));
-    converter.setExpand(THREAD_EXPAND.get());
+            getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();
     final boolean dml = SqlKind.DML.contains(root.kind);
     return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));

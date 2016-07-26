@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
@@ -1819,6 +1820,23 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1321">[CALCITE-1321]
+   * Configurable IN list size when converting IN clause to join</a>. */
+  @Test public void testInToSemiJoin() {
+    final String sql = "SELECT empno"
+            + " FROM emp AS e"
+            + " WHERE cast(e.empno as bigint) in (130, 131, 132, 133, 134)";
+    // No conversion to join since less than IN-list size threshold 10
+    SqlToRelConverter.Config noConvertConfig = SqlToRelConverter.configBuilder().
+        setInSubqueryThreshold(10).build();
+    sql(sql).withConfig(noConvertConfig).convertsTo("${planNotConverted}");
+    // Conversion to join since greater than IN-list size threshold 2
+    SqlToRelConverter.Config convertConfig = SqlToRelConverter.configBuilder().
+        setInSubqueryThreshold(2).build();
+    sql(sql).withConfig(convertConfig).convertsTo("${planConverted}");
+  }
+
   private Tester getTesterWithDynamicTable() {
     return tester.withCatalogReaderFactory(
         new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
@@ -1882,6 +1900,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     private final boolean decorrelate;
     private final Tester tester;
     private boolean trim;
+    private SqlToRelConverter.Config config;
 
     Sql(String sql, boolean expand, boolean decorrelate, Tester tester,
         boolean trim) {
@@ -1890,15 +1909,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
       this.decorrelate = decorrelate;
       this.tester = tester;
       this.trim = trim;
+      this.config = SqlToRelConverter.Config.DEFAULT;
     }
 
     public void ok() {
       convertsTo("${plan}");
     }
 
+    public Sql withConfig(SqlToRelConverter.Config config) {
+      this.config = SqlToRelConverter.configBuilder(config).build();
+      return this;
+    }
+
     public void convertsTo(String plan) {
       tester.withExpand(expand)
           .withDecorrelation(decorrelate)
+          .withConfig(config)
           .assertConvertsTo(sql, plan, trim);
     }
 
