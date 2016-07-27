@@ -59,11 +59,11 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
@@ -73,8 +73,8 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -233,7 +233,7 @@ public abstract class SqlImplementor {
     final SqlCall node = operator.createCall(new SqlNodeList(list, POS));
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
-    return result(node, clauses, rel);
+    return result(node, clauses, rel, null);
   }
 
   /**
@@ -382,25 +382,45 @@ public abstract class SqlImplementor {
   }
 
   /** Creates a result based on a single relational expression. */
-  public Result result(SqlNode node, Collection<Clause> clauses, RelNode rel) {
+  public Result result(SqlNode node, Collection<Clause> clauses,
+      RelNode rel, Map<String, RelDataType> aliases) {
+    assert aliases == null
+        || aliases.size() < 2
+        || aliases instanceof LinkedHashMap
+        || aliases instanceof ImmutableMap
+        : "must use a Map implementation that preserves order";
     final String alias2 = SqlValidatorUtil.getAlias(node, -1);
     final String alias3 = alias2 != null ? alias2 : "t";
     final String alias4 =
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
-    final String alias5 = alias2 == null || !alias2.equals(alias4) ? alias4
-        : null;
+    if (aliases != null
+        && !aliases.isEmpty()
+        && !dialect.hasImplicitTableAlias()) {
+      return new Result(node, clauses, alias4, aliases);
+    }
+
+    final String alias5;
+    if (alias2 == null
+        || !alias2.equals(alias4)
+        || !dialect.hasImplicitTableAlias()) {
+      alias5 = alias4;
+    } else {
+      alias5 = null;
+    }
     return new Result(node, clauses, alias5,
-        Collections.singletonList(Pair.of(alias4, rel.getRowType())));
+        ImmutableMap.of(alias4, rel.getRowType()));
   }
 
   /** Creates a result based on a join. (Each join could contain one or more
    * relational expressions.) */
   public Result result(SqlNode join, Result leftResult, Result rightResult) {
-    final List<Pair<String, RelDataType>> list = new ArrayList<>();
-    list.addAll(leftResult.aliases);
-    list.addAll(rightResult.aliases);
-    return new Result(join, Expressions.list(Clause.FROM), null, list);
+    final Map<String, RelDataType> aliases =
+        ImmutableMap.<String, RelDataType>builder()
+            .putAll(leftResult.aliases)
+            .putAll(rightResult.aliases)
+            .build();
+    return new Result(join, Expressions.list(Clause.FROM), null, aliases);
   }
 
   /** Wraps a node in a SELECT statement that has no clauses:
@@ -642,15 +662,15 @@ public abstract class SqlImplementor {
   }
 
   private static int computeFieldCount(
-      List<Pair<String, RelDataType>> aliases) {
+      Map<String, RelDataType> aliases) {
     int x = 0;
-    for (Pair<String, RelDataType> alias : aliases) {
-      x += alias.right.getFieldCount();
+    for (RelDataType type : aliases.values()) {
+      x += type.getFieldCount();
     }
     return x;
   }
 
-  public Context aliasContext(List<Pair<String, RelDataType>> aliases,
+  public Context aliasContext(Map<String, RelDataType> aliases,
       boolean qualified) {
     return new AliasContext(aliases, qualified);
   }
@@ -663,10 +683,10 @@ public abstract class SqlImplementor {
    * "table alias" based on the current sub-query's FROM clause. */
   public class AliasContext extends Context {
     private final boolean qualified;
-    private final List<Pair<String, RelDataType>> aliases;
+    private final Map<String, RelDataType> aliases;
 
-    /** Creates an AliasContext; use {@link #aliasContext(List, boolean)}. */
-    protected AliasContext(List<Pair<String, RelDataType>> aliases,
+    /** Creates an AliasContext; use {@link #aliasContext(Map, boolean)}. */
+    protected AliasContext(Map<String, RelDataType> aliases,
         boolean qualified) {
       super(computeFieldCount(aliases));
       this.aliases = aliases;
@@ -674,8 +694,8 @@ public abstract class SqlImplementor {
     }
 
     public SqlNode field(int ordinal) {
-      for (Pair<String, RelDataType> alias : aliases) {
-        final List<RelDataTypeField> fields = alias.right.getFieldList();
+      for (Map.Entry<String, RelDataType> alias : aliases.entrySet()) {
+        final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
           final SqlNode mappedSqlNode =
@@ -685,7 +705,7 @@ public abstract class SqlImplementor {
           }
           return new SqlIdentifier(!qualified
               ? ImmutableList.of(field.getName())
-              : ImmutableList.of(alias.left, field.getName()),
+              : ImmutableList.of(alias.getKey(), field.getName()),
               POS);
         }
         ordinal -= fields.size();
@@ -721,11 +741,11 @@ public abstract class SqlImplementor {
   public class Result {
     final SqlNode node;
     private final String neededAlias;
-    private final List<Pair<String, RelDataType>> aliases;
+    private final Map<String, RelDataType> aliases;
     final Expressions.FluentList<Clause> clauses;
 
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        List<Pair<String, RelDataType>> aliases) {
+        Map<String, RelDataType> aliases) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.aliases = aliases;
@@ -744,7 +764,7 @@ public abstract class SqlImplementor {
      * <p>When you have called
      * {@link Builder#setSelect(SqlNodeList)},
      * {@link Builder#setWhere(SqlNode)} etc. call
-     * {@link Builder#result(SqlNode, Collection, RelNode)}
+     * {@link Builder#result(SqlNode, Collection, RelNode, Map)}
      * to fix the new query.
      *
      * @param rel Relational expression being implemented
@@ -787,9 +807,18 @@ public abstract class SqlImplementor {
           }
         };
       } else {
-        newContext = aliasContext(aliases, aliases.size() > 1);
+        boolean qualified =
+            !dialect.hasImplicitTableAlias() || aliases.size() > 1;
+        if (needNew) {
+          newContext =
+              aliasContext(ImmutableMap.of(neededAlias, rel.getRowType()),
+                  qualified);
+        } else {
+          newContext = aliasContext(aliases, qualified);
+        }
       }
-      return new Builder(rel, clauseList, select, newContext);
+      return new Builder(rel, clauseList, select, newContext,
+          needNew ? null : aliases);
     }
 
     // make private?
@@ -826,6 +855,9 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         return (SqlSelect) node;
       }
+      if (!dialect.hasImplicitTableAlias()) {
+        return wrapSelect(asFrom());
+      }
       return wrapSelect(node);
     }
 
@@ -853,13 +885,15 @@ public abstract class SqlImplementor {
     final List<Clause> clauses;
     private final SqlSelect select;
     public final Context context;
+    private final Map<String, RelDataType> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
-        Context context) {
+        Context context, Map<String, RelDataType> aliases) {
       this.rel = rel;
       this.clauses = clauses;
       this.select = select;
       this.context = context;
+      this.aliases = aliases;
     }
 
     public void setSelect(SqlNodeList nodeList) {
@@ -906,7 +940,7 @@ public abstract class SqlImplementor {
     }
 
     public Result result() {
-      return SqlImplementor.this.result(select, clauses, rel);
+      return SqlImplementor.this.result(select, clauses, rel, aliases);
     }
   }
 

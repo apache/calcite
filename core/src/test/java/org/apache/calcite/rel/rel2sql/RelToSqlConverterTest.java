@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
@@ -83,16 +84,14 @@ public class RelToSqlConverterTest {
   @Test
   public void testSimpleSelectStarFromProductTable() {
     String query = "select * from \"product\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
-         "SELECT *\nFROM \"foodmart\".\"product\"");
+    checkRel2Sql(logicalPlanner, query,
+        "SELECT *\nFROM \"foodmart\".\"product\"");
   }
 
   @Test
   public void testSimpleSelectQueryFromProductTable() {
     String query = "select \"product_id\", \"product_class_id\" from \"product\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"product_class_id\"\n"
             + "FROM \"foodmart\".\"product\"");
   }
@@ -103,8 +102,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithWhereClauseOfLessThan() {
     String query =
         "select \"product_id\", \"shelf_width\"  from \"product\" where \"product_id\" < 10";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"shelf_width\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "WHERE \"product_id\" < 10");
@@ -115,8 +113,7 @@ public class RelToSqlConverterTest {
     String query = "select * from \"product\" "
         + "where (\"product_id\" = 10 OR \"product_id\" <= 5) "
         + "AND (80 >= \"shelf_width\" OR \"shelf_width\" > 30)";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT *\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "WHERE (\"product_id\" = 10 OR \"product_id\" <= 5) "
@@ -127,8 +124,7 @@ public class RelToSqlConverterTest {
   @Test
   public void testSelectQueryWithGroupBy() {
     String query = "select count(*) from \"product\" group by \"product_class_id\", \"product_id\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\", \"product_id\"");
@@ -137,8 +133,7 @@ public class RelToSqlConverterTest {
   @Test
   public void testSelectQueryWithMinAggregateFunction() {
     String query = "select min(\"net_weight\") from \"product\" group by \"product_class_id\" ";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT MIN(\"net_weight\")\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\"");
@@ -148,8 +143,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithMinAggregateFunction1() {
     String query = "select \"product_class_id\", min(\"net_weight\") from"
         + " \"product\" group by \"product_class_id\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_class_id\", MIN(\"net_weight\")\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\"");
@@ -159,8 +153,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithSumAggregateFunction() {
     String query =
         "select sum(\"net_weight\") from \"product\" group by \"product_class_id\" ";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT SUM(\"net_weight\")\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\"");
@@ -171,8 +164,7 @@ public class RelToSqlConverterTest {
     String query =
         "select sum(\"net_weight\"), min(\"low_fat\"), count(*)"
             + " from \"product\" group by \"product_class_id\" ";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT SUM(\"net_weight\"), MIN(\"low_fat\"), COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\"");
@@ -183,8 +175,7 @@ public class RelToSqlConverterTest {
     String query =
         "select \"product_class_id\", sum(\"net_weight\"), min(\"low_fat\"), count(*)"
             + " from \"product\" group by \"product_class_id\" ";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_class_id\", SUM(\"net_weight\"), MIN(\"low_fat\"), COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\"");
@@ -195,8 +186,7 @@ public class RelToSqlConverterTest {
     String query =
         "select \"product_class_id\", \"product_id\", count(*) from \"product\" group "
             + "by \"product_class_id\", \"product_id\"  ";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_class_id\", \"product_id\", COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\", \"product_id\"");
@@ -206,8 +196,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithGroupByAndProjectList1() {
     String query =
         "select count(*)  from \"product\" group by \"product_class_id\", \"product_id\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "GROUP BY \"product_class_id\", \"product_id\"");
@@ -217,8 +206,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithGroupByHaving() {
     String query = "select count(*) from \"product\" group by \"product_class_id\","
         + " \"product_id\"  having \"product_id\"  > 10";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT COUNT(*)\n"
             + "FROM (SELECT \"product_class_id\", \"product_id\", COUNT(*)\n"
             + "FROM \"foodmart\".\"product\"\n"
@@ -229,8 +217,7 @@ public class RelToSqlConverterTest {
   @Test
   public void testSelectQueryWithOrderByClause() {
     String query = "select \"product_id\"  from \"product\" order by \"net_weight\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"net_weight\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "ORDER BY \"net_weight\"");
@@ -240,8 +227,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithOrderByClause1() {
     String query =
         "select \"product_id\", \"net_weight\" from \"product\" order by \"net_weight\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"net_weight\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "ORDER BY \"net_weight\"");
@@ -251,8 +237,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithTwoOrderByClause() {
     String query =
         "select \"product_id\"  from \"product\" order by \"net_weight\", \"gross_weight\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"net_weight\", \"gross_weight\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "ORDER BY \"net_weight\", \"gross_weight\"");
@@ -263,8 +248,7 @@ public class RelToSqlConverterTest {
     String query =
         "select \"product_id\" from \"product\" order by \"net_weight\" asc, "
             + "\"gross_weight\" desc, \"low_fat\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"net_weight\", \"gross_weight\", \"low_fat\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"");
@@ -273,8 +257,7 @@ public class RelToSqlConverterTest {
   @Test
   public void testSelectQueryWithLimitClause() {
     String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT product_id\n"
             + "FROM foodmart.product\n"
             + "LIMIT 100\nOFFSET 10",
@@ -284,8 +267,7 @@ public class RelToSqlConverterTest {
   @Test
   public void testSelectQueryWithLimitClauseWithoutOrder() {
     String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "OFFSET 10 ROWS\n"
@@ -296,8 +278,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithLimitOffsetClause() {
     String query = "select \"product_id\"  from \"product\" order by \"net_weight\" asc"
         + " limit 100 offset 10";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\", \"net_weight\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "ORDER BY \"net_weight\"\n"
@@ -309,8 +290,7 @@ public class RelToSqlConverterTest {
   public void testSelectQueryWithFetchOffsetClause() {
     String query = "select \"product_id\"  from \"product\" order by \"product_id\""
         + " offset 10 rows fetch next 100 rows only";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"product_id\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "ORDER BY \"product_id\"\n"
@@ -323,8 +303,7 @@ public class RelToSqlConverterTest {
     String query =
         "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "
             + "group by \"product_id\", \"units_per_case\" order by \"units_per_case\" desc";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT COUNT(*), \"units_per_case\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "WHERE \"cases_per_pallet\" > 100\n"
@@ -339,8 +318,7 @@ public class RelToSqlConverterTest {
             + "where \"hire_date\" > '2015-01-01' "
             + "and (\"position_title\" = 'SDE' or \"position_title\" = 'SDM') "
             + "group by \"store_id\", \"position_title\"";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT COUNT(*), SUM(\"employee_id\")\n"
             + "FROM \"foodmart\".\"reserve_employee\"\n"
             + "WHERE \"hire_date\" > '2015-01-01' "
@@ -357,8 +335,7 @@ public class RelToSqlConverterTest {
         + "  join \"product_class\" as pc using (\"product_class_id\")\n"
         + "where c.\"city\" = 'San Francisco'\n"
         + "and pc.\"product_department\" = 'Snacks'\n";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
             + "INNER JOIN \"foodmart\".\"customer\" "
             + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
@@ -374,14 +351,165 @@ public class RelToSqlConverterTest {
     String query = "select * from \"department\" where \"department_id\" in (\n"
         + "  select \"department_id\" from \"employee\"\n"
         + "  where \"store_id\" < 150)";
-    checkRel2Sql(this.logicalPlanner,
-        query,
+    checkRel2Sql(logicalPlanner, query,
         "SELECT \"department\".\"department_id\", \"department\".\"department_description\"\n"
             + "FROM \"foodmart\".\"department\"\nINNER JOIN "
             + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\n"
             + "WHERE \"store_id\" < 150\nGROUP BY \"department_id\") AS \"t1\" "
             + "ON \"department\".\"department_id\" = \"t1\".\"department_id\"");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1332">[CALCITE-1332]
+   * DB2 should always use aliases for tables: x.y.z AS z</a>. */
+  @Test public void testDb2DialectJoinStar() {
+    String query = "select * "
+        + "from \"foodmart\".\"employee\" A "
+        + "join \"foodmart\".\"department\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    final String expected = "SELECT *\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "INNER JOIN foodmart.department AS department "
+        + "ON employee.department_id = department.department_id";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectSelfJoinStar() {
+    String query = "select * "
+        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    final String expected = "SELECT *\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "INNER JOIN foodmart.employee AS employee0 "
+        + "ON employee.department_id = employee0.department_id";
+    checkRel2Sql(logicalPlanner, query,
+        expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectJoin() {
+    String query = "select A.\"employee_id\", B.\"department_id\" "
+        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    final String expected = "SELECT"
+        + " employee.employee_id, department.department_id\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "INNER JOIN foodmart.department AS department "
+        + "ON employee.department_id = department.department_id";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectSelfJoin() {
+    String query = "select A.\"employee_id\", B.\"employee_id\" from "
+        + "\"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    final String expected = "SELECT"
+        + " employee.employee_id, employee0.employee_id AS employee_id0\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "INNER JOIN foodmart.employee AS employee0 "
+        + "ON employee.department_id = employee0.department_id";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectWhere() {
+    String query = "select A.\"employee_id\" from "
+        + "\"foodmart\".\"employee\" A where A.\"department_id\" < 1000";
+    final String expected = "SELECT employee.employee_id\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "WHERE employee.department_id < 1000";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectJoinWhere() {
+    String query = "select A.\"employee_id\", B.\"department_id\" "
+        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\" "
+        + "where A.\"employee_id\" < 1000";
+    final String expected = "SELECT"
+        + " employee.employee_id, department.department_id\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "INNER JOIN foodmart.department AS department "
+        + "ON employee.department_id = department.department_id\n"
+        + "WHERE employee.employee_id < 1000";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectSelfJoinWhere() {
+    String query = "select A.\"employee_id\", B.\"employee_id\" from "
+        + "\"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\" "
+        + "where B.\"employee_id\" < 2000";
+    final String expected = "SELECT "
+        + "employee.employee_id, employee0.employee_id AS employee_id0\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "INNER JOIN foodmart.employee AS employee0 "
+        + "ON employee.department_id = employee0.department_id\n"
+        + "WHERE employee0.employee_id < 2000";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectCast() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT reserve_employee.hire_date, "
+        + "CAST(reserve_employee.hire_date AS VARCHAR(10))\n"
+        + "FROM foodmart.reserve_employee AS reserve_employee";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectSelectQueryWithGroupByHaving() {
+    String query = "select count(*) from \"product\" "
+        + "group by \"product_class_id\", \"product_id\" "
+        + "having \"product_id\"  > 10";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM (SELECT product.product_class_id, product.product_id, COUNT"
+        + "(*)\n"
+        + "FROM foodmart.product AS product\n"
+        + "GROUP BY product.product_class_id, product.product_id) AS t0\n"
+        + "WHERE t0.product_id > 10";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+
+  @Test public void testDb2DialectSelectQueryComplex() {
+    String query = "select count(*), \"units_per_case\" "
+        + "from \"product\" where \"cases_per_pallet\" > 100 "
+        + "group by \"product_id\", \"units_per_case\" "
+        + "order by \"units_per_case\" desc";
+    final String expected = "SELECT COUNT(*), product.units_per_case\n"
+        + "FROM foodmart.product AS product\n"
+        + "WHERE product.cases_per_pallet > 100\n"
+        + "GROUP BY product.product_id, product.units_per_case\n"
+        + "ORDER BY product.units_per_case DESC";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDb2DialectSelectQueryWithGroup() {
+    String query = "select count(*), sum(\"employee_id\") "
+        + "from \"reserve_employee\" "
+        + "where \"hire_date\" > '2015-01-01' "
+        + "and (\"position_title\" = 'SDE' or \"position_title\" = 'SDM') "
+        + "group by \"store_id\", \"position_title\"";
+    final String expected = "SELECT"
+        + " COUNT(*), SUM(reserve_employee.employee_id)\n"
+        + "FROM foodmart.reserve_employee AS reserve_employee\n"
+        + "WHERE reserve_employee.hire_date > '2015-01-01' "
+        + "AND (reserve_employee.position_title = 'SDE' OR "
+        + "reserve_employee.position_title = 'SDM')\n"
+        + "GROUP BY reserve_employee.store_id, reserve_employee.position_title";
+    checkRel2Sql(logicalPlanner, query, expected,
+        DatabaseProduct.DB2.getDialect());
+  }
+
 }
 
 // End RelToSqlConverterTest.java

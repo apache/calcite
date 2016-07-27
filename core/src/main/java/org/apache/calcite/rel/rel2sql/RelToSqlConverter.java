@@ -54,10 +54,11 @@ import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -177,7 +178,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(TableScan e) {
     final SqlIdentifier identifier =
         new SqlIdentifier(e.getTable().getQualifiedName(), SqlParserPos.ZERO);
-    return result(identifier, Collections.singletonList(Clause.FROM), e);
+    return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 
   /** @see #dispatch */
@@ -228,8 +229,8 @@ public class RelToSqlConverter extends SqlImplementor
   /** @see #dispatch */
   public Result visit(Values e) {
     final List<String> fields = e.getRowType().getFieldNames();
-    final List<Clause> clauses = Collections.singletonList(Clause.SELECT);
-    final List<Pair<String, RelDataType>> pairs = ImmutableList.of();
+    final List<Clause> clauses = ImmutableList.of(Clause.SELECT);
+    final Map<String, RelDataType> pairs = ImmutableMap.of();
     final Context context = aliasContext(pairs, false);
     final List<SqlSelect> selects = new ArrayList<>();
     for (List<RexLiteral> tuple : e.getTuples()) {
@@ -255,7 +256,7 @@ public class RelToSqlConverter extends SqlImplementor
             select);
       }
     }
-    return result(query, clauses, e);
+    return result(query, clauses, e, null);
   }
 
   /** @see #dispatch */

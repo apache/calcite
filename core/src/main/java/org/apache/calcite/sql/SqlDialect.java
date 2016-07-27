@@ -417,6 +417,37 @@ public class SqlDialect {
     return getDatabaseProduct() == DatabaseProduct.POSTGRESQL;
   }
 
+  /** Returns whether a qualified table in the FROM clause has an implicit alias
+   * which consists of just the table name.
+   *
+   * <p>For example, in {@link DatabaseProduct#ORACLE}
+   *
+   * <blockquote>SELECT * FROM sales.emp</blockquote>
+   *
+   * <p>is equivalent to
+   *
+   * <blockquote>SELECT * FROM sales.emp AS emp</blockquote>
+   *
+   * <p>and therefore
+   *
+   * <blockquote>SELECT emp.empno FROM sales.emp</blockquote>
+   *
+   * <p>is valid. But {@link DatabaseProduct#DB2} does not have an implicit
+   * alias, so the previous query it not valid; you need to write
+   *
+   * <blockquote>SELECT sales.emp.empno FROM sales.emp</blockquote>
+   *
+   * <p>Returns true for all databases except DB2.
+   */
+  public boolean hasImplicitTableAlias() {
+    switch (databaseProduct) {
+    case DB2:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   /**
    * Converts a timestamp to a SQL timestamp literal, e.g.
    * {@code TIMESTAMP '2009-12-17 12:34:56'}.
