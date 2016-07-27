@@ -177,7 +177,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(TableScan e) {
     final SqlIdentifier identifier =
         new SqlIdentifier(e.getTable().getQualifiedName(), SqlParserPos.ZERO);
-    return result(identifier, Collections.singletonList(Clause.FROM), e);
+    return result(identifier, Collections.singletonList(Clause.FROM), e, null);
   }
 
   /** @see #dispatch */
@@ -255,7 +255,7 @@ public class RelToSqlConverter extends SqlImplementor
             select);
       }
     }
-    return result(query, clauses, e);
+    return result(query, clauses, e, null);
   }
 
   /** @see #dispatch */

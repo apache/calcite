@@ -49,7 +49,7 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
 
   public JdbcImplementor.Result implement(JdbcImplementor implementor) {
     return implementor.result(jdbcTable.tableName(),
-        Collections.singletonList(JdbcImplementor.Clause.FROM), this);
+        Collections.singletonList(JdbcImplementor.Clause.FROM), this, null);
   }
 }
 
