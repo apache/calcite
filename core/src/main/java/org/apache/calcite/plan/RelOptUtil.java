@@ -1263,7 +1263,7 @@ public abstract class RelOptUtil {
       List<RexNode> nonEquiList) {
     if (condition instanceof RexCall) {
       RexCall call = (RexCall) condition;
-      if (call.getOperator() == SqlStdOperatorTable.AND) {
+      if (call.getOperator().getKind() == SqlKind.AND) {
         for (RexNode operand : call.getOperands()) {
           splitCorrelatedFilterCondition(
               filter,
@@ -1275,7 +1275,7 @@ public abstract class RelOptUtil {
         return;
       }
 
-      if (call.getOperator() == SqlStdOperatorTable.EQUALS) {
+      if (call.getOperator().getKind() == SqlKind.EQUALS) {
         final List<RexNode> operands = call.getOperands();
         RexNode op0 = operands.get(0);
         RexNode op1 = operands.get(1);
@@ -1310,7 +1310,7 @@ public abstract class RelOptUtil {
       boolean extractCorrelatedFieldAccess) {
     if (condition instanceof RexCall) {
       RexCall call = (RexCall) condition;
-      if (call.getOperator() == SqlStdOperatorTable.AND) {
+      if (call.getOperator().getKind() == SqlKind.AND) {
         for (RexNode operand : call.getOperands()) {
           splitCorrelatedFilterCondition(
               filter,
@@ -1323,7 +1323,7 @@ public abstract class RelOptUtil {
         return;
       }
 
-      if (call.getOperator() == SqlStdOperatorTable.EQUALS) {
+      if (call.getOperator().getKind() == SqlKind.EQUALS) {
         final List<RexNode> operands = call.getOperands();
         RexNode op0 = operands.get(0);
         RexNode op1 = operands.get(1);
