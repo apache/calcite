@@ -36,7 +36,7 @@ public class JdbcImplementor extends RelToSqlConverter {
   /** @see #dispatch */
   public Result visit(JdbcTableScan scan) {
     return result(scan.jdbcTable.tableName(),
-        Collections.singletonList(Clause.FROM), scan);
+        Collections.singletonList(Clause.FROM), scan, null);
   }
 
   public Result implement(RelNode node) {

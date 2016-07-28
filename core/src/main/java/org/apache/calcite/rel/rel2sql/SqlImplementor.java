@@ -36,6 +36,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -233,7 +234,7 @@ public abstract class SqlImplementor {
     final SqlCall node = operator.createCall(new SqlNodeList(list, POS));
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
-    return result(node, clauses, rel);
+    return result(node, clauses, rel, null);
   }
 
   /**
@@ -382,14 +383,30 @@ public abstract class SqlImplementor {
   }
 
   /** Creates a result based on a single relational expression. */
-  public Result result(SqlNode node, Collection<Clause> clauses, RelNode rel) {
+  public Result result(
+      SqlNode node,
+      Collection<Clause> clauses,
+      RelNode rel,
+      List<Pair<String, RelDataType>> aliases) {
     final String alias2 = SqlValidatorUtil.getAlias(node, -1);
     final String alias3 = alias2 != null ? alias2 : "t";
     final String alias4 =
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
-    final String alias5 = alias2 == null || !alias2.equals(alias4) ? alias4
-        : null;
+    if (aliases != null
+        && !aliases.isEmpty()
+        && dialect.getDatabaseProduct() == DatabaseProduct.DB2) {
+      return new Result(node, clauses, alias4, aliases);
+    }
+
+    final String alias5;
+    if (alias2 == null
+        || !alias2.equals(alias4)
+        || dialect.getDatabaseProduct() == DatabaseProduct.DB2) {
+      alias5 = alias4;
+    } else {
+      alias5 = null;
+    }
     return new Result(node, clauses, alias5,
         Collections.singletonList(Pair.of(alias4, rel.getRowType())));
   }
@@ -744,7 +761,7 @@ public abstract class SqlImplementor {
      * <p>When you have called
      * {@link Builder#setSelect(SqlNodeList)},
      * {@link Builder#setWhere(SqlNode)} etc. call
-     * {@link Builder#result(SqlNode, Collection, RelNode)}
+     * {@link Builder#result(SqlNode, Collection, RelNode, List)}
      * to fix the new query.
      *
      * @param rel Relational expression being implemented
@@ -787,9 +804,16 @@ public abstract class SqlImplementor {
           }
         };
       } else {
-        newContext = aliasContext(aliases, aliases.size() > 1);
+        boolean qualified =
+            (dialect.getDatabaseProduct() == DatabaseProduct.DB2) || (aliases.size() > 1);
+        if (needNew) {
+          newContext = aliasContext(
+              Collections.singletonList(Pair.of(neededAlias, rel.getRowType())), qualified);
+        } else {
+          newContext = aliasContext(aliases, qualified);
+        }
       }
-      return new Builder(rel, clauseList, select, newContext);
+      return new Builder(rel, clauseList, select, newContext, needNew ? null : aliases);
     }
 
     // make private?
@@ -826,6 +850,9 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         return (SqlSelect) node;
       }
+      if (dialect.getDatabaseProduct() == DatabaseProduct.DB2) {
+        return wrapSelect(asFrom());
+      }
       return wrapSelect(node);
     }
 
@@ -853,13 +880,15 @@ public abstract class SqlImplementor {
     final List<Clause> clauses;
     private final SqlSelect select;
     public final Context context;
+    private final List<Pair<String, RelDataType>> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
-        Context context) {
+        Context context, List<Pair<String, RelDataType>> aliases) {
       this.rel = rel;
       this.clauses = clauses;
       this.select = select;
       this.context = context;
+      this.aliases = aliases;
     }
 
     public void setSelect(SqlNodeList nodeList) {
@@ -906,7 +935,7 @@ public abstract class SqlImplementor {
     }
 
     public Result result() {
-      return SqlImplementor.this.result(select, clauses, rel);
+      return SqlImplementor.this.result(select, clauses, rel, aliases);
     }
   }
 

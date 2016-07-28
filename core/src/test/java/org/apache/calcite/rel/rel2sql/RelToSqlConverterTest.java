@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
@@ -382,6 +383,146 @@ public class RelToSqlConverterTest {
             + "WHERE \"store_id\" < 150\nGROUP BY \"department_id\") AS \"t1\" "
             + "ON \"department\".\"department_id\" = \"t1\".\"department_id\"");
   }
+
+  @Test public void testDB2DialectJoinStar() {
+    String query = "select * from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT *\nFROM foodmart.employee AS employee\n"
+            + "INNER JOIN foodmart.department AS department "
+            + "ON employee.department_id = department.department_id",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectSelfJoinStar() {
+    String query = "select * from \"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT *\nFROM foodmart.employee AS employee\n"
+            + "INNER JOIN foodmart.employee AS employee0 "
+            + "ON employee.department_id = employee0.department_id",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectJoin() {
+    String query = "select A.\"employee_id\", B.\"department_id\" "
+        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT employee.employee_id, department.department_id\nFROM foodmart.employee AS employee\n"
+            + "INNER JOIN foodmart.department AS department "
+            + "ON employee.department_id = department.department_id",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectSelfJoin() {
+    String query = "select A.\"employee_id\", B.\"employee_id\" from "
+        + "\"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\"";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT employee.employee_id, employee0.employee_id AS employee_id0\n"
+            + "FROM foodmart.employee AS employee\n"
+            + "INNER JOIN foodmart.employee AS employee0 "
+            + "ON employee.department_id = employee0.department_id",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectWhere() {
+    String query = "select A.\"employee_id\" from "
+        + "\"foodmart\".\"employee\" A where A.\"department_id\" < 1000";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT employee.employee_id\n"
+            + "FROM foodmart.employee AS employee\n"
+            + "WHERE employee.department_id < 1000",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectJoinWhere() {
+    String query = "select A.\"employee_id\", B.\"department_id\" "
+        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\" where A.\"employee_id\" < 1000";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT employee.employee_id, department.department_id\nFROM foodmart.employee AS employee\n"
+            + "INNER JOIN foodmart.department AS department "
+            + "ON employee.department_id = department.department_id\n"
+            + "WHERE employee.employee_id < 1000",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectSelfJoinWhere() {
+    String query = "select A.\"employee_id\", B.\"employee_id\" from "
+        + "\"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
+        + "on A.\"department_id\" = B.\"department_id\" where B.\"employee_id\" < 2000";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT employee.employee_id, employee0.employee_id AS employee_id0\n"
+            + "FROM foodmart.employee AS employee\n"
+            + "INNER JOIN foodmart.employee AS employee0 "
+            + "ON employee.department_id = employee0.department_id\n"
+            + "WHERE employee0.employee_id < 2000",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectCast() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
+        + "from \"foodmart\".\"reserve_employee\"";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT reserve_employee.hire_date, CAST(reserve_employee.hire_date AS VARCHAR(10))\n"
+            + "FROM foodmart.reserve_employee AS reserve_employee",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectSelectQueryWithGroupByHaving() {
+    String query = "select count(*) from \"product\" group by \"product_class_id\","
+        + " \"product_id\"  having \"product_id\"  > 10";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT COUNT(*)\n"
+            + "FROM (SELECT product.product_class_id, product.product_id, COUNT(*)\n"
+            + "FROM foodmart.product AS product\n"
+            + "GROUP BY product.product_class_id, product.product_id) AS t0\n"
+            + "WHERE t0.product_id > 10",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+
+  @Test public void testDB2DialectSelectQueryComplex() {
+    String query =
+        "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "
+            + "group by \"product_id\", \"units_per_case\" order by \"units_per_case\" desc";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT COUNT(*), product.units_per_case\n"
+            + "FROM foodmart.product AS product\n"
+            + "WHERE product.cases_per_pallet > 100\n"
+            + "GROUP BY product.product_id, product.units_per_case\n"
+            + "ORDER BY product.units_per_case DESC",
+        DatabaseProduct.DB2.getDialect());
+  }
+
+  @Test public void testDB2DialectSelectQueryWithGroup() {
+    String query =
+        "select count(*), sum(\"employee_id\") from \"reserve_employee\" "
+            + "where \"hire_date\" > '2015-01-01' "
+            + "and (\"position_title\" = 'SDE' or \"position_title\" = 'SDM') "
+            + "group by \"store_id\", \"position_title\"";
+    checkRel2Sql(this.logicalPlanner,
+        query,
+        "SELECT COUNT(*), SUM(reserve_employee.employee_id)\n"
+            + "FROM foodmart.reserve_employee AS reserve_employee\n"
+            + "WHERE reserve_employee.hire_date > '2015-01-01' "
+            + "AND (reserve_employee.position_title = 'SDE' OR reserve_employee.position_title = 'SDM')\n"
+            + "GROUP BY reserve_employee.store_id, reserve_employee.position_title",
+        DatabaseProduct.DB2.getDialect());
+  }
+
 }
 
 // End RelToSqlConverterTest.java
