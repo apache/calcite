@@ -269,37 +269,39 @@ public class RexImplicationCheckerTest {
    * <p>We put the data in here, rather than as fields in the test case, so that
    * the data can be garbage-collected as soon as the test has executed.
    */
-  private static class Fixture {
-    private final RexBuilder rexBuilder;
-    private final RexNode bl;
-    private final RexNode i;
-    private final RexNode dec;
-    private final RexNode lg;
-    private final RexNode sh;
-    private final RexNode by;
-    private final RexNode fl;
-    private final RexNode dt;
-    private final RexNode ch;
-    private final RexNode ts;
-    private final RexNode t;
-    private final RexNode str;
+  @SuppressWarnings("WeakerAccess")
+  public static class Fixture {
+    public final RelDataTypeFactory typeFactory;
+    public final RexBuilder rexBuilder;
+    public final RelDataType boolRelDataType;
+    public final RelDataType intRelDataType;
+    public final RelDataType decRelDataType;
+    public final RelDataType longRelDataType;
+    public final RelDataType shortDataType;
+    public final RelDataType byteDataType;
+    public final RelDataType floatDataType;
+    public final RelDataType charDataType;
+    public final RelDataType dateDataType;
+    public final RelDataType timeStampDataType;
+    public final RelDataType timeDataType;
+    public final RelDataType stringDataType;
 
-    private final RelDataType boolRelDataType;
-    private final RelDataType intRelDataType;
-    private final RelDataType decRelDataType;
-    private final RelDataType longRelDataType;
-    private final RelDataType shortDataType;
-    private final RelDataType byteDataType;
-    private final RelDataType floatDataType;
-    private final RelDataType charDataType;
-    private final RelDataType dateDataType;
-    private final RelDataType timeStampDataType;
-    private final RelDataType timeDataType;
-    private final RelDataType stringDataType;
-    private final RelDataTypeFactory typeFactory;
-    private final RexImplicationChecker checker;
-    private final RelDataType rowType;
-    private final RexExecutorImpl executor;
+    public final RexNode bl;
+    public final RexNode i;
+    public final RexNode dec;
+    public final RexNode lg;
+    public final RexNode sh;
+    public final RexNode by;
+    public final RexNode fl;
+    public final RexNode dt;
+    public final RexNode ch;
+    public final RexNode ts;
+    public final RexNode t;
+    public final RexNode str;
+
+    public final RexImplicationChecker checker;
+    public final RelDataType rowType;
+    public final RexExecutorImpl executor;
 
     public Fixture() {
       typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -363,76 +365,76 @@ public class RexImplicationCheckerTest {
       checker = new RexImplicationChecker(rexBuilder, executor, rowType);
     }
 
-    RexInputRef ref(int i, RelDataType type) {
+    public RexInputRef ref(int i, RelDataType type) {
       return new RexInputRef(i,
           typeFactory.createTypeWithNullability(type, true));
     }
 
-    RexLiteral literal(int i) {
+    public RexLiteral literal(int i) {
       return rexBuilder.makeExactLiteral(new BigDecimal(i));
     }
 
-    RexNode gt(RexNode node1, RexNode node2) {
+    public RexNode gt(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, node1, node2);
     }
 
-    RexNode ge(RexNode node1, RexNode node2) {
+    public RexNode ge(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(
           SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, node1, node2);
     }
 
-    RexNode eq(RexNode node1, RexNode node2) {
+    public RexNode eq(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, node1, node2);
     }
 
-    RexNode ne(RexNode node1, RexNode node2) {
+    public RexNode ne(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, node1, node2);
     }
 
-    RexNode lt(RexNode node1, RexNode node2) {
+    public RexNode lt(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, node1, node2);
     }
 
-    RexNode le(RexNode node1, RexNode node2) {
+    public RexNode le(RexNode node1, RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, node1,
           node2);
     }
 
-    RexNode notNull(RexNode node1) {
+    public RexNode notNull(RexNode node1) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node1);
     }
 
-    RexNode isNull(RexNode node2) {
+    public RexNode isNull(RexNode node2) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, node2);
     }
 
-    RexNode and(RexNode node1, RexNode node2) {
-      return rexBuilder.makeCall(SqlStdOperatorTable.AND, node1, node2);
+    public RexNode and(RexNode... nodes) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.AND, nodes);
     }
 
-    RexNode longLiteral(long value) {
+    public RexNode longLiteral(long value) {
       return rexBuilder.makeLiteral(value, longRelDataType, true);
     }
 
-    RexNode shortLiteral(short value) {
+    public RexNode shortLiteral(short value) {
       return rexBuilder.makeLiteral(value, shortDataType, true);
     }
 
-    RexLiteral floatLiteral(double value) {
+    public RexLiteral floatLiteral(double value) {
       return rexBuilder.makeApproxLiteral(new BigDecimal(value));
     }
 
-    RexLiteral charLiteral(String z) {
+    public RexLiteral charLiteral(String z) {
       return rexBuilder.makeCharLiteral(
           new NlsString(z, null, SqlCollation.COERCIBLE));
     }
 
-    RexNode timestampLiteral(Calendar calendar) {
+    public RexNode timestampLiteral(Calendar calendar) {
       return rexBuilder.makeTimestampLiteral(
           calendar, timeStampDataType.getPrecision());
     }
 
-    RexNode timeLiteral(Calendar calendar) {
+    public RexNode timeLiteral(Calendar calendar) {
       return rexBuilder.makeTimestampLiteral(
           calendar, timeDataType.getPrecision());
     }

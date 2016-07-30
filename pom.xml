@@ -70,7 +70,7 @@ limitations under the License.
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
 
     <!-- We support (and test against) Guava versions between
-         12.0.1 (HDFS, HBase) and 19.0 (most recent).
+         14.0.1 (Hive) and 19.0 (most recent).
          Override with your preferred version and it should work. -->
     <guava.version>18.0</guava.version>
     <h2.version>1.4.185</h2.version>

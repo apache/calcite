@@ -190,6 +190,10 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       return new Sql(sql, hepPlanner, expand);
     }
 
+    public Sql with(HepProgram program) {
+      return new Sql(sql, new HepPlanner(program), expand);
+    }
+
     public Sql expand(boolean expand) {
       return new Sql(sql, hepPlanner, expand);
     }

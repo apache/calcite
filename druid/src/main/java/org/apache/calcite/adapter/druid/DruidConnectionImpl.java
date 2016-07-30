@@ -17,12 +17,12 @@
 package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
@@ -42,11 +42,15 @@ import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +64,14 @@ import static org.apache.calcite.runtime.HttpUtils.post;
 class DruidConnectionImpl implements DruidConnection {
   private final String url;
   private final String coordinatorUrl;
+
+  private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
+
+  static {
+    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
+  }
 
   private static final Set<String> SUPPORTED_TYPES =
       ImmutableSet.of("LONG", "DOUBLE", "STRING", "hyperUnique");
@@ -80,7 +92,7 @@ class DruidConnectionImpl implements DruidConnection {
    * @throws IOException on error
    */
   public void request(QueryType queryType, String data, Sink sink,
-      List<String> fieldNames, List<Primitive> fieldTypes, Page page)
+      List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes, Page page)
       throws IOException {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
@@ -97,7 +109,7 @@ class DruidConnectionImpl implements DruidConnection {
   /** Parses the output of a {@code topN} query, sending the results to a
    * {@link Sink}. */
   private void parse(QueryType queryType, InputStream in, Sink sink,
-      List<String> fieldNames, List<Primitive> fieldTypes, Page page) {
+      List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes, Page page) {
     final JsonFactory factory = new JsonFactory();
     final Row.RowBuilder rowBuilder = Row.newBuilder(fieldNames.size());
 
@@ -195,15 +207,17 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private void parseFields(List<String> fieldNames, List<Primitive> fieldTypes,
-      Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
+  private void parseFields(List<String> fieldNames,
+      List<ColumnMetaData.Rep> fieldTypes, Row.RowBuilder rowBuilder,
+      JsonParser parser) throws IOException {
     while (parser.nextToken() == JsonToken.FIELD_NAME) {
       parseField(fieldNames, fieldTypes, rowBuilder, parser);
     }
   }
 
-  private void parseField(List<String> fieldNames, List<Primitive> fieldTypes,
-      Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
+  private void parseField(List<String> fieldNames,
+      List<ColumnMetaData.Rep> fieldTypes, Row.RowBuilder rowBuilder,
+      JsonParser parser) throws IOException {
     final String fieldName = parser.getCurrentName();
 
     // Move to next token, which is name's value
@@ -212,25 +226,25 @@ class DruidConnectionImpl implements DruidConnection {
     if (i < 0) {
       return;
     }
+    ColumnMetaData.Rep type = fieldTypes.get(i);
     switch (token) {
     case VALUE_NUMBER_INT:
-    case VALUE_NUMBER_FLOAT:
-      Primitive type = fieldTypes.get(i);
       if (type == null) {
-        if (token == JsonToken.VALUE_NUMBER_INT) {
-          type = Primitive.INT;
-        } else {
-          type = Primitive.FLOAT;
-        }
+        type = ColumnMetaData.Rep.INTEGER;
+      }
+      // fall through
+    case VALUE_NUMBER_FLOAT:
+      if (type == null) {
+        type = ColumnMetaData.Rep.FLOAT;
       }
       switch (type) {
       case BYTE:
-        rowBuilder.set(i, parser.getIntValue());
+        rowBuilder.set(i, parser.getByteValue());
         break;
       case SHORT:
         rowBuilder.set(i, parser.getShortValue());
         break;
-      case INT:
+      case INTEGER:
         rowBuilder.set(i, parser.getIntValue());
         break;
       case LONG:
@@ -252,8 +266,19 @@ class DruidConnectionImpl implements DruidConnection {
       break;
     case VALUE_NULL:
       break;
+    case VALUE_STRING:
     default:
-      rowBuilder.set(i, parser.getText());
+      if (type == ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP) {
+        try {
+          final Date parse = UTC_TIMESTAMP_FORMAT.parse(parser.getText());
+          rowBuilder.set(i, parse.getTime());
+        } catch (ParseException e) {
+          // ignore bad value
+        }
+      } else {
+        rowBuilder.set(i, parser.getText());
+      }
+      break;
     }
   }
 
@@ -329,7 +354,7 @@ class DruidConnectionImpl implements DruidConnection {
           public void run() {
             try {
               final Page page = new Page();
-              final List<Primitive> fieldTypes =
+              final List<ColumnMetaData.Rep> fieldTypes =
                   Collections.nCopies(fieldNames.size(), null);
               request(queryType, request, this, fieldNames, fieldTypes, page);
               enumerator.done.set(true);

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Bindables;
@@ -24,7 +25,6 @@ import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.interpreter.Node;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -681,7 +681,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     public void run() throws InterruptedException {
-      final List<Primitive> fieldTypes = new ArrayList<>();
+      final List<ColumnMetaData.Rep> fieldTypes = new ArrayList<>();
       for (RelDataTypeField field : query.getRowType().getFieldList()) {
         fieldTypes.add(getPrimitive(field));
       }
@@ -703,21 +703,24 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
     }
 
-    private Primitive getPrimitive(RelDataTypeField field) {
+    private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
+      if (field.getName().equals(query.druidTable.timestampFieldName)) {
+        return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
+      }
       switch (field.getType().getSqlTypeName()) {
       case BIGINT:
-        return Primitive.LONG;
+        return ColumnMetaData.Rep.LONG;
       case INTEGER:
-        return Primitive.INT;
+        return ColumnMetaData.Rep.INTEGER;
       case SMALLINT:
-        return Primitive.SHORT;
+        return ColumnMetaData.Rep.SHORT;
       case TINYINT:
-        return Primitive.BYTE;
+        return ColumnMetaData.Rep.BYTE;
       case REAL:
-        return Primitive.FLOAT;
+        return ColumnMetaData.Rep.FLOAT;
       case DOUBLE:
       case FLOAT:
-        return Primitive.DOUBLE;
+        return ColumnMetaData.Rep.DOUBLE;
       default:
         return null;
       }

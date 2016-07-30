@@ -30,6 +30,7 @@ import org.apache.calcite.plan.volcano.VolcanoPlannerTraitTest;
 import org.apache.calcite.prepare.LookupOperatorOverloadsTest;
 import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
+import org.apache.calcite.rel.rules.DateRangeRulesTest;
 import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.runtime.BinarySearchTest;
@@ -114,6 +115,7 @@ import org.junit.runners.Suite;
     SqlValidatorTest.class,
     SqlAdvisorTest.class,
     RelMetadataTest.class,
+    DateRangeRulesTest.class,
     RelOptRulesTest.class,
     ScannableTableTest.class,
     RexExecutorTest.class,

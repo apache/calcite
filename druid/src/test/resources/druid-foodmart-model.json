@@ -32,7 +32,7 @@
           "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
           "operand": {
             "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
-            "timestampColumn": "the_date",
+            "timestampColumn": "timestamp",
             "dimensions": [
               "product_id",
               "brand_name",

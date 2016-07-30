@@ -1125,6 +1125,48 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testExtractYearMonthToRange">
+        <Resource name="sql">
+            <![CDATA[select *
+from sales.emp_b as e
+where extract(year from birthdate) = 2014and extract(month from birthdate) = 4]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[AND(=(EXTRACT_DATE(FLAG(YEAR), Reinterpret($9)), 2014), =(EXTRACT_DATE(FLAG(MONTH), Reinterpret($9)), 4))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[AND(>=(Reinterpret($9), 2014-01-01), <(Reinterpret($9), 2015-01-01), >=(Reinterpret($9), 2014-04-01), <(Reinterpret($9), 2014-05-01))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testExtractYearToRange">
+        <Resource name="sql">
+            <![CDATA[select *
+from sales.emp_b as e
+where extract(year from birthdate) = 2014]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[=(EXTRACT_DATE(FLAG(YEAR), Reinterpret($9)), 2014)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[AND(>=(Reinterpret($9), 2014-01-01), <(Reinterpret($9), 2015-01-01))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testNestedAggregates">
         <Resource name="sql">
             <![CDATA[SELECT

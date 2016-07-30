@@ -46,6 +46,7 @@ import org.apache.calcite.rel.rules.AggregateUnionAggregateRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
+import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -2382,6 +2383,31 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
+   * Converting predicates on date dimension columns into date ranges</a>,
+   * specifically a rule that converts {@code EXTRACT(YEAR FROM ...) = constant}
+   * to a range. */
+  @Test public void testExtractYearToRange() throws Exception {
+    final String sql = "select *\n"
+        + "from sales.emp_b as e\n"
+        + "where extract(year from birthdate) = 2014";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testExtractYearMonthToRange() throws Exception {
+    final String sql = "select *\n"
+        + "from sales.emp_b as e\n"
+        + "where extract(year from birthdate) = 2014"
+        + "and extract(month from birthdate) = 4";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
 }
 
 // End RelOptRulesTest.java

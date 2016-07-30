@@ -524,8 +524,8 @@ public class DruidAdapterIT {
         + "order by c desc limit 2";
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$0], dir0=[DESC], fetch=[2])\n"
-        + "    BindableProject(C=[$2], state_province=[$1], city=[$0])\n"
+        + "  BindableProject(C=[$2], state_province=[$1], city=[$0])\n"
+        + "    BindableSort(sort0=[$2], dir0=[DESC], fetch=[2])\n"
         + "      DruidQuery(table=[[foodmart, foodmart]], groups=[{28, 29}], aggs=[[COUNT()]])";
     sql(sql)
         .returnsOrdered("C=7394; state_province=WA; city=Spokane",
@@ -662,6 +662,26 @@ public class DruidAdapterIT {
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms");
+  }
+
+  /** Tests that conditions applied to time units extracted via the EXTRACT
+   * function become ranges on the timestamp column {@code the_date}.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1334">[CALCITE-1334]
+   * Convert predicates on EXTRACT function calls into date ranges</a>. */
+  @Test public void testFilterTimestamp() {
+    String sql = "select count(*) as c\n"
+        + "from \"foodmart\"\n"
+        + "where extract(year from \"timestamp\") = 1997\n"
+        + "and extract(month from \"timestamp\") in (4, 6)\n";
+    final String explain = "EnumerableInterpreter\n"
+        + "  BindableAggregate(group=[{}], C=[COUNT()])\n"
+        + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($91), 86400000), 1997-01-01), <(/INT(Reinterpret($91), 86400000), 1998-01-01), >=(/INT(Reinterpret($91), 86400000), 1997-04-01), <(/INT(Reinterpret($91), 86400000), 1997-05-01))])\n"
+        + "      DruidQuery(table=[[foodmart, foodmart]])";
+    sql(sql)
+        .explainContains(explain)
+        .returnsUnordered("C=6588");
   }
 
   /** Tests a query that exposed several bugs in the interpreter. */

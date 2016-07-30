@@ -88,7 +88,7 @@ public class DruidTableFactory implements TableFactory {
       }
     }
     if (timestampColumnName != null) {
-      fieldBuilder.put(timestampColumnName, SqlTypeName.VARCHAR);
+      fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
     }
     final String dataSourceName = Util.first(dataSource, name);
     DruidConnectionImpl c;

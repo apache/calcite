@@ -153,6 +153,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
     final RelDataType timestampType =
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+    final RelDataType dateType =
+        typeFactory.createSqlType(SqlTypeName.DATE);
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType rectilinearCoordType =
@@ -195,6 +197,21 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     empTable.addColumn("DEPTNO", intType);
     empTable.addColumn("SLACKER", booleanType);
     registerTable(empTable);
+
+    // Register "EMP_B" table. As "EMP", birth with a "BIRTHDATE" column.
+    final MockTable empBTable =
+        MockTable.create(this, salesSchema, "EMP_B", false, 14);
+    empBTable.addColumn("EMPNO", intType);
+    empBTable.addColumn("ENAME", varchar20Type);
+    empBTable.addColumn("JOB", varchar10Type);
+    empBTable.addColumn("MGR", intTypeNull);
+    empBTable.addColumn("HIREDATE", timestampType);
+    empBTable.addColumn("SAL", intType);
+    empBTable.addColumn("COMM", intType);
+    empBTable.addColumn("DEPTNO", intType);
+    empBTable.addColumn("SLACKER", booleanType);
+    empBTable.addColumn("BIRTHDATE", dateType);
+    registerTable(empBTable);
 
     // Register "DEPT" table.
     MockTable deptTable = MockTable.create(this, salesSchema, "DEPT", false, 4);
@@ -345,7 +362,6 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                   builder.add(Pair.<String, Schema>of(empTable.names.get(1), null));
                   builder.add(Pair.<String, Schema>of(empTable.names.get(2), null));
                   return Schemas.path(builder.build());
-//                  return empTable.names;
                 }
 
                 @Override public ImmutableIntList getColumnMapping() {
