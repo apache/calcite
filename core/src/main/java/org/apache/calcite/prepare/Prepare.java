@@ -373,10 +373,11 @@ public abstract class Prepare {
    * @param rowType Row type of the view
    * @param queryString Body of the view
    * @param schemaPath List of schema names wherein to find referenced tables
+   * @param viewPath the path of the view
    * @return Relational expression
    */
   public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath) {
+      List<String> schemaPath, List<String> viewPath) {
     throw new UnsupportedOperationException();
   }
 

@@ -197,7 +197,7 @@ public class ReflectiveSchemaTest {
     schema.add("emps_view",
         ViewTable.viewMacro(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
-            null, null));
+            null, Arrays.asList("s", "emps_view"), null));
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
@@ -223,17 +223,18 @@ public class ReflectiveSchemaTest {
     schema.add("emps",
         ViewTable.viewMacro(schema,
             "select * from \"emps\" where \"deptno\" = 10",
-            Collections.singletonList("hr"), null));
+            Collections.singletonList("hr"), Arrays.asList("s", "emps"), null));
     schema.add("hr_emps",
         ViewTable.viewMacro(schema,
             "select * from \"emps\"",
-            Collections.singletonList("hr"), null));
+            Collections.singletonList("hr"), Arrays.asList("s", "hr_emps"), null));
     schema.add("s_emps",
         ViewTable.viewMacro(schema,
             "select * from \"emps\"",
-            Collections.singletonList("s"), null));
+            Collections.singletonList("s"), Arrays.asList("s", "s_emps"), null));
     schema.add("null_emps",
-        ViewTable.viewMacro(schema, "select * from \"emps\"", null, null));
+        ViewTable.viewMacro(schema, "select * from \"emps\"", null,
+            Arrays.asList("s", "null_emps"), null));
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     final Statement statement = connection.createStatement();
     ResultSet resultSet;

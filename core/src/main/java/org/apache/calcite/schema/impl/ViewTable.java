@@ -61,20 +61,22 @@ public class ViewTable
   private final String viewSql;
   private final List<String> schemaPath;
   private final RelProtoDataType protoRowType;
+  private final List<String> viewPath;
 
   public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
-      List<String> schemaPath) {
+      List<String> schemaPath, List<String> viewPath) {
     super(elementType);
     this.viewSql = viewSql;
     this.schemaPath = ImmutableList.copyOf(schemaPath);
     this.protoRowType = rowType;
+    this.viewPath = viewPath;
   }
 
   /** Table macro that returns a view. */
   @Deprecated // to be removed before 2.0
   public static ViewTableMacro viewMacro(SchemaPlus schema,
-      final String viewSql, final List<String> schemaPath) {
-    return viewMacro(schema, viewSql, schemaPath, Boolean.TRUE);
+      final String viewSql, final List<String> schemaPath, List<String> viewPath) {
+    return viewMacro(schema, viewSql, schemaPath, viewPath, Boolean.TRUE);
   }
 
   /** Table macro that returns a view.
@@ -85,9 +87,9 @@ public class ViewTable
    * @param modifiable Whether view is modifiable, or null to deduce it
    */
   public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
-      List<String> schemaPath, Boolean modifiable) {
+      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
     return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
-        modifiable);
+        viewPath, modifiable);
   }
 
   /** Returns the view's SQL definition. */
@@ -123,7 +125,7 @@ public class ViewTable
   private RelRoot expandView(RelOptTable.ToRelContext preparingStmt,
       RelDataType rowType, String queryString) {
     try {
-      RelRoot root = preparingStmt.expandView(rowType, queryString, schemaPath);
+      RelRoot root = preparingStmt.expandView(rowType, queryString, schemaPath, viewPath);
 
       root = root.withRel(RelOptUtil.createCastRel(root.rel, rowType, true));
       return root;
@@ -142,11 +144,14 @@ public class ViewTable
     /** Typically null. If specified, overrides the path of the schema as the
      * context for validating {@code viewSql}. */
     protected final List<String> schemaPath;
+    protected final List<String> viewPath;
 
     ViewTableMacro(CalciteSchema schema, String viewSql, List<String> schemaPath,
+        List<String> viewPath,
         Boolean modifiable) {
       this.viewSql = viewSql;
       this.schema = schema;
+      this.viewPath = viewPath;
       this.modifiable = modifiable;
       this.schemaPath =
           schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
@@ -166,12 +171,12 @@ public class ViewTable
       final Type elementType = typeFactory.getJavaClass(parsed.rowType);
       if ((modifiable == null || modifiable) && parsed.table != null) {
         return new ModifiableViewTable(elementType,
-            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1,
+            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1, viewPath,
             parsed.table, Schemas.path(schema.root(), parsed.tablePath),
             parsed.constraint, parsed.columnMapping);
       } else {
         return new ViewTable(elementType,
-            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);
+            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1, viewPath);
       }
     }
   }
@@ -185,10 +190,10 @@ public class ViewTable
     private final ImmutableIntList columnMapping;
 
     public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
-        String viewSql, List<String> schemaPath, Table table,
+        String viewSql, List<String> schemaPath, List<String> viewPath, Table table,
         Path tablePath, RexNode constraint,
         ImmutableIntList columnMapping) {
-      super(elementType, rowType, viewSql, schemaPath);
+      super(elementType, rowType, viewSql, schemaPath, viewPath);
       this.table = table;
       this.tablePath = tablePath;
       this.constraint = constraint;

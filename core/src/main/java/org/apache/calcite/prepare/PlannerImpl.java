@@ -234,8 +234,8 @@ public class PlannerImpl implements Planner {
   /** Implements {@link org.apache.calcite.plan.RelOptTable.ViewExpander}
    * interface for {@link org.apache.calcite.tools.Planner}. */
   public class ViewExpanderImpl implements ViewExpander {
-    public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath) {
+    @Override public RelRoot expandView(RelDataType rowType, String queryString,
+      List<String> schemaPath, List<String> viewPath) {
       SqlParser parser = SqlParser.create(queryString, parserConfig);
       SqlNode sqlNode;
       try {

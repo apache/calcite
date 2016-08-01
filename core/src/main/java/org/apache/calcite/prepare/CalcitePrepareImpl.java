@@ -1126,7 +1126,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath) {
+        List<String> schemaPath, List<String> viewPath) {
       expansionDepth++;
 
       SqlParser parser = prepare.createParser(queryString);

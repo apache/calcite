@@ -6202,7 +6202,7 @@ public class JdbcTest {
     assertThat(a2CalciteSchema.getTable("taBle1", true), nullValue());
     assertThat(a2CalciteSchema.getTable("taBle1", false), notNullValue());
     final TableMacro function =
-        ViewTable.viewMacro(a2Schema, "values 1", null, null);
+        ViewTable.viewMacro(a2Schema, "values 1", null, null, null);
     Util.discard(function);
 
     connection.close();

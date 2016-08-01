@@ -114,7 +114,8 @@ public interface RelOptTable {
   /** Can expand a view into relational expressions. */
   interface ViewExpander {
     RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath);
+        List<String> schemaPath,
+        List<String> viewPath);
   }
 
   /** Contains the context needed to convert a a table into a relational
