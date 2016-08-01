@@ -2694,7 +2694,7 @@ public abstract class RelOptUtil {
       }
 
       public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath) {
+          List<String> schemaPath, List<String> viewPath) {
         throw new UnsupportedOperationException();
       }
     };

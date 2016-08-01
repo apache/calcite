@@ -3009,10 +3009,14 @@ public class SqlToRelConverter {
         return cluster;
       }
 
-      public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath) {
-        return viewExpander.expandView(rowType, queryString, schemaPath);
+      @Override public RelRoot expandView(
+          RelDataType rowType,
+          String queryString,
+          List<String> schemaPath,
+          List<String> viewPath) {
+        return viewExpander.expandView(rowType, queryString, schemaPath, viewPath);
       }
+
     };
   }
 

@@ -366,17 +366,8 @@ public abstract class Prepare {
     return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
   }
 
-  /**
-   * Returns a relational expression which is to be substituted for an access
-   * to a SQL view.
-   *
-   * @param rowType Row type of the view
-   * @param queryString Body of the view
-   * @param schemaPath List of schema names wherein to find referenced tables
-   * @return Relational expression
-   */
   public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath) {
+      List<String> schemaPath, List<String> viewPath) {
     throw new UnsupportedOperationException();
   }
 
