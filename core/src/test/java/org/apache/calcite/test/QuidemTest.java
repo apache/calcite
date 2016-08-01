@@ -90,12 +90,17 @@ public class QuidemTest {
     final URL inUrl = JdbcTest.class.getResource("/" + first);
     String x = inUrl.getFile();
     assert x.endsWith(first);
-    final String base = x.substring(0, x.length() - first.length());
+    final String base =
+        File.separatorChar == '\\'
+            ? x.substring(1, x.length() - first.length())
+                .replace('/', File.separatorChar)
+            : x.substring(0, x.length() - first.length());
     final File firstFile = new File(x);
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
     for (File f : dir.listFiles(new PatternFilenameFilter(".*\\.iq$"))) {
-      assert f.getAbsolutePath().startsWith(base);
+      assert f.getAbsolutePath().startsWith(base)
+          : "f: " + f.getAbsolutePath() + "; base: " + base;
       paths.add(f.getAbsolutePath().substring(base.length()));
     }
     return Lists.transform(paths, new Function<String, Object[]>() {
@@ -108,22 +113,24 @@ public class QuidemTest {
   private void checkRun(String path) throws Exception {
     final File inFile;
     final File outFile;
-    if (path.startsWith("/")) {
+    final File f = new File(path);
+    if (f.isAbsolute()) {
       // e.g. path = "/tmp/foo.iq"
-      inFile = new File(path);
+      inFile = f;
       outFile = new File(path + ".out");
     } else {
       // e.g. path = "sql/outer.iq"
       // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
-      final URL inUrl = JdbcTest.class.getResource("/" + path);
-      String x = inUrl.getFile();
-      assert x.endsWith(path);
+      final URL inUrl = JdbcTest.class.getResource("/" + n2u(path));
+      String x = u2n(inUrl.getFile());
+      assert x.endsWith(path)
+          : "x: " + x + "; path: " + path;
       x = x.substring(0, x.length() - path.length());
-      assert x.endsWith("/test-classes/");
-      x = x.substring(0, x.length() - "/test-classes/".length());
+      assert x.endsWith(u2n("/test-classes/"));
+      x = x.substring(0, x.length() - u2n("/test-classes/").length());
       final File base = new File(x);
-      inFile = new File(base, "/test-classes/" + path);
-      outFile = new File(base, "/surefire/" + path);
+      inFile = new File(base, u2n("/test-classes/") + path);
+      outFile = new File(base, u2n("/surefire/") + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
     final FileReader fileReader = new FileReader(inFile);
@@ -136,6 +143,20 @@ public class QuidemTest {
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
     }
+  }
+
+  /** Converts a path from Unix to native. On Windows, converts
+   * forward-slashes to back-slashes; on Linux, does nothing. */
+  private static String u2n(String s) {
+    return File.separatorChar == '\\'
+        ? s.replace('/', '\\')
+        : s;
+  }
+
+  private static String n2u(String s) {
+    return File.separatorChar == '\\'
+        ? s.replace('\\', '/')
+        : s;
   }
 
   private Function<String, Object> env() {
