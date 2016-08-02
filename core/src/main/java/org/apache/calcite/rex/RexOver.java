@@ -65,7 +65,6 @@ public class RexOver extends RexCall {
     assert op.isAggregator() : "precondition: op.isAggregator()";
     assert window != null : "precondition: window != null";
     this.window = window;
-    this.digest = computeDigest(true);
   }
 
   //~ Methods ----------------------------------------------------------------
