@@ -62,7 +62,6 @@ public class RexCall extends RexNode {
     this.op = op;
     this.operands = ImmutableList.copyOf(operands);
     assert op.getKind() != null : op;
-    this.digest = computeDigest(true);
 
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
   }
@@ -97,11 +96,11 @@ public class RexCall extends RexNode {
   }
 
   public String toString() {
-    // REVIEW jvs 16-Jan-2005: For CAST and NEW, the type is really an
-    // operand and needs to be printed out.  But special-casing it here is
-    // ugly.
-    return computeDigest(
-        isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+    if (digest == null) {
+      digest = computeDigest(
+          isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+    }
+    return digest;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {
