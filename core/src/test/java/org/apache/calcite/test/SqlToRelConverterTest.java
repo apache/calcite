@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.type.RelDataType;
@@ -34,6 +36,9 @@ import com.google.common.base.Function;
 
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -1875,6 +1880,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
               }
               // CHECKSTYLE: IGNORE 1
             }.init();
+          }
+        });
+  }
+
+  @Test public void testLarge() {
+    SqlValidatorTest.testLarge(400,
+        new Function<String, Void>() {
+          public Void apply(String input) {
+            final RelRoot root = tester.convertSqlToRel(input);
+            final String s = RelOptUtil.toString(root.project());
+            assertThat(s, notNullValue());
+            return null;
           }
         });
   }

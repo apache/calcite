@@ -35,25 +35,25 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -5668,7 +5668,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * lurking in the validation process.
    */
   @Test public void testLarge() {
-    int x = 700;
+    testLarge(700,
+        new Function<String, Void>() {
+          public Void apply(String input) {
+            check(input);
+            return null;
+          }
+        });
+  }
+
+  public static void testLarge(int x, Function<String, Void> f) {
     if (System.getProperty("os.name").startsWith("Windows")) {
       // NOTE jvs 1-Nov-2006:  Default thread stack size
       // on Windows is too small, so avoid stack overflow
@@ -5677,29 +5686,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // E.g. large = "deptno * 1 + deptno * 2 + deptno * 3".
     String large = list(" + ", "deptno * ", x);
-    check("select " + large + "from emp");
-    check("select distinct " + large + "from emp");
-    check("select " + large + " from emp " + "group by deptno");
-    check("select * from emp where " + large + " > 5");
-    check("select * from emp order by " + large + " desc");
-    check("select " + large + " from emp order by 1");
-    check("select distinct " + large + " from emp order by " + large);
+    f.apply("select " + large + "from emp");
+    f.apply("select distinct " + large + "from emp");
+    f.apply("select " + large + " from emp " + "group by deptno");
+    f.apply("select * from emp where " + large + " > 5");
+    f.apply("select * from emp order by " + large + " desc");
+    f.apply("select " + large + " from emp order by 1");
+    f.apply("select distinct " + large + " from emp order by " + large);
 
     // E.g. "in (0, 1, 2, ...)"
-    check("select * from emp where deptno in (" + list(", ", "", x) + ")");
+    f.apply("select * from emp where deptno in (" + list(", ", "", x) + ")");
 
     // E.g. "where x = 1 or x = 2 or x = 3 ..."
-    check("select * from emp where " + list(" or ", "deptno = ", x));
+    f.apply("select * from emp where " + list(" or ", "deptno = ", x));
 
     // E.g. "select x1, x2 ... from (
     // select 'a' as x1, 'a' as x2, ... from emp union
     // select 'bb' as x1, 'bb' as x2, ... from dept)"
-    check("select " + list(", ", "x", x)
+    f.apply("select " + list(", ", "x", x)
         + " from (select " + list(", ", "'a' as x", x) + " from emp "
         + "union all select " + list(", ", "'bb' as x", x) + " from dept)");
   }
 
-  private String list(String sep, String before, int count) {
+  private static String list(String sep, String before, int count) {
     StringBuilder buf = new StringBuilder();
     for (int i = 0; i < count; i++) {
       if (i > 0) {
