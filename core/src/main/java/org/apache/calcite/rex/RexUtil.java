@@ -814,7 +814,7 @@ public class RexUtil {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     final Set<String> digests = Sets.newHashSet(); // to eliminate duplicates
     for (RexNode node : nodes) {
-      if (node != null && digests.add(node.digest)) {
+      if (node != null && digests.add(node.toString())) {
         addAnd(builder, node);
       }
     }
@@ -868,7 +868,7 @@ public class RexUtil {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     final Set<String> digests = Sets.newHashSet(); // to eliminate duplicates
     for (RexNode node : nodes) {
-      if (digests.add(node.digest)) {
+      if (digests.add(node.toString())) {
         addOr(builder, node);
       }
     }
