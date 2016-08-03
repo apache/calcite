@@ -64,9 +64,9 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     return cluster;
   }
 
-  public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath) {
-    return preparingStmt.expandView(rowType, queryString, schemaPath);
+  @Override public RelRoot expandView(RelDataType rowType, String queryString,
+      List<String> schemaPath, List<String> viewPath) {
+    return preparingStmt.expandView(rowType, queryString, schemaPath, viewPath);
   }
 
   public <T> RelNode translate(Queryable<T> queryable) {

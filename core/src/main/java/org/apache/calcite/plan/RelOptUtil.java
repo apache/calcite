@@ -2693,8 +2693,9 @@ public abstract class RelOptUtil {
         return cluster;
       }
 
-      public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath) {
+      @Override public RelRoot expandView(RelDataType rowType, String queryString,
+          List<String> schemaPath,
+          List<String> viewPath) {
         throw new UnsupportedOperationException();
       }
     };

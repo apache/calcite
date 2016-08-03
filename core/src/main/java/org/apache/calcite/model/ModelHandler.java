@@ -44,6 +44,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import java.io.File;
 import java.io.IOException;
@@ -288,9 +289,10 @@ public class ModelHandler {
         viewName = jsonMaterialization.view;
         existing = false;
       }
+      List<String> viewPath = calciteSchema.path(viewName);
       schema.add(viewName,
           MaterializedViewTable.create(calciteSchema,
-              jsonMaterialization.getSql(), jsonMaterialization.viewSchemaPath,
+              jsonMaterialization.getSql(), jsonMaterialization.viewSchemaPath, viewPath,
               jsonMaterialization.table, existing));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
@@ -357,8 +359,10 @@ public class ModelHandler {
     try {
       final SchemaPlus schema = currentMutableSchema("view");
       final List<String> path = Util.first(jsonView.path, currentSchemaPath());
+      List<String> viewPath = Lists.newArrayList(path);
+      viewPath.add(jsonView.name);
       schema.add(jsonView.name,
-          ViewTable.viewMacro(schema, jsonView.getSql(), path,
+          ViewTable.viewMacro(schema, jsonView.getSql(), path, viewPath,
               jsonView.modifiable));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonView, e);

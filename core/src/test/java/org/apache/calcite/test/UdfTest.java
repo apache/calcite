@@ -32,6 +32,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -182,7 +183,8 @@ public class UdfTest {
         + "  POST.MY_INCREMENT(\"empid\", 10) as INCREMENTED_SALARY\n"
         + "from \"hr\".\"emps\"";
     post.add("V_EMP",
-        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(), null));
+        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(),
+            Arrays.asList("POST", "V_EMP"), null));
 
     final String result = ""
         + "EMPLOYEE_ID=100; EMPLOYEE_NAME=Bill Bill; EMPLOYEE_SALARY=10000.0; INCREMENTED_SALARY=110.0\n"

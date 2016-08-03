@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
 import java.util.AbstractList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -263,7 +264,7 @@ public class Smalls {
             return typeFactory.builder().add("c", SqlTypeName.INTEGER)
                 .build();
           }
-        }, "values (1), (3), " + s, ImmutableList.<String>of());
+        }, "values (1), (3), " + s, ImmutableList.<String>of(), Arrays.asList("view"));
   }
 
   public static TranslatableTable str(Object o, Object p) {
@@ -278,7 +279,7 @@ public class Smalls {
         },
         "values " + SqlDialect.CALCITE.quoteStringLiteral(o.toString())
             + ", " + SqlDialect.CALCITE.quoteStringLiteral(p.toString()),
-        ImmutableList.<String>of());
+        ImmutableList.<String>of(), Arrays.asList("view"));
   }
 
   /** Class with int and String fields. */
