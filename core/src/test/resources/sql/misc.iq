@@ -1283,4 +1283,18 @@ select count(*) as c from "scott".dept where exists (select 1);
 
 !ok
 
+# Make sure that IN does not compare the shorter of two strings.
+# If it did, 'MARTIN' would be emitted.
+select ename, deptno
+from "scott".emp
+where ename in ('MARTINGALE', 'WARD');
++-------+--------+
+| ENAME | DEPTNO |
++-------+--------+
+| WARD  |     30 |
++-------+--------+
+(1 row)
+
+!ok
+
 # End misc.iq

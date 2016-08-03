@@ -1388,11 +1388,10 @@ public class SqlToRelConverter {
       RexNode rexComparison;
       if (leftKeys.size() == 1) {
         rexComparison =
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.EQUALS,
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
                 leftKeys.get(0),
-                rexBuilder.ensureType(leftKeys.get(0).getType(),
-                    bb.convertExpression(rightVals), true));
+                ensureSqlType(leftKeys.get(0).getType(),
+                    bb.convertExpression(rightVals)));
       } else {
         assert rightVals instanceof SqlCall;
         final SqlBasicCall call = (SqlBasicCall) rightVals;
@@ -1407,8 +1406,8 @@ public class SqlToRelConverter {
                       public RexNode apply(Pair<RexNode, SqlNode> pair) {
                         return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
                             pair.left,
-                            rexBuilder.ensureType(pair.left.getType(),
-                                bb.convertExpression(pair.right), true));
+                            ensureSqlType(pair.left.getType(),
+                                bb.convertExpression(pair.right)));
                       }
                     }),
                 false);
@@ -1428,6 +1427,18 @@ public class SqlToRelConverter {
     }
 
     return result;
+  }
+
+  /** Ensures that an expression has a given {@link SqlTypeName}, applying a
+   * cast if necessary. If the expression already has the right type family,
+   * returns the expression unchanged. */
+  private RexNode ensureSqlType(RelDataType type, RexNode node) {
+    if (type.getSqlTypeName() == node.getType().getSqlTypeName()
+        || (type.getSqlTypeName() == SqlTypeName.VARCHAR
+            && node.getType().getSqlTypeName() == SqlTypeName.CHAR)) {
+      return node;
+    }
+    return rexBuilder.ensureType(type, node, true);
   }
 
   /**

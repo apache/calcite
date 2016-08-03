@@ -594,8 +594,8 @@ public class DruidAdapterIT {
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]],"
         + " filter=[AND(=(CAST($2):VARCHAR(24) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'High Top Dried Mushrooms'),"
-        + " OR(=($86, CAST('Q2'):VARCHAR(1) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL),"
-        + " =($86, CAST('Q3'):VARCHAR(1) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL)),"
+        + " OR(=($86, 'Q2'),"
+        + " =($86, 'Q3')),"
         + " =(CAST($29):VARCHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'WA'))],"
         + " projects=[[$29, $28, $2]], groups=[{0, 1, 2}], aggs=[[]])\n";
     sql(sql)
@@ -638,8 +638,8 @@ public class DruidAdapterIT {
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]],"
         + " filter=[AND(=(CAST($2):VARCHAR(24) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'High Top Dried Mushrooms'),"
-        + " OR(=($86, CAST('Q2'):VARCHAR(1) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL),"
-        + " =($86, CAST('Q3'):VARCHAR(1) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL)),"
+        + " OR(=($86, 'Q2'),"
+        + " =($86, 'Q3')),"
         + " =(CAST($29):VARCHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'WA'))],"
         + " projects=[[$29, $28, $2]])\n";
     sql(sql)
@@ -662,6 +662,21 @@ public class DruidAdapterIT {
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms");
+  }
+
+  /** Tests a query that exposed several bugs in the interpreter. */
+  @Test public void testWhereGroupBy() {
+    String sql = "select \"wikiticker\".\"countryName\" as \"c0\",\n"
+        + " sum(\"wikiticker\".\"count\") as \"m1\",\n"
+        + " sum(\"wikiticker\".\"deleted\") as \"m2\",\n"
+        + " sum(\"wikiticker\".\"delta\") as \"m3\"\n"
+        + "from \"wiki\" as \"wikiticker\"\n"
+        + "where (\"wikiticker\".\"countryName\" in ('Colombia', 'France',\n"
+        + " 'Germany', 'India', 'Italy', 'Russia', 'United Kingdom',\n"
+        + " 'United States') or \"wikiticker\".\"countryName\" is null)\n"
+        + "group by \"wikiticker\".\"countryName\"";
+    sql(sql, WIKI)
+        .returnsCount(9);
   }
 }
 

@@ -605,8 +605,8 @@ public class CalciteAssert {
         if (method1.getName().equals(methodName)
             && method1.getParameterTypes().length == args.length
             && Modifier.isPublic(method1.getDeclaringClass().getModifiers())) {
-          for (Pair<Object, Class<?>> pair
-              : Pair.zip(args, method1.getParameterTypes())) {
+          for (Pair<Object, Class> pair
+              : Pair.zip(args, (Class[]) method1.getParameterTypes())) {
             if (!pair.right.isInstance(pair.left)) {
               continue loop;
             }

@@ -109,8 +109,23 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         }
       };
     } else if (call.getAggregation() == SqlStdOperatorTable.SUM) {
+      final Class<?> clazz;
+      switch (call.type.getSqlTypeName()) {
+      case DOUBLE:
+      case REAL:
+      case FLOAT:
+        clazz = DoubleSum.class;
+        break;
+      case INTEGER:
+        clazz = IntSum.class;
+        break;
+      case BIGINT:
+      default:
+        clazz = LongSum.class;
+        break;
+      }
       return new UdaAccumulatorFactory(
-          AggregateFunctionImpl.create(IntSum.class), call);
+          AggregateFunctionImpl.create(clazz), call);
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
@@ -134,8 +149,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       final ParameterExpression acc_ =
           Expressions.parameter(accPhysType.getJavaRowType(), "acc");
 
-      List<Expression> accumulator =
-          new ArrayList<Expression>(stateSize);
+      List<Expression> accumulator = new ArrayList<>(stateSize);
       for (int j = 0; j < stateSize; j++) {
         accumulator.add(accPhysType.fieldReference(acc_, j + stateOffset));
       }
@@ -144,7 +158,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       AggAddContext addContext =
           new AggAddContextImpl(builder2, accumulator) {
             public List<RexNode> rexArguments() {
-              List<RexNode> args = new ArrayList<RexNode>();
+              List<RexNode> args = new ArrayList<>();
               for (int index : agg.call.getArgList()) {
                 args.add(RexInputRef.of(index, inputPhysType.getRowType()));
               }
@@ -186,7 +200,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     private final AggregateCall call;
     long cnt;
 
-    public CountAccumulator(AggregateCall call) {
+    CountAccumulator(AggregateCall call) {
       this.call = call;
       cnt = 0;
     }
@@ -280,8 +294,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     public void send(Row row) {
       // TODO: fix the size of this row.
       RowBuilder builder = Row.newBuilder(grouping.cardinality());
+      int j = 0;
       for (Integer i : grouping) {
-        builder.set(i, row.getObject(i));
+        builder.set(j++, row.getObject(i));
       }
       Row key = builder.build();
 
@@ -305,7 +320,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         int index = 0;
         for (Integer groupPos : unionGroups) {
           if (grouping.get(groupPos)) {
-            rb.set(index, key.getObject(groupPos));
+            rb.set(index, key.getObject(index));
             if (rel.indicator) {
               rb.set(unionGroups.cardinality() + index, true);
             }
@@ -376,7 +391,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     public long init() {
       return 0L;
     }
-    public long add(long accumulator, int v) {
+    public long add(long accumulator, long v) {
       return accumulator + v;
     }
     public long merge(long accumulator0, long accumulator1) {
@@ -387,13 +402,32 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
+  /** Implementation of {@code SUM} over DOUBLE values as a user-defined
+   * aggregate. */
+  public static class DoubleSum {
+    public DoubleSum() {
+    }
+    public double init() {
+      return 0D;
+    }
+    public double add(double accumulator, double v) {
+      return accumulator + v;
+    }
+    public double merge(double accumulator0, double accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public double result(double accumulator) {
+      return accumulator;
+    }
+  }
+
   /** Accumulator factory based on a user-defined aggregate function. */
   private static class UdaAccumulatorFactory implements AccumulatorFactory {
-    public final AggregateFunctionImpl aggFunction;
-    public final int argOrdinal;
+    final AggregateFunctionImpl aggFunction;
+    final int argOrdinal;
     public final Object instance;
 
-    public UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
+    UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
         AggregateCall call) {
       this.aggFunction = aggFunction;
       if (call.getArgList().size() != 1) {
@@ -406,9 +440,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       } else {
         try {
           instance = aggFunction.declaringClass.newInstance();
-        } catch (InstantiationException e) {
-          throw Throwables.propagate(e);
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
           throw Throwables.propagate(e);
         }
       }
@@ -424,13 +456,11 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     private final UdaAccumulatorFactory factory;
     private Object value;
 
-    public UdaAccumulator(UdaAccumulatorFactory factory) {
+    UdaAccumulator(UdaAccumulatorFactory factory) {
       this.factory = factory;
       try {
         this.value = factory.aggFunction.initMethod.invoke(factory.instance);
-      } catch (IllegalAccessException e) {
-        throw Throwables.propagate(e);
-      } catch (InvocationTargetException e) {
+      } catch (IllegalAccessException | InvocationTargetException e) {
         throw Throwables.propagate(e);
       }
     }
@@ -444,9 +474,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       try {
         value = factory.aggFunction.addMethod.invoke(factory.instance, args);
-      } catch (IllegalAccessException e) {
-        throw Throwables.propagate(e);
-      } catch (InvocationTargetException e) {
+      } catch (IllegalAccessException | InvocationTargetException e) {
         throw Throwables.propagate(e);
       }
     }
@@ -455,9 +483,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       final Object[] args = {value};
       try {
         return factory.aggFunction.resultMethod.invoke(factory.instance, args);
-      } catch (IllegalAccessException e) {
-        throw Throwables.propagate(e);
-      } catch (InvocationTargetException e) {
+      } catch (IllegalAccessException | InvocationTargetException e) {
         throw Throwables.propagate(e);
       }
     }
