@@ -887,8 +887,15 @@ public class RexBuilder {
       }
     } else {
       int precision = bd.unscaledValue().abs().toString().length();
-      relType =
-          typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
+      if (precision > scale) {
+        // bd is greater than or equal to 1
+        relType =
+            typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
+      } else {
+        // bd is less than 1
+        relType =
+            typeFactory.createSqlType(SqlTypeName.DECIMAL, scale + 1, scale);
+      }
     }
     return makeExactLiteral(bd, relType);
   }
