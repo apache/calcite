@@ -61,6 +61,9 @@ class DruidConnectionImpl implements DruidConnection {
   private final String url;
   private final String coordinatorUrl;
 
+  private static final Set<String> SUPPORTED_TYPES =
+      ImmutableSet.of("LONG", "DOUBLE", "STRING", "hyperUnique");
+
   DruidConnectionImpl(String url, String coordinatorUrl) {
     this.url = Preconditions.checkNotNull(url);
     this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
@@ -343,16 +346,7 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   private boolean isSupportedType(String type) {
-    if (type.startsWith("long")) {
-      return true;
-    }
-    if (type.startsWith("double")) {
-      return true;
-    }
-    if (type.equals("hyperUnique")) {
-      return true;
-    }
-    return false;
+    return SUPPORTED_TYPES.contains(type);
   }
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
@@ -384,10 +378,9 @@ class DruidConnectionImpl implements DruidConnection {
         if (o.aggregators != null) {
           for (Map.Entry<String, JsonAggregator> entry
               : o.aggregators.entrySet()) {
-            if (!isSupportedType(entry.getValue().type)) {
+            if (!fieldBuilder.containsKey(entry.getKey())) {
               continue;
             }
-            fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
             metricNameBuilder.add(entry.getKey());
           }
         }

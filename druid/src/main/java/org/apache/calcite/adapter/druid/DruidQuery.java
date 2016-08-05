@@ -531,6 +531,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("queryType", "segmentMetadata");
       generator.writeStringField("dataSource", dataSourceName);
       generator.writeBooleanField("merge", true);
+      generator.writeBooleanField("lenientAggregatorMerge", true);
       generator.writeArrayFieldStart("analysisTypes");
       generator.writeString("aggregators");
       generator.writeEndArray();
