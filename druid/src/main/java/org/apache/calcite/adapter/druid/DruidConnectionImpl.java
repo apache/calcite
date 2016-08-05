@@ -343,16 +343,10 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   private boolean isSupportedType(String type) {
-    if (type.startsWith("long")) {
-      return true;
-    }
-    if (type.startsWith("double")) {
-      return true;
-    }
-    if (type.equals("hyperUnique")) {
-      return true;
-    }
-    return false;
+    return "LONG".equals(type)
+           || "DOUBLE".equals(type)
+           || "STRING".equals(type)
+           || "hyperUnique".equals(type);
   }
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
@@ -384,10 +378,9 @@ class DruidConnectionImpl implements DruidConnection {
         if (o.aggregators != null) {
           for (Map.Entry<String, JsonAggregator> entry
               : o.aggregators.entrySet()) {
-            if (!isSupportedType(entry.getValue().type)) {
+            if (!fieldBuilder.containsKey(entry.getKey())) {
               continue;
             }
-            fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
             metricNameBuilder.add(entry.getKey());
           }
         }
