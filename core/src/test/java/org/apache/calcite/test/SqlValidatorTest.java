@@ -6443,6 +6443,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " count(empno + deptno) OVER (partition by empno + deptno + 1)\n"
         + " from emp group by empno + deptno");
 
+    // expression is NOT OK (AS clause)
+    sql("select sum(max(empno))\n"
+        + " OVER (order by ^deptno^ ROWS 2 PRECEDING) AS sumEmpNo\n"
+        + " from emp")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select sum(max(empno)) OVER w AS sumEmpNo\n"
+        + " from emp\n"
+        + " window w AS (order by ^deptno^ ROWS 2 PRECEDING)")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("select avg(^sal^) OVER () AS avgSal,"
+        + " avg(count(empno)) OVER (partition by 1) AS avgEmpNo\n"
+        + " from emp")
+        .fails("Expression 'SAL' is not being grouped");
+    sql("select count(deptno, deptno + 1, ^empno^) OVER () AS cntDeptEmp\n"
+        + " from emp group by deptno")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select avg(sum(sal)) OVER (partition by ^deptno^ + 1) AS avgSal\n"
+        + "from emp group by empno + deptno")
+        .fails("Expression 'DEPTNO' is not being grouped");
+
     // OVER in clause
     checkFails(
         "select ^sum(max(empno) OVER (order by deptno ROWS 2 PRECEDING))^ from emp",

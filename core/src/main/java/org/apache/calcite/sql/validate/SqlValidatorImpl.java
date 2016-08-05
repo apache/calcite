@@ -2509,8 +2509,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Also when nested window aggregates are present
     for (SqlNode node : select.getSelectList()) {
       if (node instanceof SqlCall) {
-        SqlCall call = (SqlCall) node;
-        if (call.getOperator().getKind() == SqlKind.OVER
+        SqlCall call = (SqlCall) overFinder.findAgg(node);
+        if (call != null
+            && call.getOperator().getKind() == SqlKind.OVER
             && call.getOperandList().size() != 0) {
           if (call.operand(0) instanceof SqlCall
               && isNestedAggregateWindow((SqlCall) call.operand(0))) {
