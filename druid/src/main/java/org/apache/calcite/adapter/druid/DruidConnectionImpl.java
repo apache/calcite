@@ -27,17 +27,20 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 
+import static org.apache.calcite.runtime.HttpUtils.post;
+
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import org.joda.time.Interval;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -55,8 +58,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.apache.calcite.runtime.HttpUtils.post;
 
 /**
  * Implementation of {@link DruidConnection}.
@@ -125,6 +126,23 @@ class DruidConnectionImpl implements DruidConnection {
 
     try (final JsonParser parser = factory.createParser(in)) {
       switch (queryType) {
+      case TIMESERIES:
+        if (parser.nextToken() == JsonToken.START_ARRAY) {
+          while (parser.nextToken() == JsonToken.START_OBJECT) {
+            // loop until token equal to "}"
+            expectScalarField(parser, "timestamp");
+            if (parser.nextToken() == JsonToken.FIELD_NAME
+                    && parser.getCurrentName().equals("result")
+                    && parser.nextToken() == JsonToken.START_OBJECT) {
+              parseFields(fieldNames, fieldTypes, rowBuilder, parser);
+              sink.send(rowBuilder.build());
+              rowBuilder.reset();
+            }
+            expect(parser, JsonToken.END_OBJECT);
+          }
+        }
+        break;
+
       case TOP_N:
         if (parser.nextToken() == JsonToken.START_ARRAY
             && parser.nextToken() == JsonToken.START_OBJECT) {
@@ -270,7 +288,11 @@ class DruidConnectionImpl implements DruidConnection {
     default:
       if (type == ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP) {
         try {
-          final Date parse = UTC_TIMESTAMP_FORMAT.parse(parser.getText());
+          final Date parse;
+          // synchronized block to avoid race condition
+          synchronized (UTC_TIMESTAMP_FORMAT) {
+            parse = UTC_TIMESTAMP_FORMAT.parse(parser.getText());
+          }
           rowBuilder.set(i, parse.getTime());
         } catch (ParseException e) {
           // ignore bad value
@@ -375,7 +397,7 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
-  void metadata(String dataSourceName, List<String> intervals,
+  void metadata(String dataSourceName, List<Interval> intervals,
       Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =

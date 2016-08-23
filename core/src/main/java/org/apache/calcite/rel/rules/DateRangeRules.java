@@ -35,7 +35,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableMap;
@@ -75,7 +74,7 @@ import java.util.TimeZone;
  */
 public abstract class DateRangeRules {
 
-  private DateRangeRules() {}
+  protected DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
       new Predicate<Filter>() {
@@ -118,8 +117,7 @@ public abstract class DateRangeRules {
 
   /** Returns whether an expression contains one or more calls to the
    * {@code EXTRACT} function. */
-  @VisibleForTesting
-  static Set<TimeUnitRange> extractTimeUnits(RexNode e) {
+  public static Set<TimeUnitRange> extractTimeUnits(RexNode e) {
     final ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get();
     try {
       assert finder.timeUnits.isEmpty() : "previous user did not clean up";
@@ -186,14 +184,12 @@ public abstract class DateRangeRules {
   }
 
   /** Walks over an expression, replacing {@code EXTRACT} with date ranges. */
-  @VisibleForTesting
-  static class ExtractShuttle extends RexShuttle {
+  public static class ExtractShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;
     private final Map<String, RangeSet<Calendar>> operandRanges;
 
-    @VisibleForTesting
-    ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
+    public ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<String, RangeSet<Calendar>> operandRanges) {
       this.rexBuilder = rexBuilder;
       this.timeUnit = timeUnit;

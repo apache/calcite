@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -157,6 +158,40 @@ public abstract class RelOptUtil {
       };
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Whether this node is a limit without sort specification.
+   */
+  public static boolean pureLimitRelNode(RelNode rel) {
+    return limitRelNode(rel) && !orderRelNode(rel);
+  }
+
+  /**
+   * Whether this node is a sort without limit specification.
+   */
+  public static boolean pureOrderRelNode(RelNode rel) {
+    return !limitRelNode(rel) && orderRelNode(rel);
+  }
+
+  /**
+   * Whether this node contains a limit specification.
+   */
+  public static boolean limitRelNode(RelNode rel) {
+    if ((rel instanceof Sort) && ((Sort) rel).fetch != null) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Whether this node contains a sort specification.
+   */
+  public static boolean orderRelNode(RelNode rel) {
+    if ((rel instanceof Sort) && !((Sort) rel).getCollation().getFieldCollations().isEmpty()) {
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Returns a list of variables set by a relational expression or its
