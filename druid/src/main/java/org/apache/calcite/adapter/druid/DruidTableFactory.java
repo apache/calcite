@@ -25,6 +25,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.joda.time.Interval;
+
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -98,8 +100,8 @@ public class DruidTableFactory implements TableFactory {
       c = null;
     }
     final Object interval = operand.get("interval");
-    final List<String> intervals = interval instanceof String
-        ? ImmutableList.of((String) interval) : null;
+    final List<Interval> intervals = interval instanceof String
+            ? ImmutableList.of(Interval.parse((String) interval)) : null;
     return DruidTable.create(druidSchema, dataSourceName, intervals,
         fieldBuilder, metricNameBuilder, timestampColumnName, c);
   }

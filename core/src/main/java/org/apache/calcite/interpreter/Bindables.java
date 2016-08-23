@@ -378,7 +378,6 @@ public class Bindables {
         RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
       super(cluster, traitSet, input, collation, offset, fetch);
       assert getConvention() instanceof BindableConvention;
-      assert getConvention() == input.getConvention();
     }
 
     @Override public BindableSort copy(RelTraitSet traitSet, RelNode newInput,

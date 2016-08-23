@@ -54,17 +54,16 @@ public class DruidSchemaFactory implements SchemaFactory {
 
   public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    final Map map = (Map) operand;
-    final String url = map.get("url") instanceof String
-        ? (String) map.get("url")
+    final String url = operand.get("url") instanceof String
+        ? (String) operand.get("url")
         : DEFAULT_URL;
-    final String coordinatorUrl = map.get("coordinatorUrl") instanceof String
-        ? (String) map.get("coordinatorUrl")
+    final String coordinatorUrl = operand.get("coordinatorUrl") instanceof String
+        ? (String) operand.get("coordinatorUrl")
         : url.replace(":8082", ":8081");
     // "tables" is a hidden attribute, copied in from the enclosing custom
     // schema
-    final boolean containsTables = map.get("tables") instanceof List
-        && ((List) map.get("tables")).size() > 0;
+    final boolean containsTables = operand.get("tables") instanceof List
+        && ((List) operand.get("tables")).size() > 0;
     return new DruidSchema(url, coordinatorUrl, !containsTables);
   }
 }

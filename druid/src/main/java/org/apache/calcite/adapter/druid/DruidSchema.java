@@ -65,7 +65,7 @@ public class DruidSchema extends AbstractSchema {
         new DruidConnectionImpl(url, coordinatorUrl);
     return Compatible.INSTANCE.asMap(
         ImmutableSet.copyOf(connection.tableNames()),
-        CacheBuilder.<String, Table>newBuilder()
+        CacheBuilder.newBuilder()
             .build(new CacheLoader<String, Table>() {
               public Table load(@Nonnull String tableName) throws Exception {
                 final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();

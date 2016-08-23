@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -44,6 +45,10 @@ public class ProjectSortTransposeRule extends RelOptRule {
     super(
         operand(Project.class,
             operand(Sort.class, any())));
+  }
+
+  protected ProjectSortTransposeRule(RelOptRuleOperand operand) {
+    super(operand);
   }
 
   //~ Methods ----------------------------------------------------------------
