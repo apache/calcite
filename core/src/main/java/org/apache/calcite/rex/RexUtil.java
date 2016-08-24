@@ -1168,6 +1168,20 @@ public class RexUtil {
     return new CnfHelper(rexBuilder).toCnf(rex);
   }
 
+  /**
+   * Similar to {@link #toCnf(RexBuilder, RexNode)}; however, it lets you
+   * specify a threshold in the number of nodes that can be created out of
+   * the conversion.
+   *
+   * If the number of resulting nodes exceeds that threshold, the conversion
+   * is stopped and the original expression is returned.
+   *
+   * Leaf nodes in the expression do not count towards the threshold.
+   */
+  public static RexNode toCnf(RexBuilder rexBuilder, int maxCNFNodeCount, RexNode rex) {
+    return new CnfHelper(rexBuilder, maxCNFNodeCount).toCnf(rex);
+  }
+
   /** Converts an expression to disjunctive normal form (DNF).
    *
    * <p>DNF: It is a form of logical formula which is disjunction of conjunctive
@@ -2064,24 +2078,56 @@ public class RexUtil {
   /** Helps {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   private static class CnfHelper {
     final RexBuilder rexBuilder;
+    int currentCount;
+    final int maxNodeCount;
 
     private CnfHelper(RexBuilder rexBuilder) {
+      this(rexBuilder, Integer.MAX_VALUE);
+    }
+
+    private CnfHelper(RexBuilder rexBuilder, int maxNodeCount) {
       this.rexBuilder = rexBuilder;
+      this.maxNodeCount = maxNodeCount == -1 ? Integer.MAX_VALUE : maxNodeCount;
     }
 
     public RexNode toCnf(RexNode rex) {
+      try {
+        this.currentCount = 0;
+        return toCnf2(rex);
+      } catch (OverflowError e) {
+        Util.swallow(e, null);
+        return rex;
+      }
+    }
+
+    private RexNode toCnf2(RexNode rex) {
       final List<RexNode> operands;
       switch (rex.getKind()) {
       case AND:
+        incrementAndCheck();
         operands = flattenAnd(((RexCall) rex).getOperands());
-        return and(toCnfs(operands));
+        final List<RexNode> cnfOperands = Lists.newArrayList();
+        for (RexNode node : operands) {
+          RexNode cnf = toCnf2(node);
+          switch (cnf.getKind()) {
+          case AND:
+            incrementAndCheck();
+            cnfOperands.addAll(((RexCall) cnf).getOperands());
+            break;
+          default:
+            incrementAndCheck();
+            cnfOperands.add(cnf);
+          }
+        }
+        return and(cnfOperands);
       case OR:
+        incrementAndCheck();
         operands = flattenOr(((RexCall) rex).getOperands());
         final RexNode head = operands.get(0);
-        final RexNode headCnf = toCnf(head);
+        final RexNode headCnf = toCnf2(head);
         final List<RexNode> headCnfs = RelOptUtil.conjunctions(headCnf);
         final RexNode tail = or(Util.skip(operands));
-        final RexNode tailCnf = toCnf(tail);
+        final RexNode tailCnf = toCnf2(tail);
         final List<RexNode> tailCnfs = RelOptUtil.conjunctions(tailCnf);
         final List<RexNode> list = Lists.newArrayList();
         for (RexNode h : headCnfs) {
@@ -2094,34 +2140,37 @@ public class RexUtil {
         final RexNode arg = ((RexCall) rex).getOperands().get(0);
         switch (arg.getKind()) {
         case NOT:
-          return toCnf(((RexCall) arg).getOperands().get(0));
+          return toCnf2(((RexCall) arg).getOperands().get(0));
         case OR:
           operands = ((RexCall) arg).getOperands();
-          return toCnf(and(Lists.transform(flattenOr(operands), ADD_NOT)));
+          return toCnf2(and(Lists.transform(flattenOr(operands), ADD_NOT)));
         case AND:
           operands = ((RexCall) arg).getOperands();
-          return toCnf(or(Lists.transform(flattenAnd(operands), ADD_NOT)));
+          return toCnf2(or(Lists.transform(flattenAnd(operands), ADD_NOT)));
         default:
+          incrementAndCheck();
           return rex;
         }
       default:
+        incrementAndCheck();
         return rex;
       }
     }
 
-    private List<RexNode> toCnfs(List<RexNode> nodes) {
-      final List<RexNode> list = Lists.newArrayList();
-      for (RexNode node : nodes) {
-        RexNode cnf = toCnf(node);
-        switch (cnf.getKind()) {
-        case AND:
-          list.addAll(((RexCall) cnf).getOperands());
-          break;
-        default:
-          list.add(cnf);
-        }
+    private void incrementAndCheck() {
+      this.currentCount++;
+      if (this.currentCount > this.maxNodeCount) {
+        throw OverflowError.INSTANCE;
       }
-      return list;
+    }
+
+    /** Exception to catch when we pass the limit. */
+    @SuppressWarnings("serial")
+    private static class OverflowError extends ControlFlowException {
+
+      protected static final OverflowError INSTANCE = new OverflowError();
+
+      private OverflowError() {}
     }
 
     private RexNode pull(RexNode rex) {
@@ -2140,8 +2189,7 @@ public class RexUtil {
         for (RexNode operand : operands) {
           list.add(removeFactor(factors, operand));
         }
-        return and(
-            Iterables.concat(factors.values(), ImmutableList.of(or(list))));
+        return and(Iterables.concat(factors.values(), ImmutableList.of(or(list))));
       default:
         return rex;
       }
@@ -2186,7 +2234,6 @@ public class RexUtil {
       }
       return and(list);
     }
-
 
     private RexNode and(Iterable<? extends RexNode> nodes) {
       return composeConjunction(rexBuilder, nodes, false);
