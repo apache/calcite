@@ -91,6 +91,7 @@ public abstract class AvaticaConnection implements Connection {
   public final Map<InternalProperty, Object> properties = new HashMap<>();
   public final Map<Integer, AvaticaStatement> statementMap =
       new ConcurrentHashMap<>();
+  private final Map<Integer, AtomicBoolean> flagMap = new HashMap<>();
   protected final long maxRetriesPerExecute;
 
   /**
@@ -666,10 +667,19 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   /** Returns or creates a slot whose state can be changed to cancel a
-   * statement. */
+   * statement. Statements will receive the same slot if and only if their id
+   * is the same. */
   public AtomicBoolean getCancelFlag(Meta.StatementHandle h)
       throws NoSuchStatementException {
-    return new AtomicBoolean();
+    AvaticaUtils.upgrade("after dropping JDK 1.7, use Map.computeIfAbsent");
+    synchronized (flagMap) {
+      AtomicBoolean b = flagMap.get(h.id);
+      if (b == null) {
+        b = new AtomicBoolean();
+        flagMap.put(h.id, b);
+      }
+      return b;
+    }
   }
 
   /** A way to call package-protected methods. But only a sub-class of
