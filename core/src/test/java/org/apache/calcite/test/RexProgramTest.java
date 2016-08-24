@@ -814,6 +814,15 @@ public class RexProgramTest {
     // case: singleton
     checkSimplify(case_(trueLiteral, aRef, eq(cRef, dRef), eRef, cRef), "?0.a");
 
+    // case: always same value
+    checkSimplify(
+        case_(aRef, literal1, bRef, literal1, cRef, literal1, dRef, literal1, literal1), "1");
+
+    // case: trailing false and null, no simplification
+    checkSimplify(
+        case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, unknownLiteral),
+            "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)");
+
     // case: form an AND of branches that return true
     checkSimplify(
         case_(aRef, trueLiteral, bRef,
@@ -865,7 +874,12 @@ public class RexProgramTest {
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
+    final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
+
 
     // condition, and the inverse
     checkSimplifyFilter(and(le(aRef, literal1), gt(aRef, literal1)),
@@ -876,6 +890,23 @@ public class RexProgramTest {
 
     checkSimplifyFilter(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
         "false");
+
+    // simplify equals boolean
+    checkSimplifyFilter(and(eq(eq(aRef, literal1), trueLiteral), eq(bRef, literal1)),
+        "AND(=(?0.a, 1), =(?0.b, 1))");
+
+    // equality on constants, can remove the equality on the variables
+    checkSimplifyFilter(and(eq(aRef, literal1), eq(bRef, literal1), eq(aRef, bRef)),
+        "AND(=(?0.a, 1), =(?0.b, 1))");
+
+    // condition not satisfiable
+    checkSimplifyFilter(and(eq(aRef, literal1), eq(bRef, literal10), eq(aRef, bRef)),
+        "false");
+
+    // case: trailing false and null, remove
+    checkSimplifyFilter(
+        case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, dRef, falseLiteral,
+            unknownLiteral), "CAST(OR(?0.a, ?0.b)):BOOLEAN");
   }
 
   /** Unit test for

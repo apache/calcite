@@ -867,7 +867,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select d.deptno"
         + " from dept d"
         + " where d.deptno=7 and d.deptno=8";
-    checkPlanUnchanged(new HepPlanner(program), sql);
+    checkPlanning(new HepPlanner(program), sql);
   }
 
   /** Test case for
@@ -883,6 +883,20 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select *\n"
         + "from emp\n"
         + "where deptno=7 and deptno=8\n"
+        + "and empno = 10 and mgr is null and empno = 10";
+    checkPlanning(program, sql);
+  }
+
+  @Test public void testPullNull() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+
+    final String sql = "select *\n"
+        + "from emp\n"
+        + "where deptno=7\n"
         + "and empno = 10 and mgr is null and empno = 10";
     checkPlanning(program, sql);
   }
