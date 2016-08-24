@@ -238,7 +238,10 @@ public class ModelHandler {
         case BASE_DIRECTORY:
           if (!modelUri.startsWith("inline:")) {
             final File file = new File(modelUri);
-            builder.put(extraOperand.camelName, file.getParentFile());
+            final File parentFile = file.getParentFile();
+            if (parentFile != null) {
+              builder.put(extraOperand.camelName, parentFile);
+            }
           }
           break;
         case TABLES:

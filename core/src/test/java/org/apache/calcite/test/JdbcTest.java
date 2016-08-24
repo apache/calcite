@@ -104,7 +104,10 @@ import org.hsqldb.jdbcDriver;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -5125,6 +5128,51 @@ public class JdbcTest {
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
     that.query("select * from \"adhoc\".EMPLOYEES")
         .throws_("Table 'adhoc.EMPLOYEES' not found");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1360">[CALCITE-1360]
+   * Custom schema in file in current directory</a>. */
+  @Test public void testCustomSchemaInFileInPwd() throws SQLException {
+    checkCustomSchemaInFileInPwd("custom-schema-model.json");
+    checkCustomSchemaInFileInPwd("./custom-schema-model2.json");
+  }
+
+  private void checkCustomSchemaInFileInPwd(String fileName)
+      throws SQLException {
+    final File file = new File(fileName);
+    try (final FileWriter fw = new FileWriter(file);
+         final PrintWriter pw = new PrintWriter(fw)) {
+      file.deleteOnExit();
+      pw.println("{\n"
+          + "  version: '1.0',\n"
+          + "  defaultSchema: 'adhoc',\n"
+          + "  schemas: [\n"
+          + "    {\n"
+          + "      name: 'empty'\n"
+          + "    },\n"
+          + "    {\n"
+          + "      name: 'adhoc',\n"
+          + "      type: 'custom',\n"
+          + "      factory: '"
+          + MySchemaFactory.class.getName()
+          + "',\n"
+          + "      operand: {'tableName': 'ELVIS'}\n"
+          + "    }\n"
+          + "  ]\n"
+          + "}");
+      pw.flush();
+      final String url = "jdbc:calcite:model=" + file;
+      try (Connection c = DriverManager.getConnection(url);
+           Statement s = c.createStatement();
+           ResultSet r = s.executeQuery("values 1")) {
+        assertThat(r.next(), is(true));
+      }
+      assertThat(file.delete(), is(true));
+    } catch (IOException e) {
+      // current directory is not writable; an environment issue, not
+      // necessarily a bug
+    }
   }
 
   /** Connects to a custom schema without writing a model.
