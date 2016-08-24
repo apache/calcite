@@ -89,6 +89,11 @@ public class RexProgramTest {
     assertThat(RexUtil.toCnf(rexBuilder, node).toString(), equalTo(expected));
   }
 
+  private void checkThresholdCnf(RexNode node, int threshold, String expected) {
+    assertThat(RexUtil.toCnf(rexBuilder, threshold, node).toString(),
+        equalTo(expected));
+  }
+
   private void checkPullFactorsUnchanged(RexNode node) {
     checkPullFactors(node, node.toString());
   }
@@ -627,6 +632,50 @@ public class RexProgramTest {
             + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.x, 3)), "
             + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.a, 3)), "
             + "OR(=(?0.z, 1), =(?0.a, 2), =(?0.b, 3)))");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1290">[CALCITE-1290]
+   * When converting to CNF, fail if the expression exceeds a threshold</a>. */
+  @Test public void testThresholdCnf() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("x", intType)
+        .add("y", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode xRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode yRef = rexBuilder.makeFieldAccess(range, 1);
+
+    final RexLiteral literal1 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(1));
+    final RexLiteral literal2 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
+    final RexLiteral literal3 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
+    final RexLiteral literal4 =
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(4));
+
+    // Expression
+    //   OR(=(?0.x, 1), AND(=(?0.x, 2), =(?0.y, 3)))
+    // transformation creates 7 nodes
+    //   AND(OR(=(?0.x, 1), =(?0.x, 2)), OR(=(?0.x, 1), =(?0.y, 3)))
+    // Thus, it is triggered.
+    checkThresholdCnf(
+        or(eq(xRef, literal1), and(eq(xRef, literal2), eq(yRef, literal3))),
+        8, "AND(OR(=(?0.x, 1), =(?0.x, 2)), OR(=(?0.x, 1), =(?0.y, 3)))");
+
+    // Expression
+    //   OR(=(?0.x, 1), =(?0.x, 2), AND(=(?0.x, 3), =(?0.y, 4)))
+    // transformation creates 9 nodes
+    //   AND(OR(=(?0.x, 1), =(?0.x, 2), =(?0.x, 3)),
+    //       OR(=(?0.x, 1), =(?0.x, 2), =(?0.y, 8)))
+    // Thus, it is NOT triggered.
+    checkThresholdCnf(
+        or(eq(xRef, literal1), eq(xRef, literal2),
+            and(eq(xRef, literal3), eq(yRef, literal4))),
+                8, "OR(=(?0.x, 1), =(?0.x, 2), AND(=(?0.x, 3), =(?0.y, 4)))");
   }
 
   /** Tests formulas of various sizes whose size is exponential when converted
