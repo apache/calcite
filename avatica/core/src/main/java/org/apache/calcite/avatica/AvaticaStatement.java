@@ -182,6 +182,7 @@ public abstract class AvaticaStatement
   protected void resetStatement() {
     // Invalidate the old statement
     connection.statementMap.remove(handle.id);
+    connection.flagMap.remove(handle.id);
     // Get a new one
     final Meta.ConnectionHandle ch = new Meta.ConnectionHandle(connection.id);
     Meta.StatementHandle h = connection.meta.createStatement(ch);
@@ -258,6 +259,7 @@ public abstract class AvaticaStatement
       } finally {
         // make sure we don't leak on our side
         connection.statementMap.remove(handle.id);
+        connection.flagMap.remove(handle.id);
       }
       // If onStatementClose throws, this method will throw an exception (later
       // converted to SQLException), but this statement still gets closed.

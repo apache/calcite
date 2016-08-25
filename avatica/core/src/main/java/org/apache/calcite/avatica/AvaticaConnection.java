@@ -91,7 +91,7 @@ public abstract class AvaticaConnection implements Connection {
   public final Map<InternalProperty, Object> properties = new HashMap<>();
   public final Map<Integer, AvaticaStatement> statementMap =
       new ConcurrentHashMap<>();
-  private final Map<Integer, AtomicBoolean> flagMap = new HashMap<>();
+  final Map<Integer, AtomicBoolean> flagMap = new ConcurrentHashMap<>();
   protected final long maxRetriesPerExecute;
 
   /**
