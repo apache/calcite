@@ -550,8 +550,14 @@ pushd ~/dist/dev
 svn co https://dist.apache.org/repos/dist/dev/calcite
 popd
 
-# Move the files into a directory
+# Replace digest files with a single digest
 cd target
+for f in *.tar.gz *.zip; do
+  rm ${f}.md5 ${f}.sha1
+  gpg --print-mds ${f} > ${f}.mds
+done
+
+# Move the files into a directory
 mkdir ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
 mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
 
