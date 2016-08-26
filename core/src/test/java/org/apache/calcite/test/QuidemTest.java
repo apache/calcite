@@ -67,6 +67,12 @@ public class QuidemTest {
     this.method = findMethod(path);
   }
 
+  /** Run a test from the command line. */
+  public static void main(String[] args) throws Exception {
+    final String path = "sql/lateral.iq";
+    new QuidemTest(path).test();
+  }
+
   private Method findMethod(String path) {
     // E.g. path "sql/agg.iq" gives method "testSqlAgg"
     String methodName =

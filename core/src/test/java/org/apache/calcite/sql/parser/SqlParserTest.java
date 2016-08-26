@@ -2734,6 +2734,67 @@ public class SqlParserTest {
             + "FROM `EMPS`))), (ROW(`EMPNO`, `NAME`))))");
   }
 
+  @Test public void testLateral() {
+    // Bad: LATERAL table
+    sql("select * from ^lateral^ emp")
+        .fails("(?s)Encountered \"lateral emp\" at .*");
+    sql("select * from lateral table ^emp^ as e")
+        .fails("(?s)Encountered \"emp\" at .*");
+
+    // Bad: LATERAL TABLE schema.table
+    sql("select * from lateral table ^scott^.emp")
+        .fails("(?s)Encountered \"scott\" at .*");
+    final String expected = "SELECT *\n"
+        + "FROM LATERAL TABLE(`RAMP`(1))";
+
+    // Good: LATERAL TABLE function(arg, arg)
+    sql("select * from lateral table(ramp(1))").ok(expected);
+    sql("select * from lateral table(ramp(1)) as t")
+        .ok(expected + " AS `T`");
+    sql("select * from lateral table(ramp(1)) as t(x)")
+        .ok(expected + " AS `T` (`X`)");
+    // Bad: Parentheses make it look like a sub-query
+    sql("select * from lateral (^table^(ramp(1)))")
+        .fails("(?s)Encountered \"table \\(\" at .*");
+
+    // Good: LATERAL (subQuery)
+    final String expected2 = "SELECT *\n"
+        + "FROM LATERAL((SELECT *\n"
+        + "FROM `EMP`))";
+    sql("select * from lateral (select * from emp)").ok(expected2);
+    sql("select * from lateral (select * from emp) as t")
+        .ok(expected2 + " AS `T`");
+    sql("select * from lateral (select * from emp) as t(x)")
+        .ok(expected2 + " AS `T` (`X`)");
+  }
+
+  @Test public void testCollectionTableWithLateral() {
+    final String sql = "select * from dept, lateral table(ramp(dept.deptno))";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`,\n"
+        + "LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCollectionTableWithLateral2() {
+    final String sql = "select * from dept as d\n"
+        + "cross join lateral table(ramp(dept.deptno)) as r";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT` AS `D`\n"
+        + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)) AS `R`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCollectionTableWithLateral3() {
+    // LATERAL before first table in FROM clause doesn't achieve anything, but
+    // it's valid.
+    final String sql = "select * from lateral table(ramp(dept.deptno)), dept";
+    final String expected = "SELECT *\n"
+        + "FROM LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)),\n"
+        + "`DEPT`";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testIllegalCursors() {
     checkFails(
         "select ^cursor^(select * from emps) from emps",

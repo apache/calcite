@@ -1749,6 +1749,7 @@ SqlNode TableRef() :
     SqlParserPos pos;
     SqlNodeList args;
     SqlNode sample;
+    boolean lateral = false;
     boolean isBernoulli;
     SqlNumericLiteral samplePercentage;
     boolean isRepeatable = false;
@@ -1775,8 +1776,7 @@ SqlNode TableRef() :
             }
         }
     |
-        { boolean isLateral = false; }
-        [<LATERAL> { isLateral = true;} ]
+        [ <LATERAL> { lateral = true; } ]
         tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
         over = TableOverOpt()
         {
@@ -1785,7 +1785,7 @@ SqlNode TableRef() :
                 tableRef = SqlStdOperatorTable.OVER.createCall(
                     pos, tableRef, over);
             }
-            if (isLateral) {
+            if (lateral) {
                 tableRef = SqlStdOperatorTable.LATERAL.createCall(
                     getPos(), tableRef);
             }
@@ -1802,10 +1802,15 @@ SqlNode TableRef() :
             tableRef = unnestOp.createCall(pos.plus(getPos()), args.toArray());
         }
     |
+        [ <LATERAL> { lateral = true; } ]
         <TABLE> { pos = getPos(); } <LPAREN>
         tableRef = TableFunctionCall(pos)
         <RPAREN>
         {
+            if (lateral) {
+                tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                    getPos(), tableRef);
+            }
         }
     |
         tableRef = ExtendedTableRef()

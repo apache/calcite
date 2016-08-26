@@ -876,7 +876,7 @@ public enum SqlKind {
       EnumSet.complementOf(
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
-                  DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND,
+                  DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,

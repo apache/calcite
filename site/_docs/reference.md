@@ -138,10 +138,11 @@ tableReference:
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
 tablePrimary:
-      [ TABLE ] [ [ catalogName . ] schemaName . ] tableName
+      [ [ catalogName . ] schemaName . ] tableName
+      '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
-  |   TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
+  |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 
 values:
       VALUES expression [, expression ]*
