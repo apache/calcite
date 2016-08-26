@@ -2734,6 +2734,14 @@ public class SqlParserTest {
             + "FROM `EMPS`))), (ROW(`EMPNO`, `NAME`))))");
   }
 
+  @Test public void testCollectionTableWithLateral() {
+    check(
+        "select * from dept, lateral table(ramp(dept.deptno))",
+        "SELECT *\n"
+                + "FROM `DEPT`,\n"
+                + "(LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`))))");
+  }
+
   @Test public void testIllegalCursors() {
     checkFails(
         "select ^cursor^(select * from emps) from emps",

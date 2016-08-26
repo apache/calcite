@@ -7042,6 +7042,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "No match found for function signature NONEXISTENTRAMP\\(<CHARACTER>\\)");
   }
 
+  @Test public void testCollectionTableWithLateral() {
+    checkResultType(
+        "select * from dept, lateral table(ramp(dept.deptno))",
+        "RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME, INTEGER NOT NULL I) NOT NULL");
+  }
+
   @Test public void testCollectionTableWithCursorParam() {
     checkResultType(
         "select * from table(dedup(cursor(select * from emp),'ename'))",

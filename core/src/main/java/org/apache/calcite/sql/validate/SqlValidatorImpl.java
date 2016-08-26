@@ -187,6 +187,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<>();
 
   /**
+   * The name-resolution scope of a LATERAL TABLE clause.
+   */
+  private SqlValidatorScope tableScope = null;
+
+  /**
    * Maps a {@link SqlNode node} to the
    * {@link SqlValidatorNamespace namespace} which describes what columns they
    * contain.
@@ -1956,6 +1961,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               this, id, extendList, enclosingNode,
               parentScope);
       registerNamespace(usingScope, alias, newNs, forceNullable);
+      if (tableScope == null) {
+        tableScope = new TableScope(parentScope, node);
+      }
+      tableScope.addChild(newNs, alias);
       return newNode;
 
     case LATERAL:
@@ -1973,7 +1982,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       operand = call.operand(0);
       newOperand =
           registerFrom(
-              parentScope,
+              tableScope == null ? parentScope : tableScope,
               usingScope,
               operand,
               enclosingNode,
@@ -1983,6 +1992,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (newOperand != operand) {
         call.setOperand(0, newOperand);
       }
+      scopes.put(node, parentScope);
       return newNode;
 
     case SELECT:

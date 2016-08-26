@@ -1802,10 +1802,16 @@ SqlNode TableRef() :
             tableRef = unnestOp.createCall(pos.plus(getPos()), args.toArray());
         }
     |
+        { boolean isLateral = false; }
+        [<LATERAL> { isLateral = true;} ]
         <TABLE> { pos = getPos(); } <LPAREN>
         tableRef = TableFunctionCall(pos)
         <RPAREN>
         {
+            if (isLateral) {
+                tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                    getPos(), tableRef);
+            }
         }
     |
         tableRef = ExtendedTableRef()

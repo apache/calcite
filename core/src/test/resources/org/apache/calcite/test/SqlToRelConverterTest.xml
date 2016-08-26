@@ -624,6 +624,32 @@ LogicalProject(I=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCollectionTableWithLateral">
+        <Resource name="sql">
+            <![CDATA[select * from dept, lateral table(ramp(dept.deptno))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[RAMP($cor0.DEPTNO)], rowType=[RecordType(INTEGER I)])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCollectionTableWithLateral2">
+        <Resource name="sql">
+            <![CDATA[select * from dept, lateral table(ramp(deptno))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[RAMP($cor0.DEPTNO)], rowType=[RecordType(INTEGER I)])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testInValueListShort">
         <Resource name="sql">
             <![CDATA[select empno from emp where deptno in (10, 20)]]>
