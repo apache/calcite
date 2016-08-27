@@ -189,7 +189,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * The name-resolution scope of a LATERAL TABLE clause.
    */
-  private SqlValidatorScope tableScope = null;
+  private TableScope tableScope = null;
 
   /**
    * Maps a {@link SqlNode node} to the
@@ -1968,6 +1968,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return newNode;
 
     case LATERAL:
+      if (tableScope != null) {
+        tableScope.meetLateral();
+      }
       return registerFrom(
           parentScope,
           usingScope,

@@ -29,6 +29,10 @@ class TableScope extends ListScope {
 
   private final SqlNode node;
 
+  // The expression inside the LATERAL can only see tables before it in the FROM clause.
+  // We use this flag to indicate whether current table is before LATERAL.
+  private boolean beforeLateral;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -39,14 +43,25 @@ class TableScope extends ListScope {
   TableScope(SqlValidatorScope parent, SqlNode node) {
     super(parent);
     this.node = node;
+    this.beforeLateral = true;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+
+  @Override public void addChild(SqlValidatorNamespace ns, String alias) {
+    if (beforeLateral) {
+      super.addChild(ns, alias);
+    }
+  }
 
   public SqlNode getNode() {
     return node;
   }
 
+  public void meetLateral() {
+    this.beforeLateral = false;
+  }
 }
 
 // End TableScope.java
