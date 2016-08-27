@@ -2735,11 +2735,30 @@ public class SqlParserTest {
   }
 
   @Test public void testCollectionTableWithLateral() {
-    check(
-        "select * from dept, lateral table(ramp(dept.deptno))",
-        "SELECT *\n"
-                + "FROM `DEPT`,\n"
-                + "(LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`))))");
+    final String sql = "select * from dept, lateral table(ramp(dept.deptno))";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`,\n"
+        + "LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCollectionTableWithLateral2() {
+    final String sql = "select * from dept as d\n"
+        + "cross join lateral table(ramp(dept.deptno)) as r";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT` AS `D`\n"
+        + "CROSS JOIN LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`))) AS `R`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCollectionTableWithLateral3() {
+    // LATERAL before first table in FROM clause doesn't achieve anything, but
+    // it's valid.
+    final String sql = "select * from lateral table(ramp(dept.deptno)), dept";
+    final String expected = "SELECT *\n"
+        + "FROM LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`))),\n"
+        + "`DEPT`";
+    sql(sql).ok(expected);
   }
 
   @Test public void testIllegalCursors() {

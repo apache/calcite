@@ -7042,10 +7042,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "No match found for function signature NONEXISTENTRAMP\\(<CHARACTER>\\)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1309">[CALCITE-1309]
+   * Support LATERAL TABLE</a>. */
   @Test public void testCollectionTableWithLateral() {
-    checkResultType(
-        "select * from dept, lateral table(ramp(dept.deptno))",
-        "RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME, INTEGER NOT NULL I) NOT NULL");
+    final String expectedType = "RecordType(INTEGER NOT NULL DEPTNO, "
+        + "VARCHAR(10) NOT NULL NAME, "
+        + "INTEGER NOT NULL I) NOT NULL";
+    sql("select * from dept, lateral table(ramp(dept.deptno))")
+        .type(expectedType);
+    sql("select * from dept cross join lateral table(ramp(dept.deptno))")
+        .type(expectedType);
+    sql("select * from dept join lateral table(ramp(dept.deptno)) on true")
+        .type(expectedType);
+
+    final String expectedType2 = "RecordType(INTEGER NOT NULL DEPTNO, "
+        + "VARCHAR(10) NOT NULL NAME, "
+        + "INTEGER I) NOT NULL";
+    sql("select * from dept left join lateral table(ramp(dept.deptno)) on true")
+        .type(expectedType2);
+
+    sql("select * from dept, lateral table(^ramp(dept.name)^)")
+        .fails("(?s)Cannot apply 'RAMP' to arguments of type 'RAMP\\(<VARCHAR\\(10\\)>\\)'.*");
+
+    sql("select * from lateral table(ramp(^dept^.deptno)), dept")
+        .fails("Table 'DEPT' not found");
+    final String expectedType3 = "RecordType(INTEGER NOT NULL I, "
+        + "INTEGER NOT NULL DEPTNO, "
+        + "VARCHAR(10) NOT NULL NAME) NOT NULL";
+    sql("select * from lateral table(ramp(1234)), dept")
+        .type(expectedType3);
+  }
+
+  @Test public void testCollectionTableWithLateral2() {
+    // The expression inside the LATERAL can only see tables before it in the
+    // FROM clause. And it can't see itself.
+    sql("select * from emp, lateral table(ramp(emp.deptno)), dept")
+        .ok();
+    sql("select * from emp, lateral table(ramp(^z^.i)) as z, dept")
+        .fails("Table 'Z' not found");
+    sql("select * from emp, lateral table(ramp(^dept^.deptno)), dept")
+        .fails("Table 'DEPT' not found");
   }
 
   @Test public void testCollectionTableWithCursorParam() {

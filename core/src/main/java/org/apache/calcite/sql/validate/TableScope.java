@@ -19,12 +19,12 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.sql.SqlNode;
 
 /**
- * The name-resolution scope of a LATERAL TABLE clause. The objects visible are those in
- * the parameters found on the left side of the LATERAL TABLE clause, and objects
- * inherited from the parent scope.
+ * The name-resolution scope of a LATERAL TABLE clause.
  *
+ * <p>The objects visible are those in the parameters found on the left side of
+ * the LATERAL TABLE clause, and objects inherited from the parent scope.
  */
-public class TableScope extends ListScope {
+class TableScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlNode node;
@@ -36,9 +36,7 @@ public class TableScope extends ListScope {
    *
    * @param parent   Parent scope, or null
    */
-  TableScope(
-      SqlValidatorScope parent,
-      SqlNode node) {
+  TableScope(SqlValidatorScope parent, SqlNode node) {
     super(parent);
     this.node = node;
   }
