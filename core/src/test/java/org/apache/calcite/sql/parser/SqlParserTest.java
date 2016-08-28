@@ -2738,7 +2738,7 @@ public class SqlParserTest {
     final String sql = "select * from dept, lateral table(ramp(dept.deptno))";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`,\n"
-        + "LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`)))";
+        + "LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`))";
     sql(sql).ok(expected);
   }
 
@@ -2747,7 +2747,7 @@ public class SqlParserTest {
         + "cross join lateral table(ramp(dept.deptno)) as r";
     final String expected = "SELECT *\n"
         + "FROM `DEPT` AS `D`\n"
-        + "CROSS JOIN LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`))) AS `R`";
+        + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)) AS `R`";
     sql(sql).ok(expected);
   }
 
@@ -2756,7 +2756,7 @@ public class SqlParserTest {
     // it's valid.
     final String sql = "select * from lateral table(ramp(dept.deptno)), dept";
     final String expected = "SELECT *\n"
-        + "FROM LATERAL(TABLE(`RAMP`(`DEPT`.`DEPTNO`))),\n"
+        + "FROM LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)),\n"
         + "`DEPT`";
     sql(sql).ok(expected);
   }

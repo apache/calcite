@@ -26,9 +26,9 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFilterOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlFunctionalOperator;
 import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
@@ -993,7 +993,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The <code>LATERAL</code> operator.
    */
   public static final SqlSpecialOperator LATERAL =
-      new SqlFunctionalOperator(
+      new SqlLateralOperator(
           "LATERAL",
           SqlKind.LATERAL,
           200,
