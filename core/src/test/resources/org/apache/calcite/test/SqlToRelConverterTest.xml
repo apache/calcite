@@ -3404,12 +3404,14 @@ from (select min(deptno) as x,
         <Resource name="plan">
             <![CDATA[
 LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3])
-  LogicalJoin(condition=[AND(=($0, $10), =($1, $3))], joinType=[inner])
-    LogicalProject(X=[$2], Y=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], Z=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
-      LogicalAggregate(group=[{0, 1}], X=[MIN($0)])
-        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], SLACKER=[$11])
+    LogicalJoin(condition=[AND(=($0, $10), =($1, $12))], joinType=[inner])
+      LogicalProject(X=[$2], Y=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], Z=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+        LogicalAggregate(group=[{0, 1}], X=[MIN($0)])
+          LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[CAST($0):BIGINT NOT NULL])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

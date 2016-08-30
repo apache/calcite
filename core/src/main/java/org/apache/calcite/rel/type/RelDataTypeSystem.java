@@ -74,6 +74,16 @@ public interface RelDataTypeSystem {
    */
   RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType);
 
+  /**
+   * Returns the return type of CUME_DIST/PERCENT_RANK function
+   */
+  RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory);
+
+  /**
+   * Returns the return type of NTILE/RANK/DENSE_RANK/ROW_NUMBER function
+   */
+  RelDataType deriveRankType(RelDataTypeFactory typeFactory);
+
   /** Whether two record types are considered distinct if their field names
    * are the same but in different cases. */
   boolean isSchemaCaseSensitive();

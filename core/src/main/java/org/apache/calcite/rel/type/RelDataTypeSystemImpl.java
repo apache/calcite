@@ -212,6 +212,16 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return argumentType;
   }
 
+  @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.DOUBLE), false);
+  }
+
+  @Override public RelDataType deriveRankType(RelDataTypeFactory typeFactory) {
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.BIGINT), false);
+  }
+
   public boolean isSchemaCaseSensitive() {
     return true;
   }
