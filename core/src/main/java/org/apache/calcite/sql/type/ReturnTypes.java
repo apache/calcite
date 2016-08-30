@@ -785,6 +785,32 @@ public abstract class ReturnTypes {
               .deriveSumType(typeFactory, opBinding.getOperandType(0));
         }
       };
+
+  /**
+   * Type-inference strategy for the {@code CUME_DIST} and {@code PERCENT_RANK}
+   * aggregate functions.
+   */
+  public static final SqlReturnTypeInference FRACTIONAL_RANK =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.getTypeSystem().deriveFractionalRankType(typeFactory);
+        }
+      };
+
+  /**
+   * Type-inference strategy for the {@code NTILE}, {@code RANK},
+   * {@code DENSE_RANK}, and {@code ROW_NUMBER} aggregate functions.
+   */
+  public static final SqlReturnTypeInference RANK =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.getTypeSystem().deriveRankType(typeFactory);
+        }
+      };
 }
 
 // End ReturnTypes.java
