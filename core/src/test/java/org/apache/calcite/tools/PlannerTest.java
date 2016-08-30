@@ -267,7 +267,7 @@ public class PlannerTest {
 
   /** Helper method for testing {@link RelMetadataQuery#getPulledUpPredicates}
    * metadata. */
-  private void checkMetadataUnionPredicates(String sql,
+  private void checkMetadataPredicates(String sql,
       String expectedPredicates) throws Exception {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse(sql);
@@ -281,7 +281,7 @@ public class PlannerTest {
 
   /** Tests predicates that can be pulled-up from a UNION. */
   @Test public void testMetadataUnionPredicates() throws Exception {
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"empid\" > 2",
@@ -292,7 +292,7 @@ public class PlannerTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
   @Test public void testMetadataUnionPredicates2() throws Exception {
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\"",
@@ -302,7 +302,7 @@ public class PlannerTest {
   @Test public void testMetadataUnionPredicates3() throws Exception {
     // The result [OR(<($1, 10), AND(<($1, 10), >($0, 1)))]
     // could be simplified to [<($1, 10)] but is nevertheless correct.
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 and \"empid\" > 1",
@@ -310,11 +310,25 @@ public class PlannerTest {
   }
 
   @Test public void testMetadataUnionPredicates4() throws Exception {
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 or \"empid\" > 1",
         "[OR(<($1, 10), >($0, 1))]");
+  }
+
+  /** Tests predicates that can be pulled-up from an AGGREGATE. */
+  @Test public void testMetadataAggregatePredicates() throws Exception {
+    checkMetadataPredicates(
+        "select count(*) from \"emps\" where false",
+        "[]");
+  }
+
+  /** Tests predicates that can be pulled-up from an AGGREGATE. */
+  @Test public void testMetadataAggregatePredicates2() throws Exception {
+    checkMetadataPredicates(
+        "select \"deptno\", count(\"deptno\") from \"emps\" where false group by \"deptno\"",
+        "[false]");
   }
 
   /** Unit test that parses, validates, converts and plans. */

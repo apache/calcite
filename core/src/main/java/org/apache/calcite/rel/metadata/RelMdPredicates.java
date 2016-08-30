@@ -285,6 +285,10 @@ public class RelMdPredicates
     final List<RexNode> aggPullUpPredicates = new ArrayList<>();
 
     ImmutableBitSet groupKeys = agg.getGroupSet();
+    if (groupKeys.isEmpty()) {
+      // We do not have grouping keys, we cannot pull up any predicate
+      return RelOptPredicateList.EMPTY;
+    }
     Mapping m = Mappings.create(MappingType.PARTIAL_FUNCTION,
         input.getRowType().getFieldCount(), agg.getRowType().getFieldCount());
 
