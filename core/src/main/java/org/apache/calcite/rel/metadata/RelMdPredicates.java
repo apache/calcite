@@ -287,6 +287,13 @@ public class RelMdPredicates
     final List<RexNode> aggPullUpPredicates = new ArrayList<>();
 
     ImmutableBitSet groupKeys = agg.getGroupSet();
+    if (groupKeys.isEmpty()) {
+      // "GROUP BY ()" can convert an empty relation to a non-empty relation, so
+      // it is not valid to pull up predicates. In particular, consider the
+      // predicate "false": it is valid on all input rows (trivially - there are
+      // no rows!) but not on the output (there is one row).
+      return RelOptPredicateList.EMPTY;
+    }
     Mapping m = Mappings.create(MappingType.PARTIAL_FUNCTION,
         input.getRowType().getFieldCount(), agg.getRowType().getFieldCount());
 

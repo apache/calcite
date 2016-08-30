@@ -267,7 +267,7 @@ public class PlannerTest {
 
   /** Helper method for testing {@link RelMetadataQuery#getPulledUpPredicates}
    * metadata. */
-  private void checkMetadataUnionPredicates(String sql,
+  private void checkMetadataPredicates(String sql,
       String expectedPredicates) throws Exception {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse(sql);
@@ -281,7 +281,7 @@ public class PlannerTest {
 
   /** Tests predicates that can be pulled-up from a UNION. */
   @Test public void testMetadataUnionPredicates() throws Exception {
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"empid\" > 2",
@@ -292,7 +292,7 @@ public class PlannerTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
   @Test public void testMetadataUnionPredicates2() throws Exception {
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\"",
@@ -302,7 +302,7 @@ public class PlannerTest {
   @Test public void testMetadataUnionPredicates3() throws Exception {
     // The result is [OR(<($1, 10), AND(<($1, 10), >($0, 1)))]
     // which can be simplified to [<($1, 10)].
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 and \"empid\" > 1",
@@ -310,11 +310,44 @@ public class PlannerTest {
   }
 
   @Test public void testMetadataUnionPredicates4() throws Exception {
-    checkMetadataUnionPredicates(
+    checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 or \"empid\" > 1",
         "[OR(<($1, 10), <($1, 10), >($0, 1))]");
+  }
+
+  @Test public void testMetadataUnionPredicates5() throws Exception {
+    final String sql = "select * from \"emps\" where \"deptno\" < 10\n"
+        + "union all\n"
+        + "select * from \"emps\" where \"deptno\" < 10 and false";
+    checkMetadataPredicates(sql, "[<($1, 10)]");
+  }
+
+  /** Tests predicates that can be pulled-up from an Aggregate with
+   * {@code GROUP BY ()}. This form of Aggregate can convert an empty relation
+   * to a single-row relation, so it is not valid to pull up the predicate
+   * {@code false}. */
+  @Test public void testMetadataAggregatePredicates() throws Exception {
+    checkMetadataPredicates("select count(*) from \"emps\" where false",
+        "[]");
+  }
+
+  /** Tests predicates that can be pulled-up from an Aggregate with a non-empty
+   * group key. The {@code false} predicate effectively means that the relation
+   * is empty, because no row can satisfy {@code false}. */
+  @Test public void testMetadataAggregatePredicates2() throws Exception {
+    final String sql = "select \"deptno\", count(\"deptno\")\n"
+        + "from \"emps\" where false\n"
+        + "group by \"deptno\"";
+    checkMetadataPredicates(sql, "[false]");
+  }
+
+  @Test public void testMetadataAggregatePredicates3() throws Exception {
+    final String sql = "select \"deptno\", count(\"deptno\")\n"
+        + "from \"emps\" where \"deptno\" > 10\n"
+        + "group by \"deptno\"";
+    checkMetadataPredicates(sql, "[>($0, 10)]");
   }
 
   /** Unit test that parses, validates, converts and plans. */
