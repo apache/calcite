@@ -300,13 +300,13 @@ public class PlannerTest {
   }
 
   @Test public void testMetadataUnionPredicates3() throws Exception {
-    // The result [OR(<($1, 10), AND(<($1, 10), >($0, 1)))]
-    // could be simplified to [<($1, 10)] but is nevertheless correct.
+    // The result is [OR(<($1, 10), AND(<($1, 10), >($0, 1)))]
+    // which can be simplified to [<($1, 10)].
     checkMetadataUnionPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 and \"empid\" > 1",
-        "[OR(<($1, 10), AND(<($1, 10), >($0, 1)))]");
+        "[<($1, 10), OR(true, >($0, 1))]");
   }
 
   @Test public void testMetadataUnionPredicates4() throws Exception {
@@ -314,7 +314,7 @@ public class PlannerTest {
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 or \"empid\" > 1",
-        "[OR(<($1, 10), >($0, 1))]");
+        "[OR(<($1, 10), <($1, 10), >($0, 1))]");
   }
 
   /** Unit test that parses, validates, converts and plans. */
