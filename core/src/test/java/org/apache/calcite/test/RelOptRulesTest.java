@@ -80,6 +80,7 @@ import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.TableScanRule;
+import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1653,6 +1654,46 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPullConstantThroughAggregateAllLiterals()
       throws Exception {
     basePullConstantTroughAggregate();
+  }
+
+  @Test public void testPullConstantThroughUnion()
+      throws Exception {
+    HepProgram preProgram = HepProgram.builder().build();
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final String sql = "select 2, deptno, job from emp as e1\n"
+        + "union all\n"
+        + "select 2, deptno, job from emp as e2";
+    checkPlanning(tester.withTrim(true), preProgram, new HepPlanner(program), sql);
+  }
+
+  @Test public void testPullConstantThroughUnion2()
+      throws Exception {
+    // Negative test: constants should not be pulled up
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final String sql = "select 2, deptno, job from emp as e1\n"
+        + "union all\n"
+        + "select 1, deptno, job from emp as e2";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  @Test public void testPullConstantThroughUnion3()
+      throws Exception {
+    // We should leave at least a single column in each Union input
+    HepProgram preProgram = HepProgram.builder().build();
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final String sql = "select 2, 3 from emp as e1\n"
+        + "union all\n"
+        + "select 2, 3 from emp as e2";
+    checkPlanning(tester.withTrim(true), preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testAggregateProjectMerge() throws Exception {

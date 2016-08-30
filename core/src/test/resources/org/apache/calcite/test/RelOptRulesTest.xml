@@ -2034,6 +2034,78 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPullConstantThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select 2, deptno, job from emp as e1
+union all
+select 2, deptno, job from emp as e2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$1], JOB=[$0])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$1], JOB=[$0])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[2], DEPTNO=[$0], JOB=[$1])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantThroughUnion2">
+        <Resource name="sql">
+            <![CDATA[select 2, deptno, job from emp as e1
+union all
+select 1, deptno, job from emp as e2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[1], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantThroughUnion3">
+        <Resource name="sql">
+            <![CDATA[select 2, 3 from emp as e1
+union all
+select 2, 3 from emp as e2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], EXPR$1=[3])
+    LogicalProject(DUMMY=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[2], EXPR$1=[3])
+    LogicalProject(DUMMY=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[2], EXPR$1=[3])
+  LogicalUnion(all=[true])
+    LogicalProject(EXPR$0=[2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testConvertMultiJoinRule">
         <Resource name="sql">
             <![CDATA[select e1.ename from emp e1, dept d, emp e2 where e1.deptno = d.deptno and d.deptno = e2.deptno]]>

@@ -63,10 +63,12 @@ import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -305,27 +307,55 @@ public class RelMdPredicates
 
   /**
    * Infers predicates for a Union.
-   *
-   * <p>The pulled up expression is a disjunction of its children's predicates.
    */
   public RelOptPredicateList getPredicates(Union union, RelMetadataQuery mq) {
     RexBuilder rB = union.getCluster().getRexBuilder();
-    List<RexNode> orList = Lists.newArrayList();
-    for (RelNode input : union.getInputs()) {
+
+    Map<String, RexNode> finalPreds = new HashMap<>();
+    List<RexNode> finalResidualPreds = new ArrayList<>();
+    for (int i = 0; i < union.getInputs().size(); i++) {
+      RelNode input = union.getInputs().get(i);
       RelOptPredicateList info = mq.getPulledUpPredicates(input);
       if (info.pulledUpPredicates.isEmpty()) {
         return RelOptPredicateList.EMPTY;
       }
-      RelOptUtil.decomposeDisjunction(
-          RexUtil.composeConjunction(rB, info.pulledUpPredicates, false),
-          orList);
+      Map<String, RexNode> preds = new HashMap<>();
+      List<RexNode> residualPreds = new ArrayList<>();
+      for (RexNode pred : info.pulledUpPredicates) {
+        final String predDigest = pred.toString();
+        if (i == 0) {
+          preds.put(predDigest, pred);
+          continue;
+        }
+        if (finalPreds.containsKey(predDigest)) {
+          preds.put(predDigest, pred);
+        } else {
+          residualPreds.add(pred);
+        }
+      }
+      // Add new residual preds
+      finalResidualPreds.add(RexUtil.composeConjunction(rB, residualPreds, false));
+      // Add those that are not part of the final set to residual
+      for (Entry<String, RexNode> e : finalPreds.entrySet()) {
+        if (!preds.containsKey(e.getKey())) {
+          // This node was in previous union inputs, but it is not in this one
+          for (int j = 0; j < i; j++) {
+            finalResidualPreds.set(j,
+                RexUtil.composeConjunction(rB,
+                    Lists.newArrayList(finalResidualPreds.get(j), e.getValue()), false));
+          }
+        }
+      }
+      // Final preds
+      finalPreds = preds;
     }
 
-    if (orList.isEmpty()) {
-      return RelOptPredicateList.EMPTY;
+    List<RexNode> preds = new ArrayList<>(finalPreds.values());
+    RexNode disjPred = RexUtil.composeDisjunction(rB, finalResidualPreds, false);
+    if (!disjPred.isAlwaysFalse()) {
+      preds.add(disjPred);
     }
-    return RelOptPredicateList.of(
-        RelOptUtil.conjunctions(RexUtil.composeDisjunction(rB, orList, false)));
+    return RelOptPredicateList.of(preds);
   }
 
   /**
