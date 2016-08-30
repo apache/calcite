@@ -119,11 +119,10 @@ public class UnionPullUpConstantsRule extends RelOptRule {
     for (int i = 0; i < union.getInputs().size(); i++) {
       RelNode input = union.getInput(i);
       List<Pair<RexNode, String>> newChildExprs = new ArrayList<>();
-      for (int j = 0; j < refsIndex.cardinality(); j++) {
-        int pos = refsIndex.nth(j);
+      for (int j : refsIndex) {
         newChildExprs.add(
-                Pair.<RexNode, String>of(rexBuilder.makeInputRef(input, pos),
-                        input.getRowType().getFieldList().get(pos).getName()));
+                Pair.<RexNode, String>of(rexBuilder.makeInputRef(input, j),
+                        input.getRowType().getFieldList().get(j).getName()));
       }
       if (newChildExprs.isEmpty()) {
         // At least a single item in project is required.

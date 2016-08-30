@@ -1671,6 +1671,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testPullConstantThroughUnion2()
       throws Exception {
+    // Negative test: constants should not be pulled up
     HepProgram program = HepProgram.builder()
         .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
         .addRuleInstance(ProjectMergeRule.INSTANCE)
@@ -1679,6 +1680,20 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "  union all"
         + " select 1, deptno, job from emp as e2";
     checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  @Test public void testPullConstantThroughUnion3()
+      throws Exception {
+    // We should leave at least a single column in each Union input
+    HepProgram preProgram = HepProgram.builder().build();
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final String sql = "select 2, 3 from emp as e1"
+        + "  union all"
+        + " select 2, 3 from emp as e2";
+    checkPlanning(tester.withTrim(true), preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testAggregateProjectMerge() throws Exception {
