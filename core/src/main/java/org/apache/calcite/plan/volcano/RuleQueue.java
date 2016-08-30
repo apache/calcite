@@ -28,6 +28,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 
 import org.slf4j.Logger;
 
@@ -35,7 +36,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -100,8 +100,8 @@ class RuleQueue {
   /**
    * Compares relexps according to their cached 'importance'.
    */
-  private final Comparator<RelSubset> relImportanceComparator =
-      new RelImportanceComparator();
+  private final Ordering<RelSubset> relImportanceOrdering =
+      Ordering.from(new RelImportanceComparator());
 
   /**
    * Maps a {@link VolcanoPlannerPhase} to a set of rule names.  Named rules
@@ -413,14 +413,9 @@ class RuleQueue {
   private void dump(PrintWriter pw) {
     planner.dump(pw);
     pw.print("Importances: {");
-    final RelSubset[] subsets =
-        subsetImportances.keySet().toArray(
-            new RelSubset[subsetImportances.keySet().size()]);
-    Arrays.sort(subsets, relImportanceComparator);
-    for (RelSubset subset : subsets) {
-      pw.print(
-          " " + subset.toString() + "="
-          + subsetImportances.get(subset));
+    for (RelSubset subset
+        : relImportanceOrdering.sortedCopy(subsetImportances.keySet())) {
+      pw.print(" " + subset.toString() + "=" + subsetImportances.get(subset));
     }
     pw.println("}");
   }

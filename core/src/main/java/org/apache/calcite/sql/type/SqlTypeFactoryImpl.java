@@ -357,7 +357,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
             RelDataType type1 = types.get(i + 1);
             if (SqlTypeUtil.isDatetime(type1)) {
               resultType = type1;
-              return resultType;
+              return createTypeWithNullability(resultType,
+                  nullCount > 0 || nullableCount > 0);
             }
           }
           if (!type.equals(resultType)) {
@@ -438,7 +439,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           RelDataType type1 = types.get(i + 1);
           if (SqlTypeUtil.isDatetime(type1)) {
             resultType = type1;
-            return resultType;
+            return createTypeWithNullability(resultType,
+                nullCount > 0 || nullableCount > 0);
           }
         }
 
@@ -463,7 +465,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           if (SqlTypeUtil.isInterval(type1)
               || SqlTypeUtil.isIntType(type1)) {
             resultType = type;
-            return resultType;
+            return createTypeWithNullability(resultType,
+                nullCount > 0 || nullableCount > 0);
           }
         }
       } else {

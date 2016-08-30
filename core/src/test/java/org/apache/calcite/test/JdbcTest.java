@@ -4614,7 +4614,7 @@ public class JdbcTest {
 
   @Test public void testNotExistsCorrelated() {
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NOT NULL($t5)], expr#7=[true], expr#8=[false], expr#9=[CASE($t6, $t7, $t8)], expr#10=[NOT($t9)], proj#0..4=[{exprs}], $condition=[$t10])\n"
+        + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
         + "  EnumerableCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{1}])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableAggregate(group=[{0}])\n"

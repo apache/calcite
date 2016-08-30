@@ -87,6 +87,7 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -94,7 +95,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1344,9 +1344,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     pw.println("Original rel:");
     pw.println(originalRootString);
     pw.println("Sets:");
-    RelSet[] sets = allSets.toArray(new RelSet[allSets.size()]);
-    Arrays.sort(
-        sets,
+    Ordering<RelSet> ordering = Ordering.from(
         new Comparator<RelSet>() {
           public int compare(
               RelSet o1,
@@ -1354,7 +1352,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             return o1.id - o2.id;
           }
         });
-    for (RelSet set : sets) {
+    for (RelSet set : ordering.immutableSortedCopy(allSets)) {
       pw.println("Set#" + set.id
           + ", type: " + set.subsets.get(0).getRowType());
       int j = -1;

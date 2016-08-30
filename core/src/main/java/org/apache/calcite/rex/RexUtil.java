@@ -837,23 +837,23 @@ public class RexUtil {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     final Set<String> digests = Sets.newHashSet(); // to eliminate duplicates
     for (RexNode node : nodes) {
-      if (node != null && digests.add(node.toString())) {
-        addAnd(builder, node);
+      if (node != null) {
+        addAnd(builder, digests, node);
       }
     }
     return builder.build();
   }
 
   private static void addAnd(ImmutableList.Builder<RexNode> builder,
-      RexNode node) {
+      Set<String> digests, RexNode node) {
     switch (node.getKind()) {
     case AND:
       for (RexNode operand : ((RexCall) node).getOperands()) {
-        addAnd(builder, operand);
+        addAnd(builder, digests, operand);
       }
       return;
     default:
-      if (!node.isAlwaysTrue()) {
+      if (!node.isAlwaysTrue() && digests.add(node.toString())) {
         builder.add(node);
       }
     }
@@ -891,23 +891,21 @@ public class RexUtil {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     final Set<String> digests = Sets.newHashSet(); // to eliminate duplicates
     for (RexNode node : nodes) {
-      if (digests.add(node.toString())) {
-        addOr(builder, node);
-      }
+      addOr(builder, digests, node);
     }
     return builder.build();
   }
 
   private static void addOr(ImmutableList.Builder<RexNode> builder,
-      RexNode node) {
+      Set<String> digests, RexNode node) {
     switch (node.getKind()) {
     case OR:
       for (RexNode operand : ((RexCall) node).getOperands()) {
-        addOr(builder, operand);
+        addOr(builder, digests, operand);
       }
       return;
     default:
-      if (!node.isAlwaysFalse()) {
+      if (!node.isAlwaysFalse() && digests.add(node.toString())) {
         builder.add(node);
       }
     }
@@ -1446,10 +1444,18 @@ public class RexUtil {
     for (RexNode e : nodes) {
       RelOptUtil.decomposeConjunction(e, terms, notTerms);
     }
+    simplifyList(rexBuilder, terms);
+    simplifyList(rexBuilder, notTerms);
     if (unknownAsFalse) {
       return simplifyAnd2ForUnknownAsFalse(rexBuilder, terms, notTerms);
     }
     return simplifyAnd2(rexBuilder, terms, notTerms);
+  }
+
+  private static void simplifyList(RexBuilder rexBuilder, List<RexNode> terms) {
+    for (int i = 0; i < terms.size(); i++) {
+      terms.set(i, simplify(rexBuilder, terms.get(i)));
+    }
   }
 
   private static RexNode simplifyNot(RexBuilder rexBuilder, RexCall call) {
@@ -1716,6 +1722,8 @@ public class RexUtil {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
     RelOptUtil.decomposeConjunction(e, terms, notTerms);
+    simplifyList(rexBuilder, terms);
+    simplifyList(rexBuilder, notTerms);
     if (unknownAsFalse) {
       return simplifyAnd2ForUnknownAsFalse(rexBuilder, terms, notTerms);
     }
@@ -1976,8 +1984,15 @@ public class RexUtil {
   public static RexNode simplifyOr(RexBuilder rexBuilder, RexCall call) {
     assert call.getKind() == SqlKind.OR;
     final List<RexNode> terms = RelOptUtil.disjunctions(call);
+    return simplifyOrs(rexBuilder, terms);
+  }
+
+  /** Simplifies a list of terms and combines them into an OR.
+   * Modifies the list in place. */
+  public static RexNode simplifyOrs(RexBuilder rexBuilder,
+      List<RexNode> terms) {
     for (int i = 0; i < terms.size(); i++) {
-      final RexNode term = terms.get(i);
+      final RexNode term = simplify(rexBuilder, terms.get(i));
       switch (term.getKind()) {
       case LITERAL:
         if (!RexLiteral.isNullLiteral(term)) {
@@ -1986,9 +2001,11 @@ public class RexUtil {
           } else {
             terms.remove(i);
             --i;
+            continue;
           }
         }
       }
+      terms.set(i, term);
     }
     return composeDisjunction(rexBuilder, terms, false);
   }

@@ -358,7 +358,7 @@ public class RelMdPredicates
     }
 
     List<RexNode> preds = new ArrayList<>(finalPreds.values());
-    RexNode disjPred = RexUtil.composeDisjunction(rB, finalResidualPreds, false);
+    RexNode disjPred = RexUtil.simplifyOrs(rB, finalResidualPreds);
     if (!disjPred.isAlwaysTrue()) {
       preds.add(disjPred);
     }

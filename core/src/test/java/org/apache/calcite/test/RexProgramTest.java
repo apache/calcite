@@ -103,9 +103,28 @@ public class RexProgramTest {
         equalTo(expected));
   }
 
+  /** Simplifies an expression and checks that the result is as expected. */
   private void checkSimplify(RexNode node, String expected) {
+    checkSimplify2(node, expected, expected);
+  }
+
+  /** Simplifies an expression and checks the result if unknowns remain
+   * unknown, or if unknown becomes false. If the result is the same, use
+   * {@link #checkSimplify(RexNode, String)}.
+   *
+   * @param node Expression to simplify
+   * @param expected Expected simplification
+   * @param expectedFalse Expected simplification, if unknown is to be treated
+   *     as false
+   */
+  private void checkSimplify2(RexNode node, String expected,
+      String expectedFalse) {
     assertThat(RexUtil.simplify(rexBuilder, node).toString(),
         equalTo(expected));
+    if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+      assertThat(RexUtil.simplify(rexBuilder, node, true).toString(),
+          equalTo(expectedFalse));
+    }
   }
 
   private void checkSimplifyFilter(RexNode node, String expected) {
@@ -868,9 +887,10 @@ public class RexProgramTest {
         case_(aRef, literal1, bRef, literal1, cRef, literal1, dRef, literal1, literal1), "1");
 
     // case: trailing false and null, no simplification
-    checkSimplify(
+    checkSimplify2(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, unknownLiteral),
-            "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)");
+        "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)",
+        "CAST(OR(?0.a, ?0.b)):BOOLEAN");
 
     // case: form an AND of branches that return true
     checkSimplify(
@@ -896,14 +916,35 @@ public class RexProgramTest {
         "true");
 
     // condition, and the inverse - nothing to do due to null values
-    checkSimplify(and(le(aRef, literal1), gt(aRef, literal1)),
-        "AND(<=(?0.a, 1), >(?0.a, 1))");
+    checkSimplify2(and(le(aRef, literal1), gt(aRef, literal1)),
+        "AND(<=(?0.a, 1), >(?0.a, 1))",
+        "false");
 
     checkSimplify(and(le(aRef, literal1), ge(aRef, literal1)),
         "AND(<=(?0.a, 1), >=(?0.a, 1))");
 
-    checkSimplify(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
-        "AND(<(?0.a, 1), =(?0.a, 1), >=(?0.a, 1))");
+    checkSimplify2(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
+        "AND(<(?0.a, 1), =(?0.a, 1), >=(?0.a, 1))",
+        "false");
+
+    checkSimplify(and(lt(aRef, literal1), or(falseLiteral, falseLiteral)),
+        "false");
+    checkSimplify(and(lt(aRef, literal1), or(falseLiteral, gt(bRef, cRef))),
+        "AND(<(?0.a, 1), >(?0.b, ?0.c))");
+    checkSimplify(or(lt(aRef, literal1), and(trueLiteral, trueLiteral)),
+        "true");
+    checkSimplify(
+        or(lt(aRef, literal1),
+            and(trueLiteral, or(trueLiteral, falseLiteral))),
+        "true");
+    checkSimplify(
+        or(lt(aRef, literal1),
+            and(trueLiteral, and(trueLiteral, falseLiteral))),
+        "<(?0.a, 1)");
+    checkSimplify(
+        or(lt(aRef, literal1),
+            and(trueLiteral, or(falseLiteral, falseLiteral))),
+        "<(?0.a, 1)");
   }
 
   @Test public void testSimplifyFilter() {

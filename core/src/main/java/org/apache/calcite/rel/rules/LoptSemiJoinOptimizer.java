@@ -34,11 +34,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -78,8 +79,8 @@ public class LoptSemiJoinOptimizer {
    */
   private Map<Integer, Map<Integer, SemiJoin>> possibleSemiJoins;
 
-  private final Comparator<Integer> factorCostComparator =
-      new FactorCostComparator();
+  private final Ordering<Integer> factorCostOrdering =
+      Ordering.from(new FactorCostComparator());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -528,17 +529,14 @@ public class LoptSemiJoinOptimizer {
     // sort the join factors based on the cost of each factor filtered by
     // semijoins, if semijoins have been chosen
     int nJoinFactors = multiJoin.getNumJoinFactors();
-    Integer [] sortedFactors = new Integer[nJoinFactors];
-    for (int i = 0; i < nJoinFactors; i++) {
-      sortedFactors[i] = i;
-    }
-    Arrays.sort(sortedFactors, factorCostComparator);
+    List<Integer> sortedFactors =
+        factorCostOrdering.immutableSortedCopy(Util.range(nJoinFactors));
 
     // loop through the factors in sort order, treating the factor as
     // a fact table; analyze the possible semijoins associated with
     // that fact table
     for (int i = 0; i < nJoinFactors; i++) {
-      Integer factIdx = sortedFactors[i];
+      Integer factIdx = sortedFactors.get(i);
       RelNode factRel = chosenSemiJoins[factIdx];
       Map<Integer, SemiJoin> possibleDimensions =
           possibleSemiJoins.get(factIdx);
