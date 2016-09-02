@@ -33,7 +33,11 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSumAggFunction;
+import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -54,6 +58,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
@@ -85,7 +90,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
   public static final AggregateExpandDistinctAggregatesRule JOIN =
       new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, false,
           RelFactories.LOGICAL_BUILDER);
-  public static final BigDecimal TWO = BigDecimal.valueOf(2L);
+
+  private static final BigDecimal TWO = BigDecimal.valueOf(2L);
 
   public final boolean useGroupingSets;
 
@@ -125,12 +131,24 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     // Find all of the agg expressions. We use a LinkedHashSet to ensure
     // determinism.
     int nonDistinctCount = 0;
+    int distinctCount = 0;
+    int filterCount = 0;
+    int unsupportedAggCount = 0;
     final Set<Pair<List<Integer>, Integer>> argLists = new LinkedHashSet<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      if (aggCall.filterArg >= 0) {
+        ++filterCount;
+      }
       if (!aggCall.isDistinct()) {
         ++nonDistinctCount;
+        if (!(aggCall.getAggregation() instanceof SqlCountAggFunction
+              || aggCall.getAggregation() instanceof SqlSumAggFunction
+              || aggCall.getAggregation() instanceof SqlMinMaxAggFunction)) {
+          ++unsupportedAggCount;
+        }
         continue;
       }
+      ++distinctCount;
       argLists.add(Pair.of(aggCall.getArgList(), aggCall.filterArg));
     }
     Preconditions.checkState(argLists.size() > 0, "containsDistinctCall lied");
@@ -148,6 +166,18 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     if (useGroupingSets) {
       rewriteUsingGroupingSets(call, aggregate, argLists);
+      return;
+    }
+
+    // If only one distinct aggregate and one or more non-distinct aggregates,
+    // we can generate multi-phase aggregates
+    if (distinctCount == 1 // one distinct aggregate
+        && filterCount == 0 // no filter
+        && unsupportedAggCount == 0 // sum/min/max/count in non-distinct aggregate
+        && nonDistinctCount > 0) { // one or more non-distinct aggregates
+      final RelBuilder relBuilder = call.builder();
+      convertSingletonDistinct(relBuilder, aggregate, argLists);
+      call.transformTo(relBuilder.build());
       return;
     }
 
@@ -203,6 +233,183 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 
+  /**
+   * Converts an aggregate with one distinct aggregate and one or more
+   * non-distinct aggregates to multi-phase aggregates (see reference example
+   * below).
+   *
+   * @param relBuilder Contains the input relational expression
+   * @param aggregate  Original aggregate
+   * @param argLists   Arguments and filters to the distinct aggregate function
+   *
+   */
+  private RelBuilder convertSingletonDistinct(RelBuilder relBuilder,
+      Aggregate aggregate, Set<Pair<List<Integer>, Integer>> argLists) {
+    // For example,
+    //    SELECT deptno, COUNT(*), SUM(bonus), MIN(DISTINCT sal)
+    //    FROM emp
+    //    GROUP BY deptno
+    //
+    // becomes
+    //
+    //    SELECT deptno, SUM(cnt), SUM(bonus), MIN(sal)
+    //    FROM (
+    //          SELECT deptno, COUNT(*) as cnt, SUM(bonus), sal
+    //          FROM EMP
+    //          GROUP BY deptno, sal)            // Aggregate B
+    //    GROUP BY deptno                        // Aggregate A
+    relBuilder.push(aggregate.getInput());
+    final List<Pair<RexNode, String>> projects = new ArrayList<>();
+    final Map<Integer, Integer> sourceOf = new HashMap<>();
+    SortedSet<Integer> newGroupSet = new TreeSet<>();
+    final List<RelDataTypeField> childFields =
+        relBuilder.peek().getRowType().getFieldList();
+    final boolean hasGroupBy = aggregate.getGroupSet().size() > 0;
+
+    // Add the distinct aggregate column(s) to the group-by columns,
+    // if not already a part of the group-by
+    newGroupSet.addAll(aggregate.getGroupSet().asList());
+    for (Pair<List<Integer>, Integer> argList : argLists) {
+      newGroupSet.addAll(argList.getKey());
+    }
+
+    // Re-map the arguments to the aggregate A. These arguments will get
+    // remapped because of the intermediate aggregate B generated as part of the
+    // transformation.
+    for (int arg : newGroupSet) {
+      sourceOf.put(arg, projects.size());
+      projects.add(RexInputRef.of2(arg, childFields));
+    }
+    // Generate the intermediate aggregate B
+    final List<AggregateCall> aggCalls = aggregate.getAggCallList();
+    final List<AggregateCall> newAggCalls = new ArrayList<>();
+    final List<Integer> fakeArgs = new ArrayList<>();
+    final Map<AggregateCall, Integer> callArgMap = new HashMap<>();
+    // First identify the real arguments, then use the rest for fake arguments
+    // e.g. if real arguments are 0, 1, 3. Then the fake arguments will be 2, 4
+    for (final AggregateCall aggCall : aggCalls) {
+      if (!aggCall.isDistinct()) {
+        for (int arg : aggCall.getArgList()) {
+          sourceOf.put(arg, projects.size());
+        }
+      }
+    }
+    int fakeArg0 = 0;
+    for (final AggregateCall aggCall : aggCalls) {
+      // We will deal with non-distinct aggregates below
+      if (!aggCall.isDistinct()) {
+        if (aggCall.getArgList().size() == 0) {
+          while (sourceOf.get(fakeArg0) != null) {
+            ++fakeArg0;
+          }
+          fakeArgs.add(fakeArg0);
+        }
+      }
+    }
+    for (final AggregateCall aggCall : aggCalls) {
+      if (!aggCall.isDistinct()) {
+        for (int arg : aggCall.getArgList()) {
+          sourceOf.remove(arg);
+        }
+      }
+    }
+    // Compute the remapped arguments using fake arguments for non-distinct
+    // aggregates with no arguments e.g. count(*).
+    int fakeArgIdx = 0;
+    for (final AggregateCall aggCall : aggCalls) {
+      // Project the column corresponding to the distinct aggregate. Project
+      // as-is all the non-distinct aggregates
+      if (!aggCall.isDistinct()) {
+        final AggregateCall newCall =
+            AggregateCall.create(aggCall.getAggregation(), false,
+                aggCall.getArgList(), -1,
+                ImmutableBitSet.of(newGroupSet).cardinality(),
+                relBuilder.peek(), null, aggCall.name);
+        newAggCalls.add(newCall);
+        if (newCall.getArgList().size() == 0) {
+          int fakeArg = fakeArgs.get(fakeArgIdx);
+          callArgMap.put(newCall, fakeArg);
+          sourceOf.put(fakeArg, projects.size());
+          projects.add(
+              Pair.of((RexNode) new RexInputRef(fakeArg, newCall.getType()),
+                  newCall.getName()));
+          ++fakeArgIdx;
+        } else {
+          for (int arg : newCall.getArgList()) {
+            sourceOf.put(arg, projects.size());
+            projects.add(
+                Pair.of((RexNode) new RexInputRef(arg, newCall.getType()),
+                    newCall.getName()));
+          }
+        }
+      }
+    }
+    // Generate the aggregate B (see the reference example above)
+    relBuilder.push(
+        aggregate.copy(
+            aggregate.getTraitSet(), relBuilder.build(),
+            false, ImmutableBitSet.of(newGroupSet), null, newAggCalls));
+    // Convert the existing aggregate to aggregate A (see the reference example above)
+    final List<AggregateCall> newTopAggCalls =
+            Lists.newArrayList(aggregate.getAggCallList());
+    // Use the remapped arguments for the (non)distinct aggregate calls
+    for (int i = 0; i < newTopAggCalls.size(); i++) {
+      // Re-map arguments.
+      final AggregateCall aggCall = newTopAggCalls.get(i);
+      final int argCount = aggCall.getArgList().size();
+      final List<Integer> newArgs = new ArrayList<>(argCount);
+      final AggregateCall newCall;
+      for (int j = 0; j < argCount; j++) {
+        final Integer arg = aggCall.getArgList().get(j);
+        newArgs.add(sourceOf.get(arg));
+      }
+      if (aggCall.isDistinct()) {
+        newCall =
+            AggregateCall.create(aggCall.getAggregation(), false, newArgs,
+                -1, aggregate.getGroupSet().cardinality(), relBuilder.peek(),
+                aggCall.getType(), aggCall.name);
+      } else {
+        // If aggregate B had a COUNT aggregate call the corresponding aggregate at
+        // aggregate A must be SUM. For other aggregates, it remains the same.
+        if (aggCall.getAggregation() instanceof SqlCountAggFunction) {
+          if (aggCall.getArgList().size() == 0) {
+            newArgs.add(sourceOf.get(callArgMap.get(aggCall)));
+          }
+          if (hasGroupBy) {
+            SqlSumAggFunction sumAgg = new SqlSumAggFunction(null);
+            newCall =
+                AggregateCall.create(sumAgg, false, newArgs, -1,
+                    aggregate.getGroupSet().cardinality(), relBuilder.peek(),
+                    aggCall.getType(), aggCall.getName());
+          } else {
+            SqlSumEmptyIsZeroAggFunction sumAgg = new SqlSumEmptyIsZeroAggFunction();
+            newCall =
+                AggregateCall.create(sumAgg, false, newArgs, -1,
+                    aggregate.getGroupSet().cardinality(), relBuilder.peek(),
+                    aggCall.getType(), aggCall.getName());
+          }
+        } else {
+          newCall =
+              AggregateCall.create(aggCall.getAggregation(), false, newArgs, -1,
+                  aggregate.getGroupSet().cardinality(),
+                  relBuilder.peek(), aggCall.getType(), aggCall.name);
+        }
+      }
+      newTopAggCalls.set(i, newCall);
+    }
+    // Populate the group-by keys with the remapped arguments for aggregate A
+    newGroupSet.clear();
+    for (int arg : aggregate.getGroupSet()) {
+      newGroupSet.add(sourceOf.get(arg));
+    }
+    relBuilder.push(
+        aggregate.copy(aggregate.getTraitSet(),
+            relBuilder.build(), aggregate.indicator,
+            ImmutableBitSet.of(newGroupSet), null, newTopAggCalls));
+    return relBuilder;
+  }
+
+  @SuppressWarnings("DanglingJavadoc")
   private void rewriteUsingGroupingSets(RelOptRuleCall call,
       Aggregate aggregate, Set<Pair<List<Integer>, Integer>> argLists) {
     final Set<ImmutableBitSet> groupSetTreeSet =
@@ -242,10 +449,12 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
     final List<Pair<RexNode, String>> predicates = new ArrayList<>();
     final Map<ImmutableBitSet, Integer> filters = new HashMap<>();
-    /** Function to register an filter for a group set. */
+
+    /** Function to register a filter for a group set. */
     class Registrar {
       RexNode group = null;
-      int register(ImmutableBitSet groupSet) {
+
+      private int register(ImmutableBitSet groupSet) {
         if (group == null) {
           group = makeGroup(groupCount - 1);
         }

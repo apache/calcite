@@ -5375,4 +5375,31 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDistinctNonDistinctAggregates">
+        <Resource name="sql">
+            <![CDATA[select emp.empno, count(*), avg(distinct dept.deptno)
+from sales.emp emp inner join sales.dept dept
+on emp.deptno = dept.deptno
+group by emp.empno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[AVG(DISTINCT $1)])
+  LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[AVG($1)])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
+    LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
