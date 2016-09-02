@@ -352,7 +352,7 @@ public class RelMdPredicates
 
     List<RexNode> preds = new ArrayList<>(finalPreds.values());
     RexNode disjPred = RexUtil.composeDisjunction(rB, finalResidualPreds, false);
-    if (!disjPred.isAlwaysFalse()) {
+    if (!disjPred.isAlwaysTrue()) {
       preds.add(disjPred);
     }
     return RelOptPredicateList.of(preds);
