@@ -1791,13 +1791,11 @@ public class RexUtil {
         RexCall call = (RexCall) term;
         if (call.getOperands().get(0).isAlwaysTrue()) {
           term = call.getOperands().get(1);
-          terms.remove(i);
-          terms.add(i, term);
+          terms.set(i, term);
           continue;
         } else if (call.getOperands().get(1).isAlwaysTrue()) {
           term = call.getOperands().get(0);
-          terms.remove(i);
-          terms.add(i, term);
+          terms.set(i, term);
           continue;
         }
         break;
