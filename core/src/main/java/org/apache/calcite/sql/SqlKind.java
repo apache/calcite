@@ -916,7 +916,8 @@ public enum SqlKind {
           CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
-          CREATE_INDEX, ALTER_INDEX, DROP_INDEX);
+          CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
+          SET_OPTION, OTHER_DDL);
 
   /**
    * Category consisting of query node types.

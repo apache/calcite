@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -29,10 +30,14 @@ import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -52,6 +57,7 @@ import java.util.TreeSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -578,6 +584,21 @@ public class SqlParserTest {
       String sql,
       String expectedMsgPattern) {
     getTester().checkExpFails(sql, expectedMsgPattern);
+  }
+
+  /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
+   * DDL statement. */
+  public static Matcher<SqlNode> isDdl() {
+    return new BaseMatcher<SqlNode>() {
+      public boolean matches(Object item) {
+        return item instanceof SqlNode
+            && SqlKind.DDL.contains(((SqlNode) item).getKind());
+      }
+
+      public void describeTo(Description description) {
+        description.appendText("isDdl");
+      }
+    };
   }
 
   protected SortedSet<String> getReservedKeywords() {
@@ -2910,53 +2931,64 @@ public class SqlParserTest {
         "(?s).*Encountered \"statement explain\" at .*");
   }
 
+  @Test public void testSelectIsNotDdl() {
+    sql("select 1 from t")
+        .node(not(isDdl()));
+  }
+
   @Test public void testInsertSelect() {
-    check(
-        "insert into emps select * from emps",
-        "INSERT INTO `EMPS`\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS`)");
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps select * from emps")
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testInsertUnion() {
-    check(
-        "insert into emps select * from emps1 union select * from emps2",
-        "INSERT INTO `EMPS`\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS1`\n"
-            + "UNION\n"
-            + "SELECT *\n"
-            + "FROM `EMPS2`)");
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS1`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `EMPS2`)";
+    sql("insert into emps select * from emps1 union select * from emps2")
+        .ok(expected);
   }
 
   @Test public void testInsertValues() {
-    check(
-        "insert into emps values (1,'Fredkin')",
-        "INSERT INTO `EMPS`\n"
-            + "(VALUES (ROW(1, 'Fredkin')))");
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(VALUES (ROW(1, 'Fredkin')))";
+    sql("insert into emps values (1,'Fredkin')")
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testInsertColumnList() {
-    check(
-        "insert into emps(x,y) select * from emps",
-        "INSERT INTO `EMPS` (`X`, `Y`)\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS`)");
+    final String expected = "INSERT INTO `EMPS` (`X`, `Y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps(x,y) select * from emps")
+        .ok(expected);
   }
 
   @Test public void testExplainInsert() {
-    check(
-        "explain plan for insert into emps1 select * from emps2",
-        "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-            + "INSERT INTO `EMPS1`\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS2`)");
+    final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
+        + " WITH IMPLEMENTATION FOR\n"
+        + "INSERT INTO `EMPS1`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS2`)";
+    sql("explain plan for insert into emps1 select * from emps2")
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testUpsertValues() {
+    final String expected = "UPSERT INTO `EMPS`\n"
+        + "(VALUES (ROW(1, 'Fredkin')))";
     sql("upsert into emps values (1,'Fredkin')")
-        .ok("UPSERT INTO `EMPS`\n"
-                + "(VALUES (ROW(1, 'Fredkin')))");
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testUpsertSelect() {
@@ -2974,7 +3006,9 @@ public class SqlParserTest {
   }
 
   @Test public void testDelete() {
-    check("delete from emps", "DELETE FROM `EMPS`");
+    sql("delete from emps")
+        .ok("DELETE FROM `EMPS`")
+        .node(not(isDdl()));
   }
 
   @Test public void testDeleteWhere() {
@@ -2992,25 +3026,25 @@ public class SqlParserTest {
   }
 
   @Test public void testMergeSelectSource() {
-    check(
-        "merge into emps e "
-            + "using (select * from tempemps where deptno is null) t "
-            + "on e.empno = t.empno "
-            + "when matched then update "
-            + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
-            + "when not matched then insert (name, dept, salary) "
-            + "values(t.name, 10, t.salary * .15)",
-
-        "MERGE INTO `EMPS` AS `E`\n"
-            + "USING (SELECT *\n"
-            + "FROM `TEMPEMPS`\n"
-            + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
-            + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-            + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
-            + ", `DEPTNO` = `T`.`DEPTNO`\n"
-            + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
-            + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-            + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+    final String sql = "merge into emps e "
+        + "using (select * from tempemps where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+    final String expected = "MERGE INTO `EMPS` AS `E`\n"
+        + "USING (SELECT *\n"
+        + "FROM `TEMPEMPS`\n"
+        + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
+        + ", `DEPTNO` = `T`.`DEPTNO`\n"
+        + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+    sql(sql).ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testMergeTableRefSource() {
@@ -6729,8 +6763,9 @@ public class SqlParserTest {
     assertThat(writer.format(opt),
         equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
 
-    check("alter system set \"a number\" = 1",
-        "ALTER SYSTEM SET `a number` = 1");
+    sql("alter system set \"a number\" = 1")
+        .ok("ALTER SYSTEM SET `a number` = 1")
+        .node(isDdl());
     check("alter system set flag = false",
         "ALTER SYSTEM SET `FLAG` = FALSE");
     check("alter system set approx = -12.3450",
@@ -6745,8 +6780,9 @@ public class SqlParserTest {
 
     check("alter system set \"a\".\"number\" = 1",
       "ALTER SYSTEM SET `a`.`number` = 1");
-    check("set approx = -12.3450",
-      "SET `APPROX` = -12.3450");
+    sql("set approx = -12.3450")
+        .ok("SET `APPROX` = -12.3450")
+        .node(isDdl());
 
     node = SqlParser.create("reset schema").parseStmt();
     opt = (SqlSetOption) node;
@@ -6760,8 +6796,9 @@ public class SqlParserTest {
 
     check("alter system RESET flag",
         "ALTER SYSTEM RESET `FLAG`");
-    check("reset onOff",
-        "RESET `ONOFF`");
+    sql("reset onOff")
+        .ok("RESET `ONOFF`")
+        .node(isDdl());
     check("reset \"this\".\"is\".\"sparta\"",
         "RESET `this`.`is`.`sparta`");
     check("alter system reset all",
@@ -6822,6 +6859,8 @@ public class SqlParserTest {
     void checkFails(String sql, String expectedMsgPattern);
 
     void checkExpFails(String sql, String expectedMsgPattern);
+
+    void checkNode(String sql, Matcher<SqlNode> matcher);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -6896,6 +6935,16 @@ public class SqlParserTest {
       SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
     }
 
+    public void checkNode(String sql, Matcher<SqlNode> matcher) {
+      SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+      try {
+        final SqlNode sqlNode = parseStmt(sap.sql);
+        assertThat(sqlNode, matcher);
+      } catch (SqlParseException e) {
+        throw Throwables.propagate(e);
+      }
+    }
+
     /**
      * Tests that an expression throws an exception which matches the given
      * pattern.
@@ -6921,7 +6970,7 @@ public class SqlParserTest {
    * unparsing a query are consistent with the original query.
    */
   public class UnparsingTesterImpl extends TesterImpl {
-    public void check(String sql, String expected) {
+    @Override public void check(String sql, String expected) {
       SqlNode sqlNode = parseStmtAndHandleEx(sql);
 
       // Unparse with no dialect, always parenthesize.
@@ -6955,7 +7004,7 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    public void checkExp(String sql, String expected) {
+    @Override public void checkExp(String sql, String expected) {
       SqlNode sqlNode = parseExpressionAndHandleEx(sql);
 
       // Unparse with no dialect, always parenthesize.
@@ -6989,11 +7038,11 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    public void checkFails(String sql, String expectedMsgPattern) {
+    @Override public void checkFails(String sql, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
 
-    public void checkExpFails(String sql, String expectedMsgPattern) {
+    @Override public void checkExpFails(String sql, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
   }
@@ -7014,12 +7063,19 @@ public class SqlParserTest {
       this.sql = sql;
     }
 
-    public void ok(String expected) {
+    public Sql ok(String expected) {
       getTester().check(sql, expected);
+      return this;
     }
 
-    public void fails(String expectedMsgPattern) {
+    public Sql fails(String expectedMsgPattern) {
       getTester().checkFails(sql, expectedMsgPattern);
+      return this;
+    }
+
+    public Sql node(Matcher<SqlNode> matcher) {
+      getTester().checkNode(sql, matcher);
+      return this;
     }
   }
 }
