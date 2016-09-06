@@ -28,6 +28,7 @@ import org.apache.kerby.kerberos.kerb.client.KrbConfigKey;
 import org.apache.kerby.kerberos.kerb.server.SimpleKdcServer;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -55,6 +56,7 @@ import static org.junit.Assert.assertTrue;
  * End to end test case for SPNEGO with Avatica.
  */
 @RunWith(Parameterized.class)
+@Ignore("Disabled due to [CALCITE-1183] intermittent HTTP 404 failures")
 public class AvaticaSpnegoTest {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaSpnegoTest.class);
 
