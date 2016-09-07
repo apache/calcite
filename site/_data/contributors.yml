@@ -31,6 +31,11 @@
   githubId: ashutoshc
   org: Hortonworks
   role: PMC
+- name: Francis Chuang
+  apacheId: francischuang
+  githubId: F21
+  org: Boostport
+  role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -84,11 +89,19 @@
   org: Indiana University
   role: Committer
   homepage: http://milinda.pathirage.org/
+- name: MinJi Kim
+  apacheId: minji
+  githubId: minji-kim
+  org: Dremio
+  role: Committer
+  avatar: http://web.mit.edu/minjikim/www/minji.png
+  homepage: http://web.mit.edu/minjikim/www/
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
   org: Hortonworks
   role: PMC
+  homepage: http://www.n10k.com
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
