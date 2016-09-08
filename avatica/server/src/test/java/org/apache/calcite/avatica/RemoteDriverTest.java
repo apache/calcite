@@ -1679,6 +1679,82 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testDateParameterWithGMT0() throws Exception {
+    final String tableName = "dateParameters";
+    try (Connection conn = getLocalConnection();
+         Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 date)";
+      assertFalse(stmt.execute(sql));
+      TimeZone tzUtc = TimeZone.getTimeZone("UTC");
+      Calendar cUtc = Calendar.getInstance(tzUtc);
+      cUtc.set(Calendar.YEAR, 1970);
+      cUtc.set(Calendar.MONTH, Calendar.JANUARY);
+      cUtc.set(Calendar.DAY_OF_MONTH, 1);
+      cUtc.set(Calendar.HOUR_OF_DAY, 0);
+      cUtc.set(Calendar.MINUTE, 0);
+      cUtc.set(Calendar.SECOND, 0);
+      cUtc.set(Calendar.MILLISECOND, 0);
+      Date inputDate = new Date(cUtc.getTimeInMillis());
+      // Insert a single date
+      try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
+              + " values (?, ?)")) {
+        ParameterMetaData metadata = pstmt.getParameterMetaData();
+        assertNotNull(metadata);
+
+        pstmt.setString(1, "asdfg");
+        pstmt.setDate(2, inputDate, cUtc);
+        assertEquals(1, pstmt.executeUpdate());
+      }
+
+      ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      assertTrue(results.next());
+      assertEquals("asdfg", results.getString(1));
+      Date outputDate = results.getDate(2, cUtc);
+      assertEquals(inputDate.getTime(), outputDate.getTime());
+      assertEquals(0, outputDate.getTime());
+    }
+  }
+
+  @Test public void testDateParameterWithGMTN() throws Exception {
+    final String tableName = "dateParameters";
+    try (Connection conn = getLocalConnection();
+         Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 date)";
+      assertFalse(stmt.execute(sql));
+      TimeZone tzUtc = TimeZone.getTimeZone("GMT+8");
+      Calendar cUtc = Calendar.getInstance(tzUtc);
+      cUtc.set(Calendar.YEAR, 1970);
+      cUtc.set(Calendar.MONTH, Calendar.JANUARY);
+      cUtc.set(Calendar.DAY_OF_MONTH, 1);
+      cUtc.set(Calendar.HOUR_OF_DAY, 0);
+      cUtc.set(Calendar.MINUTE, 0);
+      cUtc.set(Calendar.SECOND, 0);
+      cUtc.set(Calendar.MILLISECOND, 0);
+      Date inputDate = new Date(cUtc.getTimeInMillis());
+      // Insert a single date
+      try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
+              + " values (?, ?)")) {
+        ParameterMetaData metadata = pstmt.getParameterMetaData();
+        assertNotNull(metadata);
+
+        pstmt.setString(1, "gfdsa");
+        pstmt.setDate(2, inputDate, cUtc);
+        assertEquals(1, pstmt.executeUpdate());
+      }
+
+      ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      assertTrue(results.next());
+      assertEquals("gfdsa", results.getString(1));
+      Date outputDate = results.getDate(2, cUtc);
+      assertEquals(inputDate.getTime(), outputDate.getTime());
+      assertEquals(-28800000, outputDate.getTime());
+    }
+  }
+
   /**
    * Factory that creates a service based on a local JDBC connection.
    */
