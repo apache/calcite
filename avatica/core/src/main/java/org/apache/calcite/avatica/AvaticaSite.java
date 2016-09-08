@@ -194,7 +194,7 @@ public class AvaticaSite {
     slots[index] = wrap(ColumnMetaData.Rep.JAVA_SQL_TIME, x, calendar);
   }
 
-  public void setDate(Date x, Calendar cal) {
+  public void setDate(Date x, Calendar calendar) {
     slots[index] = wrap(ColumnMetaData.Rep.JAVA_SQL_DATE, x, calendar);
   }
 

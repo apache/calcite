@@ -1679,6 +1679,41 @@ public class RemoteDriverTest {
     }
   }
 
+  @Test public void testSignedDateParameters() throws Exception {
+    final String tableName = "signedDateParameters";
+    try (Connection conn = getLocalConnection();
+         Statement stmt = conn.createStatement()) {
+      assertFalse(stmt.execute("DROP TABLE IF EXISTS " + tableName));
+      String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 date)";
+      assertFalse(stmt.execute(sql));
+
+      TimeZone tzUtc = TimeZone.getTimeZone("UTC");
+      Calendar cUtc = Calendar.getInstance(tzUtc);
+      cUtc.set(Calendar.HOUR, 0);
+      cUtc.set(Calendar.MINUTE, 0);
+      cUtc.set(Calendar.SECOND, 0);
+      cUtc.set(Calendar.MILLISECOND, 0);
+      Date inputDate = new Date(cUtc.getTimeInMillis());
+      // Insert a single date
+      try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + tableName
+              + " values (?, ?)")) {
+        ParameterMetaData metadata = pstmt.getParameterMetaData();
+        assertNotNull(metadata);
+
+        pstmt.setString(1, "asdfg");
+        pstmt.setDate(2, inputDate, cUtc);
+        assertEquals(1, pstmt.executeUpdate());
+      }
+
+      ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName);
+      assertNotNull(results);
+      assertTrue(results.next());
+      assertEquals("asdfg", results.getString(1));
+      Date outputDate = results.getDate(2, cUtc);
+      assertEquals(inputDate.getTime(), outputDate.getTime());
+    }
+  }
+
   /**
    * Factory that creates a service based on a local JDBC connection.
    */
