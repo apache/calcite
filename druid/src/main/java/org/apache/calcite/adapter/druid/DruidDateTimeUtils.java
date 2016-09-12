@@ -29,10 +29,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
-import com.google.common.collect.Sets;
+import com.google.common.collect.TreeRangeSet;
 
+import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 
 import org.slf4j.Logger;
@@ -44,10 +46,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -74,11 +73,14 @@ public class DruidDateTimeUtils {
       // We did not succeed, bail out
       return null;
     }
-    final List<Range> compactRanges = condenseRanges(ranges);
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Inferred ranges on interval : " + compactRanges);
+    final TreeRangeSet condensedRanges = TreeRangeSet.create();
+    for (Range r : ranges) {
+      condensedRanges.add(r);
     }
-    return toInterval(compactRanges);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Inferred ranges on interval : " + condensedRanges);
+    }
+    return toInterval(ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
   }
 
   protected static List<Interval> toInterval(List<Range> ranges) {
@@ -97,7 +99,7 @@ public class DruidDateTimeUtils {
         if (range.hasUpperBound() && range.upperBoundType() == BoundType.CLOSED) {
           end++;
         }
-        return new Interval(start, end);
+        return new Interval(start, end, DateTimeZone.UTC);
       }
     });
     if (LOGGER.isInfoEnabled()) {
@@ -414,67 +416,6 @@ public class DruidDateTimeUtils {
       }
     }
     return null;
-  }
-
-  protected static List<Range> condenseRanges(List<Range> ranges) {
-    if (ranges.size() <= 1) {
-      return ranges;
-    }
-
-    Comparator<Range> startThenEnd = new Comparator<Range>() {
-      @Override public int compare(Range lhs, Range rhs) {
-        int compare = 0;
-        if (lhs.hasLowerBound() && rhs.hasLowerBound()) {
-          compare = lhs.lowerEndpoint().compareTo(rhs.lowerEndpoint());
-        } else if (!lhs.hasLowerBound() && rhs.hasLowerBound()) {
-          compare = -1;
-        } else if (lhs.hasLowerBound() && !rhs.hasLowerBound()) {
-          compare = 1;
-        }
-        if (compare != 0) {
-          return compare;
-        }
-        if (lhs.hasUpperBound() && rhs.hasUpperBound()) {
-          compare = lhs.upperEndpoint().compareTo(rhs.upperEndpoint());
-        } else if (!lhs.hasUpperBound() && rhs.hasUpperBound()) {
-          compare = -1;
-        } else if (lhs.hasUpperBound() && !rhs.hasUpperBound()) {
-          compare = 1;
-        }
-        return compare;
-      }
-    };
-
-    TreeSet<Range> sortedIntervals = Sets.newTreeSet(startThenEnd);
-    sortedIntervals.addAll(ranges);
-
-    List<Range> retVal = Lists.newArrayList();
-
-    Iterator<Range> intervalsIter = sortedIntervals.iterator();
-    Range currInterval = intervalsIter.next();
-    while (intervalsIter.hasNext()) {
-      Range next = intervalsIter.next();
-      if (currInterval.encloses(next)) {
-        continue;
-      }
-      if (mergeable(currInterval, next)) {
-        currInterval = currInterval.span(next);
-      } else {
-        retVal.add(currInterval);
-        currInterval = next;
-      }
-    }
-    retVal.add(currInterval);
-
-    return retVal;
-  }
-
-  protected static boolean mergeable(Range range1, Range range2) {
-    Comparable x1 = range1.upperEndpoint();
-    Comparable x2 = range2.lowerEndpoint();
-    int compare = x1.compareTo(x2);
-    return compare > 0 || (compare == 0 && range1.upperBoundType() == BoundType.CLOSED
-            && range2.lowerBoundType() == BoundType.CLOSED);
   }
 
   /**

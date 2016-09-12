@@ -163,7 +163,6 @@ limitations under the License.
           <includes>
             <include>org/apache/calcite/test/CalciteSuite.java</include>
           </includes>
-          <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=UTC</argLine>
         </configuration>
       </plugin>
       <plugin>

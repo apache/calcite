@@ -74,7 +74,7 @@ import java.util.TimeZone;
  */
 public abstract class DateRangeRules {
 
-  protected DateRangeRules() {}
+  private DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
       new Predicate<Filter>() {

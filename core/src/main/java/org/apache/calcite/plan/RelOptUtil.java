@@ -162,21 +162,21 @@ public abstract class RelOptUtil {
   /**
    * Whether this node is a limit without sort specification.
    */
-  public static boolean pureLimitRelNode(RelNode rel) {
-    return limitRelNode(rel) && !orderRelNode(rel);
+  public static boolean isPureLimit(RelNode rel) {
+    return isLimit(rel) && !isOrder(rel);
   }
 
   /**
    * Whether this node is a sort without limit specification.
    */
-  public static boolean pureOrderRelNode(RelNode rel) {
-    return !limitRelNode(rel) && orderRelNode(rel);
+  public static boolean isPureOrder(RelNode rel) {
+    return !isLimit(rel) && isOrder(rel);
   }
 
   /**
    * Whether this node contains a limit specification.
    */
-  public static boolean limitRelNode(RelNode rel) {
+  public static boolean isLimit(RelNode rel) {
     if ((rel instanceof Sort) && ((Sort) rel).fetch != null) {
       return true;
     }
@@ -186,7 +186,7 @@ public abstract class RelOptUtil {
   /**
    * Whether this node contains a sort specification.
    */
-  public static boolean orderRelNode(RelNode rel) {
+  public static boolean isOrder(RelNode rel) {
     if ((rel instanceof Sort) && !((Sort) rel).getCollation().getFieldCollations().isEmpty()) {
       return true;
     }

@@ -478,7 +478,7 @@ public class DruidRules {
       }
       // If it is going to be a Druid select operator, we push the limit if
       // it does not contain a sort specification (required by Druid)
-      return RelOptUtil.pureLimitRelNode(sort);
+      return RelOptUtil.isPureLimit(sort);
     }
   }
 
