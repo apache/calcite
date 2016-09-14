@@ -65,6 +65,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -239,11 +241,11 @@ public abstract class SqlImplementor {
   /**
    * Converts a {@link RexNode} condition into a {@link SqlNode}.
    *
-   * @param node            condition Node
-   * @param leftContext     LeftContext
-   * @param rightContext    RightContext
-   * @param leftFieldCount  Number of field on left result
-   * @return SqlJoin which represent the condition
+   * @param node            Join condition
+   * @param leftContext     Left context
+   * @param rightContext    Right context
+   * @param leftFieldCount  Number of fields on left result
+   * @return SqlNode that represents the condition
    */
   public static SqlNode convertConditionToSqlNode(RexNode node,
       Context leftContext,
@@ -396,10 +398,10 @@ public abstract class SqlImplementor {
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
     if (aliases != null
         && !aliases.isEmpty()
-        && !dialect.hasImplicitTableAlias()) {
+        && (!dialect.hasImplicitTableAlias()
+          || aliases.size() > 1)) {
       return new Result(node, clauses, alias4, aliases);
     }
-
     final String alias5;
     if (alias2 == null
         || !alias2.equals(alias4)
@@ -415,12 +417,26 @@ public abstract class SqlImplementor {
   /** Creates a result based on a join. (Each join could contain one or more
    * relational expressions.) */
   public Result result(SqlNode join, Result leftResult, Result rightResult) {
-    final Map<String, RelDataType> aliases =
-        ImmutableMap.<String, RelDataType>builder()
-            .putAll(leftResult.aliases)
-            .putAll(rightResult.aliases)
-            .build();
-    return new Result(join, Expressions.list(Clause.FROM), null, aliases);
+    final ImmutableMap.Builder<String, RelDataType> builder =
+        ImmutableMap.builder();
+    collectAliases(builder, join,
+        Iterables.concat(leftResult.aliases.values(),
+            rightResult.aliases.values()).iterator());
+    return new Result(join, Expressions.list(Clause.FROM), null,
+        builder.build());
+  }
+
+  private void collectAliases(ImmutableMap.Builder<String, RelDataType> builder,
+      SqlNode node, Iterator<RelDataType> aliases) {
+    if (node instanceof SqlJoin) {
+      final SqlJoin join = (SqlJoin) node;
+      collectAliases(builder, join.getLeft(),  aliases);
+      collectAliases(builder, join.getRight(), aliases);
+    } else {
+      final String alias = SqlValidatorUtil.getAlias(node, -1);
+      assert alias != null;
+      builder.put(alias, aliases.next());
+    }
   }
 
   /** Wraps a node in a SELECT statement that has no clauses:

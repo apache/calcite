@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 
 import com.google.common.base.Function;
@@ -316,6 +317,19 @@ public class JdbcAdapterTest {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query(sql).runs()
         .returnsCount(275);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1372">[CALCITE-1372]
+   * JDBC adapter generates SQL with wrong field names</a>. */
+  @Test public void testJoinPlan2() {
+    final String sql = "SELECT v1.deptno, v2.deptno\n"
+        + "FROM Scott.dept v1 LEFT JOIN Scott.emp v2 ON v1.deptno = v2.deptno\n"
+        + "WHERE v2.job LIKE 'PRESIDENT'";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .with(Lex.MYSQL)
+        .query(sql).runs()
+        .returnsCount(1);
   }
 
   /** Test case for
