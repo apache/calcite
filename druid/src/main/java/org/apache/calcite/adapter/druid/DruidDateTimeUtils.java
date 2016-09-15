@@ -60,12 +60,9 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Given a list of predicates, it generates the equivalent Interval
-   * (if possible). It assumes that all the predicates in the input
-   * reference a single column : the timestamp column.
-   *
-   * @param conjs list of conditions to use for the transformation
-   * @return interval representing the conditions in the input list
+   * Generates a list of {@link Interval}s equivalent to a given
+   * expression. Assumes that all the predicates in the input
+   * reference a single column: the timestamp column.
    */
   public static List<Interval> createInterval(RelDataType type, RexNode e) {
     final List<Range> ranges = extractRanges(type, e, false);
@@ -90,9 +87,9 @@ public class DruidDateTimeUtils {
           return DruidTable.DEFAULT_INTERVAL;
         }
         long start = range.hasLowerBound() ? toLong(range.lowerEndpoint())
-          : DruidTable.DEFAULT_INTERVAL.getStartMillis();
+            : DruidTable.DEFAULT_INTERVAL.getStartMillis();
         long end = range.hasUpperBound() ? toLong(range.upperEndpoint())
-          : DruidTable.DEFAULT_INTERVAL.getEndMillis();
+            : DruidTable.DEFAULT_INTERVAL.getEndMillis();
         if (range.hasLowerBound() && range.lowerBoundType() == BoundType.OPEN) {
           start++;
         }
@@ -109,7 +106,7 @@ public class DruidDateTimeUtils {
   }
 
   protected static List<Range> extractRanges(RelDataType type, RexNode node,
-          boolean withNot) {
+      boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -167,7 +164,7 @@ public class DruidDateTimeUtils {
   }
 
   protected static List<Range> leafToRanges(RelDataType type, RexCall call,
-          boolean withNot) {
+      boolean withNot) {
     switch (call.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -177,16 +174,16 @@ public class DruidDateTimeUtils {
     {
       RexLiteral literal = null;
       if (call.getOperands().get(0) instanceof RexInputRef
-              && call.getOperands().get(1) instanceof RexLiteral) {
+          && call.getOperands().get(1) instanceof RexLiteral) {
         literal = extractLiteral(call.getOperands().get(1));
       } else if (call.getOperands().get(0) instanceof RexInputRef
-              && call.getOperands().get(1).getKind() == SqlKind.CAST) {
+          && call.getOperands().get(1).getKind() == SqlKind.CAST) {
         literal = extractLiteral(call.getOperands().get(1));
       } else if (call.getOperands().get(1) instanceof RexInputRef
-              && call.getOperands().get(0) instanceof RexLiteral) {
+          && call.getOperands().get(0) instanceof RexLiteral) {
         literal = extractLiteral(call.getOperands().get(0));
       } else if (call.getOperands().get(1) instanceof RexInputRef
-              && call.getOperands().get(0).getKind() == SqlKind.CAST) {
+          && call.getOperands().get(0).getKind() == SqlKind.CAST) {
         literal = extractLiteral(call.getOperands().get(0));
       }
       if (literal == null) {
@@ -230,10 +227,10 @@ public class DruidDateTimeUtils {
       boolean inverted = value1.compareTo(value2) > 0;
       if (!withNot) {
         return Arrays.<Range>asList(
-                inverted ? Range.closed(value2, value1) : Range.closed(value1, value2));
+            inverted ? Range.closed(value2, value1) : Range.closed(value1, value2));
       }
       return Arrays.<Range>asList(Range.lessThan(inverted ? value2 : value1),
-              Range.greaterThan(inverted ? value1 : value2));
+          Range.greaterThan(inverted ? value1 : value2));
     }
     case IN:
     {
@@ -249,7 +246,7 @@ public class DruidDateTimeUtils {
         }
         if (withNot) {
           ranges.addAll(
-                  Arrays.<Range>asList(Range.lessThan(element), Range.greaterThan(element)));
+              Arrays.<Range>asList(Range.lessThan(element), Range.greaterThan(element)));
         } else {
           ranges.add(Range.closed(element, element));
         }
@@ -433,7 +430,7 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Extract granularity from a call FLOOR(<time> TO <timeunit>).
+   * Extracts granularity from a call {@code FLOOR(<time> TO <timeunit>)}.
    * Timeunit specifies the granularity. Returns null if it cannot
    * be inferred.
    *

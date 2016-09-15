@@ -50,10 +50,8 @@ import java.util.Set;
 public class DruidTable extends AbstractTable implements TranslatableTable {
 
   public static final String DEFAULT_TIMESTAMP_COLUMN = "__time";
-  public static final Interval DEFAULT_INTERVAL = new Interval(
-          new DateTime("1900-01-01"),
-          new DateTime("3000-01-01")
-  );
+  public static final Interval DEFAULT_INTERVAL =
+      new Interval(new DateTime("1900-01-01"), new DateTime("3000-01-01"));
 
   final DruidSchema schema;
   final String dataSource;

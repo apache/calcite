@@ -452,7 +452,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private ImmutableList<MetaTypeInfo> getAllDefaultType() {
     final ImmutableList.Builder<MetaTypeInfo> allTypeList =
-        new ImmutableList.Builder<>();
+        ImmutableList.builder();
     final CalciteConnectionImpl conn = (CalciteConnectionImpl) connection;
     final RelDataTypeSystem typeSystem = conn.typeFactory.getTypeSystem();
     for (SqlTypeName sqlTypeName : SqlTypeName.values()) {

@@ -264,9 +264,7 @@ public class DruidRules {
                 final int index = positions.indexOf(ref.getIndex());
                 return rexBuilder.makeInputRef(belowTypes.get(index), index);
               }
-            }
-          )
-        );
+            }));
       }
       return Pair.of(aboveNodes, belowNodes);
     }

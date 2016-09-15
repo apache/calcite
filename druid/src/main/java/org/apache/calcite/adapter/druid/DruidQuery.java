@@ -97,7 +97,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param traitSet       Traits
    * @param table          Table
    * @param druidTable     Druid table
-   * @param interval       Interval for the query
+   * @param intervals      Intervals for the query
    * @param rels           Internal relational expressions
    */
   protected DruidQuery(RelOptCluster cluster, RelTraitSet traitSet,
@@ -127,10 +127,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     for (RelNode rel : rels) {
       b.append(rel instanceof TableScan ? 's'
           : rel instanceof Project ? 'p'
-          : rel instanceof Filter ? 'f'
-          : rel instanceof Aggregate ? 'a'
-          : rel instanceof Sort ? 'l'
-          : '!');
+              : rel instanceof Filter ? 'f'
+                  : rel instanceof Aggregate ? 'a'
+                      : rel instanceof Sort ? 'l'
+                          : '!');
     }
     return b.toString();
   }
@@ -243,13 +243,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   public static DruidQuery extendQuery(DruidQuery query, RelNode r) {
     final ImmutableList.Builder<RelNode> builder = ImmutableList.builder();
     return DruidQuery.create(query.getCluster(), r.getTraitSet(), query.getTable(),
-            query.druidTable, query.intervals, builder.addAll(query.rels).add(r).build());
+        query.druidTable, query.intervals, builder.addAll(query.rels).add(r).build());
   }
 
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query, List<Interval> intervals) {
     return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
-            query.druidTable, intervals, query.rels);
+        query.druidTable, intervals, query.rels);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -259,8 +259,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   @Override public RelDataType deriveRowType() {
     return getCluster().getTypeFactory().createStructType(
-            Pair.right(Util.last(rels).getRowType().getFieldList()),
-            getQuerySpec().fieldNames);
+        Pair.right(Util.last(rels).getRowType().getFieldList()),
+        getQuerySpec().fieldNames);
   }
 
   public TableScan getTableScan() {
@@ -296,7 +296,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else if (rel instanceof Sort) {
         final Sort sort = (Sort) rel;
         for (Ord<RelFieldCollation> ord
-                : Ord.zip(sort.collation.getFieldCollations())) {
+            : Ord.zip(sort.collation.getFieldCollations())) {
           pw.item("sort" + ord.i, ord.e.getFieldIndex());
         }
         for (Ord<RelFieldCollation> ord
@@ -392,7 +392,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     return getQuery(rowType, filter, projects, groupSet, aggCalls, aggNames,
-            collationIndexes, collationDirections, fetch);
+        collationIndexes, collationDirections, fetch);
   }
 
   public QueryType getQueryType() {
@@ -451,7 +451,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             // Reference, it could be to the timestamp column or any other dimension
             final RexInputRef ref = (RexInputRef) project;
             final String origin = druidTable.getRowType(getCluster().getTypeFactory())
-                    .getFieldList().get(ref.getIndex()).getName();
+                .getFieldList().get(ref.getIndex()).getName();
             if (origin.equals(druidTable.timestampFieldName)) {
               granularity = "none";
               builder.add(s);
@@ -465,7 +465,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             // Call, check if we should infer granularity
             final RexCall call = (RexCall) project;
             final String funcGranularity =
-                    DruidDateTimeUtils.extractGranularity(call);
+                DruidDateTimeUtils.extractGranularity(call);
             if (funcGranularity != null) {
               granularity = funcGranularity;
               builder.add(s);
@@ -507,12 +507,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       boolean sortsMetric = false;
       if (collationIndexes != null) {
         assert collationDirections != null;
-        ImmutableList.Builder<JsonCollation> colBuilder
-          = new ImmutableList.Builder<JsonCollation>();
+        ImmutableList.Builder<JsonCollation> colBuilder =
+            ImmutableList.builder();
         for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
           colBuilder.add(
-            new JsonCollation(fieldNames.get(p.left),
-                p.right == Direction.DESCENDING ? "descending" : "ascending"));
+              new JsonCollation(fieldNames.get(p.left),
+                  p.right == Direction.DESCENDING ? "descending" : "ascending"));
           if (p.left >= groupSet.cardinality() && p.right == Direction.DESCENDING) {
             // Currently only support for DESC in TopN
             sortsMetric = true;
@@ -619,7 +619,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeFieldName("pagingSpec");
         generator.writeStartObject();
         generator.writeNumberField("threshold", fetch != null ? fetch
-          : CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties()).getInt());
+            : CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties()).getInt());
         generator.writeEndObject();
 
         generator.writeFieldName("context");
@@ -789,7 +789,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         if (druidTable.metricFieldNames.contains(fieldName)) {
           metrics.add(fieldName);
         } else if (!druidTable.timestampFieldName.equals(fieldName)
-                && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
+            && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
           dimensions.add(fieldName);
         }
       }
@@ -805,7 +805,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           if (druidTable.metricFieldNames.contains(fieldName)) {
             metrics.add(fieldName);
           } else if (!druidTable.timestampFieldName.equals(fieldName)
-                  && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
+              && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
             dimensions.add(fieldName);
           }
         }
@@ -916,7 +916,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private static boolean containsLimit(QuerySpec querySpec) {
       return querySpec.queryString.contains("\"context\":{\""
-            + DRUID_QUERY_FETCH + "\":true");
+          + DRUID_QUERY_FETCH + "\":true");
     }
 
     private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
