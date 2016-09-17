@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.8.0-source.tar.gz
-$ cd calcite-1.8.0
+$ tar xvfz calcite-1.9.0-source.tar.gz
+$ cd calcite-1.9.0
 $ mvn install
 {% endhighlight %}
 
@@ -575,8 +575,8 @@ svn ci
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d apache-calcite-X.Y.Z
-git push origin :refs/tags/apache-calcite-X.Y.Z
+git tag -d calcite-X.Y.Z
+git push origin :refs/tags/calcite-X.Y.Z
 
 # Remove modified files
 mvn release:clean
