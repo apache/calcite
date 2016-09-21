@@ -2471,6 +2471,55 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColu
     </TestCase>
     <TestCase name="testStructType">
         <Resource name="sql">
+            <![CDATA[select k0 from struct.t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(K0=[$0])
+  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStructType2">
+        <Resource name="sql">
+            <![CDATA[select c2 from struct.t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C2=[$5])
+  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStructType3">
+        <Resource name="sql">
+            <![CDATA[select f1.c2 from struct.t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C2=[$5])
+  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStructType4">
+        <Resource name="sql">
+            <![CDATA[select f1 from struct.t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(F1=[$0])
+  LogicalProject(F1=[$4], F11=[$5], F12=[$6])
+    LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStructTypeWithSelectStar">
+        <Resource name="sql">
             <![CDATA[select * from struct.t]]>
         </Resource>
         <Resource name="plan">
@@ -2479,6 +2528,18 @@ LogicalProject(K0=[$0], C1=[$1], F0=[$2], F1=[$3], F2=[$4])
   LogicalProject(K0=[$0], C1=[$1], F0=[$2], F03=[$3], F1=[$4], F15=[$5], F16=[$6], F2=[$7], F28=[$8])
     LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
       LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStructTypeWithSelectFieldNameDotStar">
+        <Resource name="sql">
+            <![CDATA[select f1.* from struct.t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C0=[$4], C2=[$5], A0=[$6])
+  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
         </Resource>
     </TestCase>

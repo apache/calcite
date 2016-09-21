@@ -221,7 +221,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       SqlValidatorNamespace fromNs = null;
       Path fromPath = null;
       final ResolvedImpl resolved = new ResolvedImpl();
-      final int size = identifier.names.size();
+      int size = identifier.names.size();
       int i = size - 1;
       for (; i > 0; i--) {
         final SqlIdentifier prefix = identifier.getComponent(0, i);
@@ -244,9 +244,38 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           final SqlIdentifier prefix1 = identifier.skipLast(1);
           throw validator.newValidationError(prefix1,
               RESOURCE.tableNameNotFound(prefix1.toString()));
-        case 1:
+        case 1: {
+          final Map.Entry<String, SqlValidatorNamespace> entry =
+              map.entrySet().iterator().next();
+          final String tableName = entry.getKey();
+          final SqlValidatorNamespace namespace = entry.getValue();
+          fromNs = namespace;
           fromPath = resolved.emptyPath();
-          fromNs = map.entrySet().iterator().next().getValue();
+
+          // Adding table name is for RecordType column with StructKind.PEEK_FIELDS or
+          // StructKind.PEEK_FIELDS only. Access to a field in a RecordType column of
+          // other StructKind should always be qualified with table name.
+          final RelDataTypeField field =
+              validator.catalogReader.field(namespace.getRowType(), columnName);
+          if (field != null) {
+            switch (field.getType().getStructKind()) {
+            case PEEK_FIELDS:
+            case PEEK_FIELDS_DEFAULT:
+              columnName = field.getName(); // use resolved field name
+              resolve(ImmutableList.of(tableName), false, resolved);
+              if (resolved.count() == 1) {
+                final Resolve resolve = resolved.only();
+                fromNs = resolve.namespace;
+                fromPath = resolve.path;
+                identifier = identifier
+                    .setName(0, columnName)
+                    .add(0, tableName, SqlParserPos.ZERO);
+                ++i;
+                ++size;
+              }
+            }
+          }
+        }
         }
 
         // Throw an error if the table was not found.

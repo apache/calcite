@@ -8290,6 +8290,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER C0, INTEGER NOT NULL C2,"
             + " INTEGER NOT NULL A0) NOT NULL");
 
+    // Resolve struct type F1 with wildcard.
+    sql("select t.f1.* from struct.t")
+        .type("RecordType(INTEGER C0, INTEGER NOT NULL C2,"
+            + " INTEGER NOT NULL A0) NOT NULL");
+
     // Fail non-existent column B0.
     sql("select ^b0^ from struct.t")
         .fails("Column 'B0' not found in any table");

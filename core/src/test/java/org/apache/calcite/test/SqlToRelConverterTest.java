@@ -1721,7 +1721,33 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testStructType() {
-    sql("select * from struct.t").convertsTo("${plan}");
+    final String sql = "select k0 from struct.t";
+    sql(sql).ok();
+  }
+
+  @Test public void testStructType2() {
+    final String sql = "select c2 from struct.t";
+    sql(sql).ok();
+  }
+
+  @Test public void testStructType3() {
+    final String sql = "select f1.c2 from struct.t";
+    sql(sql).ok();
+  }
+
+  @Test public void testStructType4() {
+    final String sql = "select f1 from struct.t";
+    sql(sql).ok();
+  }
+
+  @Test public void testStructTypeWithSelectStar() {
+    final String sql = "select * from struct.t";
+    sql(sql).ok();
+  }
+
+  @Test public void testStructTypeWithSelectFieldNameDotStar() {
+    final String sql = "select f1.* from struct.t";
+    sql(sql).ok();
   }
 
   /**
