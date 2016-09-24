@@ -126,3 +126,24 @@ Packages:
 * Remove statements from statement table
 * DML (INSERT, UPDATE, DELETE)
 * Statement.execute applied to SELECT statement
+
+## Clients
+The following are a list of avatica clients that are currently available. Contributions for clients in other languages are highly welcomed!
+
+### C#
+https://github.com/Azure/hdinsight-phoenix-sharp
+Avatica Version: 1.2.0 onwards
+Maintainer: Microsoft Azure
+License: Apache 2.0
+
+### Go
+https://github.com/Boostport/avatica
+Avatica Version: 1.8.0 onwards
+Maintainer: Boostport
+License: Apache 2.0
+
+### Python
+https://bitbucket.org/lalinsky/python-phoenixdb
+Avatica Version: 1.2.0 to 1.6.0
+Maintainer: Lukáš Lalinský
+License: Apache 2.0
