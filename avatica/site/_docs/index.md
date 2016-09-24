@@ -126,3 +126,39 @@ Packages:
 * Remove statements from statement table
 * DML (INSERT, UPDATE, DELETE)
 * Statement.execute applied to SELECT statement
+
+## Clients
+
+The following is a list of available Avatica clients. Several describe
+themselves as adapters for
+[Apache Phoenix](http://phoenix.apache.org) but also work with other
+Avatica back-ends. Contributions for clients in other languages are
+highly welcomed!
+
+### Microsoft .NET driver for Apache Phoenix Query Server
+* [Home page](https://github.com/Azure/hdinsight-phoenix-sharp)
+* Language: C#
+* *License*: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* Avatica version 1.2.0 onwards
+* *Maintainer*: Microsoft Azure
+
+### Boostport
+* [Home page](https://github.com/Boostport/avatica)
+* *Language*: Go
+* *License*: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* Avatica version 1.8.0 onwards
+* *Maintainer*: Boostport
+
+### Avatica thin client
+* [Home page](https://calcite.apache.org/avatica)
+* *Language*: Java
+* *License*: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* Any Avatica version
+* *Maintainer*: Apache Calcite community
+
+### Apache Phoenix database adapter for Python
+* [Home page](https://bitbucket.org/lalinsky/python-phoenixdb)
+* Language: Python
+* *License*: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* Avatica version 1.2.0 to 1.6.0
+* *Maintainer*: Lukáš Lalinský
