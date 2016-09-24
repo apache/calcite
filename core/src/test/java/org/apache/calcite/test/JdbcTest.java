@@ -5135,7 +5135,13 @@ public class JdbcTest {
    * Custom schema in file in current directory</a>. */
   @Test public void testCustomSchemaInFileInPwd() throws SQLException {
     checkCustomSchemaInFileInPwd("custom-schema-model.json");
-    checkCustomSchemaInFileInPwd("./custom-schema-model2.json");
+    switch (File.pathSeparatorChar) {
+    case '/':
+      // Skip this test on Windows; the mapping from file names to URLs is too
+      // weird.
+      checkCustomSchemaInFileInPwd("." + File.pathSeparatorChar
+          + "custom-schema-model2.json");
+    }
   }
 
   private void checkCustomSchemaInFileInPwd(String fileName)
@@ -5168,7 +5174,8 @@ public class JdbcTest {
            ResultSet r = s.executeQuery("values 1")) {
         assertThat(r.next(), is(true));
       }
-      assertThat(file.delete(), is(true));
+      //noinspection ResultOfMethodCallIgnored
+      file.delete();
     } catch (IOException e) {
       // current directory is not writable; an environment issue, not
       // necessarily a bug
