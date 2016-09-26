@@ -444,6 +444,11 @@ public abstract class SqlAbstractParserImpl {
   public abstract void setIdentifierMaxLength(int identifierMaxLength);
 
   /**
+   * Sets whether the bang-equal token != is allowed as an alternative to &lt;&gt;.
+   */
+  public abstract void setAllowBangEqual(boolean allowBangEqual);
+
+  /**
    * Sets the SQL text that is being parsed.
    */
   public void setOriginalSql(String originalSql) {

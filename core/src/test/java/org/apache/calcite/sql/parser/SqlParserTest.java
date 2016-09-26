@@ -858,8 +858,9 @@ public class SqlParserTest {
     //   equals' is <> as in BASIC. There are many texts which will tell
     //   you that != is SQL's not-equals operator; those texts are false;
     //   it's one of those unstampoutable urban myths."
-    checkFails("'abc'^!^=123",
-        "Lexical error at line 1, column 6\\.  Encountered: \"!\" \\(33\\), after : \"\"");
+    // Therefore, we only support != with certain SQL conformance levels.
+    checkExpFails("'abc'!=123",
+        "Bang equal '!=' is not allowed under the current SQL conformance level");
   }
 
   @Test public void testBetween() {

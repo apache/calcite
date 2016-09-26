@@ -42,6 +42,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -2742,6 +2743,24 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'a'<>'A'", Boolean.TRUE);
     tester.checkBoolean("1e0<>1e1", Boolean.TRUE);
     tester.checkNull("'a'<>cast(null as varchar(1))");
+
+    // "!=" is not an acceptable alternative to "<>" under default SQL conformance level
+    tester.checkFails(
+        "1 != 1",
+        "Bang equal '!=' is not allowed under the current SQL conformance level",
+        false);
+    // "!=" is allowed under ORACLE_10 SQL conformance level
+    final SqlTester tester1 =
+        tester
+            .withConformance(SqlConformance.ORACLE_10)
+            .withConnectionFactory(
+                CalciteAssert.EMPTY_CONNECTION_FACTORY
+                    .with("conformance", SqlConformance.ORACLE_10));
+
+    tester1
+        .checkBoolean("1 <> 1", Boolean.FALSE);
+    tester1
+        .checkBoolean("1 != 1", Boolean.FALSE);
   }
 
   @Test public void testNotEqualsOperatorIntervals() {
@@ -2756,12 +2775,6 @@ public abstract class SqlOperatorBaseTest {
         Boolean.TRUE);
     tester.checkNull(
         "cast(null as interval hour) <> interval '2' minute");
-
-    // "!=" is not an acceptable alternative to "<>"
-    tester.checkFails(
-        "1 ^!^= 1",
-        "(?s).*Encountered: \"!\" \\(33\\).*",
-        false);
   }
 
   @Test public void testOrOperator() {

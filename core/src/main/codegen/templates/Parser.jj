@@ -134,6 +134,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
+    private boolean allowBangEqual;
 
     /**
      * {@link SqlParserImplFactory} implementation for creating parser.
@@ -199,6 +200,12 @@ public class ${parser.class} extends SqlAbstractParserImpl
     public void setIdentifierMaxLength(int identifierMaxLength)
     {
         this.identifierMaxLength = identifierMaxLength;
+    }
+
+    // implement SqlAbstractParserImpl
+    public void setAllowBangEqual(boolean allowBangEqual)
+    {
+        this.allowBangEqual = allowBangEqual;
     }
 
     // implement SqlAbstractParserImpl
@@ -4728,6 +4735,13 @@ SqlBinaryOperator BinaryRowOperator() :
     { return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL; }
     | <NE>
     { return SqlStdOperatorTable.NOT_EQUALS; }
+    | <NE2>
+    {
+        if (!this.allowBangEqual) {
+            throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
+        }
+        return SqlStdOperatorTable.NOT_EQUALS;
+    }
     | <PLUS>
     { return SqlStdOperatorTable.PLUS; }
     | <MINUS>
@@ -5712,6 +5726,7 @@ String CommonNonReservedKeyWord() :
     | < LE: "<=" >
     | < GE: ">=" >
     | < NE: "<>" >
+    | < NE2: "!=" >
     | < PLUS: "+" >
     | < MINUS: "-" >
     | < STAR: "*" >

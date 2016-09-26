@@ -91,6 +91,22 @@ public enum SqlConformance {
       return false;
     }
   }
+
+  /**
+   * Whether the bang-equal token != is allowed as an alternative to &lt;&gt; in
+   * the parser.
+   *
+   * <p>True in {@link #ORACLE_10};
+   * false otherwise.
+   */
+  public boolean isBangEqualAllowed() {
+    switch (this) {
+    case ORACLE_10:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformance.java

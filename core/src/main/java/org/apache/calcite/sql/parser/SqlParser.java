@@ -32,6 +32,7 @@ import java.io.StringReader;
  */
 public class SqlParser {
   public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 128;
+  public static final boolean DEFAULT_ALLOW_BANG_EQUAL = false;
 
   //~ Instance fields --------------------------------------------------------
   private final SqlAbstractParserImpl parser;
@@ -47,6 +48,7 @@ public class SqlParser {
     parser.setQuotedCasing(config.quotedCasing());
     parser.setUnquotedCasing(config.unquotedCasing());
     parser.setIdentifierMaxLength(config.identifierMaxLength());
+    parser.setAllowBangEqual(config.allowBangEqual());
     switch (config.quoting()) {
     case DOUBLE_QUOTE:
       parser.switchTo("DQID");
@@ -194,6 +196,7 @@ public class SqlParser {
     Casing unquotedCasing();
     Quoting quoting();
     boolean caseSensitive();
+    boolean allowBangEqual();
     SqlParserImplFactory parserFactory();
   }
 
@@ -204,6 +207,7 @@ public class SqlParser {
     private Quoting quoting = Lex.ORACLE.quoting;
     private int identifierMaxLength = DEFAULT_IDENTIFIER_MAX_LENGTH;
     private boolean caseSensitive = Lex.ORACLE.caseSensitive;
+    private boolean allowBangEqual = DEFAULT_ALLOW_BANG_EQUAL;
     private SqlParserImplFactory parserFactory = SqlParserImpl.FACTORY;
 
     private ConfigBuilder() {}
@@ -214,6 +218,7 @@ public class SqlParser {
       this.unquotedCasing = config.unquotedCasing();
       this.quoting = config.quoting();
       this.identifierMaxLength = config.identifierMaxLength();
+      this.allowBangEqual = config.allowBangEqual();
       this.parserFactory = config.parserFactory();
       return this;
     }
@@ -243,6 +248,11 @@ public class SqlParser {
       return this;
     }
 
+    public ConfigBuilder setAllowBangEqual(boolean allowBangEqual) {
+      this.allowBangEqual = allowBangEqual;
+      return this;
+    }
+
     public ConfigBuilder setParserFactory(SqlParserImplFactory factory) {
       this.parserFactory = Preconditions.checkNotNull(factory);
       return this;
@@ -259,8 +269,8 @@ public class SqlParser {
     /** Builds a
      * {@link Config}. */
     public Config build() {
-      return new ConfigImpl(identifierMaxLength, quotedCasing,
-          unquotedCasing, quoting, caseSensitive, parserFactory);
+      return new ConfigImpl(identifierMaxLength, quotedCasing, unquotedCasing,
+          quoting, caseSensitive, allowBangEqual, parserFactory);
     }
   }
 
@@ -270,6 +280,7 @@ public class SqlParser {
   private static class ConfigImpl implements Config {
     private final int identifierMaxLength;
     private final boolean caseSensitive;
+    private final boolean allowBangEqual;
     private final Casing quotedCasing;
     private final Casing unquotedCasing;
     private final Quoting quoting;
@@ -277,9 +288,10 @@ public class SqlParser {
 
     private ConfigImpl(int identifierMaxLength, Casing quotedCasing,
         Casing unquotedCasing, Quoting quoting, boolean caseSensitive,
-        SqlParserImplFactory parserFactory) {
+        boolean allowBangEqual, SqlParserImplFactory parserFactory) {
       this.identifierMaxLength = identifierMaxLength;
       this.caseSensitive = caseSensitive;
+      this.allowBangEqual = allowBangEqual;
       this.quotedCasing = Preconditions.checkNotNull(quotedCasing);
       this.unquotedCasing = Preconditions.checkNotNull(unquotedCasing);
       this.quoting = Preconditions.checkNotNull(quoting);
@@ -304,6 +316,10 @@ public class SqlParser {
 
     public boolean caseSensitive() {
       return caseSensitive;
+    }
+
+    public boolean allowBangEqual() {
+      return allowBangEqual;
     }
 
     public SqlParserImplFactory parserFactory() {

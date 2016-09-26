@@ -843,7 +843,7 @@ The operator precedence and associativity, highest to lowest.
 | * /                                               | left
 | + -                                               | left
 | BETWEEN, IN, LIKE, SIMILAR                        | -
-| < > = <= >= <>                                    | left
+| < > = <= >= <> !=                                 | left
 | IS NULL, IS FALSE, IS NOT TRUE etc.               | -
 | NOT                                               | right
 | AND                                               | left
@@ -855,6 +855,7 @@ The operator precedence and associativity, highest to lowest.
 |:------------------------------------------------- |:-----------
 | value1 = value2                                   | Equals
 | value1 <> value2                                  | Not equal
+| value1 != value2                                  | Not equal (only available at some conformance levels)
 | value1 > value2                                   | Greater than
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than

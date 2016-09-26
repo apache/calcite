@@ -31,6 +31,9 @@ public interface CalciteResource {
   @BaseMessage("line {0,number,#}, column {1,number,#}")
   Inst parserContext(int a0, int a1);
 
+  @BaseMessage("Bang equal ''!='' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> bangEqualNotAllowed();
+
   @BaseMessage("Illegal {0} literal {1}: {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 

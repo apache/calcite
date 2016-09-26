@@ -80,6 +80,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
             .setQuoting((Quoting) factory.get("quoting"))
             .setUnquotedCasing((Casing) factory.get("unquotedCasing"))
             .setQuotedCasing((Casing) factory.get("quotedCasing"))
+            .setAllowBangEqual(((SqlConformance) factory.get("conformance")).isBangEqualAllowed())
             .build());
   }
 
