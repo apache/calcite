@@ -90,6 +90,11 @@ public class SqlBasicCall extends SqlCall {
   @Override public SqlLiteral getFunctionQuantifier() {
     return functionQuantifier;
   }
+
+  @Override public SqlNode clone(SqlParserPos pos) {
+    return getOperator().createCall(getFunctionQuantifier(), pos, operands);
+  }
+
 }
 
 // End SqlBasicCall.java

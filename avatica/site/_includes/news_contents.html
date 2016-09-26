@@ -18,13 +18,13 @@
     </ul>
     <h4>Other News</h4>
     <ul>
-        {% for post in site.posts %}
-        {% unless post.categories contains 'release' %}
+        {% for post in site.posts %}{% comment %}
+          {% endcomment %}{% unless post.categories contains 'release' %}
         <li class="{% if page.title == post.title %}current{% endif %}">
           <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
         </li>
-        {% endunless %}
-        {% endfor %}
+          {% endunless %}{% comment %}
+        {% endcomment %}{% endfor %}
     </ul>
   </aside>
 </div>
