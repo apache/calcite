@@ -1417,14 +1417,38 @@ public class SqlFunctions {
    */
   public static Object item(Object object, Object index) {
     if (object instanceof Map) {
-      return ((Map) object).get(index);
+      return mapItem((Map) object, index);
     }
     if (object instanceof List && index instanceof Number) {
-      List list = (List) object;
-      return list.get(((Number) index).intValue());
+      return arrayItem((List) object, ((Number) index).intValue());
     }
     return null;
   }
+
+  /** As {@link #arrayItem} method, but allows array to be nullable. */
+  public static Object arrayItemOptional(List list, int item) {
+    if (list == null) {
+      return null;
+    }
+    return arrayItem(list, item);
+  }
+
+  /** As {@link #mapItem} method, but allows map to be nullable. */
+  public static Object mapItemOptional(Map map, Object item) {
+    if (map == null) {
+      return null;
+    }
+    return mapItem(map, item);
+  }
+
+  /** As {@link #item} method, but allows object to be nullable. */
+  public static Object itemOptional(Object object, Object index) {
+    if (object == null) {
+      return null;
+    }
+    return item(object, index);
+  }
+
 
   /** NULL &rarr; FALSE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
   public static boolean isTrue(Boolean b) {

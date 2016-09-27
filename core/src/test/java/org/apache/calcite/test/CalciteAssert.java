@@ -582,10 +582,13 @@ public class CalciteAssert {
     return new ResultSetFormatter().toStringList(resultSet, list);
   }
 
+  static List<String> toList(ResultSet resultSet) throws SQLException {
+    return (List<String>) toStringList(resultSet, new ArrayList<String>());
+  }
+
   static ImmutableMultiset<String> toSet(ResultSet resultSet)
       throws SQLException {
-    return ImmutableMultiset.copyOf(
-        toStringList(resultSet, new ArrayList<String>()));
+    return ImmutableMultiset.copyOf(toList(resultSet));
   }
 
   /** Calls a non-static method via reflection. Useful for testing methods that

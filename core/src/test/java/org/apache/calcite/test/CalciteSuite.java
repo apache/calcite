@@ -159,6 +159,7 @@ import org.junit.runners.Suite;
     RelMdColumnOriginsTest.class,
     MultiJdbcSchemaJoinTest.class,
     SqlLineTest.class,
+    CollectionTypeTest.class,
 
     // slow tests that don't break often
     SqlToRelConverterExtendedTest.class,
