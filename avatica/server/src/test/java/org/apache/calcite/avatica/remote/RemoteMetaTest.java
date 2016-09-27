@@ -725,6 +725,16 @@ public class RemoteMetaTest {
     }
   }
 
+  @Test public void testDriverProperties() throws Exception {
+    final Properties props = new Properties();
+    props.setProperty("foo", "bar");
+    final Properties originalProps = (Properties) props.clone();
+    try (final Connection conn = DriverManager.getConnection(url, props)) {
+      // The contents of the two properties objects should not have changed after connecting.
+      assertEquals(props, originalProps);
+    }
+  }
+
   /** Factory that provides a {@link JdbcMeta}. */
   public static class FullyRemoteJdbcMetaFactory implements Meta.Factory {
 

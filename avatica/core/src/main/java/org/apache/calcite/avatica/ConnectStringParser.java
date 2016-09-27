@@ -120,7 +120,7 @@ public class ConnectStringParser {
   /**
    * Parses the connect string into a Properties object. Note that the string
    * can only be parsed once. Subsequent calls return empty/unchanged
-   * Properties.
+   * Properties. The original <code>props</code> argument is not altered.
    *
    * @param props optional properties object, may be <code>null</code>
    *
@@ -130,15 +130,18 @@ public class ConnectStringParser {
    *
    * @throws SQLException error parsing name-value pairs
    */
-  Properties parseInternal(Properties props)
+  Properties parseInternal(final Properties props)
       throws SQLException {
+    final Properties newProps;
     if (props == null) {
-      props = new Properties();
+      newProps = new Properties();
+    } else {
+      newProps = (Properties) props.clone();
     }
     while (i < n) {
-      parsePair(props);
+      parsePair(newProps);
     }
-    return props;
+    return newProps;
   }
 
   /**
