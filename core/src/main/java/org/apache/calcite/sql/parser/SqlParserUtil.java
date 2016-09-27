@@ -734,8 +734,9 @@ public final class SqlParserUtil {
     }
   }
 
-  /** Implementation of {@link SqlSpecialOperator.TokenSequence} based on an
-   * existing parser. */
+  /** Implementation of
+   * {@link org.apache.calcite.sql.SqlSpecialOperator.TokenSequence}
+   * based on an existing parser. */
   private static class TokenSequenceImpl
       implements SqlSpecialOperator.TokenSequence {
     final List<PrecedenceClimbingParser.Token> list;
@@ -793,7 +794,8 @@ public final class SqlParserUtil {
     }
   }
 
-  /** Implementation of {@link SqlSpecialOperator.TokenSequence}. */
+  /** Implementation of
+   * {@link org.apache.calcite.sql.SqlSpecialOperator.TokenSequence}. */
   private static class OldTokenSequenceImpl
       implements SqlSpecialOperator.TokenSequence {
     final List<Object> list;
