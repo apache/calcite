@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
@@ -194,6 +195,30 @@ public abstract class RelOptUtil {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Returns a set of tables used by this expression or its children
+   */
+  public static Set<RelOptTable> findTables(RelNode rel) {
+    return new LinkedHashSet<RelOptTable>(findAllTables(rel));
+  }
+
+  /**
+   * Returns a list of all tables used by this expression or its children
+   */
+  public static List<RelOptTable> findAllTables(RelNode rel) {
+    final List<RelOptTable> usedTables = new ArrayList<>();
+    new RelVisitor() {
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof TableScan) {
+          usedTables.add(node.getTable());
+        }
+        super.visit(node, ordinal, parent);
+      }
+      // CHECKSTYLE: IGNORE 1
+    }.go(rel);
+    return usedTables;
   }
 
   /**
