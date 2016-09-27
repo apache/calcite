@@ -565,7 +565,7 @@ limitations under the License.
           <links>
             <link>http://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <tags>
             <tag>
               <name>sql.92</name>
@@ -747,7 +747,7 @@ limitations under the License.
           <links>
             <link>http://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <tags>
             <tag>
               <name>sql.92</name>
