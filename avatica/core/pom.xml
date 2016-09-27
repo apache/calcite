@@ -23,7 +23,7 @@ limitations under the License.
     <version>1.9.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>avatica</artifactId>
+  <artifactId>avatica-core</artifactId>
   <packaging>jar</packaging>
   <name>Apache Calcite Avatica</name>
   <description>JDBC driver framework.</description>
@@ -139,7 +139,6 @@ limitations under the License.
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>
@@ -205,45 +204,6 @@ limitations under the License.
                   <filtering>true</filtering>
                 </resource>
               </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <relocations>
-                <relocation>
-                  <pattern>com.google.protobuf</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.com.google.protobuf</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.http</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.org.apache.http</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.commons</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.org.apache.commons</shadedPattern>
-                </relocation>
-              </relocations>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                    <addHeader>false</addHeader>
-                </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
-                  <resources>
-                    <resource>LICENSE.txt</resource>
-                  </resources>
-                </transformer>
-              </transformers>
             </configuration>
           </execution>
         </executions>

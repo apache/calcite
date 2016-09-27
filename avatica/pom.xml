@@ -115,6 +115,7 @@ limitations under the License.
     <module>server</module>
     <module>tck</module>
     <module>standalone-server</module>
+    <module>shaded/core</module>
   </modules>
 
   <!-- No dependencies here. Declare dependency VERSIONS in
@@ -128,6 +129,11 @@ limitations under the License.
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>avatica</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite.avatica</groupId>
+        <artifactId>avatica-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
