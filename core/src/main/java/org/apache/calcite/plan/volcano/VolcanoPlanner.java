@@ -47,7 +47,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -103,7 +102,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -460,7 +458,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final List<RelOptMaterialization> applicableMaterializations =
         getApplicableMaterializations(originalRoot, materializations);
     useMaterializations(originalRoot, applicableMaterializations);
-    final Set<RelOptTable> queryTables = findTables(originalRoot);
+    final Set<RelOptTable> queryTables = RelOptUtil.findTables(originalRoot);
 
     // Use a lattice if the query uses at least the central (fact) table of the
     // lattice.
@@ -503,7 +501,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         final List<String> qname = materialization.table.getQualifiedName();
         qnameMap.put(qname, materialization);
         for (RelOptTable usedTable
-            : findTables(materialization.queryRel)) {
+            : RelOptUtil.findTables(materialization.queryRel)) {
           usesGraph.addVertex(qname);
           usesGraph.addVertex(usedTable.getQualifiedName());
           usesGraph.addEdge(usedTable.getQualifiedName(), qname);
@@ -516,7 +514,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // actually use.)
     final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
         Graphs.makeImmutable(usesGraph);
-    final Set<RelOptTable> queryTablesUsed = findTables(root);
+    final Set<RelOptTable> queryTablesUsed = RelOptUtil.findTables(root);
     final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
     for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
       RelOptMaterialization materialization = qnameMap.get(qname);
@@ -544,20 +542,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
     return false;
-  }
-
-  private static Set<RelOptTable> findTables(RelNode rel) {
-    final Set<RelOptTable> usedTables = new LinkedHashSet<>();
-    new RelVisitor() {
-      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof TableScan) {
-          usedTables.add(node.getTable());
-        }
-        super.visit(node, ordinal, parent);
-      }
-      // CHECKSTYLE: IGNORE 1
-    }.go(rel);
-    return usedTables;
   }
 
   /**

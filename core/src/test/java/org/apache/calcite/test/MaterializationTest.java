@@ -18,12 +18,16 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.rules.MaterializedViewJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -33,7 +37,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
@@ -146,20 +156,56 @@ public class MaterializationTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query) {
-    checkMaterialize(materialize, query, JdbcTest.HR_MODEL, CONTAINS_M0);
+    checkMaterialize(materialize, query, JdbcTest.HR_MODEL, CONTAINS_M0,
+        RuleSets.ofList(ImmutableList.<RelOptRule>of()));
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private void checkMaterializeWithRules(String materialize, String query, RuleSet rules) {
+    checkMaterialize(materialize, query, JdbcTest.HR_MODEL, CONTAINS_M0, rules);
   }
 
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query, String model,
       Function<ResultSet, Void> explainChecker) {
+    checkMaterialize(materialize, query, model, explainChecker,
+        RuleSets.ofList(ImmutableList.<RelOptRule>of()));
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private void checkMaterialize(String materialize, String query, String model,
+      Function<ResultSet, Void> explainChecker, final RuleSet rules) {
     try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
-      CalciteAssert.that()
+      CalciteAssert.AssertQuery that = CalciteAssert.that()
           .withMaterializations(model, "m0", materialize)
           .query(query)
-          .enableMaterializations(true)
-          .explainMatches("", explainChecker)
+          .enableMaterializations(true);
+
+      // Add any additional rules required for the test
+      if (rules.iterator().hasNext()) {
+        that.withHook(Hook.PROGRAM,
+          new Function<Pair<List<Prepare.Materialization>, Holder<Program>>,
+          Void>() {
+            public Void apply(Pair<List<Prepare.Materialization>, Holder<Program>> pair) {
+              pair.right.set(new Program() {
+                public RelNode run(RelOptPlanner planner, RelNode rel,
+                    RelTraitSet requiredOutputTraits) {
+                  for (RelOptRule rule : rules) {
+                    planner.addRule(rule);
+                  }
+                  return Programs.standard().run(planner, rel, requiredOutputTraits);
+                }
+              });
+              return null;
+            }
+          });
+      }
+
+      that.explainMatches("", explainChecker)
           .sameResultWithMaterializationsDisabled();
     }
   }
@@ -871,6 +917,16 @@ public class MaterializationTest {
     final String m = "select \"deptno\", \"empid\", \"name\",\n"
         + "\"salary\", \"commission\" from \"emps\"";
     checkMaterialize(m, q);
+  }
+
+  @Test public void testJoinMaterialization3() {
+    String q = "select \"empid\" \"deptno\" from \"emps\"\n"
+            + "join \"depts\" using (\"deptno\") where \"empid\" = 1";
+    final String m = "select \"empid\" \"deptno\" from \"emps\"\n"
+            + "join \"depts\" using (\"deptno\")";
+    RuleSet rules = RuleSets.ofList(MaterializedViewJoinRule.INSTANCE_PROJECT,
+                                    MaterializedViewJoinRule.INSTANCE_TABLE_SCAN);
+    checkMaterializeWithRules(m, q, rules);
   }
 
   /** Test case for
