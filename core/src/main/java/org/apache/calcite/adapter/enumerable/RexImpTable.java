@@ -1560,12 +1560,18 @@ public class RexImpTable {
         RexToLixTranslator translator,
         RexCall call,
         List<Expression> translatedOperands) {
+
+      Expression expression;
       if (Modifier.isStatic(method.getModifiers())) {
-        return Expressions.call(method, translatedOperands);
+        expression = Expressions.call(method, translatedOperands);
       } else {
-        return Expressions.call(translatedOperands.get(0), method,
+        expression = Expressions.call(translatedOperands.get(0), method,
             Util.skip(translatedOperands, 1));
       }
+
+      final Type returnType =
+          translator.typeFactory.getJavaClass(call.getType());
+      return Types.castIfNecessary(returnType, expression);
     }
   }
 
@@ -1832,7 +1838,7 @@ public class RexImpTable {
           getImplementor(
               call.getOperands().get(0).getType().getSqlTypeName());
       return implementNullSemantics0(
-          translator, call, nullAs, NullPolicy.STRICT, false,
+          translator, call, nullAs, NullPolicy.ANY, false,
           implementor);
     }
 
