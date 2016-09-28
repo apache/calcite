@@ -5421,4 +5421,28 @@ LogicalProject(COL1=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateProjectPullUpConstants">
+        <Resource name="sql">
+            <![CDATA[select job, empno, sal, sum(sal) as s
+from emp where empno = 10
+group by job, empno, sal]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}], S=[SUM($2)])
+  LogicalProject(JOB=[$2], EMPNO=[$0], SAL=[$5])
+    LogicalFilter(condition=[=($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(JOB=[$0], EMPNO=[10], SAL=[$1], S=[$2])
+  LogicalAggregate(group=[{0, 2}], S=[SUM($2)])
+    LogicalProject(JOB=[$2], EMPNO=[$0], SAL=[$5])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

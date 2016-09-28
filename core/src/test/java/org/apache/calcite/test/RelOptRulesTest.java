@@ -1905,6 +1905,16 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
+  @Test public void testAggregateProjectPullUpConstants() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectPullUpConstantsRule.INSTANCE2)
+        .build();
+    final String sql = "select job, empno, sal, sum(sal) as s\n"
+        + "from emp where empno = 10\n"
+        + "group by job, empno, sal";
+    checkPlanning(program, sql);
+  }
+
   @Test public void testPushFilterWithRank() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE).build();
