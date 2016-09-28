@@ -288,7 +288,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return trimResult;
   }
 
-  private TrimResult result(RelNode r, final Mapping mapping) {
+  protected TrimResult result(RelNode r, final Mapping mapping) {
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     for (final CorrelationId correlation : r.getVariablesSet()) {
       r = r.accept(
@@ -422,7 +422,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param input Trimmed input
    * @return Dummy project, or null if no dummy is required
    */
-  private TrimResult dummyProject(int fieldCount, RelNode input) {
+  protected TrimResult dummyProject(int fieldCount, RelNode input) {
     final RelOptCluster cluster = input.getCluster();
     final Mapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);
@@ -1008,7 +1008,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return result(newValues, mapping);
   }
 
-  private Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {
+  protected Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {
     final Mapping mapping =
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
