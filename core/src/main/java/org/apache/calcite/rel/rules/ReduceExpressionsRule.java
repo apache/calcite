@@ -178,12 +178,11 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             push(filter.getInput()).filter(newConditionExp).build());
       } else {
         if (newConditionExp instanceof RexCall) {
-          RexCall rexCall = (RexCall) newConditionExp;
-          boolean reverse = rexCall.getKind() == SqlKind.NOT;
+          boolean reverse = newConditionExp.getKind() == SqlKind.NOT;
           if (reverse) {
-            rexCall = (RexCall) rexCall.getOperands().get(0);
+            newConditionExp = ((RexCall) newConditionExp).getOperands().get(0);
           }
-          reduceNotNullableFilter(call, filter, rexCall, reverse);
+          reduceNotNullableFilter(call, filter, newConditionExp, reverse);
         }
         return;
       }
@@ -217,13 +216,13 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     private void reduceNotNullableFilter(
         RelOptRuleCall call,
         Filter filter,
-        RexCall rexCall,
+        RexNode rexNode,
         boolean reverse) {
       // If the expression is a IS [NOT] NULL on a non-nullable
       // column, then we can either remove the filter or replace
       // it with an Empty.
       boolean alwaysTrue;
-      switch (rexCall.getKind()) {
+      switch (rexNode.getKind()) {
       case IS_NULL:
       case IS_UNKNOWN:
         alwaysTrue = false;
@@ -237,7 +236,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       if (reverse) {
         alwaysTrue = !alwaysTrue;
       }
-      RexNode operand = rexCall.getOperands().get(0);
+      RexNode operand = ((RexCall) rexNode).getOperands().get(0);
       if (operand instanceof RexInputRef) {
         RexInputRef inputRef = (RexInputRef) operand;
         if (!inputRef.getType().isNullable()) {

@@ -5402,4 +5402,23 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[AVG($1)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceExpressionsNot">
+        <Resource name="sql">
+            <![CDATA[select * from (values (false),(true)) as q (col1) where not(col1)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(COL1=[$0])
+  LogicalFilter(condition=[NOT($0)])
+    LogicalValues(tuples=[[{ false }, { true }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(COL1=[$0])
+  LogicalFilter(condition=[NOT($0)])
+    LogicalValues(tuples=[[{ false }, { true }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

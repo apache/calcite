@@ -2222,6 +2222,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(new HepPlanner(program), sql);
   }
 
+  @Test public void testReduceExpressionsNot() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+    checkPlanUnchanged(new HepPlanner(program),
+        "select * from (values (false),(true)) as q (col1) where not(col1)");
+  }
+
   private Sql checkSubQuery(String sql) {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(SubQueryRemoveRule.PROJECT)
