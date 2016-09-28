@@ -26,7 +26,7 @@ limitations under the License.
 
   <artifactId>avatica</artifactId>
   <packaging>jar</packaging>
-  <name>Apache Calcite Avatica</name>
+  <name>Apache Calcite Avatica (Shaded)</name>
   <description>JDBC driver framework.</description>
 
   <properties>
@@ -43,6 +43,23 @@ limitations under the License.
   <build>
     <plugins>
       <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <!-- ignore "unused but declared" warnings -->
+              <ignoredUnusedDeclaredDependencies>
+                <ignoredUnusedDeclaredDependency>org.apache.calcite.avatica:avatica-core</ignoredUnusedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <executions>
@@ -53,6 +70,10 @@ limitations under the License.
             </goals>
             <configuration>
               <relocations>
+                <relocation>
+                  <pattern>com.fasterxml.jackson</pattern>
+                  <shadedPattern>org.apache.calcite.avatica.com.fasterxml.jackson</shadedPattern>
+                </relocation>
                 <relocation>
                   <pattern>com.google.protobuf</pattern>
                   <shadedPattern>org.apache.calcite.avatica.com.google.protobuf</shadedPattern>
