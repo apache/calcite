@@ -98,3 +98,15 @@ Add the following to the dependencies section of your `pom.xml` file:
   </dependency>
 </dependencies>
 {% endhighlight %}
+
+As of Apache Calcite Avatica 1.9.0, the following un-shaded client artifact is also available:
+
+{% highlight xml %}
+<dependencies>
+  <dependency>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>avatica-core</artifactId>
+    <version>{{ current_release.version }}</version>
+  </dependency>
+</dependencies>
+{% endhighlight %}
