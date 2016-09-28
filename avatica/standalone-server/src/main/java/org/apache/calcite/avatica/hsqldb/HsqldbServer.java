@@ -113,9 +113,9 @@ public class HsqldbServer {
   }
 
   /**
-   * Converter from String to Serialization.
+   * Converter from String to Serialization. Must be public for JCommander.
    */
-  private static class SerializationConverter implements IStringConverter<Serialization> {
+  public static class SerializationConverter implements IStringConverter<Serialization> {
     @Override public Serialization convert(String value) {
       return Serialization.valueOf(value.toUpperCase());
     }
