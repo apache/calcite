@@ -380,7 +380,7 @@ public class RexUtil {
               if (!call.getOperator().isDeterministic()) {
                 throw Util.FoundOne.NULL;
               }
-              return null;
+              return super.visitCall(call);
             }
           };
       e.accept(visitor);

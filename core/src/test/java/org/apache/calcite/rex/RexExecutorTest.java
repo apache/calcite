@@ -26,7 +26,13 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.NlsString;
@@ -212,6 +218,58 @@ public class RexExecutorTest {
       }
     });
   }
+
+  @Test public void testDeterministic1() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final RexNode plus =
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        assertThat(RexUtil.isDeterministic(plus), equalTo(true));
+      }
+    });
+  }
+
+  @Test public void testDeterministic2() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final RexNode plus =
+            rexBuilder.makeCall(PLUS_RANDOM,
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        assertThat(RexUtil.isDeterministic(plus), equalTo(false));
+      }
+    });
+  }
+
+  @Test public void testDeterministic3() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final RexNode plus =
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeCall(PLUS_RANDOM,
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE)),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        assertThat(RexUtil.isDeterministic(plus), equalTo(false));
+      }
+    });
+  }
+
+  private static final SqlBinaryOperator PLUS_RANDOM =
+      new SqlMonotonicBinaryOperator(
+          "+",
+          SqlKind.PLUS,
+          40,
+          true,
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.PLUS_OPERATOR) {
+        @Override public boolean isDeterministic() {
+          return false;
+        }
+      };
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1009">[CALCITE-1009]
