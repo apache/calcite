@@ -450,6 +450,10 @@ public abstract class Types {
   public static Expression castIfNecessary(Type returnType,
       Expression expression) {
     final Type type = expression.getType();
+    if (returnType instanceof RecordType) {
+      // We can't extract Class from RecordType since mapping Java Class might not generated yet.
+      return expression;
+    }
     if (Types.isAssignableFrom(returnType, type)) {
       return expression;
     }

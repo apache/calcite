@@ -192,6 +192,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     if (type instanceof BasicSqlType) {
       BasicSqlType sqlType = (BasicSqlType) type;
       newType = sqlType.createWithNullability(nullable);
+    } else if (type instanceof MapSqlType) {
+      newType = copyMapType(type, nullable);
+    } else if (type instanceof ArraySqlType) {
+      newType = copyArrayType(type, nullable);
     } else if (type instanceof MultisetSqlType) {
       newType = copyMultisetType(type, nullable);
     } else if (type instanceof IntervalSqlType) {
@@ -518,6 +522,19 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         nullable,
         type.getFieldList(),
         type.getComparability());
+  }
+
+  private RelDataType copyArrayType(RelDataType type, boolean nullable) {
+    ArraySqlType at = (ArraySqlType) type;
+    RelDataType elementType = copyType(at.getComponentType());
+    return new ArraySqlType(elementType, nullable);
+  }
+
+  private RelDataType copyMapType(RelDataType type, boolean nullable) {
+    MapSqlType mt = (MapSqlType) type;
+    RelDataType keyType = copyType(mt.getKeyType());
+    RelDataType valueType = copyType(mt.getValueType());
+    return new MapSqlType(keyType, valueType, nullable);
   }
 
   // override RelDataTypeFactoryImpl
