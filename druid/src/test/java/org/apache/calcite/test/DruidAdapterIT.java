@@ -928,6 +928,19 @@ public class DruidAdapterIT {
         .returnsUnordered("C=6588");
   }
 
+  @Test public void testFilterSwapped() {
+    String sql = "select \"state_province\"\n"
+        + "from \"foodmart\"\n"
+        + "where 'High Top Dried Mushrooms' = \"product_name\"";
+    final String explain = "EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[=('High Top Dried Mushrooms', CAST($3):VARCHAR(24) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\")], projects=[[$30]])";
+    final String druidQuery = "'filter':{'type':'selector','dimension':'product_name',"
+        + "'value':'High Top Dried Mushrooms'}";
+    sql(sql)
+        .explainContains(explain)
+        .queryContains(druidChecker(druidQuery));
+  }
+
   /** Tests a query that exposed several bugs in the interpreter. */
   @Test public void testWhereGroupBy() {
     String sql = "select \"wikiticker\".\"countryName\" as \"c0\",\n"

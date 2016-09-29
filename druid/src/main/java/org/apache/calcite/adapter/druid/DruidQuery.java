@@ -50,6 +50,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -834,35 +835,55 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
     }
 
-    private JsonFilter translateFilter(RexNode e) {
+    @SuppressWarnings("incomplete-switch") private JsonFilter translateFilter(RexNode e) {
       final RexCall call;
       switch (e.getKind()) {
       case EQUALS:
-        return new JsonSelector("selector", tr(e, 0), tr(e, 1));
       case NOT_EQUALS:
-        return new JsonCompositeFilter("not",
-            ImmutableList.of(new JsonSelector("selector", tr(e, 0), tr(e, 1))));
       case GREATER_THAN:
-        return new JsonBound("bound", tr(e, 0), tr(e, 1), true, null, false,
-            false);
       case GREATER_THAN_OR_EQUAL:
-        return new JsonBound("bound", tr(e, 0), tr(e, 1), false, null, false,
-            false);
       case LESS_THAN:
-        return new JsonBound("bound", tr(e, 0), null, false, tr(e, 1), true,
-            false);
       case LESS_THAN_OR_EQUAL:
-        return new JsonBound("bound", tr(e, 0), null, false, tr(e, 1), false,
-            false);
+        call = (RexCall) e;
+        int posRef;
+        int posConstant;
+        if (RexUtil.isConstant(call.getOperands().get(1))) {
+          posRef = 0;
+          posConstant = 1;
+        } else if (RexUtil.isConstant(call.getOperands().get(0))) {
+          posRef = 1;
+          posConstant = 0;
+        } else {
+          throw new AssertionError("it is not a valid comparison: " + e);
+        }
+        switch (e.getKind()) {
+        case EQUALS:
+          return new JsonSelector("selector", tr(e, posRef), tr(e, posConstant));
+        case NOT_EQUALS:
+          return new JsonCompositeFilter("not",
+              ImmutableList.of(new JsonSelector("selector", tr(e, posRef), tr(e, posConstant))));
+        case GREATER_THAN:
+          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant), true, null, false,
+              false);
+        case GREATER_THAN_OR_EQUAL:
+          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant), false, null, false,
+              false);
+        case LESS_THAN:
+          return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), true,
+              false);
+        case LESS_THAN_OR_EQUAL:
+          return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), false,
+              false);
+        }
+        break;
       case AND:
       case OR:
       case NOT:
         call = (RexCall) e;
         return new JsonCompositeFilter(e.getKind().toString().toLowerCase(),
             translateFilters(call.getOperands()));
-      default:
-        throw new AssertionError("cannot translate filter: " + e);
       }
+      throw new AssertionError("cannot translate filter: " + e);
     }
 
     private String tr(RexNode call, int index) {
