@@ -8355,6 +8355,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
     sql(sql).type("RecordType(ANY NEWID) NOT NULL");
   }
+
+  // Calcite-754
+  @Test public void testPartionByColumnInJoinAlias() {
+    sql("select sum(1) over(partition by t1.ename) \n"
+        + "from emp t1, emp t2")
+        .ok();
+  }
+
+  // Calcite-754
+  @Test public void testPartionByColumnInJoin() {
+    sql("select sum(1) over(partition by emp.ename) \n"
+        + "from emp, dept")
+        .ok();
+  }
 }
 
 // End SqlValidatorTest.java

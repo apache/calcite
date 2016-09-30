@@ -101,7 +101,7 @@ public abstract class ListScope extends DelegatingScope {
 
   public void findAllColumnNames(List<SqlMoniker> result) {
     for (Pair<String, SqlValidatorNamespace> pair : children) {
-      addColumnNames(pair.right, result);
+      addColumnNames(pair.left, pair.right, result);
     }
     parent.findAllColumnNames(result);
   }

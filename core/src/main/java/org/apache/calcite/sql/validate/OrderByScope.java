@@ -62,7 +62,7 @@ public class OrderByScope extends DelegatingScope {
 
   public void findAllColumnNames(List<SqlMoniker> result) {
     final SqlValidatorNamespace ns = validator.getNamespace(select);
-    addColumnNames(ns, result);
+    addColumnNames(null, ns, result);
   }
 
   public SqlQualified fullyQualify(SqlIdentifier identifier) {

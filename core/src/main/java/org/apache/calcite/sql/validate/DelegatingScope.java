@@ -32,6 +32,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -118,8 +119,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   protected void addColumnNames(
-      SqlValidatorNamespace ns,
-      List<SqlMoniker> colNames) {
+      String table,
+          SqlValidatorNamespace ns,
+              List<SqlMoniker> colNames) {
     final RelDataType rowType;
     try {
       rowType = ns.getRowType();
@@ -129,10 +131,18 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
 
     for (RelDataTypeField field : rowType.getFieldList()) {
+      List<String> column = new ArrayList<>();
+
+      // Table name needs to be specified to eliminate ambiguity
+      if (table != null) {
+        column.add(table);
+      }
+
+      column.add(field.getName());
       colNames.add(
           new SqlMonikerImpl(
-              field.getName(),
-              SqlMonikerType.COLUMN));
+              column,
+                  SqlMonikerType.COLUMN));
     }
   }
 
