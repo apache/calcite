@@ -235,7 +235,7 @@ public abstract class MetaImpl implements Meta {
         scalarType.columnClassName());
   }
 
-  protected static ColumnMetaData.StructType fieldMetaData(Class clazz) {
+  protected static ColumnMetaData.StructType fieldMetaData(Class<?> clazz) {
     final List<ColumnMetaData> list = new ArrayList<ColumnMetaData>();
     for (Field field : clazz.getFields()) {
       if (Modifier.isPublic(field.getModifiers())
@@ -243,7 +243,7 @@ public abstract class MetaImpl implements Meta {
         list.add(
             columnMetaData(
                 AvaticaUtils.camelToUpper(field.getName()),
-                list.size() + 1, field.getType()));
+                list.size(), field.getType()));
       }
     }
     return ColumnMetaData.struct(list);
