@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
 
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 public class NumberAccessorTest {
 
   @Test
-  public void testBigDecimalZeroScale() {
+  public void testBigDecimalZeroScale() throws SQLException {
     final BigDecimal orig = new BigDecimal(BigInteger.valueOf(137L), 1);
     NumberAccessor accessor = new AbstractCursor.NumberAccessor(
         new Getter() {

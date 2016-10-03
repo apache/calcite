@@ -33,6 +33,7 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Struct;
@@ -279,137 +280,137 @@ public abstract class AbstractCursor implements Cursor {
       this.getter = getter;
     }
 
-    public boolean wasNull() {
+    public boolean wasNull() throws SQLException {
       return getter.wasNull();
     }
 
-    public String getString() {
+    public String getString() throws SQLException {
       final Object o = getObject();
       return o == null ? null : o.toString();
     }
 
-    public boolean getBoolean() {
+    public boolean getBoolean() throws SQLException {
       return getLong() != 0L;
     }
 
-    public byte getByte() {
+    public byte getByte() throws SQLException {
       return (byte) getLong();
     }
 
-    public short getShort() {
+    public short getShort() throws SQLException {
       return (short) getLong();
     }
 
-    public int getInt() {
+    public int getInt() throws SQLException {
       return (int) getLong();
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       throw cannotConvert("long");
     }
 
-    public float getFloat() {
+    public float getFloat() throws SQLException {
       return (float) getDouble();
     }
 
-    public double getDouble() {
+    public double getDouble() throws SQLException {
       throw cannotConvert("double");
     }
 
-    public BigDecimal getBigDecimal() {
+    public BigDecimal getBigDecimal() throws SQLException {
       throw cannotConvert("BigDecimal");
     }
 
-    public BigDecimal getBigDecimal(int scale) {
+    public BigDecimal getBigDecimal(int scale) throws SQLException {
       throw cannotConvert("BigDecimal with scale");
     }
 
-    public byte[] getBytes() {
+    public byte[] getBytes() throws SQLException {
       throw cannotConvert("byte[]");
     }
 
-    public InputStream getAsciiStream() {
+    public InputStream getAsciiStream() throws SQLException {
       throw cannotConvert("InputStream (ascii)");
     }
 
-    public InputStream getUnicodeStream() {
+    public InputStream getUnicodeStream() throws SQLException {
       throw cannotConvert("InputStream (unicode)");
     }
 
-    public InputStream getBinaryStream() {
+    public InputStream getBinaryStream() throws SQLException {
       throw cannotConvert("InputStream (binary)");
     }
 
-    public Object getObject() {
+    public Object getObject() throws SQLException {
       return getter.getObject();
     }
 
-    public Reader getCharacterStream() {
+    public Reader getCharacterStream() throws SQLException {
       throw cannotConvert("Reader");
     }
 
-    private RuntimeException cannotConvert(String targetType) {
-      return new RuntimeException("cannot convert to " + targetType + " ("
+    private SQLException cannotConvert(String targetType) throws SQLException {
+      return new SQLDataException("cannot convert to " + targetType + " ("
           + this + ")");
     }
 
-    public Object getObject(Map<String, Class<?>> map) {
+    public Object getObject(Map<String, Class<?>> map) throws SQLException {
       throw cannotConvert("Object (with map)");
     }
 
-    public Ref getRef() {
+    public Ref getRef() throws SQLException {
       throw cannotConvert("Ref");
     }
 
-    public Blob getBlob() {
+    public Blob getBlob() throws SQLException {
       throw cannotConvert("Blob");
     }
 
-    public Clob getClob() {
+    public Clob getClob() throws SQLException {
       throw cannotConvert("Clob");
     }
 
-    public Array getArray() {
+    public Array getArray() throws SQLException {
       throw cannotConvert("Array");
     }
 
-    public Struct getStruct() {
+    public Struct getStruct() throws SQLException {
       throw cannotConvert("Struct");
     }
 
-    public Date getDate(Calendar calendar) {
+    public Date getDate(Calendar calendar) throws SQLException {
       throw cannotConvert("Date");
     }
 
-    public Time getTime(Calendar calendar) {
+    public Time getTime(Calendar calendar) throws SQLException {
       throw cannotConvert("Time");
     }
 
-    public Timestamp getTimestamp(Calendar calendar) {
+    public Timestamp getTimestamp(Calendar calendar) throws SQLException {
       throw cannotConvert("Timestamp");
     }
 
-    public URL getURL() {
+    public URL getURL() throws SQLException {
       throw cannotConvert("URL");
     }
 
-    public NClob getNClob() {
+    public NClob getNClob() throws SQLException {
       throw cannotConvert("NClob");
     }
 
-    public SQLXML getSQLXML() {
+    public SQLXML getSQLXML() throws SQLException {
       throw cannotConvert("SQLXML");
     }
 
-    public String getNString() {
+    public String getNString() throws SQLException {
       throw cannotConvert("NString");
     }
 
-    public Reader getNCharacterStream() {
+    public Reader getNCharacterStream() throws SQLException {
       throw cannotConvert("NCharacterStream");
     }
 
-    public <T> T getObject(Class<T> type) {
+    public <T> T getObject(Class<T> type) throws SQLException {
       throw cannotConvert("Object (with type)");
     }
   }
@@ -423,7 +424,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public BigDecimal getBigDecimal(int scale) {
+    public BigDecimal getBigDecimal(int scale) throws SQLException {
       final long v = getLong();
       if (v == 0 && getter.wasNull()) {
         return null;
@@ -431,7 +432,7 @@ public abstract class AbstractCursor implements Cursor {
       return BigDecimal.valueOf(v).setScale(scale, RoundingMode.DOWN);
     }
 
-    public BigDecimal getBigDecimal() {
+    public BigDecimal getBigDecimal() throws SQLException {
       final long val = getLong();
       if (val == 0 && getter.wasNull()) {
         return null;
@@ -439,15 +440,15 @@ public abstract class AbstractCursor implements Cursor {
       return BigDecimal.valueOf(val);
     }
 
-    public double getDouble() {
+    public double getDouble() throws SQLException {
       return getLong();
     }
 
-    public float getFloat() {
+    public float getFloat() throws SQLException {
       return getLong();
     }
 
-    public abstract long getLong();
+    public abstract long getLong() throws SQLException;
   }
 
   /**
@@ -459,12 +460,12 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public boolean getBoolean() {
+    public boolean getBoolean() throws SQLException {
       Boolean o = (Boolean) getObject();
       return o != null && o;
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       return getBoolean() ? 1 : 0;
     }
   }
@@ -478,12 +479,12 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public byte getByte() {
+    public byte getByte() throws SQLException {
       Byte o = (Byte) getObject();
       return o == null ? 0 : o;
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       return getByte();
     }
   }
@@ -497,12 +498,12 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public short getShort() {
+    public short getShort() throws SQLException {
       Short o = (Short) getObject();
       return o == null ? 0 : o;
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       return getShort();
     }
   }
@@ -516,12 +517,12 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public int getInt() {
+    public int getInt() throws SQLException {
       Integer o = (Integer) super.getObject();
       return o == null ? 0 : o;
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       return getInt();
     }
   }
@@ -535,7 +536,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       Long o = (Long) super.getObject();
       return o == null ? 0 : o;
     }
@@ -550,7 +551,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public BigDecimal getBigDecimal(int scale) {
+    public BigDecimal getBigDecimal(int scale) throws SQLException {
       final double v = getDouble();
       if (v == 0d && getter.wasNull()) {
         return null;
@@ -558,7 +559,7 @@ public abstract class AbstractCursor implements Cursor {
       return BigDecimal.valueOf(v).setScale(scale, RoundingMode.DOWN);
     }
 
-    public BigDecimal getBigDecimal() {
+    public BigDecimal getBigDecimal() throws SQLException {
       final double v = getDouble();
       if (v == 0 && getter.wasNull()) {
         return null;
@@ -566,9 +567,9 @@ public abstract class AbstractCursor implements Cursor {
       return BigDecimal.valueOf(v);
     }
 
-    public abstract double getDouble();
+    public abstract double getDouble() throws SQLException;
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       return (long) getDouble();
     }
   }
@@ -582,12 +583,12 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public float getFloat() {
+    public float getFloat() throws SQLException {
       Float o = (Float) getObject();
       return o == null ? 0f : o;
     }
 
-    public double getDouble() {
+    public double getDouble() throws SQLException {
       return getFloat();
     }
   }
@@ -601,7 +602,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public double getDouble() {
+    public double getDouble() throws SQLException {
       Double o = (Double) getObject();
       return o == null ? 0d : o;
     }
@@ -616,39 +617,39 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    protected abstract Number getNumber();
+    protected abstract Number getNumber() throws SQLException;
 
-    public double getDouble() {
+    public double getDouble() throws SQLException {
       Number number = getNumber();
       return number == null ? 0d : number.doubleValue();
     }
 
-    public float getFloat() {
+    public float getFloat() throws SQLException {
       Number number = getNumber();
       return number == null ? 0f : number.floatValue();
     }
 
-    public long getLong() {
+    public long getLong() throws SQLException {
       Number number = getNumber();
       return number == null ? 0L : number.longValue();
     }
 
-    public int getInt() {
+    public int getInt() throws SQLException {
       Number number = getNumber();
       return number == null ? 0 : number.intValue();
     }
 
-    public short getShort() {
+    public short getShort() throws SQLException {
       Number number = getNumber();
       return number == null ? 0 : number.shortValue();
     }
 
-    public byte getByte() {
+    public byte getByte() throws SQLException {
       Number number = getNumber();
       return number == null ? 0 : number.byteValue();
     }
 
-    public boolean getBoolean() {
+    public boolean getBoolean() throws SQLException {
       Number number = getNumber();
       return number != null && number.doubleValue() != 0;
     }
@@ -663,15 +664,15 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    protected Number getNumber() {
+    protected Number getNumber() throws SQLException {
       return (Number) getObject();
     }
 
-    public BigDecimal getBigDecimal(int scale) {
+    public BigDecimal getBigDecimal(int scale) throws SQLException {
       return (BigDecimal) getObject();
     }
 
-    public BigDecimal getBigDecimal() {
+    public BigDecimal getBigDecimal() throws SQLException {
       return (BigDecimal) getObject();
     }
   }
@@ -692,11 +693,11 @@ public abstract class AbstractCursor implements Cursor {
       this.scale = scale;
     }
 
-    protected Number getNumber() {
+    protected Number getNumber() throws SQLException {
       return (Number) super.getObject();
     }
 
-    public BigDecimal getBigDecimal(int scale) {
+    public BigDecimal getBigDecimal(int scale) throws SQLException {
       Number n = getNumber();
       if (n == null) {
         return null;
@@ -708,7 +709,7 @@ public abstract class AbstractCursor implements Cursor {
       return decimal;
     }
 
-    public BigDecimal getBigDecimal() {
+    public BigDecimal getBigDecimal() throws SQLException {
       return getBigDecimal(scale);
     }
   }
@@ -723,11 +724,11 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    public String getString() {
+    public String getString() throws SQLException {
       return (String) getObject();
     }
 
-    @Override public byte[] getBytes() {
+    @Override public byte[] getBytes() throws SQLException {
       return super.getBytes();
     }
   }
@@ -744,7 +745,7 @@ public abstract class AbstractCursor implements Cursor {
       this.spacer = new Spacer(length);
     }
 
-    public String getString() {
+    public String getString() throws SQLException {
       String s = super.getString();
       if (s == null) {
         return null;
@@ -762,7 +763,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter, length);
     }
 
-    public String getString() {
+    public String getString() throws SQLException {
       Character s = (Character) super.getObject();
       if (s == null) {
         return null;
@@ -783,7 +784,7 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     //FIXME: Protobuf gets byte[]
-    @Override public byte[] getBytes() {
+    @Override public byte[] getBytes() throws SQLException {
       Object obj = getObject();
       if (null == obj) {
         return null;
@@ -799,7 +800,7 @@ public abstract class AbstractCursor implements Cursor {
       }
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       Object o = getObject();
       if (null == o) {
         return null;
@@ -823,11 +824,11 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    @Override public Object getObject() {
+    @Override public Object getObject() throws SQLException {
       return super.getObject();
     }
 
-    @Override public byte[] getBytes() {
+    @Override public byte[] getBytes() throws SQLException {
       // JSON sends this as a base64-enc string, protobuf can do binary.
       Object obj = getObject();
 
@@ -839,7 +840,7 @@ public abstract class AbstractCursor implements Cursor {
       return getBase64Decoded();
     }
 
-    private byte[] getBase64Decoded() {
+    private byte[] getBase64Decoded() throws SQLException {
       final String string = super.getString();
       if (null == string) {
         return null;
@@ -848,7 +849,7 @@ public abstract class AbstractCursor implements Cursor {
       return ByteString.parseBase64(string);
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final byte[] bytes = getBase64Decoded();
       if (null == bytes) {
         return null;
@@ -871,11 +872,11 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override public Object getObject() {
+    @Override public Object getObject() throws SQLException {
       return getDate(localCalendar);
     }
 
-    @Override public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -883,7 +884,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToDate(v.longValue() * DateTimeUtils.MILLIS_PER_DAY, calendar);
     }
 
-    @Override public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -892,7 +893,7 @@ public abstract class AbstractCursor implements Cursor {
           calendar);
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -914,11 +915,11 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override public Object getObject() {
+    @Override public Object getObject() throws SQLException {
       return getTime(localCalendar);
     }
 
-    @Override public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -926,7 +927,7 @@ public abstract class AbstractCursor implements Cursor {
       return intToTime(v.intValue(), calendar);
     }
 
-    @Override public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -934,7 +935,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToTimestamp(v.longValue(), calendar);
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -956,11 +957,11 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override public Object getObject() {
+    @Override public Object getObject() throws SQLException {
       return getTimestamp(localCalendar);
     }
 
-    @Override public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -968,7 +969,7 @@ public abstract class AbstractCursor implements Cursor {
       return longToTimestamp(v.longValue(), calendar);
     }
 
-    @Override public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) throws SQLException {
       final Timestamp timestamp  = getTimestamp(calendar);
       if (timestamp == null) {
         return null;
@@ -976,7 +977,7 @@ public abstract class AbstractCursor implements Cursor {
       return new Date(timestamp.getTime());
     }
 
-    @Override public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) throws SQLException {
       final Timestamp timestamp  = getTimestamp(calendar);
       if (timestamp == null) {
         return null;
@@ -986,7 +987,7 @@ public abstract class AbstractCursor implements Cursor {
               DateTimeUtils.MILLIS_PER_DAY));
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final Number v = getNumber();
       if (v == null) {
         return null;
@@ -1005,7 +1006,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    @Override public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) throws SQLException {
       java.sql.Date date = (Date) getObject();
       if (date == null) {
         return null;
@@ -1018,7 +1019,7 @@ public abstract class AbstractCursor implements Cursor {
       return date;
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -1026,7 +1027,7 @@ public abstract class AbstractCursor implements Cursor {
       return dateAsString(v, null);
     }
 
-    @Override public long getLong() {
+    @Override public long getLong() throws SQLException {
       Date date = getDate(null);
       return date == null
           ? 0L
@@ -1044,7 +1045,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    @Override public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) throws SQLException {
       Time date  = (Time) getObject();
       if (date == null) {
         return null;
@@ -1057,7 +1058,7 @@ public abstract class AbstractCursor implements Cursor {
       return date;
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -1065,7 +1066,7 @@ public abstract class AbstractCursor implements Cursor {
       return timeAsString(v, null);
     }
 
-    @Override public long getLong() {
+    @Override public long getLong() throws SQLException {
       Time time = getTime(null);
       return time == null ? 0L
           : (time.getTime() % DateTimeUtils.MILLIS_PER_DAY);
@@ -1082,7 +1083,7 @@ public abstract class AbstractCursor implements Cursor {
       super(getter);
     }
 
-    @Override public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) throws SQLException {
       Timestamp timestamp  = (Timestamp) getObject();
       if (timestamp == null) {
         return null;
@@ -1095,7 +1096,7 @@ public abstract class AbstractCursor implements Cursor {
       return timestamp;
     }
 
-    @Override public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) throws SQLException {
       final Timestamp timestamp  = getTimestamp(calendar);
       if (timestamp == null) {
         return null;
@@ -1103,7 +1104,7 @@ public abstract class AbstractCursor implements Cursor {
       return new Date(timestamp.getTime());
     }
 
-    @Override public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) throws SQLException {
       final Timestamp timestamp  = getTimestamp(calendar);
       if (timestamp == null) {
         return null;
@@ -1113,7 +1114,7 @@ public abstract class AbstractCursor implements Cursor {
               DateTimeUtils.MILLIS_PER_DAY));
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final long v = getLong();
       if (v == 0 && wasNull()) {
         return null;
@@ -1121,7 +1122,7 @@ public abstract class AbstractCursor implements Cursor {
       return timestampAsString(v, null);
     }
 
-    @Override public long getLong() {
+    @Override public long getLong() throws SQLException {
       Timestamp timestamp = getTimestamp(null);
       return timestamp == null ? 0 : timestamp.getTime();
     }
@@ -1141,7 +1142,7 @@ public abstract class AbstractCursor implements Cursor {
       this.localCalendar = localCalendar;
     }
 
-    @Override public Timestamp getTimestamp(Calendar calendar) {
+    @Override public Timestamp getTimestamp(Calendar calendar) throws SQLException {
       java.util.Date date  = (java.util.Date) getObject();
       if (date == null) {
         return null;
@@ -1153,7 +1154,7 @@ public abstract class AbstractCursor implements Cursor {
       return new Timestamp(v);
     }
 
-    @Override public Date getDate(Calendar calendar) {
+    @Override public Date getDate(Calendar calendar) throws SQLException {
       final Timestamp timestamp  = getTimestamp(calendar);
       if (timestamp == null) {
         return null;
@@ -1161,7 +1162,7 @@ public abstract class AbstractCursor implements Cursor {
       return new Date(timestamp.getTime());
     }
 
-    @Override public Time getTime(Calendar calendar) {
+    @Override public Time getTime(Calendar calendar) throws SQLException {
       final Timestamp timestamp  = getTimestamp(calendar);
       if (timestamp == null) {
         return null;
@@ -1171,7 +1172,7 @@ public abstract class AbstractCursor implements Cursor {
               DateTimeUtils.MILLIS_PER_DAY));
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       java.util.Date date  = (java.util.Date) getObject();
       if (date == null) {
         return null;
@@ -1179,7 +1180,7 @@ public abstract class AbstractCursor implements Cursor {
       return timestampAsString(date.getTime(), null);
     }
 
-    @Override public long getLong() {
+    @Override public long getLong() throws SQLException {
       Timestamp timestamp = getTimestamp(localCalendar);
       return timestamp == null ? 0 : timestamp.getTime();
     }
@@ -1197,7 +1198,7 @@ public abstract class AbstractCursor implements Cursor {
       this.range = range;
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final int v = getInt();
       if (v == 0 && wasNull()) {
         return null;
@@ -1221,7 +1222,7 @@ public abstract class AbstractCursor implements Cursor {
       this.scale = scale;
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final long v = getLong();
       if (v == 0 && wasNull()) {
         return null;
@@ -1250,7 +1251,7 @@ public abstract class AbstractCursor implements Cursor {
       this.factory = factory;
     }
 
-    @Override public Object getObject() {
+    @Override public Object getObject() throws SQLException {
       final Object object = super.getObject();
       if (object == null || object instanceof List) {
         return object;
@@ -1260,7 +1261,7 @@ public abstract class AbstractCursor implements Cursor {
       return AvaticaUtils.primitiveList(object);
     }
 
-    @Override public Array getArray() {
+    @Override public Array getArray() throws SQLException {
       final List list = (List) getObject();
       if (list == null) {
         return null;
@@ -1268,7 +1269,7 @@ public abstract class AbstractCursor implements Cursor {
       return new ArrayImpl(list, this);
     }
 
-    @Override public String getString() {
+    @Override public String getString() throws SQLException {
       final Array array = getArray();
       return array == null ? null : array.toString();
     }
@@ -1286,11 +1287,11 @@ public abstract class AbstractCursor implements Cursor {
       this.fieldAccessors = fieldAccessors;
     }
 
-    @Override public Object getObject() {
+    @Override public Object getObject() throws SQLException {
       return getStruct();
     }
 
-    @Override public Struct getStruct() {
+    @Override public Struct getStruct() throws SQLException {
       final Object o = super.getObject();
       if (o == null) {
         return null;
