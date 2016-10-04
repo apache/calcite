@@ -16,6 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+sudo: required
+dist: trusty
 language: java
 jdk:
   - oraclejdk8
@@ -35,7 +37,6 @@ script:
   - mvn -Dsurefire.useFile=false javadoc:javadoc test
 git:
   depth: 10000
-sudo: false
 cache:
   directories:
     - $HOME/.m2
