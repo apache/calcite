@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -25,8 +26,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.common.base.Function;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
@@ -34,19 +33,18 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
-import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
+import org.joda.time.chrono.ISOChronology;
 
 import org.slf4j.Logger;
 
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -55,6 +53,10 @@ import java.util.List;
 public class DruidDateTimeUtils {
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
+
+  private static final Pattern TIMESTAMP_PATTERN =
+      Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+          + " [0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
 
   private DruidDateTimeUtils() {
   }
@@ -96,7 +98,7 @@ public class DruidDateTimeUtils {
         if (range.hasUpperBound() && range.upperBoundType() == BoundType.CLOSED) {
           end++;
         }
-        return new Interval(start, end, DateTimeZone.UTC);
+        return new Interval(start, end, ISOChronology.getInstanceUTC());
       }
     });
     if (LOGGER.isInfoEnabled()) {
@@ -321,25 +323,9 @@ public class DruidDateTimeUtils {
     if (literal instanceof Timestamp) {
       return (Timestamp) literal;
     }
-    if (literal instanceof Date) {
-      return new Timestamp(((Date) literal).getTime());
-    }
-    if (literal instanceof Calendar) {
-      return new Timestamp(((Calendar) literal).getTime().getTime());
-    }
-    if (literal instanceof Number) {
-      return new Timestamp(((Number) literal).longValue());
-    }
-    if (literal instanceof String) {
-      String string = (String) literal;
-      if (StringUtils.isNumeric(string)) {
-        return new Timestamp(Long.valueOf(string));
-      }
-      try {
-        return Timestamp.valueOf(string);
-      } catch (NumberFormatException e) {
-        // ignore
-      }
+    final Long v = toLong(literal);
+    if (v != null) {
+      return new Timestamp(v);
     }
     return null;
   }
@@ -358,15 +344,14 @@ public class DruidDateTimeUtils {
       return ((Calendar) literal).getTime().getTime();
     }
     if (literal instanceof String) {
+      final String s = (String) literal;
       try {
-        return Long.valueOf((String) literal);
+        return Long.valueOf(s);
       } catch (NumberFormatException e) {
         // ignore
       }
-      try {
-        return DateFormat.getDateInstance().parse((String) literal).getTime();
-      } catch (ParseException e) {
-        // best effort. ignore
+      if (TIMESTAMP_PATTERN.matcher(s).matches()) {
+        return DateTimeUtils.timestampStringToUnixDate(s);
       }
     }
     return null;

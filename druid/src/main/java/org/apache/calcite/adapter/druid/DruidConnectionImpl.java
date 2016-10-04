@@ -90,11 +90,10 @@ class DruidConnectionImpl implements DruidConnection {
    * @param fieldNames Names of fields
    * @param fieldTypes Types of fields (never null, but elements may be null)
    * @param page Page definition (in/out)
-   * @throws IOException on error
    */
   public void request(QueryType queryType, String data, Sink sink,
-      List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes, Page page)
-      throws IOException {
+      List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+      Page page) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
@@ -104,6 +103,9 @@ class DruidConnectionImpl implements DruidConnection {
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
       parse(queryType, in, sink, fieldNames, fieldTypes, page);
+    } catch (IOException e) {
+      throw new RuntimeException("Error while processing druid request ["
+          + data + "]", e);
     }
   }
 

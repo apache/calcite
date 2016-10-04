@@ -276,7 +276,7 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "offset 2 fetch next 3 rows only";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
-        + "'descending':'false','intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'dimensions':['state_province','product_name'],'metrics':[],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384},'context':{'druid.query.fetch':false}}";
     sql(sql)
@@ -288,7 +288,7 @@ public class DruidAdapterIT {
     final String sql = "select \"gender\", \"state_province\"\n"
         + "from \"foodmart\" fetch next 3 rows only";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
-        + "'descending':'false','intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'dimensions':['gender','state_province'],'metrics':[],'granularity':'all',"
         + "'pagingSpec':{'threshold':3},'context':{'druid.query.fetch':true}}";
     sql(sql)
@@ -321,7 +321,7 @@ public class DruidAdapterIT {
         + "where \"product_id\" BETWEEN 1500 AND 1502\n"
         + "order by \"state_province\" desc, \"product_id\"";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
-        + "'descending':'false','intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'filter':{'type':'and','fields':["
         + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'alphaNumeric':false},"
         + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'alphaNumeric':false}]},"
@@ -366,7 +366,7 @@ public class DruidAdapterIT {
     final String sql = "select * from \"foodmart\"\n"
         + "where \"product_id\" = -1";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
-        + "'descending':'false','intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'filter':{'type':'selector','dimension':'product_id','value':'-1'},"
         + "'dimensions':['product_id','brand_name','product_name','SKU','SRP',"
         + "'gross_weight','net_weight','recyclable_package','low_fat','units_per_case',"
@@ -401,7 +401,7 @@ public class DruidAdapterIT {
         + "where cast(\"product_id\" as integer) - 1500 BETWEEN 0 AND 2\n"
         + "order by \"state_province\" desc, \"product_id\"";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
-        + "'descending':'false','intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight',"
         + "'net_weight','recyclable_package','low_fat','units_per_case','cases_per_pallet',"
         + "'shelf_width','shelf_height','shelf_depth','product_class_id','product_subcategory',"
@@ -477,7 +477,7 @@ public class DruidAdapterIT {
 
   @Test public void testCountGroupByEmpty() {
     final String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':'false','granularity':'all',"
+        + "'descending':false,'granularity':'all',"
         + "'aggregations':[{'type':'count','name':'EXPR$0'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String explain = "PLAN=EnumerableInterpreter\n"
@@ -562,7 +562,7 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH)";
     String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':'false','granularity':'MONTH',"
+        + "'descending':false,'granularity':'MONTH',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
         + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
@@ -578,7 +578,7 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to DAY)";
     String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':'false','granularity':'DAY',"
+        + "'descending':false,'granularity':'DAY',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
         + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
@@ -596,7 +596,7 @@ public class DruidAdapterIT {
         + " \"timestamp\" < '1998-01-01 00:00:00'\n"
         + "group by floor(\"timestamp\" to MONTH)";
     String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':'false','granularity':'MONTH',"
+        + "'descending':false,'granularity':'MONTH',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
         + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
         + "'intervals':['1996-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z']}";
@@ -771,7 +771,7 @@ public class DruidAdapterIT {
         + "and \"state_province\" = 'WA'";
     final String druidQuery = "{'queryType':'select',"
         + "'dataSource':'foodmart',"
-        + "'descending':'false',"
+        + "'descending':false,"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'filter':{'type':'and','fields':["
         + "{'type':'selector','dimension':'product_name','value':'High Top Dried Mushrooms'},"

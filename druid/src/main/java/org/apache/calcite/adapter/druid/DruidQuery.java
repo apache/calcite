@@ -60,12 +60,14 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.joda.time.Interval;
+import org.joda.time.chrono.ISOChronology;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -84,7 +86,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   final RelOptTable table;
   final DruidTable druidTable;
-  final List<Interval> intervals;
+  final ImmutableList<Interval> intervals;
   final ImmutableList<RelNode> rels;
 
   private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?l?");
@@ -142,6 +144,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final String signature = signature();
     if (!isValidSignature(signature)) {
       return litmus.fail("invalid signature [{}]", signature);
+    }
+    for (Interval interval : intervals) {
+      if (interval.getChronology() != ISOChronology.getInstanceUTC()) {
+        return litmus.fail("interval must be UTC", interval);
+      }
     }
     if (rels.isEmpty()) {
       return litmus.fail("must have at least one rel");
@@ -552,8 +559,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         generator.writeStringField("queryType", "timeseries");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("descending", timeSeriesDirection != null
-            && timeSeriesDirection == Direction.DESCENDING ? "true" : "false");
+        generator.writeBooleanField("descending", timeSeriesDirection != null
+            && timeSeriesDirection == Direction.DESCENDING);
         generator.writeStringField("granularity", granularity);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
@@ -609,7 +616,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         generator.writeStringField("queryType", "select");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("descending", "false");
+        generator.writeBooleanField("descending", false);
         writeField(generator, "intervals", intervals);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "dimensions", translator.dimensions);
@@ -895,23 +902,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       for (RelDataTypeField field : query.getRowType().getFieldList()) {
         fieldTypes.add(getPrimitive(field));
       }
-      try {
-        final DruidConnectionImpl connection =
-            new DruidConnectionImpl(query.druidTable.schema.url,
-                query.druidTable.schema.coordinatorUrl);
-        final boolean limitQuery = containsLimit(querySpec);
-        final DruidConnectionImpl.Page page = new DruidConnectionImpl.Page();
-        int previousOffset;
-        do {
-          previousOffset = page.offset;
-          final String queryString =
-              querySpec.getQueryString(page.pagingIdentifier, page.offset);
-          connection.request(querySpec.queryType, queryString, sink,
-              querySpec.fieldNames, fieldTypes, page);
-        } while (!limitQuery && page.pagingIdentifier != null && page.offset > previousOffset);
-      } catch (IOException e) {
-        throw Throwables.propagate(e);
-      }
+      final DruidConnectionImpl connection =
+          new DruidConnectionImpl(query.druidTable.schema.url,
+              query.druidTable.schema.coordinatorUrl);
+      final boolean limitQuery = containsLimit(querySpec);
+      final DruidConnectionImpl.Page page = new DruidConnectionImpl.Page();
+      int previousOffset;
+      do {
+        previousOffset = page.offset;
+        final String queryString =
+            querySpec.getQueryString(page.pagingIdentifier, page.offset);
+        connection.request(querySpec.queryType, queryString, sink,
+            querySpec.fieldNames, fieldTypes, page);
+      } while (!limitQuery
+          && page.pagingIdentifier != null
+          && page.offset > previousOffset);
     }
 
     private static boolean containsLimit(QuerySpec querySpec) {
