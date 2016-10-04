@@ -243,7 +243,7 @@ public abstract class MetaImpl implements Meta {
         list.add(
             columnMetaData(
                 AvaticaUtils.camelToUpper(field.getName()),
-                list.size() + 1, field.getType()));
+                list.size(), field.getType()));
       }
     }
     return ColumnMetaData.struct(list);
