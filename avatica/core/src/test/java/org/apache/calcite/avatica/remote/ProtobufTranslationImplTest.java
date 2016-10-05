@@ -285,8 +285,8 @@ public class ProtobufTranslationImplTest<T> {
     ScalarType arrayComponentType = ColumnMetaData.scalar(Types.INTEGER, "integer", Rep.INTEGER);
     ColumnMetaData arrayColumnMetaData = getArrayColumnMetaData(arrayComponentType, 2, "counts");
     List<ColumnMetaData> columns =
-        Arrays.asList(MetaImpl.columnMetaData("str", 0, String.class),
-            MetaImpl.columnMetaData("count", 1, Integer.class),
+        Arrays.asList(MetaImpl.columnMetaData("str", 0, String.class, true),
+            MetaImpl.columnMetaData("count", 1, Integer.class, true),
             arrayColumnMetaData);
     List<AvaticaParameter> params =
         Arrays.asList(
