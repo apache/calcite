@@ -26,6 +26,10 @@ import org.apache.calcite.avatica.util.RecordIteratorCursor;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.sql.DatabaseMetaData;
@@ -219,7 +223,14 @@ public abstract class MetaImpl implements Meta {
   }
 
   public static ColumnMetaData columnMetaData(String name, int index,
-      Class<?> type) {
+      Class<?> type, boolean columnNullable) {
+    return columnMetaData(name, index, type, columnNullable
+        ? DatabaseMetaData.columnNullable
+        : DatabaseMetaData.columnNoNulls);
+  }
+
+  public static ColumnMetaData columnMetaData(String name, int index,
+      Class<?> type, int columnNullable) {
     TypeInfo pair = TypeInfo.m.get(type);
     ColumnMetaData.Rep rep =
         ColumnMetaData.Rep.VALUE_MAP.get(type);
@@ -227,26 +238,47 @@ public abstract class MetaImpl implements Meta {
         ColumnMetaData.scalar(pair.sqlType, pair.sqlTypeName, rep);
     return new ColumnMetaData(
         index, false, true, false, false,
-        pair.primitive
-            ? DatabaseMetaData.columnNullable
-            : DatabaseMetaData.columnNoNulls,
+        columnNullable,
         true, -1, name, name, null,
         0, 0, null, null, scalarType, true, false, false,
         scalarType.columnClassName());
   }
 
-  protected static ColumnMetaData.StructType fieldMetaData(Class clazz) {
+  protected static ColumnMetaData.StructType fieldMetaData(Class<?> clazz) {
     final List<ColumnMetaData> list = new ArrayList<ColumnMetaData>();
     for (Field field : clazz.getFields()) {
       if (Modifier.isPublic(field.getModifiers())
           && !Modifier.isStatic(field.getModifiers())) {
+        int columnNullable = getColumnNullability(field);
         list.add(
             columnMetaData(
                 AvaticaUtils.camelToUpper(field.getName()),
-                list.size(), field.getType()));
+                list.size(), field.getType(), columnNullable));
       }
     }
     return ColumnMetaData.struct(list);
+  }
+
+  protected static int getColumnNullability(Field field) {
+    // Check annotations first
+    if (field.isAnnotationPresent(ColumnNoNulls.class)) {
+      return DatabaseMetaData.columnNoNulls;
+    }
+
+    if (field.isAnnotationPresent(ColumnNullable.class)) {
+      return DatabaseMetaData.columnNullable;
+    }
+
+    if (field.isAnnotationPresent(ColumnNullableUnknown.class)) {
+      return DatabaseMetaData.columnNullableUnknown;
+    }
+
+    // check the field type to decide if annotated, as a fallback
+    if (field.getType().isPrimitive()) {
+      return DatabaseMetaData.columnNoNulls;
+    }
+
+    return DatabaseMetaData.columnNullable;
   }
 
   protected MetaResultSet createResultSet(
@@ -269,32 +301,61 @@ public abstract class MetaImpl implements Meta {
     @JsonIgnore String getName();
   }
 
+  /** Annotation that indicates that a meta field may contain null values. */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.FIELD)
+  public @interface ColumnNullable {
+  }
+
+  /** Annotation that indicates that it is unknown whether a meta field may contain
+   * null values. */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.FIELD)
+  public @interface ColumnNullableUnknown {
+  }
+
+  /** Annotation that indicates that a meta field may not contain null
+   * values. */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.FIELD)
+  public @interface ColumnNoNulls {
+  }
+
   /** Metadata describing a column. */
   public static class MetaColumn implements Named {
     public final String tableCat;
     public final String tableSchem;
+    @ColumnNoNulls
     public final String tableName;
+    @ColumnNoNulls
     public final String columnName;
     public final int dataType;
+    @ColumnNoNulls
     public final String typeName;
-    public final int columnSize;
-    public final String bufferLength = null;
+    public final Integer columnSize;
+    @ColumnNullableUnknown
+    public final Integer bufferLength = null;
     public final Integer decimalDigits;
-    public final int numPrecRadix;
+    public final Integer numPrecRadix;
     public final int nullable;
     public final String remarks = null;
     public final String columnDef = null;
-    public final String sqlDataType = null;
-    public final String sqlDatetimeSub = null;
-    public final int charOctetLength;
+    @ColumnNullableUnknown
+    public final Integer sqlDataType = null;
+    @ColumnNullableUnknown
+    public final Integer sqlDatetimeSub = null;
+    public final Integer charOctetLength;
     public final int ordinalPosition;
+    @ColumnNoNulls
     public final String isNullable;
     public final String scopeCatalog = null;
     public final String scopeSchema = null;
     public final String scopeTable = null;
-    public final String sourceDataType = null;
-    public final String isAutoincrement = null;
-    public final String isGeneratedcolumn = null;
+    public final Short sourceDataType = null;
+    @ColumnNoNulls
+    public final String isAutoincrement = "";
+    @ColumnNoNulls
+    public final String isGeneratedcolumn = "";
 
     public MetaColumn(
         String tableCat,
@@ -303,11 +364,11 @@ public abstract class MetaImpl implements Meta {
         String columnName,
         int dataType,
         String typeName,
-        int columnSize,
+        Integer columnSize,
         Integer decimalDigits,
-        int numPrecRadix,
+        Integer numPrecRadix,
         int nullable,
-        int charOctetLength,
+        Integer charOctetLength,
         int ordinalPosition,
         String isNullable) {
       this.tableCat = tableCat;
@@ -330,13 +391,13 @@ public abstract class MetaImpl implements Meta {
     }
   }
 
-  /** Metadata describing a TypeInfo. */
-
   /** Metadata describing a table. */
   public static class MetaTable implements Named {
     public final String tableCat;
     public final String tableSchem;
+    @ColumnNoNulls
     public final String tableName;
+    @ColumnNoNulls
     public final String tableType;
     public final String remarks = null;
     public final String typeCat = null;
@@ -345,7 +406,8 @@ public abstract class MetaImpl implements Meta {
     public final String selfReferencingColName = null;
     public final String refGeneration = null;
 
-    public MetaTable(String tableCat,
+    public MetaTable(
+        String tableCat,
         String tableSchem,
         String tableName,
         String tableType) {
@@ -362,8 +424,9 @@ public abstract class MetaImpl implements Meta {
 
   /** Metadata describing a schema. */
   public static class MetaSchema implements Named {
-    public final String tableCatalog;
+    @ColumnNoNulls
     public final String tableSchem;
+    public final String tableCatalog;
 
     public MetaSchema(
         String tableCatalog,
@@ -379,6 +442,7 @@ public abstract class MetaImpl implements Meta {
 
   /** Metadata describing a catalog. */
   public static class MetaCatalog implements Named {
+    @ColumnNoNulls
     public final String tableCat;
 
     public MetaCatalog(
@@ -393,6 +457,7 @@ public abstract class MetaImpl implements Meta {
 
   /** Metadata describing a table type. */
   public static class MetaTableType {
+    @ColumnNoNulls
     public final String tableType;
 
     public MetaTableType(String tableType) {
@@ -402,37 +467,215 @@ public abstract class MetaImpl implements Meta {
 
   /** Metadata describing a procedure. */
   public static class MetaProcedure {
+    public final String procedureCat;
+    public final String procedureSchem;
+    @ColumnNoNulls
+    public final String procedureName;
+    public final String futureUse1 = null;
+    public final String futureUse2 = null;
+    public final String futureUse3 = null;
+    public final String remarks = null;
+    public final short procedureType;
+    public final String specificName;
+
+    public MetaProcedure(String procedureCat, String procedureSchem, String procedureName,
+        short procedureType, String specificName) {
+      this.procedureCat = procedureCat;
+      this.procedureSchem = procedureSchem;
+      this.procedureName = procedureName;
+      this.procedureType = procedureType;
+      this.specificName = specificName;
+    }
   }
 
   /** Metadata describing a procedure column. */
   public static class MetaProcedureColumn {
+    public final String procedureCat;
+    public final String procedureSchem;
+    @ColumnNoNulls
+    public final String procedureName;
+    @ColumnNoNulls
+    public final String columnName;
+    public final short columnType;
+    public final int dataType;
+    @ColumnNoNulls
+    public final String typeName;
+    public final Integer precision;
+    public final Integer length;
+    public final Short scale;
+    public final Short radix;
+    public final short nullable;
+    public final String remarks = null;
+    public final String columnDef;
+    @ColumnNullableUnknown
+    public final Integer sqlDataType = null;
+    @ColumnNullableUnknown
+    public final Integer sqlDatetimeSub = null;
+    public final Integer charOctetLength;
+    public final int ordinalPosition;
+    @ColumnNoNulls
+    public final String isNullable;
+    public final String specificName;
+
+    public MetaProcedureColumn(
+        String procedureCat,
+        String procedureSchem,
+        String procedureName,
+        String columnName,
+        short columnType,
+        int dataType,
+        String typeName,
+        Integer precision,
+        Integer length,
+        Short scale,
+        Short radix,
+        short nullable,
+        String columnDef,
+        Integer charOctetLength,
+        int ordinalPosition,
+        String isNullable,
+        String specificName) {
+      this.procedureCat = procedureCat;
+      this.procedureSchem = procedureSchem;
+      this.procedureName = procedureName;
+      this.columnName = columnName;
+      this.columnType = columnType;
+      this.dataType = dataType;
+      this.typeName = typeName;
+      this.precision = precision;
+      this.length = length;
+      this.scale = scale;
+      this.radix = radix;
+      this.nullable = nullable;
+      this.columnDef = columnDef;
+      this.charOctetLength = charOctetLength;
+      this.ordinalPosition = ordinalPosition;
+      this.isNullable = isNullable;
+      this.specificName = specificName;
+    }
   }
 
   /** Metadata describing a column privilege. */
   public static class MetaColumnPrivilege {
+    public final String tableCat;
+    public final String tableSchem;
+    @ColumnNoNulls
+    public final String tableName;
+    @ColumnNoNulls
+    public final String columnName;
+    public final String grantor;
+    @ColumnNoNulls
+    public final String grantee;
+    @ColumnNoNulls
+    public final String privilege;
+    public final String isGrantable;
+
+    public MetaColumnPrivilege(
+        String tableCat,
+        String tableSchem,
+        String tableName,
+        String columnName,
+        String grantor,
+        String grantee,
+        String privilege,
+        String isGrantable) {
+      this.tableCat = tableCat;
+      this.tableSchem = tableSchem;
+      this.tableName = tableName;
+      this.columnName = columnName;
+      this.grantor = grantor;
+      this.grantee = grantee;
+      this.privilege = privilege;
+      this.isGrantable = isGrantable;
+    }
   }
 
   /** Metadata describing a table privilege. */
   public static class MetaTablePrivilege {
+    public final String tableCat;
+    public final String tableSchem;
+    @ColumnNoNulls
+    public final String tableName;
+
+    public final String grantor;
+    @ColumnNoNulls
+    public final String grantee;
+    @ColumnNoNulls
+    public final String privilege;
+    public final String isGrantable;
+
+    public MetaTablePrivilege(
+        String tableCat,
+        String tableSchem,
+        String tableName,
+        String grantor,
+        String grantee,
+        String privilege,
+        String isGrantable) {
+      this.tableCat = tableCat;
+      this.tableSchem = tableSchem;
+      this.tableName = tableName;
+      this.grantor = grantor;
+      this.grantee = grantee;
+      this.privilege = privilege;
+      this.isGrantable = isGrantable;
+    }
   }
 
   /** Metadata describing the best identifier for a row. */
   public static class MetaBestRowIdentifier {
+    public final short scope;
+    @ColumnNoNulls
+    public final String columnName;
+    public final int dataType;
+    @ColumnNoNulls
+    public final String typeName;
+    public final Integer columnSize;
+    @ColumnNullableUnknown
+    public final Integer bufferLength = null;
+    public final Short decimalDigits;
+    public short pseudoColumn;
+
+    public MetaBestRowIdentifier(
+        short scope,
+        String columnName,
+        int dataType,
+        String typeName,
+        Integer columnSize,
+        Short decimalDigits,
+        short pseudoColumn) {
+      this.scope = scope;
+      this.columnName = columnName;
+      this.dataType = dataType;
+      this.typeName = typeName;
+      this.columnSize = columnSize;
+      this.decimalDigits = decimalDigits;
+      this.pseudoColumn = pseudoColumn;
+    }
   }
 
   /** Metadata describing a version column. */
   public static class MetaVersionColumn {
-    public final short scope;
+    @ColumnNullableUnknown
+    public final Short scope;
+    @ColumnNoNulls
     public final String columnName;
     public final int dataType;
+    @ColumnNoNulls
     public final String typeName;
-    public final int columnSize;
-    public final int bufferLength;
-    public final short decimalDigits;
+    public final Integer columnSize;
+    public final Integer bufferLength;
+    public final Short decimalDigits;
     public final short pseudoColumn;
 
-    MetaVersionColumn(short scope, String columnName, int dataType,
-        String typeName, int columnSize, int bufferLength, short decimalDigits,
+    MetaVersionColumn(
+        Short scope,
+        String columnName,
+        int dataType,
+        String typeName,
+        Integer columnSize,
+        Integer bufferLength,
+        Short decimalDigits,
         short pseudoColumn) {
       this.scope = scope;
       this.columnName = columnName;
@@ -449,13 +692,20 @@ public abstract class MetaImpl implements Meta {
   public static class MetaPrimaryKey {
     public final String tableCat;
     public final String tableSchem;
+    @ColumnNoNulls
     public final String tableName;
+    @ColumnNoNulls
     public final String columnName;
     public final short keySeq;
     public final String pkName;
 
-    MetaPrimaryKey(String tableCat, String tableSchem, String tableName,
-        String columnName, short keySeq, String pkName) {
+    MetaPrimaryKey(
+        String tableCat,
+        String tableSchem,
+        String tableName,
+        String columnName,
+        short keySeq,
+        String pkName) {
       this.tableCat = tableCat;
       this.tableSchem = tableSchem;
       this.tableName = tableName;
@@ -467,53 +717,203 @@ public abstract class MetaImpl implements Meta {
 
   /** Metadata describing an imported key. */
   public static class MetaImportedKey {
+    public final String pktableCat;
+    public final String pktableSchem;
+    @ColumnNoNulls
+    public final String pktableName;
+    @ColumnNoNulls
+    public final String pkcolumnName;
+    public final String fktableCat;
+    public final String fktableSchem;
+    @ColumnNoNulls
+    public final String fktableName;
+    @ColumnNoNulls
+    public final String fkcolumnName;
+    public final short keySeq;
+    public final short updateRule;
+    public final short deleteRule;
+    public final String fkName;
+    public final String pkName;
+    public final short deferability;
+
+    public MetaImportedKey(
+        String pktableCat,
+        String pktableSchem,
+        String pktableName,
+        String pkcolumnName,
+        String fktableCat,
+        String fktableSchem,
+        String fktableName,
+        String fkcolumnName,
+        short keySeq,
+        short updateRule,
+        short deleteRule,
+        String fkName,
+        String pkName,
+        short deferability) {
+      this.pktableCat = pktableCat;
+      this.pktableSchem = pktableSchem;
+      this.pktableName = pktableName;
+      this.pkcolumnName = pkcolumnName;
+      this.fktableCat = fktableCat;
+      this.fktableSchem = fktableSchem;
+      this.fktableName = fktableName;
+      this.fkcolumnName = fkcolumnName;
+      this.keySeq = keySeq;
+      this.updateRule = updateRule;
+      this.deleteRule = deleteRule;
+      this.fkName = fkName;
+      this.pkName = pkName;
+      this.deferability = deferability;
+    }
   }
 
   /** Metadata describing an exported key. */
   public static class MetaExportedKey {
+    public final String pktableCat;
+    public final String pktableSchem;
+    @ColumnNoNulls
+    public final String pktableName;
+    @ColumnNoNulls
+    public final String pkcolumnName;
+    public final String fktableCat;
+    public final String fktableSchem;
+    @ColumnNoNulls
+    public final String fktableName;
+    @ColumnNoNulls
+    public final String fkcolumnName;
+    public final short keySeq;
+    public final short updateRule;
+    public final short deleteRule;
+    public final String fkName;
+    public final String pkName;
+    public final short deferability;
+
+    public MetaExportedKey(
+        String pktableCat,
+        String pktableSchem,
+        String pktableName,
+        String pkcolumnName,
+        String fktableCat,
+        String fktableSchem,
+        String fktableName,
+        String fkcolumnName,
+        short keySeq,
+        short updateRule,
+        short deleteRule,
+        String fkName,
+        String pkName,
+        short deferability) {
+      this.pktableCat = pktableCat;
+      this.pktableSchem = pktableSchem;
+      this.pktableName = pktableName;
+      this.pkcolumnName = pkcolumnName;
+      this.fktableCat = fktableCat;
+      this.fktableSchem = fktableSchem;
+      this.fktableName = fktableName;
+      this.fkcolumnName = fkcolumnName;
+      this.keySeq = keySeq;
+      this.updateRule = updateRule;
+      this.deleteRule = deleteRule;
+      this.fkName = fkName;
+      this.pkName = pkName;
+      this.deferability = deferability;
+    }
   }
 
   /** Metadata describing a cross reference. */
   public static class MetaCrossReference {
+    public final String pktableCat;
+    public final String pktableSchem;
+    @ColumnNoNulls
+    public final String pktableName;
+    @ColumnNoNulls
+    public final String pkcolumnName;
+    public final String fktableCat;
+    public final String fktableSchem;
+    @ColumnNoNulls
+    public final String fktableName;
+    @ColumnNoNulls
+    public final String fkcolumnName;
+    public final short keySeq;
+    public final short updateRule;
+    public final short deleteRule;
+    public final String fkName;
+    public final String pkName;
+    public final short deferability;
+
+    public MetaCrossReference(
+        String pktableCat,
+        String pktableSchem,
+        String pktableName,
+        String pkcolumnName,
+        String fktableCat,
+        String fktableSchem,
+        String fktableName,
+        String fkcolumnName,
+        short keySeq,
+        short updateRule,
+        short deleteRule,
+        String fkName,
+        String pkName,
+        short deferability) {
+      this.pktableCat = pktableCat;
+      this.pktableSchem = pktableSchem;
+      this.pktableName = pktableName;
+      this.pkcolumnName = pkcolumnName;
+      this.fktableCat = fktableCat;
+      this.fktableSchem = fktableSchem;
+      this.fktableName = fktableName;
+      this.fkcolumnName = fkcolumnName;
+      this.keySeq = keySeq;
+      this.updateRule = updateRule;
+      this.deleteRule = deleteRule;
+      this.fkName = fkName;
+      this.pkName = pkName;
+      this.deferability = deferability;
+    }
   }
 
   /** Metadata describing type info. */
   public static class MetaTypeInfo implements Named {
+    @ColumnNoNulls
     public final String typeName;
     public final int dataType;
-    public final int precision;
+    public final Integer precision;
     public final String literalPrefix;
     public final String literalSuffix;
     //TODO: Add create parameter for type on DDL
     public final String createParams = null;
-    public final int nullable;
+    public final short nullable;
     public final boolean caseSensitive;
-    public final int searchable;
+    public final short searchable;
     public final boolean unsignedAttribute;
     public final boolean fixedPrecScale;
     public final boolean autoIncrement;
     public final String localTypeName;
-    public final int minimumScale;
-    public final int maximumScale;
-    public final int sqlDataType = 0;
-    public final int sqlDatetimeSub = 0;
+    public final Short minimumScale;
+    public final Short maximumScale;
+    @ColumnNullableUnknown
+    public final Integer sqlDataType = null;
+    @ColumnNullableUnknown
+    public final Integer sqlDatetimeSub = null;
     public final Integer numPrecRadix; //nullable int
 
     public MetaTypeInfo(
         String typeName,
         int dataType,
-        int precision,
+        Integer precision,
         String literalPrefix,
         String literalSuffix,
-        int nullable,
+        short nullable,
         boolean caseSensitive,
-        int searchable,
+        short searchable,
         boolean unsignedAttribute,
         boolean fixedPrecScale,
         boolean autoIncrement,
-        int minimumScale,
-        int maximumScale,
-        int numPrecRadix) {
+        Short minimumScale,
+        Short maximumScale,
+        Integer numPrecRadix) {
       this.typeName = typeName;
       this.dataType = dataType;
       this.precision = precision;
@@ -526,9 +926,8 @@ public abstract class MetaImpl implements Meta {
       this.fixedPrecScale = fixedPrecScale;
       this.autoIncrement = autoIncrement;
       this.localTypeName = typeName;
-      // Make min to be 0 instead of -1
-      this.minimumScale = minimumScale == -1 ? 0 : minimumScale;
-      this.maximumScale = maximumScale == -1 ? 0 : maximumScale;
+      this.minimumScale = minimumScale;
+      this.maximumScale = maximumScale;
       this.numPrecRadix = numPrecRadix == 0 ? null : numPrecRadix;
     }
 
@@ -539,38 +938,334 @@ public abstract class MetaImpl implements Meta {
 
   /** Metadata describing index info. */
   public static class MetaIndexInfo {
+    public final String tableCat;
+    public final String tableSchem;
+    @ColumnNoNulls
+    public final String tableName;
+    public final boolean nonUnique;
+    public final String indexQualifier;
+    public final String indexName;
+    public final short type;
+    public final short ordinalPosition;
+    public final String columnName;
+    public final String ascOrDesc;
+    public final long cardinality;
+    public final long pages;
+    public final String filterCondition;
+
+    public MetaIndexInfo(
+        String tableCat,
+        String tableSchem,
+        String tableName,
+        boolean nonUnique,
+        String indexQualifier,
+        String indexName,
+        short type,
+        short ordinalPosition,
+        String columnName,
+        String ascOrDesc,
+        long cardinality,
+        long pages,
+        String filterCondition) {
+      this.tableCat = tableCat;
+      this.tableSchem = tableSchem;
+      this.tableName = tableName;
+      this.nonUnique = nonUnique;
+      this.indexQualifier = indexQualifier;
+      this.indexName = indexName;
+      this.type = type;
+      this.ordinalPosition = ordinalPosition;
+      this.columnName = columnName;
+      this.ascOrDesc = ascOrDesc;
+      this.cardinality = cardinality;
+      this.pages = pages;
+      this.filterCondition = filterCondition;
+    }
   }
 
   /** Metadata describing a user-defined type. */
   public static class MetaUdt {
+    public final String typeCat;
+    public final String typeSchem;
+    @ColumnNoNulls
+    public final String typeName;
+    @ColumnNoNulls
+    public final String className;
+    public final int dataType;
+    public final String remarks = null;
+    public final Short baseType;
+
+    public MetaUdt(
+        String typeCat,
+        String typeSchem,
+        String typeName,
+        String className,
+        int dataType,
+        Short baseType) {
+      this.typeCat = typeCat;
+      this.typeSchem = typeSchem;
+      this.typeName = typeName;
+      this.className = className;
+      this.dataType = dataType;
+      this.baseType = baseType;
+    }
   }
 
   /** Metadata describing a super-type. */
   public static class MetaSuperType {
+    public final String typeCat;
+    public final String typeSchem;
+    @ColumnNoNulls
+    public final String typeName;
+    public final String supertypeCat;
+    public final String supertypeSchem;
+    @ColumnNoNulls
+    public final String supertypeName;
+
+    public MetaSuperType(
+        String typeCat,
+        String typeSchem,
+        String typeName,
+        String supertypeCat,
+        String supertypeSchem,
+        String supertypeName) {
+      this.typeCat = typeCat;
+      this.typeSchem = typeSchem;
+      this.typeName = typeName;
+      this.supertypeCat = supertypeCat;
+      this.supertypeSchem = supertypeSchem;
+      this.supertypeName = supertypeName;
+    }
   }
 
   /** Metadata describing an attribute. */
   public static class MetaAttribute {
+    public final String typeCat;
+    public final String typeSchem;
+    @ColumnNoNulls
+    public final String typeName;
+    @ColumnNoNulls
+    public final String attrName;
+    public final int dataType;
+    @ColumnNoNulls
+    public String attrTypeName;
+    public final Integer attrSize;
+    public final Integer decimalDigits;
+    public final Integer numPrecRadix;
+    public final int nullable;
+    public final String remarks = null;
+    public final String attrDef = null;
+    @ColumnNullableUnknown
+    public final Integer sqlDataType = null;
+    @ColumnNullableUnknown
+    public final Integer sqlDatetimeSub = null;
+    public final Integer charOctetLength;
+    public final int ordinalPosition;
+    @ColumnNoNulls
+    public final String isNullable;
+    public final String scopeCatalog = null;
+    public final String scopeSchema = null;
+    public final String scopeTable = null;
+    public final Short sourceDataType = null;
+
+    public MetaAttribute(
+        String typeCat,
+        String typeSchem,
+        String typeName,
+        String attrName,
+        int dataType,
+        String attrTypeName,
+        Integer attrSize,
+        Integer decimalDigits,
+        Integer numPrecRadix,
+        int nullable,
+        Integer charOctetLength,
+        int ordinalPosition,
+        String isNullable) {
+      this.typeCat = typeCat;
+      this.typeSchem = typeSchem;
+      this.typeName = typeName;
+      this.attrName = attrName;
+      this.dataType = dataType;
+      this.attrTypeName = attrTypeName;
+      this.attrSize = attrSize;
+      this.decimalDigits = decimalDigits;
+      this.numPrecRadix = numPrecRadix;
+      this.nullable = nullable;
+      this.charOctetLength = charOctetLength;
+      this.ordinalPosition = ordinalPosition;
+      this.isNullable = isNullable;
+    }
   }
 
   /** Metadata describing a client info property. */
   public static class MetaClientInfoProperty {
+    @ColumnNoNulls
+    public final String name;
+    public final int maxLen;
+    public final String defaultValue;
+    public final String description;
+
+    public MetaClientInfoProperty(
+        String name,
+        int maxLen,
+        String defaultValue,
+        String description) {
+      this.name = name;
+      this.maxLen = maxLen;
+      this.defaultValue = defaultValue;
+      this.description = description;
+    }
   }
 
   /** Metadata describing a function. */
   public static class MetaFunction {
+    public final String functionCat;
+    public final String functionSchem;
+    @ColumnNoNulls
+    public final String functionName;
+    public final String remarks = null;
+    public final short functionType;
+    public final String specificName;
+
+    public MetaFunction(
+        String functionCat,
+        String functionSchem,
+        String functionName,
+        short functionType,
+        String specificName) {
+      this.functionCat = functionCat;
+      this.functionSchem = functionSchem;
+      this.functionName = functionName;
+      this.functionType = functionType;
+      this.specificName = specificName;
+    }
   }
 
   /** Metadata describing a function column. */
   public static class MetaFunctionColumn {
+    public final String functionCat;
+    public final String functionSchem;
+    @ColumnNoNulls
+    public final String functionName;
+    @ColumnNoNulls
+    public final String columnName;
+    public final short columnType;
+    public final int dataType;
+    @ColumnNoNulls
+    public final String typeName;
+    public final Integer precision;
+    public final Integer length;
+    public final Short scale;
+    public final Short radix;
+    public final short nullable;
+    public final String remarks = null;
+    public final Integer charOctetLength;
+    public final int ordinalPosition;
+    @ColumnNoNulls
+    public final String isNullable;
+    public final String specificName;
+
+    public MetaFunctionColumn(
+        String functionCat,
+        String functionSchem,
+        String functionName,
+        String columnName,
+        short columnType,
+        int dataType,
+        String typeName,
+        Integer precision,
+        Integer length,
+        Short scale,
+        Short radix,
+        short nullable,
+        Integer charOctetLength,
+        int ordinalPosition,
+        String isNullable,
+        String specificName) {
+      this.functionCat = functionCat;
+      this.functionSchem = functionSchem;
+      this.functionName = functionName;
+      this.columnName = columnName;
+      this.columnType = columnType;
+      this.dataType = dataType;
+      this.typeName = typeName;
+      this.precision = precision;
+      this.length = length;
+      this.scale = scale;
+      this.radix = radix;
+      this.nullable = nullable;
+      this.charOctetLength = charOctetLength;
+      this.ordinalPosition = ordinalPosition;
+      this.isNullable = isNullable;
+      this.specificName = specificName;
+    }
   }
 
   /** Metadata describing a pseudo column. */
   public static class MetaPseudoColumn {
+    public final String tableCat;
+    public final String tableSchem;
+    @ColumnNoNulls
+    public final String tableName;
+    @ColumnNoNulls
+    public final String columnName;
+    public final int dataType;
+    public final Integer columnSize;
+    public final Integer decimalDigits;
+    public final Integer numPrecRadix;
+    @ColumnNoNulls
+    public final String columnUsage;
+    public final String remarks = null;
+    public final Integer charOctetLength;
+    @ColumnNoNulls
+    public final String isNullable;
+
+    public MetaPseudoColumn(
+        String tableCat,
+        String tableSchem,
+        String tableName,
+        String columnName,
+        int dataType,
+        Integer columnSize,
+        Integer decimalDigits,
+        Integer numPrecRadix,
+        String columnUsage,
+        Integer charOctetLength,
+        String isNullable) {
+      this.tableCat = tableCat;
+      this.tableSchem = tableSchem;
+      this.tableName = tableName;
+      this.columnName = columnName;
+      this.dataType = dataType;
+      this.columnSize = columnSize;
+      this.decimalDigits = decimalDigits;
+      this.numPrecRadix = numPrecRadix;
+      this.columnUsage = columnUsage;
+      this.charOctetLength = charOctetLength;
+      this.isNullable = isNullable;
+    }
   }
 
   /** Metadata describing a super-table. */
   public static class MetaSuperTable {
+    public final String tableCat;
+    public final String tableSchem;
+    @ColumnNoNulls
+    public final String tableName;
+    @ColumnNoNulls
+    public final String supertableName;
+
+    public MetaSuperTable(
+        String tableCat,
+        String tableSchem,
+        String tableName,
+        String supertableName) {
+      this.tableCat = tableCat;
+      this.tableSchem = tableSchem;
+      this.tableName = tableName;
+      this.supertableName = supertableName;
+    }
   }
 
   public Map<DatabaseProperty, Object> getDatabaseProperties(ConnectionHandle ch) {
@@ -776,39 +1471,36 @@ public abstract class MetaImpl implements Meta {
     private static Map<Class<?>, TypeInfo> m =
         new HashMap<Class<?>, TypeInfo>();
     static {
-      put(boolean.class, true, Types.BOOLEAN, "BOOLEAN");
-      put(Boolean.class, false, Types.BOOLEAN, "BOOLEAN");
-      put(byte.class, true, Types.TINYINT, "TINYINT");
-      put(Byte.class, false, Types.TINYINT, "TINYINT");
-      put(short.class, true, Types.SMALLINT, "SMALLINT");
-      put(Short.class, false, Types.SMALLINT, "SMALLINT");
-      put(int.class, true, Types.INTEGER, "INTEGER");
-      put(Integer.class, false, Types.INTEGER, "INTEGER");
-      put(long.class, true, Types.BIGINT, "BIGINT");
-      put(Long.class, false, Types.BIGINT, "BIGINT");
-      put(float.class, true, Types.FLOAT, "FLOAT");
-      put(Float.class, false, Types.FLOAT, "FLOAT");
-      put(double.class, true, Types.DOUBLE, "DOUBLE");
-      put(Double.class, false, Types.DOUBLE, "DOUBLE");
-      put(String.class, false, Types.VARCHAR, "VARCHAR");
-      put(java.sql.Date.class, false, Types.DATE, "DATE");
-      put(Time.class, false, Types.TIME, "TIME");
-      put(Timestamp.class, false, Types.TIMESTAMP, "TIMESTAMP");
+      put(boolean.class, Types.BOOLEAN, "BOOLEAN");
+      put(Boolean.class, Types.BOOLEAN, "BOOLEAN");
+      put(byte.class, Types.TINYINT, "TINYINT");
+      put(Byte.class, Types.TINYINT, "TINYINT");
+      put(short.class, Types.SMALLINT, "SMALLINT");
+      put(Short.class, Types.SMALLINT, "SMALLINT");
+      put(int.class, Types.INTEGER, "INTEGER");
+      put(Integer.class, Types.INTEGER, "INTEGER");
+      put(long.class, Types.BIGINT, "BIGINT");
+      put(Long.class, Types.BIGINT, "BIGINT");
+      put(float.class, Types.FLOAT, "FLOAT");
+      put(Float.class, Types.FLOAT, "FLOAT");
+      put(double.class, Types.DOUBLE, "DOUBLE");
+      put(Double.class, Types.DOUBLE, "DOUBLE");
+      put(String.class, Types.VARCHAR, "VARCHAR");
+      put(java.sql.Date.class, Types.DATE, "DATE");
+      put(Time.class, Types.TIME, "TIME");
+      put(Timestamp.class, Types.TIMESTAMP, "TIMESTAMP");
     }
 
-    private final boolean primitive;
     private final int sqlType;
     private final String sqlTypeName;
 
-    public TypeInfo(boolean primitive, int sqlType, String sqlTypeName) {
-      this.primitive = primitive;
+    public TypeInfo(int sqlType, String sqlTypeName) {
       this.sqlType = sqlType;
       this.sqlTypeName = sqlTypeName;
     }
 
-    static void put(Class clazz, boolean primitive, int sqlType,
-        String sqlTypeName) {
-      m.put(clazz, new TypeInfo(primitive, sqlType, sqlTypeName));
+    static void put(Class<?> clazz, int sqlType, String sqlTypeName) {
+      m.put(clazz, new TypeInfo(sqlType, sqlTypeName));
     }
   }
 

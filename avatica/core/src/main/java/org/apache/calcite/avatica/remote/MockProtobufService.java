@@ -72,8 +72,8 @@ public class MockProtobufService extends ProtobufService {
         new ResultSetResponse("0", 1, true,
             Meta.Signature.create(
                 Arrays.<ColumnMetaData>asList(
-                    MetaImpl.columnMetaData("C1", 0, Integer.class),
-                    MetaImpl.columnMetaData("C2", 1, String.class)),
+                    MetaImpl.columnMetaData("C1", 0, Integer.class, true),
+                    MetaImpl.columnMetaData("C2", 1, String.class, true)),
                 null, null, Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
             Meta.Frame.create(0, true,
                 Arrays.<Object>asList(new Object[] {1, "a"},
@@ -86,8 +86,8 @@ public class MockProtobufService extends ProtobufService {
         new ResultSetResponse("0", 1, true,
             Meta.Signature.create(
                 Arrays.<ColumnMetaData>asList(
-                    MetaImpl.columnMetaData("C1", 0, Integer.class),
-                    MetaImpl.columnMetaData("C2", 1, String.class)),
+                    MetaImpl.columnMetaData("C1", 0, Integer.class, true),
+                    MetaImpl.columnMetaData("C2", 1, String.class, true)),
                 null, Collections.<AvaticaParameter>emptyList(),
                 Meta.CursorFactory.ARRAY, Meta.StatementType.SELECT),
             null, -1, null));
@@ -97,8 +97,8 @@ public class MockProtobufService extends ProtobufService {
         new ResultSetResponse("00000000-0000-0000-0000-000000000000", -1, true,
             Meta.Signature.create(
                 Arrays.<ColumnMetaData>asList(
-                    MetaImpl.columnMetaData("TABLE_NAME", 0, String.class),
-                    MetaImpl.columnMetaData("ORDINAL_POSITION", 1, Long.class)), null,
+                    MetaImpl.columnMetaData("TABLE_NAME", 0, String.class, true),
+                    MetaImpl.columnMetaData("ORDINAL_POSITION", 1, Long.class, true)), null,
                 Collections.<AvaticaParameter>emptyList(), Meta.CursorFactory.ARRAY, null),
             Meta.Frame.create(0, true,
                 Arrays.<Object>asList(new Object[] {new Object[]{"my_table", 10}})), -1, null));
