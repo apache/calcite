@@ -235,7 +235,7 @@ public abstract class MetaImpl implements Meta {
         scalarType.columnClassName());
   }
 
-  protected static ColumnMetaData.StructType fieldMetaData(Class clazz) {
+  protected static ColumnMetaData.StructType fieldMetaData(Class<?> clazz) {
     final List<ColumnMetaData> list = new ArrayList<ColumnMetaData>();
     for (Field field : clazz.getFields()) {
       if (Modifier.isPublic(field.getModifiers())
