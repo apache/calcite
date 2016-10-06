@@ -107,8 +107,8 @@ public class RemoteDriverMockTest {
     assertFalse(resultSet.next());
     final ResultSetMetaData metaData = resultSet.getMetaData();
     assertTrue(metaData.getColumnCount() >= 2);
-    assertEquals("TABLE_CATALOG", metaData.getColumnName(1));
-    assertEquals("TABLE_SCHEM", metaData.getColumnName(2));
+    assertEquals("TABLE_SCHEM", metaData.getColumnName(1));
+    assertEquals("TABLE_CATALOG", metaData.getColumnName(2));
     resultSet.close();
     connection.close();
   }
