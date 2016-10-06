@@ -132,7 +132,7 @@ public class DruidAdapterIT {
   @Test public void testSelectDistinctWikiNoColumns() {
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wiki]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[=(CAST($18):VARCHAR(13) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'Jeremy Corbyn')], groups=[{8}], aggs=[[]])\n";
+        + "  DruidQuery(table=[[wiki, wiki]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[=(CAST($16):VARCHAR(13) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'Jeremy Corbyn')], groups=[{6}], aggs=[[]])\n";
     checkSelectDistinctWiki(WIKI_AUTO, "wiki")
         .explainContains(explain);
   }
@@ -162,6 +162,25 @@ public class DruidAdapterIT {
     // Because no tables are declared, foodmart is automatically present.
     sql("select count(*) as c from \"foodmart\"", WIKI_AUTO2)
         .returnsUnordered("C=86829");
+  }
+
+  @Test public void testSelectTimestampColumnNoTables() {
+    // Since columns are not explicitly declared, we use the default time
+    // column in the query.
+    final String sql = "select sum(\"added\")\n"
+        + "from \"wikiticker\"\n"
+        + "group by floor(\"__time\" to DAY)";
+    final String explain = "PLAN="
+            + "EnumerableInterpreter\n"
+            + "  BindableProject(EXPR$0=[$1])\n"
+            + "    DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]])\n";
+    final String druidQuery = "{'queryType':'timeseries',"
+        + "'dataSource':'wikiticker','descending':false,'granularity':'DAY',"
+        + "'aggregations':[{'type':'longSum','name':'EXPR$0','fieldName':'added'}],"
+        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z']}";
+    sql(sql, WIKI_AUTO2)
+        .explainContains(explain)
+        .queryContains(druidChecker(druidQuery));
   }
 
   private CalciteAssert.AssertQuery checkSelectDistinctWiki(URL url, String tableName) {

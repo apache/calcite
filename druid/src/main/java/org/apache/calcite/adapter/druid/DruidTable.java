@@ -34,7 +34,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
@@ -108,11 +107,19 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     if (connection != null) {
       connection.metadata(dataSourceName, intervals, fieldMap, metricNameSet);
     }
+    if (timestampColumnName != null) {
+      // The default column has been added automatically if we retrieved
+      // the data source information with a segment metadata query. However,
+      // we can remove it since we declared explicitly a name for the
+      // timestamp column.
+      fieldMap.put(timestampColumnName, SqlTypeName.TIMESTAMP);
+      fieldMap.remove(DruidTable.DEFAULT_TIMESTAMP_COLUMN);
+    } else {
+      fieldMap.put(DruidTable.DEFAULT_TIMESTAMP_COLUMN, SqlTypeName.TIMESTAMP);
+      timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+    }
     final ImmutableMap<String, SqlTypeName> fields =
         ImmutableMap.copyOf(fieldMap);
-    if (timestampColumnName == null) {
-      timestampColumnName = Iterables.get(fieldMap.keySet(), 0);
-    }
     return new DruidTable(druidSchema, dataSourceName,
         new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
         timestampColumnName, intervals);
