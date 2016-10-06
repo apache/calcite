@@ -452,8 +452,8 @@ public class SqlToRelConverter {
       RelNode rootRel,
       boolean restructure) {
     RelStructuredTypeFlattener typeFlattener =
-        new RelStructuredTypeFlattener(rexBuilder, createToRelContext());
-    return typeFlattener.rewrite(rootRel, restructure);
+        new RelStructuredTypeFlattener(rexBuilder, createToRelContext(), restructure);
+    return typeFlattener.rewrite(rootRel);
   }
 
   /**
@@ -2242,12 +2242,16 @@ public class SqlToRelConverter {
         }
       }
 
+      RexFieldAccess topLevelFieldAccess = fieldAccess;
+      while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
+        topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
+      }
       final RelDataTypeField field = foundNs.getRowType().getFieldList()
-          .get(fieldAccess.getField().getIndex() - namespaceOffset);
+          .get(topLevelFieldAccess.getField().getIndex() - namespaceOffset);
       int pos = namespaceOffset + field.getIndex();
 
       assert field.getType()
-          == lookup.getFieldAccess(correlName).getField().getType();
+          == topLevelFieldAccess.getField().getType();
 
       assert pos != -1;
 

@@ -2401,6 +2401,48 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test public void testStructTypeInNonCorrelatedSubQuery() {
+    final String sql = "select *\n"
+        + "from struct.t t1\n"
+        + "where c0 in (\n"
+        + "  select f1.c0 from struct.t t2)";
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SubQueryRemoveRule.PROJECT)
+        .addRuleInstance(SubQueryRemoveRule.FILTER)
+        .addRuleInstance(SubQueryRemoveRule.JOIN)
+        .build();
+    final Tester tester = this.tester.withTrim(true).withExpand(false);
+    checkPlanning(tester, null, new HepPlanner(program), sql);
+  }
+
+  @Test public void testStructTypeInCorrelatedSubQuery() {
+    final String sql = "select *\n"
+        + "from struct.t t1\n"
+        + "where c0 = (\n"
+        + "  select max(f1.c0) from struct.t t2 where t1.k0 = t2.k0)";
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SubQueryRemoveRule.PROJECT)
+        .addRuleInstance(SubQueryRemoveRule.FILTER)
+        .addRuleInstance(SubQueryRemoveRule.JOIN)
+        .build();
+    final Tester tester = this.tester.withTrim(true).withExpand(false);
+    checkPlanning(tester, null, new HepPlanner(program), sql);
+  }
+
+  @Test public void testStructTypeInCorrelatedSubQuery2() {
+    final String sql = "select *\n"
+        + "from struct.t t1\n"
+        + "where c0 in (\n"
+        + "  select f1.c0 from struct.t t2 where t1.c2 = t2.c2)";
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SubQueryRemoveRule.PROJECT)
+        .addRuleInstance(SubQueryRemoveRule.FILTER)
+        .addRuleInstance(SubQueryRemoveRule.JOIN)
+        .build();
+    final Tester tester = this.tester.withTrim(true).withExpand(false);
+    checkPlanning(tester, null, new HepPlanner(program), sql);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * Converting predicates on date dimension columns into date ranges</a>,
