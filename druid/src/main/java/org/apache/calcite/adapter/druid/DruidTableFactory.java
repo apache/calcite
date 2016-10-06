@@ -51,8 +51,14 @@ public class DruidTableFactory implements TableFactory {
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
-    final String timestampColumnName = (String) operand.get("timestampColumn");
     final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
+    final String timestampColumnName;
+    if (operand.get("timestampColumn") != null) {
+      timestampColumnName = (String) operand.get("timestampColumn");
+    } else {
+      timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+    }
+    fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
     final Object dimensionsRaw = operand.get("dimensions");
     if (dimensionsRaw instanceof List) {
       //noinspection unchecked

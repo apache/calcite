@@ -70,9 +70,10 @@ public class DruidSchema extends AbstractSchema {
               public Table load(@Nonnull String tableName) throws Exception {
                 final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
                 final Set<String> metricNameSet = new LinkedHashSet<>();
-                connection.metadata(tableName, null, fieldMap, metricNameSet);
+                connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
+                    null, fieldMap, metricNameSet);
                 return DruidTable.create(DruidSchema.this, tableName, null,
-                    fieldMap, metricNameSet, null, connection);
+                    fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN, connection);
               }
             }));
   }

@@ -105,18 +105,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection) {
     if (connection != null) {
-      connection.metadata(dataSourceName, intervals, fieldMap, metricNameSet);
-    }
-    if (timestampColumnName != null) {
-      // The default column has been added automatically if we retrieved
-      // the data source information with a segment metadata query. However,
-      // we can remove it since we declared explicitly a name for the
-      // timestamp column.
-      fieldMap.put(timestampColumnName, SqlTypeName.TIMESTAMP);
-      fieldMap.remove(DruidTable.DEFAULT_TIMESTAMP_COLUMN);
-    } else {
-      fieldMap.put(DruidTable.DEFAULT_TIMESTAMP_COLUMN, SqlTypeName.TIMESTAMP);
-      timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+      connection.metadata(dataSourceName, timestampColumnName, intervals, fieldMap, metricNameSet);
     }
     final ImmutableMap<String, SqlTypeName> fields =
         ImmutableMap.copyOf(fieldMap);
