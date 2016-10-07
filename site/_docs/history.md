@@ -28,6 +28,60 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.10.0">1.10.0</a> / 2016-10-07
+{: #v1-10-0}
+
+This release comes shortly after 1.9.0. It includes mainly bug fixes for the core and
+Druid adapter. For the latest, we fixed an
+<a href="https://issues.apache.org/jira/browse/CALCITE-1403">important issue</a> that
+prevented us from handling consistently time dimensions in different time zones.
+
+Compatibility: This release is tested
+on Linux, Mac OS X, Microsoft Windows;
+using Oracle JDK 1.7, 1.8;
+Guava versions 14.0 to 19.0;
+Druid version 0.9.1.1;
+other software versions as specified in `pom.xml`.
+
+New Feature
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1374">CALCITE-1374</a>]
+  Support operator `!=` as an alternative to `<>`
+
+Bug fixes, API changes and minor enhancements
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1378">CALCITE-1378</a>]
+  `ArrayIndexOutOfBoundsException` in sql-to-rel conversion for two-level columns
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1379">CALCITE-1379</a>]
+  When expanding `STAR`, expand sub-fields in `RecordType` columns of `StructKind.PEEK_FIELDS` and `StructKind.PEEK_FIELDS_DEFAULT`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1381">CALCITE-1381</a>]
+  Function quantifier should be retained in a cloned Sql call (zhengdong)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1386">CALCITE-1386</a>]
+  `ITEM` operator ignores the value type of the collection, assigns to Object variable (Jungtaek Lim)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1392">CALCITE-1392</a>]
+  Druid default time column not properly recognized
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1394">CALCITE-1394</a>]
+  Using `CoreMatchers.containsString` causes javadoc errors
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1396">CALCITE-1396</a>]
+  `isDeterministic` only explores top `RexCall`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1397">CALCITE-1397</a>]
+  `ClassCastException` in `FilterReduceExpressionsRule`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1398">CALCITE-1398</a>]
+  Change visibility of `RelFieldTrimmer` utility methods
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1400">CALCITE-1400</a>]
+  `AggregatePullUpConstantsRule` might adjust aggregation function parameters indices wrongly
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1402">CALCITE-1402</a>]
+  Druid Filter translation incorrect if input reference is in RHS of comparison
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1403">CALCITE-1403</a>]
+  `DruidAdapterIT` broken
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1420">CALCITE-1420</a>]
+  Allow Calcite JDBC Driver minor version to be greater than 9
+
+Web site and documentation
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1393">CALCITE-1393</a>]
+  Exclude packages `org.apache.calcite.benchmarks.generated`, `org.openjdk.jmh` from javadoc
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.9.0">1.9.0</a> / 2016-09-22
 {: #v1-9-0}
 
