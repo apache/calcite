@@ -920,6 +920,7 @@ The operator precedence and associativity, highest to lowest.
 | UPPER(string)              | Returns a character string converted to upper case
 | LOWER(string)              | Returns a character string converted to lower case
 | POSITION(string1 IN string2) | Returns the position of the first occurrence of *string1* in *string2*
+| POSITION(string1 IN string2 FOR integer) | Returns the position of the first occurrence of *string1* in *string2* starting at a given point.
 | TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string1*
 | OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*
 | SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point.
