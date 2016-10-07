@@ -19,11 +19,13 @@ package org.apache.calcite.avatica.test;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.avatica.util.ByteString;
 
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Properties;
@@ -213,6 +215,58 @@ public class AvaticaUtilsTest {
     int[] intValues = new int[] {Integer.MIN_VALUE, -5, 0, 1, Integer.MAX_VALUE,
       Integer.MAX_VALUE, Integer.MAX_VALUE};
     assertArrayEquals(convertedValues, intValues);
+  }
+
+  @Test public void testByteString() {
+    final byte[] bytes = {3, 14, 15, 92, 0, 65, 35, 0};
+    final ByteString s = new ByteString(bytes);
+    final ByteString s2 = new ByteString(bytes.clone());
+    final ByteString s3 = new ByteString(new byte[0]);
+    final ByteString s4 = new ByteString(new byte[] {0});
+    final ByteString s5 = new ByteString(new byte[]{15, 92});
+
+    // length
+    assertThat(s.length(), is(8));
+    assertThat(s3.length(), is(0));
+    assertThat(s4.length(), is(1));
+
+    // equals and hashCode
+    assertThat(s.hashCode(), is(s2.hashCode()));
+    assertThat(s.equals(s2), is(true));
+    assertThat(s2.equals(s), is(true));
+    assertThat(s.equals(s3), is(false));
+    assertThat(s3.equals(s), is(false));
+
+    // toString
+    assertThat(s.toString(), is("030e0f5c00412300"));
+    assertThat(s3.toString(), is(""));
+    assertThat(s4.toString(), is("00"));
+
+    // indexOf
+    assertThat(s.indexOf(s3), is(0));
+    assertThat(s.indexOf(s3, 5), is(5));
+    assertThat(s.indexOf(s3, 15), is(-1));
+    assertThat(s.indexOf(s4), is(4));
+    assertThat(s.indexOf(s4, 4), is(4));
+    assertThat(s.indexOf(s4, 5), is(7));
+    assertThat(s.indexOf(s5), is(2));
+    assertThat(s.indexOf(s5, 2), is(2));
+    assertThat(s.indexOf(s5, 3), is(-1));
+    assertThat(s.indexOf(s5, 7), is(-1));
+
+    // substring
+    assertThat(s.substring(8), is(s3));
+    assertThat(s.substring(7), is(s4));
+    assertThat(s.substring(0), is(s));
+
+    // getBytes
+    assertThat(s.getBytes().length, is(8));
+    assertThat(Arrays.equals(s.getBytes(), bytes), is(true));
+    assertThat(s.getBytes()[3], is((byte) 92));
+    final byte[] copyBytes = s.getBytes();
+    copyBytes[3] = 11;
+    assertThat(s.getBytes()[3], is((byte) 92));
+    assertThat(s, is(s2));
   }
 
   /** Dummy implementation of {@link ConnectionProperty}. */

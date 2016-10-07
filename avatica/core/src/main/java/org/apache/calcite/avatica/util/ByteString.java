@@ -329,8 +329,14 @@ public class ByteString implements Comparable<ByteString>, Serializable {
   /** Returns the position at which {@code seek} first occurs in this byte
    * string, or -1 if it does not occur. */
   public int indexOf(ByteString seek) {
+    return indexOf(seek, 0);
+  }
+
+  /** Returns the position at which {@code seek} first occurs in this byte
+   * string, starting at the specified index, or -1 if it does not occur. */
+  public int indexOf(ByteString seek, int start) {
   iLoop:
-    for (int i = 0; i < bytes.length - seek.bytes.length + 1; i++) {
+    for (int i = start; i < bytes.length - seek.bytes.length + 1; i++) {
       for (int j = 0;; j++) {
         if (j == seek.bytes.length) {
           return i;
