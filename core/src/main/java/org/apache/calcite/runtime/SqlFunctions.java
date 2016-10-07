@@ -125,6 +125,16 @@ public class SqlFunctions {
     return s.substring(from - 1);
   }
 
+  /** SQL SUBSTRING(binary FROM ... FOR ...) function. */
+  public static ByteString substring(ByteString b, int from, int for_) {
+    return b.substring(from - 1, Math.min(from - 1 + for_, b.length()));
+  }
+
+  /** SQL SUBSTRING(binary FROM ...) function. */
+  public static ByteString substring(ByteString b, int from) {
+    return b.substring(from - 1);
+  }
+
   /** SQL UPPER(string) function. */
   public static String upper(String s) {
     return s.toUpperCase();

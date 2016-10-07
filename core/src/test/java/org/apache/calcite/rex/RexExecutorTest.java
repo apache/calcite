@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
@@ -54,6 +55,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexExecutorImpl}.
@@ -212,6 +215,35 @@ public class RexExecutorTest {
         assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
         assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
             equalTo((Object) "ello")); // substring('Hello world!, 2, 4)
+        assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
+        assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
+            equalTo((Object) 2L));
+      }
+    });
+  }
+
+  @Test public void testBinarySubstring() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final List<RexNode> reducedValues = new ArrayList<>();
+        // hello world! -> 48656c6c6f20776f726c6421
+        final RexLiteral binaryHello =
+            rexBuilder.makeBinaryLiteral(
+                new ByteString("Hello world!".getBytes(UTF_8)));
+        final RexNode plus =
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        RexLiteral four = rexBuilder.makeExactLiteral(BigDecimal.valueOf(4));
+        final RexNode substring =
+            rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING,
+                binaryHello, plus, four);
+        executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
+            reducedValues);
+        assertThat(reducedValues.size(), equalTo(2));
+        assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
+        assertThat(((RexLiteral) reducedValues.get(0)).getValue2().toString(),
+            equalTo((Object) "656c6c6f")); // substring('Hello world!, 2, 4)
         assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
         assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
             equalTo((Object) 2L));
