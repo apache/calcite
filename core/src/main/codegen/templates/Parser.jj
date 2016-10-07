@@ -4068,6 +4068,10 @@ SqlNode BuiltinFunctionCall() :
         e = AtomicRowExpression() { args = startList(e); }
         <IN>
         e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e);}
+        [
+            <FROM>
+            e = Expression(ExprContext.ACCEPT_SUBQUERY) { args.add(e); }
+        ]
         <RPAREN>
         {
             return SqlStdOperatorTable.POSITION.createCall(

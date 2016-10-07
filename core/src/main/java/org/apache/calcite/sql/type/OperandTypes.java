@@ -326,6 +326,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker SAME_SAME =
       new SameOperandTypeChecker(2);
 
+  public static final SqlSingleOperandTypeChecker SAME_SAME_INTEGER =
+      new SameOperandTypeExceptLastOperandChecker(3, "INTEGER");
+
   /**
    * Operand type-checking strategy where three operands must all be in the
    * same type family.
@@ -388,6 +391,13 @@ public abstract class OperandTypes {
   STRING_STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
+
+  /**
+   * Operand type-checking strategy where two operands must both be in the
+   * same string type family and last type is INTEGER.
+   */
+  public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_INTEGER =
+      OperandTypes.and(STRING_STRING_INTEGER, SAME_SAME_INTEGER);
 
   public static final SqlSingleOperandTypeChecker ANY =
       family(SqlTypeFamily.ANY);

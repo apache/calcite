@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.util.Bug;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -1317,9 +1318,37 @@ public class SqlFunctions {
     return s.indexOf(seek) + 1;
   }
 
-  /** SQL {@code POSITION(seek IN string)} function. */
+  /** SQL {@code POSITION(seek IN string)} function for byte strings. */
   public static int position(ByteString seek, ByteString s) {
     return s.indexOf(seek) + 1;
+  }
+
+  /** SQL {@code POSITION(seek IN string FROM integer)} function. */
+  public static int position(String seek, String s, int from) {
+    final int from0 = from - 1; // 0-based
+    if (from0 > s.length() || from0 < 0) {
+      return 0;
+    }
+
+    return s.indexOf(seek, from0) + 1;
+  }
+
+  /** SQL {@code POSITION(seek IN string FROM integer)} function for byte
+   * strings. */
+  public static int position(ByteString seek, ByteString s, int from) {
+    final int from0 = from - 1;
+    if (from0 > s.length() || from0 < 0) {
+      return 0;
+    }
+
+    // ByteString doesn't have indexOf(ByteString, int) until avatica-1.9
+    // (see [CALCITE-1423]), so apply substring and find from there.
+    Bug.upgrade("in avatica-1.9, use ByteString.substring(ByteString, int)");
+    final int p = s.substring(from0).indexOf(seek);
+    if (p < 0) {
+      return 0;
+    }
+    return p + from;
   }
 
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */

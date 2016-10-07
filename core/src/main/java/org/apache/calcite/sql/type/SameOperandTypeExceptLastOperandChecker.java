@@ -18,12 +18,9 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,44 +30,22 @@ import java.util.List;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Parameter type-checking strategy where all operand types must be the same.
+ * Parameter type-checking strategy where all operand types except last one must be the same.
  */
-public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
+public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
-  protected final int nOperands;
+  protected final String lastOperandTypeName;
 
   //~ Constructors -----------------------------------------------------------
 
-  public SameOperandTypeChecker(
-      int nOperands) {
-    this.nOperands = nOperands;
+  public SameOperandTypeExceptLastOperandChecker(
+      int nOperands, String lastOperandTypeName) {
+    super(nOperands);
+    this.lastOperandTypeName = lastOperandTypeName;
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  public Consistency getConsistency() {
-    return Consistency.NONE;
-  }
-
-  public boolean isOptional(int i) {
-    return false;
-  }
-
-  public boolean checkOperandTypes(
-      SqlCallBinding callBinding,
-      boolean throwOnFailure) {
-    return checkOperandTypesImpl(
-        callBinding,
-        throwOnFailure,
-        callBinding);
-  }
-
-  protected List<Integer> getOperandList(int operandCount) {
-    return nOperands == -1
-        ? Util.range(0, operandCount)
-        : Util.range(0, nOperands);
-  }
 
   protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
@@ -97,7 +72,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     }
     int prev = -1;
     for (int i : operandList) {
-      if (prev >= 0) {
+      if (prev >= 0 && i != operandList.get(operandList.size() - 1)) {
         if (!SqlTypeUtil.isComparable(types[i], types[prev])) {
           if (!throwOnFailure) {
             return false;
@@ -115,46 +90,17 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  /**
-   * Similar functionality to
-   * {@link #checkOperandTypes(SqlCallBinding, boolean)}, but not part of the
-   * interface, and cannot throw an error.
-   */
-  public boolean checkOperandTypes(
-      SqlOperatorBinding operatorBinding) {
-    return checkOperandTypesImpl(operatorBinding, false, null);
-  }
-
-  // implement SqlOperandTypeChecker
-  public SqlOperandCountRange getOperandCountRange() {
-    if (nOperands == -1) {
-      return SqlOperandCountRanges.any();
-    } else {
-      return SqlOperandCountRanges.of(nOperands);
-    }
-  }
-
   public String getAllowedSignatures(SqlOperator op, String opName) {
     final String typeName = getTypeName();
-    return SqlUtil.getAliasedSignature(op, opName,
-        nOperands == -1
-            ? ImmutableList.of(typeName, typeName, "...")
-            : Collections.nCopies(nOperands, typeName));
-  }
-
-  /** Override to change the behavior of
-   * {@link #getAllowedSignatures(SqlOperator, String)}. */
-  protected String getTypeName() {
-    return "EQUIVALENT_TYPE";
-  }
-
-  public boolean checkSingleOperandType(
-      SqlCallBinding callBinding,
-      SqlNode operand,
-      int iFormalOperand,
-      boolean throwOnFailure) {
-    throw new UnsupportedOperationException(); // TODO:
+    if (nOperands == -1) {
+      return SqlUtil.getAliasedSignature(op, opName,
+          ImmutableList.of(typeName, typeName, "..."));
+    } else {
+      List<String> types = Collections.nCopies(nOperands - 1, typeName);
+      types.add(lastOperandTypeName);
+      return SqlUtil.getAliasedSignature(op, opName, types);
+    }
   }
 }
 
-// End SameOperandTypeChecker.java
+// End SameOperandTypeExceptLastOperandChecker.java

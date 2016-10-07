@@ -1689,21 +1689,16 @@ public abstract class SqlOperatorBaseTest {
         4,
         "INTEGER NOT NULL");
 
-    // only the 2 arg version of locate is implemented
-    if (false) {
-      tester.checkScalar(
-          "{fn LOCATE(string1, string2[, start])}",
-          null,
-          "");
-    }
+    tester.checkScalar(
+        "{fn LOCATE('ha', 'alphabet', 6)}",
+        0,
+        "INTEGER NOT NULL");
 
-    // ltrim is implemented but has a bug in arg checking
-    if (false) {
-      tester.checkScalar(
-          "{fn LTRIM(' xxx  ')}",
-          "xxx",
-          "VARCHAR(6)");
-    }
+    tester.checkScalar(
+        "{fn LTRIM(' xxx  ')}",
+        "xxx  ",
+        "VARCHAR(6) NOT NULL");
+
     if (false) {
       tester.checkScalar("{fn REPEAT(string, count)}", null, "");
     }
@@ -1717,13 +1712,11 @@ public abstract class SqlOperatorBaseTest {
       tester.checkScalar("{fn RIGHT(string, count)}", null, "");
     }
 
-    // rtrim is implemented but has a bug in arg checking
-    if (false) {
-      tester.checkScalar(
-          "{fn RTRIM(' xxx  ')}",
-          "xxx",
-          "VARCHAR(6)");
-    }
+    tester.checkScalar(
+        "{fn RTRIM(' xxx  ')}",
+        " xxx",
+        "VARCHAR(6) NOT NULL");
+
     if (false) {
       tester.checkScalar("{fn SOUNDEX(string)}", null, "");
     }
@@ -3554,6 +3547,22 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.POSITION);
     tester.checkScalarExact("position('b' in 'abc')", "2");
     tester.checkScalarExact("position('' in 'abc')", "1");
+    tester.checkScalarExact("position('b' in 'abcabc' FROM 3)", "5");
+    tester.checkScalarExact("position('b' in 'abcabc' FROM 5)", "5");
+    tester.checkScalarExact("position('b' in 'abcabc' FROM 6)", "0");
+    tester.checkScalarExact("position('b' in 'abcabc' FROM -5)", "0");
+    tester.checkScalarExact("position('' in 'abc' FROM 3)", "3");
+    tester.checkScalarExact("position('' in 'abc' FROM 10)", "0");
+
+    tester.checkScalarExact("position(x'bb' in x'aabbcc')", "2");
+    tester.checkScalarExact("position(x'' in x'aabbcc')", "1");
+    tester.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM 3)", "5");
+    tester.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM 5)", "5");
+    tester.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM 6)", "0");
+    tester.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM -5)", "0");
+    tester.checkScalarExact("position(x'cc' in x'aabbccdd' FROM 2)", "3");
+    tester.checkScalarExact("position(x'' in x'aabbcc' FROM 3)", "3");
+    tester.checkScalarExact("position(x'' in x'aabbcc' FROM 10)", "0");
 
     // FRG-211
     tester.checkScalarExact("position('tra' in 'fdgjklewrtra')", "10");

@@ -916,16 +916,17 @@ The operator precedence and associativity, highest to lowest.
 
 | Operator syntax            | Description
 |:-------------------------- |:-----------
-| string &#124;&#124; string | Concatenates two character strings.
+| string &#124;&#124; string | Concatenates two character strings
 | CHAR_LENGTH(string)        | Returns the number of characters in a character string
 | CHARACTER_LENGTH(string)   | As CHAR_LENGTH(*string*)
 | UPPER(string)              | Returns a character string converted to upper case
 | LOWER(string)              | Returns a character string converted to lower case
 | POSITION(string1 IN string2) | Returns the position of the first occurrence of *string1* in *string2*
+| POSITION(string1 IN string2 FROM integer) | Returns the position of the first occurrence of *string1* in *string2* starting at a given point (not standard SQL)
 | TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string1*
 | OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*
-| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point.
-| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length.
+| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point
+| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length
 | INITCAP(string)            | Returns *string* with the first letter of each word converter to upper case and the rest to lower case. Words are sequences of alphanumeric characters separated by non-alphanumeric characters.
 
 Not implemented:
@@ -936,8 +937,9 @@ Not implemented:
 
 | Operator syntax | Description
 |:--------------- |:-----------
-| binary &#124;&#124; binary | Concatenates two binary strings.
+| binary &#124;&#124; binary | Concatenates two binary strings
 | POSITION(binary1 IN binary2) | Returns the position of the first occurrence of *binary1* in *binary2*
+| POSITION(binary1 IN binary2 FROM integer) | Returns the position of the first occurrence of *binary1* in *binary2* starting at a given point (not standard SQL)
 | OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*
 | SUBSTRING(binary FROM integer) | Returns a substring of *binary* starting at a given point
 | SUBSTRING(binary FROM integer FOR integer) | Returns a substring of *binary* starting at a given point with a given length
@@ -1057,7 +1059,6 @@ Not implemented:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn CONCAT(character, character)} | Returns the concatenation of character strings
-| {fn LOCATE(string1, string2)} | Returns the position in *string2* of the first occurrence of *string1*. Searches from the beginning of the second CharacterExpression, unless the startIndex parameter is specified.
 | {fn INSERT(string1, start, length, string2)} | Inserts *string2* into a slot in *string1*
 | {fn LCASE(string)}            | Returns a string in which all alphabetic characters in *string* have been converted to lower case
 | {fn LENGTH(string)} | Returns the number of characters in a string
