@@ -1322,6 +1322,25 @@ public class SqlFunctions {
     return s.indexOf(seek) + 1;
   }
 
+  /** SQL {@code POSITION(seek IN string FOR integer)} function. */
+  public static int position(String seek, String s, int for_) {
+    if ((for_ - 1) >= s.length()) {
+      return seek.length() == 0 ? s.length() : 0;
+    }
+
+    return s.indexOf(seek, for_ - 1) + 1;
+  }
+
+  /** SQL {@code POSITION(seek IN string FOR integer)} function. */
+  public static int position(ByteString seek, ByteString s, int for_) {
+    if ((for_ - 1) >= s.length()) {
+      return seek.length() == 0 ? s.length() : 0;
+    }
+
+    // ByteString doesn't have substring(ByteString, int), so apply substring and find from there
+    return position(s.substring(for_ - 1), seek);
+  }
+
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
   public static long round(long v, long x) {
     return truncate(v + x / 2, x);

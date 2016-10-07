@@ -732,9 +732,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testPosition() {
     checkExp("position('mouse' in 'house')");
     checkExp("position(x'11' in x'100110')");
+    checkExp("position(x'11' in x'100110' FOR 10)");
     checkExp("position(x'abcd' in x'')");
     checkExpType("position('mouse' in 'house')", "INTEGER NOT NULL");
     checkWholeExpFails("position(x'1234' in '110')",
+        "Parameters must be of the same type");
+    checkWholeExpFails("position(x'1234' in '110' for 3)",
         "Parameters must be of the same type");
   }
 
@@ -1149,9 +1152,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails("{fn insert('','',1,2)}", "(?s).*.*");
     checkWholeExpFails("{fn insert('','',1)}", "(?s).*4.*");
 
-    // TODO: this is legal JDBC syntax, but the 3 ops call is not
-    // implemented
-    checkWholeExpFails("{fn locate('','',1)}", ANY);
+    checkExp("{fn locate('','',1)}");
     checkWholeExpFails(
         "{fn log10('1')}",
         "(?s).*Cannot apply.*fn LOG10..<CHAR.1.>.*");

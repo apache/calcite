@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 
 /**
  * The <code>POSITION</code> function.
@@ -35,13 +36,18 @@ public class SqlPositionFunction extends SqlFunction {
   // params are all same character set, like OVERLAY does implicitly
   // as part of rtiDyadicStringSumPrecision
 
+  private static final SqlOperandTypeChecker OTC_CUSTOM =
+      OperandTypes.or(
+          OperandTypes.STRING_SAME_SAME,
+          OperandTypes.STRING_SAME_SAME_INTEGER);
+
   public SqlPositionFunction() {
     super(
         "POSITION",
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER_NULLABLE,
         null,
-        OperandTypes.STRING_SAME_SAME,
+        OTC_CUSTOM,
         SqlFunctionCategory.NUMERIC);
   }
 
@@ -56,21 +62,42 @@ public class SqlPositionFunction extends SqlFunction {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("IN");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+    if (3 == call.operandCount()) {
+      writer.sep("FOR");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(frame);
   }
 
   public String getSignatureTemplate(final int operandsCount) {
-    assert operandsCount == 2;
-    return "{0}({1} IN {2})";
+    switch (operandsCount) {
+    case 2:
+      return "{0}({1} IN {2})";
+    case 3:
+      return "{0}({1} IN {2} FOR {3})";
+    }
+    assert false;
+    return null;
   }
 
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // check that the two operands are of same type.
-    return OperandTypes.SAME_SAME.checkOperandTypes(
-        callBinding, throwOnFailure)
-        && super.checkOperandTypes(callBinding, throwOnFailure);
+    switch (callBinding.getOperandCount()) {
+    case 2:
+      return OperandTypes.SAME_SAME.checkOperandTypes(
+          callBinding, throwOnFailure)
+          && super.checkOperandTypes(callBinding, throwOnFailure);
+
+    case 3:
+      return OperandTypes.SAME_SAME_INTEGER.checkOperandTypes(
+          callBinding, throwOnFailure)
+          && super.checkOperandTypes(callBinding, throwOnFailure);
+    }
+
+    assert false;
+    return false;
   }
 }
 

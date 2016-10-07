@@ -674,7 +674,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(pos,
                   SqlTrimFunction.Flag.LEADING.symbol(SqlParserPos.ZERO),
-                  SqlLiteral.createCharString(" ", null),
+                  SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
                   operands[0]);
             }
           });
@@ -686,7 +686,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(pos,
                   SqlTrimFunction.Flag.TRAILING.symbol(SqlParserPos.ZERO),
-                  SqlLiteral.createCharString(" ", null),
+                  SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
                   operands[0]);
             }
           });
