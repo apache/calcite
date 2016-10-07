@@ -587,8 +587,6 @@ public class RexLiteral extends RexNode {
       return null;
     }
     switch (typeName) {
-    case BINARY:
-      return ((ByteBuffer) value).array();
     case CHAR:
       return ((NlsString) value).getValue();
     case DECIMAL:
