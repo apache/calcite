@@ -4118,6 +4118,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString(
         "substring('abc' from 2)", "bc", "VARCHAR(3) NOT NULL");
 
+    tester.checkString(
+        "substring(x'aabbcc' from 1 for 2)",
+        "aabb",
+        "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from 2)", "bbcc", "VARBINARY(3) NOT NULL");
+
     if (Bug.FRG296_FIXED) {
       // substring regexp not supported yet
       tester.checkString(
