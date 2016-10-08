@@ -2001,7 +2001,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[IS FALSE($11)])
+LogicalProject(EMPNO=[$0], EXPR$1=[IS NOT TRUE($11)])
   LogicalJoin(condition=[=($9, $10)], joinType=[left])
     LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])

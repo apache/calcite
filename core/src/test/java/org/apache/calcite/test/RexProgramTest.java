@@ -1640,6 +1640,33 @@ public class RexProgramTest {
     }
     return map2.toString();
   }
+
+  @Test public void testSimplifyNot() {
+    final RelDataType booleanNullableType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
+    final RexNode booleanInput = rexBuilder.makeInputRef(booleanNullableType, 0);
+    final RexNode isFalse = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, booleanInput);
+    final RexCall result = (RexCall) simplify(isFalse);
+    assertThat(result.getType().isNullable(), is(false));
+    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_FALSE));
+    assertThat(result.getOperands().size(), is(1));
+    assertThat(result.getOperands().get(0), is(booleanInput));
+
+    // Make sure that IS_FALSE(IS_FALSE(nullable boolean)) != IS_TRUE(nullable boolean)
+    // IS_FALSE(IS_FALSE(null)) = IS_FALSE(false) = true
+    // IS_TRUE(null) = false
+    final RexNode isFalseIsFalse = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, isFalse);
+    final RexCall result2 = (RexCall) simplify(isFalseIsFalse);
+    assertThat(result2.getType().isNullable(), is(false));
+    assertThat(result2.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_NOT_FALSE));
+    assertThat(result2.getOperands().size(), is(1));
+    assertThat(result2.getOperands().get(0), is(booleanInput));
+  }
+
+  private RexNode simplify(RexNode e) {
+    return new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR).simplify(e);
+  }
 }
 
 // End RexProgramTest.java

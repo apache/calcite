@@ -1170,19 +1170,31 @@ public enum SqlKind {
 
   /** Returns the kind that you get if you apply NOT to this kind.
    *
-   * <p>For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}. */
+   * <p>For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}.
+   *
+   * <p>For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE},
+   * {@link #IS_NOT_FALSE}, nullable inputs need to be treated carefully.
+   *
+   * <p>{@code NOT(IS_TRUE(null))} = {@code NOT(false)} = {@code true},
+   * while {@code IS_FALSE(null)} = {@code false},
+   * so {@code NOT(IS_TRUE(X))} should be {@code IS_NOT_TRUE(X)}.
+   * On the other hand,
+   * {@code IS_TRUE(NOT(null))} = {@code IS_TRUE(null)} = {@code false}.
+   *
+   * <p>This is why negate() != negateNullSafe() for these operators.
+   */
   public SqlKind negate() {
     switch (this) {
     case IS_TRUE:
-      return IS_FALSE;
+      return IS_NOT_TRUE;
     case IS_FALSE:
-      return IS_TRUE;
+      return IS_NOT_FALSE;
     case IS_NULL:
       return IS_NOT_NULL;
     case IS_NOT_TRUE:
-      return IS_NOT_FALSE;
+      return IS_TRUE;
     case IS_NOT_FALSE:
-      return IS_NOT_TRUE;
+      return IS_FALSE;
     case IS_NOT_NULL:
       return IS_NULL;
     case IS_DISTINCT_FROM:
@@ -1195,7 +1207,18 @@ public enum SqlKind {
   }
 
   /** Returns the kind that you get if you negate this kind.
-   * To conform to null semantics, null value should not be compared. */
+   * To conform to null semantics, null value should not be compared.
+   *
+   * <p>For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE} and
+   * {@link #IS_NOT_FALSE}, nullable inputs need to be treated carefully:
+   *
+   * <ul>
+   * <li>NOT(IS_TRUE(null)) = NOT(false) = true
+   * <li>IS_TRUE(NOT(null)) = IS_TRUE(null) = false
+   * <li>IS_FALSE(null) = false
+   * <li>IS_NOT_TRUE(null) = true
+   * </ul>
+   */
   public SqlKind negateNullSafe() {
     switch (this) {
     case EQUALS:
@@ -1210,6 +1233,14 @@ public enum SqlKind {
       return GREATER_THAN;
     case GREATER_THAN_OR_EQUAL:
       return LESS_THAN;
+    case IS_TRUE:
+      return IS_FALSE;
+    case IS_FALSE:
+      return IS_TRUE;
+    case IS_NOT_TRUE:
+      return IS_NOT_FALSE;
+    case IS_NOT_FALSE:
+      return IS_NOT_TRUE;
     default:
       return this.negate();
     }
