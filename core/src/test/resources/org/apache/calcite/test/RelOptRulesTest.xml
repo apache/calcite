@@ -16,6 +16,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <Root>
+    <TestCase name="testReduceNot">
+        <Resource name="sql">
+            <![CDATA[select sal
+from emp
+where case when (sal = 1000) then
+(case when sal = 1000 then null else 1 end is null) else
+(case when sal = 2000 then null else 1 end is null) end is true]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(CASECOL=[$0])
+  LogicalFilter(condition=[NOT($0)])
+    LogicalProject(CASECOL=[CASE(>($5, 1000), null, false)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(CASECOL=[$0])
+  LogicalFilter(condition=[NOT($0)])
+    LogicalProject(CASECOL=[CASE(>($5, 1000), null, false)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceNestedCaseWhen">
         <Resource name="sql">
             <![CDATA[select sal
