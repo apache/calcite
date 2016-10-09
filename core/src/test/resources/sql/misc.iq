@@ -1310,4 +1310,224 @@ select (case when (true) then 1 end) from (values(1));
 EXPR$0 INTEGER(10)
 !type
 
+# Cast an character literal to a timestamp; note: the plan does not contain CAST
+values cast('1969-07-21 12:34:56' as timestamp);
++---------------------+
+| EXPR$0              |
++---------------------+
+| 1969-07-21 12:34:56 |
++---------------------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 12:34:56], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Cast a character literal to a date; note: the plan does not contain CAST
+values cast('1969-07-21' as date);
++------------+
+| EXPR$0     |
++------------+
+| 1969-07-21 |
++------------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Slightly different format
+# (Incidentally, this format is not allowed in date literals, per the standard)
+values cast('1989-7-4' as date);
++------------+
+| EXPR$0     |
++------------+
+| 1989-07-04 |
++------------+
+(1 row)
+
+!ok
+
+# Cast a character literal to an integer; note: the plan does not contain CAST
+values cast('196907' as integer);
++--------+
+| EXPR$0 |
++--------+
+| 196907 |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[196907], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Cast an integer literal to a bigint; note: the plan does not contain CAST
+values cast(123 as bigint);
++--------+
+| EXPR$0 |
++--------+
+|    123 |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Cast an integer literal to a decimal; note: the plan does not contain CAST
+values cast('123.45' as decimal(4, 2));
++--------+
+| EXPR$0 |
++--------+
+| 123.45 |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Cast a character literal to a decimal; note: the plan does not contain CAST
+values cast('123.45' as decimal(4, 2));
++--------+
+| EXPR$0 |
++--------+
+| 123.45 |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Cast a character literal to a double; note: the plan does not contain CAST
+values cast('-123.45' as double);
++---------+
+| EXPR$0  |
++---------+
+| -123.45 |
++---------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+values cast('false' as boolean);
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[false], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+values cast('TRUE' as boolean);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[true], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+values cast('TR' || 'UE' as boolean);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, $t2)], expr#4=[CAST($t3):BOOLEAN NOT NULL], EXPR$0=[$t4])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+!if (fixed.calcite1439) {
+values cast('null' as boolean);
+!error
+!plan
+
+values cast('' as date);
+!error
+
+values cast('' as timestamp);
+!error
+
+values cast('' as integer);
+!error
+
+values cast('' as boolean);
+!error
+
+values cast('' as double);
+!error
+
+# Postgres fails:
+#  ERROR:  invalid input syntax for integer: "1.56"
+values cast('15.6' as integer);
+!error
+
+# Postgres fails:
+#  ERROR:  invalid input syntax for integer: " - 5 "
+values cast(' - 5 ' as double);
+!error
+
+# Out of TINYINT range (max 127)
+values cast('200' as tinyint);
+!error
+
+# Out of SMALLINT range (max 32767)
+values cast('50000' as smallint);
+!error
+
+# Out of INTEGER range (max 2.1e9)
+values cast('4567891234' as integer);
+!error
+
+# Out of BIGINT range (max 9.2e18)
+values cast('12345678901234567890' as bigint);
+!error
+
+# Out of REAL range
+values cast('12.34e56' as real);
+!error
+
+# Out of FLOAT range
+values cast('12.34e5678' as float);
+!error
+
+# Out of DOUBLE range
+values cast('12.34e5678' as double);
+!error
+
+!}
+
+# Postgres succeeds
+values cast(' -5 ' as double);
++--------+
+| EXPR$0 |
++--------+
+|   -5.0 |
++--------+
+(1 row)
+
+!ok
+
 # End misc.iq

@@ -38,10 +38,8 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
-import com.google.common.collect.ImmutableSet;
-
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -54,8 +52,22 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SqlCastFunction extends SqlFunction {
   //~ Instance fields --------------------------------------------------------
 
-  private final Set<TypeFamilyCast> nonMonotonicPreservingCasts =
-      createNonMonotonicPreservingCasts();
+  /** Map of all casts that do not preserve monotonicity. */
+  private final SetMultimap<SqlTypeFamily, SqlTypeFamily> nonMonotonicCasts =
+      ImmutableSetMultimap.<SqlTypeFamily, SqlTypeFamily>builder()
+          .put(SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.CHARACTER)
+          .put(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
+          .put(SqlTypeFamily.APPROXIMATE_NUMERIC, SqlTypeFamily.CHARACTER)
+          .put(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.CHARACTER)
+          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.EXACT_NUMERIC)
+          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC)
+          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL)
+          .put(SqlTypeFamily.DATETIME, SqlTypeFamily.TIME)
+          .put(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIME)
+          .put(SqlTypeFamily.TIME, SqlTypeFamily.DATETIME)
+          .put(SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP)
+          .build();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -70,38 +82,6 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  /**
-   * List all casts that do not preserve monotonicity.
-   */
-  private Set<TypeFamilyCast> createNonMonotonicPreservingCasts() {
-    ImmutableSet.Builder<TypeFamilyCast> builder = ImmutableSet.builder();
-    add(builder, SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.CHARACTER);
-    add(builder, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
-    add(builder, SqlTypeFamily.APPROXIMATE_NUMERIC, SqlTypeFamily.CHARACTER);
-    add(builder, SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.CHARACTER);
-    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.EXACT_NUMERIC);
-    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC);
-    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.APPROXIMATE_NUMERIC);
-    add(builder, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL);
-    add(builder, SqlTypeFamily.DATETIME, SqlTypeFamily.TIME);
-    add(builder, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIME);
-    add(builder, SqlTypeFamily.TIME, SqlTypeFamily.DATETIME);
-    add(builder, SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP);
-    return builder.build();
-  }
-
-  private void add(ImmutableSet.Builder<TypeFamilyCast> result,
-      SqlTypeFamily from, SqlTypeFamily to) {
-    result.add(new TypeFamilyCast(from, to));
-  }
-
-  private boolean isMonotonicPreservingCast(
-      RelDataTypeFamily castFrom,
-      RelDataTypeFamily castTo) {
-    return !nonMonotonicPreservingCasts.contains(
-        new TypeFamilyCast(castFrom, castTo));
-  }
 
   public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
@@ -202,36 +182,12 @@ public class SqlCastFunction extends SqlFunction {
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     RelDataTypeFamily castFrom = call.getOperandType(0).getFamily();
     RelDataTypeFamily castTo = call.getOperandType(1).getFamily();
-    if (isMonotonicPreservingCast(castFrom, castTo)) {
-      return call.getOperandMonotonicity(0);
-    } else {
+    if (castFrom instanceof SqlTypeFamily
+        && castTo instanceof SqlTypeFamily
+        && nonMonotonicCasts.containsEntry(castFrom, castTo)) {
       return SqlMonotonicity.NOT_MONOTONIC;
-    }
-  }
-
-  //~ Inner Classes ----------------------------------------------------------
-
-  /** Pair of source-target type families. */
-  private class TypeFamilyCast {
-    private final RelDataTypeFamily castFrom;
-    private final RelDataTypeFamily castTo;
-
-    public TypeFamilyCast(
-        RelDataTypeFamily castFrom,
-        RelDataTypeFamily castTo) {
-      this.castFrom = castFrom;
-      this.castTo = castTo;
-    }
-
-    @Override public boolean equals(Object o) {
-      return o == this
-          || o instanceof TypeFamilyCast
-          && castFrom.equals(((TypeFamilyCast) o).castFrom)
-          && castTo.equals(((TypeFamilyCast) o).castTo);
-    }
-
-    @Override public int hashCode() {
-      return Objects.hash(castFrom, castTo);
+    } else {
+      return call.getOperandMonotonicity(0);
     }
   }
 }

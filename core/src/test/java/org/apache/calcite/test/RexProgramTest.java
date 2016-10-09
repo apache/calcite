@@ -17,6 +17,8 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -34,19 +36,25 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeAssignmentRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -1070,6 +1078,114 @@ public class RexProgramTest {
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
   }
 
+  @Test public void testSimplifyCastLiteral() {
+    final List<RexLiteral> literals = new ArrayList<>();
+    literals.add(
+        rexBuilder.makeExactLiteral(BigDecimal.ONE,
+            typeFactory.createSqlType(SqlTypeName.INTEGER)));
+    literals.add(
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(2),
+            typeFactory.createSqlType(SqlTypeName.BIGINT)));
+    literals.add(
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(3),
+            typeFactory.createSqlType(SqlTypeName.SMALLINT)));
+    literals.add(
+        rexBuilder.makeExactLiteral(BigDecimal.valueOf(4),
+            typeFactory.createSqlType(SqlTypeName.TINYINT)));
+    literals.add(
+        rexBuilder.makeExactLiteral(new BigDecimal("1234"),
+            typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 0)));
+    literals.add(
+        rexBuilder.makeExactLiteral(new BigDecimal("123.45"),
+            typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 2)));
+    literals.add(
+        rexBuilder.makeApproxLiteral(new BigDecimal("3.1415"),
+            typeFactory.createSqlType(SqlTypeName.REAL)));
+    literals.add(
+        rexBuilder.makeApproxLiteral(BigDecimal.valueOf(Math.E),
+            typeFactory.createSqlType(SqlTypeName.FLOAT)));
+    literals.add(
+        rexBuilder.makeApproxLiteral(BigDecimal.valueOf(Math.PI),
+            typeFactory.createSqlType(SqlTypeName.DOUBLE)));
+    literals.add(rexBuilder.makeLiteral(true));
+    literals.add(rexBuilder.makeLiteral(false));
+    literals.add(rexBuilder.makeLiteral("hello world"));
+    literals.add(rexBuilder.makeLiteral("1969-07-20 12:34:56"));
+    literals.add(rexBuilder.makeLiteral("1969-07-20"));
+    literals.add(rexBuilder.makeLiteral("12:34:45"));
+    literals.add((RexLiteral)
+        rexBuilder.makeLiteral(new ByteString(new byte[] {1, 2, -34, 0, -128}),
+            typeFactory.createSqlType(SqlTypeName.BINARY, 5), false));
+    literals.add(
+        rexBuilder.makeDateLiteral(cal(1974, Calendar.AUGUST, 9, 0, 0, 0)));
+    literals.add(rexBuilder.makeTimeLiteral(cal(0, 0, 0, 1, 23, 45), 0));
+    literals.add(
+        rexBuilder.makeTimestampLiteral(
+            cal(1974, Calendar.AUGUST, 9, 1, 23, 45), 0));
+
+    final Multimap<SqlTypeName, RexLiteral> map = LinkedHashMultimap.create();
+    for (RexLiteral literal : literals) {
+      map.put(literal.getTypeName(), literal);
+    }
+
+    final List<RelDataType> types = new ArrayList<>();
+    types.add(typeFactory.createSqlType(SqlTypeName.INTEGER));
+    types.add(typeFactory.createSqlType(SqlTypeName.BIGINT));
+    types.add(typeFactory.createSqlType(SqlTypeName.SMALLINT));
+    types.add(typeFactory.createSqlType(SqlTypeName.TINYINT));
+    types.add(typeFactory.createSqlType(SqlTypeName.REAL));
+    types.add(typeFactory.createSqlType(SqlTypeName.FLOAT));
+    types.add(typeFactory.createSqlType(SqlTypeName.DOUBLE));
+    types.add(typeFactory.createSqlType(SqlTypeName.BOOLEAN));
+    types.add(typeFactory.createSqlType(SqlTypeName.VARCHAR, 10));
+    types.add(typeFactory.createSqlType(SqlTypeName.CHAR, 5));
+    types.add(typeFactory.createSqlType(SqlTypeName.VARBINARY, 60));
+    types.add(typeFactory.createSqlType(SqlTypeName.BINARY, 3));
+    types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
+    types.add(typeFactory.createSqlType(SqlTypeName.TIME));
+    types.add(typeFactory.createSqlType(SqlTypeName.DATE));
+
+    for (RelDataType fromType : types) {
+      for (RelDataType toType : types) {
+        if (SqlTypeAssignmentRules.instance().canCastFrom(
+            toType.getSqlTypeName(), fromType.getSqlTypeName(), false)) {
+          for (RexLiteral literal : map.get(fromType.getSqlTypeName())) {
+            final RexNode cast = rexBuilder.makeCast(toType, literal);
+            if (cast instanceof RexLiteral) {
+              assertThat(cast.getType(), is(toType));
+              continue; // makeCast already simplified
+            }
+            final RexNode simplified = RexUtil.simplify(rexBuilder, cast);
+            boolean expectedSimplify =
+                literal.getTypeName() != toType.getSqlTypeName()
+                || (literal.getTypeName() == SqlTypeName.CHAR
+                    && ((NlsString) literal.getValue()).getValue().length()
+                        > toType.getPrecision())
+                || (literal.getTypeName() == SqlTypeName.BINARY
+                    && ((ByteString) literal.getValue()).length()
+                        > toType.getPrecision());
+            boolean couldSimplify = !cast.equals(simplified);
+            final String reason = (expectedSimplify
+                ? "expected to simplify, but could not: "
+                : "simplified, but did not expect to: ")
+                + cast + " --> " + simplified;
+            assertThat(reason, couldSimplify, is(expectedSimplify));
+          }
+        }
+      }
+    }
+  }
+
+  private Calendar cal(int y, int m, int d, int h, int mm, int s) {
+    final Calendar c = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+    c.set(Calendar.YEAR, y);
+    c.set(Calendar.MONTH, m);
+    c.set(Calendar.DAY_OF_MONTH, d);
+    c.set(Calendar.HOUR_OF_DAY, h);
+    c.set(Calendar.MINUTE, mm);
+    c.set(Calendar.SECOND, s);
+    return c;
+  }
 }
 
 // End RexProgramTest.java

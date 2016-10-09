@@ -61,7 +61,9 @@ LogicalProject(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select deptno + 4, sum(sal), sum(3 + sal), 2 * count(sal) from emp group by deptno]]>
+            <![CDATA[select
+  deptno + 4, sum(sal), sum(3 + sal), 2 * count(sal)
+from emp group by deptno]]>
         </Resource>
     </TestCase>
     <TestCase name="testHaving">
@@ -102,7 +104,10 @@ LogicalProject(NAME=[$1], FOO=[$2])
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select name, foo from (select deptno, name, count(deptno) as foo from dept group by name, deptno, name)]]>
+            <![CDATA[select name, foo from (
+select deptno, name, count(deptno) as foo
+from dept
+group by name, deptno, name)]]>
         </Resource>
     </TestCase>
     <TestCase name="testAggDistinct">
@@ -114,7 +119,9 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select deptno, sum(sal), sum(distinct sal), count(*) from emp group by deptno]]>
+            <![CDATA[select deptno, sum(sal), sum(distinct sal), count(*)
+from emp
+group by deptno]]>
         </Resource>
     </TestCase>
     <TestCase name="testCollectionTableWithLateral">
@@ -323,7 +330,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select*from emp where exists (select 1 from dept where deptno=55)]]>
+            <![CDATA[select*from emp
+where exists (select 1 from dept where deptno=55)]]>
         </Resource>
     </TestCase>
     <TestCase name="testExistsCorrelated">
@@ -341,7 +349,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select*from emp where exists (select 1 from dept where emp.deptno=dept.deptno)]]>
+            <![CDATA[select*from emp where exists (
+  select 1 from dept where emp.deptno=dept.deptno)]]>
         </Resource>
     </TestCase>
     <TestCase name="testUnnestSelect">
@@ -374,7 +383,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno)]]>
+            <![CDATA[select * from emp,
+  LATERAL (select * from dept where emp.deptno=dept.deptno)]]>
         </Resource>
     </TestCase>
     <TestCase name="testElement">
@@ -580,7 +590,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testIntervalLiteralYearToMonth">
         <Resource name="sql">
-            <![CDATA[select cast(empno as Integer) * (INTERVAL '1-1' YEAR TO MONTH)
+            <![CDATA[select
+  cast(empno as Integer) * (INTERVAL '1-1' YEAR TO MONTH)
 from emp]]>
         </Resource>
         <Resource name="plan">
@@ -592,7 +603,8 @@ LogicalProject(EXPR$0=[*(CAST($0):INTEGER NOT NULL, 13)])
     </TestCase>
     <TestCase name="testIntervalLiteralHourToMinute">
         <Resource name="sql">
-            <![CDATA[select cast(empno as Integer) * (INTERVAL '1:1' HOUR TO MINUTE)
+            <![CDATA[select
+ cast(empno as Integer) * (INTERVAL '1:1' HOUR TO MINUTE)
 from emp]]>
         </Resource>
         <Resource name="plan">
@@ -808,7 +820,8 @@ ProjectRel(EMPNO=[$0], Y=[$1])
     </TestCase>
     <TestCase name="testOrderByAliasInExpr">
         <Resource name="sql">
-            <![CDATA[select empno + 1 as x, empno - 2 as y from emp order by y + 3]]>
+            <![CDATA[select empno + 1 as x, empno - 2 as y
+from emp order by y + 3]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -821,7 +834,8 @@ LogicalProject(X=[$0], Y=[$1])
     </TestCase>
     <TestCase name="testOrderByAliasOverrides">
         <Resource name="sql">
-            <![CDATA[select empno + 1 as empno, empno - 2 as y from emp order by empno + 3]]>
+            <![CDATA[select empno + 1 as empno, empno - 2 as y
+from emp order by empno + 3]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -834,7 +848,10 @@ LogicalProject(EMPNO=[$0], Y=[$1])
     </TestCase>
     <TestCase name="testOrderUnion">
         <Resource name="sql">
-            <![CDATA[select empno, sal from emp union all select deptno, deptno from dept order by sal desc, empno asc]]>
+            <![CDATA[select empno, sal from emp
+union all
+select deptno, deptno from dept
+order by sal desc, empno asc]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -850,7 +867,10 @@ LogicalSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
     </TestCase>
     <TestCase name="testOrderUnionExprs">
         <Resource name="sql">
-            <![CDATA[select empno, sal from emp union all select deptno, deptno from dept order by empno * sal + 2]]>
+            <![CDATA[select empno, sal from emp
+union all
+select deptno, deptno from dept
+order by empno * sal + 2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -867,7 +887,10 @@ LogicalProject(EMPNO=[$0], SAL=[$1])
     </TestCase>
     <TestCase name="testOrderGroup">
         <Resource name="sql">
-            <![CDATA[select deptno, count(*) from emp group by deptno order by deptno * sum(sal) desc, min(empno)]]>
+            <![CDATA[select deptno, count(*)
+from emp
+group by deptno
+order by deptno * sum(sal) desc, min(empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -882,7 +905,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
     </TestCase>
     <TestCase name="testOrderDistinct">
         <Resource name="sql">
-            <![CDATA[select distinct empno, deptno + 1 from emp order by deptno + 1 + empno]]>
+            <![CDATA[select distinct empno, deptno + 1
+from emp order by deptno + 1 + empno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -896,7 +920,8 @@ LogicalProject(EMPNO=[$0], EXPR$1=[$1])
     </TestCase>
     <TestCase name="testOrderBySameExpr">
         <Resource name="sql">
-            <![CDATA[select empno from emp, dept order by sal + empno desc, sal * empno, sal + empno]]>
+            <![CDATA[select empno from emp, dept
+order by sal + empno desc, sal * empno, sal + empno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -911,7 +936,10 @@ LogicalProject(EMPNO=[$0])
     </TestCase>
     <TestCase name="testOrderUnionOrdinal">
         <Resource name="sql">
-            <![CDATA[select empno, sal from emp union all select deptno, deptno from dept order by 2]]>
+            <![CDATA[select empno, sal from emp
+union all
+select deptno, deptno from dept
+order by 2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -971,7 +999,8 @@ LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED 
     </TestCase>
     <TestCase name="testOverOrderFollowingWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over (order by empno rows 2 following)
+            <![CDATA[select
+  last_value(deptno) over (order by empno rows 2 following)
 from emp
 ]]>
         </Resource>
@@ -1037,7 +1066,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testJoinOn">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM emp JOIN dept on emp.deptno = dept.deptno]]>
+            <![CDATA[SELECT * FROM emp
+JOIN dept on emp.deptno = dept.deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1197,7 +1227,9 @@ LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
     </TestCase>
     <TestCase name="testJoinWithUnion">
         <Resource name="sql">
-            <![CDATA[select grade from (select empno from emp union select deptno from dept), salgrade]]>
+            <![CDATA[select grade
+from (select empno from emp union select deptno from dept),
+  salgrade]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1227,7 +1259,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testJoinNaturalNoCommonColumn">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM emp NATURAL JOIN (SELECT deptno AS foo, name FROM dept) AS d]]>
+            <![CDATA[SELECT *
+FROM emp NATURAL JOIN (SELECT deptno AS foo, name FROM dept) AS d]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1241,7 +1274,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testJoinNaturalMultipleCommonColumn">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM emp NATURAL JOIN (SELECT deptno, name AS ename FROM dept) AS d]]>
+            <![CDATA[SELECT *
+FROM emp
+NATURAL JOIN (SELECT deptno, name AS ename FROM dept) AS d]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1255,7 +1290,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testOrderOffsetFetch">
         <Resource name="sql">
-            <![CDATA[select empno from emp order by empno offset 10 rows fetch next 5 rows only]]>
+            <![CDATA[select empno from emp
+order by empno offset 10 rows fetch next 5 rows only]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1279,7 +1315,8 @@ LogicalSort(fetch=[5])
     </TestCase>
     <TestCase name="testOffsetFetch">
         <Resource name="sql">
-            <![CDATA[select empno from emp offset 10 rows fetch next 5 rows only]]>
+            <![CDATA[select empno from emp
+offset 10 rows fetch next 5 rows only]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1336,7 +1373,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testJoinOnExpression">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM emp JOIN dept on emp.deptno + 1 = dept.deptno - 2]]>
+            <![CDATA[SELECT * FROM emp
+JOIN dept on emp.deptno + 1 = dept.deptno - 2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1379,7 +1417,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testWithUnion">
         <Resource name="sql">
             <![CDATA[with emp2 as (select * from emp where deptno > 10)
-select empno from emp2 where deptno < 30 union all select deptno from emp]]>
+select empno from emp2 where deptno < 30
+union all
+select deptno from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1451,7 +1491,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
     </TestCase>
     <TestCase name="testConditionOffByOneReversed">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM emp JOIN dept on dept.deptno = emp.deptno + 0]]>
+            <![CDATA[SELECT * FROM emp
+JOIN dept on dept.deptno = emp.deptno + 0]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1466,7 +1507,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testConditionOffByOne">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM emp JOIN dept on emp.deptno + 0 = dept.deptno]]>
+            <![CDATA[SELECT * FROM emp
+JOIN dept on emp.deptno + 0 = dept.deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1500,7 +1542,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testNestedCorrelations">
         <Resource name="sql">
-            <![CDATA[select * from (select 2+deptno d2, 3+deptno d3 from emp) e
+            <![CDATA[select *
+from (select 2+deptno d2, 3+deptno d3 from emp) e
  where exists (select 1 from (select deptno+1 d1 from dept) d
  where d1=e.d2 and exists (select 2 from (select deptno+4 d4, deptno+5 d5, deptno+6 d6 from dept)
  where d4=d.d1 and d5=d.d1 and d6=e.d3))]]>
@@ -1713,7 +1756,8 @@ LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION 
     </TestCase>
     <TestCase name="testWithAlias">
         <Resource name="sql">
-            <![CDATA[with w(x, y) as (select * from dept where deptno > 10)
+            <![CDATA[with w(x, y) as
+  (select * from dept where deptno > 10)
 select x from w where x < 30 union all select deptno from dept]]>
         </Resource>
         <Resource name="plan">
@@ -1774,18 +1818,18 @@ from dept]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, IS NULL($4), null, <($3, $2), null, false)])
+LogicalProject(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, <($3, $2), null, false)])
   LogicalJoin(condition=[=($4, $5)], joinType=[left])
     LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$0])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
           LogicalProject($f0=[$0], $f1=[true])
-            LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+            LogicalProject(EXPR$0=[CAST($7):INTEGER])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
       LogicalProject($f0=[$0], $f1=[true])
-        LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+        LogicalProject(EXPR$0=[CAST($7):INTEGER])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1805,11 +1849,11 @@ LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), t
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
           LogicalProject($f0=[$0], $f1=[true])
-            LogicalProject(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
+            LogicalProject(EXPR$0=[CAST($0):INTEGER])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
       LogicalProject($f0=[$0], $f1=[true])
-        LogicalProject(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
+        LogicalProject(EXPR$0=[CAST($0):INTEGER])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
@@ -1958,7 +2002,8 @@ LogicalProject(EXPR$0=[$6])
     </TestCase>
     <TestCase name="testGroupingSetsCartesianProduct">
         <Resource name="sql">
-            <![CDATA[select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)
+            <![CDATA[select 1
+from (values (1, 2, 3, 4)) as t(a, b, c, d)
 group by grouping sets (a, b), grouping sets (c, d)]]>
         </Resource>
         <Resource name="plan">
@@ -1972,7 +2017,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testGroupingSetsCartesianProduct2">
         <Resource name="sql">
-            <![CDATA[select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)
+            <![CDATA[select 1
+from (values (1, 2, 3, 4)) as t(a, b, c, d)
 group by grouping sets (a, (a, b)), grouping sets (c), d]]>
         </Resource>
         <Resource name="plan">
@@ -1986,7 +2032,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testRollup">
         <Resource name="sql">
-            <![CDATA[select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)
+            <![CDATA[select 1
+from (values (1, 2, 3, 4)) as t(a, b, c, d)
 group by rollup(a, b), rollup(c, d)]]>
         </Resource>
         <Resource name="plan">
@@ -2000,7 +2047,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testCube">
         <Resource name="sql">
-            <![CDATA[select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)
+            <![CDATA[select 1
+from (values (1, 2, 3, 4)) as t(a, b, c, d)
 group by cube(a, b)]]>
         </Resource>
         <Resource name="plan">
@@ -2015,7 +2063,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testRollupTuples">
         <Resource name="sql">
-            <![CDATA[select 1 from (values (1, 2, 3, 4)) as t(a, b, c, d)
+            <![CDATA[select 1
+from (values (1, 2, 3, 4)) as t(a, b, c, d)
 group by rollup(b, (a, d))]]>
         </Resource>
         <Resource name="plan">
@@ -2061,7 +2110,9 @@ LogicalProject(A=[$0], B=[$1], C=[$4])
     </TestCase>
     <TestCase name="testGroupByExpression">
         <Resource name="sql">
-            <![CDATA[select count(*) from emp group by substring(ename FROM 1 FOR 1)]]>
+            <![CDATA[select count(*)
+from emp
+group by substring(ename FROM 1 FOR 1)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2089,7 +2140,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testGroupingFunctionWithGroupBy">
         <Resource name="sql">
-            <![CDATA[select deptno, grouping(deptno), count(*), grouping(empno)
+            <![CDATA[select
+  deptno, grouping(deptno), count(*), grouping(empno)
 from emp
 group by empno, deptno
 order by 2]]>
@@ -2106,7 +2158,8 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     </TestCase>
     <TestCase name="testGroupingFunction">
         <Resource name="sql">
-            <![CDATA[select deptno, grouping(deptno), count(*), grouping(empno)
+            <![CDATA[select
+  deptno, grouping(deptno), count(*), grouping(empno)
 from emp
 group by rollup(empno, deptno)]]>
         </Resource>
@@ -2147,8 +2200,10 @@ LogicalAggregate(group=[{0}])
     </TestCase>
     <TestCase name="testAggNoDuplicateColumnNames">
         <Resource name="sql">
-            <![CDATA[SELECT empno, EXPR$2, COUNT(empno) FROM (SELECT empno, deptno AS EXPR$2
-FROM emp) GROUP BY empno, EXPR$2]]>
+            <![CDATA[SELECT  empno, EXPR$2, COUNT(empno) FROM (
+    SELECT empno, deptno AS EXPR$2
+    FROM emp)
+GROUP BY empno, EXPR$2]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2218,7 +2273,8 @@ LogicalDelta
     </TestCase>
     <TestCase name="testStreamGroupBy">
         <Resource name="sql">
-            <![CDATA[select stream floor(rowtime to second) as rowtime, count(*) as c
+            <![CDATA[select stream
+ floor(rowtime to second) as rowtime, count(*) as c
 from orders
 group by floor(rowtime to second)]]>
         </Resource>
@@ -2249,7 +2305,8 @@ LogicalDelta
     </TestCase>
     <TestCase name="testGroupByCaseIn">
         <Resource name="sql">
-            <![CDATA[select (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END),
+            <![CDATA[select
+ (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END),
  min(empno) from EMP
 group by (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END)]]>
         </Resource>
@@ -2263,7 +2320,10 @@ LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
     </TestCase>
     <TestCase name="testAggFilter">
         <Resource name="sql">
-            <![CDATA[select deptno, sum(sal * 2) filter (where empno < 10), count(*) from emp group by deptno]]>
+            <![CDATA[select
+  deptno, sum(sal * 2) filter (where empno < 10), count(*)
+from emp
+group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2614,7 +2674,8 @@ LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOU
     </TestCase>
     <TestCase name="testWindowAggInSubQueryJoin">
         <Resource name="sql">
-            <![CDATA[select T.x, T.y, T.z, emp.empno from (select min(deptno) as x,
+            <![CDATA[select T.x, T.y, T.z, emp.empno
+from (select min(deptno) as x,
    rank() over (order by empno) as y,
    max(empno) over (partition by deptno) as z
    from emp group by deptno, empno) as T
@@ -2637,8 +2698,7 @@ LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3])
     <TestCase name="testOrderByOver">
         <Resource name="sql">
             <![CDATA[select deptno, rank() over(partition by empno order by deptno)
-   from emp order by row_number() over(partition by empno order by deptno)
-]]>
+from emp order by row_number() over(partition by empno order by deptno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2736,7 +2796,8 @@ LogicalProject(EMPNO=[$0])
     </TestCase>
     <TestCase name="testCorrelationNotExistsAndFilter">
         <Resource name="sql">
-            <![CDATA[SELECT e1.empno FROM emp e1, dept d1 where e1.deptno = d1.deptno
+            <![CDATA[SELECT e1.empno
+FROM emp e1, dept d1 where e1.deptno = d1.deptno
 and e1.deptno < 10 and d1.deptno < 15
 and not exists (select * from emp e2 where e1.empno = e2.empno)]]>
         </Resource>
@@ -2922,7 +2983,7 @@ from dept]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(NAME=[$1], EXPR$1=[IN($0, {
-LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+LogicalProject(EXPR$0=[CAST($7):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -2969,7 +3030,7 @@ from emp]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], EXPR$1=[NOT(IN($7, {
-LogicalProject(EXPR$0=[CASE(true, CAST($0):INTEGER, null)])
+LogicalProject(EXPR$0=[CAST($0):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -3076,7 +3137,7 @@ and deptno in (
             <![CDATA[
 LogicalProject(S=[$1])
   LogicalFilter(condition=[AND(>($2, 2), IN($0, {
-LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+LogicalProject(EXPR$0=[CAST($7):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
     LogicalAggregate(group=[{0}], S=[SUM($1)], agg#1=[COUNT()])
@@ -3098,7 +3159,7 @@ order by (select case when true then deptno else null end from emp) desc,
 LogicalProject(S=[$0])
   LogicalSort(sort0=[$1], sort1=[$2], dir0=[DESC], dir1=[ASC])
     LogicalProject(S=[$1], EXPR$1=[$SCALAR_QUERY({
-LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+LogicalProject(EXPR$0=[CAST($7):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })], EXPR$2=[$2])
       LogicalAggregate(group=[{0}], S=[SUM($1)], agg#1=[COUNT()])
@@ -3119,7 +3180,7 @@ order by (select case when true then deptno else null end from emp) desc,
 LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[$SCALAR_QUERY({
-LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null)])
+LogicalProject(EXPR$0=[CAST($7):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -3545,7 +3606,8 @@ LogicalAggregate(group=[{0}])
     </TestCase>
     <TestCase name="testDynStarInExistSubQ">
         <Resource name="sql">
-            <![CDATA[select * from SALES.REGION where exists (select * from SALES.NATION)]]>
+            <![CDATA[select *
+from SALES.REGION where exists (select * from SALES.NATION)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3575,7 +3637,7 @@ LogicalProject(**=[$0])
     </TestCase>
     <TestCase name="testInToSemiJoin">
         <Resource name="sql">
-            <![CDATA[SELECT * from SALES.NATION order by n_nationkey]]>
+            <![CDATA[SELECT empno FROM emp AS e WHERE cast(e.empno as bigint) in (130, 131, 132, 133, 134)]]>
         </Resource>
         <Resource name="planNotConverted">
             <![CDATA[

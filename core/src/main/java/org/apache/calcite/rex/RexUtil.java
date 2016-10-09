@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -29,6 +30,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -43,6 +45,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -103,6 +106,11 @@ public class RexUtil {
           return input.getFamily();
         }
       };
+
+  /** Executor for a bit of constant reduction. Ideally we'd use the user's
+   * preferred executor, but that isn't available. */
+  private static final RelOptPlanner.Executor EXECUTOR =
+      new RexExecutorImpl(Schemas.createDataContext(null));
 
   private RexUtil() {
   }
@@ -1386,6 +1394,24 @@ public class RexUtil {
     return e1 == e2 || e1.toString().equals(e2.toString());
   }
 
+  /** Simplifies a boolean expression, always preserving its type and its
+   * nullability.
+   *
+   * <p>This is useful if you are simplifying expressions in a
+   * {@link Project}. */
+  public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
+      RexNode e) {
+    final RexNode e2 = simplify(rexBuilder, e, false);
+    if (e2.getType() == e.getType()) {
+      return e2;
+    }
+    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, true);
+    if (e3.equals(e)) {
+      return e;
+    }
+    return e3;
+  }
+
   /**
    * Simplifies a boolean expression.
    *
@@ -1412,21 +1438,35 @@ public class RexUtil {
       return simplifyNot(rexBuilder, (RexCall) e);
     case CASE:
       return simplifyCase(rexBuilder, (RexCall) e, unknownAsFalse);
+    case CAST:
+      return simplifyCast(rexBuilder, (RexCall) e);
     case IS_NULL:
-      return ((RexCall) e).getOperands().get(0).getType().isNullable()
-          ? e : rexBuilder.makeLiteral(false);
     case IS_NOT_NULL:
-      return ((RexCall) e).getOperands().get(0).getType().isNullable()
-          ? e : rexBuilder.makeLiteral(true);
     case IS_TRUE:
     case IS_NOT_TRUE:
     case IS_FALSE:
     case IS_NOT_FALSE:
       assert e instanceof RexCall;
       return simplifyIs(rexBuilder, (RexCall) e);
+    case EQUALS:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case NOT_EQUALS:
+      return simplifyCall(rexBuilder, (RexCall) e);
     default:
       return e;
     }
+  }
+
+  private static RexNode simplifyCall(RexBuilder rexBuilder, RexCall e) {
+    final List<RexNode> operands = new ArrayList<>(e.operands);
+    simplifyList(rexBuilder, operands);
+    if (operands.equals(e.operands)) {
+      return e;
+    }
+    return rexBuilder.makeCall(e.op, operands);
   }
 
   /**
@@ -2072,6 +2112,39 @@ public class RexUtil {
     assert call.getKind() == SqlKind.CASE;
     return i < call.operands.size() - 1
         && (call.operands.size() - i) % 2 == 1;
+  }
+
+  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e) {
+    final RexNode operand = e.getOperands().get(0);
+    switch (operand.getKind()) {
+    case LITERAL:
+      final RexLiteral literal = (RexLiteral) operand;
+      final Comparable value = literal.getValue();
+      final SqlTypeName typeName = literal.getTypeName();
+
+      // First, try to remove the cast without changing the value.
+      // makeCast and canRemoveCastFromLiteral have the same logic, so we are
+      // sure to be able to remove the cast.
+      if (rexBuilder.canRemoveCastFromLiteral(e.getType(), value, typeName)) {
+        return rexBuilder.makeCast(e.getType(), operand);
+      }
+
+      // Next, try to convert the value to a different type,
+      // e.g. CAST('123' as integer)
+      switch (literal.getTypeName()) {
+      case TIME:
+        switch (e.getType().getSqlTypeName()) {
+        case TIMESTAMP:
+          return e;
+        }
+      }
+      final List<RexNode> reducedValues = new ArrayList<>();
+      EXECUTOR.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);
+      return Preconditions.checkNotNull(
+          Iterables.getOnlyElement(reducedValues));
+    default:
+      return e;
+    }
   }
 
   /** Returns a function that applies NOT to its argument. */

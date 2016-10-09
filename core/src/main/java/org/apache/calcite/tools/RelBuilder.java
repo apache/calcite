@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SemiJoinType;
@@ -123,6 +124,7 @@ public class RelBuilder {
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
+  private final boolean simplify;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -131,6 +133,7 @@ public class RelBuilder {
     if (context == null) {
       context = Contexts.EMPTY_CONTEXT;
     }
+    this.simplify = Hook.REL_BUILDER_SIMPLIFY.get(true);
     this.aggregateFactory =
         Util.first(context.unwrap(RelFactories.AggregateFactory.class),
             RelFactories.DEFAULT_AGGREGATE_FACTORY);
@@ -825,12 +828,17 @@ public class RelBuilder {
       Iterable<String> fieldNames,
       boolean force) {
     final List<String> names = new ArrayList<>();
-    final List<RexNode> exprList = Lists.newArrayList(nodes);
+    final List<RexNode> exprList = new ArrayList<>();
+    for (RexNode node : nodes) {
+      if (simplify) {
+        node = RexUtil.simplifyPreservingType(getRexBuilder(), node);
+      }
+      exprList.add(node);
+    }
     final Iterator<String> nameIterator = fieldNames.iterator();
     for (RexNode node : nodes) {
       final String name = nameIterator.hasNext() ? nameIterator.next() : null;
-      final String name2 = inferAlias(exprList, node);
-      names.add(Util.first(name, name2));
+      names.add(name != null ? name : inferAlias(exprList, node));
     }
     final RelDataType inputRowType = peek().getRowType();
     if (!force && RexUtil.isIdentity(exprList, inputRowType)) {

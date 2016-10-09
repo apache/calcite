@@ -2592,7 +2592,7 @@ LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
             <![CDATA[
 LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
   LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
-    LogicalFilter(condition=[>(CAST($5):BIGINT NOT NULL, CAST('12'):BIGINT NOT NULL)])
+    LogicalFilter(condition=[>(CAST($5):BIGINT NOT NULL, 12)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -3864,6 +3864,17 @@ LogicalProject(NEWCOL=[CASE(false, 2.1, 1)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(NEWCOL=[1E0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceCastTimeUnchanged">
+        <Resource name="sql">
+            <![CDATA[select cast(time '12:34:56' as timestamp) from emp as e]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

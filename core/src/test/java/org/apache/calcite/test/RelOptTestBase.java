@@ -27,10 +27,16 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.Holder;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -171,7 +177,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   Sql sql(String sql) {
-    return new Sql(sql, null, true);
+    return new Sql(sql, null, true, ImmutableMap.<Hook, Function>of());
   }
 
   /** Allows fluent testing. */
@@ -179,27 +185,74 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     private final String sql;
     private final HepPlanner hepPlanner;
     private final boolean expand;
+    private final ImmutableMap<Hook, Function> hooks;
 
-    public Sql(String sql, HepPlanner hepPlanner, boolean expand) {
+    Sql(String sql, HepPlanner hepPlanner, boolean expand,
+        ImmutableMap<Hook, Function> hooks) {
       this.sql = sql;
       this.hepPlanner = hepPlanner;
       this.expand = expand;
+      this.hooks = hooks;
     }
 
     public Sql with(HepPlanner hepPlanner) {
-      return new Sql(sql, hepPlanner, expand);
+      return new Sql(sql, hepPlanner, expand, hooks);
     }
 
     public Sql with(HepProgram program) {
-      return new Sql(sql, new HepPlanner(program), expand);
+      return new Sql(sql, new HepPlanner(program), expand, hooks);
+    }
+
+    /** Adds a hook and a handler for that hook. Calcite will create a thread
+     * hook (by calling {@link Hook#addThread(com.google.common.base.Function)})
+     * just before running the query, and remove the hook afterwards. */
+    public <T> Sql withHook(Hook hook, Function<T, Void> handler) {
+      return new Sql(sql, hepPlanner, expand,
+          ImmutableMap.<Hook, Function>builder().putAll(hooks)
+              .put(hook, handler).build());
+    }
+
+    /** Returns a function that, when a hook is called, will "return" a given
+     * value. (Because of the way hooks work, it "returns" the value by writing
+     * into a {@link Holder}. */
+    private <V> Function<Holder<V>, Void> propertyHook(final V v) {
+      return new Function<Holder<V>, Void>() {
+        public Void apply(Holder<V> holder) {
+          holder.set(v);
+          return null;
+        }
+      };
+    }
+
+    public <V> Sql withProperty(Hook hook, V value) {
+      return withHook(hook, propertyHook(value));
     }
 
     public Sql expand(boolean expand) {
-      return new Sql(sql, hepPlanner, expand);
+      return new Sql(sql, hepPlanner, expand, hooks);
     }
 
     public void check() {
-      checkPlanning(tester.withExpand(expand), null, hepPlanner, sql);
+      check(false);
+    }
+
+    public void checkUnchanged() {
+      check(true);
+    }
+
+    private void check(boolean unchanged) {
+      final List<Hook.Closeable> closeables = new ArrayList<>();
+      try {
+        for (Map.Entry<Hook, Function> entry : hooks.entrySet()) {
+          closeables.add(entry.getKey().addThread(entry.getValue()));
+        }
+        checkPlanning(tester.withExpand(expand), null, hepPlanner, sql,
+            unchanged);
+      } finally {
+        for (Hook.Closeable closeable : closeables) {
+          closeable.close();
+        }
+      }
     }
   }
 }

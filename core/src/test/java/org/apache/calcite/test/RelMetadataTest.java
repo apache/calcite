@@ -1350,8 +1350,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     assertThat(list.pulledUpPredicates,
-        sortsAs("[<($0, 10), =($3, 'y'), =($4, CAST('1'):INTEGER NOT NULL), "
-            + "IS NULL($1), IS NULL($2)]"));
+        sortsAs("[<($0, 10), =($3, 'y'), =($4, 1), IS NULL($1), IS NULL($2)]"));
   }
 
   @Test public void testPullUpPredicatesOnNullableConstant() {

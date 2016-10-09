@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.util.Holder;
+
 import com.google.common.base.Function;
 
 import java.util.ArrayList;
@@ -32,6 +34,10 @@ public enum Hook {
   /** Called to get the current time. Use this to return a predictable time
    * in tests. */
   CURRENT_TIME,
+
+  /** Returns a boolean value, whether RelBuilder should simplify expressions.
+   * Default true. */
+  REL_BUILDER_SIMPLIFY,
 
   /** Called with the SQL string and parse tree, in an array. */
   PARSE_TREE,
@@ -127,6 +133,14 @@ public enum Hook {
     for (Function<Object, Object> handler : threadHandlers.get()) {
       handler.apply(arg);
     }
+  }
+
+  /** Returns the value of a property hook.
+   * (Property hooks take a {@link Holder} as an argument.) */
+  public <V> V get(V defaultValue) {
+    final Holder<V> holder = Holder.of(defaultValue);
+    run(holder);
+    return holder.get();
   }
 
   /** Removes a Hook after use.

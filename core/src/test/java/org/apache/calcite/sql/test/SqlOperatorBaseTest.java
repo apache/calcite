@@ -665,9 +665,6 @@ public abstract class SqlOperatorBaseTest {
             true);
       }
 
-      if (!enable) {
-        return;
-      }
       // Convert from string to type
       checkCastToScalarOkay(
           "'" + MAX_NUMERIC_STRINGS[i] + "'",
@@ -1138,6 +1135,22 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("cast(null as boolean)");
   }
 
+  @Ignore("[CALCITE-1439] Handling errors during constant reduction")
+  @Test public void testCastInvalid() {
+    // Constant reduction kicks in and generates Java constants that throw
+    // when the class is loaded, thus ExceptionInInitializerError. We don't have
+    // a fix yet.
+    tester.checkScalarExact("cast('15' as integer)", "INTEGER NOT NULL", "15");
+    tester.checkFails("cast('15.4' as integer)", "xxx", true);
+    tester.checkFails("cast('15.6' as integer)", "xxx", true);
+    tester.checkFails("cast('ue' as boolean)", "xxx", true);
+    tester.checkFails("cast('' as boolean)", "xxx", true);
+    tester.checkFails("cast('' as integer)", "xxx", true);
+    tester.checkFails("cast('' as real)", "xxx", true);
+    tester.checkFails("cast('' as double)", "xxx", true);
+    tester.checkFails("cast('' as smallint)", "xxx", true);
+  }
+
   @Test public void testCastDateTime() {
     // Test cast for date/time/timestamp
     tester.setFor(SqlStdOperatorTable.CAST);
@@ -1261,6 +1274,15 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "cast('12:54:78' as TIME)", BAD_DATETIME_MESSAGE,
         true);
+    tester.checkFails(
+        "cast('12:34:5' as TIME)", BAD_DATETIME_MESSAGE,
+        true);
+    tester.checkFails(
+        "cast('12:3:45' as TIME)", BAD_DATETIME_MESSAGE,
+        true);
+    tester.checkFails(
+        "cast('1:23:45' as TIME)", BAD_DATETIME_MESSAGE,
+        true);
 
     // timestamp <-> string
     checkCastToString(
@@ -1311,6 +1333,9 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "cast('1945-01-24 25:42:25.34' as TIMESTAMP)", BAD_DATETIME_MESSAGE,
         true);
+    tester.checkFails(
+        "cast('1945-1-24 12:23:34.454' as TIMESTAMP)", BAD_DATETIME_MESSAGE,
+        true);
 
     // date <-> string
     checkCastToString("DATE '1945-02-24'", null, "1945-02-24");
@@ -1319,6 +1344,10 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "cast('1945-02-24' as DATE)",
         "1945-02-24",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "cast(' 1945-2-4 ' as DATE)",
+        "1945-02-04",
         "DATE NOT NULL");
     tester.checkScalar(
         "cast('  1945-02-24  ' as DATE)",
@@ -1395,6 +1424,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("cast('true' as boolean)", Boolean.TRUE);
     tester.checkBoolean("cast('false' as boolean)", Boolean.FALSE);
     tester.checkBoolean("cast('  trUe' as boolean)", Boolean.TRUE);
+    tester.checkBoolean("cast('  tr' || 'Ue' as boolean)", Boolean.TRUE);
     tester.checkBoolean("cast('  fALse' as boolean)", Boolean.FALSE);
     tester.checkFails(
         "cast('unknown' as boolean)", INVALID_CHAR_MESSAGE,
