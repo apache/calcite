@@ -76,7 +76,7 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   private static final Set<String> SUPPORTED_TYPES =
-      ImmutableSet.of("LONG", "DOUBLE", "STRING", "hyperUnique");
+      ImmutableSet.of("LONG", "FLOAT", "STRING", "hyperUnique");
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
     this.url = Preconditions.checkNotNull(url);
@@ -291,7 +291,7 @@ class DruidConnectionImpl implements DruidConnection {
       // fall through
     case VALUE_NUMBER_FLOAT:
       if (type == null) {
-        type = ColumnMetaData.Rep.FLOAT;
+        type = ColumnMetaData.Rep.DOUBLE;
       }
       switch (type) {
       case BYTE:
@@ -305,9 +305,6 @@ class DruidConnectionImpl implements DruidConnection {
         break;
       case LONG:
         rowBuilder.set(i, parser.getLongValue());
-        break;
-      case FLOAT:
-        rowBuilder.set(i, parser.getFloatValue());
         break;
       case DOUBLE:
         rowBuilder.set(i, parser.getDoubleValue());
@@ -608,10 +605,8 @@ class DruidConnectionImpl implements DruidConnection {
       switch (type) {
       case "LONG":
         return SqlTypeName.BIGINT;
-      case "DOUBLE":
-        return SqlTypeName.DOUBLE;
       case "FLOAT":
-        return SqlTypeName.REAL;
+        return SqlTypeName.FLOAT;
       case "STRING":
         return SqlTypeName.VARCHAR;
       case "hyperUnique":
@@ -635,7 +630,7 @@ class DruidConnectionImpl implements DruidConnection {
         return SqlTypeName.BIGINT;
       }
       if (type.startsWith("double")) {
-        return SqlTypeName.DOUBLE;
+        return SqlTypeName.FLOAT;
       }
       if (type.equals("hyperUnique")) {
         return SqlTypeName.VARBINARY;
