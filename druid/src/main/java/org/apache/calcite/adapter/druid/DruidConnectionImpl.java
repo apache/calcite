@@ -75,9 +75,6 @@ class DruidConnectionImpl implements DruidConnection {
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
-  private static final Set<String> SUPPORTED_TYPES =
-      ImmutableSet.of("LONG", "DOUBLE", "STRING", "hyperUnique");
-
   DruidConnectionImpl(String url, String coordinatorUrl) {
     this.url = Preconditions.checkNotNull(url);
     this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
@@ -291,7 +288,8 @@ class DruidConnectionImpl implements DruidConnection {
       // fall through
     case VALUE_NUMBER_FLOAT:
       if (type == null) {
-        type = ColumnMetaData.Rep.FLOAT;
+        // JSON's "float" is 64-bit floating point
+        type = ColumnMetaData.Rep.DOUBLE;
       }
       switch (type) {
       case BYTE:
@@ -305,9 +303,6 @@ class DruidConnectionImpl implements DruidConnection {
         break;
       case LONG:
         rowBuilder.set(i, parser.getLongValue());
-        break;
-      case FLOAT:
-        rowBuilder.set(i, parser.getFloatValue());
         break;
       case DOUBLE:
         rowBuilder.set(i, parser.getDoubleValue());
@@ -438,10 +433,6 @@ class DruidConnectionImpl implements DruidConnection {
     };
   }
 
-  private boolean isSupportedType(String type) {
-    return SUPPORTED_TYPES.contains(type);
-  }
-
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, String timestampColumnName, List<Interval> intervals,
       Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
@@ -468,10 +459,14 @@ class DruidConnectionImpl implements DruidConnection {
             // timestamp column
             continue;
           }
-          if (!isSupportedType(entry.getValue().type)) {
+          final DruidType druidType;
+          try {
+            druidType = DruidType.valueOf(entry.getValue().type);
+          } catch (IllegalArgumentException e) {
+            // ignore exception; not a supported type
             continue;
           }
-          fieldBuilder.put(entry.getKey(), entry.getValue().sqlType());
+          fieldBuilder.put(entry.getKey(), druidType.sqlType);
         }
         if (o.aggregators != null) {
           for (Map.Entry<String, JsonAggregator> entry
@@ -599,27 +594,6 @@ class DruidConnectionImpl implements DruidConnection {
     public int size;
     public Integer cardinality;
     public String errorMessage;
-
-    SqlTypeName sqlType() {
-      return sqlType(type);
-    }
-
-    static SqlTypeName sqlType(String type) {
-      switch (type) {
-      case "LONG":
-        return SqlTypeName.BIGINT;
-      case "DOUBLE":
-        return SqlTypeName.DOUBLE;
-      case "FLOAT":
-        return SqlTypeName.REAL;
-      case "STRING":
-        return SqlTypeName.VARCHAR;
-      case "hyperUnique":
-        return SqlTypeName.VARBINARY;
-      default:
-        throw new AssertionError("unknown type " + type);
-      }
-    }
   }
 
   /** Element of the "aggregators" collection in the result of a
@@ -630,19 +604,37 @@ class DruidConnectionImpl implements DruidConnection {
     public String name;
     public String fieldName;
 
-    SqlTypeName sqlType() {
+    DruidType druidType() {
       if (type.startsWith("long")) {
-        return SqlTypeName.BIGINT;
+        return DruidType.LONG;
       }
       if (type.startsWith("double")) {
-        return SqlTypeName.DOUBLE;
+        return DruidType.FLOAT;
       }
       if (type.equals("hyperUnique")) {
-        return SqlTypeName.VARBINARY;
+        return DruidType.hyperUnique;
       }
       throw new AssertionError("unknown type " + type);
     }
   }
+
+  /** Druid type. */
+  enum DruidType {
+    LONG(SqlTypeName.BIGINT),
+    // SQL DOUBLE and FLOAT types are both 64 bit, but we use DOUBLE because
+    // people find FLOAT confusing.
+    FLOAT(SqlTypeName.DOUBLE),
+    STRING(SqlTypeName.VARCHAR),
+    hyperUnique(SqlTypeName.VARBINARY);
+
+    /** The corresponding SQL type. */
+    public final SqlTypeName sqlType;
+
+    DruidType(SqlTypeName sqlType) {
+      this.sqlType = sqlType;
+    }
+  }
+
 }
 
 // End DruidConnectionImpl.java

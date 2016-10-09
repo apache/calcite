@@ -21,12 +21,16 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -82,6 +86,9 @@ public class DruidAdapterIT {
    * specify {@code -Dcalcite.test.druid=false} on the Java command line. */
   public static final boolean ENABLED =
       Util.getBooleanProperty("calcite.test.druid", true);
+
+  private static final String VARCHAR_TYPE =
+      "VARCHAR(1) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"";
 
   /** Whether to run this test. */
   protected boolean enabled() {
@@ -262,6 +269,34 @@ public class DruidAdapterIT {
         .returnsUnordered("countryName=United Kingdom",
             "countryName=null")
         .queryContains(druidChecker(druidQuery));
+  }
+
+  @Test public void testMetadataColumns() throws Exception {
+    sql("values 1")
+        .withConnection(
+            new Function<Connection, Void>() {
+              public Void apply(Connection c) {
+                try {
+                  final DatabaseMetaData metaData = c.getMetaData();
+                  final ResultSet r =
+                      metaData.getColumns(null, null, "foodmart", null);
+                  Multimap<String, Boolean> map = ArrayListMultimap.create();
+                  while (r.next()) {
+                    map.put(r.getString("TYPE_NAME"), true);
+                  }
+                  // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
+                  assertThat(map.keySet().size(), is(4));
+                  assertThat(map.values().size(), is(92));
+                  assertThat(map.get("TIMESTAMP(0)").size(), is(1));
+                  assertThat(map.get("DOUBLE").size(), is(2));
+                  assertThat(map.get("BIGINT").size(), is(1));
+                  assertThat(map.get(VARCHAR_TYPE).size(), is(88));
+                } catch (SQLException e) {
+                  throw Throwables.propagate(e);
+                }
+                return null;
+              }
+            });
   }
 
   @Test public void testSelectDistinct() {

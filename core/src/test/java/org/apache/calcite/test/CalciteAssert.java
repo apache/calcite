@@ -1165,6 +1165,16 @@ public class CalciteAssert {
       return connectionFactory.createConnection();
     }
 
+    /** Performs an action using a connection, and closes the connection
+     * afterwards. */
+    public final AssertQuery withConnection(Function<Connection, Void> f)
+        throws Exception {
+      try (Connection c = createConnection()) {
+        f.apply(c);
+      }
+      return this;
+    }
+
     public AssertQuery enable(boolean enabled) {
       return enabled ? this : NopAssertQuery.of(sql);
     }
