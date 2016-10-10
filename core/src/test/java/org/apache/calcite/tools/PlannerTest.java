@@ -155,7 +155,7 @@ public class PlannerTest {
 
   private String toString(RelNode rel) {
     return Util.toLinux(
-        RelOptUtil.dumpPlan("", rel, false,
+        RelOptUtil.dumpPlan("", rel, false, false,
             SqlExplainLevel.DIGEST_ATTRIBUTES));
   }
 

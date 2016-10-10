@@ -176,6 +176,7 @@ public class RelWriterTest {
                     "",
                     node,
                     false,
+                    false,
                     SqlExplainLevel.EXPPLAN_ATTRIBUTES);
               }
             });

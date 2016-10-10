@@ -515,6 +515,7 @@ public class SqlToRelConverter {
                 "Plan after trimming unused fields",
                 rootRel,
                 false,
+                false,
                 SqlExplainLevel.EXPPLAN_ATTRIBUTES));
       }
     }
@@ -572,6 +573,7 @@ public class SqlToRelConverter {
           RelOptUtil.dumpPlan(
               "Plan after converting SqlNode to RelNode",
               result,
+              false,
               false,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }

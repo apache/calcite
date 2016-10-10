@@ -1170,9 +1170,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataType parameterRowType,
         RelRoot root,
         boolean explainAsXml,
+        boolean explainAsJson,
         SqlExplainLevel detailLevel) {
       return new CalcitePreparedExplain(
-          resultType, parameterRowType, root, explainAsXml, detailLevel);
+          resultType, parameterRowType, root, explainAsXml, explainAsJson,
+          detailLevel);
     }
 
     @Override protected PreparedResult implement(RelRoot root) {
@@ -1258,8 +1260,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataType parameterRowType,
         RelRoot root,
         boolean explainAsXml,
+        boolean explainAsJson,
         SqlExplainLevel detailLevel) {
-      super(resultType, parameterRowType, root, explainAsXml, detailLevel);
+      super(resultType, parameterRowType, root, explainAsXml, explainAsJson,
+              detailLevel);
     }
 
     public Bindable getBindable() {

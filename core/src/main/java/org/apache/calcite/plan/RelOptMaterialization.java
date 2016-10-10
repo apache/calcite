@@ -277,13 +277,13 @@ public class RelOptMaterialization {
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
           RelOptUtil.dumpPlan(
-              "before", rel, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
+              "before", rel, false, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
     final RelNode rel2 = program.run(null, rel, null);
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
           RelOptUtil.dumpPlan(
-              "after", rel2, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
+              "after", rel2, false, false, SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
     return rel2;
   }
