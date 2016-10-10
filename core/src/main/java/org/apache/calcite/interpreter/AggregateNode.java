@@ -83,7 +83,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
     for (AggregateCall aggregateCall : rel.getAggCallList()) {
-      builder.add(getAccumulator(aggregateCall));
+      builder.add(getAccumulator(aggregateCall, false));
     }
     accumulatorFactories = builder.build();
   }
@@ -101,7 +101,17 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  private AccumulatorFactory getAccumulator(final AggregateCall call) {
+  private AccumulatorFactory getAccumulator(final AggregateCall call,
+      boolean ignoreFilter) {
+    if (call.filterArg >= 0 && !ignoreFilter) {
+      final AccumulatorFactory factory = getAccumulator(call, true);
+      return new AccumulatorFactory() {
+        public Accumulator get() {
+          final Accumulator accumulator = factory.get();
+          return new FilterAccumulator(accumulator, call.filterArg);
+        }
+      };
+    }
     if (call.getAggregation() == SqlStdOperatorTable.COUNT) {
       return new AccumulatorFactory() {
         public Accumulator get() {
@@ -486,6 +496,28 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw Throwables.propagate(e);
       }
+    }
+  }
+
+  /** Accumulator that applies a filter to another accumulator.
+   * The filter is a BOOLEAN field in the input row. */
+  private static class FilterAccumulator implements Accumulator {
+    private final Accumulator accumulator;
+    private final int filterArg;
+
+    FilterAccumulator(Accumulator accumulator, int filterArg) {
+      this.accumulator = accumulator;
+      this.filterArg = filterArg;
+    }
+
+    public void send(Row row) {
+      if (row.getValues()[filterArg] == Boolean.TRUE) {
+        accumulator.send(row);
+      }
+    }
+
+    public Object end() {
+      return accumulator.end();
     }
   }
 }

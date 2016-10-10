@@ -205,6 +205,23 @@ public class InterpreterTest {
         "[Ringo, 1]");
   }
 
+  @Test public void testAggregateGroupFilter() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    final String sql = "select \"j\",\n"
+        + "  count(*) filter (where char_length(\"j\") > 4)\n"
+        + "from \"beatles\" group by \"j\"";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRowsUnordered(interpreter,
+        "[George, 1]",
+        "[Paul, 0]",
+        "[John, 0]",
+        "[Ringo, 1]");
+  }
+
   /** Tests executing a plan on a single-column
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test public void testInterpretSimpleScannableTable() throws Exception {
