@@ -255,6 +255,7 @@ public abstract class SqlImplementor {
     }
     final List<RexNode> operands;
     final SqlOperator op;
+    final Context joinContext;
     switch (node.getKind()) {
     case AND:
     case OR:
@@ -303,8 +304,23 @@ public abstract class SqlImplementor {
               rightContext.field(op0.getIndex() - leftFieldCount));
         }
       }
-      final Context joinContext =
+      joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, node);
+    case IS_NULL:
+    case IS_NOT_NULL:
+      operands = ((RexCall) node).getOperands();
+      if (operands.size() == 1 && operands.get(0) instanceof RexInputRef) {
+        op = ((RexCall) node).getOperator();
+        final RexInputRef op0 = (RexInputRef) operands.get(0);
+        if (op0.getIndex() < leftFieldCount) {
+          return op.createCall(POS, leftContext.field(op0.getIndex()));
+        } else {
+          return op.createCall(POS, rightContext.field(op0.getIndex() - leftFieldCount));
+        }
+      }
+      joinContext =
+              leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
     }
     throw new AssertionError(node);

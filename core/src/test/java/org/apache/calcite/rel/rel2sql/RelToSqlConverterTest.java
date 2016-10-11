@@ -73,8 +73,6 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  //TODO: add test for query -> select * from product
-
   @Test public void testSelectQueryWithWhereClauseOfLessThan() {
     String query =
         "select \"product_id\", \"shelf_width\"  from \"product\" where \"product_id\" < 10";
@@ -482,6 +480,33 @@ public class RelToSqlConverterTest {
         .ok(expected)
         .dialect(DatabaseProduct.DB2.getDialect())
         .ok(expected2);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1422">[CALCITE-1422]
+   * Add support of IS NULL and IS NOT NULL operators to a join condition clause</a>. */
+  @Test
+  public void testSimpleJoinConditionWithIsNullOperators() {
+    String query = "select *\n"
+        + "from \"foodmart\".\"sales_fact_1997\" as \"t1\"\n"
+        + "inner join \"foodmart\".\"customer\" as \"t2\"\n"
+        + "on \"t1\".\"customer_id\" = \"t2\".\"customer_id\" or "
+        + "(\"t1\".\"customer_id\" is null "
+        + "and \"t2\".\"customer_id\" is null)\n"
+        + "inner join \"foodmart\".\"product\" as \"t3\"\n"
+        + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
+        + "(\"t1\".\"product_id\" is not null or "
+        + "\"t3\".\"product_id\" is not null)";
+    String expected = "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN \"foodmart\".\"customer\" "
+        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
+        + " OR \"sales_fact_1997\".\"customer_id\" IS NULL "
+        + "AND \"customer\".\"customer_id\" IS NULL\n"
+        + "INNER JOIN \"foodmart\".\"product\" "
+        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" OR "
+        + "\"sales_fact_1997\".\"product_id\" IS NOT NULL "
+        + "OR \"product\".\"product_id\" IS NOT NULL";
+    sql(query).ok(expected);
   }
 
   /** Fluid interface to run tests. */
