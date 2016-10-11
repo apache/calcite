@@ -274,17 +274,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     // For flattening and outer joins, it is desirable to change
     // the nullability of the individual fields.
 
-    return createStructType(
-        new FieldInfo() {
-          public int getFieldCount() {
-            return type.getFieldList().size();
-          }
-
-          public String getFieldName(int index) {
-            return type.getFieldList().get(index).getName();
-          }
-
-          public RelDataType getFieldType(int index) {
+    return createStructType(type.getStructKind(),
+        new AbstractList<RelDataType>() {
+          @Override public RelDataType get(int index) {
             RelDataType fieldType =
                 type.getFieldList().get(index).getType();
             if (ignoreNullable) {
@@ -292,6 +284,19 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
             } else {
               return createTypeWithNullability(fieldType, nullable);
             }
+          }
+
+          @Override public int size() {
+            return type.getFieldCount();
+          }
+        },
+        new AbstractList<String>() {
+          @Override public String get(int index) {
+            return type.getFieldList().get(index).getName();
+          }
+
+          @Override public int size() {
+            return type.getFieldCount();
           }
         });
   }
