@@ -628,6 +628,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStartObject();
         generator.writeNumberField("threshold", fetch != null ? fetch
             : CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties()).getInt());
+        generator.writeBooleanField("fromNext", true);
         generator.writeEndObject();
 
         generator.writeFieldName("context");
@@ -928,16 +929,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               query.druidTable.schema.coordinatorUrl);
       final boolean limitQuery = containsLimit(querySpec);
       final DruidConnectionImpl.Page page = new DruidConnectionImpl.Page();
-      int previousOffset;
       do {
-        previousOffset = page.offset;
         final String queryString =
             querySpec.getQueryString(page.pagingIdentifier, page.offset);
         connection.request(querySpec.queryType, queryString, sink,
             querySpec.fieldNames, fieldTypes, page);
       } while (!limitQuery
           && page.pagingIdentifier != null
-          && page.offset > previousOffset);
+          && page.totalRowCount > 0);
     }
 
     private static boolean containsLimit(QuerySpec querySpec) {
