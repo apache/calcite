@@ -179,6 +179,7 @@ class DruidConnectionImpl implements DruidConnection {
             && parser.nextToken() == JsonToken.START_OBJECT) {
           page.pagingIdentifier = null;
           page.offset = -1;
+          page.totalRowCount = 0;
           expectScalarField(parser, DEFAULT_RESPONSE_TIMESTAMP_COLUMN);
           if (parser.nextToken() == JsonToken.FIELD_NAME
               && parser.getCurrentName().equals("result")
@@ -209,6 +210,7 @@ class DruidConnectionImpl implements DruidConnection {
                   parseFields(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
                   sink.send(rowBuilder.build());
                   rowBuilder.reset();
+                  page.totalRowCount += 1;
                 }
                 expect(parser, JsonToken.END_OBJECT);
               }
@@ -567,6 +569,7 @@ class DruidConnectionImpl implements DruidConnection {
   static class Page {
     String pagingIdentifier = null;
     int offset = -1;
+    int totalRowCount = 0;
 
     @Override public String toString() {
       return "{" + pagingIdentifier + ": " + offset + "}";

@@ -202,7 +202,7 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'select',"
         + "'dataSource':'wikiticker','descending':false,"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
-        + "'dimensions':[],'metrics':[],'granularity':'all','pagingSpec':{'threshold':1},"
+        + "'dimensions':[],'metrics':[],'granularity':'all','pagingSpec':{'threshold':1,'fromNext':true},"
         + "'context':{'druid.query.fetch':true}}";
     sql(sql, WIKI_AUTO2)
         .returnsUnordered("__time=2015-09-12 00:46:58")
@@ -397,7 +397,7 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'dimensions':['state_province','product_name'],'metrics':[],'granularity':'all',"
-        + "'pagingSpec':{'threshold':16384},'context':{'druid.query.fetch':false}}";
+        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .runs()
         .queryContains(druidChecker(druidQuery));
@@ -409,7 +409,7 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'dimensions':['gender','state_province'],'metrics':[],'granularity':'all',"
-        + "'pagingSpec':{'threshold':3},'context':{'druid.query.fetch':true}}";
+        + "'pagingSpec':{'threshold':3,'fromNext':true},'context':{'druid.query.fetch':true}}";
     sql(sql)
         .runs()
         .queryContains(druidChecker(druidQuery));
@@ -458,7 +458,7 @@ public class DruidAdapterIT {
         + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
         + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
         + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
-        + "'pagingSpec':{'threshold':16384},'context':{'druid.query.fetch':false}}";
+        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
         .returns(
@@ -506,7 +506,7 @@ public class DruidAdapterIT {
         + "'florist','time_id','the_day','the_month','the_year','day_of_month',"
         + "'week_of_year','month_of_year','quarter','fiscal_period'],"
         + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
-        + "'pagingSpec':{'threshold':16384},'context':{'druid.query.fetch':false}}";
+        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
         .returnsUnordered()
@@ -536,7 +536,7 @@ public class DruidAdapterIT {
         + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
         + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
         + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
-        + "'pagingSpec':{'threshold':16384},'context':{'druid.query.fetch':false}}";
+        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
         .returns(
@@ -913,7 +913,7 @@ public class DruidAdapterIT {
         + "'dimensions':['state_province','city','product_name'],"
         + "'metrics':[],"
         + "'granularity':'all',"
-        + "'pagingSpec':{'threshold':16384},'context':{'druid.query.fetch':false}}";
+        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
         + " filter=[AND(=(CAST($3):VARCHAR(24) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'High Top Dried Mushrooms'),"
@@ -925,7 +925,6 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery))
         .explainContains(explain)
         .returnsUnordered(
-            "state_province=WA; city=Bremerton; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Bremerton; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Everett; product_name=High Top Dried Mushrooms",
             "state_province=WA; city=Kirkland; product_name=High Top Dried Mushrooms",
