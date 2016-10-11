@@ -186,16 +186,15 @@ class DruidConnectionImpl implements DruidConnection {
             if (parser.nextToken() == JsonToken.FIELD_NAME
                 && parser.getCurrentName().equals("pagingIdentifiers")
                 && parser.nextToken() == JsonToken.START_OBJECT) {
-              switch (parser.nextToken()) {
-              case FIELD_NAME:
+              JsonToken token = parser.nextToken();
+              while (parser.getCurrentToken() == JsonToken.FIELD_NAME) {
                 page.pagingIdentifier = parser.getCurrentName();
                 if (parser.nextToken() == JsonToken.VALUE_NUMBER_INT) {
                   page.offset = parser.getIntValue();
                 }
-                expect(parser, JsonToken.END_OBJECT);
-                break;
-              case END_OBJECT:
+                token = parser.nextToken();
               }
+              expect(token, JsonToken.END_OBJECT);
             }
             if (parser.nextToken() == JsonToken.FIELD_NAME
                 && parser.getCurrentName().equals("events")
@@ -325,9 +324,12 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   private void expect(JsonParser parser, JsonToken token) throws IOException {
-    final JsonToken t = parser.nextToken();
-    if (t != token) {
-      throw new RuntimeException("expected " + token + ", got " + t);
+    expect(parser.nextToken(), token);
+  }
+
+  private void expect(JsonToken token, JsonToken expected) throws IOException {
+    if (token != expected) {
+      throw new RuntimeException("expected " + expected + ", got " + token);
     }
   }
 
