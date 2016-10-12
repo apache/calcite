@@ -158,7 +158,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
-        <artifactId>avatica</artifactId>
+        <artifactId>avatica-core</artifactId>
         <version>${project.version}</version>
         <type>test-jar</type>
       </dependency>
