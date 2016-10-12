@@ -26,7 +26,7 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2016/09/12 <a href="http://flink-forward.org/program/sessions/">Flink Forward</a>, Berlin
+* 2016/11/14 <a href="http://events.linuxfoundation.org/events/apache-big-data-europe/program/schedule">Apache: Big Data</a>, Seville &mdash; talks by Alan Gates (Apache Hive), Jesús Camacho Rodríguez (Apache Hive and Druid) and Atri Sharma (streaming)
 
 # Project Members
 
