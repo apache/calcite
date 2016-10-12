@@ -37,7 +37,7 @@ limitations under the License.
          in dependencyManagement in the root POM, not here. -->
     <dependency>
       <groupId>org.apache.calcite.avatica</groupId>
-      <artifactId>avatica</artifactId>
+      <artifactId>avatica-core</artifactId>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -67,7 +67,7 @@ limitations under the License.
     <!-- test dependencies -->
     <dependency>
       <groupId>org.apache.calcite.avatica</groupId>
-      <artifactId>avatica</artifactId>
+      <artifactId>avatica-core</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
