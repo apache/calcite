@@ -468,18 +468,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             String columnName = field.getName();
 
             // TODO: do real implicit collation here
-            final SqlIdentifier exp =
+            final SqlNode exp =
                 new SqlIdentifier(
                     ImmutableList.of(p.left, columnName),
                     startPosition);
-            addOrExpandField(
+            addToSelectList(
                 selectItems,
                 aliases,
                 types,
-                includeSystemVars,
-                scope,
                 exp,
-                field);
+                scope,
+                includeSystemVars);
           }
         }
       }
@@ -512,49 +511,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           String columnName = field.getName();
 
           // TODO: do real implicit collation here
-          addOrExpandField(
+          addToSelectList(
               selectItems,
               aliases,
               types,
-              includeSystemVars,
-              scope,
               prefixId.plus(columnName, startPosition),
-              field);
+              scope,
+              includeSystemVars);
         }
       } else {
         throw newValidationError(prefixId, RESOURCE.starRequiresRecordType());
       }
       return true;
     }
-  }
-
-  private boolean addOrExpandField(List<SqlNode> selectItems, Set<String> aliases,
-      List<Map.Entry<String, RelDataType>> types, boolean includeSystemVars,
-      SelectScope scope, SqlIdentifier id, RelDataTypeField field) {
-    switch (field.getType().getStructKind()) {
-    case PEEK_FIELDS:
-    case PEEK_FIELDS_DEFAULT:
-      final SqlNode starExp = id.plusStar();
-      expandStar(
-          selectItems,
-          aliases,
-          types,
-          includeSystemVars,
-          scope,
-          starExp);
-      return true;
-
-    default:
-      addToSelectList(
-          selectItems,
-          aliases,
-          types,
-          id,
-          scope,
-          includeSystemVars);
-    }
-
-    return false;
   }
 
   public SqlNode validate(SqlNode topNode) {
