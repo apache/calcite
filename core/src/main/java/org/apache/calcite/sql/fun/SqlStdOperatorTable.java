@@ -1248,6 +1248,69 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC_OR_INTERVAL,
           SqlFunctionCategory.NUMERIC);
 
+  public static final SqlFunction ACOS =
+      new SqlFunction(
+          "ACOS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ASIN =
+      new SqlFunction(
+          "ASIN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ATAN =
+      new SqlFunction(
+          "ATAN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ATAN2 =
+      new SqlFunction(
+          "ATAN2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction COS =
+      new SqlFunction(
+          "COS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction COT =
+      new SqlFunction(
+          "COT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction DEGREES =
+      new SqlFunction(
+          "DEGREES",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   public static final SqlFunction EXP =
       new SqlFunction(
           "EXP",
@@ -1255,6 +1318,65 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.DOUBLE_NULLABLE,
           null,
           OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction RADIANS =
+      new SqlFunction(
+          "RADIANS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ROUND =
+      new SqlFunction(
+          "ROUND",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.NUMERIC_INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction SIGN =
+      new SqlFunction(
+          "SIGN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction SIN =
+      new SqlFunction(
+          "SIN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+
+  public static final SqlFunction TAN =
+      new SqlFunction(
+          "TAN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction TRUNCATE =
+      new SqlFunction(
+          "TRUNCATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.NUMERIC_INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction PI =
+      new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction NULLIF = new SqlNullifFunction();

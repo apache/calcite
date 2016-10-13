@@ -1606,42 +1606,22 @@ public abstract class SqlOperatorBaseTest {
     // not implemented or is broken.
 
     // Numeric Functions
-    if (!enable) {
-//      return;
-    }
     tester.checkScalar("{fn ABS(-3)}", 3, "INTEGER NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn ACOS(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ASIN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ATAN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ATAN2(float1, float2)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn CEILING(-2.6)}", 2, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn COS(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn COT(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn DEGREES(number)}", null, "");
-    }
+    tester.checkScalarApprox("{fn ACOS(0.2)}", "DOUBLE NOT NULL", 1.36943, 0.001);
+    tester.checkScalarApprox("{fn ASIN(0.2)}", "DOUBLE NOT NULL", 0.20135, 0.001);
+    tester.checkScalarApprox("{fn ATAN(0.2)}", "DOUBLE NOT NULL", 0.19739, 0.001);
+    tester.checkScalarApprox("{fn ATAN2(-2, 2)}", "DOUBLE NOT NULL", -0.78539, 0.001);
+    tester.checkScalar("{fn CEILING(-2.6)}", -2, "DECIMAL(2, 0) NOT NULL");
+    tester.checkScalarApprox("{fn COS(0.2)}", "DOUBLE NOT NULL", 0.98007, 0.001);
+    tester.checkScalarApprox("{fn COT(0.2)}", "DOUBLE NOT NULL", 4.93315, 0.001);
+    tester.checkScalarApprox("{fn DEGREES(-1)}", "DOUBLE NOT NULL", -57.29578, 0.001);
+
     tester.checkScalarApprox(
         "{fn EXP(2)}",
         "DOUBLE NOT NULL",
         7.389,
         0.001);
-    if (false) {
-      tester.checkScalar("{fn FLOOR(2.6)}", 2, "DOUBLE NOT NULL");
-    }
+    tester.checkScalar("{fn FLOOR(2.6)}", 2, "DECIMAL(2, 0) NOT NULL");
     tester.checkScalarApprox(
         "{fn LOG(10)}",
         "DOUBLE NOT NULL",
@@ -1653,34 +1633,17 @@ public abstract class SqlOperatorBaseTest {
         2,
         0);
     tester.checkScalar("{fn MOD(19, 4)}", 3, "INTEGER NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn PI()}", null, "");
-    }
-    tester.checkScalar("{fn POWER(2, 3)}", 8.0, "DOUBLE NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn RADIANS(number)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn RAND(integer)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ROUND(number, places)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SIGN(number)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SIN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SQRT(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn TAN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn TRUNCATE(number, places)}", null, "");
-    }
+    tester.checkScalarApprox("{fn PI()}", "DOUBLE NOT NULL", 3.14159, 0.0001);
+    tester.checkScalarApprox("{fn POWER(2, 3)}", "DOUBLE NOT NULL", 8.0, 0.001);
+    tester.checkScalarApprox("{fn RADIANS(90)}", "DOUBLE NOT NULL", 1.57080, 0.001);
+    tester.checkScalarApprox("{fn RAND(42)}", "DOUBLE NOT NULL", 0.63708, 0.001);
+    tester.checkScalar("{fn ROUND(1251, -2)}", 1300, "INTEGER NOT NULL");
+    tester.checkScalar("{fn SIGN(-1)}", -1, "INTEGER NOT NULL");
+    tester.checkScalarApprox("{fn SIN(0.2)}", "DOUBLE NOT NULL", 0.19867, 0.001);
+    tester.checkScalarApprox("{fn SQRT(4.2)}", "DOUBLE NOT NULL", 2.04939, 0.001);
+    tester.checkScalarApprox("{fn TAN(0.2)}", "DOUBLE NOT NULL", 0.20271, 0.001);
+    tester.checkScalar("{fn TRUNCATE(12.34, 1)}", 12.3, "DECIMAL(4, 2) NOT NULL");
+    tester.checkScalar("{fn TRUNCATE(-12.34, -1)}", -10, "DECIMAL(4, 2) NOT NULL");
 
     // String Functions
     if (false) {
@@ -3698,6 +3661,11 @@ public abstract class SqlOperatorBaseTest {
         "DOUBLE NOT NULL",
         1.4142d,
         0.0001d);
+    tester.checkScalarApprox(
+        "sqrt(cast(2 as decimal(2, 0)))",
+        "DOUBLE NOT NULL",
+        1.4142d,
+        0.0001d);
     tester.checkNull("sqrt(cast(null as integer))");
     tester.checkNull("sqrt(cast(null as double))");
   }
@@ -3892,6 +3860,336 @@ public abstract class SqlOperatorBaseTest {
         "+5-03",
         "INTERVAL YEAR TO MONTH NOT NULL");
     tester.checkNull("abs(cast(null as interval hour))");
+  }
+
+  @Test public void testAcosFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ACOS);
+    tester.checkType("acos(0)", "DOUBLE NOT NULL");
+    tester.checkType("acos(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "acos(case when false then 0.5 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^acos('abc')^",
+        "Cannot apply 'ACOS' to arguments of type 'ACOS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ACOS\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "acos(0.5)",
+        "DOUBLE NOT NULL",
+        1.0472d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "acos(cast(0.5 as decimal(1, 1)))",
+        "DOUBLE NOT NULL",
+        1.0472d,
+        0.0001d);
+    tester.checkNull("acos(cast(null as integer))");
+    tester.checkNull("acos(cast(null as double))");
+  }
+
+  @Test public void testAsinFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ASIN);
+    tester.checkType("asin(0)", "DOUBLE NOT NULL");
+    tester.checkType("asin(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "asin(case when false then 0.5 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^asin('abc')^",
+        "Cannot apply 'ASIN' to arguments of type 'ASIN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ASIN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "asin(0.5)",
+        "DOUBLE NOT NULL",
+        0.5236d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "asin(cast(0.5 as decimal(1, 1)))",
+        "DOUBLE NOT NULL",
+        0.5236d,
+        0.0001d);
+    tester.checkNull("asin(cast(null as integer))");
+    tester.checkNull("asin(cast(null as double))");
+  }
+
+  @Test public void testAtanFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ATAN);
+    tester.checkType("atan(2)", "DOUBLE NOT NULL");
+    tester.checkType("atan(cast(2 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "atan(case when false then 2 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^atan('abc')^",
+        "Cannot apply 'ATAN' to arguments of type 'ATAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ATAN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "atan(2)",
+        "DOUBLE NOT NULL",
+        1.1071d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "atan(cast(2 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        1.1071d,
+        0.0001d);
+    tester.checkNull("atan(cast(null as integer))");
+    tester.checkNull("atan(cast(null as double))");
+  }
+
+  @Test public void testAtan2Func() {
+    tester.setFor(
+        SqlStdOperatorTable.ATAN2);
+    tester.checkType("atan2(2, -2)", "DOUBLE NOT NULL");
+    tester.checkType("atan2(cast(1 as float), -1)", "DOUBLE NOT NULL");
+    tester.checkType(
+        "atan2(case when false then 0.5 else null end, -1)", "DOUBLE");
+    tester.checkFails(
+        "^atan2('abc', 'def')^",
+        "Cannot apply 'ATAN2' to arguments of type 'ATAN2\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ATAN2\\(<NUMERIC>, <NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "atan2(0.5, -0.5)",
+        "DOUBLE NOT NULL",
+        2.3562d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "atan2(cast(0.5 as decimal(1, 1)), cast(-0.5 as decimal(1, 1)))",
+        "DOUBLE NOT NULL",
+        2.3562d,
+        0.0001d);
+    tester.checkNull("atan2(cast(null as integer), -1)");
+    tester.checkNull("atan2(1, cast(null as double))");
+  }
+
+  @Test public void testCosFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.COS);
+    tester.checkType("cos(1)", "DOUBLE NOT NULL");
+    tester.checkType("cos(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "cos(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^cos('abc')^",
+        "Cannot apply 'COS' to arguments of type 'COS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'COS\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "cos(1)",
+        "DOUBLE NOT NULL",
+        0.5403d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "cos(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        0.5403d,
+        0.0001d);
+    tester.checkNull("cos(cast(null as integer))");
+    tester.checkNull("cos(cast(null as double))");
+  }
+
+  @Test public void testCotFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.COT);
+    tester.checkType("cot(1)", "DOUBLE NOT NULL");
+    tester.checkType("cot(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "cot(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^cot('abc')^",
+        "Cannot apply 'COT' to arguments of type 'COT\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'COT\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "cot(1)",
+        "DOUBLE NOT NULL",
+        0.6421d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "cot(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        0.6421d,
+        0.0001d);
+    tester.checkNull("cot(cast(null as integer))");
+    tester.checkNull("cot(cast(null as double))");
+  }
+
+  @Test public void testDegreesFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.DEGREES);
+    tester.checkType("degrees(1)", "DOUBLE NOT NULL");
+    tester.checkType("degrees(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "degrees(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^degrees('abc')^",
+        "Cannot apply 'DEGREES' to arguments of type 'DEGREES\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'DEGREES\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "degrees(1)",
+        "DOUBLE NOT NULL",
+        57.2958d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "degrees(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        57.2958d,
+        0.0001d);
+    tester.checkNull("degrees(cast(null as integer))");
+    tester.checkNull("degrees(cast(null as double))");
+  }
+
+  @Test public void testPiFunc() {
+    tester.setFor(SqlStdOperatorTable.PI);
+    tester.checkScalarApprox("PI", "DOUBLE NOT NULL", 3.1415d, 0.0001d);
+    tester.checkFails("^PI()^",
+        "No match found for function signature PI\\(\\)", false);
+  }
+
+  @Test public void testRadiansFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.RADIANS);
+    tester.checkType("radians(42)", "DOUBLE NOT NULL");
+    tester.checkType("radians(cast(42 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "radians(case when false then 42 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^radians('abc')^",
+        "Cannot apply 'RADIANS' to arguments of type 'RADIANS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'RADIANS\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "radians(42)",
+        "DOUBLE NOT NULL",
+        0.7330d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "radians(cast(42 as decimal(2, 0)))",
+        "DOUBLE NOT NULL",
+        0.7330d,
+        0.0001d);
+    tester.checkNull("radians(cast(null as integer))");
+    tester.checkNull("radians(cast(null as double))");
+  }
+
+
+  @Test public void testRoundFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ROUND);
+    tester.checkType("round(42, -1)", "INTEGER NOT NULL");
+    tester.checkType("round(cast(42 as float), 1)", "FLOAT NOT NULL");
+    tester.checkType(
+        "round(case when false then 42 else null end, -1)", "INTEGER");
+    tester.checkFails(
+        "^round('abc', 'def')^",
+        "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ROUND\\(<NUMERIC>, <INTEGER>\\)'",
+        false);
+    tester.checkScalar(
+        "round(42, -1)",
+        40,
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "round(cast(42.346 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4235, 2),
+        "DECIMAL(2, 3) NOT NULL");
+    tester.checkNull("round(cast(null as integer), 1)");
+    tester.checkNull("round(cast(null as double), 1)");
+  }
+  @Test public void testSignFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.SIGN);
+    tester.checkType("sign(1)", "INTEGER NOT NULL");
+    tester.checkType("sign(cast(1 as float))", "FLOAT NOT NULL");
+    tester.checkType(
+        "sign(case when false then 1 else null end)", "INTEGER");
+    tester.checkFails(
+        "^sign('abc')^",
+        "Cannot apply 'SIGN' to arguments of type 'SIGN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'SIGN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalar(
+        "sign(1)",
+        1,
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "sign(cast(-1 as decimal(1, 0)))",
+        BigDecimal.valueOf(-1),
+        "DECIMAL(1, 0) NOT NULL");
+    tester.checkScalar(
+        "sign(cast(0 as float))",
+        0d,
+        "FLOAT NOT NULL");
+    tester.checkNull("sign(cast(null as integer))");
+    tester.checkNull("sign(cast(null as double))");
+  }
+
+  @Test public void testSinFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.SIN);
+    tester.checkType("sin(1)", "DOUBLE NOT NULL");
+    tester.checkType("sin(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "sin(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^sin('abc')^",
+        "Cannot apply 'SIN' to arguments of type 'SIN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'SIN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "sin(1)",
+        "DOUBLE NOT NULL",
+        0.8415d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "sin(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        0.8415d,
+        0.0001d);
+    tester.checkNull("sin(cast(null as integer))");
+    tester.checkNull("sin(cast(null as double))");
+  }
+
+  @Test public void testTanFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.TAN);
+    tester.checkType("tan(1)", "DOUBLE NOT NULL");
+    tester.checkType("tan(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "tan(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^tan('abc')^",
+        "Cannot apply 'TAN' to arguments of type 'TAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'TAN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "tan(1)",
+        "DOUBLE NOT NULL",
+        1.5574d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "tan(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        1.5574d,
+        0.0001d);
+    tester.checkNull("tan(cast(null as integer))");
+    tester.checkNull("tan(cast(null as double))");
+  }
+
+  @Test public void testTruncateFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.TRUNCATE);
+    tester.checkType("truncate(42, -1)", "INTEGER NOT NULL");
+    tester.checkType("truncate(cast(42 as float), 1)", "FLOAT NOT NULL");
+    tester.checkType(
+        "truncate(case when false then 42 else null end, -1)", "INTEGER");
+    tester.checkFails(
+        "^truncate('abc', 'def')^",
+        "Cannot apply 'TRUNCATE' to arguments of type 'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'TRUNCATE\\(<NUMERIC>, <INTEGER>\\)'",
+        false);
+    tester.checkScalar(
+        "truncate(42, -1)",
+        40,
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "truncate(cast(42.345 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4234, 2),
+        "DECIMAL(2, 3) NOT NULL");
+    tester.checkNull("truncate(cast(null as integer), 1)");
+    tester.checkNull("truncate(cast(null as double), 1)");
   }
 
   @Test public void testNullifFunc() {
