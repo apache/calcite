@@ -440,6 +440,63 @@ public class UdfTest {
         "Caused by: java.lang.RuntimeException: In user-defined aggregate class 'org.apache.calcite.util.Smalls$SumFunctionBadIAdd', first parameter to 'add' method must be the accumulator (the return type of the 'init' method)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1434">[CALCITE-1434]
+   * AggregateFunctionImpl doesnt work if the class implements a generic
+   * interface</a>. */
+  @Test public void testUserDefinedAggregateFunctionImplementsInterface() {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String mySum3 = Smalls.MySum3.class.getName();
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM3',\n"
+        + "           className: '" + mySum3 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}";
+    final CalciteAssert.AssertThat with = CalciteAssert.model(model)
+        .withDefaultSchema("adhoc");
+
+    with.query("select my_sum3(\"deptno\") as p from EMPLOYEES\n")
+        .returns("P=50\n");
+    with.withDefaultSchema(null)
+        .query("select \"adhoc\".my_sum3(\"deptno\") as p\n"
+            + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=50\n");
+    with.query("select my_sum3(\"empid\"), \"deptno\" as p from EMPLOYEES\n")
+        .throws_("Expression 'deptno' is not being grouped");
+    with.query("select my_sum3(\"deptno\") as p from EMPLOYEES\n")
+        .returns("P=50\n");
+    with.query("select my_sum3(\"name\") as p from EMPLOYEES\n")
+        .throws_("Cannot apply 'MY_SUM3' to arguments of type "
+            + "'MY_SUM3(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. "
+            + "Supported form(s): 'MY_SUM3(<NUMERIC>)");
+    with.query("select my_sum3(\"deptno\", 1) as p from EMPLOYEES\n")
+        .throws_("No match found for function signature "
+            + "MY_SUM3(<NUMERIC>, <NUMERIC>)");
+    with.query("select my_sum3() as p from EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM3()");
+    with.query("select \"deptno\", my_sum3(\"deptno\") as p from EMPLOYEES\n"
+        + "group by \"deptno\"")
+        .returnsUnordered("deptno=20; P=20",
+            "deptno=10; P=30");
+  }
+
   private static CalciteAssert.AssertThat withBadUdf(Class clazz) {
     final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
     final String className = clazz.getName();

@@ -469,6 +469,38 @@ public class Smalls {
     }
   }
 
+  /** A generic interface for defining user defined aggregate functions */
+  private interface MyGenericAggFunction<A, V, R> {
+    A init();
+
+    A add(A accumulator, V val);
+
+    A merge(A accumulator1, A accumulator2);
+
+    R result(A accumulator);
+  }
+
+  /** Example of a user-defined aggregate function that implements a generic
+   * interface. */
+  public static class MySum3
+      implements MyGenericAggFunction<Integer, Integer, Integer> {
+    public Integer init() {
+      return 0;
+    }
+
+    public Integer add(Integer accumulator, Integer val) {
+      return accumulator + val;
+    }
+
+    public Integer merge(Integer accumulator1, Integer accumulator2) {
+      return accumulator1 + accumulator2;
+    }
+
+    public Integer result(Integer accumulator) {
+      return accumulator;
+    }
+  }
+
   /** Example of a user-defined aggregate function (UDAF), whose methods are
    * static. */
   public static class MyStaticSumFunction {
