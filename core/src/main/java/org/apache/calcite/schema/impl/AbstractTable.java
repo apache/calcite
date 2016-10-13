@@ -21,6 +21,8 @@ import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
 
+import java.util.List;
+
 /**
  * Abstract base class for implementing {@link Table}.
  */
@@ -35,6 +37,10 @@ public abstract class AbstractTable implements Table {
 
   public Schema.TableType getJdbcTableType() {
     return Schema.TableType.TABLE;
+  }
+
+  public List<List<String>> getCustomStarExpansion() {
+    return null;
   }
 }
 

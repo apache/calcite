@@ -258,16 +258,6 @@ public class SqlIdentifier extends SqlNode {
     return new SqlIdentifier(names, collation, pos2, componentPositions);
   }
 
-  /**
-   * Creates an identifier that consists of this identifier plus a wildcard star.
-   * Does not modify this identifier.
-   */
-  public SqlIdentifier plusStar() {
-    final SqlIdentifier id = this.plus("*", SqlParserPos.ZERO);
-    return new SqlIdentifier(Lists.transform(id.names, STAR_TO_EMPTY), null, id.pos,
-        id.componentPositions);
-  }
-
   /** Creates an identifier that consists of all but the last {@code n}
    * name segments of this one. */
   public SqlIdentifier skipLast(int n) {
