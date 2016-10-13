@@ -39,7 +39,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
@@ -348,104 +350,33 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "EMP_20" view.
     // Same columns as "EMP",
     // but "DEPTNO" not visible and set to 20 by default
-    // and "SAL" is visible but must be greater than 1000
-    MockTable emp20View = new MockTable(this, salesSchema.getCatalogName(),
-        salesSchema.name, "EMP_20", false, 600) {
-      private final Table table = empTable.unwrap(Table.class);
-      private final ImmutableIntList mapping =
-          ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
+    // and "SAL" is visible but must be greater than 1000,
+    // which is the equivalent of:
+    //   SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, SLACKER
+    //   FROM EMP
+    //   WHERE DEPTNO = 20 AND SAL > 1000
+    MockTable emp20View = new MockViewTable(this, salesSchema.getCatalogName(),
+        salesSchema.name, "EMP_20", false, 600, empTable,
+        ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8)) {
 
-      @Override public RelNode toRel(ToRelContext context) {
-        // Expand to the equivalent of:
-        //   SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, SLACKER
-        //   FROM EMP
-        //   WHERE DEPTNO = 20 AND SAL > 1000
-        RelNode rel = LogicalTableScan.create(context.getCluster(), empTable);
-        final RexBuilder rexBuilder = context.getCluster().getRexBuilder();
-        rel = LogicalFilter.create(rel,
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.AND,
-                rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                    rexBuilder.makeInputRef(rel, 7),
-                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(20))),
-                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
-                    rexBuilder.makeInputRef(rel, 5),
-                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000)))));
-        final List<RelDataTypeField> fieldList =
-            rel.getRowType().getFieldList();
-        final List<Pair<RexNode, String>> projects =
-            new AbstractList<Pair<RexNode, String>>() {
-              @Override public Pair<RexNode, String> get(int index) {
-                return RexInputRef.of2(mapping.get(index), fieldList);
-              }
-
-              @Override public int size() {
-                return mapping.size();
-              }
-            };
-        return LogicalProject.create(rel, Pair.left(projects),
-            Pair.right(projects));
-      }
-
-      @Override public <T> T unwrap(Class<T> clazz) {
-        if (clazz.isAssignableFrom(ModifiableView.class)) {
-          return clazz.cast(
-              new JdbcTest.AbstractModifiableView() {
-                @Override public Table getTable() {
-                  return empTable.unwrap(Table.class);
-                }
-
-                @Override public Path getTablePath() {
-                  final ImmutableList.Builder<Pair<String, Schema>> builder =
-                      ImmutableList.builder();
-                  builder.add(Pair.<String, Schema>of(empTable.names.get(0), null));
-                  builder.add(Pair.<String, Schema>of(empTable.names.get(1), null));
-                  builder.add(Pair.<String, Schema>of(empTable.names.get(2), null));
-                  return Schemas.path(builder.build());
-                }
-
-                @Override public ImmutableIntList getColumnMapping() {
-                  return mapping;
-                }
-
-                @Override public RexNode getConstraint(RexBuilder rexBuilder,
-                    RelDataType tableRowType) {
-                  final RelDataTypeField deptnoField =
-                      tableRowType.getFieldList().get(7);
-                  final RelDataTypeField salField =
-                      tableRowType.getFieldList().get(5);
-                  final List<RexNode> nodes = Arrays.asList(
-                      rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                          rexBuilder.makeInputRef(deptnoField.getType(),
-                              deptnoField.getIndex()),
-                          rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
-                              deptnoField.getType())),
-                      rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
-                          rexBuilder.makeInputRef(salField.getType(),
-                              salField.getIndex()),
-                          rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
-                              salField.getType())));
-                  return RexUtil.composeConjunction(rexBuilder, nodes, false);
-                }
-
-                @Override public RelDataType
-                getRowType(final RelDataTypeFactory typeFactory) {
-                  return typeFactory.createStructType(
-                      new AbstractList<Map.Entry<String, RelDataType>>() {
-                        @Override public Map.Entry<String, RelDataType>
-                        get(int index) {
-                          return table.getRowType(typeFactory).getFieldList()
-                              .get(mapping.get(index));
-                        }
-
-                        @Override public int size() {
-                          return mapping.size();
-                        }
-                      });
-                }
-              });
-        }
-        return super.unwrap(clazz);
+      @Override public RexNode getConstraint(RexBuilder rexBuilder,
+          RelDataType tableRowType) {
+        final RelDataTypeField deptnoField =
+            tableRowType.getFieldList().get(7);
+        final RelDataTypeField salField =
+            tableRowType.getFieldList().get(5);
+        final List<RexNode> nodes = Arrays.asList(
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                rexBuilder.makeInputRef(deptnoField.getType(),
+                    deptnoField.getIndex()),
+                rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
+                    deptnoField.getType())),
+            rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
+                rexBuilder.makeInputRef(salField.getType(),
+                    salField.getIndex()),
+                rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
+                    salField.getType())));
+        return RexUtil.composeConjunction(rexBuilder, nodes, false);
       }
     };
     salesSchema.addTable(Util.last(emp20View.getQualifiedName()));
@@ -461,8 +392,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    MockTable structTypeTable = MockTable.create(this, structTypeSchema, "T",
-        false, 100);
+    final MockTable structTypeTable = MockTable.create(this, structTypeSchema,
+        "T", false, 100);
     structTypeTable.addColumn("K0", varchar20Type);
     structTypeTable.addColumn("C1", varchar20Type);
     final RelDataType f0Type = typeFactory.builder()
@@ -485,6 +416,41 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         .build();
     structTypeTable.addColumn("F2", f2Type);
     registerTable(structTypeTable);
+
+    // Register "STRUCT.T_10" view.
+    // Same columns as "STRUCT.T",
+    // but "F0.C0" is set to 10 by default,
+    // which is the equivalent of:
+    //   SELECT K0, C1, F0, F1, F2
+    //   FROM T
+    //   WHERE F0.C0 = 10
+    MockTable struct10View = new MockViewTable(this,
+        structTypeSchema.getCatalogName(),
+        structTypeSchema.name, "T_10", false, 20,
+        structTypeTable, ImmutableIntList.of(0, 1, 2, 3, 4)) {
+
+      @Override public RexNode getConstraint(RexBuilder rexBuilder,
+          RelDataType tableRowType) {
+        final RelDataTypeField f0Field =
+            tableRowType.getFieldList().get(2);
+        final RelDataTypeField c0Field =
+            f0Field.getType().getFieldList().get(0);
+        return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            rexBuilder.makeFieldAccess(
+                rexBuilder.makeInputRef(f0Field.getType(),
+                    f0Field.getIndex()),
+                c0Field.getIndex()),
+            rexBuilder.makeExactLiteral(BigDecimal.valueOf(10L),
+                c0Field.getType()));
+      }
+    };
+    structTypeSchema.addTable(Util.last(struct10View.getQualifiedName()));
+    struct10View.addColumn("K0", varchar20Type);
+    struct10View.addColumn("C1", varchar20Type);
+    struct10View.addColumn("F0", f0Type);
+    struct10View.addColumn("F1", f1Type);
+    struct10View.addColumn("F2", f2Type);
+    registerTable(struct10View);
     return this;
   }
 
@@ -803,6 +769,102 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public StructKind getKind() {
       return kind;
+    }
+  }
+
+  /**
+   * Mock implementation of
+   * {@link org.apache.calcite.prepare.Prepare.PreparingTable} for views.
+   */
+  public abstract static class MockViewTable extends MockTable {
+    private final MockTable fromTable;
+    private final Table table;
+    private final ImmutableIntList mapping;
+
+    MockViewTable(MockCatalogReader catalogReader, String catalogName,
+        String schemaName, String name, boolean stream, double rowCount,
+        MockTable fromTable, ImmutableIntList mapping) {
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount);
+      this.fromTable = fromTable;
+      this.table = fromTable.unwrap(Table.class);
+      this.mapping = mapping;
+    }
+
+    protected abstract RexNode getConstraint(RexBuilder rexBuilder,
+        RelDataType tableRowType);
+
+    @Override public void onRegister(RelDataTypeFactory typeFactory) {
+      super.onRegister(typeFactory);
+      // To simulate getRowType() behavior in ViewTable.
+      final RelProtoDataType protoRowType = RelDataTypeImpl.proto(rowType);
+      rowType = protoRowType.apply(typeFactory);
+    }
+
+    @Override public RelNode toRel(ToRelContext context) {
+      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable);
+      final RexBuilder rexBuilder = context.getCluster().getRexBuilder();
+      rel = LogicalFilter.create(
+          rel, getConstraint(rexBuilder, rel.getRowType()));
+      final List<RelDataTypeField> fieldList =
+          rel.getRowType().getFieldList();
+      final List<Pair<RexNode, String>> projects =
+          new AbstractList<Pair<RexNode, String>>() {
+            @Override public Pair<RexNode, String> get(int index) {
+              return RexInputRef.of2(mapping.get(index), fieldList);
+            }
+
+            @Override public int size() {
+              return mapping.size();
+            }
+          };
+      return LogicalProject.create(rel, Pair.left(projects),
+          Pair.right(projects));
+    }
+
+    @Override public <T> T unwrap(Class<T> clazz) {
+      if (clazz.isAssignableFrom(ModifiableView.class)) {
+        return clazz.cast(
+            new JdbcTest.AbstractModifiableView() {
+              @Override public Table getTable() {
+                return fromTable.unwrap(Table.class);
+              }
+
+              @Override public Path getTablePath() {
+                final ImmutableList.Builder<Pair<String, Schema>> builder =
+                    ImmutableList.builder();
+                for (String name : fromTable.names) {
+                  builder.add(Pair.<String, Schema>of(name, null));
+                }
+                return Schemas.path(builder.build());
+              }
+
+              @Override public ImmutableIntList getColumnMapping() {
+                return mapping;
+              }
+
+              @Override public RexNode getConstraint(RexBuilder rexBuilder,
+                  RelDataType tableRowType) {
+                return MockViewTable.this.getConstraint(rexBuilder, tableRowType);
+              }
+
+              @Override public RelDataType
+              getRowType(final RelDataTypeFactory typeFactory) {
+                return typeFactory.createStructType(
+                    new AbstractList<Map.Entry<String, RelDataType>>() {
+                      @Override public Map.Entry<String, RelDataType>
+                      get(int index) {
+                        return table.getRowType(typeFactory).getFieldList()
+                            .get(mapping.get(index));
+                      }
+
+                      @Override public int size() {
+                        return mapping.size();
+                      }
+                    });
+              }
+            });
+      }
+      return super.unwrap(clazz);
     }
   }
 
