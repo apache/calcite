@@ -4716,6 +4716,7 @@ SqlIdentifier ReservedFunctionName() :
         <ABS>
         | <AVG>
         | <CARDINALITY>
+        | <CEILING>
         | <CHAR_LENGTH>
         | <CHARACTER_LENGTH>
         | <COALESCE>
@@ -4731,6 +4732,7 @@ SqlIdentifier ReservedFunctionName() :
         | <ELEMENT>
         | <EXP>
         | <FIRST_VALUE>
+        | <FLOOR>
         | <FUSION>
         | <GROUPING>
         | <LAST_VALUE>
