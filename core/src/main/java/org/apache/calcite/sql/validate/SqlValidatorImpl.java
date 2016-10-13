@@ -461,19 +461,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                scope,
                includeSystemVars);
         } else {
-          List<List<String>> customStarExpansion = null;
-          if (shouldUseCustomStarExpansion()) {
-            SqlValidatorTable validatorTable = p.right.getTable();
-            if (validatorTable instanceof Prepare.PreparingTable) {
-              Table table =
-                  ((Prepare.PreparingTable) validatorTable).unwrap(Table.class);
-              customStarExpansion = table.getCustomStarExpansion();
-            }
-          }
-          if (customStarExpansion != null) {
-            for (List<String> name : customStarExpansion) {
+          List<List<String>> customStarExpansion;
+          if ((customStarExpansion = getCustomStarExpansion(p.right)) != null) {
+            for (List<String> names : customStarExpansion) {
               SqlIdentifier exp = new SqlIdentifier(
-                  Lists.asList(p.left, name.toArray(new String[name.size()])),
+                  Lists.asList(p.left, names.toArray(new String[names.size()])),
                   startPosition);
               addToSelectList(
                   selectItems,
@@ -549,6 +541,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return true;
     }
+  }
+
+  private List<List<String>> getCustomStarExpansion(SqlValidatorNamespace ns) {
+    if (!shouldUseCustomStarExpansion()) {
+      return null;
+    }
+    final SqlValidatorTable table = ns.getTable();
+    if (table instanceof Prepare.PreparingTable) {
+      Table t = ((Prepare.PreparingTable) table).unwrap(Table.class);
+      if (t != null) {
+        return t.getCustomStarExpansion();
+      }
+    }
+    return null;
   }
 
   public SqlNode validate(SqlNode topNode) {
@@ -3732,6 +3738,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateNamespace(targetNamespace, unknownType);
     SqlValidatorTable table = targetNamespace.getTable();
 
+    // If the INSERT does not have a target column list and the target
+    // table specifies a custom star expansion list, we will set the new
+    // target column list as the star expansion list.
+    rewriteTargetColumnList(insert, targetNamespace);
+
     // INSERT has an optional column name list.  If present then
     // reduce the rowtype to the columns specified.  If not present
     // then the entire target rowtype is used.
@@ -3767,6 +3778,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     checkTypeAssignment(logicalSourceRowType, logicalTargetRowType, insert);
 
     validateAccess(insert.getTargetTable(), table, SqlAccessEnum.INSERT);
+  }
+
+  private void rewriteTargetColumnList(
+      SqlInsert insert, SqlValidatorNamespace ns) {
+    final List<List<String>> customStarExpansion = getCustomStarExpansion(ns);
+    if (customStarExpansion == null) {
+      return;
+    }
+
+    final List<SqlNode> targetColumnList = new ArrayList<>();
+    final SqlParserPos startPosition = insert.getParserPosition();
+    for (List<String> names : customStarExpansion) {
+      targetColumnList.add(new SqlIdentifier(names, startPosition));
+    }
+    insert.setTargetColumnList(
+        new SqlNodeList(targetColumnList, startPosition));
   }
 
   private void checkFieldCount(
