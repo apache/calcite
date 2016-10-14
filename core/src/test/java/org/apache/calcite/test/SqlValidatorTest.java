@@ -527,6 +527,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType(
         "CASE 1 WHEN 1 THEN cast(null as integer) WHEN 2 THEN cast(cast(null as tinyint) as integer) END",
         "INTEGER");
+    checkExpType(
+        "CASE 1 WHEN 1 THEN INTERVAL '12 3:4:5.6' DAY TO SECOND(6) WHEN 2 THEN INTERVAL '12 3:4:5.6' DAY TO SECOND(9) END",
+        "INTERVAL DAY TO SECOND(9)");
   }
 
   @Test public void testCaseExpressionFails() {

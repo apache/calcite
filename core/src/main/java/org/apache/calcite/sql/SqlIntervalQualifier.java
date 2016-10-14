@@ -248,7 +248,7 @@ public class SqlIntervalQualifier extends SqlNode {
     if (useDefaultFractionalSecondPrecision()) {
       return RelDataType.PRECISION_NOT_SPECIFIED;
     } else {
-      return startPrecision;
+      return fractionalSecondPrecision;
     }
   }
 
