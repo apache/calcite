@@ -82,7 +82,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    */
   static Method findMethod(Class<?> clazz, String name) {
     for (Method method : clazz.getMethods()) {
-      if (method.getName().equals(name)) {
+      if (method.getName().equals(name) && !method.isBridge()) {
         return method;
       }
     }
