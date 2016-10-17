@@ -61,6 +61,7 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlInsertKeyword;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJdbcDataTypeName;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -3952,6 +3953,53 @@ SqlIdentifier TypeName() :
     }
 }
 
+// Types used for for JDBC and ODBC scalar conversion function
+SqlJdbcDataTypeName JdbcOdbcDataTypeName() :
+{
+}
+{
+    (<SQL_CHAR> | <CHAR>) { return SqlJdbcDataTypeName.SQL_CHAR; }
+|   (<SQL_VARCHAR> | <VARCHAR>) { return SqlJdbcDataTypeName.SQL_VARCHAR; }
+|   (<SQL_DATE> | <DATE>) { return SqlJdbcDataTypeName.SQL_DATE; }
+|   (<SQL_TIME> | <TIME>) { return SqlJdbcDataTypeName.SQL_TIME; }
+|   (<SQL_TIMESTAMP> | <TIMESTAMP>) { return SqlJdbcDataTypeName.SQL_TIMESTAMP; }
+|   (<SQL_DECIMAL> | <DECIMAL>) { return SqlJdbcDataTypeName.SQL_DECIMAL; }
+|   (<SQL_NUMERIC> | <NUMERIC>) { return SqlJdbcDataTypeName.SQL_NUMERIC; }
+|   (<SQL_BOOLEAN> | <BOOLEAN>) { return SqlJdbcDataTypeName.SQL_BOOLEAN; }
+|   (<SQL_INTEGER> | <INTEGER>) { return SqlJdbcDataTypeName.SQL_INTEGER; }
+|   (<SQL_BINARY> | <BINARY>) { return SqlJdbcDataTypeName.SQL_BINARY; }
+|   (<SQL_VARBINARY> | <VARBINARY>) { return SqlJdbcDataTypeName.SQL_VARBINARY; }
+|   (<SQL_TINYINT> | <TINYINT>) { return SqlJdbcDataTypeName.SQL_TINYINT; }
+|   (<SQL_SMALLINT> | <SMALLINT>) { return SqlJdbcDataTypeName.SQL_SMALLINT; }
+|   (<SQL_BIGINT> | <BIGINT>) { return SqlJdbcDataTypeName.SQL_BIGINT; }
+|   (<SQL_REAL>| <REAL>) { return SqlJdbcDataTypeName.SQL_REAL; }
+|   (<SQL_DOUBLE> | <DOUBLE>) { return SqlJdbcDataTypeName.SQL_DOUBLE; }
+|   (<SQL_FLOAT> | <FLOAT>) { return SqlJdbcDataTypeName.SQL_FLOAT; }
+|   <SQL_INTERVAL_YEAR> { return SqlJdbcDataTypeName.SQL_INTERVAL_YEAR; }
+|   <SQL_INTERVAL_YEAR_TO_MONTH> { return SqlJdbcDataTypeName.SQL_INTERVAL_YEAR_TO_MONTH; }
+|   <SQL_INTERVAL_MONTH> { return SqlJdbcDataTypeName.SQL_INTERVAL_MONTH; }
+|   <SQL_INTERVAL_DAY> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY; }
+|   <SQL_INTERVAL_DAY_TO_HOUR> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY_TO_HOUR; }
+|   <SQL_INTERVAL_DAY_TO_MINUTE> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY_TO_MINUTE; }
+|   <SQL_INTERVAL_DAY_TO_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY_TO_SECOND; }
+|   <SQL_INTERVAL_HOUR> { return SqlJdbcDataTypeName.SQL_INTERVAL_HOUR; }
+|   <SQL_INTERVAL_HOUR_TO_MINUTE> { return SqlJdbcDataTypeName.SQL_INTERVAL_HOUR_TO_MINUTE; }
+|   <SQL_INTERVAL_HOUR_TO_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_HOUR_TO_SECOND; }
+|   <SQL_INTERVAL_MINUTE> { return SqlJdbcDataTypeName.SQL_INTERVAL_MINUTE; }
+|   <SQL_INTERVAL_MINUTE_TO_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_MINUTE_TO_SECOND; }
+|   <SQL_INTERVAL_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_SECOND; }
+}
+
+SqlLiteral JdbcOdbcDataType() :
+{
+    SqlJdbcDataTypeName typeName;
+}
+{
+    typeName = JdbcOdbcDataTypeName() {
+        return typeName.symbol(getPos());
+    }
+}
+
 SqlIdentifier CollectionsTypeName() :
 {
     SqlIdentifier typeName = null;
@@ -4593,6 +4641,8 @@ SqlNode JdbcFunctionCall() :
 {
     String name;
     SqlIdentifier id;
+    SqlNode e;
+    SqlLiteral tl;
     SqlNodeList args;
     SqlCall call;
     SqlParserPos pos;
@@ -4614,6 +4664,18 @@ SqlNode JdbcFunctionCall() :
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
         }
+    |
+        <CONVERT> { name = unquotedIdentifier(); }
+        <LPAREN>
+        e = Expression(ExprContext.ACCEPT_SUBQUERY) {
+            args = new SqlNodeList(getPos());
+            args.add(e);
+        }
+        <COMMA>
+        (
+            tl = JdbcOdbcDataType() { args.add(tl); }
+        )
+        <RPAREN>
     |
         (
             // INSERT is a reserved word, but we need to handle {fn insert}
@@ -5255,6 +5317,43 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SQLEXCEPTION: "SQLEXCEPTION" >
     | < SQLSTATE: "SQLSTATE" >
     | < SQLWARNING: "SQLWARNING" >
+    | < SQL_BIGINT: "SQL_BIGINT" >
+    | < SQL_BINARY: "SQL_BINARY" >
+    | < SQL_BIT: "SQL_BIT" >
+    | < SQL_BLOB: "SQL_BLOB" >
+    | < SQL_BOOLEAN: "SQL_BOOLEAN" >
+    | < SQL_CHAR: "SQL_CHAR" >
+    | < SQL_CLOB: "SQL_CLOB" >
+    | < SQL_DATE: "SQL_DATE" >
+    | < SQL_DECIMAL: "SQL_DECIMAL" >
+    | < SQL_DOUBLE: "SQL_DOUBLE" >
+    | < SQL_FLOAT: "SQL_FLOAT" >
+    | < SQL_INTEGER: "SQL_INTEGER" >
+    | < SQL_INTERVAL_DAY: "SQL_INTERVAL_DAY" >
+    | < SQL_INTERVAL_DAY_TO_HOUR: "SQL_INTERVAL_DAY_TO_HOUR" >
+    | < SQL_INTERVAL_DAY_TO_MINUTE: "SQL_INTERVAL_DAY_TO_MINUTE" >
+    | < SQL_INTERVAL_DAY_TO_SECOND: "SQL_INTERVAL_DAY_TO_SECOND" >
+    | < SQL_INTERVAL_HOUR: "SQL_INTERVAL_HOUR" >
+    | < SQL_INTERVAL_HOUR_TO_MINUTE: "SQL_INTERVAL_HOUR_TO_MINUTE" >
+    | < SQL_INTERVAL_HOUR_TO_SECOND: "SQL_INTERVAL_HOUR_TO_SECOND" >
+    | < SQL_INTERVAL_MINUTE: "SQL_INTERVAL_MINUTE" >
+    | < SQL_INTERVAL_MINUTE_TO_SECOND: "SQL_INTERVAL_MINUTE_TO_SECOND" >
+    | < SQL_INTERVAL_MONTH: "SQL_INTERVAL_MONTH" >
+    | < SQL_INTERVAL_SECOND: "SQL_INTERVAL_SECOND" >
+    | < SQL_INTERVAL_YEAR: "SQL_INTERVAL_YEAR" >
+    | < SQL_INTERVAL_YEAR_TO_MONTH: "SQL_INTERVAL_YEAR_TO_MONTH" >
+    | < SQL_LONGVARBINARY: "SQL_LONGVARBINARY" >
+    | < SQL_LONGVARCHAR: "SQL_LONGVARCHAR" >
+    | < SQL_LONGVARNCHAR: "SQL_LONGVARNCHAR" >
+    | < SQL_NCHAR: "SQL_NCHAR" >
+    | < SQL_NCLOB: "SQL_NCLOB" >
+    | < SQL_NUMERIC: "SQL_NUMERIC" >
+    | < SQL_NVARCHAR: "SQL_NVARCHAR" >
+    | < SQL_REAL: "SQL_REAL" >
+    | < SQL_SMALLINT: "SQL_SMALLINT" >
+    | < SQL_TIME: "SQL_TIME" >
+    | < SQL_TIMESTAMP: "SQL_TIMESTAMP" >
+    | < SQL_TINYINT: "SQL_TINYINT" >
     | < SQL_TSI_DAY: "SQL_TSI_DAY" >
     | < SQL_TSI_FRAC_SECOND: "SQL_TSI_FRAC_SECOND" >
     | < SQL_TSI_HOUR: "SQL_TSI_HOUR" >
@@ -5265,6 +5364,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SQL_TSI_SECOND: "SQL_TSI_SECOND" >
     | < SQL_TSI_WEEK: "SQL_TSI_WEEK" >
     | < SQL_TSI_YEAR: "SQL_TSI_YEAR" >
+    | < SQL_VARBINARY: "SQL_VARBINARY" >
+    | < SQL_VARCHAR: "SQL_VARCHAR" >
     | < SQRT: "SQRT" >
     | < START: "START" >
     | < STATE: "STATE" >
@@ -5584,6 +5685,43 @@ String CommonNonReservedKeyWord() :
         | <SOURCE>
         | <SPACE>
         | <SPECIFIC_NAME>
+        | <SQL_BIGINT>
+        | <SQL_BINARY>
+        | <SQL_BIT>
+        | <SQL_BLOB>
+        | <SQL_BOOLEAN>
+        | <SQL_CHAR>
+        | <SQL_CLOB>
+        | <SQL_DATE>
+        | <SQL_DECIMAL>
+        | <SQL_DOUBLE>
+        | <SQL_FLOAT>
+        | <SQL_INTEGER>
+        | <SQL_INTERVAL_DAY>
+        | <SQL_INTERVAL_DAY_TO_HOUR>
+        | <SQL_INTERVAL_DAY_TO_MINUTE>
+        | <SQL_INTERVAL_DAY_TO_SECOND>
+        | <SQL_INTERVAL_HOUR>
+        | <SQL_INTERVAL_HOUR_TO_MINUTE>
+        | <SQL_INTERVAL_HOUR_TO_SECOND>
+        | <SQL_INTERVAL_MINUTE>
+        | <SQL_INTERVAL_MINUTE_TO_SECOND>
+        | <SQL_INTERVAL_MONTH>
+        | <SQL_INTERVAL_SECOND>
+        | <SQL_INTERVAL_YEAR>
+        | <SQL_INTERVAL_YEAR_TO_MONTH>
+        | <SQL_LONGVARBINARY>
+        | <SQL_LONGVARNCHAR>
+        | <SQL_LONGVARCHAR>
+        | <SQL_NCHAR>
+        | <SQL_NCLOB>
+        | <SQL_NUMERIC>
+        | <SQL_NVARCHAR>
+        | <SQL_REAL>
+        | <SQL_SMALLINT>
+        | <SQL_TIME>
+        | <SQL_TIMESTAMP>
+        | <SQL_TINYINT>
         | <SQL_TSI_DAY>
         | <SQL_TSI_FRAC_SECOND>
         | <SQL_TSI_HOUR>
@@ -5594,6 +5732,8 @@ String CommonNonReservedKeyWord() :
         | <SQL_TSI_SECOND>
         | <SQL_TSI_WEEK>
         | <SQL_TSI_YEAR>
+        | <SQL_VARBINARY>
+        | <SQL_VARCHAR>
         | <STATE>
         | <STATEMENT>
         | <STRUCTURE>
