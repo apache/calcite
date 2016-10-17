@@ -3549,6 +3549,10 @@ public class SqlParserTest {
     checkExp("{fN apa(*)}", "{fn APA(*) }");
     checkExp("{   FN\t\r\n apa()}", "{fn APA() }");
     checkExp("{fn insert()}", "{fn INSERT() }");
+    checkExp("{fn convert(foo, SQL_VARCHAR)}", "{fn CONVERT(`FOO`, VARCHAR) }");
+    checkExp("{fn convert(log10(100), integer)}", "{fn CONVERT(LOG10(100), INTEGER) }");
+    checkExpFails("{fn convert(^)^}", "(?s)Encountered \"\\)\" at.*");
+    checkExpFails("{fn convert(\"123\", SMALLINT^(^3)}", "(?s)Encountered \"\\(\" at.*");
   }
 
   @Test public void testWindowReference() {

@@ -1817,9 +1817,13 @@ public abstract class SqlOperatorBaseTest {
     }
 
     // Conversion Functions
-    if (false) {
-      tester.checkScalar("{fn CONVERT(value, SQLtype)}", null, "");
-    }
+    // Legacy JDBC style
+    tester.checkScalar("{fn CONVERT('123', INTEGER)}", 123, "INTEGER NOT NULL");
+    // ODBC/JDBC style
+    tester.checkScalar("{fn CONVERT('123', SQL_INTEGER)}", 123, "INTEGER NOT NULL");
+    tester.checkScalar("{fn CONVERT(INTERVAL '1' DAY, SQL_INTERVAL_DAY_TO_SECOND)}",
+        "+1 00:00:00.000000", "INTERVAL DAY TO SECOND NOT NULL");
+
   }
 
   @Test public void testSelect() {
