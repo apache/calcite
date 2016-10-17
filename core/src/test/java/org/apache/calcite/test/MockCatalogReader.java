@@ -496,19 +496,6 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         .build();
     structTypeTable.addColumn("F2", f2Type);
     registerTable(structTypeTable);
-
-    // TODO Remove this table and use STRUCT.T instead after
-    // CALCITE-1425 is done.
-    MockTable simpleTable = new MockTable(this,
-        structTypeSchema.getCatalogName(), structTypeSchema.name,
-        "SIMPLE", false, 100,
-        ImmutableList.<List<String>>of(
-            ImmutableList.of("K2"),
-            ImmutableList.of("K0")));
-    simpleTable.addColumn("K0", varchar20Type);
-    simpleTable.addColumn("K1", intTypeNull);
-    simpleTable.addColumn("K2", timestampType);
-    registerTable(simpleTable);
     return this;
   }
 
