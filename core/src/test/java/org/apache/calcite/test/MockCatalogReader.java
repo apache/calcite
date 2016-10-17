@@ -350,7 +350,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // but "DEPTNO" not visible and set to 20 by default
     // and "SAL" is visible but must be greater than 1000
     MockTable emp20View = new MockTable(this, salesSchema.getCatalogName(),
-        salesSchema.name, "EMP_20", false, 600, null) {
+        salesSchema.name, "EMP_20", false, 600) {
       private final Table table = empTable.unwrap(Table.class);
       private final ImmutableIntList mapping =
           ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
@@ -461,19 +461,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    MockTable structTypeTable = new MockTable(this,
-        structTypeSchema.getCatalogName(), structTypeSchema.name,
-        "T", false, 100,
-        ImmutableList.<List<String>>of(
-            ImmutableList.of("K0"),
-            ImmutableList.of("C1"),
-            ImmutableList.of("F1", "A0"),
-            ImmutableList.of("F2", "A0"),
-            ImmutableList.of("F0", "C0"),
-            ImmutableList.of("F1", "C0"),
-            ImmutableList.of("F0", "C1"),
-            ImmutableList.of("F1", "C2"),
-            ImmutableList.of("F2", "C3")));
+    MockTable structTypeTable = MockTable.create(this, structTypeSchema, "T",
+        false, 100);
     structTypeTable.addColumn("K0", varchar20Type);
     structTypeTable.addColumn("C1", varchar20Type);
     final RelDataType f0Type = typeFactory.builder()
@@ -681,29 +670,20 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     protected final List<String> names;
     private final Set<String> monotonicColumnSet = Sets.newHashSet();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
-    protected final List<List<String>> customExpansionList;
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
-        String schemaName, String name, boolean stream, double rowCount,
-        List<List<String>> customExpansionList) {
+        String schemaName, String name, boolean stream, double rowCount) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.rowCount = rowCount;
       this.names = ImmutableList.of(catalogName, schemaName, name);
-      this.customExpansionList = customExpansionList;
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount) {
-      return create(catalogReader, schema, name, stream, rowCount, null);
-    }
-
-    public static MockTable create(MockCatalogReader catalogReader,
-        MockSchema schema, String name, boolean stream, double rowCount,
-        List<List<String>> customExpansionList) {
       MockTable table =
           new MockTable(catalogReader, schema.getCatalogName(), schema.name,
-              name, stream, rowCount, customExpansionList);
+              name, stream, rowCount);
       schema.addTable(name);
       return table;
     }
@@ -737,10 +717,6 @@ public class MockCatalogReader implements Prepare.CatalogReader {
               @Override public Expression getExpression(SchemaPlus schema,
                   String tableName, Class clazz) {
                 return null;
-              }
-
-              @Override public List<List<String>> getCustomStarExpansion() {
-                return customExpansionList;
               }
             });
       }
@@ -814,7 +790,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final MockTable table = new MockTable(catalogReader, names.get(0),
-          names.get(1), names.get(2), stream, rowCount, customExpansionList);
+          names.get(1), names.get(2), stream, rowCount);
       table.columnList.addAll(columnList);
       table.columnList.addAll(extendedFields);
       table.onRegister(catalogReader.typeFactory);
@@ -837,7 +813,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   public static class MockDynamicTable extends MockTable {
     MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount) {
-      super(catalogReader, catalogName, schemaName, name, stream, rowCount, null);
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount);
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {

@@ -48,7 +48,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -384,10 +383,6 @@ public class StreamTest {
     public Schema.TableType getJdbcTableType() {
       return Schema.TableType.TABLE;
     }
-
-    public List<List<String>> getCustomStarExpansion() {
-      return null;
-    }
   }
 
   /** Mock table that returns a stream of orders from a fixed array. */
@@ -553,10 +548,6 @@ public class StreamTest {
 
     public Schema.TableType getJdbcTableType() {
       return Schema.TableType.TABLE;
-    }
-
-    public List<List<String>> getCustomStarExpansion() {
-      return null;
     }
   }
 }

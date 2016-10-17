@@ -19,8 +19,6 @@ package org.apache.calcite.schema;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
-import java.util.List;
-
 /**
  * Table.
  *
@@ -58,14 +56,6 @@ public interface Table {
 
   /** Type of table. */
   Schema.TableType getJdbcTableType();
-
-  /** Returns a list of column names for star expansion that can be different
-   * from the list of column names from the Table's row type.
-   *
-   * @return a list of column names for custom star expansion;
-   *         or null if the default expansion will be used.
-   */
-  List<List<String>> getCustomStarExpansion();
 }
 
 // End Table.java

@@ -201,13 +201,6 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     return true;
   }
 
-  public boolean shouldUseCustomStarExpansion() {
-    // Disable custom star expansion otherwise SqlValidatorNamespace.getTable()
-    // could be called on a SqlValidatorNamespace that was not successfully
-    // validated.
-    return false;
-  }
-
   protected boolean shouldAllowOverRelation() {
     return true; // no reason not to be lenient
   }

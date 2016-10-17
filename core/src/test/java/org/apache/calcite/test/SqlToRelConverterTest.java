@@ -1745,12 +1745,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testStructTypeWithSelectStar2() {
-    final String sql = "select * from struct.t t1 join struct.t t2\n"
-        + "on t1.k0 = t2.k0";
-    sql(sql).ok();
-  }
-
   @Test public void testStructTypeWithSelectFieldNameDotStar() {
     final String sql = "select f1.* from struct.t";
     sql(sql).ok();

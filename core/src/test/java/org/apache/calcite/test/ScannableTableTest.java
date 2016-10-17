@@ -375,10 +375,6 @@ public class ScannableTableTest {
       return Schema.TableType.TABLE;
     }
 
-    public List<List<String>> getCustomStarExpansion() {
-      return null;
-    }
-
     public Enumerable<Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
@@ -403,10 +399,6 @@ public class ScannableTableTest {
 
     public Schema.TableType getJdbcTableType() {
       return Schema.TableType.TABLE;
-    }
-
-    public List<List<String>> getCustomStarExpansion() {
-      return null;
     }
 
     public Enumerable<Object[]> scan(DataContext root) {

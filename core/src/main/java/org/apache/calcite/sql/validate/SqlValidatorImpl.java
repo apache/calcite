@@ -19,7 +19,6 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -461,49 +460,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                scope,
                includeSystemVars);
         } else {
-          List<List<String>> customStarExpansion = null;
-          if (shouldUseCustomStarExpansion()) {
-            SqlValidatorTable validatorTable = p.right.getTable();
-            if (validatorTable instanceof Prepare.PreparingTable) {
-              Table table =
-                  ((Prepare.PreparingTable) validatorTable).unwrap(Table.class);
-              customStarExpansion = table.getCustomStarExpansion();
-            }
-          }
-          if (customStarExpansion != null) {
-            for (List<String> name : customStarExpansion) {
-              SqlIdentifier exp = new SqlIdentifier(
-                  Lists.asList(p.left, name.toArray(new String[name.size()])),
-                  startPosition);
-              addToSelectList(
-                  selectItems,
-                  aliases,
-                  types,
-                  exp,
-                  scope,
-                  includeSystemVars);
-            }
-          } else {
-            final SqlNode from = p.right.getNode();
-            final SqlValidatorNamespace fromNs = getNamespace(from, scope);
-            assert fromNs != null;
-            final RelDataType rowType = fromNs.getRowType();
-            for (RelDataTypeField field : rowType.getFieldList()) {
-              String columnName = field.getName();
+          final SqlNode from = p.right.getNode();
+          final SqlValidatorNamespace fromNs = getNamespace(from, scope);
+          assert fromNs != null;
+          final RelDataType rowType = fromNs.getRowType();
+          for (RelDataTypeField field : rowType.getFieldList()) {
+            String columnName = field.getName();
 
-              // TODO: do real implicit collation here
-              final SqlNode exp =
-                  new SqlIdentifier(
-                      ImmutableList.of(p.left, columnName),
-                      startPosition);
-              addToSelectList(
-                  selectItems,
-                  aliases,
-                  types,
-                  exp,
-                  scope,
-                  includeSystemVars);
-            }
+            // TODO: do real implicit collation here
+            final SqlNode exp =
+                new SqlIdentifier(
+                    ImmutableList.of(p.left, columnName),
+                    startPosition);
+            addToSelectList(
+                selectItems,
+                aliases,
+                types,
+                exp,
+                scope,
+                includeSystemVars);
           }
         }
       }
@@ -1751,10 +1726,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public boolean shouldExpandIdentifiers() {
     return expandIdentifiers;
-  }
-
-  public boolean shouldUseCustomStarExpansion() {
-    return true;
   }
 
   protected boolean shouldAllowIntermediateOrderBy() {
