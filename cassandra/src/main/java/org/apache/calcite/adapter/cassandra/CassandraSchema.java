@@ -80,11 +80,31 @@ public class CassandraSchema extends AbstractSchema {
    * @param keyspace Cassandra keyspace name, e.g. "twissandra"
    */
   public CassandraSchema(String host, String keyspace, SchemaPlus parentSchema, String name) {
+    this(host, keyspace, null, null, parentSchema, name);
+  }
+
+  /**
+   * Creates a Cassandra schema.
+   *
+   * @param host Cassandra host, e.g. "localhost"
+   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
+   * @param username Cassandra username
+   * @param password Cassandra password
+   */
+  public CassandraSchema(String host, String keyspace, String username, String password,
+        SchemaPlus parentSchema, String name) {
     super();
 
     this.keyspace = keyspace;
     try {
-      Cluster cluster = Cluster.builder().addContactPoint(host).build();
+      Cluster cluster;
+      if (username != null && password != null) {
+        cluster = Cluster.builder().addContactPoint(host)
+            .withCredentials(username, password).build();
+      } else {
+        cluster = Cluster.builder().addContactPoint(host).build();
+      }
+
       this.session = cluster.connect(keyspace);
     } catch (Exception e) {
       throw new RuntimeException(e);
