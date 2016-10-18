@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -162,7 +161,7 @@ public class SqlDataTypeSpec extends SqlNode {
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
-    if (SqlFunctions.eq(nullable, this.nullable)) {
+    if (nullable.equals(this.nullable)) {
       return this;
     }
     return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
