@@ -23,12 +23,12 @@ import java.util.List;
  * custom star expansion.  This list will also be used as target columns in
  * INSERT if the original target column list is not present.
  *
- * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
- *
  * <p>It is optional for a Table to implement this interface. If Table does
  * not implement this interface, star expansion will be performed in the
  * default way according to the Table's row type.</p>
+ *
+ * <p><strong>NOTE: This class is experimental and subject to
+ * change/removal without notice</strong>.</p>
  */
 public interface CustomExpansionTable extends Table {
   /** Returns a list of column names for custom star expansion. */
