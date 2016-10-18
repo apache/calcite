@@ -599,20 +599,304 @@ public class SqlFunctionsTest {
     assertThat(floorDiv(-11, 3), equalTo(-4L));
     assertThat(floorDiv(0, 3), equalTo(0L));
     assertThat(floorDiv(1, 3), equalTo(0L));
-    assertThat(floorDiv(-1, 3), equalTo(-1L));
+    assertThat(floorDiv(-1, 3), is(-1L));
   }
 
   @Test public void testFloorMod() {
-    assertThat(floorMod(13, 3), equalTo(1L));
-    assertThat(floorMod(12, 3), equalTo(0L));
-    assertThat(floorMod(11, 3), equalTo(2L));
-    assertThat(floorMod(-13, 3), equalTo(2L));
-    assertThat(floorMod(-12, 3), equalTo(0L));
-    assertThat(floorMod(-11, 3), equalTo(1L));
-    assertThat(floorMod(0, 3), equalTo(0L));
-    assertThat(floorMod(1, 3), equalTo(1L));
-    assertThat(floorMod(-1, 3), equalTo(2L));
+    assertThat(floorMod(13, 3), is(1L));
+    assertThat(floorMod(12, 3), is(0L));
+    assertThat(floorMod(11, 3), is(2L));
+    assertThat(floorMod(-13, 3), is(2L));
+    assertThat(floorMod(-12, 3), is(0L));
+    assertThat(floorMod(-11, 3), is(1L));
+    assertThat(floorMod(0, 3), is(0L));
+    assertThat(floorMod(1, 3), is(1L));
+    assertThat(floorMod(-1, 3), is(2L));
   }
+
+  @Test public void testEqWithAny() {
+    // Non-numeric same type equality check
+    assertThat(SqlFunctions.eqAny("hello", "hello"), is(true));
+
+    // Numeric types equality check
+    assertThat(SqlFunctions.eqAny(1, 1L), is(true));
+    assertThat(SqlFunctions.eqAny(1, 1.0D), is(true));
+    assertThat(SqlFunctions.eqAny(1L, 1.0D), is(true));
+    assertThat(SqlFunctions.eqAny(new BigDecimal(1L), 1), is(true));
+    assertThat(SqlFunctions.eqAny(new BigDecimal(1L), 1L), is(true));
+    assertThat(SqlFunctions.eqAny(new BigDecimal(1L), 1.0D), is(true));
+    assertThat(SqlFunctions.eqAny(new BigDecimal(1L), new BigDecimal(1.0D)),
+        is(true));
+
+    // Non-numeric different type equality check
+    assertThat(SqlFunctions.eqAny("2", 2), is(false));
+  }
+
+  @Test public void testNeWithAny() {
+    // Non-numeric same type inequality check
+    assertThat(SqlFunctions.neAny("hello", "world"), is(true));
+
+    // Numeric types inequality check
+    assertThat(SqlFunctions.neAny(1, 2L), is(true));
+    assertThat(SqlFunctions.neAny(1, 2.0D), is(true));
+    assertThat(SqlFunctions.neAny(1L, 2.0D), is(true));
+    assertThat(SqlFunctions.neAny(new BigDecimal(2L), 1), is(true));
+    assertThat(SqlFunctions.neAny(new BigDecimal(2L), 1L), is(true));
+    assertThat(SqlFunctions.neAny(new BigDecimal(2L), 1.0D), is(true));
+    assertThat(SqlFunctions.neAny(new BigDecimal(2L), new BigDecimal(1.0D)),
+        is(true));
+
+    // Non-numeric different type inequality check
+    assertThat(SqlFunctions.neAny("2", 2), is(true));
+  }
+
+  @Test public void testLtWithAny() {
+    // Non-numeric same type "less then" check
+    assertThat(SqlFunctions.ltAny("apple", "banana"), is(true));
+
+    // Numeric types "less than" check
+    assertThat(SqlFunctions.ltAny(1, 2L), is(true));
+    assertThat(SqlFunctions.ltAny(1, 2.0D), is(true));
+    assertThat(SqlFunctions.ltAny(1L, 2.0D), is(true));
+    assertThat(SqlFunctions.ltAny(new BigDecimal(1L), 2), is(true));
+    assertThat(SqlFunctions.ltAny(new BigDecimal(1L), 2L), is(true));
+    assertThat(SqlFunctions.ltAny(new BigDecimal(1L), 2.0D), is(true));
+    assertThat(SqlFunctions.ltAny(new BigDecimal(1L), new BigDecimal(2.0D)),
+        is(true));
+
+    // Non-numeric different type but both implements Comparable
+    // "less than" check
+    try {
+      assertThat(SqlFunctions.ltAny("1", 2L), is(false));
+      fail("'lt' on non-numeric different type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for comparison: class java.lang.String < "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testLeWithAny() {
+    // Non-numeric same type "less or equal" check
+    assertThat(SqlFunctions.leAny("apple", "banana"), is(true));
+    assertThat(SqlFunctions.leAny("apple", "apple"), is(true));
+
+    // Numeric types "less or equal" check
+    assertThat(SqlFunctions.leAny(1, 2L), is(true));
+    assertThat(SqlFunctions.leAny(1, 1L), is(true));
+    assertThat(SqlFunctions.leAny(1, 2.0D), is(true));
+    assertThat(SqlFunctions.leAny(1, 1.0D), is(true));
+    assertThat(SqlFunctions.leAny(1L, 2.0D), is(true));
+    assertThat(SqlFunctions.leAny(1L, 1.0D), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), 2), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), 1), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), 2L), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), 1L), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), 2.0D), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), 1.0D), is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), new BigDecimal(2.0D)),
+        is(true));
+    assertThat(SqlFunctions.leAny(new BigDecimal(1L), new BigDecimal(1.0D)),
+        is(true));
+
+    // Non-numeric different type but both implements Comparable
+    // "less or equal" check
+    try {
+      assertThat(SqlFunctions.leAny("2", 2L), is(false));
+      fail("'le' on non-numeric different type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for comparison: class java.lang.String <= "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testGtWithAny() {
+    // Non-numeric same type "greater then" check
+    assertThat(SqlFunctions.gtAny("banana", "apple"), is(true));
+
+    // Numeric types "greater than" check
+    assertThat(SqlFunctions.gtAny(2, 1L), is(true));
+    assertThat(SqlFunctions.gtAny(2, 1.0D), is(true));
+    assertThat(SqlFunctions.gtAny(2L, 1.0D), is(true));
+    assertThat(SqlFunctions.gtAny(new BigDecimal(2L), 1), is(true));
+    assertThat(SqlFunctions.gtAny(new BigDecimal(2L), 1L), is(true));
+    assertThat(SqlFunctions.gtAny(new BigDecimal(2L), 1.0D), is(true));
+    assertThat(SqlFunctions.gtAny(new BigDecimal(2L), new BigDecimal(1.0D)),
+        is(true));
+
+    // Non-numeric different type but both implements Comparable
+    // "greater than" check
+    try {
+      assertThat(SqlFunctions.gtAny("2", 1L), is(false));
+      fail("'gt' on non-numeric different type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for comparison: class java.lang.String > "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testGeWithAny() {
+    // Non-numeric same type "greater or equal" check
+    assertThat(SqlFunctions.geAny("banana", "apple"), is(true));
+    assertThat(SqlFunctions.geAny("apple", "apple"), is(true));
+
+    // Numeric types "greater or equal" check
+    assertThat(SqlFunctions.geAny(2, 1L), is(true));
+    assertThat(SqlFunctions.geAny(1, 1L), is(true));
+    assertThat(SqlFunctions.geAny(2, 1.0D), is(true));
+    assertThat(SqlFunctions.geAny(1, 1.0D), is(true));
+    assertThat(SqlFunctions.geAny(2L, 1.0D), is(true));
+    assertThat(SqlFunctions.geAny(1L, 1.0D), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(2L), 1), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(1L), 1), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(2L), 1L), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(1L), 1L), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(2L), 1.0D), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(1L), 1.0D), is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(2L), new BigDecimal(1.0D)),
+        is(true));
+    assertThat(SqlFunctions.geAny(new BigDecimal(1L), new BigDecimal(1.0D)),
+        is(true));
+
+    // Non-numeric different type but both implements Comparable
+    // "greater or equal" check
+    try {
+      assertThat(SqlFunctions.geAny("2", 2L), is(false));
+      fail("'ge' on non-numeric different type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for arithmetic: class java.lang.String >= "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testPlusAny() {
+    // null parameters
+    assertNull(SqlFunctions.plusAny(null, null));
+    assertNull(SqlFunctions.plusAny(null, 1));
+    assertNull(SqlFunctions.plusAny(1, null));
+
+    // Numeric types
+    assertThat(SqlFunctions.plusAny(2, 1L), is((Object) new BigDecimal(3)));
+    assertThat(SqlFunctions.plusAny(2, 1.0D), is((Object) new BigDecimal(3)));
+    assertThat(SqlFunctions.plusAny(2L, 1.0D), is((Object) new BigDecimal(3)));
+    assertThat(SqlFunctions.plusAny(new BigDecimal(2L), 1),
+        is((Object) new BigDecimal(3)));
+    assertThat(SqlFunctions.plusAny(new BigDecimal(2L), 1L),
+        is((Object) new BigDecimal(3)));
+    assertThat(SqlFunctions.plusAny(new BigDecimal(2L), 1.0D),
+        is((Object) new BigDecimal(3)));
+    assertThat(SqlFunctions.plusAny(new BigDecimal(2L), new BigDecimal(1.0D)),
+        is((Object) new BigDecimal(3)));
+
+    // Non-numeric type
+    try {
+      SqlFunctions.plusAny("2", 2L);
+      fail("'plus' on non-numeric type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for arithmetic: class java.lang.String + "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testMinusAny() {
+    // null parameters
+    assertNull(SqlFunctions.minusAny(null, null));
+    assertNull(SqlFunctions.minusAny(null, 1));
+    assertNull(SqlFunctions.minusAny(1, null));
+
+    // Numeric types
+    assertThat(SqlFunctions.minusAny(2, 1L), is((Object) new BigDecimal(1)));
+    assertThat(SqlFunctions.minusAny(2, 1.0D), is((Object) new BigDecimal(1)));
+    assertThat(SqlFunctions.minusAny(2L, 1.0D), is((Object) new BigDecimal(1)));
+    assertThat(SqlFunctions.minusAny(new BigDecimal(2L), 1),
+        is((Object) new BigDecimal(1)));
+    assertThat(SqlFunctions.minusAny(new BigDecimal(2L), 1L),
+        is((Object) new BigDecimal(1)));
+    assertThat(SqlFunctions.minusAny(new BigDecimal(2L), 1.0D),
+        is((Object) new BigDecimal(1)));
+    assertThat(SqlFunctions.minusAny(new BigDecimal(2L), new BigDecimal(1.0D)),
+        is((Object) new BigDecimal(1)));
+
+    // Non-numeric type
+    try {
+      SqlFunctions.minusAny("2", 2L);
+      fail("'minus' on non-numeric type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for arithmetic: class java.lang.String - "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testMultiplyAny() {
+    // null parameters
+    assertNull(SqlFunctions.multiplyAny(null, null));
+    assertNull(SqlFunctions.multiplyAny(null, 1));
+    assertNull(SqlFunctions.multiplyAny(1, null));
+
+    // Numeric types
+    assertThat(SqlFunctions.multiplyAny(2, 1L), is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(2, 1.0D),
+        is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(2L, 1.0D),
+        is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1),
+        is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1L),
+        is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1.0D),
+        is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), new BigDecimal(1.0D)),
+        is((Object) new BigDecimal(2)));
+
+    // Non-numeric type
+    try {
+      SqlFunctions.multiplyAny("2", 2L);
+      fail("'multiply' on non-numeric type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for arithmetic: class java.lang.String * "
+              + "class java.lang.Long"));
+    }
+  }
+
+  @Test public void testDivideAny() {
+    // null parameters
+    assertNull(SqlFunctions.divideAny(null, null));
+    assertNull(SqlFunctions.divideAny(null, 1));
+    assertNull(SqlFunctions.divideAny(1, null));
+
+    // Numeric types
+    assertThat(SqlFunctions.divideAny(5, 2L),
+        is((Object) new BigDecimal("2.5")));
+    assertThat(SqlFunctions.divideAny(5, 2.0D),
+        is((Object) new BigDecimal("2.5")));
+    assertThat(SqlFunctions.divideAny(5L, 2.0D),
+        is((Object) new BigDecimal("2.5")));
+    assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2),
+        is((Object) new BigDecimal(2.5)));
+    assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2L),
+        is((Object) new BigDecimal(2.5)));
+    assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2.0D),
+        is((Object) new BigDecimal(2.5)));
+    assertThat(SqlFunctions.divideAny(new BigDecimal(5L), new BigDecimal(2.0D)),
+        is((Object) new BigDecimal(2.5)));
+
+    // Non-numeric type
+    try {
+      SqlFunctions.divideAny("5", 2L);
+      fail("'divide' on non-numeric type is not possible");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          is("Invalid types for arithmetic: class java.lang.String / "
+              + "class java.lang.Long"));
+    }
+  }
+
 }
 
 // End SqlFunctionsTest.java
