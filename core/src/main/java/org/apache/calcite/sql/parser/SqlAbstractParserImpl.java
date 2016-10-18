@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -444,9 +445,9 @@ public abstract class SqlAbstractParserImpl {
   public abstract void setIdentifierMaxLength(int identifierMaxLength);
 
   /**
-   * Sets whether the bang-equal token != is allowed as an alternative to &lt;&gt;.
+   * Sets the SQL language conformance level.
    */
-  public abstract void setAllowBangEqual(boolean allowBangEqual);
+  public abstract void setConformance(SqlConformance conformance);
 
   /**
    * Sets the SQL text that is being parsed.

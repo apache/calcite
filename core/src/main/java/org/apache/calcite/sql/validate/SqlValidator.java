@@ -109,7 +109,7 @@ public interface SqlValidator {
 
   /**
    * Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
-   * Default is {@link SqlConformance#DEFAULT}.
+   * Default is {@link SqlConformanceEnum#DEFAULT}.
    *
    * @return dialect of SQL this validator recognizes
    */

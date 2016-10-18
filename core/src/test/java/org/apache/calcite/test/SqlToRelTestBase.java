@@ -44,6 +44,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
@@ -591,7 +592,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public SqlConformance getConformance() {
-      return SqlConformance.DEFAULT;
+      return SqlConformanceEnum.DEFAULT;
     }
 
     public SqlValidator createValidator(

@@ -209,7 +209,7 @@ public class SqlValidatorUtil {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory) {
     return newValidator(opTab, catalogReader, typeFactory,
-        SqlConformance.DEFAULT);
+        SqlConformanceEnum.DEFAULT);
   }
 
   /**

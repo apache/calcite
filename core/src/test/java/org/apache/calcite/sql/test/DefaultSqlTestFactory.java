@@ -26,6 +26,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
@@ -51,7 +52,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
           .put("quotedCasing", Casing.UNCHANGED)
           .put("unquotedCasing", Casing.TO_UPPER)
           .put("caseSensitive", true)
-          .put("conformance", SqlConformance.DEFAULT)
+          .put("conformance", SqlConformanceEnum.DEFAULT)
           .put("operatorTable", SqlStdOperatorTable.instance())
           .put("connectionFactory",
               CalciteAssert.EMPTY_CONNECTION_FACTORY
@@ -80,7 +81,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
             .setQuoting((Quoting) factory.get("quoting"))
             .setUnquotedCasing((Casing) factory.get("unquotedCasing"))
             .setQuotedCasing((Casing) factory.get("quotedCasing"))
-            .setAllowBangEqual(((SqlConformance) factory.get("conformance")).isBangEqualAllowed())
+            .setConformance((SqlConformance) factory.get("conformance"))
             .build());
   }
 

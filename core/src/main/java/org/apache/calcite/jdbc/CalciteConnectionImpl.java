@@ -54,7 +54,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
@@ -430,7 +430,7 @@ abstract class CalciteConnectionImpl
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
           new CalciteCatalogReader(rootSchema, con.config().caseSensitive(),
               schemaPath, typeFactory),
-          typeFactory, SqlConformance.DEFAULT);
+          typeFactory, SqlConformanceEnum.DEFAULT);
       return new SqlAdvisor(validator);
     }
 

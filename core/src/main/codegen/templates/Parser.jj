@@ -96,10 +96,10 @@ import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.slf4j.Logger;
@@ -135,7 +135,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
-    private boolean allowBangEqual;
+    private SqlConformance conformance;
 
     /**
      * {@link SqlParserImplFactory} implementation for creating parser.
@@ -146,7 +146,6 @@ public class ${parser.class} extends SqlAbstractParserImpl
         }
     };
 
-    // implement SqlAbstractParserImpl
     public SqlParseException normalizeException(Throwable ex)
     {
         try {
@@ -159,7 +158,6 @@ public class ${parser.class} extends SqlAbstractParserImpl
         }
     }
 
-    // implement SqlAbstractParserImpl
     public Metadata getMetadata()
     {
         synchronized (${parser.class}.class) {
@@ -171,13 +169,11 @@ public class ${parser.class} extends SqlAbstractParserImpl
         }
     }
 
-    // implement SqlAbstractParserImpl
     public void setTabSize(int tabSize)
     {
         jj_input_stream.setTabSize(tabSize);
     }
 
-    // implement SqlAbstractParserImpl
     public void switchTo(String stateName)
     {
         int state = Arrays.asList(${parser.class}TokenManager.lexStateNames)
@@ -185,37 +181,31 @@ public class ${parser.class} extends SqlAbstractParserImpl
         token_source.SwitchTo(state);
     }
 
-    // implement SqlAbstractParserImpl
     public void setQuotedCasing(Casing quotedCasing)
     {
         this.quotedCasing = quotedCasing;
     }
 
-    // implement SqlAbstractParserImpl
     public void setUnquotedCasing(Casing unquotedCasing)
     {
         this.unquotedCasing = unquotedCasing;
     }
 
-    // implement SqlAbstractParserImpl
     public void setIdentifierMaxLength(int identifierMaxLength)
     {
         this.identifierMaxLength = identifierMaxLength;
     }
 
-    // implement SqlAbstractParserImpl
-    public void setAllowBangEqual(boolean allowBangEqual)
+    public void setConformance(SqlConformance conformance)
     {
-        this.allowBangEqual = allowBangEqual;
+        this.conformance = conformance;
     }
 
-    // implement SqlAbstractParserImpl
     public SqlNode parseSqlExpressionEof() throws Exception
     {
         return SqlExpressionEof();
     }
 
-    // implement SqlAbstractParserImpl
     public SqlNode parseSqlStmtEof() throws Exception
     {
         return SqlStmtEof();
@@ -4742,7 +4732,7 @@ SqlBinaryOperator BinaryRowOperator() :
     { return SqlStdOperatorTable.NOT_EQUALS; }
     | <NE2>
     {
-        if (!this.allowBangEqual) {
+        if (!this.conformance.isBangEqualAllowed()) {
             throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
         }
         return SqlStdOperatorTable.NOT_EQUALS;

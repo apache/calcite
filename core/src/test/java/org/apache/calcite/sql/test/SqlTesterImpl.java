@@ -39,6 +39,7 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
@@ -290,7 +291,7 @@ public class SqlTesterImpl implements SqlTester {
 
   public SqlTesterImpl withConformance(SqlConformance conformance) {
     if (conformance == null) {
-      conformance = SqlConformance.DEFAULT;
+      conformance = SqlConformanceEnum.DEFAULT;
     }
     return with("conformance", conformance);
   }

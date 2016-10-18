@@ -29,7 +29,10 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -46,11 +49,14 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -5731,6 +5737,49 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     return buf.toString();
   }
 
+  @Test public void testAbstractConformance()
+      throws InvocationTargetException, IllegalAccessException {
+    final SqlAbstractConformance c0 = new SqlAbstractConformance() {
+    };
+    final SqlConformance c1 = SqlConformanceEnum.DEFAULT;
+    for (Method method : SqlConformance.class.getMethods()) {
+      final Object o0 = method.invoke(c0);
+      final Object o1 = method.invoke(c1);
+      assertThat(method.toString(), Objects.equals(o0, o1), is(true));
+    }
+  }
+
+  @Test public void testUserDefinedConformance() {
+    final SqlAbstractConformance c =
+        new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+          public boolean isBangEqualAllowed() {
+            return true;
+          }
+        };
+    // Our conformance behaves differently from ORACLE_10 for FROM-less query.
+    final SqlTester customTester = tester.withConformance(c);
+    final SqlTester defaultTester =
+        tester.withConformance(SqlConformanceEnum.DEFAULT);
+    final SqlTester oracleTester =
+        tester.withConformance(SqlConformanceEnum.ORACLE_10);
+    sql("^select 2+2^")
+        .tester(customTester)
+        .ok()
+        .tester(defaultTester)
+        .ok()
+        .tester(oracleTester)
+        .fails("SELECT must have a FROM clause");
+
+    // Our conformance behaves like ORACLE_10 for "!=" operator.
+    sql("select * from (values 1) where 1 != 2")
+        .tester(customTester)
+        .ok()
+        .tester(defaultTester)
+        .fails("Bang equal '!=' is not allowed under the current SQL conformance level")
+        .tester(oracleTester)
+        .ok();
+  }
+
   @Test public void testOrder() {
     final SqlConformance conformance = tester.getConformance();
     check("select empno as x from emp order by empno");
@@ -7016,13 +7065,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testSelectWithoutFrom() {
     sql("^select 2+2^")
-        .tester(tester.withConformance(SqlConformance.DEFAULT))
+        .tester(tester.withConformance(SqlConformanceEnum.DEFAULT))
         .ok();
     sql("^select 2+2^")
-        .tester(tester.withConformance(SqlConformance.ORACLE_10))
+        .tester(tester.withConformance(SqlConformanceEnum.ORACLE_10))
         .fails("SELECT must have a FROM clause");
     sql("^select 2+2^")
-        .tester(tester.withConformance(SqlConformance.STRICT_2003))
+        .tester(tester.withConformance(SqlConformanceEnum.STRICT_2003))
         .fails("SELECT must have a FROM clause");
   }
 

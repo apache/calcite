@@ -699,7 +699,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               .setQuotedCasing(config.quotedCasing())
               .setUnquotedCasing(config.unquotedCasing())
               .setQuoting(config.quoting())
-              .setAllowBangEqual(config.conformance().isBangEqualAllowed()));
+              .setConformance(config.conformance()));
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();

@@ -18,7 +18,7 @@ package org.apache.calcite.config;
 
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.model.JsonSchema;
-import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -114,7 +114,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
   /** SQL conformance level. */
-  CONFORMANCE("conformance", Type.ENUM, SqlConformance.DEFAULT, false);
+  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false);
 
   private final String camelName;
   private final Type type;

@@ -42,7 +42,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -2775,10 +2775,10 @@ public abstract class SqlOperatorBaseTest {
     // "!=" is allowed under ORACLE_10 SQL conformance level
     final SqlTester tester1 =
         tester
-            .withConformance(SqlConformance.ORACLE_10)
+            .withConformance(SqlConformanceEnum.ORACLE_10)
             .withConnectionFactory(
                 CalciteAssert.EMPTY_CONNECTION_FACTORY
-                    .with("conformance", SqlConformance.ORACLE_10));
+                    .with("conformance", SqlConformanceEnum.ORACLE_10));
 
     tester1
         .checkBoolean("1 <> 1", Boolean.FALSE);

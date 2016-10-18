@@ -25,6 +25,7 @@ import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,7 +151,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
 
   public SqlConformance conformance() {
     return CalciteConnectionProperty.CONFORMANCE.wrap(properties)
-        .getEnum(SqlConformance.class);
+        .getEnum(SqlConformanceEnum.class);
   }
 }
 

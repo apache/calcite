@@ -18,95 +18,106 @@ package org.apache.calcite.sql.validate;
 
 /**
  * Enumeration of valid SQL compatibility modes.
+ *
+ * <p>For most purposes, one of the built-in compatibility modes in enum
+ * {@link SqlConformanceEnum} will suffice.
+ *
+ * <p>If you wish to implement this interface to build your own conformance,
+ * we strongly recommend that you extend {@link SqlAbstractConformance},
+ * or use a {@link SqlDelegatingConformance},
+ * so that you won't be broken by future changes.
+ *
+ * @see SqlConformanceEnum
+ * @see SqlAbstractConformance
+ * @see SqlDelegatingConformance
  */
-public enum SqlConformance {
-  DEFAULT, STRICT_92, STRICT_99, PRAGMATIC_99, ORACLE_10, STRICT_2003,
-  PRAGMATIC_2003;
+public interface SqlConformance {
+  /** Short-cut for {@link SqlConformanceEnum#DEFAULT}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum DEFAULT = SqlConformanceEnum.DEFAULT;
+  /** Short-cut for {@link SqlConformanceEnum#STRICT_92}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum STRICT_92 = SqlConformanceEnum.STRICT_92;
+  /** Short-cut for {@link SqlConformanceEnum#STRICT_99}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum STRICT_99 = SqlConformanceEnum.STRICT_99;
+  /** Short-cut for {@link SqlConformanceEnum#PRAGMATIC_99}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum PRAGMATIC_99 = SqlConformanceEnum.PRAGMATIC_99;
+  /** Short-cut for {@link SqlConformanceEnum#ORACLE_10}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum ORACLE_10 = SqlConformanceEnum.ORACLE_10;
+  /** Short-cut for {@link SqlConformanceEnum#STRICT_2003}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum STRICT_2003 = SqlConformanceEnum.STRICT_2003;
+  /** Short-cut for {@link SqlConformanceEnum#PRAGMATIC_2003}. */
+  @SuppressWarnings("unused")
+  @Deprecated // to be removed before 2.0
+  SqlConformanceEnum PRAGMATIC_2003 = SqlConformanceEnum.PRAGMATIC_2003;
 
   /**
    * Whether 'order by 2' is interpreted to mean 'sort by the 2nd column in
    * the select list'.
    *
-   * <p>True in {@link #DEFAULT}, {@link #ORACLE_10}, {@link #STRICT_92},
-   * {@link #PRAGMATIC_99}, {@link #PRAGMATIC_2003};
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#STRICT_92},
+   * {@link SqlConformanceEnum#PRAGMATIC_99},
+   * {@link SqlConformanceEnum#PRAGMATIC_2003};
    * false otherwise.
    */
-  public boolean isSortByOrdinal() {
-    switch (this) {
-    case DEFAULT:
-    case ORACLE_10:
-    case STRICT_92:
-    case PRAGMATIC_99:
-    case PRAGMATIC_2003:
-      return true;
-    default:
-      return false;
-    }
-  }
+  boolean isSortByOrdinal();
 
   /**
    * Whether 'order by x' is interpreted to mean 'sort by the select list item
    * whose alias is x' even if there is a column called x.
    *
-   * <p>True in {@link #DEFAULT}, {@link #ORACLE_10}, {@link #STRICT_92};
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#STRICT_92};
    * false otherwise.
    */
-  public boolean isSortByAlias() {
-    switch (this) {
-    case DEFAULT:
-    case ORACLE_10:
-    case STRICT_92:
-      return true;
-    default:
-      return false;
-    }
-  }
+  boolean isSortByAlias();
 
   /**
    * Whether "empno" is invalid in "select empno as x from emp order by empno"
    * because the alias "x" obscures it.
    *
-   * <p>True in {@link #STRICT_92};
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#STRICT_92};
    * false otherwise.
    */
-  public boolean isSortByAliasObscures() {
-    return this == SqlConformance.STRICT_92;
-  }
+  boolean isSortByAliasObscures();
 
   /**
    * Whether FROM clause is required in a SELECT statement.
    *
-   * <p>True in {@link #ORACLE_10}, {@link #STRICT_92}, {@link #STRICT_99},
-   * {@link #STRICT_2003};
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#STRICT_92},
+   * {@link SqlConformanceEnum#STRICT_99},
+   * {@link SqlConformanceEnum#STRICT_2003};
    * false otherwise.
    */
-  public boolean isFromRequired() {
-    switch (this) {
-    case ORACLE_10:
-    case STRICT_92:
-    case STRICT_99:
-    case STRICT_2003:
-      return true;
-    default:
-      return false;
-    }
-  }
+  boolean isFromRequired();
 
   /**
    * Whether the bang-equal token != is allowed as an alternative to &lt;&gt; in
    * the parser.
    *
-   * <p>True in {@link #ORACLE_10};
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#ORACLE_10};
    * false otherwise.
    */
-  public boolean isBangEqualAllowed() {
-    switch (this) {
-    case ORACLE_10:
-      return true;
-    default:
-      return false;
-    }
-  }
+  boolean isBangEqualAllowed();
 }
 
 // End SqlConformance.java
