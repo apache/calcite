@@ -55,6 +55,8 @@ A basic example of a model file is given below:
 }
 {% endhighlight %}
 
+Note that you can also specify `username` and `password` keys along with
+the `host` and `keyspace` if your server requires authentication.
 Assuming this file is stored as `model.json`, you can connect to
 Cassandra via [`sqlline`](https://github.com/julianhyde/sqlline) as
 follows:
