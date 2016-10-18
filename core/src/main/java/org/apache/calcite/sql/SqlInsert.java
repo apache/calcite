@@ -120,6 +120,10 @@ public class SqlInsert extends SqlCall {
     return columnList;
   }
 
+  public void setTargetColumnList(SqlNodeList columnList) {
+    this.columnList = columnList;
+  }
+
   public final SqlNode getModifierNode(SqlInsertKeyword modifier) {
     for (SqlNode keyword : keywords) {
       SqlInsertKeyword keyword2 =

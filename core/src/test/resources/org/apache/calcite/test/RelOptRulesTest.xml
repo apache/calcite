@@ -1134,7 +1134,7 @@ where c0 in (
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], C0=[$2], C10=[$3], C00=[$4], C2=[$5], A0=[$6], C3=[$7], A00=[$8])
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
   LogicalFilter(condition=[IN($2, {
 LogicalProject(C0=[$4])
   LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
@@ -1146,7 +1146,7 @@ LogicalProject(C0=[$4])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], C0=[$2], C10=[$3], C00=[$4], C2=[$5], A0=[$6], C3=[$7], A00=[$8])
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
   LogicalProject(K0=[$0], C1=[$1], C0=[$2], C13=[$3], C04=[$4], C2=[$5], A0=[$6], C3=[$7], A08=[$8])
     LogicalJoin(condition=[=($2, $9)], joinType=[inner])
       LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
@@ -1167,7 +1167,7 @@ where c0 = (
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], C0=[$2], C10=[$3], C00=[$4], C2=[$5], A0=[$6], C3=[$7], A00=[$8])
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
   LogicalFilter(condition=[=($2, $SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
   LogicalProject($f0=[$4])
@@ -1181,7 +1181,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], C0=[$2], C10=[$3], C00=[$4], C2=[$5], A0=[$6], C3=[$7], A00=[$8])
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
   LogicalProject(K0=[$0], C1=[$1], C0=[$2], C13=[$3], C04=[$4], C2=[$5], A0=[$6], C3=[$7], A08=[$8])
     LogicalFilter(condition=[=($2, $9)])
       LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{0}])
@@ -1204,7 +1204,7 @@ where c0 in (
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], C0=[$2], C10=[$3], C00=[$4], C2=[$5], A0=[$6], C3=[$7], A00=[$8])
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
   LogicalFilter(condition=[IN($2, {
 LogicalProject(C0=[$4])
   LogicalFilter(condition=[=($cor0.C2_5, $5)])
@@ -1217,7 +1217,7 @@ LogicalProject(C0=[$4])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], C0=[$2], C10=[$3], C00=[$4], C2=[$5], A0=[$6], C3=[$7], A00=[$8])
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
   LogicalProject(K0=[$0], C1=[$1], C0=[$2], C13=[$3], C04=[$4], C2=[$5], A0=[$6], C3=[$7], A08=[$8])
     LogicalFilter(condition=[=($2, $9)])
       LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{5}])
