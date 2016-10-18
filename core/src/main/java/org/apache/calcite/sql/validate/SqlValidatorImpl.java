@@ -462,8 +462,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                scope,
                includeSystemVars);
         } else {
-          List<List<String>> customStarExpansion;
-          if ((customStarExpansion = getCustomStarExpansion(p.right)) != null) {
+          final List<List<String>> customStarExpansion =
+              getCustomStarExpansion(p.right);
+          if (customStarExpansion != null) {
             for (List<String> names : customStarExpansion) {
               SqlIdentifier exp = new SqlIdentifier(
                   Lists.asList(p.left, names.toArray(new String[names.size()])),

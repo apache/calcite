@@ -20,8 +20,12 @@ import java.util.List;
 
 /**
  * Extension to {@link Table} that specifies a list of column names for
- * custom star expansion.  This list will also be used as target columns in
- * INSERT if the original target column list is not present.
+ * custom star expansion. The columns specified in the list can be any
+ * top-level column from the Table or any field or nested field under a
+ * top-level column, thus each column name is returned as a list of String
+ * objects representing the full name of the column or field. This expansion
+ * list will also be used as target columns in INSERT if the original target
+ * column list is not present.
  *
  * <p>It is optional for a Table to implement this interface. If Table does
  * not implement this interface, star expansion will be performed in the
