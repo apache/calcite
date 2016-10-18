@@ -7972,6 +7972,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql2).ok().bindType(expected2);
   }
 
+  @Test public void testInsertBindWithCustomStarExpansion() {
+    sql("insert into struct.simple values (?, ?)")
+        .ok()
+        .bindType("RecordType(TIMESTAMP(0) ?0, VARCHAR(20) ?1)");
+  }
+
   @Test public void testUpdateBind() {
     final String sql = "update emp\n"
         + "set ename = ?\n"

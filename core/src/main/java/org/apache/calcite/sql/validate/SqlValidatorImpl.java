@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -29,6 +30,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Feature;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.schema.CustomExpansionTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
@@ -460,26 +462,42 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                scope,
                includeSystemVars);
         } else {
-          final SqlNode from = p.right.getNode();
-          final SqlValidatorNamespace fromNs = getNamespace(from, scope);
-          assert fromNs != null;
-          final RelDataType rowType = fromNs.getRowType();
-          for (RelDataTypeField field : rowType.getFieldList()) {
-            String columnName = field.getName();
+          final List<List<String>> customStarExpansion =
+              getCustomStarExpansion(p.right);
+          if (customStarExpansion != null) {
+            for (List<String> names : customStarExpansion) {
+              SqlIdentifier exp = new SqlIdentifier(
+                  Lists.asList(p.left, names.toArray(new String[names.size()])),
+                  startPosition);
+              addToSelectList(
+                  selectItems,
+                  aliases,
+                  types,
+                  exp,
+                  scope,
+                  includeSystemVars);
+            }
+          } else {
+            final SqlNode from = p.right.getNode();
+            final SqlValidatorNamespace fromNs = getNamespace(from, scope);
+            assert fromNs != null;
+            final RelDataType rowType = fromNs.getRowType();
+            for (RelDataTypeField field : rowType.getFieldList()) {
+              String columnName = field.getName();
 
-            // TODO: do real implicit collation here
-            final SqlIdentifier exp =
-                new SqlIdentifier(
-                    ImmutableList.of(p.left, columnName),
-                    startPosition);
-            addOrExpandField(
-                selectItems,
-                aliases,
-                types,
-                includeSystemVars,
-                scope,
-                exp,
-                field);
+              // TODO: do real implicit collation here
+              final SqlNode exp =
+                  new SqlIdentifier(
+                      ImmutableList.of(p.left, columnName),
+                      startPosition);
+              addToSelectList(
+                  selectItems,
+                  aliases,
+                  types,
+                  exp,
+                  scope,
+                  includeSystemVars);
+            }
           }
         }
       }
@@ -512,14 +530,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           String columnName = field.getName();
 
           // TODO: do real implicit collation here
-          addOrExpandField(
+          addToSelectList(
               selectItems,
               aliases,
               types,
-              includeSystemVars,
-              scope,
               prefixId.plus(columnName, startPosition),
-              field);
+              scope,
+              includeSystemVars);
         }
       } else {
         throw newValidationError(prefixId, RESOURCE.starRequiresRecordType());
@@ -528,33 +545,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private boolean addOrExpandField(List<SqlNode> selectItems, Set<String> aliases,
-      List<Map.Entry<String, RelDataType>> types, boolean includeSystemVars,
-      SelectScope scope, SqlIdentifier id, RelDataTypeField field) {
-    switch (field.getType().getStructKind()) {
-    case PEEK_FIELDS:
-    case PEEK_FIELDS_DEFAULT:
-      final SqlNode starExp = id.plusStar();
-      expandStar(
-          selectItems,
-          aliases,
-          types,
-          includeSystemVars,
-          scope,
-          starExp);
-      return true;
-
-    default:
-      addToSelectList(
-          selectItems,
-          aliases,
-          types,
-          id,
-          scope,
-          includeSystemVars);
+  private List<List<String>> getCustomStarExpansion(SqlValidatorNamespace ns) {
+    if (!shouldUseCustomStarExpansion()) {
+      return null;
     }
-
-    return false;
+    final SqlValidatorTable table = ns.getTable();
+    if (table instanceof Prepare.PreparingTable) {
+      Table t = ((Prepare.PreparingTable) table).unwrap(Table.class);
+      if (t instanceof CustomExpansionTable) {
+        return ((CustomExpansionTable) t).getCustomStarExpansion();
+      }
+    }
+    return null;
   }
 
   public SqlNode validate(SqlNode topNode) {
@@ -1757,6 +1759,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public boolean shouldExpandIdentifiers() {
     return expandIdentifiers;
+  }
+
+  public boolean shouldUseCustomStarExpansion() {
+    return true;
   }
 
   protected boolean shouldAllowIntermediateOrderBy() {
@@ -3734,6 +3740,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateNamespace(targetNamespace, unknownType);
     SqlValidatorTable table = targetNamespace.getTable();
 
+    // If the INSERT does not have a target column list and the target
+    // table specifies a custom star expansion list, we will set the new
+    // target column list as the star expansion list.
+    rewriteTargetColumnList(insert, targetNamespace);
+
     // INSERT has an optional column name list.  If present then
     // reduce the rowtype to the columns specified.  If not present
     // then the entire target rowtype is used.
@@ -3769,6 +3780,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     checkTypeAssignment(logicalSourceRowType, logicalTargetRowType, insert);
 
     validateAccess(insert.getTargetTable(), table, SqlAccessEnum.INSERT);
+  }
+
+  private void rewriteTargetColumnList(
+      SqlInsert insert, SqlValidatorNamespace ns) {
+    final List<List<String>> customStarExpansion = getCustomStarExpansion(ns);
+    if (customStarExpansion == null) {
+      return;
+    }
+
+    final List<SqlNode> targetColumnList = new ArrayList<>();
+    final SqlParserPos startPosition = insert.getParserPosition();
+    for (List<String> names : customStarExpansion) {
+      targetColumnList.add(new SqlIdentifier(names, startPosition));
+    }
+    insert.setTargetColumnList(
+        new SqlNodeList(targetColumnList, startPosition));
   }
 
   private void checkFieldCount(

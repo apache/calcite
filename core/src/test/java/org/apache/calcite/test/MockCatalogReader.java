@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.schema.CustomExpansionTable;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.Schema;
@@ -356,7 +357,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     //   FROM EMP
     //   WHERE DEPTNO = 20 AND SAL > 1000
     MockTable emp20View = new MockViewTable(this, salesSchema.getCatalogName(),
-        salesSchema.name, "EMP_20", false, 600, empTable,
+        salesSchema.name, "EMP_20", false, 600, empTable, null,
         ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8)) {
 
       @Override public RexNode getConstraint(RexBuilder rexBuilder,
@@ -392,8 +393,19 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    final MockTable structTypeTable = MockTable.create(this, structTypeSchema,
-        "T", false, 100);
+    MockTable structTypeTable = new MockTable(this,
+        structTypeSchema.getCatalogName(), structTypeSchema.name,
+        "T", false, 100,
+        ImmutableList.<List<String>>of(
+            ImmutableList.of("K0"),
+            ImmutableList.of("C1"),
+            ImmutableList.of("F1", "A0"),
+            ImmutableList.of("F2", "A0"),
+            ImmutableList.of("F0", "C0"),
+            ImmutableList.of("F1", "C0"),
+            ImmutableList.of("F0", "C1"),
+            ImmutableList.of("F1", "C2"),
+            ImmutableList.of("F2", "C3")));
     structTypeTable.addColumn("K0", varchar20Type);
     structTypeTable.addColumn("C1", varchar20Type);
     final RelDataType f0Type = typeFactory.builder()
@@ -427,7 +439,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     MockTable struct10View = new MockViewTable(this,
         structTypeSchema.getCatalogName(),
         structTypeSchema.name, "T_10", false, 20,
-        structTypeTable, ImmutableIntList.of(0, 1, 2, 3, 4)) {
+        structTypeTable, null, ImmutableIntList.of(0, 1, 2, 3, 4)) {
 
       @Override public RexNode getConstraint(RexBuilder rexBuilder,
           RelDataType tableRowType) {
@@ -451,6 +463,19 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     struct10View.addColumn("F1", f1Type);
     struct10View.addColumn("F2", f2Type);
     registerTable(struct10View);
+
+    // TODO Remove this table and use STRUCT.T instead after
+    // CALCITE-1425 is done.
+    MockTable simpleTable = new MockTable(this,
+        structTypeSchema.getCatalogName(), structTypeSchema.name,
+        "SIMPLE", false, 100,
+        ImmutableList.<List<String>>of(
+            ImmutableList.of("K2"),
+            ImmutableList.of("K0")));
+    simpleTable.addColumn("K0", varchar20Type);
+    simpleTable.addColumn("K1", intTypeNull);
+    simpleTable.addColumn("K2", timestampType);
+    registerTable(simpleTable);
     return this;
   }
 
@@ -636,20 +661,42 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     protected final List<String> names;
     private final Set<String> monotonicColumnSet = Sets.newHashSet();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
+    protected final List<List<String>> customExpansionList;
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
-        String schemaName, String name, boolean stream, double rowCount) {
+        String schemaName, String name, boolean stream, double rowCount,
+        List<List<String>> customExpansionList) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.rowCount = rowCount;
       this.names = ImmutableList.of(catalogName, schemaName, name);
+      this.customExpansionList = customExpansionList;
+    }
+
+    /**
+     * Subclass of AbstractModifiableTable that also implements
+     * CustomExpansionTable.
+     */
+    private abstract class AbstractModifiableTableWithCustomExpansion
+        extends JdbcTest.AbstractModifiableTable
+        implements CustomExpansionTable {
+
+      protected AbstractModifiableTableWithCustomExpansion(String tableName) {
+        super(tableName);
+      }
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount) {
+      return create(catalogReader, schema, name, stream, rowCount, null);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        List<List<String>> customExpansionList) {
       MockTable table =
           new MockTable(catalogReader, schema.getCatalogName(), schema.name,
-              name, stream, rowCount);
+              name, stream, rowCount, customExpansionList);
       schema.addTable(name);
       return table;
     }
@@ -660,7 +707,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
       }
       if (clazz.isAssignableFrom(Table.class)) {
         return clazz.cast(
-            new JdbcTest.AbstractModifiableTable(Util.last(names)) {
+            new AbstractModifiableTableWithCustomExpansion(Util.last(names)) {
               @Override public RelDataType
               getRowType(RelDataTypeFactory typeFactory) {
                 return typeFactory.createStructType(rowType.getFieldList());
@@ -683,6 +730,10 @@ public class MockCatalogReader implements Prepare.CatalogReader {
               @Override public Expression getExpression(SchemaPlus schema,
                   String tableName, Class clazz) {
                 return null;
+              }
+
+              @Override public List<List<String>> getCustomStarExpansion() {
+                return customExpansionList;
               }
             });
       }
@@ -756,7 +807,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final MockTable table = new MockTable(catalogReader, names.get(0),
-          names.get(1), names.get(2), stream, rowCount);
+          names.get(1), names.get(2), stream, rowCount, customExpansionList);
       table.columnList.addAll(columnList);
       table.columnList.addAll(extendedFields);
       table.onRegister(catalogReader.typeFactory);
@@ -783,8 +834,10 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockViewTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
-        MockTable fromTable, ImmutableIntList mapping) {
-      super(catalogReader, catalogName, schemaName, name, stream, rowCount);
+        MockTable fromTable, List<List<String>> customExpansionList,
+        ImmutableIntList mapping) {
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount,
+          customExpansionList);
       this.fromTable = fromTable;
       this.table = fromTable.unwrap(Table.class);
       this.mapping = mapping;
@@ -875,7 +928,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   public static class MockDynamicTable extends MockTable {
     MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount) {
-      super(catalogReader, catalogName, schemaName, name, stream, rowCount);
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount, null);
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {
