@@ -357,7 +357,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     //   FROM EMP
     //   WHERE DEPTNO = 20 AND SAL > 1000
     MockTable emp20View = new MockViewTable(this, salesSchema.getCatalogName(),
-        salesSchema.name, "EMP_20", false, 600, empTable, null,
+        salesSchema.name, "EMP_20", false, 600, empTable,
         ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8)) {
 
       @Override public RexNode getConstraint(RexBuilder rexBuilder,
@@ -439,7 +439,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     MockTable struct10View = new MockViewTable(this,
         structTypeSchema.getCatalogName(),
         structTypeSchema.name, "T_10", false, 20,
-        structTypeTable, null, ImmutableIntList.of(0, 1, 2, 3, 4)) {
+        structTypeTable, ImmutableIntList.of(0, 1, 2, 3, 4)) {
 
       @Override public RexNode getConstraint(RexBuilder rexBuilder,
           RelDataType tableRowType) {
@@ -834,13 +834,20 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockViewTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
-        MockTable fromTable, List<List<String>> customExpansionList,
-        ImmutableIntList mapping) {
-      super(catalogReader, catalogName, schemaName, name, stream, rowCount,
-          customExpansionList);
+        MockTable fromTable, ImmutableIntList mapping) {
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount, null);
       this.fromTable = fromTable;
       this.table = fromTable.unwrap(Table.class);
       this.mapping = mapping;
+    }
+
+    /**
+     * Subclass of AbstractModifiableView that also implements
+     * CustomExpansionTable.
+     */
+    private abstract class AbstractModifiableViewWithCustomExpansion
+        extends JdbcTest.AbstractModifiableView
+        implements CustomExpansionTable {
     }
 
     protected abstract RexNode getConstraint(RexBuilder rexBuilder,
@@ -877,7 +884,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     @Override public <T> T unwrap(Class<T> clazz) {
       if (clazz.isAssignableFrom(ModifiableView.class)) {
         return clazz.cast(
-            new JdbcTest.AbstractModifiableView() {
+            new AbstractModifiableViewWithCustomExpansion() {
               @Override public Table getTable() {
                 return fromTable.unwrap(Table.class);
               }
@@ -914,6 +921,12 @@ public class MockCatalogReader implements Prepare.CatalogReader {
                         return mapping.size();
                       }
                     });
+              }
+
+              @Override public List<List<String>> getCustomStarExpansion() {
+                // To simulate getCustomStarExpansion() behavior in ViewTable.
+                return table instanceof CustomExpansionTable
+                    ? ((CustomExpansionTable) table).getCustomStarExpansion() : null;
               }
             });
       }

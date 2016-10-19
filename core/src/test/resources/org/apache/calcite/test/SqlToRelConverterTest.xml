@@ -2606,6 +2606,20 @@ LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3],
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testStructTypeWithSelectStarFromView">
+        <Resource name="sql">
+            <![CDATA[select * from struct.t_10]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
+  LogicalProject(K0=[$0], C1=[$1], F0=[$2], F03=[$3], F1=[$4], F15=[$5], F16=[$6], F2=[$7], F28=[$8])
+    LogicalFilter(condition=[=($2, 10)])
+      LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
+        LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testStructTypeWithSelectFieldNameDotStar">
         <Resource name="sql">
             <![CDATA[select f1.* from struct.t]]>
