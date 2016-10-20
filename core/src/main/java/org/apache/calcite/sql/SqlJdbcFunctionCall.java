@@ -697,7 +697,20 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("NOW", simple(SqlStdOperatorTable.CURRENT_TIMESTAMP));
       map.put("TIMESTAMPADD", simple(SqlStdOperatorTable.TIMESTAMP_ADD));
       map.put("TIMESTAMPDIFF", simple(SqlStdOperatorTable.TIMESTAMP_DIFF));
-      map.put("CONVERT", simple(SqlStdOperatorTable.CAST));
+      map.put("CONVERT",
+          new SimpleMakeCall(SqlStdOperatorTable.CAST) {
+            @Override public SqlCall createCall(SqlParserPos pos,
+                SqlNode... operands) {
+              assert 2 == operands.length;
+              SqlNode typeOperand = operands[1];
+              assert typeOperand.getKind() == SqlKind.LITERAL;
+
+              SqlJdbcDataTypeName jdbcType = ((SqlLiteral) typeOperand)
+                  .symbolValue(SqlJdbcDataTypeName.class);
+
+              return super.createCall(pos, operands[0], jdbcType.createDataType(typeOperand.pos));
+            }
+          });
       this.map = map.build();
     }
 

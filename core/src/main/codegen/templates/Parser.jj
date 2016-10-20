@@ -37,7 +37,6 @@ import ${importStr};
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
@@ -62,6 +61,7 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlInsertKeyword;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJdbcDataTypeName;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -3954,105 +3954,50 @@ SqlIdentifier TypeName() :
 }
 
 // Types used for for JDBC and ODBC scalar conversion function
-SqlDataTypeSpec JdbcOdbcType() :
+SqlJdbcDataTypeName JdbcOdbcDataTypeName() :
 {
-    final SqlTypeName typeName;
 }
 {
-    typeName = JdbcOdbcTypeName() {
-        final SqlIdentifier id = new SqlIdentifier(typeName.name(), getPos());
-        return new SqlDataTypeSpec(id, -1, -1, null, null, getPos());
+    (<SQL_CHAR> | <CHAR>) { return SqlJdbcDataTypeName.SQL_CHAR; }
+|   (<SQL_VARCHAR> | <VARCHAR>) { return SqlJdbcDataTypeName.SQL_VARCHAR; }
+|   (<SQL_DATE> | <DATE>) { return SqlJdbcDataTypeName.SQL_DATE; }
+|   (<SQL_TIME> | <TIME>) { return SqlJdbcDataTypeName.SQL_TIME; }
+|   (<SQL_TIMESTAMP> | <TIMESTAMP>) { return SqlJdbcDataTypeName.SQL_TIMESTAMP; }
+|   (<SQL_DECIMAL> | <DECIMAL>) { return SqlJdbcDataTypeName.SQL_DECIMAL; }
+|   (<SQL_NUMERIC> | <NUMERIC>) { return SqlJdbcDataTypeName.SQL_NUMERIC; }
+|   (<SQL_BOOLEAN> | <BOOLEAN>) { return SqlJdbcDataTypeName.SQL_BOOLEAN; }
+|   (<SQL_INTEGER> | <INTEGER>) { return SqlJdbcDataTypeName.SQL_INTEGER; }
+|   (<SQL_BINARY> | <BINARY>) { return SqlJdbcDataTypeName.SQL_BINARY; }
+|   (<SQL_VARBINARY> | <VARBINARY>) { return SqlJdbcDataTypeName.SQL_VARBINARY; }
+|   (<SQL_TINYINT> | <TINYINT>) { return SqlJdbcDataTypeName.SQL_TINYINT; }
+|   (<SQL_SMALLINT> | <SMALLINT>) { return SqlJdbcDataTypeName.SQL_SMALLINT; }
+|   (<SQL_BIGINT> | <BIGINT>) { return SqlJdbcDataTypeName.SQL_BIGINT; }
+|   (<SQL_REAL>| <REAL>) { return SqlJdbcDataTypeName.SQL_REAL; }
+|   (<SQL_DOUBLE> | <DOUBLE>) { return SqlJdbcDataTypeName.SQL_DOUBLE; }
+|   (<SQL_FLOAT> | <FLOAT>) { return SqlJdbcDataTypeName.SQL_FLOAT; }
+|   <SQL_INTERVAL_YEAR> { return SqlJdbcDataTypeName.SQL_INTERVAL_YEAR; }
+|   <SQL_INTERVAL_YEAR_TO_MONTH> { return SqlJdbcDataTypeName.SQL_INTERVAL_YEAR_TO_MONTH; }
+|   <SQL_INTERVAL_MONTH> { return SqlJdbcDataTypeName.SQL_INTERVAL_MONTH; }
+|   <SQL_INTERVAL_DAY> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY; }
+|   <SQL_INTERVAL_DAY_TO_HOUR> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY_TO_HOUR; }
+|   <SQL_INTERVAL_DAY_TO_MINUTE> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY_TO_MINUTE; }
+|   <SQL_INTERVAL_DAY_TO_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_DAY_TO_SECOND; }
+|   <SQL_INTERVAL_HOUR> { return SqlJdbcDataTypeName.SQL_INTERVAL_HOUR; }
+|   <SQL_INTERVAL_HOUR_TO_MINUTE> { return SqlJdbcDataTypeName.SQL_INTERVAL_HOUR_TO_MINUTE; }
+|   <SQL_INTERVAL_HOUR_TO_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_HOUR_TO_SECOND; }
+|   <SQL_INTERVAL_MINUTE> { return SqlJdbcDataTypeName.SQL_INTERVAL_MINUTE; }
+|   <SQL_INTERVAL_MINUTE_TO_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_MINUTE_TO_SECOND; }
+|   <SQL_INTERVAL_SECOND> { return SqlJdbcDataTypeName.SQL_INTERVAL_SECOND; }
+}
+
+SqlLiteral JdbcOdbcDataType() :
+{
+    SqlJdbcDataTypeName typeName;
+}
+{
+    typeName = JdbcOdbcDataTypeName() {
+        return typeName.symbol(getPos());
     }
-}
-
-SqlTypeName JdbcOdbcTypeName() :
-{
-}
-{
-    (<SQL_CHAR> | <CHAR>) { return SqlTypeName.CHAR; }
-|   (<SQL_VARCHAR> | <VARCHAR>) { return SqlTypeName.VARCHAR; }
-|   (<SQL_DATE> | <DATE>) { return SqlTypeName.DATE; }
-|   (<SQL_TIME> | <TIME>) { return SqlTypeName.TIME; }
-|   (<SQL_TIMESTAMP> | <TIMESTAMP>) { return SqlTypeName.TIMESTAMP; }
-|   (<SQL_DECIMAL> | <DECIMAL> | <SQL_NUMERIC> | <NUMERIC>) { return SqlTypeName.DECIMAL; }
-|   (<SQL_BOOLEAN> | <BOOLEAN>) { return SqlTypeName.BOOLEAN; }
-|   (<SQL_INTEGER> | <INTEGER>) { return SqlTypeName.INTEGER; }
-|   (<SQL_BINARY> | <BINARY>) { return SqlTypeName.BINARY; }
-|   (<SQL_VARBINARY> | <VARBINARY>) { return SqlTypeName.VARBINARY; }
-|   (<SQL_TINYINT> | <TINYINT>) { return SqlTypeName.TINYINT; }
-|   (<SQL_SMALLINT> | <SMALLINT>) { return SqlTypeName.SMALLINT; }
-|   (<SQL_BIGINT> | <BIGINT>) { return SqlTypeName.BIGINT; }
-|   (<SQL_REAL>| <REAL>) { return SqlTypeName.REAL; }
-|   (<SQL_DOUBLE> | <DOUBLE>) { return SqlTypeName.DOUBLE; }
-|   (<SQL_FLOAT> | <FLOAT>) { return SqlTypeName.FLOAT; }
-}
-
-// Interval types used for for JDBC and ODBC scalar conversion function
-SqlIntervalQualifier JdbcOdbcIntervalType() :
-{
-    TimeUnitRange range;
-}
-{
-    range = JdbcOdbcIntervalTypeName() {
-        return new SqlIntervalQualifier(range.startUnit, range.endUnit, getPos());
-    }
-}
-
-TimeUnitRange JdbcOdbcIntervalTypeName() :
-{
-}
-{
-    (
-        <SQL_INTERVAL_YEAR> { return TimeUnitRange.YEAR; }
-    |   <SQL_INTERVAL_YEAR_TO_MONTH> { return TimeUnitRange.YEAR_TO_MONTH; }
-    |   <SQL_INTERVAL_MONTH> { return TimeUnitRange.MONTH; }
-    |   <SQL_INTERVAL_DAY> { return TimeUnitRange.DAY; }
-    |   <SQL_INTERVAL_DAY_TO_HOUR> { return TimeUnitRange.DAY_TO_HOUR; }
-    |   <SQL_INTERVAL_DAY_TO_MINUTE> { return TimeUnitRange.DAY_TO_MINUTE; }
-    |   <SQL_INTERVAL_DAY_TO_SECOND> { return TimeUnitRange.DAY_TO_SECOND; }
-    |   <SQL_INTERVAL_HOUR> { return TimeUnitRange.HOUR; }
-    |   <SQL_INTERVAL_HOUR_TO_MINUTE> { return TimeUnitRange.HOUR_TO_MINUTE; }
-    |   <SQL_INTERVAL_HOUR_TO_SECOND> { return TimeUnitRange.HOUR_TO_SECOND; }
-    |   <SQL_INTERVAL_MINUTE> { return TimeUnitRange.MINUTE; }
-    |   <SQL_INTERVAL_MINUTE_TO_SECOND> { return TimeUnitRange.MINUTE_TO_SECOND; }
-    |   <SQL_INTERVAL_SECOND> { return TimeUnitRange.SECOND; }
-    |   <INTERVAL>
-        (
-            <YEAR>
-            (
-                LOOKAHEAD(1)
-                <TO> <MONTH> { return TimeUnitRange.YEAR_TO_MONTH; }
-            |   { return TimeUnitRange.YEAR; }
-            )
-        |   <MONTH> { return TimeUnitRange.MONTH; }
-        |   <DAY>
-            (
-                LOOKAHEAD(1)
-                <TO>
-                (   <HOUR> { return TimeUnitRange.DAY_TO_HOUR; }
-                |   <MINUTE> { return TimeUnitRange.DAY_TO_MINUTE; }
-                |   <SECOND> { return TimeUnitRange.DAY_TO_SECOND; }
-                )
-            |   { return TimeUnitRange.DAY; }
-            )
-        |   <HOUR>
-            (
-                LOOKAHEAD(1)
-                <TO>
-                (   <MINUTE> { return TimeUnitRange.HOUR_TO_MINUTE; }
-                |   <SECOND> { return TimeUnitRange.DAY_TO_SECOND; }
-                )
-            |   { return TimeUnitRange.HOUR; }
-            )
-        |   <MINUTE>
-            (
-                LOOKAHEAD(1)
-                <TO> <SECOND> { return TimeUnitRange.MINUTE_TO_SECOND; }
-            |   { return TimeUnitRange.MINUTE; }
-            )
-        |   <SECOND> { return TimeUnitRange.SECOND; }
-        )
-    )
 }
 
 SqlIdentifier CollectionsTypeName() :
@@ -4697,8 +4642,7 @@ SqlNode JdbcFunctionCall() :
     String name;
     SqlIdentifier id;
     SqlNode e;
-    SqlDataTypeSpec dt;
-    SqlIntervalQualifier iq;
+    SqlLiteral tl;
     SqlNodeList args;
     SqlCall call;
     SqlParserPos pos;
@@ -4729,9 +4673,7 @@ SqlNode JdbcFunctionCall() :
         }
         <COMMA>
         (
-            dt = JdbcOdbcType() { args.add(dt); }
-        |
-            iq = JdbcOdbcIntervalType() { args.add(iq); }
+            tl = JdbcOdbcDataType() { args.add(tl); }
         )
         <RPAREN>
     |
