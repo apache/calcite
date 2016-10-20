@@ -805,11 +805,27 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
 
     final String sql = "select * from emp where deptno = 10\n"
+        + "union\n"
+        + "select * from emp where deptno = 20\n"
+        + "union all\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  /** Tests that {@link UnionMergeRule} converts all inputs to DISTINCT
+   * if the top one is DISTINCT.
+   * (Since UNION is left-associative, the "top one" is the rightmost.) */
+  @Test public void testMergeUnionMixed2() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
         + "union all\n"
         + "select * from emp where deptno = 20\n"
         + "union\n"
         + "select * from emp where deptno = 30\n";
-    sql(sql).with(program).checkUnchanged();
+    sql(sql).with(program).check();
   }
 
   /** Tests that {@link UnionMergeRule} does nothing if its arguments have

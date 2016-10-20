@@ -105,8 +105,10 @@ public class UnionMergeRule extends RelOptRule {
       return;
     }
 
-    // Can only combine if both are ALL or both are DISTINCT (i.e. not ALL).
-    if (topOp.all != bottomOp.all) {
+    // Can only combine (1) if all operators are ALL,
+    // or (2) top operator is DISTINCT (i.e. not ALL).
+    // In case (2), all operators become DISTINCT.
+    if (topOp.all && !bottomOp.all) {
       return;
     }
 
