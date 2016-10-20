@@ -29,8 +29,11 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
@@ -81,6 +84,7 @@ import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.TableScanRule;
+import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -762,6 +766,117 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "where deptno = 10\n");
   }
 
+  /** Tests {@link UnionMergeRule}, which merges 2 {@link Union} operators into
+   * a single {@code Union} with 3 inputs. */
+  @Test public void testMergeUnionAll() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "union all\n"
+        + "select * from emp where deptno = 20\n"
+        + "union all\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).check();
+  }
+
+  /** Tests {@link UnionMergeRule}, which merges 2 {@link Union}
+   * {@code DISTINCT} (not {@code ALL}) operators into a single
+   * {@code Union} with 3 inputs. */
+  @Test public void testMergeUnionDistinct() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "union distinct\n"
+        + "select * from emp where deptno = 20\n"
+        + "union\n" // same as 'union distinct'
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).check();
+  }
+
+  /** Tests that {@link UnionMergeRule} does nothing if its arguments have
+   * different {@code ALL} settings. */
+  @Test public void testMergeUnionMixed() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "union all\n"
+        + "select * from emp where deptno = 20\n"
+        + "union\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  /** Tests that {@link UnionMergeRule} does nothing if its arguments have
+   * are different set operators, {@link Union} and {@link Intersect}. */
+  @Test public void testMergeSetOpMixed() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.INSTANCE)
+        .addRuleInstance(UnionMergeRule.INTERSECT_INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "union\n"
+        + "select * from emp where deptno = 20\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  /** Tests {@link UnionMergeRule#INTERSECT_INSTANCE}, which merges 2
+   * {@link Intersect} operators into a single {@code Intersect} with 3
+   * inputs. */
+  @Test public void testMergeIntersect() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.INTERSECT_INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 20\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).check();
+  }
+
+  /** Tests {@link UnionMergeRule#MINUS_INSTANCE}, which merges 2
+   * {@link Minus} operators into a single {@code Minus} with 3
+   * inputs. */
+  @Test public void testMergeMinus() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.MINUS_INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "except\n"
+        + "select * from emp where deptno = 20\n"
+        + "except\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).check();
+  }
+
+  /** Tests {@link UnionMergeRule#MINUS_INSTANCE}
+   * does not merge {@code Minus(a, Minus(b, c))}
+   * into {@code Minus(a, b, c)}, which would be incorrect. */
+  @Test public void testMergeMinusRightDeep() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(UnionMergeRule.MINUS_INSTANCE)
+        .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+        + "except\n"
+        + "select * from (\n"
+        + "  select * from emp where deptno = 20\n"
+        + "  except\n"
+        + "  select * from emp where deptno = 30)";
+    sql(sql).with(program).checkUnchanged();
+  }
+
   @Ignore("cycles")
   @Test public void testHeterogeneousConversion() throws Exception {
     // This one tests the planner's ability to correctly
@@ -1341,6 +1456,55 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "select * from (values (20, 2))\n"
             + ")\n"
             + "where x + y > 30");
+  }
+
+  @Test public void testEmptyIntersect() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ValuesReduceRule.PROJECT_FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.INTERSECT_INSTANCE)
+        .build();
+
+    final String sql = "select * from (values (30, 3))"
+        + "intersect\n"
+        + "select *\nfrom (values (10, 1), (30, 3)) as t (x, y) where x > 50\n"
+        + "intersect\n"
+        + "select * from (values (30, 3))";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testEmptyMinus() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ValuesReduceRule.PROJECT_FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.MINUS_INSTANCE)
+        .build();
+
+    // First input is empty; therefore whole expression is empty
+    final String sql = "select * from (values (30, 3)) as t (x, y) where x > 30"
+        + "except\n"
+        + "select * from (values (20, 2))\n"
+        + "except\n"
+        + "select * from (values (40, 4))";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testEmptyMinus2() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ValuesReduceRule.PROJECT_FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.MINUS_INSTANCE)
+        .build();
+
+    // Second and fourth inputs are empty; they are removed
+    final String sql = "select * from (values (30, 3)) as t (x, y)\n"
+        + "except\n"
+        + "select * from (values (20, 2)) as t (x, y) where x > 30\n"
+        + "except\n"
+        + "select * from (values (40, 4))\n"
+        + "except\n"
+        + "select * from (values (50, 5)) as t (x, y) where x > 50";
+    sql(sql).with(program).check();
   }
 
   @Test public void testEmptyJoin() {

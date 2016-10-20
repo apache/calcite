@@ -1016,13 +1016,10 @@ public class RelBuilder {
     switch (kind) {
     case UNION:
     case INTERSECT:
-      if (n < 1) {
-        throw new IllegalArgumentException("bad INTERSECT/UNION input count");
-      }
-      break;
     case EXCEPT:
-      if (n != 2) {
-        throw new AssertionError("bad EXCEPT input count");
+      if (n < 1) {
+        throw new IllegalArgumentException(
+            "bad INTERSECT/UNION/EXCEPT input count");
       }
       break;
     default:
@@ -1080,7 +1077,16 @@ public class RelBuilder {
    * @param all Whether to create EXCEPT ALL
    */
   public RelBuilder minus(boolean all) {
-    return setOp(all, SqlKind.EXCEPT, 2);
+    return minus(all, 2);
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Minus} of the {@code n}
+   * most recent relational expressions on the stack.
+   *
+   * @param all Whether to create EXCEPT ALL
+   */
+  public RelBuilder minus(boolean all, int n) {
+    return setOp(all, SqlKind.EXCEPT, n);
   }
 
   /** Creates a {@link org.apache.calcite.rel.core.Join}. */
