@@ -360,7 +360,7 @@ public class SqlFunctions {
       // The result of SqlFunctions.eq(BigDecimal, BigDecimal) is making more sense than
       // BigDecimal.equals(BigDecimal).
       // So if both of types are BigDecimal, we just use SqlFunctions.eq(BigDecimal, BigDecimal).
-      if (bothParametersAssignable(b0, b1, BigDecimal.class)) {
+      if (BigDecimal.class.isAssignableFrom(b0.getClass())) {
         return eq((BigDecimal) b0, (BigDecimal) b1);
       } else {
         return b0.equals(b1);
@@ -416,7 +416,7 @@ public class SqlFunctions {
   /** SQL &lt; operator applied to Object values. */
   public static boolean lt(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
-        && bothParametersAssignable(b0, b1, Comparable.class)) {
+        && Comparable.class.isAssignableFrom(b0.getClass())) {
       return ((Comparable) b0).compareTo(b1) < 0;
     } else if (bothParametersAssignable(b0, b1, Number.class)) {
       return lt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
@@ -451,7 +451,7 @@ public class SqlFunctions {
   /** SQL &le; operator applied to Object values. */
   public static boolean le(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
-        && bothParametersAssignable(b0, b1, Comparable.class)) {
+        && Comparable.class.isAssignableFrom(b0.getClass())) {
       return ((Comparable) b0).compareTo(b1) <= 0;
     } else if (bothParametersAssignable(b0, b1, Number.class)) {
       return le(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
@@ -486,7 +486,7 @@ public class SqlFunctions {
   /** SQL &gt; operator applied to Object values. */
   public static boolean gt(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
-        && bothParametersAssignable(b0, b1, Comparable.class)) {
+        && Comparable.class.isAssignableFrom(b0.getClass())) {
       return ((Comparable) b0).compareTo(b1) > 0;
     } else if (bothParametersAssignable(b0, b1, Number.class)) {
       return gt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
@@ -521,7 +521,7 @@ public class SqlFunctions {
   /** SQL &ge; operator applied to Object values. */
   public static boolean ge(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
-        && bothParametersAssignable(b0, b1, Comparable.class)) {
+        && Comparable.class.isAssignableFrom(b0.getClass())) {
       return ((Comparable) b0).compareTo(b1) >= 0;
     } else if (bothParametersAssignable(b0, b1, Number.class)) {
       return ge(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
