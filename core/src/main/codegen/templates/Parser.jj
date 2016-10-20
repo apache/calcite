@@ -37,6 +37,7 @@ import ${importStr};
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
@@ -3953,88 +3954,105 @@ SqlIdentifier TypeName() :
 }
 
 // Types used for for JDBC and ODBC scalar conversion function
-SqlDataTypeSpec JdbcOdbcType() : 
+SqlDataTypeSpec JdbcOdbcType() :
 {
-    SqlTypeName typeName = null;
+    final SqlTypeName typeName;
 }
 {
-    (
-        (<SQL_CHAR> | <CHAR>) { typeName = SqlTypeName.CHAR; }
-    |   (<SQL_VARCHAR> | <VARCHAR>) { typeName = SqlTypeName.VARCHAR; }
-    |   (<SQL_DATE> | <DATE>) { typeName = SqlTypeName.DATE; }
-    |   (<SQL_TIME> | <TIME>) { typeName = SqlTypeName.TIME; }
-    |   (<SQL_TIMESTAMP> | <TIMESTAMP>) { typeName = SqlTypeName.TIMESTAMP; }
-    |   (<SQL_DECIMAL> | <DECIMAL> | <SQL_NUMERIC> | <NUMERIC>) { typeName = SqlTypeName.DECIMAL; }
-    |   (<SQL_BOOLEAN> | <BOOLEAN>) { typeName = SqlTypeName.BOOLEAN; }
-    |   (<SQL_INTEGER> | <INTEGER>) { typeName = SqlTypeName.INTEGER; }
-    |   (<SQL_BINARY> | <BINARY>) { typeName = SqlTypeName.BINARY; }
-    |   (<SQL_VARBINARY> | <VARBINARY>) { typeName = SqlTypeName.VARBINARY; }
-    |   (<SQL_TINYINT> | <TINYINT>) { typeName = SqlTypeName.TINYINT; }
-    |   (<SQL_SMALLINT> | <SMALLINT>) { typeName = SqlTypeName.SMALLINT; }
-    |   (<SQL_BIGINT> | <BIGINT>) { typeName = SqlTypeName.BIGINT; }
-    |   (<SQL_REAL>| <REAL>) { typeName = SqlTypeName.REAL; }
-    |   (<SQL_DOUBLE> | <DOUBLE>) { typeName = SqlTypeName.DOUBLE; }
-    |   (<SQL_FLOAT> | <FLOAT>) { typeName = SqlTypeName.FLOAT; }
-    )
-    {
-        return new SqlDataTypeSpec(
-            new SqlIdentifier(typeName.name(), getPos()),
-            -1,
-            -1, 
-            null,
-            null,
-            getPos()
-        );
+    typeName = JdbcOdbcTypeName() {
+        final SqlIdentifier id = new SqlIdentifier(typeName.name(), getPos());
+        return new SqlDataTypeSpec(id, -1, -1, null, null, getPos());
     }
 }
 
-// Interval types used for for JDBC and ODBC scalar conversion function
-SqlIntervalQualifier JdbcOdbcIntervalType() : 
+SqlTypeName JdbcOdbcTypeName() :
 {
-    TimeUnit start = null;
-    TimeUnit end = null;
+}
+{
+    (<SQL_CHAR> | <CHAR>) { return SqlTypeName.CHAR; }
+|   (<SQL_VARCHAR> | <VARCHAR>) { return SqlTypeName.VARCHAR; }
+|   (<SQL_DATE> | <DATE>) { return SqlTypeName.DATE; }
+|   (<SQL_TIME> | <TIME>) { return SqlTypeName.TIME; }
+|   (<SQL_TIMESTAMP> | <TIMESTAMP>) { return SqlTypeName.TIMESTAMP; }
+|   (<SQL_DECIMAL> | <DECIMAL> | <SQL_NUMERIC> | <NUMERIC>) { return SqlTypeName.DECIMAL; }
+|   (<SQL_BOOLEAN> | <BOOLEAN>) { return SqlTypeName.BOOLEAN; }
+|   (<SQL_INTEGER> | <INTEGER>) { return SqlTypeName.INTEGER; }
+|   (<SQL_BINARY> | <BINARY>) { return SqlTypeName.BINARY; }
+|   (<SQL_VARBINARY> | <VARBINARY>) { return SqlTypeName.VARBINARY; }
+|   (<SQL_TINYINT> | <TINYINT>) { return SqlTypeName.TINYINT; }
+|   (<SQL_SMALLINT> | <SMALLINT>) { return SqlTypeName.SMALLINT; }
+|   (<SQL_BIGINT> | <BIGINT>) { return SqlTypeName.BIGINT; }
+|   (<SQL_REAL>| <REAL>) { return SqlTypeName.REAL; }
+|   (<SQL_DOUBLE> | <DOUBLE>) { return SqlTypeName.DOUBLE; }
+|   (<SQL_FLOAT> | <FLOAT>) { return SqlTypeName.FLOAT; }
+}
+
+// Interval types used for for JDBC and ODBC scalar conversion function
+SqlIntervalQualifier JdbcOdbcIntervalType() :
+{
+    TimeUnitRange range;
+}
+{
+    range = JdbcOdbcIntervalTypeName() {
+        return new SqlIntervalQualifier(range.startUnit, range.endUnit, getPos());
+    }
+}
+
+TimeUnitRange JdbcOdbcIntervalTypeName() :
+{
 }
 {
     (
-        <SQL_INTERVAL_YEAR> { start = TimeUnit.YEAR; }
-    |   <SQL_INTERVAL_YEAR_TO_MONTH> { start = TimeUnit.YEAR; end = TimeUnit.MONTH; }
-    |   <SQL_INTERVAL_MONTH> { start = TimeUnit.MONTH; }
-    |   <SQL_INTERVAL_DAY> { start = TimeUnit.DAY; }
-    |   <SQL_INTERVAL_DAY_TO_HOUR> { start = TimeUnit.DAY; end = TimeUnit.HOUR; }
-    |   <SQL_INTERVAL_DAY_TO_MINUTE> { start = TimeUnit.DAY; end = TimeUnit.MINUTE; }
-    |   <SQL_INTERVAL_DAY_TO_SECOND> { start = TimeUnit.DAY; end = TimeUnit.SECOND; }
-    |   <SQL_INTERVAL_HOUR> { start = TimeUnit.HOUR; }
-    |   <SQL_INTERVAL_HOUR_TO_MINUTE> { start = TimeUnit.HOUR; end = TimeUnit.MINUTE; }
-    |   <SQL_INTERVAL_HOUR_TO_SECOND> { start = TimeUnit.HOUR; end = TimeUnit.SECOND; }
-    |   <SQL_INTERVAL_MINUTE> { start = TimeUnit.MINUTE; }
-    |   <SQL_INTERVAL_MINUTE_TO_SECOND> { start = TimeUnit.MINUTE; end = TimeUnit.SECOND; }
-    |   <SQL_INTERVAL_SECOND> { start = TimeUnit.SECOND; }
-    |   <INTERVAL> 
+        <SQL_INTERVAL_YEAR> { return TimeUnitRange.YEAR; }
+    |   <SQL_INTERVAL_YEAR_TO_MONTH> { return TimeUnitRange.YEAR_TO_MONTH; }
+    |   <SQL_INTERVAL_MONTH> { return TimeUnitRange.MONTH; }
+    |   <SQL_INTERVAL_DAY> { return TimeUnitRange.DAY; }
+    |   <SQL_INTERVAL_DAY_TO_HOUR> { return TimeUnitRange.DAY_TO_HOUR; }
+    |   <SQL_INTERVAL_DAY_TO_MINUTE> { return TimeUnitRange.DAY_TO_MINUTE; }
+    |   <SQL_INTERVAL_DAY_TO_SECOND> { return TimeUnitRange.DAY_TO_SECOND; }
+    |   <SQL_INTERVAL_HOUR> { return TimeUnitRange.HOUR; }
+    |   <SQL_INTERVAL_HOUR_TO_MINUTE> { return TimeUnitRange.HOUR_TO_MINUTE; }
+    |   <SQL_INTERVAL_HOUR_TO_SECOND> { return TimeUnitRange.HOUR_TO_SECOND; }
+    |   <SQL_INTERVAL_MINUTE> { return TimeUnitRange.MINUTE; }
+    |   <SQL_INTERVAL_MINUTE_TO_SECOND> { return TimeUnitRange.MINUTE_TO_SECOND; }
+    |   <SQL_INTERVAL_SECOND> { return TimeUnitRange.SECOND; }
+    |   <INTERVAL>
         (
-            <YEAR> [ LOOKAHEAD(2) <TO> <MONTH> { end = TimeUnit.MONTH; } ]
-            { start = TimeUnit.YEAR; }
-            | <MONTH> { start = TimeUnit.MONTH; }
-            | <DAY> 
-            [
-                LOOKAHEAD(2) <TO> 
-                <HOUR> { end = TimeUnit.HOUR; }
-                | <MINUTE> { end = TimeUnit.MINUTE; }
-                | <SECOND> { end = TimeUnit.SECOND; }
-            ] { start = TimeUnit.DAY; }
-            | <HOUR> 
-            [
-                LOOKAHEAD(2) <TO> 
-                <MINUTE> { end = TimeUnit.MINUTE; }
-                | <SECOND> { end = TimeUnit.SECOND; }
-            ] { start = TimeUnit.MINUTE; }
-            | <MINUTE> [ LOOKAHEAD(2) <TO> <SECOND> { end = TimeUnit.SECOND; } ]
-            { start = TimeUnit.MINUTE; }
-            | <SECOND> { start = TimeUnit.SECOND; }
+            <YEAR>
+            (
+                LOOKAHEAD(1)
+                <TO> <MONTH> { return TimeUnitRange.YEAR_TO_MONTH; }
+            |   { return TimeUnitRange.YEAR; }
+            )
+        |   <MONTH> { return TimeUnitRange.MONTH; }
+        |   <DAY>
+            (
+                LOOKAHEAD(1)
+                <TO>
+                (   <HOUR> { return TimeUnitRange.DAY_TO_HOUR; }
+                |   <MINUTE> { return TimeUnitRange.DAY_TO_MINUTE; }
+                |   <SECOND> { return TimeUnitRange.DAY_TO_SECOND; }
+                )
+            |   { return TimeUnitRange.DAY; }
+            )
+        |   <HOUR>
+            (
+                LOOKAHEAD(1)
+                <TO>
+                (   <MINUTE> { return TimeUnitRange.HOUR_TO_MINUTE; }
+                |   <SECOND> { return TimeUnitRange.DAY_TO_SECOND; }
+                )
+            |   { return TimeUnitRange.HOUR; }
+            )
+        |   <MINUTE>
+            (
+                LOOKAHEAD(1)
+                <TO> <SECOND> { return TimeUnitRange.MINUTE_TO_SECOND; }
+            |   { return TimeUnitRange.MINUTE; }
+            )
+        |   <SECOND> { return TimeUnitRange.SECOND; }
         )
     )
-    {
-        return new SqlIntervalQualifier(start, end, getPos());
-    }
 }
 
 SqlIdentifier CollectionsTypeName() :
@@ -4705,17 +4723,17 @@ SqlNode JdbcFunctionCall() :
     |
         <CONVERT> { name = unquotedIdentifier(); }
         <LPAREN>
-        e = Expression(ExprContext.ACCEPT_SUBQUERY) 
-        {
+        e = Expression(ExprContext.ACCEPT_SUBQUERY) {
             args = new SqlNodeList(getPos());
             args.add(e);
         }
         <COMMA>
         (
             dt = JdbcOdbcType() { args.add(dt); }
-            | iq = JdbcOdbcIntervalType() { args.add(iq); }
+        |
+            iq = JdbcOdbcIntervalType() { args.add(iq); }
         )
-        <RPAREN> 
+        <RPAREN>
     |
         (
             // INSERT is a reserved word, but we need to handle {fn insert}

@@ -3551,6 +3551,16 @@ public class SqlParserTest {
     checkExp("{fn insert()}", "{fn INSERT() }");
     checkExp("{fn convert(foo, SQL_VARCHAR)}", "{fn CONVERT(`FOO`, VARCHAR) }");
     checkExp("{fn convert(log10(100), integer)}", "{fn CONVERT(LOG10(100), INTEGER) }");
+    checkExp("{fn convert(1, interval year)}", "{fn CONVERT(1, YEAR) }");
+    checkExp("{fn convert(1, interval year to month)}",
+        "{fn CONVERT(1, YEAR TO MONTH) }");
+    checkExpFails("{fn convert(1, interval year to ^day^)}",
+        "(?s)Encountered \"day\" at line 1, column 33\\.\n.*");
+    checkExp("{fn convert(1, interval day)}", "{fn CONVERT(1, DAY) }");
+    checkExp("{fn convert(1, interval day to minute)}",
+        "{fn CONVERT(1, DAY TO MINUTE) }");
+    checkExpFails("{fn convert(1, interval minute to ^hour^)}",
+        "(?s)Encountered \"hour\" at line 1, column 35\\.\n.*");
     checkExpFails("{fn convert(^)^}", "(?s)Encountered \"\\)\" at.*");
     checkExpFails("{fn convert(\"123\", SMALLINT^(^3)}", "(?s)Encountered \"\\(\" at.*");
   }
