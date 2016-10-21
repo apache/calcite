@@ -940,13 +940,19 @@ public interface Meta {
               List<?> list = (List<?>) element;
               // Add each element in the list/array to the column's value
               for (Object listItem : list) {
-                columnBuilder.addArrayValue(serializeScalar(listItem));
+                final Common.TypedValue scalarListItem = serializeScalar(listItem);
+                columnBuilder.addArrayValue(scalarListItem);
+                // Add the deprecated 'value' repeated attribute for backwards compat
+                columnBuilder.addValue(scalarListItem);
               }
             } else {
               // The default value, but still explicit.
               columnBuilder.setHasArrayValue(false);
               // Only one value for this column, a scalar.
-              columnBuilder.setScalarValue(serializeScalar(element));
+              final Common.TypedValue scalarVal = serializeScalar(element);
+              columnBuilder.setScalarValue(scalarVal);
+              // Add the deprecated 'value' repeated attribute for backwards compat
+              columnBuilder.addValue(scalarVal);
             }
 
             // Add value to row
