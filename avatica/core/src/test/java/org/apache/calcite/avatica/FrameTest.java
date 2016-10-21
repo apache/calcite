@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -159,6 +160,51 @@ public class FrameTest {
 
     Object array = Frame.parseColumn(arrayValue);
     assertEquals(Arrays.asList(1L, 1L), array);
+  }
+
+  @Test public void testDeprecatedValueAttributeForScalars() {
+    // Create a row with schema: [VARCHAR, INTEGER, DATE]
+    List<Object> rows = Collections.<Object>singletonList(new Object[] {"string", Integer.MAX_VALUE,
+        new Date().getTime()});
+    Meta.Frame frame = Meta.Frame.create(0, true, rows);
+    // Convert it to a protobuf
+    Common.Frame protoFrame = frame.toProto();
+    assertEquals(1, protoFrame.getRowsCount());
+    // Get that row we created
+    Common.Row protoRow = protoFrame.getRows(0);
+    // One row has many columns
+    List<Common.ColumnValue> protoColumns = protoRow.getValueList();
+    assertEquals(3, protoColumns.size());
+    // Verify that the scalar value is also present in the deprecated values attributes.
+    List<Common.TypedValue> deprecatedValues = protoColumns.get(0).getValueList();
+    assertEquals(1, deprecatedValues.size());
+    Common.TypedValue scalarValue = protoColumns.get(0).getScalarValue();
+    assertEquals(deprecatedValues.get(0), scalarValue);
+  }
+
+  @Test public void testDeprecatedValueAttributeForArrays() {
+    // Create a row with schema: [VARCHAR, ARRAY]
+    List<Object> rows = Collections.<Object>singletonList(new Object[] {"string",
+        Arrays.asList(1, 2, 3)});
+    Meta.Frame frame = Meta.Frame.create(0, true, rows);
+    // Convert it to a protobuf
+    Common.Frame protoFrame = frame.toProto();
+    assertEquals(1, protoFrame.getRowsCount());
+    // Get that row we created
+    Common.Row protoRow = protoFrame.getRows(0);
+    // One row has many columns
+    List<Common.ColumnValue> protoColumns = protoRow.getValueList();
+    // We should have two columns
+    assertEquals(2, protoColumns.size());
+    // Fetch the ARRAY column
+    Common.ColumnValue protoColumn = protoColumns.get(1);
+    // We should have the 3 ARRAY elements in the array_values attribute as well as the deprecated
+    // values attribute.
+    List<Common.TypedValue> deprecatedValues = protoColumn.getValueList();
+    assertEquals(3, deprecatedValues.size());
+    assertTrue("Column 2 should have an array_value", protoColumns.get(1).getHasArrayValue());
+    List<Common.TypedValue> arrayValues = protoColumns.get(1).getArrayValueList();
+    assertEquals(arrayValues, deprecatedValues);
   }
 }
 
