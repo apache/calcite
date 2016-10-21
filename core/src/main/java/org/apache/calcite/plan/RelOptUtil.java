@@ -45,6 +45,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -1730,6 +1731,7 @@ public abstract class RelOptUtil {
     planner.addRule(ProjectToWindowRule.PROJECT);
     planner.addRule(FilterMergeRule.INSTANCE);
     planner.addRule(DateRangeRules.FILTER_INSTANCE);
+    planner.addRule(IntersectToDistinctRule.INSTANCE);
   }
 
   /**
