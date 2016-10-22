@@ -4298,6 +4298,42 @@ LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceCompositeInSubQuery">
+        <Resource name="sql">
+            <![CDATA[select *
+from emp
+where (empno, deptno) in (
+  select empno, deptno from (
+    select empno, deptno
+    from emp
+    group by empno, deptno))
+or deptno < 40 + 60]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(IN($0, $7, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($7, +(40, 60)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(IN($0, $7, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($7, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceConstantsRequiresExecutor">
         <Resource name="sql">
             <![CDATA[select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)]]>

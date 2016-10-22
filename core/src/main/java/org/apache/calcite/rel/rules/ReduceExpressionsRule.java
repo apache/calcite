@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexUtil.ExprSimplifier;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -826,7 +827,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       return false;
     }
 
-    public Void visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       if (constants.containsKey(inputRef)) {
         stack.add(Constancy.REDUCIBLE_CONSTANT);
         return null;
@@ -834,24 +835,29 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       return pushVariable();
     }
 
-    public Void visitLiteral(RexLiteral literal) {
+    @Override public Void visitLiteral(RexLiteral literal) {
       stack.add(Constancy.IRREDUCIBLE_CONSTANT);
       return null;
     }
 
-    public Void visitOver(RexOver over) {
+    @Override public Void visitOver(RexOver over) {
       // assume non-constant (running SUM(1) looks constant but isn't)
       analyzeCall(over, Constancy.NON_CONSTANT);
       return null;
     }
 
-    public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
+    @Override public Void visitCorrelVariable(RexCorrelVariable variable) {
       return pushVariable();
     }
 
-    public Void visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       // assume REDUCIBLE_CONSTANT until proven otherwise
       analyzeCall(call, Constancy.REDUCIBLE_CONSTANT);
+      return null;
+    }
+
+    @Override public Void visitSubQuery(RexSubQuery subQuery) {
+      analyzeCall(subQuery, Constancy.REDUCIBLE_CONSTANT);
       return null;
     }
 
@@ -955,15 +961,15 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       }
     }
 
-    public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
       return pushVariable();
     }
 
-    public Void visitRangeRef(RexRangeRef rangeRef) {
+    @Override public Void visitRangeRef(RexRangeRef rangeRef) {
       return pushVariable();
     }
 
-    public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
       return pushVariable();
     }
   }
