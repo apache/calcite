@@ -35,7 +35,7 @@ import org.apache.calcite.util.Pair;
  * reset() after each use of Planner that corresponds to a different
  * query.
  */
-public interface Planner {
+public interface Planner extends AutoCloseable {
   /**
    * Parses and validates a SQL statement.
    *

@@ -1021,12 +1021,13 @@ public class PlannerTest {
         .defaultSchema(schema)
         .programs(Programs.ofRules(Programs.RULE_SET))
         .build();
-    Planner p = Frameworks.getPlanner(config);
-    SqlNode n = p.parse(tpchTestQuery);
-    n = p.validate(n);
-    RelNode r = p.rel(n).project();
-    String plan = RelOptUtil.toString(r);
-    p.close();
+    String plan;
+    try (Planner p = Frameworks.getPlanner(config)) {
+      SqlNode n = p.parse(tpchTestQuery);
+      n = p.validate(n);
+      RelNode r = p.rel(n).project();
+      plan = RelOptUtil.toString(r);
+    }
     return plan;
   }
 
@@ -1073,19 +1074,20 @@ public class PlannerTest {
     traitDefs.add(RelCollationTraitDef.INSTANCE);
     final SqlParser.Config parserConfig =
         SqlParser.configBuilder().setLex(Lex.MYSQL).build();
-    Planner p = Frameworks.getPlanner(
-        Frameworks.newConfigBuilder()
-            .parserConfig(parserConfig)
-            .defaultSchema(schema)
-            .traitDefs(traitDefs)
-            .programs(Programs.ofRules(Programs.RULE_SET))
-            .build());
-    SqlNode n = p.parse(query);
-    n = p.validate(n);
-    RelNode r = p.rel(n).project();
-    String plan = RelOptUtil.toString(r);
-    plan = Util.toLinux(plan);
-    p.close();
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+      .parserConfig(parserConfig)
+      .defaultSchema(schema)
+      .traitDefs(traitDefs)
+      .programs(Programs.ofRules(Programs.RULE_SET))
+      .build();
+    String plan;
+    try (Planner p = Frameworks.getPlanner(config)) {
+      SqlNode n = p.parse(query);
+      n = p.validate(n);
+      RelNode r = p.rel(n).project();
+      plan = RelOptUtil.toString(r);
+      plan = Util.toLinux(plan);
+    }
     assertThat(plan,
         equalTo("LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "  LogicalProject(psPartkey=[$0])\n"
