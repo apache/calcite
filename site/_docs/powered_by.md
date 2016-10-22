@@ -28,6 +28,11 @@ The following companies and projects are powered by Apache Calcite.
 
 ![Powered By]({{ site.baseurl }}/img/pb-calcite-240.png)
 
+### Apache Apex
+
+<a href="https://apex.apache.org">Apache Apex</a>
+uses Calcite for parsing streaming SQL and query optimization.
+
 ### Apache Drill
 
 <a href="https://drill.apache.org">Apache Drill</a>
