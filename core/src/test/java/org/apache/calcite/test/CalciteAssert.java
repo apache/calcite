@@ -33,6 +33,8 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.util.Closer;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -458,8 +460,7 @@ public class CalciteAssert {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled
             + ", limit=" + limit;
-    final List<Hook.Closeable> closeableList = Lists.newArrayList();
-    try {
+    try (final Closer closer = new Closer()) {
       if (connection instanceof CalciteConnection) {
         CalciteConnection calciteConnection = (CalciteConnection) connection;
         calciteConnection.getProperties().setProperty(
@@ -470,7 +471,7 @@ public class CalciteAssert {
             Boolean.toString(materializationsEnabled));
       }
       for (Pair<Hook, Function> hook : hooks) {
-        closeableList.add(hook.left.addThread(hook.right));
+        closer.add(hook.left.addThread(hook.right));
       }
       Statement statement = connection.createStatement();
       statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
@@ -511,10 +512,6 @@ public class CalciteAssert {
       throw e;
     } catch (Throwable e) {
       throw new RuntimeException(message, e);
-    } finally {
-      for (Hook.Closeable closeable : closeableList) {
-        closeable.close();
-      }
     }
   }
 
@@ -526,27 +523,27 @@ public class CalciteAssert {
       final Function<RelNode, Void> substitutionChecker) throws Exception {
     final String message =
         "With materializationsEnabled=" + materializationsEnabled;
-    final Hook.Closeable closeable =
-        convertChecker == null
-            ? Hook.Closeable.EMPTY
-            : Hook.TRIMMED.addThread(
+    try (Closer closer = new Closer()) {
+      if (convertChecker != null) {
+        closer.add(
+            Hook.TRIMMED.addThread(
                 new Function<RelNode, Void>() {
                   public Void apply(RelNode rel) {
                     convertChecker.apply(rel);
                     return null;
                   }
-                });
-    final Hook.Closeable closeable2 =
-        substitutionChecker == null
-            ? Hook.Closeable.EMPTY
-            : Hook.SUB.addThread(
+                }));
+      }
+      if (substitutionChecker != null) {
+        closer.add(
+            Hook.SUB.addThread(
                 new Function<RelNode, Void>() {
                   public Void apply(RelNode rel) {
                     substitutionChecker.apply(rel);
                     return null;
                   }
-                });
-    try {
+                }));
+      }
       ((CalciteConnection) connection).getProperties().setProperty(
           CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
           Boolean.toString(materializationsEnabled));
@@ -558,9 +555,6 @@ public class CalciteAssert {
       connection.close();
     } catch (Throwable e) {
       throw new RuntimeException(message, e);
-    } finally {
-      closeable.close();
-      closeable2.close();
     }
   }
 
@@ -1421,6 +1415,23 @@ public class CalciteAssert {
 
     private <T> void addHook(Hook hook, Function<T, Void> handler) {
       hooks.add(Pair.of(hook, (Function) handler));
+    }
+
+    /** Returns a function that, when a hook is called, will "return" a given
+     * value. (Because of the way hooks work, it "returns" the value by writing
+     * into a {@link Holder}. */
+    private <V> Function<Holder<V>, Void> propertyHook(final V v) {
+      return new Function<Holder<V>, Void>() {
+        public Void apply(Holder<V> holder) {
+          holder.set(v);
+          return null;
+        }
+      };
+    }
+
+    /** Adds a property hook. */
+    public <V> AssertQuery withProperty(Hook hook, V value) {
+      return withHook(hook, propertyHook(value));
     }
   }
 

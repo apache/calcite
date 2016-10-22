@@ -28,13 +28,13 @@ import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Holder;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -241,17 +241,12 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     }
 
     private void check(boolean unchanged) {
-      final List<Hook.Closeable> closeables = new ArrayList<>();
-      try {
+      try (final Closer closer = new Closer()) {
         for (Map.Entry<Hook, Function> entry : hooks.entrySet()) {
-          closeables.add(entry.getKey().addThread(entry.getValue()));
+          closer.add(entry.getKey().addThread(entry.getValue()));
         }
         checkPlanning(tester.withExpand(expand), null, hepPlanner, sql,
             unchanged);
-      } finally {
-        for (Hook.Closeable closeable : closeables) {
-          closeable.close();
-        }
       }
     }
   }

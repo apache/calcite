@@ -74,7 +74,7 @@ import static org.junit.Assert.fail;
  * Implementation of {@link org.apache.calcite.test.SqlValidatorTestCase.Tester}
  * that talks to a mock catalog.
  */
-public class SqlTesterImpl implements SqlTester {
+public class SqlTesterImpl implements SqlTester, AutoCloseable {
   protected final SqlTestFactory factory;
 
   public SqlTesterImpl(SqlTestFactory factory) {
@@ -385,11 +385,7 @@ public class SqlTesterImpl implements SqlTester {
     for (String sql : buildQueries(expression)) {
       TypeChecker typeChecker =
           new SqlTests.StringTypeChecker(expectedType);
-      check(
-          sql,
-          typeChecker,
-          new Double(expectedResult),
-          delta);
+      check(sql, typeChecker, expectedResult, delta);
     }
   }
 

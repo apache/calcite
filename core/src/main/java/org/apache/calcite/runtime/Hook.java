@@ -71,12 +71,12 @@ public enum Hook {
   QUERY_PLAN;
 
   private final List<Function<Object, Object>> handlers =
-      new CopyOnWriteArrayList<Function<Object, Object>>();
+      new CopyOnWriteArrayList<>();
 
   private final ThreadLocal<List<Function<Object, Object>>> threadHandlers =
       new ThreadLocal<List<Function<Object, Object>>>() {
         protected List<Function<Object, Object>> initialValue() {
-          return new ArrayList<Function<Object, Object>>();
+          return new ArrayList<>();
         }
       };
 
@@ -143,20 +143,16 @@ public enum Hook {
     return holder.get();
   }
 
-  /** Removes a Hook after use.
-   *
-   * <p>Note: Although it would be convenient, this interface cannot extend
-   * {@code AutoCloseable} while Calcite maintains compatibility with
-   * JDK 1.6.</p>
-   */
-  public interface Closeable /*extends AutoCloseable*/ {
+  /** Removes a Hook after use. */
+  public interface Closeable extends AutoCloseable {
     /** Closeable that does nothing. */
     Closeable EMPTY =
         new Closeable() {
           public void close() {}
         };
 
-    void close(); // override, removing "throws"
+    // override, removing "throws"
+    @Override void close();
   }
 }
 

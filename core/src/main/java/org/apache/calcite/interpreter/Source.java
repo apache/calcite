@@ -21,7 +21,7 @@ package org.apache.calcite.interpreter;
  *
  * <p>Corresponds to an input of a relational expression.
  */
-public interface Source {
+public interface Source extends AutoCloseable {
   /** Reads a row. Null means end of data. */
   Row receive();
 

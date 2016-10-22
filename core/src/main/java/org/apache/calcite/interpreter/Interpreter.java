@@ -57,15 +57,17 @@ import java.util.NoSuchElementException;
  *
  * <p>Contains the context for interpreting relational expressions. In
  * particular it holds working state while the data flow graph is being
- * assembled.</p>
+ * assembled.
  */
-public class Interpreter extends AbstractEnumerable<Object[]> {
+public class Interpreter extends AbstractEnumerable<Object[]>
+    implements AutoCloseable {
   final Map<RelNode, NodeInfo> nodes = Maps.newLinkedHashMap();
   private final DataContext dataContext;
   private final RelNode rootRel;
   private final Map<RelNode, List<RelNode>> relInputs = Maps.newHashMap();
   protected final ScalarCompiler scalarCompiler;
 
+  /** Creates an Interpreter. */
   public Interpreter(DataContext dataContext, RelNode rootRel) {
     this.dataContext = Preconditions.checkNotNull(dataContext);
     this.scalarCompiler =
@@ -118,8 +120,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     }
   }
 
-  private void close() {
-    // TODO:
+  public void close() {
   }
 
   /** Compiles an expression to an executable form. */
