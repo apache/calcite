@@ -3549,6 +3549,18 @@ public class SqlParserTest {
     checkExp("{fN apa(*)}", "{fn APA(*) }");
     checkExp("{   FN\t\r\n apa()}", "{fn APA() }");
     checkExp("{fn insert()}", "{fn INSERT() }");
+    checkExp("{fn convert(foo, SQL_VARCHAR)}", "{fn CONVERT(`FOO`, SQL_VARCHAR) }");
+    checkExp("{fn convert(log10(100), integer)}", "{fn CONVERT(LOG10(100), SQL_INTEGER) }");
+    checkExp("{fn convert(1, SQL_INTERVAL_YEAR)}", "{fn CONVERT(1, SQL_INTERVAL_YEAR) }");
+    checkExp("{fn convert(1, SQL_INTERVAL_YEAR_TO_MONTH)}",
+        "{fn CONVERT(1, SQL_INTERVAL_YEAR_TO_MONTH) }");
+    checkExpFails("{fn convert(1, ^sql_interval_year_to_day^)}",
+        "(?s)Encountered \"sql_interval_year_to_day\" at line 1, column 16\\.\n.*");
+    checkExp("{fn convert(1, sql_interval_day)}", "{fn CONVERT(1, SQL_INTERVAL_DAY) }");
+    checkExp("{fn convert(1, sql_interval_day_to_minute)}",
+        "{fn CONVERT(1, SQL_INTERVAL_DAY_TO_MINUTE) }");
+    checkExpFails("{fn convert(^)^}", "(?s)Encountered \"\\)\" at.*");
+    checkExpFails("{fn convert(\"123\", SMALLINT^(^3)}", "(?s)Encountered \"\\(\" at.*");
   }
 
   @Test public void testWindowReference() {
