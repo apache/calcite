@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexUtil.ExprSimplifier;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -993,6 +994,11 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     public Void visitCall(RexCall call) {
       // assume REDUCIBLE_CONSTANT until proven otherwise
       analyzeCall(call, Constancy.REDUCIBLE_CONSTANT);
+      return null;
+    }
+
+    @Override public Void visitSubQuery(RexSubQuery subQuery) {
+      analyzeCall(subQuery, Constancy.REDUCIBLE_CONSTANT);
       return null;
     }
 
