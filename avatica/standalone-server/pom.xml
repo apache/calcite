@@ -143,13 +143,6 @@ limitations under the License.
               <goal>shade</goal>
             </goals>
             <configuration>
-              <artifactSet>
-                <excludes>
-                  <exclude>com.google.protobuf:protobuf-java</exclude>
-                  <exclude>org.apache.httpcomponents:*</exclude>
-                  <exclude>commons-codec:commons-codec</exclude>
-                </excludes>
-                </artifactSet>
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <relocations>
                 <relocation>
@@ -163,6 +156,10 @@ limitations under the License.
                 <relocation>
                   <pattern>com.google.common</pattern>
                   <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.com.google.common</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.google.protobuf</pattern>
+                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.com.google.protobuf</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>javax.servlet</pattern>
@@ -187,6 +184,14 @@ limitations under the License.
                 <relocation>
                   <pattern>org.slf4j</pattern>
                   <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.slf4j</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.http</pattern>
+                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.apache.http</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.commons</pattern>
+                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.apache.commons</shadedPattern>
                 </relocation>
               </relocations>
               <shadedArtifactAttached>true</shadedArtifactAttached>
