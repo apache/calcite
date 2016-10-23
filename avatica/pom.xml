@@ -71,7 +71,7 @@ limitations under the License.
     <jackson.version>2.6.3</jackson.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jcommander.version>1.48</jcommander.version>
-    <jetty.version>9.2.15.v20160210</jetty.version>
+    <jetty.version>9.2.19.v20160908</jetty.version>
     <junit.version>4.12</junit.version>
     <kerby.version>1.0.0-RC2</kerby.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
