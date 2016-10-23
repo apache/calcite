@@ -82,7 +82,7 @@ limitations under the License.
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
     <maven-source-plugin.version>2.4</maven-source-plugin.version>
     <mockito-all.version>1.10.19</mockito-all.version>
-    <protobuf.version>3.0.0-beta-1</protobuf.version>
+    <protobuf.version>3.1.0</protobuf.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
     <slf4j.version>1.7.13</slf4j.version>

@@ -61,9 +61,9 @@ import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.Message;
 import com.google.protobuf.TextFormat;
+import com.google.protobuf.UnsafeByteOperations;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,7 +237,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
   }
 
   private static ByteString wrapClassName(Class<?> clz) {
-    return HBaseZeroCopyByteString.wrap(clz.getName().getBytes(UTF_8));
+    return UnsafeByteOperations.unsafeWrap(clz.getName().getBytes(UTF_8));
   }
 
   private final ThreadLocal<UnsynchronizedBuffer> threadLocalBuffer =
@@ -324,7 +324,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     try {
       msg.writeTo(buffer);
       // Make a bytestring from it
-      serializedMsg = HBaseZeroCopyByteString.wrap(buffer.toArray());
+      serializedMsg = UnsafeByteOperations.unsafeWrap(buffer.toArray());
     } finally {
       buffer.reset();
     }
@@ -346,7 +346,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
   }
 
   @Override public Request parseRequest(byte[] bytes) throws IOException {
-    ByteString byteString = HBaseZeroCopyByteString.wrap(bytes);
+    ByteString byteString = UnsafeByteOperations.unsafeWrap(bytes);
     CodedInputStream inputStream = byteString.newCodedInput();
     // Enable aliasing to avoid an extra copy to get at the serialized Request inside of the
     // WireMessage.
@@ -367,7 +367,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
   }
 
   @Override public Response parseResponse(byte[] bytes) throws IOException {
-    ByteString byteString = HBaseZeroCopyByteString.wrap(bytes);
+    ByteString byteString = UnsafeByteOperations.unsafeWrap(bytes);
     CodedInputStream inputStream = byteString.newCodedInput();
     // Enable aliasing to avoid an extra copy to get at the serialized Response inside of the
     // WireMessage.

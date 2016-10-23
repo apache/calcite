@@ -35,8 +35,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.FieldDescriptor;
-import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.Message;
+import com.google.protobuf.UnsafeByteOperations;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -50,6 +50,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * API for request-response calls to an Avatica server.
@@ -2637,7 +2639,7 @@ public interface Service {
 
     public RpcMetadataResponse(@JsonProperty("serverAddress") String serverAddress) {
       this.serverAddress = serverAddress;
-      this.serverAddressAsBytes = HBaseZeroCopyByteString.wrap(serverAddress.getBytes());
+      this.serverAddressAsBytes = UnsafeByteOperations.unsafeWrap(serverAddress.getBytes(UTF_8));
     }
 
     @Override RpcMetadataResponse deserialize(Message genericMsg) {

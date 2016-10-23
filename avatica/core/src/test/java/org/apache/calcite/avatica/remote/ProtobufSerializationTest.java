@@ -24,7 +24,7 @@ import org.apache.calcite.avatica.proto.Common.WireMessage;
 import org.apache.calcite.avatica.proto.Requests;
 import org.apache.calcite.avatica.remote.Service.Request;
 
-import com.google.protobuf.HBaseZeroCopyByteString;
+import com.google.protobuf.UnsafeByteOperations;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -63,7 +63,7 @@ public class ProtobufSerializationTest {
     byte[] serialized = baos.toByteArray();
     baos.reset();
     WireMessage wireMsg = WireMessage.newBuilder().setName(Requests.ExecuteRequest.class.getName())
-        .setWrappedMessage(HBaseZeroCopyByteString.wrap(serialized)).build();
+        .setWrappedMessage(UnsafeByteOperations.unsafeWrap(serialized)).build();
     wireMsg.writeTo(baos);
     serialized = baos.toByteArray();
 

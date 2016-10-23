@@ -23,7 +23,7 @@
 #   In other scripts, set the variables that diverge from the defaults below, then call this script.
 #   Leave the BUILD_DIR and FINAL_DIR alone for Maven builds.
 # ========================================================================================================================
-[[ -z $REQUIRED_PROTOC_VERSION ]] && REQUIRED_PROTOC_VERSION='libprotoc 3.0.0'
+[[ -z $REQUIRED_PROTOC_VERSION ]] && REQUIRED_PROTOC_VERSION='libprotoc 3.1.0'
 [[ -z $BUILD_DIR ]]               && BUILD_DIR='target/proto-tmp'
 [[ -z $FINAL_DIR ]]               && FINAL_DIR='src/main'
 # ========================================================================================================================
