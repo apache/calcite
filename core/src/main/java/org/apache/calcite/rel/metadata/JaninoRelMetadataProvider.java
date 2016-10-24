@@ -228,7 +228,9 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(";\n");
     }
     buff.append("  }\n")
-        .append("  public org.apache.calcite.rel.metadata.MetadataDef getDef() {\n")
+        .append("  public ")
+        .append(MetadataDef.class.getName())
+        .append(" getDef() {\n")
         .append("    return ")
         .append(def.metadataClass.getName())
         .append(".DEF;\n")
@@ -239,8 +241,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(" ")
           .append(method.e.getName())
           .append("(\n")
-          .append("      org.apache.calcite.rel.RelNode r,\n")
-          .append("      org.apache.calcite.rel.metadata.RelMetadataQuery mq");
+          .append("      ")
+          .append(RelNode.class.getName())
+          .append(" r,\n")
+          .append("      ")
+          .append(RelMetadataQuery.class.getName())
+          .append(" mq");
       paramList(buff, method.e)
           .append(") {\n");
       buff.append("    final java.util.List key = ")
@@ -299,8 +305,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(" ")
           .append(method.e.getName())
           .append("_(\n")
-          .append("      org.apache.calcite.rel.RelNode r,\n")
-          .append("      org.apache.calcite.rel.metadata.RelMetadataQuery mq");
+          .append("      ")
+          .append(RelNode.class.getName())
+          .append(" r,\n")
+          .append("      ")
+          .append(RelMetadataQuery.class.getName())
+          .append(" mq");
       paramList(buff, method.e)
           .append(") {\n");
       buff.append("    switch (relClasses.indexOf(r.getClass())) {\n");
