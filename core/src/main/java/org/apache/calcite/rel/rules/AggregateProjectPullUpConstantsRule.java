@@ -35,8 +35,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
@@ -114,15 +112,12 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     if (predicates == null) {
       return;
     }
-    final ImmutableMap<RexNode, RexNode> constants =
-        ReduceExpressionsRule.predicateConstants(RexNode.class, rexBuilder,
-            predicates);
     final NavigableMap<Integer, RexNode> map = new TreeMap<>();
     for (int key : aggregate.getGroupSet()) {
       final RexInputRef ref =
           rexBuilder.makeInputRef(aggregate.getInput(), key);
-      if (constants.containsKey(ref)) {
-        map.put(key, constants.get(ref));
+      if (predicates.constantMap.containsKey(ref)) {
+        map.put(key, predicates.constantMap.get(ref));
       }
     }
 

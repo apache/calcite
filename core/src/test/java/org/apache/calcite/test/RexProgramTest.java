@@ -44,6 +44,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -56,6 +57,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -1185,6 +1188,64 @@ public class RexProgramTest {
     c.set(Calendar.MINUTE, mm);
     c.set(Calendar.SECOND, s);
     return c;
+  }
+
+  @Test public void testConstantMap() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType)
+        .add("b", intType)
+        .add("c", intType)
+        .add("d", intType)
+        .add("e", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
+    final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
+    final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literal2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
+
+    final ImmutableMap<RexNode, RexNode> map =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(eq(aRef, bRef),
+                eq(cRef, literal1),
+                eq(cRef, aRef),
+                eq(dRef, eRef)));
+    assertThat(getString(map),
+        is("{1=?0.c, ?0.a=?0.b, ?0.b=?0.a, ?0.c=1, ?0.d=?0.e, ?0.e=?0.d}"));
+
+    // Contradictory constraints yield no constants
+    final RexNode ref0 = rexBuilder.makeInputRef(rowType, 0);
+    final RexNode ref1 = rexBuilder.makeInputRef(rowType, 1);
+    final ImmutableMap<RexNode, RexNode> map2 =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(eq(ref0, literal1),
+                eq(ref0, literal2)));
+    assertThat(getString(map2), is("{}"));
+
+    // Contradictory constraints on field accesses SHOULD yield no constants
+    // but currently there's a bug
+    final ImmutableMap<RexNode, RexNode> map3 =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(eq(aRef, literal1),
+                eq(aRef, literal2)));
+    assertThat(getString(map3), is("{1=?0.a, 2=?0.a}"));
+
+
+  }
+
+  /** Converts a map to a string, sorting on the string representation of its
+   * keys. */
+  private static String getString(ImmutableMap<RexNode, RexNode> map) {
+    final TreeMap<String, RexNode> map2 = new TreeMap<>();
+    for (Map.Entry<RexNode, RexNode> entry : map.entrySet()) {
+      map2.put(entry.getKey().toString(), entry.getValue());
+    }
+    return map2.toString();
   }
 }
 

@@ -68,11 +68,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -299,8 +296,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           mq.getPulledUpPredicates(join.getLeft());
       final RelOptPredicateList rightPredicates =
           mq.getPulledUpPredicates(join.getRight());
+      final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
       final RelOptPredicateList predicates =
-          leftPredicates.union(rightPredicates.shift(fieldCount));
+          leftPredicates.union(rexBuilder,
+              rightPredicates.shift(rexBuilder, fieldCount));
       if (!reduceExpressions(join, expList, predicates, true)) {
         return;
       }
@@ -487,10 +486,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final List<RexNode> constExps = Lists.newArrayList();
     List<Boolean> addCasts = Lists.newArrayList();
     final List<RexNode> removableCasts = Lists.newArrayList();
-    final ImmutableMap<RexNode, RexNode> constants =
-        predicateConstants(RexNode.class, rexBuilder, predicates);
-    findReducibleExps(rel.getCluster().getTypeFactory(), expList, constants,
-        constExps, addCasts, removableCasts);
+    findReducibleExps(rel.getCluster().getTypeFactory(), expList,
+        predicates.constantMap, constExps, addCasts, removableCasts);
     if (constExps.isEmpty() && removableCasts.isEmpty()) {
       return false;
     }
@@ -519,11 +516,11 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
 
     final List<RexNode> constExps2 = Lists.newArrayList(constExps);
-    if (!constants.isEmpty()) {
+    if (!predicates.constantMap.isEmpty()) {
       //noinspection unchecked
       final List<Map.Entry<RexNode, RexNode>> pairs =
           (List<Map.Entry<RexNode, RexNode>>) (List)
-              Lists.newArrayList(constants.entrySet());
+              Lists.newArrayList(predicates.constantMap.entrySet());
       RexReplacer replacer =
           new RexReplacer(
               rexBuilder,
@@ -615,152 +612,14 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    *           definition of constant, or {@link RexNode} to use
    *           {@link RexUtil#isConstant(RexNode)}
    * @return Map from values to constants
-   */
-  public static <C extends RexNode> ImmutableMap<RexNode, C> predicateConstants(
-          Class<C> clazz, RexBuilder rexBuilder, RelOptPredicateList predicates) {
-    // We cannot use an ImmutableMap.Builder here. If there are multiple entries
-    // with the same key (e.g. "WHERE deptno = 1 AND deptno = 2"), it doesn't
-    // matter which we take, so the latter will replace the former.
-    // The basic idea is to find all the pairs of RexNode = RexLiteral
-    // (1) If 'predicates' contain a non-EQUALS, we bail out.
-    // (2) It is OK if a RexNode is equal to the same RexLiteral several times,
-    // (e.g. "WHERE deptno = 1 AND deptno = 1")
-    // (3) It will return false if there are inconsistent constraints (e.g.
-    // "WHERE deptno = 1 AND deptno = 2")
-    final Map<RexNode, C> map = new HashMap<>();
-    final Set<RexNode> excludeSet = new HashSet<>();
-    for (RexNode predicate : predicates.pulledUpPredicates) {
-      gatherConstraints(clazz, predicate, map, excludeSet, rexBuilder);
-    }
-    final ImmutableMap.Builder<RexNode, C> builder =
-        ImmutableMap.builder();
-    for (Map.Entry<RexNode, C> entry : map.entrySet()) {
-      RexNode rexNode = entry.getKey();
-      if (!overlap(rexNode, excludeSet)) {
-        builder.put(rexNode, entry.getValue());
-      }
-    }
-    return builder.build();
-  }
-
-  private static boolean overlap(RexNode rexNode, Set<RexNode> set) {
-    if (rexNode instanceof RexCall) {
-      for (RexNode r : ((RexCall) rexNode).getOperands()) {
-        if (overlap(r, set)) {
-          return true;
-        }
-      }
-      return false;
-    } else {
-      return set.contains(rexNode);
-    }
-  }
-
-  /** Tries to decompose the RexNode which is a RexCall into non-literal
-   * RexNodes. */
-  private static void decompose(Set<RexNode> set, RexNode rexNode) {
-    if (rexNode instanceof RexCall) {
-      for (RexNode r : ((RexCall) rexNode).getOperands()) {
-        decompose(set, r);
-      }
-    } else if (!(rexNode instanceof RexLiteral)) {
-      set.add(rexNode);
-    }
-  }
-
-  private static <C extends RexNode> void gatherConstraints(Class<C> clazz,
-      RexNode predicate, Map<RexNode, C> map, Set<RexNode> excludeSet,
-      RexBuilder rexBuilder) {
-    if (predicate.getKind() != SqlKind.EQUALS
-            && predicate.getKind() != SqlKind.IS_NULL) {
-      decompose(excludeSet, predicate);
-      return;
-    }
-    final List<RexNode> operands = ((RexCall) predicate).getOperands();
-    if (operands.size() != 2 && predicate.getKind() == SqlKind.EQUALS) {
-      decompose(excludeSet, predicate);
-      return;
-    }
-    // if it reaches here, we have rexNode equals rexNode
-    final RexNode left;
-    final RexNode right;
-    if (predicate.getKind() == SqlKind.EQUALS) {
-      left = operands.get(0);
-      right = operands.get(1);
-    } else {
-      left = operands.get(0);
-      right = rexBuilder.makeNullLiteral(left.getType().getSqlTypeName());
-    }
-    // note that literals are immutable too and they can only be compared through
-    // values.
-    gatherConstraint(clazz, left, right, map, excludeSet, rexBuilder);
-    gatherConstraint(clazz, right, left, map, excludeSet, rexBuilder);
-  }
-
-  private static <C extends RexNode> void gatherConstraint(Class<C> clazz,
-      RexNode left, RexNode right, Map<RexNode, C> map, Set<RexNode> excludeSet,
-      RexBuilder rexBuilder) {
-    if (!clazz.isInstance(right)) {
-      return;
-    }
-    if (!RexUtil.isConstant(right)) {
-      return;
-    }
-    C constant = clazz.cast(right);
-    if (excludeSet.contains(left)) {
-      return;
-    }
-    final C existedValue = map.get(left);
-    if (existedValue == null) {
-      switch (left.getKind()) {
-      case CAST:
-        // Convert "CAST(c) = literal" to "c = literal", as long as it is a
-        // widening cast.
-        final RexNode operand = ((RexCall) left).getOperands().get(0);
-        if (canAssignFrom(left.getType(), operand.getType())) {
-          final RexNode castRight =
-              rexBuilder.makeCast(operand.getType(), constant);
-          if (castRight instanceof RexLiteral) {
-            left = operand;
-            constant = clazz.cast(castRight);
-          }
-        }
-      }
-      map.put(left, constant);
-    } else {
-      if (existedValue instanceof RexLiteral
-          && constant instanceof RexLiteral
-          && !((RexLiteral) existedValue).getValue()
-              .equals(((RexLiteral) constant).getValue())) {
-        // we found conflicting values, e.g. left = 10 and left = 20
-        map.remove(left);
-        excludeSet.add(left);
-      }
-    }
-  }
-
-  /** Returns whether a value of {@code type2} can be assigned to a variable
-   * of {@code type1}.
    *
-   * <p>For example:
-   * <ul>
-   *   <li>{@code canAssignFrom(BIGINT, TINYINT)} returns {@code true}</li>
-   *   <li>{@code canAssignFrom(TINYINT, BIGINT)} returns {@code false}</li>
-   *   <li>{@code canAssignFrom(BIGINT, VARCHAR)} returns {@code false}</li>
-   * </ul>
+   * @deprecated Use {@link RelOptPredicateList#constantMap}
    */
-  private static boolean canAssignFrom(RelDataType type1, RelDataType type2) {
-    final SqlTypeName name1 = type1.getSqlTypeName();
-    final SqlTypeName name2 = type2.getSqlTypeName();
-    if (name1.getFamily() == name2.getFamily()) {
-      switch (name1.getFamily()) {
-      case NUMERIC:
-        return name1.compareTo(name2) >= 0;
-      default:
-        return true;
-      }
-    }
-    return false;
+  @Deprecated // to be removed before 2.0
+  public static <C extends RexNode> ImmutableMap<RexNode, C> predicateConstants(
+      Class<C> clazz, RexBuilder rexBuilder, RelOptPredicateList predicates) {
+    return RexUtil.predicateConstants(clazz, rexBuilder,
+        predicates.pulledUpPredicates);
   }
 
   /** Pushes predicates into a CASE.

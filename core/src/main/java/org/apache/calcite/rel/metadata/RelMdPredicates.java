@@ -217,7 +217,7 @@ public class RelMdPredicates
         projectPullUpPredicates.add(rexBuilder.makeCall(op, args));
       }
     }
-    return RelOptPredicateList.of(projectPullUpPredicates);
+    return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);
   }
 
   /**
@@ -225,11 +225,12 @@ public class RelMdPredicates
    */
   public RelOptPredicateList getPredicates(Filter filter, RelMetadataQuery mq) {
     final RelNode input = filter.getInput();
+    final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
 
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
-        .union(
-            RelOptPredicateList.of(
+        .union(filter.getCluster().getRexBuilder(),
+            RelOptPredicateList.of(rexBuilder,
                 RelOptUtil.conjunctions(filter.getCondition())));
   }
 
@@ -283,6 +284,7 @@ public class RelMdPredicates
    */
   public RelOptPredicateList getPredicates(Aggregate agg, RelMetadataQuery mq) {
     final RelNode input = agg.getInput();
+    final RexBuilder rexBuilder = agg.getCluster().getRexBuilder();
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
     final List<RexNode> aggPullUpPredicates = new ArrayList<>();
 
@@ -309,7 +311,7 @@ public class RelMdPredicates
         aggPullUpPredicates.add(r);
       }
     }
-    return RelOptPredicateList.of(aggPullUpPredicates);
+    return RelOptPredicateList.of(rexBuilder, aggPullUpPredicates);
   }
 
   /**
@@ -362,7 +364,7 @@ public class RelMdPredicates
     if (!disjPred.isAlwaysTrue()) {
       preds.add(disjPred);
     }
-    return RelOptPredicateList.of(preds);
+    return RelOptPredicateList.of(rB, preds);
   }
 
   /**
@@ -388,11 +390,12 @@ public class RelMdPredicates
     if (!Bug.CALCITE_1048_FIXED) {
       return RelOptPredicateList.EMPTY;
     }
+    final RexBuilder rexBuilder = r.getCluster().getRexBuilder();
     RelOptPredicateList list = null;
     for (RelNode r2 : r.getRels()) {
       RelOptPredicateList list2 = mq.getPulledUpPredicates(r2);
       if (list2 != null) {
-        list = list == null ? list2 : list.union(list2);
+        list = list == null ? list2 : list.union(rexBuilder, list2);
       }
     }
     return Util.first(list, RelOptPredicateList.EMPTY);
@@ -572,6 +575,7 @@ public class RelMdPredicates
         }
       }
 
+      final RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
       switch (joinType) {
       case INNER:
         Iterable<RexNode> pulledUpPredicates;
@@ -586,14 +590,14 @@ public class RelMdPredicates
                 RelOptUtil.conjunctions(joinRel.getCondition()),
                 inferredPredicates);
         }
-        return RelOptPredicateList.of(pulledUpPredicates,
+        return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
           leftInferredPredicates, rightInferredPredicates);
       case LEFT:
-        return RelOptPredicateList.of(
+        return RelOptPredicateList.of(rexBuilder,
             RelOptUtil.conjunctions(leftChildPredicates),
             leftInferredPredicates, rightInferredPredicates);
       case RIGHT:
-        return RelOptPredicateList.of(
+        return RelOptPredicateList.of(rexBuilder,
             RelOptUtil.conjunctions(rightChildPredicates),
             inferredPredicates, EMPTY_LIST);
       default:
