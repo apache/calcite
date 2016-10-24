@@ -161,7 +161,7 @@ public class SqlDataTypeSpec extends SqlNode {
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
-    if (nullable.equals(this.nullable)) {
+    if (Objects.equals(nullable, this.nullable)) {
       return this;
     }
     return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
