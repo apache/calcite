@@ -28,6 +28,90 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.9.0">1.9.0</a> / 2016-11-01
+{: #v1-9-0}
+
+Apache Calcite Avatica 1.9.0 includes various improvements to make it
+more robust and secure, while maintaining API and protocol
+compatibility with previous versions. We now include non-shaded and
+shaded artifacts, to make it easier to embed Avatica in your
+application. There is improved support for the JDBC API, including
+better type conversions and support for canceling statements. The
+transport is upgraded to use protobuf-3.1.0 (previously 3.0 beta).
+
+Compatibility: This release is tested
+on Linux, macOS, Microsoft Windows;
+using Oracle JDK 1.7, 1.8;
+Guava versions 14.0 to 19.0;
+other software versions as specified in `pom.xml`.
+
+Features and bug fixes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1471">CALCITE-1471</a>]
+  `HttpServerSpnegoWithJaasTest.testAuthenticatedClientsAllowed` fails on Windows
+  (Aaron Mihalik)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1464">CALCITE-1464</a>]
+  Upgrade Jetty version to 9.2.19v20160908
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1463">CALCITE-1463</a>]
+  In `standalone-server` jar, relocate dependencies rather than excluding them
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1355">CALCITE-1355</a>]
+  Upgrade to protobuf-java 3.1.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1462">CALCITE-1462</a>]
+  Remove Avatica pom cruft
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1458">CALCITE-1458</a>]
+  Add column values to the deprecated protobuf attribute
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1433">CALCITE-1433</a>]
+  Add missing dependencies to `avatica-server`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1433">CALCITE-1433</a>]
+  Fix missing avatica `test-jar` dependency
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1423">CALCITE-1423</a>]
+  Add method `ByteString.indexOf(ByteString, int)`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1408">CALCITE-1408</a>]
+  `ResultSet.getXxx` methods should throw `SQLDataException` if cannot convert to
+  the requested type (Laurent Goujon)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1410">CALCITE-1410</a>]
+  Fix JDBC metadata classes (Laurent Goujon)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1224">CALCITE-1224</a>]
+  Publish non-shaded and shaded versions of Avatica client artifacts
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1407">CALCITE-1407</a>]
+  `MetaImpl.fieldMetaData` wrongly uses 1-based column ordinals
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1361">CALCITE-1361</a>]
+  Remove entry from `AvaticaConnection.flagMap` when session closed
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1399">CALCITE-1399</a>]
+  Make the jcommander `SerializationConverter` public
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1394">CALCITE-1394</a>]
+  Javadoc warnings due to `CoreMatchers.containsString` and `mockito-all`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1390">CALCITE-1390</a>]
+  Avatica JDBC driver wrongly modifies `Properties` object
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1371">CALCITE-1371</a>]
+  `PreparedStatement` does not process Date type correctly (Billy (Yiming) Liu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1301">CALCITE-1301</a>]
+  Add `cancel` flag to `AvaticaStatement`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1315">CALCITE-1315</a>]
+  Retry the request on `NoHttpResponseException`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1300">CALCITE-1300</a>]
+  Retry on HTTP-503 in hc-based `AvaticaHttpClient`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1263">CALCITE-1263</a>]
+  Case-insensitive match and null default value for `enum` properties
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1282">CALCITE-1282</a>]
+  Adds an API method to set extra allowed Kerberos realms
+
+Tests
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1226">CALCITE-1226</a>]
+  Disable `AvaticaSpnegoTest` due to intermittent failures
+
+Web site and documentation
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1369">CALCITE-1369</a>]
+  Add list of Avatica clients to the web site
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1229">CALCITE-1229</a>]
+  Restore API and Test API links to site
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1287">CALCITE-1287</a>]
+  TCK test for binary columns
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1285">CALCITE-1285</a>]
+  Fix client URL template in example config file
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.8.0">1.8.0</a> / 2016-06-04
 {: #v1-8-0}
 
@@ -127,8 +211,6 @@ Web site and documentation
   Avatica sub-site logo leads to Calcite site instead of Avatica's
 * [<a href='https://issues.apache.org/jira/browse/CALCITE-1202'>CALCITE-1202</a>]
   Lock version of Jekyll used by website
-
-
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-avatica-1.7.1">1.7.1</a> / 2016-03-18
 {: #v1-7-1}

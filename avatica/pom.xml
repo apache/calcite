@@ -52,7 +52,7 @@ limitations under the License.
     <top.dir>${project.basedir}</top.dir>
     <avatica.release.version>${project.version}</avatica.release.version>
     <version.major>1</version.major>
-    <version.minor>8</version.minor>
+    <version.minor>9</version.minor>
     <!-- This list is in alphabetical order. -->
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
