@@ -356,6 +356,12 @@ public class SqlFunctions {
   /** SQL = operator applied to Object values (including String; neither
    * side may be null). */
   public static boolean eq(Object b0, Object b1) {
+    return b0.equals(b1);
+  }
+
+  /** SQL = operator applied to Object values (either or both operands is(are) ANY type; neither
+   * side may be null). */
+  public static boolean eqAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())) {
       // The result of SqlFunctions.eq(BigDecimal, BigDecimal) is making more sense than
       // BigDecimal.equals(BigDecimal).
@@ -390,6 +396,12 @@ public class SqlFunctions {
     return !eq(b0, b1);
   }
 
+  /** SQL &lt;&gt; operator applied to Object values (either or both operands is(are) ANY type;
+   * including String; neither side may be null). */
+  public static boolean neAny(Object b0, Object b1) {
+    return !eqAny(b0, b1);
+  }
+
   // <
 
   /** SQL &lt; operator applied to boolean values. */
@@ -413,7 +425,7 @@ public class SqlFunctions {
   }
 
   /** SQL &lt; operator applied to Object values. */
-  public static boolean lt(Object b0, Object b1) {
+  public static boolean ltAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
         && Comparable.class.isInstance(b0)) {
       return ((Comparable) b0).compareTo(b1) < 0;
@@ -447,8 +459,8 @@ public class SqlFunctions {
     return b0.compareTo(b1) <= 0;
   }
 
-  /** SQL &le; operator applied to Object values. */
-  public static boolean le(Object b0, Object b1) {
+  /** SQL &le; operator applied to Object values. (either or both operands is(are) ANY type) */
+  public static boolean leAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
         && Comparable.class.isInstance(b0)) {
       return ((Comparable) b0).compareTo(b1) <= 0;
@@ -482,8 +494,8 @@ public class SqlFunctions {
     return b0.compareTo(b1) > 0;
   }
 
-  /** SQL &gt; operator applied to Object values. */
-  public static boolean gt(Object b0, Object b1) {
+  /** SQL &gt; operator applied to Object values. (either or both operands is(are) ANY type) */
+  public static boolean gtAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
         && Comparable.class.isInstance(b0)) {
       return ((Comparable) b0).compareTo(b1) > 0;
@@ -517,8 +529,8 @@ public class SqlFunctions {
     return b0.compareTo(b1) >= 0;
   }
 
-  /** SQL &ge; operator applied to Object values. */
-  public static boolean ge(Object b0, Object b1) {
+  /** SQL &ge; operator applied to Object values. (either or both operands is(are) ANY type) */
+  public static boolean geAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
         && Comparable.class.isInstance(b0)) {
       return ((Comparable) b0).compareTo(b1) >= 0;
@@ -573,8 +585,9 @@ public class SqlFunctions {
     return (b0 == null || b1 == null) ? null : b0.add(b1);
   }
 
-  /** SQL <code>+</code> operator applied to Object values. */
-  public static Object plus(Object b0, Object b1) {
+  /** SQL <code>+</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object plusAny(Object b0, Object b1) {
     if (b0 == null || b1 == null) {
       return null;
     }
@@ -630,8 +643,9 @@ public class SqlFunctions {
     return (b0 == null || b1 == null) ? null : b0.subtract(b1);
   }
 
-  /** SQL <code>-</code> operator applied to Object values. */
-  public static Object minus(Object b0, Object b1) {
+  /** SQL <code>-</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object minusAny(Object b0, Object b1) {
     if (b0 == null || b1 == null) {
       return null;
     }
@@ -689,8 +703,9 @@ public class SqlFunctions {
         : b0.divide(b1, MathContext.DECIMAL64);
   }
 
-  /** SQL <code>/</code> operator applied to Object values. */
-  public static Object divide(Object b0, Object b1) {
+  /** SQL <code>/</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object divideAny(Object b0, Object b1) {
     if (b0 == null || b1 == null) {
       return null;
     }
@@ -756,8 +771,9 @@ public class SqlFunctions {
     return (b0 == null || b1 == null) ? null : b0.multiply(b1);
   }
 
-  /** SQL <code>*</code> operator applied to Object values. */
-  public static Object multiply(Object b0, Object b1) {
+  /** SQL <code>*</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object multiplyAny(Object b0, Object b1) {
     if (b0 == null || b1 == null) {
       return null;
     }
