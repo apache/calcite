@@ -105,7 +105,7 @@ public class SpnegoTestUtil {
       writer.write(" com.sun.security.auth.module.Krb5LoginModule required\n");
       writer.write(" principal=\"" + SERVER_PRINCIPAL + "\"\n");
       writer.write(" useKeyTab=true\n");
-      writer.write(" keyTab=\"" + serverKeytab + "\"\n");
+      writer.write(" keyTab=\"" + serverKeytab.toURI() + "\"\n");
       writer.write(" storeKey=true \n");
       // Some extra debug information from JAAS
       //writer.write(" debug=true\n");
