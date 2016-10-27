@@ -105,7 +105,7 @@ limitations under the License.
     <mysql-driver.version>5.1.20</mysql-driver.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
-    <pentaho-aggdesigner.version>5.1.5-jhyde</pentaho-aggdesigner.version>
+    <aggdesigner.version>6.0</aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc3</postgresql.version>
     <quidem.version>0.7</quidem.version>
     <scala.version>2.10.3</scala.version>
@@ -258,6 +258,11 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
+        <artifactId>aggdesigner-algorithm</artifactId>
+        <version>${aggdesigner.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
         <artifactId>eigenbase-properties</artifactId>
         <version>${eigenbase-properties.version}</version>
       </dependency>
@@ -350,11 +355,6 @@ limitations under the License.
         <groupId>org.incava</groupId>
         <artifactId>java-diff</artifactId>
         <version>${java-diff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.pentaho</groupId>
-        <artifactId>pentaho-aggdesigner-algorithm</artifactId>
-        <version>${pentaho-aggdesigner.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.spark</groupId>
@@ -776,17 +776,6 @@ limitations under the License.
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
-    </repository>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>warn</checksumPolicy>
-      </releases>
-      <id>conjars</id>
-      <name>Conjars</name>
-      <url>http://conjars.org/repo</url>
-      <layout>default</layout>
     </repository>
   </repositories>
 

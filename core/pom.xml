@@ -96,6 +96,10 @@ limitations under the License.
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
+      <artifactId>aggdesigner-algorithm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
       <artifactId>eigenbase-properties</artifactId>
     </dependency>
     <dependency>
@@ -140,10 +144,6 @@ limitations under the License.
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-core</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.pentaho</groupId>
-      <artifactId>pentaho-aggdesigner-algorithm</artifactId>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
