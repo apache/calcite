@@ -348,28 +348,58 @@ public class SqlFunctions {
 
   // =
 
+  /** SQL = operator applied to BigDecimal values (neither may be null). */
+  public static boolean eq(BigDecimal b0, BigDecimal b1) {
+    return b0.stripTrailingZeros().equals(b1.stripTrailingZeros());
+  }
+
   /** SQL = operator applied to Object values (including String; neither
    * side may be null). */
   public static boolean eq(Object b0, Object b1) {
     return b0.equals(b1);
   }
 
-  /** SQL = operator applied to BigDecimal values (neither may be null). */
-  public static boolean eq(BigDecimal b0, BigDecimal b1) {
-    return b0.stripTrailingZeros().equals(b1.stripTrailingZeros());
+  /** SQL = operator applied to Object values (either or both operands is(are) ANY type; neither
+   * side may be null). */
+  public static boolean eqAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())) {
+      // The result of SqlFunctions.eq(BigDecimal, BigDecimal) is making more sense than
+      // BigDecimal.equals(BigDecimal).
+      // So if both of types are BigDecimal, we just use SqlFunctions.eq(BigDecimal, BigDecimal).
+      if (BigDecimal.class.isInstance(b0)) {
+        return eq((BigDecimal) b0, (BigDecimal) b1);
+      } else {
+        return b0.equals(b1);
+      }
+    } else if (bothParametersAssignable(b0, b1, Number.class)) {
+      return eq(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+    // we shouldn't rely on implementation even though overridden equals can handle other types
+    // which may create worse result: for example, a.equals(b) != b.equals(a)
+    return false;
+  }
+
+  private static boolean bothParametersAssignable(Object b0, Object b1, Class clazz) {
+    return clazz.isInstance(b0) && clazz.isInstance(b1);
   }
 
   // <>
 
-  /** SQL &lt;&gt; operator applied to Object values (including String;
-   * neither side may be null). */
-  public static boolean ne(Object b0, Object b1) {
-    return !b0.equals(b1);
-  }
-
   /** SQL &lt;&gt; operator applied to BigDecimal values. */
   public static boolean ne(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) != 0;
+  }
+
+  /** SQL &lt;&gt; operator applied to Object values (including String;
+   * neither side may be null). */
+  public static boolean ne(Object b0, Object b1) {
+    return !eq(b0, b1);
+  }
+
+  /** SQL &lt;&gt; operator applied to Object values (either or both operands is(are) ANY type;
+   * including String; neither side may be null). */
+  public static boolean neAny(Object b0, Object b1) {
+    return !eqAny(b0, b1);
   }
 
   // <
@@ -394,6 +424,19 @@ public class SqlFunctions {
     return b0.compareTo(b1) < 0;
   }
 
+  /** SQL &lt; operator applied to Object values. */
+  public static boolean ltAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && Comparable.class.isInstance(b0)) {
+      return ((Comparable) b0).compareTo(b1) < 0;
+    } else if (bothParametersAssignable(b0, b1, Number.class)) {
+      return lt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not comparable value types: " + b0.getClass()
+        + ", " + b1.getClass());
+  }
+
   // <=
 
   /** SQL &le; operator applied to boolean values. */
@@ -414,6 +457,19 @@ public class SqlFunctions {
   /** SQL &le; operator applied to BigDecimal values. */
   public static boolean le(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) <= 0;
+  }
+
+  /** SQL &le; operator applied to Object values. (either or both operands is(are) ANY type) */
+  public static boolean leAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && Comparable.class.isInstance(b0)) {
+      return ((Comparable) b0).compareTo(b1) <= 0;
+    } else if (bothParametersAssignable(b0, b1, Number.class)) {
+      return le(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not comparable value types: " + b0.getClass()
+        + ", " + b1.getClass());
   }
 
   // >
@@ -438,6 +494,19 @@ public class SqlFunctions {
     return b0.compareTo(b1) > 0;
   }
 
+  /** SQL &gt; operator applied to Object values. (either or both operands is(are) ANY type) */
+  public static boolean gtAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && Comparable.class.isInstance(b0)) {
+      return ((Comparable) b0).compareTo(b1) > 0;
+    } else if (bothParametersAssignable(b0, b1, Number.class)) {
+      return gt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not comparable value types: " + b0.getClass()
+        + ", " + b1.getClass());
+  }
+
   // >=
 
   /** SQL &ge; operator applied to boolean values. */
@@ -458,6 +527,19 @@ public class SqlFunctions {
   /** SQL &ge; operator applied to BigDecimal values. */
   public static boolean ge(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) >= 0;
+  }
+
+  /** SQL &ge; operator applied to Object values. (either or both operands is(are) ANY type) */
+  public static boolean geAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && Comparable.class.isInstance(b0)) {
+      return ((Comparable) b0).compareTo(b1) >= 0;
+    } else if (bothParametersAssignable(b0, b1, Number.class)) {
+      return ge(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not comparable value types: " + b0.getClass()
+        + ", " + b1.getClass());
   }
 
   // +
@@ -503,6 +585,21 @@ public class SqlFunctions {
     return (b0 == null || b1 == null) ? null : b0.add(b1);
   }
 
+  /** SQL <code>+</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object plusAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (bothParametersAssignable(b0, b1, Number.class)) {
+      return plus(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not applicable types to apply arithmetic: "
+        + b0.getClass() + ", " + b1.getClass());
+  }
+
   // -
 
   /** SQL <code>-</code> operator applied to int values. */
@@ -544,6 +641,21 @@ public class SqlFunctions {
   /** SQL <code>-</code> operator applied to BigDecimal values. */
   public static BigDecimal minus(BigDecimal b0, BigDecimal b1) {
     return (b0 == null || b1 == null) ? null : b0.subtract(b1);
+  }
+
+  /** SQL <code>-</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object minusAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (bothParametersAssignable(b0, b1, Number.class)) {
+      return minus(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not applicable types to apply arithmetic: "
+        + b0.getClass() + ", " + b1.getClass());
   }
 
   // /
@@ -589,6 +701,21 @@ public class SqlFunctions {
     return (b0 == null || b1 == null)
         ? null
         : b0.divide(b1, MathContext.DECIMAL64);
+  }
+
+  /** SQL <code>/</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object divideAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (bothParametersAssignable(b0, b1, Number.class)) {
+      return divide(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not applicable types to apply arithmetic: "
+        + b0.getClass() + ", " + b1.getClass());
   }
 
   public static int divide(int b0, BigDecimal b1) {
@@ -642,6 +769,21 @@ public class SqlFunctions {
   /** SQL <code>*</code> operator applied to BigDecimal values. */
   public static BigDecimal multiply(BigDecimal b0, BigDecimal b1) {
     return (b0 == null || b1 == null) ? null : b0.multiply(b1);
+  }
+
+  /** SQL <code>*</code> operator applied to Object values.
+   * (either or both operands is(are) ANY type) */
+  public static Object multiplyAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (bothParametersAssignable(b0, b1, Number.class)) {
+      return multiply(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw new IllegalArgumentException("Not applicable types to apply arithmetic: "
+        + b0.getClass() + ", " + b1.getClass());
   }
 
   // EXP
