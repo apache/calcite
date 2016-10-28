@@ -42,6 +42,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean isBangEqualAllowed() {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }
+
+  @Override public boolean isSetMinusAllowed() {
+    return SqlConformanceEnum.DEFAULT.isSetMinusAllowed();
+  }
 }
 
 // End SqlAbstractConformance.java

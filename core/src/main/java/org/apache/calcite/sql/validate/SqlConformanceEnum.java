@@ -97,6 +97,16 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean isSetMinusAllowed() {
+    switch (this) {
+    case ORACLE_10:
+      return true;
+    default:
+      return false;
+    }
+  }
+
 }
 
 // End SqlConformanceEnum.java

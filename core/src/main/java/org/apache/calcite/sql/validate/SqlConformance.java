@@ -118,6 +118,15 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isBangEqualAllowed();
+
+  /**
+   * Whether MINUS on set is allowed in the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#ORACLE_10};
+   * false otherwise.
+   */
+  boolean isSetMinusAllowed();
 }
 
 // End SqlConformance.java

@@ -4734,6 +4734,14 @@ SqlBinaryOperator BinaryQueryOperator() :
             <ALL> { op = SqlStdOperatorTable.EXCEPT_ALL; }
             | <DISTINCT> { op = SqlStdOperatorTable.EXCEPT; }
         ]
+        |
+        <SET_MINUS>
+        {
+            if (!this.conformance.isSetMinusAllowed()) {
+                throw new ParseException(RESOURCE.setMinusNotAllowed().str());
+            }
+            op = SqlStdOperatorTable.EXCEPT;
+        }
     )
     { return op; }
 }
@@ -5303,6 +5311,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SESSION_USER: "SESSION_USER" >
     | < SET: "SET" >
     | < SETS: "SETS" >
+    | < SET_MINUS: "MINUS">
     | < SIMILAR: "SIMILAR" >
     | < SIMPLE: "SIMPLE" >
     | < SIZE: "SIZE" >
