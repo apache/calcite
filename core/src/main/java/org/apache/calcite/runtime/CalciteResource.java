@@ -624,6 +624,9 @@ public interface CalciteResource {
 
   @BaseMessage("Statement canceled")
   Inst statementCanceled();
+
+  @BaseMessage("MINUS on set is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> setMinusNotAllowed();
 }
 
 // End CalciteResource.java

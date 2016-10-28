@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
@@ -303,6 +304,7 @@ public class SqlParserTest {
       "MERGE",                                          "2003", "2011", "c",
       "METHOD",                                   "99", "2003", "2011", "c",
       "MIN",                                "92",               "2011", "c",
+      "MINUS",                                                          "c",
       "MINUTE",                             "92", "99", "2003", "2011", "c",
       "MINUTES",                                                "2011",
       "MOD",                                                    "2011", "c",
@@ -6967,6 +6969,31 @@ public class SqlParserTest {
     sql("insert into t values (1, current value for my_seq)")
         .ok("INSERT INTO `T`\n"
                 + "(VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`))))");
+  }
+
+  @Test public void testSetMinusFails() {
+    checkFails("select col1 from table1 MINUS select col1 from table2",
+        "MINUS on set is not allowed under the current SQL conformance level");
+  }
+
+  @Test public void testSetMinusForOracle() throws SqlParseException {
+    String stmt = "select col1 from table1 MINUS select col1 from table2";
+    SqlParser parser = SqlParser.create(stmt,
+        SqlParser.configBuilder()
+            .setConformance(SqlConformanceEnum.ORACLE_10)
+            .build());
+
+    SqlNode sqlNode = parser.parseStmt();
+    String actual = sqlNode.toSqlString(null, true).getSql();
+    if (LINUXIFY.get()[0]) {
+      actual = Util.toLinux(actual);
+    }
+
+    TestUtil.assertEqualsVerbose("(SELECT `COL1`\n"
+        + "FROM `TABLE1`\n"
+        + "EXCEPT\n"
+        + "SELECT `COL1`\n"
+        + "FROM `TABLE2`)", actual);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
