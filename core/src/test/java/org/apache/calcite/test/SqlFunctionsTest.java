@@ -767,7 +767,7 @@ public class SqlFunctionsTest {
       fail("'ge' on non-numeric different type is not possible");
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("Invalid types for arithmetic: class java.lang.String >= "
+          is("Invalid types for comparison: class java.lang.String >= "
               + "class java.lang.Long"));
     }
   }
