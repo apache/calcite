@@ -50,7 +50,7 @@
   apacheId: jcamacho
   githubId: jcamachor
   org: Hortonworks
-  role: PMC
+  role: PMC Chair
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
@@ -70,7 +70,7 @@
   apacheId: jhyde
   githubId: julianhyde
   org: Hortonworks
-  role: PMC Chair
+  role: PMC
   homepage: http://people.apache.org/~jhyde
 - name: Maryann Xue
   apacheId: maryannxue
