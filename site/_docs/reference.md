@@ -92,9 +92,10 @@ query:
   |   {
           select
       |   selectWithoutFrom
-      |   query UNION [ ALL ] query
-      |   query EXCEPT query
-      |   query INTERSECT query
+      |   query UNION [ ALL | DISTINCT ] query
+      |   query EXCEPT [ ALL | DISTINCT ] query
+      |   query MINUS [ ALL | DISTINCT ] query
+      |   query INTERSECT [ ALL | DISTINCT ] query
       }
       [ ORDER BY orderItem [, orderItem ]* ]
       [ LIMIT { count | ALL } ]
@@ -203,6 +204,10 @@ may refer to tables in the FROM clause of an enclosing query.
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isFromRequired--).
 
+MINUS is equivalent to EXCEPT,
+but is not standard SQL and is only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isMinusAllowed--).
+
 ## Keywords
 
 The following is a list of SQL keywords.
@@ -266,7 +271,7 @@ CENTURY,
 CHAIN,
 **CHAR**,
 **CHARACTER**,
-CHARACTERISTICTS,
+CHARACTERISTICS,
 CHARACTERS,
 **CHARACTER_LENGTH**,
 CHARACTER_SET_CATALOG,
@@ -490,6 +495,7 @@ MESSAGE_TEXT,
 MICROSECOND,
 MILLENNIUM,
 **MIN**,
+**MINUS**,
 **MINUTE**,
 MINVALUE,
 **MOD**,

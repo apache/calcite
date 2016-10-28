@@ -4712,30 +4712,39 @@ SqlNode JdbcFunctionCall() :
  */
 SqlBinaryOperator BinaryQueryOperator() :
 {
-    SqlBinaryOperator op;
 }
 {
-    /* If both the ALL or DISTINCT keywords are missing, DISTINCT is implicit */
+    // If both the ALL or DISTINCT keywords are missing, DISTINCT is implicit.
     (
-        <UNION> { op = SqlStdOperatorTable.UNION; }
-        [
-            <ALL> { op = SqlStdOperatorTable.UNION_ALL; }
-            | <DISTINCT> { op = SqlStdOperatorTable.UNION; }
-        ]
+        <UNION>
+        (
+            <ALL> { return SqlStdOperatorTable.UNION_ALL; }
+        |   <DISTINCT> { return SqlStdOperatorTable.UNION; }
+        |   { return SqlStdOperatorTable.UNION; }
+        )
+    |
+        <INTERSECT>
+        (
+            <ALL> { return SqlStdOperatorTable.INTERSECT_ALL; }
+        |   <DISTINCT> { return SqlStdOperatorTable.INTERSECT; }
+        |   { return SqlStdOperatorTable.INTERSECT; }
+        )
+    |
+        (
+            <EXCEPT>
         |
-        <INTERSECT> { op = SqlStdOperatorTable.INTERSECT; }
-        [
-            <ALL> { op = SqlStdOperatorTable.INTERSECT_ALL; }
-            | <DISTINCT> { op = SqlStdOperatorTable.INTERSECT; }
-        ]
-        |
-        <EXCEPT> { op = SqlStdOperatorTable.EXCEPT; }
-        [
-            <ALL> { op = SqlStdOperatorTable.EXCEPT_ALL; }
-            | <DISTINCT> { op = SqlStdOperatorTable.EXCEPT; }
-        ]
+            <SET_MINUS> {
+                if (!this.conformance.isMinusAllowed()) {
+                    throw new ParseException(RESOURCE.minusNotAllowed().str());
+                }
+            }
+        )
+        (
+            <ALL> { return SqlStdOperatorTable.EXCEPT_ALL; }
+        |   <DISTINCT> { return SqlStdOperatorTable.EXCEPT; }
+        |   { return SqlStdOperatorTable.EXCEPT; }
+        )
     )
-    { return op; }
 }
 
 /**
@@ -4933,7 +4942,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CHARACTER_SET_CATALOG: "CHARACTER_SET_CATALOG" >
     | < CHARACTER_SET_NAME: "CHARACTER_SET_NAME" >
     | < CHARACTER_SET_SCHEMA: "CHARACTER_SET_SCHEMA" >
-    | < CHARACTERISTICS: "CHARACTERISTICTS" >
+    | < CHARACTERISTICS: "CHARACTERISTICS" >
     | < CHARACTERS: "CHARACTERS" >
     | < CHECK: "CHECK" >
     | < CLASS_ORIGIN: "CLASS_ORIGIN" >
@@ -5303,6 +5312,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SESSION_USER: "SESSION_USER" >
     | < SET: "SET" >
     | < SETS: "SETS" >
+    | < SET_MINUS: "MINUS">
     | < SIMILAR: "SIMILAR" >
     | < SIMPLE: "SIMPLE" >
     | < SIZE: "SIZE" >

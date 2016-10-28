@@ -48,6 +48,10 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   @Override public boolean isBangEqualAllowed() {
     return delegate.isBangEqualAllowed();
   }
+
+  @Override public boolean isMinusAllowed() {
+    return delegate.isMinusAllowed();
+  }
 }
 
 // End SqlDelegatingConformance.java

@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
@@ -303,6 +305,7 @@ public class SqlParserTest {
       "MERGE",                                          "2003", "2011", "c",
       "METHOD",                                   "99", "2003", "2011", "c",
       "MIN",                                "92",               "2011", "c",
+      "MINUS",                                                          "c",
       "MINUTE",                             "92", "99", "2003", "2011", "c",
       "MINUTES",                                                "2011",
       "MOD",                                                    "2011", "c",
@@ -515,6 +518,7 @@ public class SqlParserTest {
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
   Casing quotedCasing = Casing.UNCHANGED;
+  SqlConformance conformance = SqlConformanceEnum.DEFAULT;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -545,25 +549,14 @@ public class SqlParserTest {
             .setQuoting(quoting)
             .setUnquotedCasing(unquotedCasing)
             .setQuotedCasing(quotedCasing)
+            .setConformance(conformance)
             .build());
-  }
-
-  protected SqlNode parseStmt(String sql) throws SqlParseException {
-    return getSqlParser(sql).parseStmt();
   }
 
   protected void checkExp(
       String sql,
       String expected) {
     getTester().checkExp(sql, expected);
-  }
-
-  protected SqlNode parseExpression(String sql) throws SqlParseException {
-    return getSqlParser(sql).parseExpression();
-  }
-
-  protected SqlAbstractParserImpl.Metadata getParserMetadata() {
-    return getSqlParser("").getMetadata();
   }
 
   protected void checkExpSame(String sql) {
@@ -1824,6 +1817,45 @@ public class SqlParserTest {
             + "EXCEPT\n"
             + "SELECT *\n"
             + "FROM `A`)");
+  }
+
+  /** Tests MINUS, which is equivalent to EXCEPT but only supported in some
+   * conformance levels (e.g. ORACLE). */
+  @Test public void testSetMinus() {
+    final String pattern =
+        "MINUS is not allowed under the current SQL conformance level";
+    final String sql = "select col1 from table1 MINUS select col1 from table2";
+    sql(sql).fails(pattern);
+
+    conformance = SqlConformanceEnum.ORACLE_10;
+    final String expected = "(SELECT `COL1`\n"
+        + "FROM `TABLE1`\n"
+        + "EXCEPT\n"
+        + "SELECT `COL1`\n"
+        + "FROM `TABLE2`)";
+    sql(sql).ok(expected);
+
+    final String sql2 =
+        "select col1 from table1 MINUS ALL select col1 from table2";
+    final String expected2 = "(SELECT `COL1`\n"
+        + "FROM `TABLE1`\n"
+        + "EXCEPT ALL\n"
+        + "SELECT `COL1`\n"
+        + "FROM `TABLE2`)";
+    sql(sql2).ok(expected2);
+  }
+
+  /** MINUS is a <b>reserved</b> keyword in Calcite in all conformances, even
+   * in the default conformance, where it is not allowed as an alternative to
+   * EXCEPT. (It is reserved in Oracle but not in any version of the SQL
+   * standard.) */
+  @Test public void testMinusIsReserved() {
+    sql("select ^minus^ from t")
+        .fails("(?s).*Encountered \"minus from\" at .*");
+    sql("select ^minus^ select")
+        .fails("(?s).*Encountered \"minus select\" at .*");
+    sql("select * from t ^as^ minus where x < y")
+        .fails("(?s).*Encountered \"as minus\" at .*");
   }
 
   @Test public void testIntersect() {
@@ -6603,7 +6635,7 @@ public class SqlParserTest {
   }
 
   @Test public void testMetadata() {
-    SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
     assertTrue(metadata.isReservedFunctionName("ABS"));
     assertFalse(metadata.isReservedFunctionName("FOO"));
 
@@ -6649,7 +6681,8 @@ public class SqlParserTest {
    * non-reserved keyword list in the parser.
    */
   @Test public void testNoUnintendedNewReservedKeywords() {
-    final SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+    final SqlAbstractParserImpl.Metadata metadata =
+        getSqlParser("").getMetadata();
 
     final SortedSet<String> reservedKeywords = new TreeSet<>();
     final SortedSet<String> keywords92 = keywords("92");
@@ -6699,7 +6732,8 @@ public class SqlParserTest {
         }
         if (line.equals("{% comment %} start {% endcomment %}")) {
           ++stage;
-          SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+          SqlAbstractParserImpl.Metadata metadata =
+              getSqlParser("").getMetadata();
           int z = 0;
           for (String s : metadata.getTokens()) {
             if (z++ > 0) {
@@ -7008,7 +7042,7 @@ public class SqlParserTest {
     protected SqlNode parseStmtAndHandleEx(String sql) {
       final SqlNode sqlNode;
       try {
-        sqlNode = parseStmt(sql);
+        sqlNode = getSqlParser(sql).parseStmt();
       } catch (SqlParseException e) {
         throw new RuntimeException("Error while parsing SQL: " + sql, e);
       }
@@ -7029,7 +7063,7 @@ public class SqlParserTest {
     protected SqlNode parseExpressionAndHandleEx(String sql) {
       final SqlNode sqlNode;
       try {
-        sqlNode = parseExpression(sql);
+        sqlNode = getSqlParser(sql).parseExpression();
       } catch (SqlParseException e) {
         throw new RuntimeException("Error while parsing expression: " + sql, e);
       }
@@ -7042,7 +7076,7 @@ public class SqlParserTest {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       Throwable thrown = null;
       try {
-        final SqlNode sqlNode = parseStmt(sap.sql);
+        final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
         Util.discard(sqlNode);
       } catch (Throwable ex) {
         thrown = ex;
@@ -7054,7 +7088,7 @@ public class SqlParserTest {
     public void checkNode(String sql, Matcher<SqlNode> matcher) {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       try {
-        final SqlNode sqlNode = parseStmt(sap.sql);
+        final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
         assertThat(sqlNode, matcher);
       } catch (SqlParseException e) {
         throw Throwables.propagate(e);
@@ -7071,7 +7105,7 @@ public class SqlParserTest {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       Throwable thrown = null;
       try {
-        final SqlNode sqlNode = parseExpression(sap.sql);
+        final SqlNode sqlNode = getSqlParser(sap.sql).parseExpression();
         Util.discard(sqlNode);
       } catch (Throwable ex) {
         thrown = ex;
