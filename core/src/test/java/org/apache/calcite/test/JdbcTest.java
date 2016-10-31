@@ -6094,7 +6094,7 @@ public class JdbcTest {
   /** Tests that {@link Hook#PARSE_TREE} works. */
   @Test public void testHook() {
     final int[] callCount = {0};
-    final Hook.Closeable hook = Hook.PARSE_TREE.addThread(
+    try (Hook.Closeable hook = Hook.PARSE_TREE.addThread(
         new Function<Object[], Object>() {
           public Void apply(Object[] args) {
             assertThat(args.length, equalTo(2));
@@ -6107,8 +6107,7 @@ public class JdbcTest {
             ++callCount[0];
             return null;
           }
-        });
-    try {
+        })) {
       // Simple query does not run the hook.
       testSimple();
       assertThat(callCount[0], equalTo(0));
@@ -6116,8 +6115,6 @@ public class JdbcTest {
       // Non-trivial query runs hook once.
       testGroupByNull();
       assertThat(callCount[0], equalTo(1));
-    } finally {
-      hook.close();
     }
   }
 

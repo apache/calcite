@@ -29,7 +29,6 @@ import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Closer;
-import org.apache.calcite.util.Holder;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -212,20 +211,8 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
               .put(hook, handler).build());
     }
 
-    /** Returns a function that, when a hook is called, will "return" a given
-     * value. (Because of the way hooks work, it "returns" the value by writing
-     * into a {@link Holder}. */
-    private <V> Function<Holder<V>, Void> propertyHook(final V v) {
-      return new Function<Holder<V>, Void>() {
-        public Void apply(Holder<V> holder) {
-          holder.set(v);
-          return null;
-        }
-      };
-    }
-
     public <V> Sql withProperty(Hook hook, V value) {
-      return withHook(hook, propertyHook(value));
+      return withHook(hook, Hook.property(value));
     }
 
     public Sql expand(boolean expand) {

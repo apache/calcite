@@ -18,6 +18,7 @@ package org.apache.calcite.prepare;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
@@ -441,8 +442,6 @@ public abstract class Prepare {
       return Collections.singletonList(
           Collections.<String>nCopies(4, null));
     }
-
-    public abstract Bindable getBindable();
   }
 
   /**
@@ -481,9 +480,10 @@ public abstract class Prepare {
     /**
      * Executes the prepared result.
      *
+     * @param cursorFactory How to map values into a cursor
      * @return producer of rows resulting from execution
      */
-    Bindable getBindable();
+    Bindable getBindable(Meta.CursorFactory cursorFactory);
   }
 
   /**
@@ -546,8 +546,6 @@ public abstract class Prepare {
     public RelNode getRootRel() {
       return rootRel;
     }
-
-    public abstract Bindable getBindable();
   }
 
   /** Describes that a given SQL query is materialized by a given table.

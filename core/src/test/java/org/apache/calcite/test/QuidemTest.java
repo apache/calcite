@@ -22,11 +22,13 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
@@ -144,11 +146,22 @@ public class QuidemTest {
       outFile = new File(base, u2n("/surefire/") + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
-    final FileReader fileReader = new FileReader(inFile);
-    final BufferedReader bufferedReader = new BufferedReader(fileReader);
-    final FileWriter writer = new FileWriter(outFile);
-    new Quidem(bufferedReader, writer, env(), new QuidemConnectionFactory())
-        .execute();
+    try (final FileReader fileReader = new FileReader(inFile);
+         final BufferedReader bufferedReader = new BufferedReader(fileReader);
+         final FileWriter writer = new FileWriter(outFile);
+         final Closer closer = new Closer()) {
+      new Quidem(bufferedReader, writer, env(), new QuidemConnectionFactory())
+          .withPropertyHandler(new Quidem.PropertyHandler() {
+            public void onSet(String propertyName, Object value) {
+              if (propertyName.equals("bindable")) {
+                final boolean b = value instanceof Boolean
+                    && (Boolean) value;
+                closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.property(b)));
+              }
+            }
+          })
+          .execute();
+    }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n"
@@ -314,6 +327,7 @@ public class QuidemTest {
       throw new RuntimeException("unknown connection '" + name + "'");
     }
   }
+
 }
 
 // End QuidemTest.java

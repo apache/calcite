@@ -39,6 +39,11 @@ public enum Hook {
    * Default true. */
   REL_BUILDER_SIMPLIFY,
 
+  /** Returns a boolean value, whether the return convention should be
+   * {@link org.apache.calcite.interpreter.BindableConvention}.
+   * Default false. */
+  ENABLE_BINDABLE,
+
   /** Called with the SQL string and parse tree, in an array. */
   PARSE_TREE,
 
@@ -123,6 +128,18 @@ public enum Hook {
   /** Removes a thread handler from this Hook. */
   private boolean removeThread(Function handler) {
     return threadHandlers.get().remove(handler);
+  }
+
+  /** Returns a function that, when a hook is called, will "return" a given
+   * value. (Because of the way hooks work, it "returns" the value by writing
+   * into a {@link Holder}. */
+  public static <V> Function<Holder<V>, Void> property(final V v) {
+    return new Function<Holder<V>, Void>() {
+      public Void apply(Holder<V> holder) {
+        holder.set(v);
+        return null;
+      }
+    };
   }
 
   /** Runs all handlers registered for this Hook, with the given argument. */

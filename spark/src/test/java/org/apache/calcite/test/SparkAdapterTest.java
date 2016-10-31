@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.spark.SparkRel;
+import org.apache.calcite.util.Util;
+
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -30,6 +33,11 @@ public class SparkAdapterTest {
    * There are no data sources.
    */
   @Test public void testValues() throws SQLException {
+    // Insert a spurious reference to a class in Calcite's Spark adapter.
+    // Otherwise this test doesn't depend on the Spark module at all, and
+    // Javadoc gets confused.
+    Util.discard(SparkRel.class);
+
     CalciteAssert.that()
         .with(CalciteAssert.Config.SPARK)
         .query("select *\n"

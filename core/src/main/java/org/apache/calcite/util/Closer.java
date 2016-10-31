@@ -25,8 +25,8 @@ import java.util.List;
 /** Helper that holds onto {@link AutoCloseable} resources and releases them
  * when its {@code #close} method is called.
  *
- * <p>Similar to {@link com.google.common.io.Closer} but can deal with
- * {@link AutoCloseable} and doesn't throw {@link IOException}. */
+ * <p>Similar to {@code com.google.common.io.Closer} but can deal with
+ * {@link AutoCloseable}, and doesn't throw {@link IOException}. */
 public final class Closer implements AutoCloseable {
   private final List<AutoCloseable> list = new ArrayList<>();
 

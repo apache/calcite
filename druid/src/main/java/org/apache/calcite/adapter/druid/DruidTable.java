@@ -69,7 +69,6 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @param metricFieldNames Names of fields that are metrics
    * @param intervals Default interval if query does not constrain the time, or null
    * @param timestampFieldName Name of the column that contains the time
-   * @param intervals Intervals for the given table
    */
   public DruidTable(DruidSchema schema, String dataSource,
       RelProtoDataType protoRowType, Set<String> metricFieldNames,

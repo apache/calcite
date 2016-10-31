@@ -32,6 +32,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
@@ -251,7 +252,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       return ((TranslatableTable) table).toRel(context, this);
     }
     final RelOptCluster cluster = context.getCluster();
-    if (CalcitePrepareImpl.ENABLE_BINDABLE) {
+    if (Hook.ENABLE_BINDABLE.get(false)) {
       return LogicalTableScan.create(cluster, this);
     }
     if (CalcitePrepareImpl.ENABLE_ENUMERABLE

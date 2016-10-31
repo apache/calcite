@@ -172,7 +172,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Whether the bindable convention should be the root convention of any
    * plan. If not, enumerable convention is the default. */
-  public static final boolean ENABLE_BINDABLE = false;
+  public final boolean enableBindable = Hook.ENABLE_BINDABLE.get(false);
 
   /** Whether the enumerable convention is enabled. */
   public static final boolean ENABLE_ENUMERABLE = true;
@@ -294,7 +294,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       SqlNode sqlNode1) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final Convention resultConvention =
-        ENABLE_BINDABLE ? BindableConvention.INSTANCE
+        enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -503,7 +503,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (prepareContext.config().materializationsEnabled()) {
       planner.addRule(MaterializedViewFilterScanRule.INSTANCE);
     }
-    if (ENABLE_BINDABLE) {
+    if (enableBindable) {
       for (RelOptRule rule : Bindables.RULES) {
         planner.addRule(rule);
       }
@@ -519,7 +519,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       planner.addRule(EnumerableInterpreterRule.INSTANCE);
     }
 
-    if (ENABLE_BINDABLE && ENABLE_ENUMERABLE) {
+    if (enableBindable && ENABLE_ENUMERABLE) {
       planner.addRule(
           EnumerableBindable.EnumerableToBindableConverterRule.INSTANCE);
     }
@@ -683,7 +683,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       prefer = EnumerableRel.Prefer.CUSTOM;
     }
     final Convention resultConvention =
-        ENABLE_BINDABLE ? BindableConvention.INSTANCE
+        enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
@@ -779,17 +779,19 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (preparedResult instanceof Typed) {
       resultClazz = (Class) ((Typed) preparedResult).getElementType();
     }
+    final Meta.CursorFactory cursorFactory =
+        preparingStmt.resultConvention == BindableConvention.INSTANCE
+            ? Meta.CursorFactory.ARRAY
+            : Meta.CursorFactory.deduce(columns, resultClazz);
     //noinspection unchecked
-    final Bindable<T> bindable = preparedResult.getBindable();
+    final Bindable<T> bindable = preparedResult.getBindable(cursorFactory);
     return new CalciteSignature<>(
         query.sql,
         parameters,
         preparingStmt.internalParameters,
         jdbcType,
         columns,
-        preparingStmt.resultConvention == BindableConvention.INSTANCE
-            ? Meta.CursorFactory.ARRAY
-            : Meta.CursorFactory.deduce(columns, resultClazz),
+        cursorFactory,
         preparedResult instanceof Prepare.PreparedResultImpl
             ? ((Prepare.PreparedResultImpl) preparedResult).collations
             : ImmutableList.<RelCollation>of(),
@@ -1226,7 +1228,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           throw new UnsupportedOperationException();
         }
 
-        public Bindable getBindable() {
+        public Bindable getBindable(Meta.CursorFactory cursorFactory) {
           return bindable;
         }
 
@@ -1263,11 +1265,17 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       super(resultType, parameterRowType, root, format, detailLevel);
     }
 
-    public Bindable getBindable() {
+    public Bindable getBindable(final Meta.CursorFactory cursorFactory) {
       final String explanation = getCode();
       return new Bindable() {
         public Enumerable bind(DataContext dataContext) {
-          return Linq4j.singletonEnumerable(explanation);
+          switch (cursorFactory.style) {
+          case ARRAY:
+            return Linq4j.singletonEnumerable(new String[] {explanation});
+          case OBJECT:
+          default:
+            return Linq4j.singletonEnumerable(explanation);
+          }
         }
       };
     }
