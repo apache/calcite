@@ -37,6 +37,13 @@ apiRoot: /apidocs
 testApiRoot: /testapidocs
 # testApiRoot: http://calcite.apache.org/testapidocs
 
+# The URL where Avatica's Javadocs are located
+avaticaApiRoot: /avatica/apidocs
+# avaticaApiRoot: http://calcite.apache.org/avatica/apidocs
+
+# The URL where the JDK's Javadocs are located
+jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
+
 # The base path where the website is deployed
 baseurl:
 

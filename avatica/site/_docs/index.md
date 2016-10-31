@@ -31,25 +31,33 @@ Avatica's Java binding has very few dependencies.
 Even though it is part of Apache Calcite it does not depend on other parts of
 Calcite. It depends only on JDK 1.7+ and Jackson.
 
-Avatica's wire protocol is JSON over HTTP.
-The Java implementation uses Jackson to convert request/response command
-objects to/from JSON.
+Avatica's wire protocols are JSON or Protocol Buffers over HTTP. The
+Java implementation of the JSON protocol uses
+[Jackson](https://github.com/FasterXML/jackson) to convert
+request/response command objects to/from JSON.
 
 Avatica-Server is a Java implementation of Avatica RPC.
 
 Core concepts:
 
-* Meta is a local API sufficient to implement any Avatica provider
-* Factory creates implementations of the JDBC classes (Driver, Connection,
-  Statement, ResultSet) on top of a Meta
-* Service is an interface that implements the functions of Meta in terms
+* [Meta]({{ site.apiRoot }}/org/apache/calcite/avatica/Meta.html)
+  is a local API sufficient to implement any Avatica provider
+* [AvaticaFactory]({{ site.apiRoot }}/org/apache/calcite/avatica/AvaticaFactory.html)
+  creates implementations of the JDBC classes on top of a `Meta`
+* [Service]({{ site.apiRoot }}/org/apache/calcite/avatica/remote/Service.html)
+  is an interface that implements the functions of `Meta` in terms
   of request and response command objects
 
 ## JDBC
 
-Avatica implements JDBC by means of Factory.
-Factory creates implementations of the JDBC classes (Driver, Connection,
-Statement, PreparedStatement, ResultSet) on top of a Meta.
+Avatica implements JDBC by means of
+[AvaticaFactory]({{ site.apiRoot }}/org/apache/calcite/avatica/AvaticaFactory.html).
+An implementation of `AvaticaFactory` creates implementations of the
+JDBC classes ([Driver]({{ site.jdkApiRoot }}/java/sql/Driver.html),
+[Connection]({{ site.jdkApiRoot }}/java/sql/Connection.html),
+[Statement]({{ site.jdkApiRoot }}/java/sql/Statement.html),
+[ResultSet]({{ site.jdkApiRoot }}/java/sql/ResultSet.html))
+on top of a `Meta`.
 
 ## ODBC
 
@@ -60,6 +68,10 @@ implementation in Java. The ODBC client would be written in C or C++.
 
 Since the Avatica protocol abstracts many of the differences between providers,
 the same ODBC client could be used for different databases.
+
+Although the Avatica project does not include an ODBC driver, there
+are ODBC drivers written on top of the Avatica protocol, for example
+[an ODBC driver for Apache Phoenix](http://hortonworks.com/hadoop-tutorial/bi-apache-phoenix-odbc/).
 
 ## HTTP Server
 

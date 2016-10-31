@@ -29,13 +29,16 @@ collections:
 # The URL where the code can be found
 sourceRoot: https://github.com/apache/calcite/tree/master/avatica
 
-# The URL where Javadocs are located
-apiRoot: /apidocs
-# apiRoot: http://calcite.apache.org/apidocs
+# The URL where Avatica Javadocs are located
+apiRoot: /avatica/apidocs
+# apiRoot: http://calcite.apache.org/avatica/apidocs
 
 # The URL where Test Javadocs are located
-testApiRoot: /testapidocs
-# testApiRoot: http://calcite.apache.org/testapidocs
+testApiRoot: /avatica/testapidocs
+# testApiRoot: http://calcite.apache.org/avatica/testapidocs
+
+# The URL where the JDK's Javadocs are located
+jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
 
 # The base path where the website is deployed
 baseurl: /avatica

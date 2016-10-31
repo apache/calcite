@@ -63,7 +63,7 @@ The basic form of the JDBC connect string is
 where `property`, `property2` are properties as described below.
 (Connect strings are compliant with OLE DB Connect String syntax,
 as implemented by Avatica's
-<a href="{{ site.apiRoot }}/org/apache/calcite/avatica/ConnectStringParser.html">ConnectStringParser</a>.)
+<a href="{{ site.avaticaApiRoot }}/org/apache/calcite/avatica/ConnectStringParser.html">ConnectStringParser</a>.)
 
 ## JDBC connect string parameters
 

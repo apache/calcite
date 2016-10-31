@@ -1,0 +1,121 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Database of contributors to Apache Calcite.
+# Pages such as developer.md use this data.
+#
+- name: Alan Gates
+  apacheId: gates
+  githubId: alanfgates
+  org: Hortonworks
+  role: PMC
+- name: Aman Sinha
+  apacheId: amansinha
+  githubId: amansinha100
+  org: MapR
+  role: PMC
+- name: Ashutosh Chauhan
+  apacheId: hashutosh
+  githubId: ashutoshc
+  org: Hortonworks
+  role: PMC
+- name: Francis Chuang
+  apacheId: francischuang
+  githubId: F21
+  org: Boostport
+  role: Committer
+- name: James R. Taylor
+  apacheId: jamestaylor
+  githubId: JamesRTaylor
+  org: Salesforce
+  role: PMC
+- name: Jacques Nadeau
+  apacheId: jacques
+  githubId: jacques-n
+  org: Dremio
+  role: PMC
+- name: Jesús Camacho Rodríguez
+  apacheId: jcamacho
+  githubId: jcamachor
+  org: Hortonworks
+  role: PMC Chair
+- name: Jinfeng Ni
+  apacheId: jni
+  githubId: jinfengni
+  org: MapR
+  role: PMC
+- name: John Pullokkaran
+  apacheId: jpullokk
+  githubId: jpullokkaran
+  org: Hortonworks
+  role: PMC
+- name: Josh Elser
+  apacheId: elserj
+  githubId: joshelser
+  org: Hortonworks
+  role: PMC
+- name: Julian Hyde
+  apacheId: jhyde
+  githubId: julianhyde
+  org: Hortonworks
+  role: PMC
+  homepage: http://people.apache.org/~jhyde
+- name: Maryann Xue
+  apacheId: maryannxue
+  githubId: maryannxue
+  org: Intel
+  role: Committer
+- name: Michael Mior
+  apacheId: mmior
+  githubId: michaelmior
+  org: University of Waterloo
+  role: Committer
+  homepage: http://michael.mior.ca/
+- name: Milinda Pathirage
+  apacheId: milinda
+  githubId: milinda
+  org: Indiana University
+  role: Committer
+  homepage: http://milinda.pathirage.org/
+- name: MinJi Kim
+  apacheId: minji
+  githubId: minji-kim
+  org: Dremio
+  role: Committer
+  avatar: http://web.mit.edu/minjikim/www/minji.png
+  homepage: http://web.mit.edu/minjikim/www/
+- name: Nick Dimiduk
+  apacheId: ndimiduk
+  githubId: ndimiduk
+  org: Hortonworks
+  role: PMC
+  homepage: http://www.n10k.com
+- name: Steven Noels
+  apacheId: stevenn
+  githubId: stevenn
+  org: NGData
+  role: PMC
+- name: Ted Dunning
+  apacheId: tdunning
+  githubId: tdunning
+  org: MapR
+  role: PMC
+  avatar: https://www.mapr.com/sites/default/files/otherpageimages/ted-circle-80.png
+- name: Vladimir Sitnikov
+  apacheId: vladimirsitnikov
+  githubId: vlsi
+  org: NetCracker
+  role: PMC
+# End contributors.yml

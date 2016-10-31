@@ -38,10 +38,6 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "&action=download" %}{% comment %}
 {% endcomment %}{% assign d = "https://www.apache.org/dist" %}{% comment %}
-{% endcomment %}{% elsif forloop.rindex < 8 %}{% comment %}
-{% endcomment %}{% capture p %}http://archive.apache.org/dist/incubator/calcite/{{ v }}{% endcapture %}{% comment %}
-{% endcomment %}{% assign q = "" %}{% comment %}
-{% endcomment %}{% assign d = "https://archive.apache.org/dist/incubator" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% capture p %}http://archive.apache.org/dist/calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "" %}{% comment %}
