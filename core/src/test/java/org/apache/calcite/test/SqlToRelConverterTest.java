@@ -1044,6 +1044,43 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Since 'deptno NOT IN (SELECT mgr FROM emp)' can be null, we need a more
+   * complex plan, including counts of null and not-null keys. */
+  @Test public void testNotInUncorrelatedSubQueryInSelectMayBeNull() {
+    final String sql = "select empno, deptno not in (\n"
+        + "  select mgr from emp)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  /** Even though "mgr" allows nulls, we can deduce from the WHERE clause that
+   * it will never be null. Therefore we can generate a simpler plan. */
+  @Test public void testNotInUncorrelatedSubQueryInSelectDeduceNotNull() {
+    final String sql = "select empno, deptno not in (\n"
+        + "  select mgr from emp where mgr > 5)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testNotInUncorrelatedSubQueryInSelectDeduceNotNull()},
+   * using {@code IS NOT NULL}. */
+  @Test public void testNotInUncorrelatedSubQueryInSelectDeduceNotNull2() {
+    final String sql = "select empno, deptno not in (\n"
+        + "  select mgr from emp where mgr is not null)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testNotInUncorrelatedSubQueryInSelectDeduceNotNull()},
+   * using {@code IN}. */
+  @Test public void testNotInUncorrelatedSubQueryInSelectDeduceNotNull3() {
+    final String sql = "select empno, deptno not in (\n"
+        + "  select mgr from emp where mgr in (\n"
+        + "    select mgr from emp where deptno = 10))\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test public void testNotInUncorrelatedSubQueryInSelectNotNullRex() {
     final String sql = "select empno, deptno not in (\n"
         + "  select deptno from dept)\n"

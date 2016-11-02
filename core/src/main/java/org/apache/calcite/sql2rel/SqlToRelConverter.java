@@ -996,7 +996,7 @@ public class SqlToRelConverter {
     final SqlBasicCall call;
     final RelNode rel;
     final SqlNode query;
-    final Pair<RelNode, Boolean> converted;
+    final RelOptUtil.Exists converted;
     switch (subQuery.node.getKind()) {
     case CURSOR:
       convertCursor(bb, subQuery);
@@ -1071,22 +1071,19 @@ public class SqlToRelConverter {
       //   where emp.deptno <> null
       //         and q.indicator <> TRUE"
       //
-      final boolean outerJoin = bb.subqueryNeedsOuterJoin
-          || notIn
-          || subQuery.logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
       converted =
           convertExists(query, RelOptUtil.SubqueryType.IN, subQuery.logic,
-              outerJoin, targetRowType);
-      if (converted.right) {
+              notIn, targetRowType);
+      if (converted.indicator) {
         // Generate
         //    emp CROSS JOIN (SELECT COUNT(*) AS c,
         //                       COUNT(deptno) AS ck FROM dept)
         final RelDataType longType =
             typeFactory.createSqlType(SqlTypeName.BIGINT);
-        final RelNode seek = converted.left.getInput(0); // fragile
+        final RelNode seek = converted.r.getInput(0); // fragile
         final int keyCount = leftKeys.size();
         final List<Integer> args = ImmutableIntList.range(0, keyCount);
         LogicalAggregate aggregate =
@@ -1101,11 +1098,20 @@ public class SqlToRelConverter {
                 ImmutableSet.<CorrelationId>of(), JoinRelType.INNER);
         bb.setRoot(join, false);
       }
-      RexNode rex =
-          bb.register(converted.left,
-              outerJoin ? JoinRelType.LEFT : JoinRelType.INNER, leftKeys);
+      final RexNode rex =
+          bb.register(converted.r,
+              converted.outerJoin ? JoinRelType.LEFT : JoinRelType.INNER,
+              leftKeys);
 
-      subQuery.expr = translateIn(subQuery, bb.root, rex);
+      RelOptUtil.Logic logic = subQuery.logic;
+      switch (logic) {
+      case TRUE_FALSE_UNKNOWN:
+      case UNKNOWN_AS_TRUE:
+        if (!converted.indicator) {
+          logic = RelOptUtil.Logic.TRUE_FALSE;
+        }
+      }
+      subQuery.expr = translateIn(logic, bb.root, rex);
       if (notIn) {
         subQuery.expr =
             rexBuilder.makeCall(SqlStdOperatorTable.NOT, subQuery.expr);
@@ -1129,11 +1135,11 @@ public class SqlToRelConverter {
       }
       converted = convertExists(query, RelOptUtil.SubqueryType.EXISTS,
           subQuery.logic, true, null);
-      assert !converted.right;
-      if (convertNonCorrelatedSubQuery(subQuery, bb, converted.left, true)) {
+      assert !converted.indicator;
+      if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, true)) {
         return;
       }
-      subQuery.expr = bb.register(converted.left, JoinRelType.LEFT);
+      subQuery.expr = bb.register(converted.r, JoinRelType.LEFT);
       return;
 
     case SCALAR_QUERY:
@@ -1146,11 +1152,11 @@ public class SqlToRelConverter {
       query = call.operand(0);
       converted = convertExists(query, RelOptUtil.SubqueryType.SCALAR,
           subQuery.logic, true, null);
-      assert !converted.right;
-      if (convertNonCorrelatedSubQuery(subQuery, bb, converted.left, false)) {
+      assert !converted.indicator;
+      if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, false)) {
         return;
       }
-      rel = convertToSingleValueSubq(query, converted.left);
+      rel = convertToSingleValueSubq(query, converted.r);
       subQuery.expr = bb.register(rel, JoinRelType.LEFT);
       return;
 
@@ -1161,8 +1167,8 @@ public class SqlToRelConverter {
       //
       converted = convertExists(subQuery.node, RelOptUtil.SubqueryType.SCALAR,
           subQuery.logic, true, null);
-      assert !converted.right;
-      subQuery.expr = bb.register(converted.left, JoinRelType.LEFT);
+      assert !converted.indicator;
+      subQuery.expr = bb.register(converted.r, JoinRelType.LEFT);
       return;
 
     default:
@@ -1170,12 +1176,13 @@ public class SqlToRelConverter {
     }
   }
 
-  private RexNode translateIn(SubQuery subQuery, RelNode root,
+  private RexNode translateIn(RelOptUtil.Logic logic, RelNode root,
       final RexNode rex) {
-    switch (subQuery.logic) {
+    switch (logic) {
     case TRUE:
       return rexBuilder.makeLiteral(true);
 
+    case TRUE_FALSE:
     case UNKNOWN_AS_FALSE:
       assert rex instanceof RexRangeRef;
       final int fieldCount = rex.getType().getFieldCount();
@@ -1220,9 +1227,6 @@ public class SqlToRelConverter {
       final Project left = (Project) join.getLeft();
       final RelNode leftLeft = ((Join) left.getInput()).getLeft();
       final int leftLeftCount = leftLeft.getRowType().getFieldCount();
-      final RelDataType nullableBooleanType =
-          typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
       final RelDataType longType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
       final RexNode cRef = rexBuilder.makeInputRef(root, leftLeftCount);
@@ -1252,13 +1256,10 @@ public class SqlToRelConverter {
           unknownLiteral,
           falseLiteral);
 
-      return rexBuilder.makeCall(
-          nullableBooleanType,
-          SqlStdOperatorTable.CASE,
-          args.build());
+      return rexBuilder.makeCall(SqlStdOperatorTable.CASE, args.build());
 
     default:
-      throw new AssertionError(subQuery.logic);
+      throw new AssertionError(logic);
     }
   }
 
@@ -1467,15 +1468,15 @@ public class SqlToRelConverter {
    * @param logic Whether the answer needs to be in full 3-valued logic (TRUE,
    *     FALSE, UNKNOWN) will be required, or whether we can accept an
    *     approximation (say representing UNKNOWN as FALSE)
-   * @param needsOuterJoin Whether an outer join is needed
+   * @param notIn Whether the operation is NOT IN
    * @return join expression
    * @pre extraExpr == null || extraName != null
    */
-  private Pair<RelNode, Boolean> convertExists(
+  private RelOptUtil.Exists convertExists(
       SqlNode seek,
       RelOptUtil.SubqueryType subqueryType,
       RelOptUtil.Logic logic,
-      boolean needsOuterJoin,
+      boolean notIn,
       RelDataType targetDataType) {
     final SqlValidatorScope seekScope =
         (seek instanceof SqlSelect)
@@ -1484,8 +1485,7 @@ public class SqlToRelConverter {
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
-    return RelOptUtil.createExistsPlan(seekRel, subqueryType, logic,
-        needsOuterJoin);
+    return RelOptUtil.createExistsPlan(seekRel, subqueryType, logic, notIn);
   }
 
   private RelNode convertQueryOrInList(
@@ -1711,13 +1711,6 @@ public class SqlToRelConverter {
       break;
     }
     if (node instanceof SqlCall) {
-      if (kind == SqlKind.OR
-          || kind == SqlKind.NOT) {
-        // It's always correct to outer join subquery with
-        // containing query; however, when predicates involve Or
-        // or NOT, outer join might be necessary.
-        bb.subqueryNeedsOuterJoin = true;
-      }
       for (SqlNode operand : ((SqlCall) node).getOperandList()) {
         if (operand != null) {
           // In the case of an IN expression, locate scalar
@@ -1744,13 +1737,15 @@ public class SqlToRelConverter {
     // register the scalar subqueries first so they can be converted
     // before the IN expression is converted.
     if (kind == SqlKind.IN) {
-      if (logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN
-          && !validator.getValidatedNodeType(node).isNullable()) {
-        logic = RelOptUtil.Logic.UNKNOWN_AS_FALSE;
-      }
-      // TODO: This conversion is only valid in the WHERE clause
-      if (logic == RelOptUtil.Logic.UNKNOWN_AS_FALSE
-          && !bb.subqueryNeedsOuterJoin) {
+      switch (logic) {
+      case TRUE_FALSE_UNKNOWN:
+        if (validator.getValidatedNodeType(node).isNullable()) {
+          break;
+        } else if (true) {
+          break;
+        }
+        // fall through
+      case UNKNOWN_AS_FALSE:
         logic = RelOptUtil.Logic.TRUE;
       }
       bb.registerSubQuery(node, logic);
@@ -3651,8 +3646,6 @@ public class SqlToRelConverter {
      */
     private final Set<SubQuery> subQueryList = new LinkedHashSet<>();
 
-    private boolean subqueryNeedsOuterJoin;
-
     /**
      * Workspace for building aggregates.
      */
@@ -3694,7 +3687,6 @@ public class SqlToRelConverter {
       this.scope = scope;
       this.nameToNodeMap = nameToNodeMap;
       this.top = top;
-      subqueryNeedsOuterJoin = false;
     }
 
     public RexNode register(
@@ -4110,12 +4102,10 @@ public class SqlToRelConverter {
       switch (kind) {
       case CURSOR:
       case IN:
-        subQuery = getSubQuery(expr);
-
-        assert subQuery != null;
-        rex = subQuery.expr;
-        assert rex != null : "rex != null";
-        return rex;
+        subQuery = Preconditions.checkNotNull(getSubQuery(expr));
+        rex = Preconditions.checkNotNull(subQuery.expr);
+        return StandardConvertletTable.castToValidatedType(expr, rex,
+            validator, rexBuilder);
 
       case SELECT:
       case EXISTS:

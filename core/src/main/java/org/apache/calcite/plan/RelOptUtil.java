@@ -43,6 +43,7 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -60,6 +61,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -473,70 +475,77 @@ public abstract class RelOptUtil {
    *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
    * @param subqueryType Sub-query type
    * @param logic  Whether to use 2- or 3-valued boolean logic
-   * @param needsOuterJoin Whether query needs outer join
+   * @param notIn Whether the operator is NOT IN
    *
    * @return A pair of a relational expression which outer joins a boolean
    * condition column, and a numeric offset. The offset is 2 if column 0 is
    * the number of rows and column 1 is the number of rows with not-null keys;
    * 0 otherwise.
    */
-  public static Pair<RelNode, Boolean> createExistsPlan(
+  public static Exists createExistsPlan(
       RelNode seekRel,
       SubqueryType subqueryType,
       Logic logic,
-      boolean needsOuterJoin) {
+      boolean notIn) {
     switch (subqueryType) {
     case SCALAR:
-      return Pair.of(seekRel, false);
+      return new Exists(seekRel, false, true);
+    }
+
+    switch (logic) {
+    case TRUE_FALSE_UNKNOWN:
+    case UNKNOWN_AS_TRUE:
+      if (!containsNullableFields(seekRel)) {
+        logic = Logic.TRUE_FALSE;
+      }
+    }
+    RelNode ret = seekRel;
+    final RelOptCluster cluster = seekRel.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final int keyCount = ret.getRowType().getFieldCount();
+    final boolean outerJoin = notIn
+        || logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
+    if (!outerJoin) {
+      final LogicalAggregate aggregate =
+          LogicalAggregate.create(ret, false,
+              ImmutableBitSet.range(keyCount), null,
+              ImmutableList.<AggregateCall>of());
+      return new Exists(aggregate, false, false);
+    }
+
+    // for IN/NOT IN, it needs to output the fields
+    final List<RexNode> exprs = new ArrayList<>();
+    if (subqueryType == SubqueryType.IN) {
+      for (int i = 0; i < keyCount; i++) {
+        exprs.add(rexBuilder.makeInputRef(ret, i));
+      }
+    }
+
+    final int projectedKeyCount = exprs.size();
+    exprs.add(rexBuilder.makeLiteral(true));
+
+    ret = createProject(ret, exprs, null);
+
+    final AggregateCall aggCall =
+        AggregateCall.create(SqlStdOperatorTable.MIN,
+            false,
+            ImmutableList.of(projectedKeyCount),
+            -1,
+            projectedKeyCount,
+            ret,
+            null,
+            null);
+
+    ret = LogicalAggregate.create(ret, false,
+        ImmutableBitSet.range(projectedKeyCount), null,
+        ImmutableList.of(aggCall));
+
+    switch (logic) {
+    case TRUE_FALSE_UNKNOWN:
+    case UNKNOWN_AS_TRUE:
+      return new Exists(ret, true, true);
     default:
-      RelNode ret = seekRel;
-      final RelOptCluster cluster = seekRel.getCluster();
-      final RexBuilder rexBuilder = cluster.getRexBuilder();
-      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-
-      final int keyCount = ret.getRowType().getFieldCount();
-      if (!needsOuterJoin) {
-        return Pair.<RelNode, Boolean>of(
-            LogicalAggregate.create(ret, false,
-                ImmutableBitSet.range(keyCount), null,
-                ImmutableList.<AggregateCall>of()),
-            false);
-      }
-
-      // for IN/NOT IN, it needs to output the fields
-      final List<RexNode> exprs = new ArrayList<>();
-      if (subqueryType == SubqueryType.IN) {
-        for (int i = 0; i < keyCount; i++) {
-          exprs.add(rexBuilder.makeInputRef(ret, i));
-        }
-      }
-
-      final int projectedKeyCount = exprs.size();
-      exprs.add(rexBuilder.makeLiteral(true));
-
-      ret = createProject(ret, exprs, null);
-
-      final AggregateCall aggCall =
-          AggregateCall.create(SqlStdOperatorTable.MIN,
-              false,
-              ImmutableList.of(projectedKeyCount),
-              -1,
-              projectedKeyCount,
-              ret,
-              null,
-              null);
-
-      ret = LogicalAggregate.create(ret, false,
-          ImmutableBitSet.range(projectedKeyCount), null,
-          ImmutableList.of(aggCall));
-
-      switch (logic) {
-      case TRUE_FALSE_UNKNOWN:
-      case UNKNOWN_AS_TRUE:
-        return Pair.of(ret, true);
-      default:
-        return Pair.of(ret, false);
-      }
+      return new Exists(ret, false, true);
     }
   }
 
@@ -3262,6 +3271,51 @@ public abstract class RelOptUtil {
     }
   }
 
+  /**
+   * Determines whether any of the fields in a given relational expression may
+   * contain null values, taking into account constraints on the field types and
+   * also deduced predicates.
+   */
+  private static boolean containsNullableFields(RelNode r) {
+    final RexBuilder rexBuilder = r.getCluster().getRexBuilder();
+    final RelDataType rowType = r.getRowType();
+    final List<RexNode> list = new ArrayList<>();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      if (field.getType().isNullable()) {
+        list.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                rexBuilder.makeInputRef(field.getType(), field.getIndex())));
+      }
+    }
+    if (list.isEmpty()) {
+      // All columns are declared NOT NULL.
+      return false;
+    }
+    final RelOptPredicateList predicates =
+        RelMetadataQuery.instance().getPulledUpPredicates(r);
+    if (predicates.pulledUpPredicates.isEmpty()) {
+      // We have no predicates, so cannot deduce that any of the fields
+      // declared NULL are really NOT NULL.
+      return true;
+    }
+    RexExecutorImpl rexImpl =
+        (RexExecutorImpl) r.getCluster().getPlanner().getExecutor();
+    final RexImplicationChecker checker =
+        new RexImplicationChecker(rexBuilder, rexImpl, rowType);
+    final RexNode first =
+        RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates,
+            false);
+    final RexNode second =
+        RexUtil.composeConjunction(rexBuilder, list, false);
+    // Suppose we have EMP(empno INT NOT NULL, mgr INT),
+    // and predicates [empno > 0, mgr > 0].
+    // We make first: "empno > 0 AND mgr > 0"
+    // and second: "mgr IS NOT NULL"
+    // and ask whether first implies second.
+    // It does, so we have no nullable columns.
+    return !checker.implies(first, second);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** Visitor that finds all variables used but not stopped in an expression. */
@@ -3590,6 +3644,20 @@ public abstract class RelOptUtil {
       // children. (which what super.visit() does)
       vuv.variables.removeAll(other.getVariablesSet());
       return result;
+    }
+  }
+
+  /** Result of calling
+   * {@link org.apache.calcite.plan.RelOptUtil#createExistsPlan} */
+  public static class Exists {
+    public final RelNode r;
+    public final boolean indicator;
+    public final boolean outerJoin;
+
+    private Exists(RelNode r, boolean indicator, boolean outerJoin) {
+      this.r = r;
+      this.indicator = indicator;
+      this.outerJoin = outerJoin;
     }
   }
 }
