@@ -1856,12 +1856,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   // implement RelOptPlanner
   public long getRelMetadataTimestamp(RelNode rel) {
-    RelSubset subset = getSubset(rel);
-    if (subset == null) {
-      return 0;
-    } else {
-      return subset.timestamp;
+    List<Long> inputSubsets = new ArrayList<>();
+    for (RelNode input : rel.getInputs()) {
+      RelSubset inputSubset = getSubset(input);
+      if (inputSubset != null) {
+        inputSubsets.add(inputSubset.timestamp);
+      }
     }
+    return inputSubsets.hashCode();
   }
 
   /**
