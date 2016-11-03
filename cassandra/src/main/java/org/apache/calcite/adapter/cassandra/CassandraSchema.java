@@ -70,6 +70,7 @@ public class CassandraSchema extends AbstractSchema {
   final String keyspace;
   private final SchemaPlus parentSchema;
   final String name;
+  final Hook.Closeable hook;
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
@@ -112,7 +113,7 @@ public class CassandraSchema extends AbstractSchema {
     this.parentSchema = parentSchema;
     this.name = name;
 
-    Hook.TRIMMED.add(new Function<RelNode, Void>() {
+    this.hook = Hook.TRIMMED.add(new Function<RelNode, Void>() {
       public Void apply(RelNode node) {
         CassandraSchema.this.addMaterializedViews();
         return null;
@@ -228,6 +229,9 @@ public class CassandraSchema extends AbstractSchema {
   /** Add all materialized views defined in the schema to this column family
    */
   private void addMaterializedViews() {
+    // Close the hook use to get us here
+    hook.close();
+
     for (MaterializedViewMetadata view : getKeyspace().getMaterializedViews()) {
       String tableName = view.getBaseTable().getName();
       StringBuilder queryBuilder = new StringBuilder("SELECT ");
