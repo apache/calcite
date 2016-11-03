@@ -553,7 +553,7 @@ limitations under the License.
           <links>
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <tags>
             <tag>
               <name>sql.92</name>
@@ -625,6 +625,18 @@ limitations under the License.
                   </includes>
                 </resource>
               </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-test-sources/javacc</source>
+              </sources>
             </configuration>
           </execution>
         </executions>
@@ -729,7 +741,7 @@ limitations under the License.
           <links>
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <tags>
             <tag>
               <name>sql.92</name>

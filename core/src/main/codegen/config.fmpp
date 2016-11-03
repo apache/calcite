@@ -70,6 +70,12 @@ data: {
     dataTypeParserMethods: [
     ]
 
+    # List of methods for parsing extensions to ALTER SYSTEM calls.
+    # Each must accept arguments "(SqlParserPos pos, String scope)".
+    # Example: "SqlUploadJarNode"
+    alterStatementParserMethods: [
+    ]
+
     # List of files in @includes directory that have parser method
     # implementations for parsing custom SQL statements, literals or types
     # given as part of "statementParserMethods", "literalParserMethods" or

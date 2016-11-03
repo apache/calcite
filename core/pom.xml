@@ -170,6 +170,18 @@ limitations under the License.
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+          <excludes>
+            <exclude>org/apache/calcite/sql/parser/parserextensiontesting/*.java</exclude>
+          </excludes>
+          <generatedTestSourcesDirectory>${project.build.directory}/generated-test-sources/javacc</generatedTestSourcesDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <includes>
@@ -188,6 +200,22 @@ limitations under the License.
             </goals>
             <configuration>
               <sourceDirectory>${project.build.directory}/generated-sources/fmpp</sourceDirectory>
+              <includes>
+                <include>**/Parser.jj</include>
+              </includes>
+              <lookAhead>2</lookAhead>
+              <isStatic>false</isStatic>
+            </configuration>
+          </execution>
+          <execution>
+            <id>javacc-test</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>javacc</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${project.build.directory}/generated-test-sources/fmpp</sourceDirectory>
+              <outputDirectory>${project.build.directory}/generated-test-sources/javacc</outputDirectory>
               <includes>
                 <include>**/Parser.jj</include>
               </includes>
@@ -444,13 +472,25 @@ limitations under the License.
           <plugin>
             <groupId>com.googlecode.fmpp-maven-plugin</groupId>
             <artifactId>fmpp-maven-plugin</artifactId>
-            <configuration>
-              <cfgFile>src/main/codegen/config.fmpp</cfgFile>
-              <templateDirectory>src/main/codegen/templates</templateDirectory>
-            </configuration>
             <executions>
               <execution>
+                <configuration>
+                  <cfgFile>src/main/codegen/config.fmpp</cfgFile>
+                  <templateDirectory>src/main/codegen/templates</templateDirectory>
+                </configuration>
                 <id>generate-fmpp-sources</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+              </execution>
+              <execution>
+                <configuration>
+                  <cfgFile>src/test/codegen/config.fmpp</cfgFile>
+                  <templateDirectory>src/main/codegen/templates</templateDirectory>
+                  <outputDirectory>${project.build.directory}/generated-test-sources/fmpp</outputDirectory>
+                </configuration>
+                <id>generate-fmpp-test-sources</id>
                 <phase>validate</phase>
                 <goals>
                   <goal>generate</goal>

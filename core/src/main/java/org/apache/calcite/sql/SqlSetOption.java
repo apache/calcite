@@ -58,7 +58,7 @@ import java.util.List;
  * <li><code>ALTER SESSION RESET ALL</code></li>
  * </ul>
  */
-public class SqlSetOption extends SqlCall {
+public class SqlSetOption extends SqlAlter {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("SET_OPTION", SqlKind.SET_OPTION) {
         @Override public SqlCall createCall(SqlLiteral functionQualifier,
@@ -69,9 +69,6 @@ public class SqlSetOption extends SqlCall {
               (SqlIdentifier) operands[1], operands[2]);
         }
       };
-
-  /** Scope of the assignment. Values "SYSTEM" and "SESSION" are typical. */
-  String scope;
 
   /** Name of the option as an {@link org.apache.calcite.sql.SqlIdentifier}
    * with one or more parts.*/
@@ -94,7 +91,7 @@ public class SqlSetOption extends SqlCall {
    */
   public SqlSetOption(SqlParserPos pos, String scope, SqlIdentifier name,
       SqlNode value) {
-    super(pos);
+    super(pos, scope);
     this.scope = scope;
     this.name = name;
     this.value = value;
@@ -141,11 +138,7 @@ public class SqlSetOption extends SqlCall {
     }
   }
 
-  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    if (scope != null) {
-      writer.keyword("ALTER");
-      writer.keyword(scope);
-    }
+  @Override protected void unparseAlterOperation(SqlWriter writer, int leftPrec, int rightPrec) {
     if (value != null) {
       writer.keyword("SET");
     } else {
@@ -172,14 +165,6 @@ public class SqlSetOption extends SqlCall {
 
   public void setName(SqlIdentifier name) {
     this.name = name;
-  }
-
-  public String getScope() {
-    return scope;
-  }
-
-  public void setScope(String scope) {
-    this.scope = scope;
   }
 
   public SqlNode getValue() {

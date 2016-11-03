@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -64,10 +65,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * A <code>SqlParserTest</code> is a unit-test for
  * {@link SqlParser the SQL parser}.
+ *
+ * <p>To reuse this test for an extension parser, implement the
+ * {@link #parserImplFactory()} method to return the extension parser
+ * implementation.
  */
 public class SqlParserTest {
   //~ Static fields/initializers ---------------------------------------------
@@ -543,9 +549,18 @@ public class SqlParserTest {
     return new Sql(sql);
   }
 
-  private SqlParser getSqlParser(String sql) {
+  /**
+   * Implementors of custom parsing logic who want to reuse this test should
+   * override this method with the factory for their extension parser.
+   */
+  protected SqlParserImplFactory parserImplFactory() {
+    return SqlParserImpl.FACTORY;
+  }
+
+  protected SqlParser getSqlParser(String sql) {
     return SqlParser.create(sql,
         SqlParser.configBuilder()
+            .setParserFactory(parserImplFactory())
             .setQuoting(quoting)
             .setUnquotedCasing(unquotedCasing)
             .setQuotedCasing(quotedCasing)
@@ -6681,6 +6696,7 @@ public class SqlParserTest {
    * non-reserved keyword list in the parser.
    */
   @Test public void testNoUnintendedNewReservedKeywords() {
+    assumeTrue("don't run this test for sub-classes", isNotSubclass());
     final SqlAbstractParserImpl.Metadata metadata =
         getSqlParser("").getMetadata();
 
@@ -6706,6 +6722,7 @@ public class SqlParserTest {
   /** Generates a copy of {@code reference.md} with the current set of key
    * words. Fails if the copy is different from the original. */
   @Test public void testGenerateKeyWords() throws IOException {
+    assumeTrue("don't run this test for sub-classes", isNotSubclass());
     // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
     String path = "hsqldb-model.json";
     final URL inUrl = SqlParserTest.class.getResource("/" + path);
@@ -6908,8 +6925,7 @@ public class SqlParserTest {
   }
 
   @Test public void testSqlOptions() throws SqlParseException {
-    SqlNode node =
-        SqlParser.create("alter system set schema = true").parseStmt();
+    SqlNode node = getSqlParser("alter system set schema = true").parseStmt();
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
     SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.CALCITE);
@@ -6941,7 +6957,7 @@ public class SqlParserTest {
         .ok("SET `APPROX` = -12.3450")
         .node(isDdl());
 
-    node = SqlParser.create("reset schema").parseStmt();
+    node = getSqlParser("reset schema").parseStmt();
     opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo(null));
     writer = new SqlPrettyWriter(SqlDialect.CALCITE);
@@ -7113,6 +7129,10 @@ public class SqlParserTest {
 
       SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
     }
+  }
+
+  private boolean isNotSubclass() {
+    return this.getClass().equals(SqlParserTest.class);
   }
 
   /**
