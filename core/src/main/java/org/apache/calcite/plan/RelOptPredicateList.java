@@ -149,10 +149,16 @@ public class RelOptPredicateList {
 
   public RelOptPredicateList union(RexBuilder rexBuilder,
       RelOptPredicateList list) {
-    return RelOptPredicateList.of(rexBuilder,
-        concat(pulledUpPredicates, list.pulledUpPredicates),
-        concat(leftInferredPredicates, list.leftInferredPredicates),
-        concat(rightInferredPredicates, list.rightInferredPredicates));
+    if (this == EMPTY) {
+      return list;
+    } else if (list == EMPTY) {
+      return this;
+    } else {
+      return RelOptPredicateList.of(rexBuilder,
+          concat(pulledUpPredicates, list.pulledUpPredicates),
+          concat(leftInferredPredicates, list.leftInferredPredicates),
+          concat(rightInferredPredicates, list.rightInferredPredicates));
+    }
   }
 
   /** Concatenates two immutable lists, avoiding a copy it possible. */

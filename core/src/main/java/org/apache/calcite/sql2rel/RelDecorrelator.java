@@ -880,10 +880,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Replace the filter expression to reference output of the join
     // Map filter to the new filter over join
+    final RelFactories.FilterFactory factory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
     RelNode newFilter =
-        RelOptUtil.createFilter(
-            frame.r,
-            decorrelateExpr(rel.getCondition()));
+        factory.createFilter(frame.r, decorrelateExpr(rel.getCondition()));
 
     // Filter does not change the input ordering.
     // Filter rel does not permute the input.

@@ -919,7 +919,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInValueListLong() {
-    // Go over the default threshold of 20 to force a subQuery.
+    // Go over the default threshold of 20 to force a sub-query.
     final String sql = "select empno from emp where deptno in"
         + " (10, 20, 30, 40, 50, 60, 70, 80, 90, 100"
         + ", 110, 120, 130, 140, 150, 160, 170, 180, 190"
@@ -1146,7 +1146,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testUnionSubQuery() {
-    // union of subQuery, inside from list, also values
+    // union of sub-query, inside from list, also values
     final String sql = "select deptno from emp as emp0 cross join\n"
         + " (select empno from emp union all\n"
         + "  select deptno from dept where deptno > 20 union all\n"
@@ -1517,7 +1517,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-710">[CALCITE-710]
-   * When look up subqueries, perform the same logic as the way when ones were
+   * When look up sub-queries, perform the same logic as the way when ones were
    * registered</a>.
    */
   @Test public void testIdenticalExpressionInSubQuery() {
@@ -1641,7 +1641,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-770">[CALCITE-770]
-   * variant involving join with subQuery that contains window function and
+   * variant involving join with sub-query that contains window function and
    * GROUP BY</a>.
    */
   @Test public void testWindowAggInSubQueryJoin() {
@@ -1666,9 +1666,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case (correlated scalar aggregate subQuery) for
+   * Test case (correlated scalar aggregate sub-query) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
-   * When de-correlating, push join condition into subQuery</a>.
+   * When de-correlating, push join condition into sub-query</a>.
    */
   @Test public void testCorrelationScalarAggAndFilter() {
     final String sql = "SELECT e1.empno\n"
@@ -1687,9 +1687,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case (correlated EXISTS subQuery) for
+   * Test case (correlated EXISTS sub-query) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
-   * When de-correlating, push join condition into subQuery</a>.
+   * When de-correlating, push join condition into sub-query</a>.
    */
   @Test public void testCorrelationExistsAndFilter() {
     final String sql = "SELECT e1.empno\n"
@@ -1708,9 +1708,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case (correlated NOT EXISTS subQuery) for
+   * Test case (correlated NOT EXISTS sub-query) for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-714">[CALCITE-714]
-   * When de-correlating, push join condition into subQuery</a>.
+   * When de-correlating, push join condition into sub-query</a>.
    */
   @Test public void testCorrelationNotExistsAndFilter() {
     final String sql = "SELECT e1.empno\n"

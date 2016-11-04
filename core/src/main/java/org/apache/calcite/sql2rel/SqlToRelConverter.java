@@ -168,7 +168,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
 
@@ -182,6 +181,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -951,7 +951,7 @@ public class SqlToRelConverter {
       return;
     }
     SqlNode newWhere = pushDownNotForIn(where);
-    replaceSubqueries(bb, newWhere, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+    replaceSubQueries(bb, newWhere, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
     final RexNode convertedWhere = bb.convertExpression(newWhere);
 
     // only allocate filter if the condition is not TRUE
@@ -959,7 +959,9 @@ public class SqlToRelConverter {
       return;
     }
 
-    final RelNode filter = RelOptUtil.createFilter(bb.root, convertedWhere);
+    final RelFactories.FilterFactory factory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
+    final RelNode filter = factory.createFilter(bb.root, convertedWhere);
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
@@ -974,17 +976,17 @@ public class SqlToRelConverter {
     bb.setRoot(r, false);
   }
 
-  private void replaceSubqueries(
+  private void replaceSubQueries(
       final Blackboard bb,
       final SqlNode expr,
       RelOptUtil.Logic logic) {
     findSubqueries(bb, expr, logic, false);
-    for (SubQuery node : bb.subqueryList) {
-      substituteSubquery(bb, node);
+    for (SubQuery node : bb.subQueryList) {
+      substituteSubQuery(bb, node);
     }
   }
 
-  private void substituteSubquery(Blackboard bb, SubQuery subQuery) {
+  private void substituteSubQuery(Blackboard bb, SubQuery subQuery) {
     final RexNode expr = subQuery.expr;
     if (expr != null) {
       // Already done.
@@ -1027,18 +1029,18 @@ public class SqlToRelConverter {
         leftKeys = ImmutableList.of(bb.convertExpression(leftKeyNode));
       }
 
-      final boolean isNotIn = ((SqlInOperator) call.getOperator()).isNotIn();
+      final boolean notIn = ((SqlInOperator) call.getOperator()).isNotIn();
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
         if (!containsNullLiteral(valueList)
-            && valueList.size() < getInSubqueryThreshold()) {
+            && valueList.size() < config.getInSubqueryThreshold()) {
           // We're under the threshold, so convert to OR.
           subQuery.expr =
               convertInToOr(
                   bb,
                   leftKeys,
                   valueList,
-                  isNotIn);
+                  notIn);
           return;
         }
 
@@ -1049,7 +1051,7 @@ public class SqlToRelConverter {
 
       // Project out the search columns from the left side
 
-      //  Q1:
+      // Q1:
       // "select from emp where emp.deptno in (select col1 from T)"
       //
       // is converted to
@@ -1070,7 +1072,7 @@ public class SqlToRelConverter {
       //         and q.indicator <> TRUE"
       //
       final boolean outerJoin = bb.subqueryNeedsOuterJoin
-          || isNotIn
+          || notIn
           || subQuery.logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
@@ -1104,7 +1106,7 @@ public class SqlToRelConverter {
               outerJoin ? JoinRelType.LEFT : JoinRelType.INNER, leftKeys);
 
       subQuery.expr = translateIn(subQuery, bb.root, rex);
-      if (isNotIn) {
+      if (notIn) {
         subQuery.expr =
             rexBuilder.makeCall(SqlStdOperatorTable.NOT, subQuery.expr);
       }
@@ -1696,7 +1698,7 @@ public class SqlToRelConverter {
     case SCALAR_QUERY:
       if (!registerOnlyScalarSubqueries
           || (kind == SqlKind.SCALAR_QUERY)) {
-        bb.registerSubquery(node, RelOptUtil.Logic.TRUE_FALSE);
+        bb.registerSubQuery(node, RelOptUtil.Logic.TRUE_FALSE);
       }
       return;
     case IN:
@@ -1751,7 +1753,7 @@ public class SqlToRelConverter {
           && !bb.subqueryNeedsOuterJoin) {
         logic = RelOptUtil.Logic.TRUE;
       }
-      bb.registerSubquery(node, logic);
+      bb.registerSubQuery(node, logic);
     }
   }
 
@@ -2042,7 +2044,7 @@ public class SqlToRelConverter {
       final List<SqlNode> nodes = call.getOperandList();
       final SqlUnnestOperator operator = (SqlUnnestOperator) call.getOperator();
       for (SqlNode node : nodes) {
-        replaceSubqueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+        replaceSubQueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       }
       final List<RexNode> exprs = new ArrayList<>();
       final List<String> fieldNames = new ArrayList<>();
@@ -2089,7 +2091,7 @@ public class SqlToRelConverter {
       datasetStack.pop();
       return;
     }
-    replaceSubqueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // Expand table macro if possible. It's more efficient than
     // LogicalTableFunctionScan.
@@ -2165,7 +2167,9 @@ public class SqlToRelConverter {
       LogicalCorrelate corr = LogicalCorrelate.create(leftRel, p.r,
           p.id, p.requiredColumns, SemiJoinType.of(joinType));
       if (!joinCond.isAlwaysTrue()) {
-        return RelOptUtil.createFilter(corr, joinCond);
+        final RelFactories.FilterFactory factory =
+            RelFactories.DEFAULT_FILTER_FACTORY;
+        return factory.createFilter(corr, joinCond);
       }
       return corr;
     }
@@ -2348,7 +2352,7 @@ public class SqlToRelConverter {
       return rexBuilder.makeLiteral(true);
     }
     bb.setRoot(ImmutableList.of(leftRel, rightRel));
-    replaceSubqueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+    replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
     switch (conditionType) {
     case ON:
       bb.setRoot(ImmutableList.of(leftRel, rightRel));
@@ -2463,14 +2467,15 @@ public class SqlToRelConverter {
 
     // first replace the subqueries inside the aggregates
     // because they will provide input rows to the aggregates.
-    replaceSubqueries(bb, aggregateFinder.list, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubQueries(bb, aggregateFinder.list,
+        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // If group-by clause is missing, pretend that it has zero elements.
     if (groupList == null) {
       groupList = SqlNodeList.EMPTY;
     }
 
-    replaceSubqueries(bb, groupList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubQueries(bb, groupList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // register the group exprs
 
@@ -2589,7 +2594,7 @@ public class SqlToRelConverter {
       // the replaced expressions
       if (having != null) {
         SqlNode newHaving = pushDownNotForIn(having);
-        replaceSubqueries(bb, newHaving, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+        replaceSubQueries(bb, newHaving, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
         havingExpr = bb.convertExpression(newHaving);
         if (havingExpr.isAlwaysTrue()) {
           havingExpr = null;
@@ -2600,7 +2605,7 @@ public class SqlToRelConverter {
       // This needs to be done separately from the subquery inside
       // any aggregate in the select list, and after the aggregate rel
       // is allocated.
-      replaceSubqueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+      replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
       // Now subqueries in the entire select list have been converted.
       // Convert the select expressions to get the final list to be
@@ -2640,7 +2645,9 @@ public class SqlToRelConverter {
 
     // implement HAVING (we have already checked that it is non-trivial)
     if (havingExpr != null) {
-      bb.setRoot(RelOptUtil.createFilter(bb.root, havingExpr), false);
+      final RelFactories.FilterFactory factory =
+          RelFactories.DEFAULT_FILTER_FACTORY;
+      bb.setRoot(factory.createFilter(bb.root, havingExpr), false);
     }
 
     // implement the SELECT list
@@ -3444,7 +3451,7 @@ public class SqlToRelConverter {
     SqlNodeList selectList = select.getSelectList();
     selectList = validator.expandStar(selectList, select, false);
 
-    replaceSubqueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     List<String> fieldNames = new ArrayList<>();
     final List<RexNode> exprs = new ArrayList<>();
@@ -3581,7 +3588,7 @@ public class SqlToRelConverter {
     for (SqlNode rowConstructor1 : values.getOperandList()) {
       SqlCall rowConstructor = (SqlCall) rowConstructor1;
       Blackboard tmpBb = createBlackboard(bb.scope, null, false);
-      replaceSubqueries(tmpBb, rowConstructor,
+      replaceSubQueries(tmpBb, rowConstructor,
           RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final List<Pair<RexNode, String>> exps = new ArrayList<>();
       for (Ord<SqlNode> operand : Ord.zip(rowConstructor.getOperandList())) {
@@ -3642,7 +3649,7 @@ public class SqlToRelConverter {
      * List of <code>IN</code> and <code>EXISTS</code> nodes inside this
      * <code>SELECT</code> statement (but not inside sub-queries).
      */
-    private final Set<SubQuery> subqueryList = Sets.newLinkedHashSet();
+    private final Set<SubQuery> subQueryList = new LinkedHashSet<>();
 
     private boolean subqueryNeedsOuterJoin;
 
@@ -3992,17 +3999,17 @@ public class SqlToRelConverter {
       }
     }
 
-    void registerSubquery(SqlNode node, RelOptUtil.Logic logic) {
-      for (SubQuery subQuery : subqueryList) {
+    void registerSubQuery(SqlNode node, RelOptUtil.Logic logic) {
+      for (SubQuery subQuery : subQueryList) {
         if (node.equalsDeep(subQuery.node, Litmus.IGNORE)) {
           return;
         }
       }
-      subqueryList.add(new SubQuery(node, logic));
+      subQueryList.add(new SubQuery(node, logic));
     }
 
-    SubQuery getSubquery(SqlNode expr) {
-      for (SubQuery subQuery : subqueryList) {
+    SubQuery getSubQuery(SqlNode expr) {
+      for (SubQuery subQuery : subQueryList) {
         if (expr.equalsDeep(subQuery.node, Litmus.IGNORE)) {
           return subQuery;
         }
@@ -4103,7 +4110,7 @@ public class SqlToRelConverter {
       switch (kind) {
       case CURSOR:
       case IN:
-        subQuery = getSubquery(expr);
+        subQuery = getSubQuery(expr);
 
         assert subQuery != null;
         rex = subQuery.expr;
@@ -4113,7 +4120,7 @@ public class SqlToRelConverter {
       case SELECT:
       case EXISTS:
       case SCALAR_QUERY:
-        subQuery = getSubquery(expr);
+        subQuery = getSubQuery(expr);
         assert subQuery != null;
         rex = subQuery.expr;
         assert rex != null : "rex != null";
@@ -4199,7 +4206,6 @@ public class SqlToRelConverter {
       return false;
     }
 
-    // implement SqlRexContext
     public int getGroupCount() {
       if (agg != null) {
         return agg.groupExprs.size();
@@ -4210,34 +4216,28 @@ public class SqlToRelConverter {
       return -1;
     }
 
-    // implement SqlRexContext
     public RexBuilder getRexBuilder() {
       return rexBuilder;
     }
 
-    // implement SqlRexContext
-    public RexRangeRef getSubqueryExpr(SqlCall call) {
-      final SubQuery subQuery = getSubquery(call);
+    public RexRangeRef getSubQueryExpr(SqlCall call) {
+      final SubQuery subQuery = getSubQuery(call);
       assert subQuery != null;
       return (RexRangeRef) subQuery.expr;
     }
 
-    // implement SqlRexContext
     public RelDataTypeFactory getTypeFactory() {
       return typeFactory;
     }
 
-    // implement SqlRexContext
     public DefaultValueFactory getDefaultValueFactory() {
       return defaultValueFactory;
     }
 
-    // implement SqlRexContext
     public SqlValidator getValidator() {
       return validator;
     }
 
-    // implement SqlRexContext
     public RexNode convertLiteral(SqlLiteral literal) {
       return exprConverter.convertLiteral(this, literal);
     }
@@ -4246,12 +4246,10 @@ public class SqlToRelConverter {
       return exprConverter.convertInterval(this, intervalQualifier);
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlLiteral literal) {
       return exprConverter.convertLiteral(this, literal);
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlCall call) {
       if (agg != null) {
         final SqlOperator op = call.getOperator();
@@ -4264,27 +4262,22 @@ public class SqlToRelConverter {
           new SqlCallBinding(validator, scope, call).permutedCall());
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlNodeList nodeList) {
       throw new UnsupportedOperationException();
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlIdentifier id) {
       return convertIdentifier(this, id);
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlDataTypeSpec type) {
       throw new UnsupportedOperationException();
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlDynamicParam param) {
       return convertDynamicParam(param);
     }
 
-    // implement SqlVisitor
     public RexNode visit(SqlIntervalQualifier intervalQualifier) {
       return convertInterval(intervalQualifier);
     }
@@ -4345,12 +4338,10 @@ public class SqlToRelConverter {
    * A default implementation of SubqueryConverter that does no conversion.
    */
   private class NoOpSubqueryConverter implements SubqueryConverter {
-    // implement SubqueryConverter
     public boolean canConvertSubquery() {
       return false;
     }
 
-    // implement SubqueryConverter
     public RexNode convertSubquery(
         SqlCall subquery,
         SqlToRelConverter parentConverter,

@@ -384,7 +384,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
-   * query and columns selected are subset of columns in materialized view */
+   * query and columns selected are subset of columns in materialized view. */
   @Test public void testFilterQueryOnFilterView5() {
     checkMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10",
@@ -392,7 +392,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
-   * query and columns selected are subset of columns in materialized view */
+   * query and columns selected are subset of columns in materialized view. */
   @Test public void testFilterQueryOnFilterView6() {
     checkMaterialize(
             "select \"name\", \"deptno\", \"salary\" from \"emps\" "
@@ -401,8 +401,8 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
-   * query and columns selected are subset of columns in materialized view
-   * Condition here is complex*/
+   * query and columns selected are subset of columns in materialized view.
+   * Condition here is complex. */
   @Test public void testFilterQueryOnFilterView7() {
     checkMaterialize(
             "select * from \"emps\" where "
@@ -414,8 +414,8 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
-   * query. However, columns selected are not present in columns of materialized view,
-   * hence should not use materialized view*/
+   * query. However, columns selected are not present in columns of materialized
+   * view, Hence should not use materialized view. */
   @Test public void testFilterQueryOnFilterView8() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10",
@@ -424,7 +424,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is weaker in
-   * query.*/
+   * query. */
   @Test public void testFilterQueryOnFilterView9() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10",
@@ -432,9 +432,9 @@ public class MaterializationTest {
                 + "where \"deptno\" > 30 or \"empid\" > 10",
             JdbcTest.HR_MODEL);
   }
+
   /** As {@link #testFilterQueryOnFilterView()} but condition currently
-   * has unsupported type being checked on query.
-   */
+   * has unsupported type being checked on query. */
   @Test public void testFilterQueryOnFilterView10() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10 "
@@ -445,8 +445,8 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is weaker in
-   * query and columns selected are subset of columns in materialized view
-   * Condition here is complex*/
+   * query and columns selected are subset of columns in materialized view.
+   * Condition here is complex. */
   @Test public void testFilterQueryOnFilterView11() {
     checkNoMaterialize(
             "select \"name\", \"deptno\" from \"emps\" where "
@@ -467,8 +467,8 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is weaker in
-   * query and columns selected are subset of columns in materialized view
-   * Condition here is complex*/
+   * query and columns selected are subset of columns in materialized view.
+   * Condition here is complex. */
   @Test public void testFilterQueryOnFilterView13() {
     checkNoMaterialize(
             "select * from \"emps\" where "
@@ -480,7 +480,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView7()} but columns in materialized
-   * view are a permutation of columns in the query*/
+   * view are a permutation of columns in the query. */
   @Test public void testFilterQueryOnFilterView14() {
     String q = "select * from \"emps\" where (\"salary\" > 1000 "
         + "or (\"deptno\" >= 30 and \"salary\" <= 500))";
@@ -493,7 +493,7 @@ public class MaterializationTest {
   }
 
   /** As {@link #testFilterQueryOnFilterView13()} but using alias
-   * and condition of query is stronger*/
+   * and condition of query is stronger. */
   @Test public void testAlias() {
     checkMaterialize(
             "select * from \"emps\" as em where "

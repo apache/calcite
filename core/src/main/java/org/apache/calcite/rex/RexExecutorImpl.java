@@ -104,8 +104,9 @@ public class RexExecutorImpl implements RelOptPlanner.Executor {
    */
   public RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
       RelDataType rowType) {
-    final InputGetter getter =
-        new DataContextInputGetter(rowType, rexBuilder.getTypeFactory());
+    final JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
+    final InputGetter getter = new DataContextInputGetter(rowType, typeFactory);
     final String code = compile(rexBuilder, exps, getter, rowType);
     return new RexExecutable(code, "generated Rex code");
   }

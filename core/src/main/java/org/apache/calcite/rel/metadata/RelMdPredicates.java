@@ -229,7 +229,7 @@ public class RelMdPredicates
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
 
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
-        .union(filter.getCluster().getRexBuilder(),
+        .union(rexBuilder,
             RelOptPredicateList.of(rexBuilder,
                 RelOptUtil.conjunctions(filter.getCondition())));
   }

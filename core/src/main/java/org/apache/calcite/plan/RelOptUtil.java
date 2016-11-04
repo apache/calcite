@@ -202,7 +202,7 @@ public abstract class RelOptUtil {
    * Returns a set of tables used by this expression or its children
    */
   public static Set<RelOptTable> findTables(RelNode rel) {
-    return new LinkedHashSet<RelOptTable>(findAllTables(rel));
+    return new LinkedHashSet<>(findAllTables(rel));
   }
 
   /**
@@ -232,10 +232,7 @@ public abstract class RelOptUtil {
     return visitor.variables;
   }
 
-  /**
-   * Returns a set of distinct variables set by <code>rel0</code> and used by
-   * <code>rel1</code>.
-   */
+  @Deprecated // to be removed before 2.0
   public static List<CorrelationId> getVariablesSetAndUsed(RelNode rel0,
       RelNode rel1) {
     Set<CorrelationId> set = getVariablesSet(rel0);
@@ -415,25 +412,7 @@ public abstract class RelOptUtil {
     return mapping;
   }
 
-  /**
-   * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
-   * statements.
-   *
-   * <p>See {@link org.apache.calcite.sql2rel.SqlToRelConverter#convertExists}
-   *
-   * <p>Note: this implementation of createExistsPlan is only called from
-   * net.sf.farrago.fennel.rel. The last two arguments do not apply to those
-   * invocations and can be removed from the method.
-   *
-   * @param cluster    Cluster
-   * @param seekRel    A query rel, for example the resulting rel from 'select *
-   *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
-   * @param conditions May be null
-   * @param extraExpr  Column expression to add. "TRUE" for EXISTS and IN
-   * @param extraName  Name of expression to add.
-   * @return relational expression which outer joins a boolean condition
-   * column
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createExistsPlan(
       RelOptCluster cluster,
       RelNode seekRel,
@@ -448,8 +427,9 @@ public abstract class RelOptUtil {
           RexUtil.composeConjunction(
               cluster.getRexBuilder(), conditions, true);
 
-      ret = createFilter(ret, conditionExp,
-          RelFactories.DEFAULT_FILTER_FACTORY);
+      final RelFactories.FilterFactory factory =
+          RelFactories.DEFAULT_FILTER_FACTORY;
+      ret = factory.createFilter(ret, conditionExp);
     }
 
     if (extraExpr != null) {
@@ -560,15 +540,7 @@ public abstract class RelOptUtil {
     }
   }
 
-  /**
-   * Creates a LogicalProject which accomplishes a rename.
-   *
-   * @param outputType a row type descriptor whose field names the generated
-   *                   LogicalProject must match
-   * @param rel        the rel whose output is to be renamed; rel.getRowType()
-   *                   must be the same as outputType except for field names
-   * @return generated relational expression
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createRenameRel(
       RelDataType outputType,
       RelNode rel) {
@@ -597,28 +569,14 @@ public abstract class RelOptUtil {
     return createProject(rel, Pair.left(renames), Pair.right(renames));
   }
 
-  /**
-   * Creates a relational expression which filters according to a given
-   * condition, returning the same fields as its input, using the default
-   * filter factory.
-   *
-   * @param child     Child relational expression
-   * @param condition Condition
-   * @return Relational expression
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createFilter(RelNode child, RexNode condition) {
-    return createFilter(child, condition, RelFactories.DEFAULT_FILTER_FACTORY);
+    final RelFactories.FilterFactory factory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
+    return factory.createFilter(child, condition);
   }
 
-  /**
-   * Creates a relational expression which filters according to a given
-   * condition, returning the same fields as its input.
-   *
-   * @param child     Child relational expression
-   * @param condition Condition
-   * @param filterFactory Filter factory
-   * @return Relational expression
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createFilter(RelNode child, RexNode condition,
       RelFactories.FilterFactory filterFactory) {
     return filterFactory.createFilter(child, condition);
@@ -644,18 +602,11 @@ public abstract class RelOptUtil {
     if (condition == null) {
       return child;
     } else {
-      return createFilter(child, condition, filterFactory);
+      return filterFactory.createFilter(child, condition);
     }
   }
 
-  /**
-   * Creates a filter which will remove rows containing NULL values.
-   *
-   * @param rel           the rel to be filtered
-   * @param fieldOrdinals array of 0-based field ordinals to filter, or null
-   *                      for all fields
-   * @return filtered rel
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createNullFilter(
       RelNode rel,
       Integer[] fieldOrdinals) {
@@ -699,7 +650,9 @@ public abstract class RelOptUtil {
       return rel;
     }
 
-    return createFilter(rel, condition, RelFactories.DEFAULT_FILTER_FACTORY);
+    final RelFactories.FilterFactory factory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
+    return factory.createFilter(rel, condition);
   }
 
   /**
@@ -792,6 +745,7 @@ public abstract class RelOptUtil {
         ImmutableList.<AggregateCall>of());
   }
 
+  @Deprecated // to be removed before 2.0
   public static boolean analyzeSimpleEquiJoin(
       LogicalJoin join,
       int[] joinFieldOrdinals) {
@@ -884,14 +838,7 @@ public abstract class RelOptUtil {
         left.getCluster().getRexBuilder(), nonEquiList, false);
   }
 
-  /**
-   * Returns whether a join condition is an "equi-join" condition.
-   *
-   * @param left      Left input of join
-   * @param right     Right input of join
-   * @param condition Condition
-   * @return Whether condition is equi-join
-   */
+  @Deprecated // to be removed before 2.0
   public static boolean isEqui(
       RelNode left,
       RelNode right,
@@ -997,6 +944,7 @@ public abstract class RelOptUtil {
         inputs.get(0).getCluster().getRexBuilder(), nonEquiList, false);
   }
 
+  @Deprecated // to be removed before 2.0
   public static RexNode splitCorrelatedFilterCondition(
       LogicalFilter filter,
       List<RexInputRef> joinKeys,
@@ -1579,25 +1527,7 @@ public abstract class RelOptUtil {
     return call;
   }
 
-  /**
-   * Adding projection to the inputs of a join to produce the required join
-   * keys.
-   *
-   * @param inputRels      inputs to a join
-   * @param leftJoinKeys   expressions for LHS of join key
-   * @param rightJoinKeys  expressions for RHS of join key
-   * @param systemColCount number of system columns, usually zero. These
-   *                       columns are projected at the leading edge of the
-   *                       output row.
-   * @param leftKeys       on return this contains the join key positions from
-   *                       the new project rel on the LHS.
-   * @param rightKeys      on return this contains the join key positions from
-   *                       the new project rel on the RHS.
-   * @param outputProj     on return this contains the positions of the original
-   *                       join output in the (to be formed by caller)
-   *                       LhxJoinRel. Caller needs to be responsible for adding
-   *                       projection on the new join output.
-   */
+  @Deprecated // to be removed before 2.0
   public static void projectJoinInputs(
       RelNode[] inputRels,
       List<RexNode> leftJoinKeys,
@@ -1696,15 +1626,7 @@ public abstract class RelOptUtil {
     inputRels[1] = rightRel;
   }
 
-  /**
-   * Creates a projection on top of a join, if the desired projection is a
-   * subset of the join columns
-   *
-   * @param outputProj desired projection; if null, return original join node
-   * @param joinRel    the join node
-   * @return projected join node or the original join if projection is
-   * unnecessary
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createProjectJoinRel(
       List<Integer> outputProj,
       RelNode joinRel) {
@@ -2015,17 +1937,7 @@ public abstract class RelOptUtil {
     return sw.toString();
   }
 
-  /**
-   * Renames a relational expression to make its field names the same as
-   * another row type. If the row type is already identical, or if the row
-   * type is too different (the fields are different in number or type) does
-   * nothing.
-   *
-   * @param rel            Relational expression
-   * @param desiredRowType Desired row type (including desired field names)
-   * @return Renamed relational expression, or the original expression if
-   * there is nothing to do or nothing we <em>can</em> do.
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode renameIfNecessary(
       RelNode rel,
       RelDataType desiredRowType) {
@@ -2500,18 +2412,7 @@ public abstract class RelOptUtil {
     }
   }
 
-  /**
-   * Determines if a projection and its input reference identical input
-   * references.
-   *
-   * @param project    projection being examined
-   * @param checkNames if true, also compare that the names of the project
-   *                   fields and its child fields
-   * @return if checkNames is false, true is returned if the project and its
-   * child reference the same input references, regardless of the names of the
-   * project and child fields; if checkNames is true, then true is returned if
-   * the input references are the same but the field names are different
-   */
+  @Deprecated // to be removed before 2.0
   public static boolean checkProjAndChildInputs(
       Project project,
       boolean checkNames) {
@@ -2888,7 +2789,7 @@ public abstract class RelOptUtil {
       List<String> fieldNames,
       boolean optimize) {
     return createProject(child, exprs, fieldNames, optimize,
-            RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
+        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
   }
 
   /**
@@ -2933,14 +2834,7 @@ public abstract class RelOptUtil {
     return relBuilder.build();
   }
 
-  /**
-   * Returns a relational expression which has the same fields as the
-   * underlying expression, but the fields have different names.
-   *
-   * @param rel        Relational expression
-   * @param fieldNames Field names
-   * @return Renamed relational expression
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createRename(
       RelNode rel,
       List<String> fieldNames) {
@@ -3080,30 +2974,7 @@ public abstract class RelOptUtil {
         RelBuilder.proto(factory).create(child.getCluster(), null));
   }
 
-  /**
-   * Creates a relational expression which projects the output fields of a
-   * relational expression according to a partial mapping.
-   *
-   * <p>A partial mapping is weaker than a permutation: every target has one
-   * source, but a source may have 0, 1 or more than one targets. Usually the
-   * result will have fewer fields than the source, unless some source fields
-   * are projected multiple times.
-   *
-   * <p>This method could optimize the result as {@link #permute} does, but
-   * does not at present.
-   *
-   * @param rel        Relational expression
-   * @param mapping Mapping from source fields to target fields. The mapping
-   * type must obey the constraints
-   * {@link org.apache.calcite.util.mapping.MappingType#isMandatorySource()}
-   * and
-   * {@link org.apache.calcite.util.mapping.MappingType#isSingleSource()},
-   * as does
-   * {@link org.apache.calcite.util.mapping.MappingType#INVERSE_FUNCTION}.
-   * @param fieldNames Field names; if null, or if a particular entry is null,
-   *                   the name of the permuted field is used
-   * @return relational expression which projects a subset of the input fields
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode projectMapping(
       RelNode rel,
       Mapping mapping,

@@ -70,6 +70,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -394,7 +395,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCall call) {
     final RelDataType originalType =
         cx.getValidator().getValidatedNodeType(call);
-    RexRangeRef rr = cx.getSubqueryExpr(call);
+    RexRangeRef rr = cx.getSubQueryExpr(call);
     assert rr != null;
     RelDataType msType = rr.getType().getFieldList().get(0).getType();
     RexNode expr =
@@ -436,7 +437,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCall call) {
     final RelDataType originalType =
         cx.getValidator().getValidatedNodeType(call);
-    RexRangeRef rr = cx.getSubqueryExpr(call);
+    RexRangeRef rr = cx.getSubQueryExpr(call);
     assert rr != null;
     RelDataType msType = rr.getType().getFieldList().get(0).getType();
     RexNode expr =
@@ -1289,12 +1290,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlRexContext cx,
       SqlCall call,
       RexNode value) {
-    final RelDataType resType =
-        cx.getValidator().getValidatedNodeType(call);
-    if (value.getType() == resType) {
-      return value;
+    return castToValidatedType(call, value, cx.getValidator(),
+        cx.getRexBuilder());
+  }
+
+  /**
+   * Casts a RexNode value to the validated type of a SqlCall. If the value
+   * was already of the validated type, then the value is returned without an
+   * additional cast.
+   */
+  public static RexNode castToValidatedType(SqlNode node, RexNode e,
+      SqlValidator validator, RexBuilder rexBuilder) {
+    final RelDataType type = validator.getValidatedNodeType(node);
+    if (e.getType() == type) {
+      return e;
     }
-    return cx.getRexBuilder().makeCast(resType, value);
+    return rexBuilder.makeCast(type, e);
   }
 
   /** Convertlet that handles {@code AVG} and {@code VARIANCE}

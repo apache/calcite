@@ -18,10 +18,10 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 
 /**
@@ -84,10 +84,10 @@ public final class JoinExtractFilterRule extends RelOptRule {
             join.getJoinType(),
             join.isSemiJoinDone());
 
+    final RelFactories.FilterFactory factory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
     RelNode filterRel =
-        RelOptUtil.createFilter(
-            cartesianJoinRel,
-            join.getCondition());
+        factory.createFilter(cartesianJoinRel, join.getCondition());
 
     call.transformTo(filterRel);
   }
