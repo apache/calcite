@@ -1283,6 +1283,65 @@ select count(*) as c from "scott".dept where exists (select 1);
 
 !ok
 
+# INTERSECT
+select deptno from "scott".emp
+intersect
+select deptno from "scott".dept;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+# INTERSECT DISTINCT means the same as INTERSECT
+select deptno from "scott".emp
+intersect distinct
+select deptno from "scott".dept;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+# INTERSECT can return NULL values
+select comm from "scott".emp where mgr = 7698
+intersect
+select comm from "scott".emp where deptno = 10;
++------+
+| COMM |
++------+
+|      |
++------+
+(1 row)
+
+!ok
+
+# As above, composite
+# Disabled, due to bug, apparently in EnumerableIntersect
+!if (false) {
+select 10 as deptno, comm from "scott".emp where mgr = 7698
+intersect
+select deptno, comm from "scott".emp where deptno = 10;
++--------+------+
+| DEPTNO | COMM |
++--------+------+
+|     10 |      |
++--------+------+
+(1 row)
+
+!ok
+!}
+
 # Make sure that IN does not compare the shorter of two strings.
 # If it did, 'MARTIN' would be emitted.
 select ename, deptno

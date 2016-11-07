@@ -16,17 +16,8 @@
 # limitations under the License.
 #
 !use post
-!set outputformat mysql
-values cast('-123.45' as double);
-+---------+
-| EXPR$0  |
-+---------+
-| -123.45 |
-+---------+
-(1 row)
-
+values 1;
+EXPR$0
+1
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
-!plan
 # End dummy.iq

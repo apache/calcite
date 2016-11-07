@@ -2883,35 +2883,23 @@ public class SqlToRelConverter {
         convertQueryRecursive(call.operand(0), false, null).project();
     final RelNode right =
         convertQueryRecursive(call.operand(1), false, null).project();
-    boolean all = false;
-    if (call.getOperator() instanceof SqlSetOperator) {
-      all = ((SqlSetOperator) (call.getOperator())).isAll();
-    }
     switch (call.getKind()) {
     case UNION:
-      return LogicalUnion.create(ImmutableList.of(left, right), all);
+      return LogicalUnion.create(ImmutableList.of(left, right), all(call));
 
     case INTERSECT:
-      // TODO:  all
-      if (!all) {
-        return LogicalIntersect.create(ImmutableList.of(left, right), all);
-      } else {
-        throw Util.newInternal(
-            "set operator INTERSECT ALL not suported");
-      }
+      return LogicalIntersect.create(ImmutableList.of(left, right), all(call));
 
     case EXCEPT:
-      // TODO:  all
-      if (!all) {
-        return LogicalMinus.create(ImmutableList.of(left, right), all);
-      } else {
-        throw Util.newInternal(
-            "set operator EXCEPT ALL not suported");
-      }
+      return LogicalMinus.create(ImmutableList.of(left, right), all(call));
 
     default:
       throw Util.unexpected(call.getKind());
     }
+  }
+
+  private boolean all(SqlCall call) {
+    return ((SqlSetOperator) call.getOperator()).isAll();
   }
 
   protected RelNode convertInsert(SqlInsert call) {
