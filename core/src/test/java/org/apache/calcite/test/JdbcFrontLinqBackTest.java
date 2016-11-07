@@ -162,7 +162,6 @@ public class JdbcFrontLinqBackTest {
   /**
    * Tests INTERSECT.
    */
-  @Ignore
   @Test public void testIntersect() {
     hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
