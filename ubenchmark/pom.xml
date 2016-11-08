@@ -31,13 +31,6 @@ limitations under the License.
   <name>Calcite Ubenchmark</name>
   <description>Microbenchmarks for Calcite</description>
 
-  <repositories>
-    <repository>
-      <id>maven-central</id>
-      <url>http://repo1.maven.org/maven2</url>
-    </repository>
-  </repositories>
-
   <dependencies>
     <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
          in dependencyManagement in the root POM, not here. -->

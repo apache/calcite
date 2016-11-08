@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>17</version>
+    <version>18</version>
   </parent>
 
   <!-- The basics. -->
@@ -32,7 +32,7 @@ limitations under the License.
   <!-- More project information. -->
   <name>Calcite</name>
   <description>Calcite is a dynamic data management framework</description>
-  <url>http://calcite.apache.org</url>
+  <url>https://calcite.apache.org</url>
   <inceptionYear>2012</inceptionYear>
 
   <mailingLists>
@@ -41,7 +41,7 @@ limitations under the License.
       <subscribe>dev-subscribe@calcite.apache.org</subscribe>
       <unsubscribe>dev-unsubscribe@calcite.apache.org</unsubscribe>
       <post>dev@calcite.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/calcite-dev</archive>
+      <archive>https://mail-archives.apache.org/mod_mbox/calcite-dev</archive>
     </mailingList>
   </mailingLists>
 
@@ -94,12 +94,8 @@ limitations under the License.
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
-
-    <!-- keep failsafe version in sync with surefire; apache 17 has surefire 2.7.2 -->
-    <maven-failsafe-plugin.version>2.7.2</maven-failsafe-plugin.version>
-    <maven-scm-provider.version>1.9.1</maven-scm-provider.version>
+    <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <maven-source-plugin.version>2.4</maven-source-plugin.version>
     <mockito-all.version>1.10.19</mockito-all.version>
     <mongo-java-driver.version>2.12.3</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
@@ -532,10 +528,8 @@ limitations under the License.
         </dependencies>
       </plugin>
       <plugin>
-        <!-- override default version 2.8 for access to additional config settings -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>
@@ -557,7 +551,7 @@ limitations under the License.
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>http://docs.oracle.com/javase/8/docs/api/</link>
+            <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
           <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <tags>
@@ -670,7 +664,6 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${maven-failsafe-plugin.version}</version>
           <executions>
             <execution>
               <id>failsafe-integration-test</id>
@@ -697,11 +690,6 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>${maven-source-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -739,7 +727,7 @@ limitations under the License.
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>http://docs.oracle.com/javase/8/docs/api/</link>
+            <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
           <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <tags>
