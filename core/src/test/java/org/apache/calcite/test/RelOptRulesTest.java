@@ -56,6 +56,7 @@ import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.rules.JoinAddRedundantSemiJoinRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinExtractFilterRule;
@@ -877,6 +878,22 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "select * from emp where deptno = 20\n"
         + "intersect\n"
         + "select * from emp where deptno = 30\n";
+    sql(sql).with(program).check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule}, which rewrites an
+   * {@link Intersect} operators with 3 inputs. */
+  @Test public void testIntersectToDistinct() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(UnionMergeRule.INTERSECT_INSTANCE)
+            .addRuleInstance(IntersectToDistinctRule.INSTANCE)
+            .build();
+
+    final String sql = "select * from emp where deptno = 10\n"
+            + "intersect\n"
+            + "select * from emp where deptno = 20\n"
+            + "intersect\n"
+            + "select * from emp where deptno = 30\n";
     sql(sql).with(program).check();
   }
 
