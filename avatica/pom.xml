@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>17</version>
+    <version>18</version>
     <!-- Tell Maven that it's OK that we're not attached to the parent directory -->
     <relativePath />
   </parent>
@@ -34,7 +34,7 @@ limitations under the License.
   <!-- More project information. -->
   <name>Apache Calcite Avatica Project</name>
   <description>Avatica is a JDBC driver framework which is a part of Apache Calcite</description>
-  <url>http://calcite.apache.org/avatica</url>
+  <url>https://calcite.apache.org/avatica</url>
   <inceptionYear>2012</inceptionYear>
 
   <mailingLists>
@@ -43,7 +43,7 @@ limitations under the License.
       <subscribe>dev-subscribe@calcite.apache.org</subscribe>
       <unsubscribe>dev-unsubscribe@calcite.apache.org</unsubscribe>
       <post>dev@calcite.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/calcite-dev</archive>
+      <archive>https://mail-archives.apache.org/mod_mbox/calcite-dev</archive>
     </mailingList>
   </mailingLists>
 
@@ -76,11 +76,8 @@ limitations under the License.
     <kerby.version>1.0.0-RC2</kerby.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
-    <!-- keep failsafe version in sync with surefire; apache 17 has surefire 2.7.2 -->
-    <maven-failsafe-plugin.version>2.7.2</maven-failsafe-plugin.version>
-    <maven-scm-provider.version>1.9.1</maven-scm-provider.version>
+    <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <maven-source-plugin.version>2.4</maven-source-plugin.version>
     <mockito-all.version>1.10.19</mockito-all.version>
     <protobuf.version>3.1.0</protobuf.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
@@ -404,7 +401,7 @@ limitations under the License.
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>http://docs.oracle.com/javase/8/docs/api/</link>
+            <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
           <tags>
             <tag>
@@ -516,7 +513,6 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${maven-failsafe-plugin.version}</version>
           <executions>
             <execution>
               <id>failsafe-integration-test</id>
@@ -547,7 +543,6 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>${maven-source-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -582,7 +577,7 @@ limitations under the License.
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>http://docs.oracle.com/javase/8/docs/api/</link>
+            <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
           <tags>
             <tag>
