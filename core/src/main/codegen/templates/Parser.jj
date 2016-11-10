@@ -41,6 +41,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAlter;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
@@ -924,6 +925,8 @@ SqlNode SqlStmt() :
 {
     (
         stmt = SqlSetOption()
+        |
+        stmt = SqlAlter()
         |
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         |
@@ -2965,21 +2968,17 @@ SqlCall SequenceExpression() :
 }
 
 /**
- * Parses an expression for setting or resetting an option in SQL, such as QUOTED_IDENTIFIERS,
- * or explain plan level (physical/logical).
+ * Parses "SET <NAME> = VALUE" or "RESET <NAME>", without a leading
+ * "ALTER <SCOPE>".
  */
 SqlSetOption SqlSetOption() :
 {
     SqlParserPos pos = null;
-    String scope = null;
     SqlIdentifier name;
     SqlNode val = null;
+    SqlSetOption setOption = null;
 }
 {
-    (
-        <ALTER> { pos = getPos(); }
-        scope = Scope()
-    )?
     (
         <SET> {
             pos = pos == null ? getPos() : pos;
@@ -2996,6 +2995,9 @@ SqlSetOption SqlSetOption() :
                 val = new SqlIdentifier(token.image.toUpperCase(), getPos());
             }
         )
+        {
+            setOption = new SqlSetOption(pos.plus(getPos()), null, name, val);
+        }
     |
         <RESET> {
             pos = pos == null ? getPos() : pos;
@@ -3007,9 +3009,44 @@ SqlSetOption SqlSetOption() :
                 name = new SqlIdentifier(token.image.toUpperCase(), getPos());
             }
         )
+        {
+            setOption = new SqlSetOption(pos.plus(getPos()), null, name, val);
+        }
     )
     {
-        return new SqlSetOption(pos.plus(getPos()), scope, name, val);
+        return setOption;
+    }
+}
+
+/**
+ * Parses an expression for setting or resetting an option in SQL, such as QUOTED_IDENTIFIERS,
+ * or explain plan level (physical/logical).
+ */
+SqlAlter SqlAlter() :
+{
+    SqlParserPos pos = null;
+    String scope = null;
+    SqlIdentifier name;
+    SqlNode val = null;
+    SqlAlter alterNode = null;
+}
+{
+    (
+        <ALTER> { pos = getPos(); }
+        scope = Scope()
+    )
+    (
+        alterNode = SqlSetOption()
+
+  <#-- additional literal parser methods are included here -->
+  <#list parser.alterStatementParserMethods as method>
+    |
+        alterNode = ${method}
+  </#list>
+    )
+    {
+        alterNode.setScope(scope);
+        return alterNode;
     }
 }
 
