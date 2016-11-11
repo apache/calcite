@@ -299,10 +299,11 @@ public class SqlLiteral extends SqlNode {
    * <li>If the node is INTERVAL_YEAR_MONTH_ in {@link SqlTypeFamily},
    * returns its sign multiplied by its months equivalent value
    *
-   * <li>Otherwise the behavior is not specified.
+   * <li>Otherwise throws {@link IllegalArgumentException}.
    * </ul>
    */
-  public static Comparable value(SqlNode node) {
+  public static Comparable value(SqlNode node)
+      throws IllegalArgumentException {
     if (node instanceof SqlLiteral) {
       final SqlLiteral literal = (SqlLiteral) node;
       if (literal.getTypeName() == SqlTypeName.SYMBOL) {
@@ -347,7 +348,7 @@ public class SqlLiteral extends SqlNode {
       }
       // fall through
     default:
-      throw Util.newInternal("invalid literal: " + node);
+      throw new IllegalArgumentException("not a literal: " + node);
     }
   }
 

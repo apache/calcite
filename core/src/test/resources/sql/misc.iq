@@ -1195,6 +1195,17 @@ from "scott".dept;
 
 !ok
 
+# [CALCITE-1486] Invalid "Invalid literal" error for complex expression
+select 8388608/(60+27.39);
++-------------------+
+| EXPR$0            |
++-------------------+
+| 95990.47945989244 |
++-------------------+
+(1 row)
+
+!ok
+
 # [CALCITE-1120] Support SELECT without FROM
 select 2 + 2;
 +--------+

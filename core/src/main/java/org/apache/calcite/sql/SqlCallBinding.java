@@ -215,8 +215,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
   }
 
   @Override public Comparable getOperandLiteralValue(int ordinal) {
-    SqlNode node = call.operand(ordinal);
-    return SqlLiteral.value(node);
+    try {
+      final SqlNode node = call.operand(ordinal);
+      return SqlLiteral.value(node);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
