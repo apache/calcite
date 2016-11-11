@@ -336,7 +336,7 @@ public abstract class PruneEmptyRules {
           description);
     }
 
-    /** Creatse a RemoveEmptySingleRule. */
+    /** Creates a RemoveEmptySingleRule. */
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {

@@ -71,6 +71,20 @@ public abstract class Values extends AbstractRelNode {
         }
       };
 
+  /** Predicate, to be used when defining an operand of a {@link RelOptRule},
+   * that returns true if a Values contains one or more tuples.
+   *
+   * <p>This is the conventional way to represent an empty relational
+   * expression. There are several rules that recognize empty relational
+   * expressions and prune away that section of the tree.
+   */
+  public static final Predicate<? super Values> IS_NOT_EMPTY =
+      new Predicate<Values>() {
+        public boolean apply(Values values) {
+          return !values.getTuples().isEmpty();
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
   public final ImmutableList<ImmutableList<RexLiteral>> tuples;

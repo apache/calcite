@@ -809,6 +809,52 @@ LogicalMinus(all=[false])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testEmptyProject">
+        <Resource name="sql">
+            <![CDATA[select z + x from (
+  select x + y as z, x from (
+    select * from (values (10, 1), (30, 3)) as t (x, y)
+    where x + y > 50))]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($0, $1)])
+  LogicalProject(Z=[+($0, $1)], X=[$0])
+    LogicalProject(X=[$0], Y=[$1])
+      LogicalFilter(condition=[>(+($0, $1), 50)])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($0, $1)])
+  LogicalProject(Z=[+($0, $1)], X=[$0])
+    LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptyProject2">
+        <Resource name="sql">
+            <![CDATA[select z + x from (
+  select x + y as z, x from (
+    select * from (values (10, 1), (30, 3)) as t (x, y)
+    where x + y > 50))]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($0, $1)])
+  LogicalProject(Z=[+($0, $1)], X=[$0])
+    LogicalProject(X=[$0], Y=[$1])
+      LogicalFilter(condition=[>(+($0, $1), 50)])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceValuesUnderFilter">
         <Resource name="sql">
             <![CDATA[select a, b from (values (10, 'x'), (20, 'y')) as t(a, b) where a < 15]]>

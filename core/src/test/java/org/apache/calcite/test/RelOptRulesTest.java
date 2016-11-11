@@ -1528,6 +1528,38 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "where x + y > 30");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1488">[CALCITE-1488]
+   * ValuesReduceRule should ignore empty Values</a>. */
+  @Test public void testEmptyProject() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ValuesReduceRule.PROJECT_FILTER_INSTANCE)
+        .addRuleInstance(ValuesReduceRule.FILTER_INSTANCE)
+        .addRuleInstance(ValuesReduceRule.PROJECT_INSTANCE)
+        .build();
+
+    final String sql = "select z + x from (\n"
+        + "  select x + y as z, x from (\n"
+        + "    select * from (values (10, 1), (30, 3)) as t (x, y)\n"
+        + "    where x + y > 50))";
+    sql(sql).with(program).check();
+  }
+
+  /** Same query as {@link #testEmptyProject()}, and {@link PruneEmptyRules}
+   * is able to do the job that {@link ValuesReduceRule} cannot do. */
+  @Test public void testEmptyProject2() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ValuesReduceRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .build();
+
+    final String sql = "select z + x from (\n"
+        + "  select x + y as z, x from (\n"
+        + "    select * from (values (10, 1), (30, 3)) as t (x, y)\n"
+        + "    where x + y > 50))";
+    sql(sql).with(program).check();
+  }
+
   @Test public void testEmptyIntersect() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ValuesReduceRule.PROJECT_FILTER_INSTANCE)
