@@ -47,6 +47,7 @@ import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateUnionAggregateRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
+import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
@@ -1703,6 +1704,20 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sum(empno) from emp where false";
     final boolean unchanged = true;
     checkPlanning(tester, preProgram, new HepPlanner(program), sql, unchanged);
+  }
+
+  @Test public void testEmptyAggregateEmptyKeyWithAggregateValuesRule() {
+    HepProgram preProgram = HepProgram
+        .builder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateValuesRule.INSTANCE)
+        .build();
+
+    final String sql = "select count(*), sum(empno) from emp where false";
+    sql(sql).withPre(preProgram).with(program).check();
   }
 
   @Test public void testReduceCasts() throws Exception {

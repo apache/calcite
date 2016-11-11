@@ -208,6 +208,22 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testEmptyAggregateEmptyKeyWithAggregateValuesRule">
+        <Resource name="sql">
+            <![CDATA[select count(*), sum(empno) from emp where false]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+  LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalValues(tuples=[[{ 0, null }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testEmptyIntersect">
         <Resource name="sql">
             <![CDATA[select * from (values (30, 3))intersect

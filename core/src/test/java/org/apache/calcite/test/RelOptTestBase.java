@@ -176,37 +176,43 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   Sql sql(String sql) {
-    return new Sql(sql, null, true, ImmutableMap.<Hook, Function>of());
+    return new Sql(sql, null, null, true, ImmutableMap.<Hook, Function>of());
   }
 
   /** Allows fluent testing. */
   class Sql {
     private final String sql;
+    private HepProgram preProgram;
     private final HepPlanner hepPlanner;
     private final boolean expand;
     private final ImmutableMap<Hook, Function> hooks;
 
-    Sql(String sql, HepPlanner hepPlanner, boolean expand,
-        ImmutableMap<Hook, Function> hooks) {
+    Sql(String sql, HepProgram preProgram, HepPlanner hepPlanner,
+        boolean expand, ImmutableMap<Hook, Function> hooks) {
       this.sql = sql;
+      this.preProgram = preProgram;
       this.hepPlanner = hepPlanner;
       this.expand = expand;
       this.hooks = hooks;
     }
 
+    public Sql withPre(HepProgram preProgram) {
+      return new Sql(sql, preProgram, hepPlanner, expand, hooks);
+    }
+
     public Sql with(HepPlanner hepPlanner) {
-      return new Sql(sql, hepPlanner, expand, hooks);
+      return new Sql(sql, preProgram, hepPlanner, expand, hooks);
     }
 
     public Sql with(HepProgram program) {
-      return new Sql(sql, new HepPlanner(program), expand, hooks);
+      return new Sql(sql, preProgram, new HepPlanner(program), expand, hooks);
     }
 
     /** Adds a hook and a handler for that hook. Calcite will create a thread
      * hook (by calling {@link Hook#addThread(com.google.common.base.Function)})
      * just before running the query, and remove the hook afterwards. */
     public <T> Sql withHook(Hook hook, Function<T, Void> handler) {
-      return new Sql(sql, hepPlanner, expand,
+      return new Sql(sql, preProgram, hepPlanner, expand,
           ImmutableMap.<Hook, Function>builder().putAll(hooks)
               .put(hook, handler).build());
     }
@@ -216,7 +222,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     }
 
     public Sql expand(boolean expand) {
-      return new Sql(sql, hepPlanner, expand, hooks);
+      return new Sql(sql, preProgram, hepPlanner, expand, hooks);
     }
 
     public void check() {
@@ -232,7 +238,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
         for (Map.Entry<Hook, Function> entry : hooks.entrySet()) {
           closer.add(entry.getKey().addThread(entry.getValue()));
         }
-        checkPlanning(tester.withExpand(expand), null, hepPlanner, sql,
+        checkPlanning(tester.withExpand(expand), preProgram, hepPlanner, sql,
             unchanged);
       }
     }

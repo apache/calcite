@@ -265,6 +265,8 @@ public abstract class PruneEmptyRules {
    * <li>{@code Aggregate(key: [], Empty)} is unchanged, because an aggregate
    * without a GROUP BY key always returns 1 row, even over empty input
    * </ul>
+   *
+   * @see AggregateValuesRule
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
       new RemoveEmptySingleRule(Aggregate.class, Aggregate.IS_NOT_GRAND_TOTAL,
