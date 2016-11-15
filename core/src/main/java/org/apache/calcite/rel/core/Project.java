@@ -45,7 +45,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Relational expression that computes a set of
@@ -331,9 +333,15 @@ public abstract class Project extends SingleRel {
       return null;
     }
     Permutation permutation = new Permutation(fieldCount);
+    Set<Integer> alreadyProjected = new HashSet<>(fieldCount);
     for (int i = 0; i < fieldCount; ++i) {
       final RexNode exp = projects.get(i);
       if (exp instanceof RexInputRef) {
+        if (alreadyProjected.contains(((RexInputRef) exp).getIndex())) {
+          return null;
+        } else {
+          alreadyProjected.add(((RexInputRef) exp).getIndex());
+        }
         permutation.set(i, ((RexInputRef) exp).getIndex());
       } else {
         return null;
