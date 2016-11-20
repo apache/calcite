@@ -194,10 +194,10 @@ public class RelMdPredicates
     // 'columnsMapped' construct a new predicate based on mapping.
     final ImmutableBitSet columnsMapped = columnsMappedBuilder.build();
     for (RexNode r : inputInfo.pulledUpPredicates) {
-      ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(r);
-      if (columnsMapped.contains(rCols)) {
-        r = r.accept(new RexPermuteInputsShuttle(m, input));
-        projectPullUpPredicates.add(r);
+      RexNode r2 = projectPredicate(rexBuilder, r, columnsMapped);
+      if (!r2.isAlwaysTrue()) {
+        r2 = r2.accept(new RexPermuteInputsShuttle(m, input));
+        projectPullUpPredicates.add(r2);
       }
     }
 
@@ -218,6 +218,57 @@ public class RelMdPredicates
       }
     }
     return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);
+  }
+
+  /** Converts a predicate on a particular set of columns into a predicate on
+   * a subset of those columns, weakening if necessary.
+   *
+   * <p>If not possible to simplify, returns {@code true}, which is the weakest
+   * possible predicate.
+   *
+   * <p>Examples:<ol>
+   * <li>The predicate {@code $7 = $9} on columns [7]
+   *     becomes {@code $7 is not null}
+   * <li>The predicate {@code $7 = $9 and $9 = 5} on columns [7] becomes
+   *   {@code $7 = 5}
+   * <li>The predicate
+   *   {@code $7 = $9 and ($9 = $1 or $9 = $2) and $1 > 3 and $2 > 10}
+   *   on columns [7] becomes {@code $7 > 3}
+   * </ol>
+   *
+   * <p>We currently only handle example 1.
+   *
+   * @param r Predicate expression
+   * @param columnsMapped Columns which the final predicate can reference
+   * @return Predicate expression narrowed to reference only certain columns
+   */
+  private RexNode projectPredicate(RexBuilder rexBuilder, RexNode r,
+      ImmutableBitSet columnsMapped) {
+    ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(r);
+    if (columnsMapped.contains(rCols)) {
+      // All required columns are present. No need to weaken.
+      return r;
+    }
+    if (columnsMapped.intersects(rCols)) {
+      final ImmutableBitSet cols2 = columnsMapped.intersect(rCols);
+      switch (r.getKind()) {
+      case EQUALS:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+        for (RexNode operand : ((RexCall) r).getOperands()) {
+          if (operand instanceof RexInputRef
+              && cols2.get(((RexInputRef) operand).getIndex())) {
+            return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                operand);
+          }
+        }
+      }
+    }
+    // Cannot weaken to anything non-trivial
+    return rexBuilder.makeLiteral(true);
   }
 
   /**
