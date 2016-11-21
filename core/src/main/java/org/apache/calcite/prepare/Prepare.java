@@ -160,7 +160,7 @@ public abstract class Prepare {
   }
 
   private Program getProgram() {
-    // Allow a test to override the planner.
+    // Allow a test to override the default program.
     final List<Materialization> materializations = ImmutableList.of();
     final Holder<Program> holder = Holder.of(null);
     Hook.PROGRAM.run(Pair.of(materializations, holder));

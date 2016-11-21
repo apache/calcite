@@ -21,7 +21,6 @@ import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
@@ -37,13 +36,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.tools.Program;
-import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
@@ -187,22 +182,14 @@ public class MaterializationTest {
 
       // Add any additional rules required for the test
       if (rules.iterator().hasNext()) {
-        that.withHook(Hook.PROGRAM,
-          new Function<Pair<List<Prepare.Materialization>, Holder<Program>>,
-          Void>() {
-            public Void apply(Pair<List<Prepare.Materialization>, Holder<Program>> pair) {
-              pair.right.set(new Program() {
-                public RelNode run(RelOptPlanner planner, RelNode rel,
-                    RelTraitSet requiredOutputTraits) {
-                  for (RelOptRule rule : rules) {
-                    planner.addRule(rule);
-                  }
-                  return Programs.standard().run(planner, rel, requiredOutputTraits);
-                }
-              });
-              return null;
+        that.withHook(Hook.PLANNER, new Function<RelOptPlanner, Void>() {
+          public Void apply(RelOptPlanner planner) {
+            for (RelOptRule rule : rules) {
+              planner.addRule(rule);
             }
-          });
+            return null;
+          }
+        });
       }
 
       that.explainMatches("", explainChecker)
