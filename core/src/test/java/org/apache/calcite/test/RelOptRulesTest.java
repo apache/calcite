@@ -2494,6 +2494,26 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1498">[CALCITE-1498]
+   * RelMdUtil.checkInputForCollationAndLimit() should also consider input
+   * collations as a zero-length collation list</a>. */
+  @Test public void testSortJoinTranspose5() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    // SortJoinTransposeRule should not be filed again.
+    final String sql = "select * from sales.emp e right join (\n"
+        + "select * from sales.dept d) using (deptno)\n"
+        + "limit 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1023">[CALCITE-1023]
    * Planner rule that removes Aggregate keys that are constant</a>. */
   @Test public void testAggregateConstantKeyRule() {

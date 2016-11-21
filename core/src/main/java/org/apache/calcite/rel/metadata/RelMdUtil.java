@@ -793,7 +793,7 @@ public class RelMdUtil {
   public static boolean checkInputForCollationAndLimit(RelMetadataQuery mq,
       RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     // Check if the input is already sorted
-    boolean alreadySorted = false;
+    boolean alreadySorted = collation.getFieldCollations().isEmpty();
     for (RelCollation inputCollation : mq.collations(input)) {
       if (inputCollation.satisfies(collation)) {
         alreadySorted = true;
