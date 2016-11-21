@@ -68,9 +68,11 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#STRICT_92},
    * {@link SqlConformanceEnum#PRAGMATIC_99},
    * {@link SqlConformanceEnum#PRAGMATIC_2003};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
    * false otherwise.
    */
   boolean isSortByOrdinal();
@@ -82,7 +84,9 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#STRICT_92};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
    * false otherwise.
    */
   boolean isSortByAlias();
@@ -102,6 +106,7 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#STRICT_92},
    * {@link SqlConformanceEnum#STRICT_99},
    * {@link SqlConformanceEnum#STRICT_2003};
@@ -115,6 +120,7 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#ORACLE_10};
+   * {@link SqlConformanceEnum#ORACLE_12};
    * false otherwise.
    */
   boolean isBangEqualAllowed();
@@ -125,9 +131,33 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#ORACLE_10};
+   * {@link SqlConformanceEnum#ORACLE_12};
    * false otherwise.
    */
   boolean isMinusAllowed();
+
+  /**
+   * Whether {@code CROSS APPLY} and {@code OUTER APPLY} operators are allowed
+   * in the parser.
+   *
+   * <p>{@code APPLY} invokes a table-valued function for each row returned
+   * by a table expression. It is syntactic sugar:<ul>
+   *
+   * <li>{@code SELECT * FROM emp CROSS APPLY TABLE(promote(empno)}<br>
+   * is equivalent to<br>
+   * {@code SELECT * FROM emp CROSS JOIN LATERAL TABLE(promote(empno)}
+   *
+   * <li>{@code SELECT * FROM emp OUTER APPLY TABLE(promote(empno)}<br>
+   * is equivalent to<br>
+   * {@code SELECT * FROM emp LEFT JOIN LATERAL TABLE(promote(empno)} ON true
+   * </ul>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * {@link SqlConformanceEnum#ORACLE_12};
+   * false otherwise.
+   */
+  boolean isApplyAllowed();
 }
 
 // End SqlConformance.java

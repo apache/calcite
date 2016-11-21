@@ -40,6 +40,12 @@ public enum SqlConformanceEnum implements SqlConformance {
    * consistent with Oracle version 10. */
   ORACLE_10,
 
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Oracle version 12.
+   *
+   * <p>As {@link #ORACLE_10} except for {@link #isApplyAllowed()}. */
+  ORACLE_12,
+
   /** Conformance value that instructs Calcite to use SQL semantics strictly
    * consistent with the SQL:2003 standard. */
   STRICT_2003,
@@ -47,15 +53,21 @@ public enum SqlConformanceEnum implements SqlConformance {
   /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with the SQL:2003 standard, but ignoring its more
    * inconvenient or controversial dicta. */
-  PRAGMATIC_2003;
+  PRAGMATIC_2003,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Microsoft SQL Server version 2008. */
+  SQL_SERVER_2008;
 
   public boolean isSortByOrdinal() {
     switch (this) {
     case DEFAULT:
     case ORACLE_10:
+    case ORACLE_12:
     case STRICT_92:
     case PRAGMATIC_99:
     case PRAGMATIC_2003:
+    case SQL_SERVER_2008:
       return true;
     default:
       return false;
@@ -66,7 +78,9 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case DEFAULT:
     case ORACLE_10:
+    case ORACLE_12:
     case STRICT_92:
+    case SQL_SERVER_2008:
       return true;
     default:
       return false;
@@ -80,6 +94,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isFromRequired() {
     switch (this) {
     case ORACLE_10:
+    case ORACLE_12:
     case STRICT_92:
     case STRICT_99:
     case STRICT_2003:
@@ -92,6 +107,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isBangEqualAllowed() {
     switch (this) {
     case ORACLE_10:
+    case ORACLE_12:
       return true;
     default:
       return false;
@@ -101,6 +117,17 @@ public enum SqlConformanceEnum implements SqlConformance {
   @Override public boolean isMinusAllowed() {
     switch (this) {
     case ORACLE_10:
+    case ORACLE_12:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public boolean isApplyAllowed() {
+    switch (this) {
+    case SQL_SERVER_2008:
+    case ORACLE_12:
       return true;
     default:
       return false;

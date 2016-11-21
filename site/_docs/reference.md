@@ -129,7 +129,9 @@ projectItem:
 
 tableExpression:
       tableReference [, tableReference ]*
-  |   tableExpression [ NATURAL ] [ LEFT | RIGHT | FULL ] JOIN tableExpression [ joinCondition ]
+  |   tableExpression [ NATURAL ] [ ( LEFT | RIGHT | FULL ) [ OUTER ] ] JOIN tableExpression [ joinCondition ]
+  |   tableExpression CROSS JOIN tableExpression
+  |   tableExpression [ CROSS | OUTER ] APPLY tableExpression
 
 joinCondition:
       ON booleanExpression
@@ -208,6 +210,9 @@ MINUS is equivalent to EXCEPT,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isMinusAllowed--).
 
+CROSS APPLY and OUTER APPLY are only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isApplyAllowed--).
+
 ## Keywords
 
 The following is a list of SQL keywords.
@@ -229,6 +234,7 @@ AFTER,
 ALWAYS,
 **AND**,
 **ANY**,
+APPLY,
 **ARE**,
 **ARRAY**,
 **AS**,

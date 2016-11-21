@@ -1727,6 +1727,34 @@ SqlNode FromClause() :
                 JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
                 null);
         }
+        |
+        <CROSS> { pos = getPos(); } <APPLY>
+        e2 = TableRef2(true) {
+            if (!this.conformance.isApplyAllowed()) {
+                throw new ParseException(RESOURCE.applyNotAllowed().str());
+            }
+            e = new SqlJoin(pos,
+                e,
+                SqlLiteral.createBoolean(false, pos),
+                JoinType.CROSS.symbol(SqlParserPos.ZERO),
+                e2,
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+                null);
+        }
+        |
+        <OUTER> { pos = getPos(); } <APPLY>
+        e2 = TableRef2(true) {
+            if (!this.conformance.isApplyAllowed()) {
+                throw new ParseException(RESOURCE.applyNotAllowed().str());
+            }
+            e = new SqlJoin(pos,
+                e,
+                SqlLiteral.createBoolean(false, pos),
+                JoinType.LEFT.symbol(SqlParserPos.ZERO),
+                e2,
+                JoinConditionType.ON.symbol(SqlParserPos.ZERO),
+                SqlLiteral.createBoolean(true, pos));
+        }
     ) *
     {
         return e;
@@ -1740,9 +1768,21 @@ SqlNode FromClause() :
 // seems pretty useless for non-trivial tables, since you have to supply names
 // for ALL columns at once.
 /**
- * Parses a table reference in a FROM clause.
+ * Parses a table reference in a FROM clause, not lateral unless LATERAL
+ * is explicitly specified.
  */
 SqlNode TableRef() :
+{
+    final SqlNode e;
+}
+{
+    e = TableRef2(false) { return e; }
+}
+
+/**
+ * Parses a table reference in a FROM clause.
+ */
+SqlNode TableRef2(boolean lateral) :
 {
     SqlNode tableRef;
     SqlNode over;
@@ -1751,7 +1791,6 @@ SqlNode TableRef() :
     SqlParserPos pos;
     SqlNodeList args;
     SqlNode sample;
-    boolean lateral = false;
     boolean isBernoulli;
     SqlNumericLiteral samplePercentage;
     boolean isRepeatable = false;
@@ -5498,6 +5537,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < XML: "XML" >
     | < YEAR: "YEAR" >
     | < ZONE: "ZONE" >
+    | < APPLY: "APPLY" >
   <#-- additional parser keywords are included here -->
   <#list parser.keywords as keyword>
     | < ${keyword}: "${keyword}" >
@@ -5538,6 +5578,7 @@ String CommonNonReservedKeyWord() :
         | <ADMIN>
         | <AFTER>
         | <ALWAYS>
+        | <APPLY>
         | <ASC>
         | <ASSERTION>
         | <ASSIGNMENT>
