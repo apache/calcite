@@ -1727,10 +1727,78 @@ SqlNode FromClause() :
                 JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
                 null);
         }
+        |
+        <CROSS> <APPLY> { pos = getPos(); }
+        e2 = TableFunctionRef() {
+            if (!this.conformance.isApplyAllowed()) {
+                throw new ParseException(RESOURCE.applyNotAllowed().str());
+            }
+            e = new SqlJoin(pos,
+                e,
+                SqlLiteral.createBoolean(false, pos),
+                JoinType.CROSS.symbol(SqlParserPos.ZERO),
+                e2,
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+                null);
+        }
+        |
+        <OUTER> <APPLY> { pos = getPos(); }
+        e2 = TableFunctionRef() {
+            if (!this.conformance.isApplyAllowed()) {
+                throw new ParseException(RESOURCE.applyNotAllowed().str());
+            }
+            e = new SqlJoin(pos,
+                e,
+                SqlLiteral.createBoolean(false, pos),
+                JoinType.LEFT.symbol(SqlParserPos.ZERO),
+                e2,
+                JoinConditionType.ON.symbol(SqlParserPos.ZERO),
+                SqlLiteral.createBoolean(true, pos));
+        }
     ) *
     {
         return e;
     }
+}
+
+/**
+ * Parsers a table function call to table reference in a FROM clause
+ */
+SqlNode TableFunctionRef() :
+{
+    SqlNode tableRef;
+    String alias;
+    SqlParserPos pos;
+    SqlNodeList columnAliasList = null;
+}
+{
+	{ pos = getPos(); }
+	tableRef = TableFunctionCall(pos)
+    {
+        tableRef = SqlStdOperatorTable.LATERAL.createCall(
+            getPos(), tableRef);
+    }
+    [
+        [ <AS> ] alias = Identifier()
+        [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
+        {
+            pos = getPos();
+            if (columnAliasList == null) {
+                tableRef = SqlStdOperatorTable.AS.createCall(
+                    pos, tableRef, new SqlIdentifier(alias, pos));
+            } else {
+                List<SqlNode> idList = new ArrayList<SqlNode>();
+                idList.add(tableRef);
+                idList.add(new SqlIdentifier(alias, pos));
+                idList.addAll(columnAliasList.getList());
+                tableRef = SqlStdOperatorTable.AS.createCall(pos, idList);
+            }
+        }
+    ]
+    {
+        return tableRef;
+    }
+
 }
 
 // TODO jvs 15-Nov-2003: SQL standard allows column aliases on table
@@ -5498,6 +5566,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < XML: "XML" >
     | < YEAR: "YEAR" >
     | < ZONE: "ZONE" >
+    | < APPLY: "APPLY" >
   <#-- additional parser keywords are included here -->
   <#list parser.keywords as keyword>
     | < ${keyword}: "${keyword}" >
@@ -5812,6 +5881,7 @@ String CommonNonReservedKeyWord() :
         | <WRITE>
         | <XML>
         | <ZONE>
+        | <APPLY>
       <#list parser.nonReservedKeywords as keyword>
         | <${keyword}>
       </#list>
