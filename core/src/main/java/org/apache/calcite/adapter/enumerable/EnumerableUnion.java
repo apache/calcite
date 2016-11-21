@@ -55,13 +55,12 @@ public class EnumerableUnion extends Union implements EnumerableRel {
       if (unionExp == null) {
         unionExp = childExp;
       } else {
-        unionExp =
-            Expressions.call(
-                unionExp,
-                all
-                    ? BuiltInMethod.CONCAT.method
-                    : BuiltInMethod.UNION.method,
-                childExp);
+        unionExp = all
+            ? Expressions.call(unionExp, BuiltInMethod.CONCAT.method, childExp)
+            : Expressions.call(unionExp,
+                BuiltInMethod.UNION.method,
+                Expressions.list(childExp)
+                    .appendIfNotNull(result.physType.comparer()));
       }
 
       // Once the first input has chosen its format, ask for the same for

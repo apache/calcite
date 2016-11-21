@@ -43,6 +43,7 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -50,6 +51,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.FlatLists;
@@ -3454,6 +3456,66 @@ public class JdbcTest {
             + ")")
         .returnsUnordered(
             "C=0");
+  }
+
+  @Test public void testUnionAll() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+            + "union all\n"
+            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150")
+        .explainContains(""
+            + "PLAN=EnumerableUnion(all=[true])")
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian",
+            "empid=150; name=Sebastian",
+            "empid=200; name=Eric");
+  }
+
+  @Test public void testUnion() {
+    final String sql = ""
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+        + "union\n"
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(""
+            + "PLAN=EnumerableUnion(all=[false])")
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian",
+            "empid=200; name=Eric");
+  }
+
+  @Test public void testIntersect() {
+    final String sql = ""
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+        + "intersect\n"
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, new Function<RelOptPlanner, Void>() {
+          @Override public Void apply(RelOptPlanner planner) {
+            planner.removeRule(IntersectToDistinctRule.INSTANCE);
+            return null;
+          }
+        })
+        .explainContains(""
+            + "PLAN=EnumerableIntersect(all=[false])")
+        .returnsUnordered("empid=150; name=Sebastian");
+  }
+
+  @Test public void testExcept() {
+    final String sql = ""
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+        + "except\n"
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(""
+            + "PLAN=EnumerableMinus(all=[false])")
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore");
   }
 
   /** Tests that SUM and AVG over empty set return null. COUNT returns 0. */

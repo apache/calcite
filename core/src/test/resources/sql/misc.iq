@@ -1261,6 +1261,36 @@ select 3, 'c';
 
 !ok
 
+# Composite UNION
+select deptno, deptno from "scott".emp
+union
+select deptno, deptno from "scott".dept;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     20 |     20 |
+|     30 |     30 |
+|     40 |     40 |
++--------+--------+
+(4 rows)
+
+!ok
+
+# Composite MINUS
+select deptno, deptno from "scott".emp
+except
+select deptno, deptno from "scott".dept where deptno = 10;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     20 |     20 |
+|     30 |     30 |
++--------+--------+
+(2 rows)
+
+!ok
+
 select * from (
   select 2 as a, 3 as b)
 where a < b;
@@ -1338,20 +1368,17 @@ select comm from "scott".emp where deptno = 10;
 !ok
 
 # As above, composite
-# Disabled, due to bug, apparently in EnumerableIntersect
-!if (false) {
-select 10 as deptno, comm from "scott".emp where mgr = 7698
+select job, comm from "scott".emp where mgr = 7698
 intersect
-select deptno, comm from "scott".emp where deptno = 10;
-+--------+------+
-| DEPTNO | COMM |
-+--------+------+
-|     10 |      |
-+--------+------+
+select job, comm from "scott".emp where deptno = 10;
++-------+------+
+| JOB   | COMM |
++-------+------+
+| CLERK |      |
++-------+------+
 (1 row)
 
 !ok
-!}
 
 # Make sure that IN does not compare the shorter of two strings.
 # If it did, 'MARTIN' would be emitted.

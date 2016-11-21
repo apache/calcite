@@ -552,6 +552,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           }
         });
     }
+
+    Hook.PLANNER.run(planner); // allow test to add or remove rules
+
     return planner;
   }
 
