@@ -61,6 +61,27 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceNullableCase">
+        <Resource name="sql">
+            <![CDATA[SELECT CASE WHEN 1=2 THEN cast((values(1)) as integer) ELSE 2 end as state_nm from (values(1)) as a]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[CASE(=(1, 2), CAST($1):INTEGER, 2)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 1 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(2):INTEGER])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 1 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWindowInParenthesis">
         <Resource name="sql">
             <![CDATA[select count(*) over (w), count(*) over w
