@@ -213,6 +213,21 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, hepPlanner, sql);
   }
 
+  @Test public void testReduceNullableCase() {
+    HepProgram preProgram = new HepProgramBuilder()
+      .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
+
+    final String sql = "SELECT CASE WHEN 1=2 "
+      + "THEN cast((values(1)) as integer) "
+      + "ELSE 2 end from (values(1))";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
   @Test public void testProjectToWindowRuleForMultipleWindows() {
     HepProgram preProgram = new HepProgramBuilder()
         .build();

@@ -1820,7 +1820,7 @@ public class RexUtil {
     assert newOperands.size() % 2 == 1;
     if (newOperands.size() == 1 || values.size() == 1) {
       if (!call.getType().equals(newOperands.get(newOperands.size() - 1).getType())) {
-        return rexBuilder.makeCast(call.getType(), newOperands.get(newOperands.size() - 1));
+        return rexBuilder.makeAbstractCast(call.getType(), newOperands.get(newOperands.size() - 1));
       }
       return newOperands.get(newOperands.size() - 1);
     }
