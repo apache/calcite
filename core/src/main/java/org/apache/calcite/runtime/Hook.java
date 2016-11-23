@@ -54,6 +54,9 @@ public enum Hook {
   /** Called with the output of sql-to-rel-converter. */
   CONVERTED,
 
+  /** Called with the created planner. */
+  PLANNER,
+
   /** Called after de-correlation and field trimming, but before
    * optimization. */
   TRIMMED,

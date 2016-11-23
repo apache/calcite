@@ -60,7 +60,7 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
             Expressions.call(
                 minusExp,
                 BuiltInMethod.EXCEPT.method,
-                childExp);
+                Expressions.list(childExp).appendIfNotNull(result.physType.comparer()));
       }
 
       // Once the first input has chosen its format, ask for the same for
