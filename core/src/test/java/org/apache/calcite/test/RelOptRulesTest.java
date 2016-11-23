@@ -2495,8 +2495,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1498">[CALCITE-1498]
-   * RelMdUtil.checkInputForCollationAndLimit() should also consider input
-   * collations as a zero-length collation list</a>. */
+   * Avoid LIMIT with trivial ORDER BY being pushed through JOIN endlessly</a>. */
   @Test public void testSortJoinTranspose5() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(SortProjectTransposeRule.INSTANCE)
@@ -2506,7 +2505,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(SortJoinTransposeRule.INSTANCE)
         .build();
-    // SortJoinTransposeRule should not be filed again.
+    // SortJoinTransposeRule should not be fired again.
     final String sql = "select * from sales.emp e right join (\n"
         + "select * from sales.dept d) using (deptno)\n"
         + "limit 10";
