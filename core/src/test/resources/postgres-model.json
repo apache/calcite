@@ -18,17 +18,17 @@
  */
 {
   version: '1.0',
-  defaultSchema: 'HAWQ',
+  defaultSchema: 'foodmart',
   schemas: [
     {
-      name: 'HAWQ',
+      name: 'foodmart',
       type: 'custom',
       factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
       operand: {
         jdbcDriver: 'org.postgresql.Driver',
-        jdbcUrl: 'jdbc:postgresql://localhost:5432/tzoloc',
-        jdbcUser: 'tzoloc',
-        jdbcPassword: 'tzoloc'
+        jdbcUrl: 'jdbc:postgresql://localhost:5432/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
       }
     }
   ]

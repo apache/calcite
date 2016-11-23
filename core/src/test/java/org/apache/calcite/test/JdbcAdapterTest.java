@@ -45,31 +45,33 @@ import static org.junit.Assert.assertThat;
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
 public class JdbcAdapterTest {
-
   @Test public void testLastValueOver() {
     final ImmutableMap<String, String> model =
             ImmutableMap.of("model",
                     JdbcAdapterTest.class.getResource("/postgres-model.json")
                             .getPath());
+
+    String sql = "select \"store_id\", \"account_id\", \"exp_date\","
+        + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+        + " last_value(\"time_id\") over (partition by \"account_id\""
+        + " order by \"time_id\") as \"last_version\" from \"expense_fact\"";
+
     CalciteAssert.that()
         .with(model)
         .enable(CalciteAssert.DB == POSTGRESQL)
-        .query("SELECT \"id\", \"device_id\", last_value(\"ts_millis\")"
-            + " OVER (partition by \"device_id\" order by \"device_id\" DESC"
-            + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) from"
-            + " \"HAWQ\".\"transaction\" where \"device_id\"=1445 ")
+        .query(sql)
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(id=[$0], device_id=[$1], EXPR$2=[LAST_VALUE($4)"
-            + " OVER (PARTITION BY $1 ORDER BY $1 DESC RANGE BETWEEN UNBOUNDED"
-            + " PRECEDING AND CURRENT ROW)])\n"
-            + "    JdbcFilter(condition=[=($1, 1445)])\n"
-            + "      JdbcTableScan(table=[[HAWQ, transaction]])")
+            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
+            + " time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+            + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1 ORDER BY $3"
+            + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+            + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
         .runs()
-        .planHasSql("SELECT \"id\", \"device_id\", "
-            + "LAST_VALUE(\"ts_millis\") OVER (PARTITION BY \"device_id\""
-            + " ORDER BY \"device_id\" DESC RANGE BETWEEN UNBOUNDED"
-            + " PRECEDING AND CURRENT ROW)\nFROM \"transaction\"\n"
-            + "WHERE \"device_id\" = 1445");
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\", "
+            + "\"time_id\", \"category_id\", \"currency_id\", \"amount\","
+            + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
+            + " ORDER BY \"time_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND"
+            + " CURRENT ROW) AS \"last_version\"\nFROM \"expense_fact\"");
   }
 
   @Test public void testUnionPlan() {
