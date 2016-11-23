@@ -21,6 +21,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 
 import org.hsqldb.jdbcDriver;
 
@@ -33,6 +34,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import static org.apache.calcite.test.CalciteAssert.DatabaseInstance.POSTGRESQL;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -42,6 +45,33 @@ import static org.junit.Assert.assertThat;
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
 public class JdbcAdapterTest {
+
+  @Test public void testLastValueOver() {
+    final ImmutableMap<String, String> model =
+            ImmutableMap.of("model",
+                    JdbcAdapterTest.class.getResource("/postgres-model.json")
+                            .getPath());
+    CalciteAssert.that()
+        .with(model)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("SELECT \"id\", \"device_id\", last_value(\"ts_millis\")"
+            + " OVER (partition by \"device_id\" order by \"device_id\" DESC"
+            + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) from"
+            + " \"HAWQ\".\"transaction\" where \"device_id\"=1445 ")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(id=[$0], device_id=[$1], EXPR$2=[LAST_VALUE($4)"
+            + " OVER (PARTITION BY $1 ORDER BY $1 DESC RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND CURRENT ROW)])\n"
+            + "    JdbcFilter(condition=[=($1, 1445)])\n"
+            + "      JdbcTableScan(table=[[HAWQ, transaction]])")
+        .runs()
+        .planHasSql("SELECT \"id\", \"device_id\", "
+            + "LAST_VALUE(\"ts_millis\") OVER (PARTITION BY \"device_id\""
+            + " ORDER BY \"device_id\" DESC RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND CURRENT ROW)\nFROM \"transaction\"\n"
+            + "WHERE \"device_id\" = 1445");
+  }
+
   @Test public void testUnionPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
