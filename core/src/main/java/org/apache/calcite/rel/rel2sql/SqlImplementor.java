@@ -25,11 +25,15 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -48,6 +52,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
@@ -568,6 +573,10 @@ public abstract class SqlImplementor {
             new SqlNodeList(thenList, POS), elseNode);
 
       default:
+        if (rex instanceof RexOver) {
+          return toSql(program, (RexOver) rex);
+        }
+
         final RexCall call = (RexCall) stripCastFromString(rex);
         final SqlOperator op = call.getOperator();
         final List<SqlNode> nodeList = toSql(program, call.getOperands());
@@ -593,6 +602,92 @@ public abstract class SqlImplementor {
         }
         return op.createCall(new SqlNodeList(nodeList, POS));
       }
+    }
+
+    private SqlCall toSql(RexProgram program, RexOver rexOver) {
+      final RexWindow rexWindow = rexOver.getWindow();
+      final SqlNodeList partitionList = new SqlNodeList(
+          toSql(program, rexWindow.partitionKeys), POS);
+
+      ImmutableList.Builder<SqlNode> orderNodes = ImmutableList.builder();
+      if (rexWindow.orderKeys != null) {
+        for (RexFieldCollation rfc : rexWindow.orderKeys) {
+          orderNodes.add(toSql(program, rfc));
+        }
+      }
+      final SqlNodeList orderList =
+          new SqlNodeList(orderNodes.build(), POS);
+
+      final SqlLiteral isRows =
+          SqlLiteral.createBoolean(rexWindow.isRows(), POS);
+
+      final SqlNode lowerBound =
+          createSqlWindowBound(rexWindow.getLowerBound());
+      final SqlNode upperBound =
+          createSqlWindowBound(rexWindow.getUpperBound());
+
+      // null defaults to true.
+      // During parsing the allowPartial == false (e.g. disallow partial)
+      // is expand into CASE expression and is handled as a such.
+      // Not sure if we can collapse this CASE expression back into
+      // "disallow partial" and set the allowPartial = false.
+      final SqlLiteral allowPartial = null;
+
+      final SqlWindow sqlWindow = SqlWindow.create(null, null, partitionList,
+          orderList, isRows, lowerBound, upperBound, allowPartial, POS);
+
+      final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
+      final SqlCall aggFunctionCall =
+          rexOver.getAggOperator().createCall(POS, nodeList);
+
+      return SqlStdOperatorTable.OVER.createCall(POS, aggFunctionCall,
+          sqlWindow);
+    }
+
+    private SqlNode toSql(RexProgram program, RexFieldCollation rfc) {
+      SqlNode node = toSql(program, rfc.left);
+      switch (rfc.getDirection()) {
+      case DESCENDING:
+      case STRICTLY_DESCENDING:
+        node = SqlStdOperatorTable.DESC.createCall(POS, node);
+      }
+      if (rfc.getNullDirection()
+              != dialect.defaultNullDirection(rfc.getDirection())) {
+        switch (rfc.getNullDirection()) {
+        case FIRST:
+          node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
+          break;
+        case LAST:
+          node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+          break;
+        }
+      }
+      return node;
+    }
+
+    private SqlNode createSqlWindowBound(RexWindowBound rexWindowBound) {
+      if (rexWindowBound.isCurrentRow()) {
+        return SqlWindow.createCurrentRow(POS);
+      }
+      if (rexWindowBound.isPreceding()) {
+        if (rexWindowBound.isUnbounded()) {
+          return SqlWindow.createUnboundedPreceding(POS);
+        } else {
+          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          return SqlWindow.createPreceding(literal, POS);
+        }
+      }
+      if (rexWindowBound.isFollowing()) {
+        if (rexWindowBound.isUnbounded()) {
+          return SqlWindow.createUnboundedFollowing(POS);
+        } else {
+          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          return SqlWindow.createFollowing(literal, POS);
+        }
+      }
+
+      throw new AssertionError("Unsupported Window bound: "
+          + rexWindowBound);
     }
 
     private SqlNode createLeftCall(SqlOperator op, List<SqlNode> nodeList) {
