@@ -634,7 +634,12 @@ public abstract class SqlImplementor {
       final SqlNode upperBound = createSqlWindowBound(
               rexWindow.getUpperBound());
 
-      final SqlLiteral allowPartial = null; //TODO
+      // null defaults to true.
+      // During parsing the allowPartial == false (e.g. disallow partial)
+      // is expand into CASE expression and is handled as a such.
+      // Not sure if we can collapse this CASE expression back into
+      // "disallow partial" and set the allowPartial = false.
+      final SqlLiteral allowPartial = null;
 
       final SqlWindow sqlWindow = SqlWindow.create(declName, refName, partitionList,
               orderList, isRows, lowerBound, upperBound, allowPartial, POS);
