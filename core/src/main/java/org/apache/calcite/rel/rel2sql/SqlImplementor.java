@@ -677,20 +677,21 @@ public abstract class SqlImplementor {
       return node;
     }
 
-    private SqlNode createSqlWindowBound(RexWindowBound ub) {
-      SqlNode upperBound = null;
-      if (ub.isUnbounded() && ub.isFollowing()) {
-        upperBound = SqlWindow.createUnboundedFollowing(POS);
-      } else if (ub.isUnbounded() && ub.isPreceding()) {
-        upperBound = SqlWindow.createUnboundedPreceding(POS);
-      } else if (ub.isCurrentRow()) {
-        upperBound = SqlWindow.createCurrentRow(POS);
-      } else if (ub.isPreceding()) {
-        ///??? TODO
+    private SqlNode createSqlWindowBound(RexWindowBound rexWindowBound) {
+      SqlNode sqlWindowBound = null;
+      if (rexWindowBound.isUnbounded() && rexWindowBound.isFollowing()) {
+        sqlWindowBound = SqlWindow.createUnboundedFollowing(POS);
+      } else if (rexWindowBound.isUnbounded()
+              && rexWindowBound.isPreceding()) {
+        sqlWindowBound = SqlWindow.createUnboundedPreceding(POS);
+      } else if (rexWindowBound.isCurrentRow()) {
+        sqlWindowBound = SqlWindow.createCurrentRow(POS);
+      } else if (rexWindowBound.isPreceding()) {
+        ///TODO upperBound = SqlWindow.createPreceding(???, POS);
       } else {
-        // TODO upperBound = SqlWindow.createBound(SqlLiteral Range)
+        // TODO upperBound = SqlWindow.createBound(SqlLiteral Range ???)
       }
-      return upperBound;
+      return sqlWindowBound;
     }
 
     private SqlNode createLeftCall(SqlOperator op, List<SqlNode> nodeList) {
