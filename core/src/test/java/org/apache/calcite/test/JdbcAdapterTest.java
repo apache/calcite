@@ -21,7 +21,6 @@ import org.apache.calcite.jdbc.CalciteConnection;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 
 import org.hsqldb.jdbcDriver;
 
@@ -46,20 +45,15 @@ import static org.junit.Assert.assertThat;
  */
 public class JdbcAdapterTest {
   @Test public void testLastValueOver() {
-    final ImmutableMap<String, String> model =
-            ImmutableMap.of("model",
-                    JdbcAdapterTest.class.getResource("/postgres-model.json")
-                            .getPath());
-
-    String sql = "select \"store_id\", \"account_id\", \"exp_date\","
-        + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
-        + " last_value(\"time_id\") over (partition by \"account_id\""
-        + " order by \"time_id\") as \"last_version\" from \"expense_fact\"";
-
-    CalciteAssert.that()
-        .with(model)
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == POSTGRESQL)
-        .query(sql)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+            + " last_value(\"time_id\") over (partition by \"account_id\""
+            + " order by \"time_id\") as \"last_version\""
+            + " from \"expense_fact\"")
+
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
             + " time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
@@ -67,11 +61,12 @@ public class JdbcAdapterTest {
             + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
         .runs()
-        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\", "
-            + "\"time_id\", \"category_id\", \"currency_id\", \"amount\","
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
             + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
             + " ORDER BY \"time_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND"
-            + " CURRENT ROW) AS \"last_version\"\nFROM \"expense_fact\"");
+            + " CURRENT ROW) AS \"last_version\""
+            + "\nFROM \"foodmart\".\"expense_fact\"");
   }
 
   @Test public void testUnionPlan() {
