@@ -678,20 +678,28 @@ public abstract class SqlImplementor {
     }
 
     private SqlNode createSqlWindowBound(RexWindowBound rexWindowBound) {
-      SqlNode sqlWindowBound = null;
-      if (rexWindowBound.isUnbounded() && rexWindowBound.isFollowing()) {
-        sqlWindowBound = SqlWindow.createUnboundedFollowing(POS);
-      } else if (rexWindowBound.isUnbounded()
-              && rexWindowBound.isPreceding()) {
-        sqlWindowBound = SqlWindow.createUnboundedPreceding(POS);
-      } else if (rexWindowBound.isCurrentRow()) {
-        sqlWindowBound = SqlWindow.createCurrentRow(POS);
-      } else if (rexWindowBound.isPreceding()) {
-        ///TODO upperBound = SqlWindow.createPreceding(???, POS);
-      } else {
-        // TODO upperBound = SqlWindow.createBound(SqlLiteral Range ???)
+      if (rexWindowBound.isCurrentRow()) {
+        return SqlWindow.createCurrentRow(POS);
       }
-      return sqlWindowBound;
+      if (rexWindowBound.isPreceding()) {
+        if (rexWindowBound.isUnbounded()) {
+          return SqlWindow.createUnboundedPreceding(POS);
+        } else {
+          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          return SqlWindow.createPreceding(literal, POS);
+        }
+      }
+      if (rexWindowBound.isFollowing()) {
+        if (rexWindowBound.isUnbounded()) {
+          return SqlWindow.createUnboundedFollowing(POS);
+        } else {
+          SqlNode literal = toSql(null, rexWindowBound.getOffset());
+          return SqlWindow.createFollowing(literal, POS);
+        }
+      }
+
+      throw new AssertionError("Unsupported Window bounds:"
+              + rexWindowBound);
     }
 
     private SqlNode createLeftCall(SqlOperator op, List<SqlNode> nodeList) {
