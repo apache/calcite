@@ -33,6 +33,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import static org.apache.calcite.test.CalciteAssert.DatabaseInstance.POSTGRESQL;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -42,6 +44,130 @@ import static org.junit.Assert.assertThat;
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
 public class JdbcAdapterTest {
+  @Test public void testOverDefault() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+              + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+              + " last_value(\"time_id\") over ()"
+              + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+              + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
+              + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+              + " last_version=[LAST_VALUE($3) OVER (RANGE BETWEEN UNBOUNDED"
+              + " PRECEDING AND UNBOUNDED FOLLOWING)])\n"
+              + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+        .runs()
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+              + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+              + " LAST_VALUE(\"time_id\") OVER (RANGE BETWEEN UNBOUNDED"
+              + " PRECEDING AND UNBOUNDED FOLLOWING) AS \"last_version\"\n"
+              + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  @Test public void testOverRowsBetweenBoundFollowingAndFollowing() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " last_value(\"time_id\") over (partition by \"account_id\""
+             + " order by \"time_id\" rows between 1 following and 10 following)"
+             + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+             + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
+             + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+             + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1"
+             + " ORDER BY $3 ROWS BETWEEN 1 FOLLOWING AND 10 FOLLOWING)])\n"
+             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+         .runs()
+         .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
+             + " ORDER BY \"time_id\" ROWS BETWEEN 1 FOLLOWING"
+             + " AND 10 FOLLOWING) AS \"last_version\"\n"
+             + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  @Test public void testOverRowsBetweenBoundPrecedingAndCurrent() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " last_value(\"time_id\") over (partition by \"account_id\""
+             + " order by \"time_id\" rows between 3 preceding and current row)"
+             + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+             + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
+             + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+             + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1"
+             + " ORDER BY $3 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)])\n"
+             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+         .runs()
+         .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
+             + " ORDER BY \"time_id\" ROWS BETWEEN 3 PRECEDING"
+             + " AND CURRENT ROW) AS \"last_version\"\n"
+             + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  @Test public void testOverDisallowPartial() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " last_value(\"time_id\") over (partition by \"account_id\""
+             + " order by \"time_id\" rows 3 preceding disallow partial)"
+             + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+             + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
+             + " time_id=[$3], category_id=[$4], currency_id=[$5],"
+             + " amount=[$6], last_version=[CASE(>=(COUNT() OVER"
+             + " (PARTITION BY $1 ORDER BY $3 ROWS BETWEEN 3 PRECEDING AND"
+             + " CURRENT ROW), 2), LAST_VALUE($3) OVER (PARTITION BY $1"
+             + " ORDER BY $3 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW),"
+             + " null)])\n    JdbcTableScan(table=[[foodmart,"
+             + " expense_fact]])\n")
+        .runs()
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " CASE WHEN (COUNT(*) OVER (PARTITION BY \"account_id\""
+             + " ORDER BY \"time_id\" ROWS BETWEEN 3 PRECEDING"
+             + " AND CURRENT ROW)) >= 2 THEN LAST_VALUE(\"time_id\")"
+             + " OVER (PARTITION BY \"account_id\" ORDER BY \"time_id\""
+             + " ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)"
+             + " ELSE NULL END AS \"last_version\"\n"
+             + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  @Test public void testLastValueOver() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+            + " last_value(\"time_id\") over (partition by \"account_id\""
+            + " order by \"time_id\") as \"last_version\""
+            + " from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
+            + " time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+            + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1 ORDER BY $3"
+            + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+            + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+        .runs()
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+            + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
+            + " ORDER BY \"time_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND"
+            + " CURRENT ROW) AS \"last_version\""
+            + "\nFROM \"foodmart\".\"expense_fact\"");
+  }
+
   @Test public void testUnionPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
