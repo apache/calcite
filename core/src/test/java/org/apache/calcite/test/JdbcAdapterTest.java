@@ -44,29 +44,50 @@ import static org.junit.Assert.assertThat;
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
 public class JdbcAdapterTest {
-
-  @Test public void testOverRowsBetweenBoundPrecedingAndCurrent2() {
+  @Test public void testOverDefault() {
     CalciteAssert
-            .model(JdbcTest.FOODMART_MODEL)
-            .enable(CalciteAssert.DB == POSTGRESQL)
-            .query("select \"store_id\", \"account_id\", \"exp_date\","
-                    + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
-                    + " last_value(\"time_id\") over (partition by \"account_id\""
-                    + " order by \"time_id\" rows between 1 following and 10 following)"
-                    + " as \"last_version\" from \"expense_fact\"")
-            .explainContains("PLAN=JdbcToEnumerableConverter\n"
-                    + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
-                    + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
-                    + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1"
-                    + " ORDER BY $3 ROWS BETWEEN 1 FOLLOWING AND 10 FOLLOWING)])\n"
-                    + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
-            .runs()
-            .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
-                    + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
-                    + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
-                    + " ORDER BY \"time_id\" ROWS BETWEEN 1 FOLLOWING"
-                    + " AND 10 FOLLOWING) AS \"last_version\"\n"
-                    + "FROM \"foodmart\".\"expense_fact\"");
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+              + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+              + " last_value(\"time_id\") over ()"
+              + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+              + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
+              + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+              + " last_version=[LAST_VALUE($3) OVER (RANGE BETWEEN UNBOUNDED"
+              + " PRECEDING AND UNBOUNDED FOLLOWING)])\n"
+              + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+        .runs()
+        .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+              + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+              + " LAST_VALUE(\"time_id\") OVER (RANGE BETWEEN UNBOUNDED"
+              + " PRECEDING AND UNBOUNDED FOLLOWING) AS \"last_version\"\n"
+              + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  @Test public void testOverRowsBetweenBoundFollowingAndFollowing() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " last_value(\"time_id\") over (partition by \"account_id\""
+             + " order by \"time_id\" rows between 1 following and 10 following)"
+             + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+             + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
+             + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+             + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1"
+             + " ORDER BY $3 ROWS BETWEEN 1 FOLLOWING AND 10 FOLLOWING)])\n"
+             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+         .runs()
+         .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
+             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+             + " LAST_VALUE(\"time_id\") OVER (PARTITION BY \"account_id\""
+             + " ORDER BY \"time_id\" ROWS BETWEEN 1 FOLLOWING"
+             + " AND 10 FOLLOWING) AS \"last_version\"\n"
+             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
   @Test public void testOverRowsBetweenBoundPrecedingAndCurrent() {
