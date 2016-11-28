@@ -47,7 +47,11 @@ public enum SqlConformanceEnum implements SqlConformance {
   /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with the SQL:2003 standard, but ignoring its more
    * inconvenient or controversial dicta. */
-  PRAGMATIC_2003;
+  PRAGMATIC_2003,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Microsoft SQL Server version 2008. */
+  SQL_SERVER_2008;
 
   public boolean isSortByOrdinal() {
     switch (this) {
@@ -56,6 +60,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case STRICT_92:
     case PRAGMATIC_99:
     case PRAGMATIC_2003:
+    case SQL_SERVER_2008:
       return true;
     default:
       return false;
@@ -67,6 +72,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case DEFAULT:
     case ORACLE_10:
     case STRICT_92:
+    case SQL_SERVER_2008:
       return true;
     default:
       return false;
@@ -106,6 +112,16 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  public boolean isApplyAllowed() {
+    switch (this) {
+    case SQL_SERVER_2008:
+      return true;
+    default:
+      return false;
+    }
+  }
+
 
 }
 

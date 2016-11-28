@@ -34,6 +34,9 @@ public interface CalciteResource {
   @BaseMessage("Bang equal ''!='' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> bangEqualNotAllowed();
 
+  @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> applyNotAllowed();
+
   @BaseMessage("Illegal {0} literal {1}: {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 

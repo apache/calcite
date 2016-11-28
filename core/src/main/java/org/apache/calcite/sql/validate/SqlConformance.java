@@ -71,6 +71,7 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#STRICT_92},
    * {@link SqlConformanceEnum#PRAGMATIC_99},
    * {@link SqlConformanceEnum#PRAGMATIC_2003};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
    * false otherwise.
    */
   boolean isSortByOrdinal();
@@ -83,6 +84,7 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#STRICT_92};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
    * false otherwise.
    */
   boolean isSortByAlias();
@@ -128,6 +130,17 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isMinusAllowed();
+
+  /**
+   * Whether {@code CROSS APPLY} and {@code OUTER APPLY} is allowed in the parser.
+   * The {@code APPLY} allows to invoke a table-valued function for each row returned
+   * by an outer table expression of a query.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean isApplyAllowed();
 }
 
 // End SqlConformance.java
