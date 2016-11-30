@@ -1167,7 +1167,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     assert fromTraits.size() >= toTraits.size();
 
     final boolean allowInfiniteCostConverters =
-        SaffronProperties.instance().allowInfiniteCostConverters.get();
+        SaffronProperties.INSTANCE.allowInfiniteCostConverters().get();
 
     // Traits may build on top of another...for example a collation trait
     // would typically come after a distribution trait since distribution

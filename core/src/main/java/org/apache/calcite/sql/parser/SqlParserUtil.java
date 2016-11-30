@@ -76,7 +76,7 @@ public final class SqlParserUtil {
       return null;
     }
     if (Character.toUpperCase(s.charAt(0)) == 'N') {
-      return SaffronProperties.instance().defaultNationalCharset.get();
+      return SaffronProperties.INSTANCE.defaultNationalCharset().get();
     }
     int i = s.indexOf("'");
     return s.substring(1, i); // skip prefixed '_'
@@ -484,7 +484,7 @@ public final class SqlParserUtil {
       strength = st.nextToken();
     } else {
       strength =
-          SaffronProperties.instance().defaultCollationStrength.get();
+          SaffronProperties.INSTANCE.defaultCollationStrength().get();
     }
 
     Charset charset = Charset.forName(charsetStr);

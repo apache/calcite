@@ -351,7 +351,7 @@ public class RexLiteral extends RexNode {
         boolean includeCharset =
             (nlsString.getCharsetName() != null)
                 && !nlsString.getCharsetName().equals(
-                    SaffronProperties.instance().defaultCharset.get());
+                    SaffronProperties.INSTANCE.defaultCharset().get());
         pw.print(nlsString.asSql(includeCharset, false));
       }
       break;

@@ -126,6 +126,9 @@ public class Util {
   private static final Pattern JAVA_ID_PATTERN =
       Pattern.compile("[a-zA-Z_$][a-zA-Z0-9$]*");
 
+  private static final Charset DEFAULT_CHARSET =
+      Charset.forName(SaffronProperties.INSTANCE.defaultCharset().get());
+
   /**
    * Maps classes to the map of their enum values. Uses a weak map so that
    * classes are not prevented from being unloaded.
@@ -766,7 +769,7 @@ public class Util {
    *                                                      virtual machine
    */
   public static Charset getDefaultCharset() {
-    return Charset.forName(SaffronProperties.instance().defaultCharset.get());
+    return DEFAULT_CHARSET;
   }
 
   public static Error newInternal() {

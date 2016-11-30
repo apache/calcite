@@ -102,7 +102,7 @@ public class SqlCollation implements Serializable {
    */
   public SqlCollation(Coercibility coercibility) {
     this(
-        SaffronProperties.instance().defaultCollation.get(),
+        SaffronProperties.INSTANCE.defaultCollation().get(),
         coercibility);
   }
 
