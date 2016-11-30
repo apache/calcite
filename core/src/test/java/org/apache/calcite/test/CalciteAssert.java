@@ -28,6 +28,7 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -1124,10 +1125,9 @@ public class CalciteAssert {
     }
 
     public ConnectionFactory with(String property, Object value) {
-      ImmutableMap.Builder<String, String> b = ImmutableMap.builder();
-      b.putAll(this.map);
-      b.put(property, value.toString());
-      return new MapConnectionFactory(b.build(), postProcessors);
+      return new MapConnectionFactory(
+          FlatLists.append(this.map, property, value.toString()),
+          postProcessors);
     }
 
     public ConnectionFactory with(

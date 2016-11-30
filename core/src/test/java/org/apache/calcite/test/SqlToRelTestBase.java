@@ -93,7 +93,8 @@ public abstract class SqlToRelTestBase {
   }
 
   protected Tester createTester() {
-    return new TesterImpl(getDiffRepos(), false, false, true, null, null);
+    return new TesterImpl(getDiffRepos(), false, false, true, false, null,
+        null);
   }
 
   /**
@@ -210,6 +211,10 @@ public abstract class SqlToRelTestBase {
     /** Returns a tester that optionally decorrelates queries. */
     Tester withDecorrelation(boolean enable);
 
+    /** Returns a tester that optionally decorrelates queries after planner
+     * rules have fired. */
+    Tester withLateDecorrelation(boolean enable);
+
     /** Returns a tester that optionally expands sub-queries.
      * If {@code expand} is false, the plan contains a
      * {@link org.apache.calcite.rex.RexSubQuery} for each sub-query.
@@ -228,6 +233,8 @@ public abstract class SqlToRelTestBase {
     Tester withTrim(boolean enable);
 
     Tester withClusterFactory(Function<RelOptCluster, RelOptCluster> function);
+
+    boolean isLateDecorrelate();
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -466,6 +473,7 @@ public abstract class SqlToRelTestBase {
     private SqlOperatorTable opTab;
     private final DiffRepository diffRepos;
     private final boolean enableDecorrelate;
+    private final boolean enableLateDecorrelate;
     private final boolean enableTrim;
     private final boolean enableExpand;
     private final Function<RelDataTypeFactory, Prepare.CatalogReader>
@@ -486,15 +494,18 @@ public abstract class SqlToRelTestBase {
      */
     protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
         boolean enableTrim, boolean enableExpand,
+        boolean enableLateDecorrelate,
         Function<RelDataTypeFactory, Prepare.CatalogReader>
             catalogReaderFactory,
         Function<RelOptCluster, RelOptCluster> clusterFactory) {
       this(diffRepos, enableDecorrelate, enableTrim, enableExpand,
-          catalogReaderFactory, clusterFactory, SqlToRelConverter.Config.DEFAULT);
+          enableLateDecorrelate, catalogReaderFactory, clusterFactory,
+          SqlToRelConverter.Config.DEFAULT);
     }
 
     protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
         boolean enableTrim, boolean enableExpand,
+        boolean enableLateDecorrelate,
         Function<RelDataTypeFactory, Prepare.CatalogReader>
             catalogReaderFactory,
         Function<RelOptCluster, RelOptCluster> clusterFactory,
@@ -503,6 +514,7 @@ public abstract class SqlToRelTestBase {
       this.enableDecorrelate = enableDecorrelate;
       this.enableTrim = enableTrim;
       this.enableExpand = enableExpand;
+      this.enableLateDecorrelate = enableLateDecorrelate;
       this.catalogReaderFactory = catalogReaderFactory;
       this.clusterFactory = clusterFactory;
       this.config = config;
@@ -689,44 +701,61 @@ public abstract class SqlToRelTestBase {
       return createValidator(catalogReader, typeFactory);
     }
 
-    public TesterImpl withDecorrelation(boolean enable) {
-      return this.enableDecorrelate == enable
+    public TesterImpl withDecorrelation(boolean enableDecorrelate) {
+      return this.enableDecorrelate == enableDecorrelate
           ? this
-          : new TesterImpl(diffRepos, enable, enableTrim, enableExpand,
-              catalogReaderFactory, clusterFactory);
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+              enableExpand, enableLateDecorrelate, catalogReaderFactory,
+              clusterFactory);
+    }
+
+    public Tester withLateDecorrelation(boolean enableLateDecorrelate) {
+      return this.enableLateDecorrelate == enableLateDecorrelate
+          ? this
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+              enableExpand, enableLateDecorrelate, catalogReaderFactory,
+              clusterFactory);
     }
 
     public TesterImpl withConfig(SqlToRelConverter.Config config) {
       return this.config == config
           ? this
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
-              enableExpand, catalogReaderFactory, clusterFactory, config);
+              enableExpand, enableLateDecorrelate, catalogReaderFactory,
+              clusterFactory, config);
     }
 
-    public Tester withTrim(boolean enable) {
-      return this.enableTrim == enable
+    public Tester withTrim(boolean enableTrim) {
+      return this.enableTrim == enableTrim
           ? this
-          : new TesterImpl(diffRepos, enableDecorrelate, enable, enableExpand,
-              catalogReaderFactory, clusterFactory);
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+              enableExpand, enableLateDecorrelate, catalogReaderFactory,
+              clusterFactory);
     }
 
-    public Tester withExpand(boolean expand) {
-      return this.enableExpand == expand
+    public Tester withExpand(boolean enableExpand) {
+      return this.enableExpand == enableExpand
           ? this
-          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim, expand,
-              catalogReaderFactory, clusterFactory);
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+              enableExpand, enableLateDecorrelate, catalogReaderFactory,
+              clusterFactory);
     }
 
     public Tester withCatalogReaderFactory(
         Function<RelDataTypeFactory, Prepare.CatalogReader> factory) {
-      return new TesterImpl(diffRepos, enableDecorrelate, false, enableExpand,
-          factory, clusterFactory);
+      return new TesterImpl(diffRepos, enableDecorrelate, false,
+          enableExpand, enableLateDecorrelate, factory,
+          clusterFactory);
     }
 
     public Tester withClusterFactory(
         Function<RelOptCluster, RelOptCluster> clusterFactory) {
       return new TesterImpl(diffRepos, enableDecorrelate, false, enableExpand,
-          catalogReaderFactory, clusterFactory);
+          enableLateDecorrelate, catalogReaderFactory, clusterFactory);
+    }
+
+    public boolean isLateDecorrelate() {
+      return enableLateDecorrelate;
     }
   }
 

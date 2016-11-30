@@ -274,8 +274,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select *\n"
         + "from dept left join emp using (deptno)\n"
         + "where emp.deptno is not null and emp.sal > 100";
-    checkPlanning(tester.withDecorrelation(true).withTrim(true), preProgram,
-        new HepPlanner(program), sql);
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .check();
   }
 
   @Test public void testFullOuterJoinSimplificationToLeftOuter() {
@@ -500,12 +504,16 @@ public class RelOptRulesTest extends RelOptTestBase {
         HepProgram.builder()
             .addRuleInstance(SemiJoinRule.INSTANCE)
             .build();
-    checkPlanning(tester.withDecorrelation(true).withTrim(true), preProgram,
-        new HepPlanner(program),
-        "select * from dept where exists (\n"
-            + "  select * from emp\n"
-            + "  where emp.deptno = dept.deptno\n"
-            + "  and emp.sal > 100)");
+    final String sql = "select * from dept where exists (\n"
+        + "  select * from emp\n"
+        + "  where emp.deptno = dept.deptno\n"
+        + "  and emp.sal > 100)";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .check();
   }
 
   /** Test case for
@@ -523,11 +531,16 @@ public class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
             .addRuleInstance(FilterJoinRule.JOIN)
             .build();
-    checkPlanning(tester.withDecorrelation(true).withTrim(false), preProgram,
-        new HepPlanner(program),
-        "select * from (select * from dept where dept.deptno in (\n"
-            + "  select emp.deptno from emp\n"
-            + "  ))R where R.deptno <=10 ");
+    final String sql = "select * from (\n"
+        + "  select * from dept where dept.deptno in (\n"
+        + "    select emp.deptno from emp))R\n"
+        + "where R.deptno <=10";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(false)
+        .withPre(preProgram)
+        .with(program)
+        .check();
   }
 
   /** Test case for
@@ -545,8 +558,12 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "from (select * from emp where deptno = 200) as e1\n"
         + "where e1.deptno in (\n"
         + "  select e2.deptno from emp e2 where e2.sal = 100)";
-    checkPlanning(tester.withDecorrelation(false).withTrim(true), preProgram,
-        new HepPlanner(program), sql, true);
+    sql(sql)
+        .withDecorrelation(false)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .checkUnchanged();
   }
 
   @Test public void testSemiJoinTrim() {
@@ -1973,7 +1990,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testPullConstantThroughUnion()
       throws Exception {
-    HepProgram preProgram = HepProgram.builder().build();
     HepProgram program = HepProgram.builder()
         .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
         .addRuleInstance(ProjectMergeRule.INSTANCE)
@@ -1981,7 +1997,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select 2, deptno, job from emp as e1\n"
         + "union all\n"
         + "select 2, deptno, job from emp as e2";
-    checkPlanning(tester.withTrim(true), preProgram, new HepPlanner(program), sql);
+    sql(sql)
+        .withTrim(true)
+        .with(program)
+        .check();
   }
 
   @Test public void testPullConstantThroughUnion2()
@@ -2000,7 +2019,6 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPullConstantThroughUnion3()
       throws Exception {
     // We should leave at least a single column in each Union input
-    HepProgram preProgram = HepProgram.builder().build();
     HepProgram program = HepProgram.builder()
         .addRuleInstance(UnionPullUpConstantsRule.INSTANCE)
         .addRuleInstance(ProjectMergeRule.INSTANCE)
@@ -2008,7 +2026,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select 2, 3 from emp as e1\n"
         + "union all\n"
         + "select 2, 3 from emp as e2";
-    checkPlanning(tester.withTrim(true), preProgram, new HepPlanner(program), sql);
+    sql(sql)
+        .withTrim(true)
+        .with(program)
+        .check();
   }
 
   @Test public void testAggregateProjectMerge() throws Exception {
@@ -2257,8 +2278,6 @@ public class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841]
    * Redundant windows when window function arguments are expressions</a>. */
   @Test public void testExpressionInWindowFunction() {
-    HepProgram preProgram =  new HepProgramBuilder().build();
-
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ProjectToWindowRule.class);
 
@@ -2269,16 +2288,15 @@ public class RelOptRulesTest extends RelOptTestBase {
         + " sum(deptno) over(partition by deptno order by sal) as sum1,\n"
         + "sum(deptno + sal) over(partition by deptno order by sal) as sum2\n"
         + "from emp";
-    checkPlanning(tester, preProgram, hepPlanner, sql);
+    sql(sql)
+        .with(hepPlanner)
+        .check();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-888">[CALCITE-888]
    * Overlay window loses PARTITION BY list</a>. */
   @Test public void testWindowInParenthesis() {
-    HepProgram preProgram =  new HepProgramBuilder()
-        .build();
-
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ProjectToWindowRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
@@ -2287,7 +2305,9 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select count(*) over (w), count(*) over w\n"
         + "from emp\n"
         + "window w as (partition by empno order by empno)";
-    checkPlanning(tester, preProgram, hepPlanner, sql);
+    sql(sql)
+        .with(hepPlanner)
+        .check();
   }
 
   /** Test case for
@@ -2479,7 +2499,8 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
   @Test public void testSortJoinTranspose4() {
     // Create a customized test with RelCollation trait in the test cluster.
-    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, null, null) {
+    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
+        null, null) {
       @Override public RelOptPlanner createPlanner() {
         return new MockRelOptPlanner() {
           @Override public List<RelTraitDef> getRelTraitDefs() {
@@ -2589,6 +2610,18 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "  (select deptno from sales.emp where empno < 20) as d\n"
         + "from sales.emp";
     checkSubQuery(sql).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1493">[CALCITE-1493]
+   * Wrong plan for NOT IN correlated queries</a>. */
+  @Ignore("[CALCITE-1493] is not fixed yet")
+  @Test public void testWhereNotInCorrelated() {
+    final String sql = "select sal from emp\n"
+        + "where empno NOT IN (\n"
+        + "  select deptno from dept\n"
+        + "  where emp.job = dept.name)";
+    checkSubQuery(sql).withLateDecorrelation(false).check();
   }
 
   @Test public void testExpandProjectIn() throws Exception {
@@ -2754,8 +2787,11 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(SubQueryRemoveRule.FILTER)
         .addRuleInstance(SubQueryRemoveRule.JOIN)
         .build();
-    final Tester tester = this.tester.withTrim(true).withExpand(false);
-    checkPlanning(tester, null, new HepPlanner(program), sql);
+    sql(sql)
+        .withTrim(true)
+        .expand(false)
+        .with(program)
+        .check();
   }
 
   @Test public void testCustomColumnResolvingInCorrelatedSubQuery() {
@@ -2768,8 +2804,11 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(SubQueryRemoveRule.FILTER)
         .addRuleInstance(SubQueryRemoveRule.JOIN)
         .build();
-    final Tester tester = this.tester.withTrim(true).withExpand(false);
-    checkPlanning(tester, null, new HepPlanner(program), sql);
+    sql(sql)
+        .withTrim(true)
+        .expand(false)
+        .with(program)
+        .check();
   }
 
   @Test public void testCustomColumnResolvingInCorrelatedSubQuery2() {
@@ -2782,8 +2821,11 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(SubQueryRemoveRule.FILTER)
         .addRuleInstance(SubQueryRemoveRule.JOIN)
         .build();
-    final Tester tester = this.tester.withTrim(true).withExpand(false);
-    checkPlanning(tester, null, new HepPlanner(program), sql);
+    sql(sql)
+        .withTrim(true)
+        .expand(false)
+        .with(program)
+        .check();
   }
 
   /** Test case for

@@ -19,6 +19,7 @@ package org.apache.calcite.runtime;
 import org.apache.calcite.util.ImmutableNullableList;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
 
@@ -250,6 +252,18 @@ public class FlatLists {
     final List<E> newList = new ArrayList<>(list);
     newList.add(e);
     return FlatLists.of(newList);
+  }
+
+  /** Returns a list that consists of a given list plus an element, guaranteed
+   * to be an {@link ImmutableList}. */
+  public static <E> ImmutableList<E> append(ImmutableList<E> list, E e) {
+    return ImmutableList.<E>builder().addAll(list).add(e).build();
+  }
+
+  /** Returns a map that consists of a given map plus an (key, value),
+   * guaranteed to be an {@link ImmutableMap}. */
+  public static <K, V> ImmutableMap<K, V> append(Map<K, V> map, K k, V v) {
+    return ImmutableMap.<K, V>builder().putAll(map).put(k, v).build();
   }
 
   /** Base class for flat lists. */

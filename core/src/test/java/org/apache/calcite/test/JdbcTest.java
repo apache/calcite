@@ -99,7 +99,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import org.hsqldb.jdbcDriver;
 
@@ -6892,10 +6891,7 @@ public class JdbcTest {
           final Map<String, Table> tableMap = super.getTableMap();
           final Table table = tableMap.get("emps");
           final String tableName = (String) operand.get("tableName");
-          return ImmutableMap.<String, Table>builder()
-              .putAll(tableMap)
-              .put(tableName, table)
-              .build();
+          return FlatLists.append(tableMap, tableName, table);
         }
 
         @Override public boolean isMutable() {

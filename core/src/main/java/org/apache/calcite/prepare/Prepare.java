@@ -156,8 +156,10 @@ public abstract class Prepare {
     }
 
     final RelNode rootRel4 = program.run(planner, root.rel, desiredTraits);
-    LOGGER.debug("Plan after physical tweaks: {}",
-        RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Plan after physical tweaks: {}",
+          RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
+    }
 
     return root.withRel(rootRel4);
   }
