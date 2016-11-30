@@ -370,6 +370,74 @@ where e.job not in (
 !plan
 !}
 
+# Condition that returns a NULL key.
+# Tested on Oracle.
+select count(*) as c
+from "scott".emp
+where sal + 100 not in (
+  select comm
+  from "scott".emp);
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+# Condition that happens to eliminate all NULL keys.
+# The one missing row has {ename: 'MARTIN', comm: 1400}
+# Tested on Oracle.
+select count(*) as c
+from "scott".emp
+where sal + 100 not in (
+  select comm from "scott".emp
+  where job = 'SALESMAN');
++----+
+| C  |
++----+
+| 13 |
++----+
+(1 row)
+
+!ok
+
+# Condition that provably eliminates all NULL keys.
+# Tested on Oracle.
+select count(*) as c
+from "scott".emp
+where sal + 100 not in (
+  select comm
+  from "scott".emp
+  where comm < 1000);
++----+
+| C  |
++----+
+| 14 |
++----+
+(1 row)
+
+!ok
+
+# Correlated condition in NOT IN.
+# Tested on Oracle.
+!if (fixed.calcite1513) {
+select count(*) as c
+from "scott".emp as e
+where sal + 100 not in (
+  select comm
+  from "scott".emp
+  where job = e.job);
+     EMPNO ENAME      JOB              MGR HIREDATE         SAL       COMM     DEPTNO
+---------- ---------- --------- ---------- --------- ---------- ---------- ----------
+      7499 ALLEN      SALESMAN        7698 20-FEB-81       1600        300         30
+      7521 WARD       SALESMAN        7698 22-FEB-81       1250        500         30
+      7654 MARTIN     SALESMAN        7698 28-SEP-81       1250       1400         30
+      7844 TURNER     SALESMAN        7698 08-SEP-81       1500          0         30
+!ok
+!}
+
 # [CALCITE-864] Correlation variable has incorrect row type if it is populated
 # by right side of a Join
 select *

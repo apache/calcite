@@ -41,9 +41,11 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -56,6 +58,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.CompositeList;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -306,6 +309,15 @@ public class RelBuilder {
     }
   }
 
+  /** Creates a correlation variable for the current input, and writes it into
+   * a Holder. */
+  public RelBuilder variable(Holder<RexCorrelVariable> v) {
+    v.set((RexCorrelVariable)
+        getRexBuilder().makeCorrel(peek().getRowType(),
+            cluster.createCorrel()));
+    return this;
+  }
+
   /** Creates a reference to a field by name.
    *
    * <p>Equivalent to {@code field(1, 0, fieldName)}.
@@ -415,6 +427,11 @@ public class RelBuilder {
     }
     throw new IllegalArgumentException("no relation with alias '" + alias
         + "'; aliases are: " + aliases);
+  }
+
+  /** Returns a reference to a given field of a record-valued expression. */
+  public RexNode field(RexNode e, String name) {
+    return getRexBuilder().makeFieldAccess(e, name, false);
   }
 
   /** Returns references to the fields of the top input. */
@@ -1121,10 +1138,11 @@ public class RelBuilder {
    * variables. */
   public RelBuilder join(JoinRelType joinType, RexNode condition,
       Set<CorrelationId> variablesSet) {
-    final Frame right = stack.pop();
+    Frame right = stack.pop();
     final Frame left = stack.pop();
     final RelNode join;
     final boolean correlate = variablesSet.size() == 1;
+    RexNode postCondition = literal(true);
     if (correlate) {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);
       final ImmutableBitSet requiredColumns =
@@ -1132,6 +1150,18 @@ public class RelBuilder {
       if (!RelOptUtil.notContainsCorrelation(left.rel, id, Litmus.IGNORE)) {
         throw new IllegalArgumentException("variable " + id
             + " must not be used by left input to correlation");
+      }
+      switch (joinType) {
+      case LEFT:
+        // Correlate does not have an ON clause.
+        // For a LEFT correlate, predicate must be evaluated first.
+        // For INNER, we can defer.
+        stack.push(right);
+        filter(condition.accept(new Shifter(left.rel, id, right.rel)));
+        right = stack.pop();
+        break;
+      default:
+        postCondition = condition;
       }
       join = correlateFactory.createCorrelate(left.rel, right.rel, id,
           requiredColumns, SemiJoinType.of(joinType));
@@ -1143,9 +1173,7 @@ public class RelBuilder {
     pairs.addAll(left.right);
     pairs.addAll(right.right);
     stack.push(new Frame(join, ImmutableList.copyOf(pairs)));
-    if (correlate) {
-      filter(condition);
-    }
+    filter(postCondition);
     return this;
   }
 
@@ -1645,6 +1673,33 @@ public class RelBuilder {
 
     List<RelDataTypeField> fields() {
       return CompositeList.ofCopy(Iterables.transform(right, FN));
+    }
+  }
+
+  /** Shuttle that shifts a predicate's inputs to the left, replacing early
+   * ones with references to a
+   * {@link org.apache.calcite.rex.RexCorrelVariable}. */
+  private class Shifter extends RexShuttle {
+    private final RelNode left;
+    private final CorrelationId id;
+    private final RelNode right;
+
+    Shifter(RelNode left, CorrelationId id, RelNode right) {
+      this.left = left;
+      this.id = id;
+      this.right = right;
+    }
+
+    public RexNode visitInputRef(RexInputRef inputRef) {
+      final RelDataType leftRowType = left.getRowType();
+      final RexBuilder rexBuilder = getRexBuilder();
+      final int leftCount = leftRowType.getFieldCount();
+      if (inputRef.getIndex() < leftCount) {
+        final RexNode v = rexBuilder.makeCorrel(leftRowType, id);
+        return rexBuilder.makeFieldAccess(v, inputRef.getIndex());
+      } else {
+        return rexBuilder.makeInputRef(right, inputRef.getIndex() - leftCount);
+      }
     }
   }
 }

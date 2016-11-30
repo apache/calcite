@@ -16,13 +16,11 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
-import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableFunctionScan;
@@ -30,6 +28,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.CalciteException;
@@ -41,6 +40,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
@@ -959,20 +959,44 @@ public class RelBuilderTest {
 
   @Test public void testCorrelationFails() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    builder.scan("EMP");
-    final RelOptCluster cluster = builder.peek().getCluster();
-    final CorrelationId id = cluster.createCorrel();
-    final RexNode v =
-        builder.getRexBuilder().makeCorrel(builder.peek().getRowType(), id);
+    final Holder<RexCorrelVariable> v = Holder.of(null);
     try {
-      builder.filter(builder.equals(builder.field(0), v))
+      builder.scan("EMP")
+          .variable(v)
+          .filter(builder.equals(builder.field(0), v.get()))
           .scan("DEPT")
-          .join(JoinRelType.INNER, builder.literal(true), ImmutableSet.of(id));
+          .join(JoinRelType.INNER, builder.literal(true),
+              ImmutableSet.of(v.get().id));
       fail("expected error");
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
           containsString("variable $cor0 must not be used by left input to correlation"));
     }
+  }
+
+  @Test public void testCorrelationWithCondition() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.of(null);
+    RelNode root = builder.scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field(0),
+                builder.field(v.get(), "DEPTNO")))
+        .join(JoinRelType.LEFT,
+            builder.equals(builder.field(2, 0, "SAL"),
+                builder.literal(1000)),
+            ImmutableSet.of(v.get().id))
+        .build();
+    // Note that the join filter gets pushed to the right-hand input of
+    // LogicalCorrelate
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
+        + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
   }
 
   @Test public void testAlias() {

@@ -274,7 +274,6 @@ return the `RelBuilder`.
 | `union(all [, n])` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the `n` (default two) most recent relational expressions.
 | `intersect(all [, n])` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the `n` (default two) most recent relational expressions.
 | `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
-| `as(alias)` | Assigns the given alias to the top-most relational expression.
 
 Argument types:
 
@@ -295,6 +294,7 @@ Argument types:
 * `all` boolean
 * `distinct` boolean
 * `alias` String
+* `varHolder` [Holder]({{ site.apiRoot }}/org/apache/calcite/util/Holder.html) of [RexCorrelVariable]({{ site.apiRoot }}/org/apache/calcite/rex/RexCorrelVariable.html)
 
 The builder methods perform various optimizations, including:
 * `project` returns its input if asked to project all columns in order
@@ -302,8 +302,15 @@ The builder methods perform various optimizations, including:
   simplifies (converting say `x = 1 AND TRUE` to `x = 1`)
 * If you apply `sort` then `limit`, the effect is as if you had called `sortLimit`
 
-### Stack methods
+There are annotation methods that add information to the top relational
+expression on the stack:
 
+| Method              | Description
+|:------------------- |:-----------
+| `as(alias)`         | Assigns a table alias to the top relational expression on the stack
+| `variable(varHolder)` | Creates a correlation variable referencing the top relational expression
+
+### Stack methods
 
 | Method              | Description
 |:------------------- |:-----------
@@ -330,6 +337,8 @@ added to the stack.
 | `field(inputCount, inputOrdinal, fieldOrdinal)` | Reference, by ordinal, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
 | `field(inputCount, alias, fieldName)` | Reference, by table alias and field name, to a field at most `inputCount - 1` elements from the top of the stack
 | `field(alias, fieldName)` | Reference, by table alias and field name, to a field of the top-most relational expressions
+| `field(expr, fieldName)` | Reference, by name, to a field of a record-valued expression
+| `field(expr, fieldOrdinal)` | Reference, by ordinal, to a field of a record-valued expression
 | `fields(fieldOrdinalList)` | List of expressions referencing input fields by ordinal
 | `fields(mapping)` | List of expressions referencing input fields by a given mapping
 | `fields(collation)` | List of expressions, `exprList`, such that `sort(exprList)` would replicate collation

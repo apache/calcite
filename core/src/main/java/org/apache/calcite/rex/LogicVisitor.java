@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptUtil.Logic;
 import com.google.common.collect.Iterables;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -53,6 +54,11 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     for (RexNode node : nodes) {
       node.accept(visitor, logic);
     }
+    // Convert FALSE (which can only exist within LogicVisitor) to
+    // UNKNOWN_AS_TRUE.
+    if (set.remove(Logic.FALSE)) {
+      set.add(Logic.UNKNOWN_AS_TRUE);
+    }
     switch (set.size()) {
     case 0:
       throw new IllegalArgumentException("not found: " + seek);
@@ -64,8 +70,11 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
   }
 
   public static void collect(RexNode node, RexNode seek, Logic logic,
-      Collection<Logic> logicCollection) {
-    node.accept(new LogicVisitor(seek, logicCollection), logic);
+      List<Logic> logicList) {
+    node.accept(new LogicVisitor(seek, logicList), logic);
+    // Convert FALSE (which can only exist within LogicVisitor) to
+    // UNKNOWN_AS_TRUE.
+    Collections.replaceAll(logicList, Logic.FALSE, Logic.UNKNOWN_AS_TRUE);
   }
 
   public Logic visitCall(RexCall call, Logic logic) {
@@ -84,7 +93,7 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
       logic = Logic.UNKNOWN_AS_TRUE;
       break;
     case NOT:
-      logic = logic.negate();
+      logic = logic.negate2();
       break;
     case CASE:
       logic = Logic.TRUE_FALSE_UNKNOWN;

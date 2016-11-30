@@ -2531,12 +2531,20 @@ public class RelDecorrelator implements ReflectiveVisitor {
           final RexNode ref = fieldAccess.getReferenceExpr();
           if (ref instanceof RexCorrelVariable) {
             final RexCorrelVariable var = (RexCorrelVariable) ref;
-            final Correlation correlation =
-                new Correlation(var.id,
-                    fieldAccess.getField().getIndex(),
-                    corrIdGenerator++);
-            mapFieldAccessToCorVar.put(fieldAccess, correlation);
-            mapRefRelToCorVar.put(rel, correlation);
+            if (mapFieldAccessToCorVar.containsKey(fieldAccess)) {
+              //for cases where different Rel nodes are referring to
+              // same correlation var (e.g. in case of NOT IN)
+              // avoid generating another correlation var
+              // and record the 'rel' is using the same correlation
+              mapRefRelToCorVar.put(rel, mapFieldAccessToCorVar.get(fieldAccess));
+            } else {
+              final Correlation correlation =
+                      new Correlation(var.id,
+                              fieldAccess.getField().getIndex(),
+                              corrIdGenerator++);
+              mapFieldAccessToCorVar.put(fieldAccess, correlation);
+              mapRefRelToCorVar.put(rel, correlation);
+            }
           }
           return super.visitFieldAccess(fieldAccess);
         }

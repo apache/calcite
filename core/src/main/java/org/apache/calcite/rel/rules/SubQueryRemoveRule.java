@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
@@ -225,20 +226,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
-        if (!variablesSet.isEmpty()) {
-          // We have not yet figured out how to include "ct" in a query if
-          // the source relation "e.rel" is correlated. So, dodge the issue:
-          // we pretend that the join key is NOT NULL.
-          //
-          // We will get wrong results in correlated IN where the join
-          // key has nulls. E.g.
-          //
-          //   SELECT *
-          //   FROM emp
-          //   WHERE mgr NOT IN (
-          //     SELECT mgr
-          //     FROM emp AS e2
-          //     WHERE
+        // Since EXISTS/NOT EXISTS are not affected by presence of
+        // null keys we do not need to generate count(*), count(c)
+        if (e.getKind() == SqlKind.EXISTS) {
           logic = RelOptUtil.Logic.TRUE_FALSE;
           break;
         }
@@ -247,7 +237,11 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.aggregateCall(SqlStdOperatorTable.COUNT, false, null, "ck",
                 builder.fields()));
         builder.as("ct");
-        builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
+        if (!variablesSet.isEmpty()) {
+          builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
+        } else {
+          builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
+        }
         offset += 2;
         builder.push(e.rel);
         break;

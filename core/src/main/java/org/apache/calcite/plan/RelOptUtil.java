@@ -58,6 +58,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -3038,12 +3039,36 @@ public abstract class RelOptUtil {
 
     /** A semi-join will have been applied, so that only rows for which the
      * value is TRUE will have been returned. */
-    TRUE;
+    TRUE,
+
+    /** An anti-semi-join will have been applied, so that only rows for which
+     * the value is FALSE will have been returned.
+     *
+     * <p>Currently only used within {@link LogicVisitor}, to ensure that
+     * 'NOT (NOT EXISTS (q))' behaves the same as 'EXISTS (q)') */
+    FALSE;
 
     public Logic negate() {
       switch (this) {
       case UNKNOWN_AS_FALSE:
       case TRUE:
+        return UNKNOWN_AS_TRUE;
+      case UNKNOWN_AS_TRUE:
+        return UNKNOWN_AS_FALSE;
+      default:
+        return this;
+      }
+    }
+
+    /** Variant of {@link #negate()} to be used within {@link LogicVisitor},
+     * where FALSE values may exist. */
+    public Logic negate2() {
+      switch (this) {
+      case FALSE:
+        return TRUE;
+      case TRUE:
+        return FALSE;
+      case UNKNOWN_AS_FALSE:
         return UNKNOWN_AS_TRUE;
       case UNKNOWN_AS_TRUE:
         return UNKNOWN_AS_FALSE;

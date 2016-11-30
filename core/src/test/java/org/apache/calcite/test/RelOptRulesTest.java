@@ -2749,13 +2749,12 @@ public class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1493">[CALCITE-1493]
    * Wrong plan for NOT IN correlated queries</a>. */
-  @Ignore("[CALCITE-1493] is not fixed yet")
   @Test public void testWhereNotInCorrelated() {
     final String sql = "select sal from emp\n"
         + "where empno NOT IN (\n"
         + "  select deptno from dept\n"
         + "  where emp.job = dept.name)";
-    checkSubQuery(sql).withLateDecorrelation(false).check();
+    checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
   @Test public void testExpandProjectIn() throws Exception {
